@@ -1,0 +1,62 @@
+"use client"
+
+import { SettingsIcon } from "lucide-react"
+import Link from "next/link"
+import { useMemo } from "react"
+
+import { AdvisorChat } from "@/components/advisor/advisor-chat"
+import { HealthCard, InsightList, StrategyCard } from "@/components/advisor/advisor-widgets"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { insights } from "@/lib/advisor/engine"
+import { compareStrategies } from "@/lib/advisor/strategy"
+import { useAdvisorSnapshot } from "@/lib/advisor/use-snapshot"
+import { useT } from "@/lib/i18n/use-t"
+import { effectiveProvider, useAiStore } from "@/stores/ai-store"
+import { useLocaleStore } from "@/stores/locale-store"
+
+export default function AdvisorPage() {
+  const t = useT()
+  const lang = useLocaleStore((s) => s.locale)
+  const provider = useAiStore((s) => effectiveProvider(s))
+  const { snapshot, labels, loading } = useAdvisorSnapshot()
+  const list = useMemo(() => (snapshot && labels ? insights(snapshot, labels, lang) : []), [snapshot, labels, lang])
+  const strategy = useMemo(() => (snapshot ? compareStrategies(snapshot) : null), [snapshot])
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-bold">🤖 {t("advisor.title")}</h1>
+          <Badge variant="secondary" className="mt-1">
+            {t(`advisor.mode.${provider}`)}
+          </Badge>
+        </div>
+        <Button asChild size="sm" variant="ghost">
+          <Link href="/settings#ai">
+            <SettingsIcon />
+            {t("advisor.configure")}
+          </Link>
+        </Button>
+      </div>
+
+      {loading || !snapshot || !labels ? (
+        <Skeleton className="h-96 w-full rounded-xl" />
+      ) : (
+        <>
+          <HealthCard snapshot={snapshot} />
+          <section className="space-y-2">
+            <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("advisor.insights")}</h2>
+            <InsightList insights={list} />
+          </section>
+          {strategy && <StrategyCard strategy={strategy} labels={labels} />}
+          <section className="space-y-2">
+            <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("advisor.ask")}</h2>
+            <AdvisorChat snapshot={snapshot} labels={labels} lang={lang} />
+          </section>
+        </>
+      )}
+    </div>
+  )
+}

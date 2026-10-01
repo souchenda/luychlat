@@ -71,8 +71,34 @@ export const DEBT_CATEGORY_PRESETS: Record<"PAYABLE" | "RECEIVABLE", CategoryPre
   },
 }
 
+/**
+ * Categories for the optional money movement when a debt is created: borrowed
+ * funds deposited (payable) or lent funds disbursed (receivable). Created on
+ * first use (see public.disburse_debt).
+ */
+export const DISBURSEMENT_CATEGORY_PRESETS: Record<"PAYABLE" | "RECEIVABLE", CategoryPreset> = {
+  PAYABLE: {
+    key: "loan_received",
+    type: "INCOME",
+    icon: "landmark",
+    color: "#6366f1",
+    name: { km: "ប្រាក់ខ្ចីបានទទួល", en: "Borrowed money" },
+  },
+  RECEIVABLE: {
+    key: "loan_given",
+    type: "EXPENSE",
+    icon: "hand-coins",
+    color: "#f59e0b",
+    name: { km: "ឱ្យគេខ្ចី", en: "Money lent" },
+  },
+}
+
 const PRESET_NAMES = new Map(
-  [...Object.values(CATEGORY_PRESETS).flat(), ...Object.values(DEBT_CATEGORY_PRESETS)].map((p) => [p.key, p.name]),
+  [
+    ...Object.values(CATEGORY_PRESETS).flat(),
+    ...Object.values(DEBT_CATEGORY_PRESETS),
+    ...Object.values(DISBURSEMENT_CATEGORY_PRESETS),
+  ].map((p) => [p.key, p.name]),
 )
 
 /** Preset categories show in the UI language; custom ones keep the user's name. */

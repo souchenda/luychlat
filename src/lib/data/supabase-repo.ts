@@ -6,9 +6,11 @@ import {
   InsufficientBalanceError,
   RepaymentTooLargeError,
   WalletInUseError,
+  type AppNotification,
   type Category,
   type Debt,
   type DebtRepayment,
+  type TelegramSettings,
   type Transaction,
   type Wallet,
   type Workspace,
@@ -216,7 +218,7 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
       return rows.map(toDebt)
     },
 
-    async createDebt(workspaceId, input) {
+    async createDebt(workspaceId, input, disbursement) {
       const row = unwrap(
         await supabase
           .from("debts")
@@ -224,7 +226,20 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
           .select()
           .single(),
       ) as Debt
-      return toDebt(row)
+      if (!disbursement) return toDebt(row)
+      const moved = await supabase.rpc("disburse_debt", {
+        p_debt_id: row.id,
+        p_wallet_id: disbursement.wallet_id,
+        p_exchange_rate: disbursement.exchange_rate,
+        p_date: disbursement.date,
+      })
+      if (moved.error) {
+        // Don't leave a debt behind whose money movement failed.
+        await supabase.from("debts").delete().eq("id", row.id)
+        unwrap(moved)
+      }
+      const fresh = unwrap(await supabase.from("debts").select("*").eq("id", row.id).single()) as Debt
+      return toDebt(fresh)
     },
 
     async updateDebt(id, input) {
@@ -268,6 +283,53 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
       ) as Pick<DebtRepayment, "transaction_id">
       // Cascades to the repayment; triggers restore the wallet and the debt.
       await repo.deleteTransaction(row.transaction_id)
+    },
+
+    // --- notifications (created by the daily run_debt_alerts() job) ---------
+
+    async listNotifications(workspaceId) {
+      return unwrap(
+        await supabase
+          .from("notifications")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .order("scheduled_at", { ascending: false })
+          .limit(50),
+      ) as AppNotification[]
+    },
+
+    async markNotificationsRead(workspaceId) {
+      unwrap(
+        await supabase.from("notifications").update({ is_read: true }).eq("workspace_id", workspaceId).eq("is_read", false),
+      )
+    },
+
+    async syncDueAlerts() {
+      // Server-side: pg_cron runs public.run_debt_alerts() every day at 08:00 (Asia/Phnom_Penh).
+      return []
+    },
+
+    // --- telegram (owner-only row) ------------------------------------------
+
+    async getTelegramSettings() {
+      const row = unwrap(
+        await supabase.from("telegram_settings").select("bot_token, chat_id, enabled, language").maybeSingle(),
+      ) as TelegramSettings | null
+      return row
+    },
+
+    async saveTelegramSettings(settings) {
+      const { data } = await supabase.auth.getUser()
+      if (!data.user) throw new Error("Not signed in")
+      if (!settings) {
+        unwrap(await supabase.from("telegram_settings").delete().eq("user_id", data.user.id))
+        return
+      }
+      unwrap(
+        await supabase
+          .from("telegram_settings")
+          .upsert({ user_id: data.user.id, ...settings, updated_at: new Date().toISOString() }),
+      )
     },
 
     // --- receipts: private bucket, receipts/<uid>/<uuid>.jpg -----------------

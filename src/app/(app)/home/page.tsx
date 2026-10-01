@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 
+import { AdvisorHomeCard } from "@/components/advisor/advisor-home-card"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
@@ -121,6 +122,8 @@ export default function HomePage() {
       <CashFlowCard flow={flow} loading={txQuery.isLoading} />
 
       <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} />
+
+      <AdvisorHomeCard />
 
       <CashFlowCharts transactions={transactions} categories={categoriesQuery.data ?? []} months={months} />
 

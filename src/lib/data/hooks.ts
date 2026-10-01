@@ -12,9 +12,11 @@ import type { DataRepo } from "./repo"
 import { createSupabaseRepo } from "./supabase-repo"
 import type {
   CategoryInput,
+  DebtDisbursement,
   DebtInput,
   EntryInput,
   RepaymentInput,
+  TelegramSettings,
   TransactionFilter,
   TransferInput,
   TransferUpdate,
@@ -40,6 +42,8 @@ export const queryKeys = {
   debts: (scope: string, workspaceId: string) => ["debts", scope, workspaceId] as const,
   /** Prefix for every repayment list of a workspace. */
   repayments: (scope: string, workspaceId: string) => ["repayments", scope, workspaceId] as const,
+  notifications: (scope: string, workspaceId: string) => ["notifications", scope, workspaceId] as const,
+  telegram: (scope: string) => ["telegram", scope] as const,
 }
 
 export function useWorkspaces() {
@@ -111,7 +115,7 @@ function useInvalidate(workspaceId: string | undefined) {
   const { scope } = useRepo()
   const queryClient = useQueryClient()
   const ws = workspaceId ?? ""
-  return (...keys: ("wallets" | "categories" | "transactions" | "debts" | "repayments")[]) =>
+  return (...keys: ("wallets" | "categories" | "transactions" | "debts" | "repayments" | "notifications")[]) =>
     keys.forEach((k) => void queryClient.invalidateQueries({ queryKey: queryKeys[k](scope, ws) }))
 }
 
@@ -215,7 +219,12 @@ export function useDebtMutations(workspaceId: string | undefined) {
   const moneyMoved = () => invalidate("debts", "repayments", "wallets", "transactions", "categories")
 
   return {
-    create: useMutation({ mutationFn: (input: DebtInput) => repo.createDebt(ws, input), onSuccess: () => invalidate("debts") }),
+    create: useMutation({
+      mutationFn: ({ input, disbursement }: { input: DebtInput; disbursement?: DebtDisbursement }) =>
+        repo.createDebt(ws, input, disbursement),
+      onSuccess: (_debt, { disbursement }) =>
+        disbursement ? moneyMoved() : invalidate("debts"),
+    }),
     update: useMutation({
       mutationFn: ({ id, input }: { id: string; input: DebtInput }) => repo.updateDebt(id, input),
       onSuccess: () => invalidate("debts"),
@@ -227,4 +236,37 @@ export function useDebtMutations(workspaceId: string | undefined) {
     recordRepayment: useMutation({ mutationFn: (input: RepaymentInput) => repo.recordRepayment(input), onSuccess: moneyMoved }),
     deleteRepayment: useMutation({ mutationFn: (id: string) => repo.deleteRepayment(id), onSuccess: moneyMoved }),
   }
+}
+
+export function useNotifications(workspaceId: string | undefined) {
+  const { repo, scope } = useRepo()
+  return useQuery({
+    queryKey: queryKeys.notifications(scope, workspaceId ?? ""),
+    queryFn: () => repo.listNotifications(workspaceId!),
+    enabled: Boolean(workspaceId),
+  })
+}
+
+export function useNotificationMutations(workspaceId: string | undefined) {
+  const { repo } = useRepo()
+  const invalidate = useInvalidate(workspaceId)
+  const ws = workspaceId ?? ""
+  return {
+    markRead: useMutation({ mutationFn: () => repo.markNotificationsRead(ws), onSuccess: () => invalidate("notifications") }),
+    syncDueAlerts: useMutation({ mutationFn: () => repo.syncDueAlerts(ws), onSuccess: () => invalidate("notifications") }),
+  }
+}
+
+export function useTelegramSettings() {
+  const { repo, scope } = useRepo()
+  return useQuery({ queryKey: queryKeys.telegram(scope), queryFn: () => repo.getTelegramSettings() })
+}
+
+export function useSaveTelegramSettings() {
+  const { repo, scope } = useRepo()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (settings: TelegramSettings | null) => repo.saveTelegramSettings(settings),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.telegram(scope) }),
+  })
 }

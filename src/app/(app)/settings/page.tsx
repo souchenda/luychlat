@@ -8,6 +8,8 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
+import { AiSettingsCard } from "@/components/settings/ai-settings"
+import { TelegramSettingsCard } from "@/components/settings/telegram-settings"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -188,6 +190,10 @@ export default function SettingsPage() {
           </Row>
         </Link>
       </Section>
+
+      <TelegramSettingsCard />
+
+      <AiSettingsCard />
 
       <Section title={t("settings.appearance")}>
         <Row title={t("settings.language")}>

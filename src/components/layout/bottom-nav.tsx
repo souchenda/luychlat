@@ -1,6 +1,6 @@
 "use client"
 
-import { ClipboardListIcon, HouseIcon, ReceiptTextIcon, SettingsIcon, WalletIcon } from "lucide-react"
+import { BotIcon, ClipboardListIcon, HouseIcon, ReceiptTextIcon, WalletIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -12,8 +12,8 @@ const ITEMS: { href: string; label: MessageKey; icon: typeof HouseIcon }[] = [
   { href: "/home", label: "nav.home", icon: HouseIcon },
   { href: "/transactions", label: "nav.transactions", icon: ReceiptTextIcon },
   { href: "/debts", label: "nav.debts", icon: ClipboardListIcon },
+  { href: "/advisor", label: "nav.advisor", icon: BotIcon },
   { href: "/wallets", label: "nav.wallets", icon: WalletIcon },
-  { href: "/settings", label: "nav.settings", icon: SettingsIcon },
 ]
 
 export function BottomNav() {

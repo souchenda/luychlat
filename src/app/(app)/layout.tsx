@@ -1,13 +1,18 @@
 "use client"
 
-import { Loader2Icon } from "lucide-react"
+import { Loader2Icon, SettingsIcon } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
 import { BottomNav } from "@/components/layout/bottom-nav"
 import { AppLock } from "@/components/lock/app-lock"
 import { useHydrated } from "@/hooks/use-hydrated"
+import { AlertScheduler } from "@/components/notifications/alert-scheduler"
+import { NotificationBell } from "@/components/notifications/notification-bell"
+import { Button } from "@/components/ui/button"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
+import { useT } from "@/lib/i18n/use-t"
 import { useLockStore } from "@/stores/lock-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
@@ -17,6 +22,7 @@ import { useSessionStore } from "@/stores/session-store"
  * the UI shows; cloud data is protected by Supabase RLS, not by this gate.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const t = useT()
   const router = useRouter()
   const hydrated = useHydrated()
   const { user, isGuest, authReady } = useSessionStore()
@@ -40,10 +46,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <AppLock />
+      <AlertScheduler />
       <div hidden={isLocked} inert={isLocked}>
         <header className="sticky top-0 z-30 border-b bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-          <div className="mx-auto w-full max-w-md px-4 py-2.5">
-            <WorkspaceSwitcher />
+          <div className="mx-auto flex w-full max-w-md items-center gap-1 px-4 py-2.5">
+            <div className="min-w-0 flex-1">
+              <WorkspaceSwitcher />
+            </div>
+            <NotificationBell />
+            <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label={t("nav.settings")}>
+              <Link href="/settings">
+                <SettingsIcon className="size-5" />
+              </Link>
+            </Button>
           </div>
         </header>
         {/* Re-keyed on switch so the new workspace's content fades in. */}

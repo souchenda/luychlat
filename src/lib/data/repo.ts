@@ -1,11 +1,14 @@
 import type {
+  AppNotification,
   Category,
   CategoryInput,
   Debt,
+  DebtDisbursement,
   DebtInput,
   DebtRepayment,
   EntryInput,
   RepaymentInput,
+  TelegramSettings,
   Transaction,
   TransactionFilter,
   TransferInput,
@@ -53,7 +56,8 @@ export interface DataRepo {
   deleteTransaction(id: string): Promise<void>
 
   listDebts(workspaceId: string): Promise<Debt[]>
-  createDebt(workspaceId: string, input: DebtInput): Promise<Debt>
+  /** With `disbursement`, also moves the money (deposit borrowed / pay out lent funds). */
+  createDebt(workspaceId: string, input: DebtInput, disbursement?: DebtDisbursement): Promise<Debt>
   /** Currency is fixed once repaid; the total can't drop below what was paid. */
   updateDebt(id: string, input: DebtInput): Promise<Debt>
   /** Removes the debt and its repayment records; the ledger rows stay (unlinked). */
@@ -67,6 +71,20 @@ export interface DataRepo {
   recordRepayment(input: RepaymentInput): Promise<DebtRepayment>
   /** Deletes the repayment's ledger row, which reverses the wallet and the debt. */
   deleteRepayment(id: string): Promise<void>
+
+  /** Newest first. */
+  listNotifications(workspaceId: string): Promise<AppNotification[]>
+  markNotificationsRead(workspaceId: string): Promise<void>
+  /**
+   * Creates due-date notifications for this workspace's debts and returns the
+   * new ones. Guest Mode only: in the cloud the daily run_debt_alerts() job
+   * does this (and the Telegram sending) server-side, so this returns [].
+   */
+  syncDueAlerts(workspaceId: string): Promise<AppNotification[]>
+
+  getTelegramSettings(): Promise<TelegramSettings | null>
+  /** null removes the bot configuration. */
+  saveTelegramSettings(settings: TelegramSettings | null): Promise<void>
 
   /** Stores a (compressed) receipt image; returns the reference saved in receipt_url. */
   uploadReceipt(image: Blob): Promise<string>

@@ -1,4 +1,10 @@
-import { CATEGORY_PRESETS, DEBT_CATEGORY_PRESETS } from "@/lib/categories/presets"
+import { dueAlerts, alertText } from "@/lib/alerts"
+import {
+  CATEGORY_PRESETS,
+  DEBT_CATEGORY_PRESETS,
+  DISBURSEMENT_CATEGORY_PRESETS,
+  type CategoryPreset,
+} from "@/lib/categories/presets"
 import { debtStatus, remaining } from "@/lib/debts"
 import { roundMoney } from "@/lib/money"
 import { useGuestDataStore } from "@/stores/guest-data-store"
@@ -11,6 +17,7 @@ import {
   InsufficientBalanceError,
   RepaymentTooLargeError,
   WalletInUseError,
+  type AppNotification,
   type Category,
   type Debt,
   type DebtRepayment,
@@ -147,8 +154,7 @@ function getDebt(id: string): Debt {
 }
 
 /** Mirrors public.ensure_preset_category(). */
-function ensureDebtCategory(workspaceId: string, type: Debt["type"]): string {
-  const preset = DEBT_CATEGORY_PRESETS[type]
+function ensurePresetCategory(workspaceId: string, preset: CategoryPreset): string {
   const existing = store
     .getState()
     .categories.find((c) => c.workspace_id === workspaceId && c.preset_key === preset.key)
@@ -349,7 +355,11 @@ export const guestRepo: DataRepo = {
       const repayments = s.repayments.filter((r) => r.transaction_id !== id)
       return {
         repayments,
-        debts: s.debts.map((d) => (d.id === before.debt_id ? derive(d, repayments) : d)),
+        debts: s.debts.map((d) =>
+          d.id === before.debt_id
+            ? derive({ ...d, disbursement_transaction_id: d.disbursement_transaction_id === id ? null : d.disbursement_transaction_id }, repayments)
+            : d,
+        ),
       }
     })
     if (before.receipt_url) await guestReceipts.remove(before.receipt_url)
@@ -364,12 +374,47 @@ export const guestRepo: DataRepo = {
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
   },
 
-  async createDebt(workspaceId, input) {
-    const debt = derive(
-      { id: crypto.randomUUID(), workspace_id: workspaceId, ...input, paid_amount: 0, status: "ACTIVE", created_at: now() },
+  async createDebt(workspaceId, input, disbursement) {
+    let debt = derive(
+      {
+        id: crypto.randomUUID(),
+        workspace_id: workspaceId,
+        ...input,
+        paid_amount: 0,
+        status: "ACTIVE",
+        created_at: now(),
+        disbursement_transaction_id: null,
+      },
       [],
     )
-    store.setState((s) => ({ debts: [...s.debts, debt] }))
+    if (!disbursement) {
+      store.setState((s) => ({ debts: [...s.debts, debt] }))
+      return debt
+    }
+
+    // Mirrors public.disburse_debt(): one ledger row moving the full amount.
+    const wallet = getWallet(disbursement.wallet_id)
+    if (wallet.workspace_id !== workspaceId) throw new Error("wallet not found in this workspace")
+    const tx: Transaction = {
+      id: crypto.randomUUID(),
+      workspace_id: workspaceId,
+      wallet_id: wallet.id,
+      to_wallet_id: null,
+      category_id: ensurePresetCategory(workspaceId, DISBURSEMENT_CATEGORY_PRESETS[debt.type]),
+      amount: debt.total_amount,
+      to_amount: null,
+      currency: debt.currency,
+      type: debt.type === "PAYABLE" ? "INCOME" : "EXPENSE",
+      exchange_rate: wallet.currency === debt.currency ? null : disbursement.exchange_rate,
+      note: debt.party_name,
+      receipt_url: null,
+      transaction_date: disbursement.date,
+      created_at: now(),
+      debt_id: debt.id,
+    }
+    validate(workspaceId, tx)
+    debt = { ...debt, disbursement_transaction_id: tx.id }
+    commit(null, tx, (s) => ({ debts: [...s.debts, debt] }))
     return debt
   },
 
@@ -412,7 +457,7 @@ export const guestRepo: DataRepo = {
       workspace_id: debt.workspace_id,
       wallet_id: wallet.id,
       to_wallet_id: null,
-      category_id: ensureDebtCategory(debt.workspace_id, debt.type),
+      category_id: ensurePresetCategory(debt.workspace_id, DEBT_CATEGORY_PRESETS[debt.type]),
       amount: input.amount,
       to_amount: null,
       currency: debt.currency,
@@ -447,6 +492,56 @@ export const guestRepo: DataRepo = {
     const repayment = store.getState().repayments.find((r) => r.id === id)
     if (!repayment) throw new Error("Repayment not found")
     await guestRepo.deleteTransaction(repayment.transaction_id)
+  },
+
+  // --- notifications -------------------------------------------------------
+
+  async listNotifications(workspaceId) {
+    return store
+      .getState()
+      .notifications.filter((n) => n.workspace_id === workspaceId)
+      .sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at))
+  },
+
+  async markNotificationsRead(workspaceId) {
+    store.setState((s) => ({
+      notifications: s.notifications.map((n) => (n.workspace_id === workspaceId ? { ...n, is_read: true } : n)),
+    }))
+  },
+
+  async syncDueAlerts(workspaceId) {
+    // Same stages and dedupe (debt_id + alert_key) as run_debt_alerts().
+    const state = store.getState()
+    const language = state.telegram?.language ?? "km"
+    const seen = new Set(state.notifications.map((n) => `${n.debt_id}:${n.alert_key}`))
+    const created: AppNotification[] = dueAlerts(state.debts.filter((d) => d.workspace_id === workspaceId))
+      .filter(({ debt, stage }) => !seen.has(`${debt.id}:${stage}`))
+      .map(({ debt, stage }) => {
+        const { title, body } = alertText(debt, stage, language)
+        return {
+          id: crypto.randomUUID(),
+          workspace_id: workspaceId,
+          debt_id: debt.id,
+          title,
+          message: body,
+          type: "DUE_DATE",
+          is_read: false,
+          scheduled_at: now(),
+          alert_key: stage,
+        }
+      })
+    if (created.length) store.setState((s) => ({ notifications: [...s.notifications, ...created] }))
+    return created
+  },
+
+  // --- telegram ------------------------------------------------------------
+
+  async getTelegramSettings() {
+    return store.getState().telegram
+  },
+
+  async saveTelegramSettings(settings) {
+    store.setState({ telegram: settings })
   },
 
   // --- receipts ------------------------------------------------------------

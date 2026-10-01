@@ -12,13 +12,17 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useDebtMutations } from "@/lib/data/hooks"
-import type { Debt, DebtInput, DebtType } from "@/lib/data/types"
+import { WalletSelect } from "@/components/wallets/wallet-select"
+import { useDebtMutations, useWallets } from "@/lib/data/hooks"
+import { amountInWalletCurrency } from "@/lib/data/ledger"
+import type { Debt, DebtDisbursement, DebtInput, DebtType } from "@/lib/data/types"
+import { fromDateInput } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { formatNationalNumber, isValidNationalNumber, KH_COUNTRY_CODE, toE164, toNationalNumber } from "@/lib/phone"
+import { usePrefsStore } from "@/stores/prefs-store"
 
 function buildSchema(paid: number) {
   return z
@@ -33,8 +37,12 @@ function buildSchema(paid: number) {
       startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       dueDate: z.string(),
       note: z.string().max(500),
+      /** Move the money now (off by default: tracking an existing debt shouldn't touch wallets). */
+      moveMoney: z.boolean(),
+      walletId: z.string(),
     })
     .superRefine((v, ctx) => {
+      if (v.moveMoney && !v.walletId) ctx.addIssue({ code: "custom", path: ["walletId"], message: "transfer.select" })
       const total = parseAmount(v.total)
       if (!(total > 0)) ctx.addIssue({ code: "custom", path: ["total"], message: "walletForm.amountInvalid" })
       else if (total < paid) ctx.addIssue({ code: "custom", path: ["total"], message: "debtForm.totalBelowPaid" })
@@ -63,6 +71,8 @@ type DebtFormSheetProps = {
 export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "PAYABLE", debt, onSaved }: DebtFormSheetProps) {
   const t = useT()
   const mutations = useDebtMutations(workspaceId)
+  const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
+  const activeWallets = (useWallets(workspaceId).data ?? []).filter((w) => !w.archived_at)
   const paid = debt?.paid_amount ?? 0
   const schema = useMemo(() => buildSchema(paid), [paid])
 
@@ -79,6 +89,8 @@ export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "
           startDate: debt.start_date,
           dueDate: debt.due_date ?? "",
           note: debt.note ?? "",
+          moveMoney: false,
+          walletId: "",
         }
       : {
           type: defaultType,
@@ -91,14 +103,25 @@ export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "
           startDate: todayDate(),
           dueDate: "",
           note: "",
+          moveMoney: false,
+          walletId: "",
         }
 
-  const { control, register, handleSubmit, reset, formState } = useForm<FormValues>({
+  const { control, register, handleSubmit, reset, setValue, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: defaults(),
   })
 
-  const selectedType = useWatch({ control, name: "type" })
+  const [selectedType, moveMoney, walletId, totalText, currency] = useWatch({
+    control,
+    name: ["type", "moveMoney", "walletId", "total", "currency"],
+  })
+  const moneyWallet = activeWallets.find((w) => w.id === walletId)
+  const totalValue = parseAmount(totalText)
+  const moneyConverted =
+    moneyWallet && moneyWallet.currency !== currency && totalValue > 0
+      ? amountInWalletCurrency(roundMoney(totalValue, currency), currency, khrPerUsd, moneyWallet.currency)
+      : null
 
   useEffect(() => {
     if (open) reset(defaults())
@@ -118,10 +141,19 @@ export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "
       due_date: v.dueDate || null,
       note: v.note.trim() || null,
     }
+    const target = activeWallets.find((w) => w.id === v.walletId)
+    const disbursement: DebtDisbursement | undefined =
+      !debt && v.moveMoney && target
+        ? {
+            wallet_id: target.id,
+            exchange_rate: target.currency === v.currency ? null : khrPerUsd,
+            date: fromDateInput(v.startDate),
+          }
+        : undefined
     try {
       const saved = debt
         ? await mutations.update.mutateAsync({ id: debt.id, input })
-        : await mutations.create.mutateAsync(input)
+        : await mutations.create.mutateAsync({ input, disbursement })
       toast.success(t("debtForm.saved"))
       onOpenChange(false)
       onSaved?.(saved)
@@ -277,6 +309,58 @@ export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "
           </div>
         </div>
         {err("dueDate")}
+
+        {!debt && (
+          <div className="space-y-3 rounded-xl border p-3">
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
+                {...register("moveMoney", {
+                  onChange: (e) => {
+                    if (e.target.checked && !walletId) {
+                      const preferred = activeWallets.find((w) => w.currency === currency) ?? activeWallets[0]
+                      if (preferred) setValue("walletId", preferred.id)
+                    }
+                  },
+                })}
+              />
+              <span>
+                <span className="block font-medium">{t(`debtForm.moveMoney${selectedType}`)}</span>
+                <span className="block text-xs text-muted-foreground">{t("debtForm.moveMoneyHint")}</span>
+              </span>
+            </label>
+            {moveMoney && (
+              <div className="space-y-2">
+                {activeWallets.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("entry.noWallet")}</p>
+                ) : (
+                  <Controller
+                    control={control}
+                    name="walletId"
+                    render={({ field }) => (
+                      <WalletSelect
+                        wallets={activeWallets}
+                        value={field.value}
+                        onChange={field.onChange}
+                        label={t(`debtForm.moveMoney${selectedType}`)}
+                      />
+                    )}
+                  />
+                )}
+                {err("walletId")}
+                {moneyConverted !== null && moneyWallet && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("entry.converted", {
+                      amount: formatMoney(moneyConverted, moneyWallet.currency),
+                      rate: khrPerUsd.toLocaleString("en-US"),
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="debt-note">{t("debtForm.note")}</Label>

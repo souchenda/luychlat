@@ -71,6 +71,39 @@ export type Debt = {
   status: DebtStatus
   note: string | null
   created_at: string
+  /** Ledger row created when the debt was opened with "move money", if any. */
+  disbursement_transaction_id: string | null
+}
+
+/** Optional money movement when a debt is created (see public.disburse_debt). */
+export type DebtDisbursement = {
+  wallet_id: string
+  /** KHR per 1 USD; required when the wallet uses the other currency. */
+  exchange_rate: number | null
+  date: string
+}
+
+export type NotificationType = "DUE_DATE" | "SYSTEM" | "AI_ADVICE"
+/** D7: 4–7 days left · D3: 1–3 days · D0: due today · OVERDUE (see lib/alerts.ts). */
+export type AlertKey = "D7" | "D3" | "D0" | "OVERDUE"
+
+export type AppNotification = {
+  id: string
+  workspace_id: string
+  debt_id: string | null
+  title: string
+  message: string
+  type: NotificationType
+  is_read: boolean
+  scheduled_at: string
+  alert_key: AlertKey | null
+}
+
+export type TelegramSettings = {
+  bot_token: string
+  chat_id: string
+  enabled: boolean
+  language: "km" | "en"
 }
 
 export type DebtInput = {
