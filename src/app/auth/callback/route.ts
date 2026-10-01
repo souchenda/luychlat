@@ -16,8 +16,8 @@ export async function GET(request: Request) {
   const tokenHash = searchParams.get("token_hash")
   const type = searchParams.get("type") as EmailOtpType | null
   const next = searchParams.get("next") ?? "/home"
-  // Only allow same-origin relative redirects.
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/home"
+  // Only same-origin paths: "//evil.com" and "/\evil.com" would leave the site.
+  const safeNext = /^\/(?![/\\])/.test(next) ? next : "/home"
 
   const supabase = await createSupabaseServerClient()
   if (tokenHash && type && EMAIL_LINK_TYPES.includes(type)) {

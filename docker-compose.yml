@@ -5,8 +5,9 @@
 #   docker compose ps         # STATUS should become "healthy"
 #
 # Compose reads variables from .env in this folder (not .env.local):
-#   APP_BIND   host interface (default 0.0.0.0). Behind Nginx use 127.0.0.1 so the
-#              port isn't exposed directly (Docker-published ports bypass UFW).
+#   APP_BIND   host interface (default 127.0.0.1: only Nginx on this server can
+#              reach the app; Docker-published ports would bypass UFW). Set
+#              0.0.0.0 only for a quick test without Nginx.
 #   APP_PORT   host port (default 3000). Change it if 3000 is already used on a
 #              shared server; the container always listens on 3000 inside.
 #   APP_MEMORY memory cap (default 512m) so the app can't starve other services.
@@ -24,12 +25,18 @@ services:
     container_name: luysmart
     restart: unless-stopped
     ports:
-      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-3000}:3000"
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
     mem_limit: ${APP_MEMORY:-512m}
+    pids_limit: 256
+    # The Node server needs no Linux capabilities and never escalates privileges.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 30s

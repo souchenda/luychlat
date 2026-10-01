@@ -2,6 +2,10 @@ import Anthropic from "@anthropic-ai/sdk"
 import { NextResponse } from "next/server"
 
 import { advisorRequestSchema, type AdvisorRequest } from "@/lib/advisor/payload"
+import { guardRequest, readJson } from "@/lib/server/guard"
+
+// Snapshot + 12 short messages fit well within this.
+const MAX_BYTES = 64_000
 
 /**
  * Live AI advisor (guideline: "AI Engine: Claude API / OpenAI API (Serverless
@@ -81,7 +85,9 @@ async function askOpenAI(req: AdvisorRequest): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  const parsed = advisorRequestSchema.safeParse(await request.json().catch(() => null))
+  const blocked = guardRequest(request, { name: "advisor", limit: 20, windowMs: 60_000, maxBytes: MAX_BYTES })
+  if (blocked) return blocked
+  const parsed = advisorRequestSchema.safeParse(await readJson(request, MAX_BYTES))
   if (!parsed.success) return NextResponse.json({ error: "invalid_input" }, { status: 400 })
   const req = parsed.data
 

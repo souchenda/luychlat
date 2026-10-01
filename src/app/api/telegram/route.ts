@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 
+import { guardRequest, readJson } from "@/lib/server/guard"
+
 /**
  * Thin proxy to the Telegram Bot API for the browser (Telegram doesn't allow
  * calls from web pages). The user's own bot token is passed per request and
  * never stored or logged here. Scheduled cloud alerts don't use this route:
  * public.run_debt_alerts() calls Telegram directly from the database.
  */
-export const runtime = "edge"
+// Node runtime: the rate limiter keeps its counters in this process.
+export const runtime = "nodejs"
+
+const MAX_BYTES = 8_000
 
 const BOT_TOKEN = /^[0-9]{5,15}:[A-Za-z0-9_-]{30,64}$/
 const CHAT_ID = /^(-?[0-9]{3,20}|@[A-Za-z0-9_]{5,32})$/
@@ -39,7 +44,10 @@ async function callTelegram<T>(token: string, method: string, payload: unknown):
 }
 
 export async function POST(request: Request) {
-  const parsed = body.safeParse(await request.json().catch(() => null))
+  // Test messages and chat lookups: a few per minute is plenty.
+  const blocked = guardRequest(request, { name: "telegram", limit: 10, windowMs: 60_000, maxBytes: MAX_BYTES })
+  if (blocked) return blocked
+  const parsed = body.safeParse(await readJson(request, MAX_BYTES))
   if (!parsed.success) return NextResponse.json({ ok: false, error: "invalid_input" }, { status: 400 })
   const input = parsed.data
 
