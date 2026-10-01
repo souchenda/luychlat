@@ -16,20 +16,22 @@ type PinSetupDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSaved?: () => void
+  /** Required move from a 4-digit to a 6-digit PIN right after unlocking: no "current PIN" step, can't be dismissed. */
+  upgrade?: boolean
 }
 
 /** Create or change the App Lock PIN. Changing requires the current PIN first. */
-export function PinSetupDialog({ open, onOpenChange, onSaved }: PinSetupDialogProps) {
+export function PinSetupDialog({ open, onOpenChange, onSaved, upgrade }: PinSetupDialogProps) {
   const t = useT()
-  const { pinHash, pinSalt, setPin } = useLockStore()
-  const [step, setStep] = useState<Step>(pinHash ? "current" : "create")
+  const { pinHash, pinSalt, pinLength, setPin } = useLockStore()
+  const [step, setStep] = useState<Step>(pinHash && !upgrade ? "current" : "create")
   const [firstPin, setFirstPin] = useState("")
   const [message, setMessage] = useState<string>()
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
 
   const reset = () => {
-    setStep(useLockStore.getState().pinHash ? "current" : "create")
+    setStep(useLockStore.getState().pinHash && !upgrade ? "current" : "create")
     setFirstPin("")
     setMessage(undefined)
     setError(false)
@@ -76,22 +78,34 @@ export function PinSetupDialog({ open, onOpenChange, onSaved }: PinSetupDialogPr
 
   const title =
     step === "current" ? t("pin.verifyCurrent") : step === "create" ? t("pin.createTitle") : t("pin.confirmTitle")
+  // In upgrade mode, explain why until the user hits an error.
+  const shown = message ?? (upgrade && step === "create" ? t("pin.upgradeHint") : undefined)
 
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
+        if (upgrade && !next) return
         if (!next) reset()
         onOpenChange(next)
       }}
     >
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm" showCloseButton={!upgrade}>
         <DialogHeader className="sr-only">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{t("settings.pin")}</DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <PinPad key={step} title={title} message={message} error={error} disabled={busy} onComplete={onComplete} />
+          <PinPad
+            key={step}
+            title={title}
+            message={shown}
+            error={error}
+            disabled={busy}
+            onComplete={onComplete}
+            // The current PIN may still be an old 4-digit one.
+            length={step === "current" ? pinLength : undefined}
+          />
         </div>
       </DialogContent>
     </Dialog>

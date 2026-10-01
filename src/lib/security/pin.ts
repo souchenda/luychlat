@@ -4,13 +4,32 @@
  */
 const ITERATIONS = 210_000
 
-const WEAK_PINS = new Set([
-  "0000", "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999",
-  "1234", "4321", "1212", "0123", "9876",
-])
+/** New PINs have 6 digits, like Cambodian banking apps. Older 4-digit PINs still unlock once, then must be upgraded. */
+export const PIN_LENGTH = 6
 
+// Popular picks that pass the pattern rules below (keypad shapes, "love" numbers).
+const COMMON = new Set(["147258", "258369", "369258", "159753", "357159", "147369", "789456", "456123", "520520", "520131", "131420", "123321", "654456"])
+
+/**
+ * Rejects PINs that are easy to guess: one digit repeated (111111), runs up or
+ * down (123456, 987654, 345678), short repeats (121212, 123123, 112233),
+ * only two different digits (110011), and common keypad patterns.
+ */
 export function isWeakPin(pin: string): boolean {
-  return WEAK_PINS.has(pin)
+  if (!/^\d+$/.test(pin)) return true
+  const d = [...pin].map(Number)
+  const steps = d.slice(1).map((x, i) => x - d[i])
+  if (steps.every((s) => s === 1) || steps.every((s) => s === -1)) return true
+  for (const period of [1, 2, 3]) {
+    if (pin.length % period === 0 && pin === pin.slice(0, period).repeat(pin.length / period)) return true
+  }
+  // Doubled digits in a run: 112233, 332211.
+  if (pin.length % 2 === 0 && [...pin].every((c, i) => i % 2 === 0 || c === pin[i - 1])) {
+    const pairs = pin.replace(/(\d)\1/g, "$1")
+    if (isWeakPin(pairs) || new Set(pairs).size === 1) return true
+  }
+  if (new Set(pin).size <= 2) return true
+  return COMMON.has(pin)
 }
 
 function toBase64(bytes: Uint8Array): string {

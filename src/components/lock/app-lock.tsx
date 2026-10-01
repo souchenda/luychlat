@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
 import { useT } from "@/lib/i18n/use-t"
 import { verifyBiometric } from "@/lib/security/biometric"
-import { verifyPin } from "@/lib/security/pin"
+import { PIN_LENGTH, verifyPin } from "@/lib/security/pin"
 import { MAX_PIN_ATTEMPTS, useLockStore } from "@/stores/lock-store"
 
 import { PinPad } from "./pin-pad"
+import { PinSetupDialog } from "./pin-setup-dialog"
 
 const ACTIVITY_EVENTS = ["pointerdown", "keydown", "touchstart", "wheel"] as const
 
@@ -65,7 +66,7 @@ export function AppLock() {
   useAutoLock()
   const t = useT()
   const router = useRouter()
-  const { isLocked, pinHash, pinSalt, biometricCredentialId, failedAttempts, lockoutUntil, unlock, registerFailure } =
+  const { isLocked, pinHash, pinSalt, pinLength, biometricCredentialId, failedAttempts, lockoutUntil, unlock, registerFailure } =
     useLockStore()
   const [message, setMessage] = useState<string>()
   const [error, setError] = useState(false)
@@ -121,6 +122,8 @@ export function AppLock() {
     router.replace("/login")
   }
 
+  // Unlocked with an old 4-digit PIN (or biometrics): a 6-digit PIN is required before continuing.
+  if (!isLocked && pinHash && pinLength < PIN_LENGTH) return <PinSetupDialog open onOpenChange={() => {}} upgrade />
   if (!isLocked || !pinHash) return null
 
   return (
@@ -132,7 +135,8 @@ export function AppLock() {
         <p className="text-sm text-muted-foreground">{t("lock.title")}</p>
       </div>
       <PinPad
-        title={t("lock.enterPin")}
+        title={pinLength < PIN_LENGTH ? t("lock.enterOldPin") : t("lock.enterPin")}
+        length={pinLength}
         message={lockedOut ? t("lock.lockedOut", { seconds: secondsLeft }) : message}
         error={error || lockedOut}
         disabled={lockedOut || checking}

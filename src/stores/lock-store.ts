@@ -1,6 +1,8 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
+import { PIN_LENGTH } from "@/lib/security/pin"
+
 export const AUTO_LOCK_OPTIONS = [0, 1, 5, 15] as const
 export type AutoLockMinutes = (typeof AUTO_LOCK_OPTIONS)[number]
 
@@ -10,6 +12,8 @@ const BASE_LOCKOUT_MS = 30_000
 type PersistedLockState = {
   pinHash: string | null
   pinSalt: string | null
+  /** Digits in the saved PIN: 6, or 4 for a PIN made before 6-digit PINs. */
+  pinLength: number
   biometricCredentialId: string | null
   autoLockMinutes: AutoLockMinutes
   /** Failed attempts since the last successful unlock / lockout. */
@@ -35,6 +39,7 @@ export const useLockStore = create<LockState>()(
     (set, get) => ({
       pinHash: null,
       pinSalt: null,
+      pinLength: PIN_LENGTH,
       biometricCredentialId: null,
       autoLockMinutes: 1,
       failedAttempts: 0,
@@ -42,11 +47,12 @@ export const useLockStore = create<LockState>()(
       lockoutUntil: null,
       isLocked: false,
 
-      setPin: (pinHash, pinSalt) => set({ pinHash, pinSalt, failedAttempts: 0 }),
+      setPin: (pinHash, pinSalt) => set({ pinHash, pinSalt, pinLength: PIN_LENGTH, failedAttempts: 0 }),
       clearSecurity: () =>
         set({
           pinHash: null,
           pinSalt: null,
+          pinLength: PIN_LENGTH,
           biometricCredentialId: null,
           failedAttempts: 0,
           lockoutCount: 0,
@@ -75,6 +81,7 @@ export const useLockStore = create<LockState>()(
       partialize: (s): PersistedLockState => ({
         pinHash: s.pinHash,
         pinSalt: s.pinSalt,
+        pinLength: s.pinLength,
         biometricCredentialId: s.biometricCredentialId,
         autoLockMinutes: s.autoLockMinutes,
         failedAttempts: s.failedAttempts,
@@ -84,7 +91,9 @@ export const useLockStore = create<LockState>()(
       // A fresh page load always starts locked when a PIN exists.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<PersistedLockState>
-        return { ...current, ...p, isLocked: Boolean(p.pinHash) }
+        // PINs saved before pinLength existed are the old 4-digit ones.
+        const pinLength = p.pinHash ? (p.pinLength ?? 4) : PIN_LENGTH
+        return { ...current, ...p, pinLength, isLocked: Boolean(p.pinHash) }
       },
     },
   ),

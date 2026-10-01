@@ -3,9 +3,8 @@
 import { DeleteIcon, FingerprintIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
+import { PIN_LENGTH } from "@/lib/security/pin"
 import { cn } from "@/lib/utils"
-
-export const PIN_LENGTH = 4
 
 type PinPadProps = {
   title: string
@@ -16,10 +15,12 @@ type PinPadProps = {
   /** Shows a biometric key in the bottom-left slot. */
   onBiometric?: () => void
   biometricLabel?: string
+  /** Digits to collect: 6, or 4 to unlock with a not-yet-upgraded PIN. */
+  length?: number
 }
 
-/** Numeric keypad with 4 dots. Clears itself after each completed entry. */
-export function PinPad({ title, message, error, disabled, onComplete, onBiometric, biometricLabel }: PinPadProps) {
+/** Numeric keypad with one dot per digit. Clears itself after each completed entry. */
+export function PinPad({ title, message, error, disabled, onComplete, onBiometric, biometricLabel, length = PIN_LENGTH }: PinPadProps) {
   const [pin, setPinState] = useState("")
   const pinRef = useRef("")
 
@@ -30,10 +31,10 @@ export function PinPad({ title, message, error, disabled, onComplete, onBiometri
 
   const press = useCallback(
     (digit: string) => {
-      if (disabled || pinRef.current.length >= PIN_LENGTH) return
+      if (disabled || pinRef.current.length >= length) return
       const next = pinRef.current + digit
       setPin(next)
-      if (next.length === PIN_LENGTH) {
+      if (next.length === length) {
         // Let the last dot render before handing off.
         setTimeout(() => {
           setPin("")
@@ -41,12 +42,12 @@ export function PinPad({ title, message, error, disabled, onComplete, onBiometri
         }, 120)
       }
     },
-    [disabled, onComplete],
+    [disabled, onComplete, length],
   )
 
   const backspace = useCallback(() => {
-    if (pinRef.current.length < PIN_LENGTH) setPin(pinRef.current.slice(0, -1))
-  }, [])
+    if (pinRef.current.length < length) setPin(pinRef.current.slice(0, -1))
+  }, [length])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -69,8 +70,8 @@ export function PinPad({ title, message, error, disabled, onComplete, onBiometri
         </p>
       </div>
 
-      <div className={cn("flex gap-4", error && "animate-shake")} aria-label={`${pin.length}/${PIN_LENGTH}`}>
-        {Array.from({ length: PIN_LENGTH }, (_, i) => (
+      <div className={cn("flex gap-3.5", error && "animate-shake")} aria-label={`${pin.length}/${length}`}>
+        {Array.from({ length }, (_, i) => (
           <span
             key={i}
             className={cn(

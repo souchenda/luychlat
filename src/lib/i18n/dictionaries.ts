@@ -32,7 +32,7 @@ const km = {
   "login.oauthError": "ការចូលគណនីមិនបានសម្រេច។ សូមព្យាយាមម្តងទៀត។",
 
   "lock.title": "អេបត្រូវបានចាក់សោ",
-  "lock.enterPin": "បញ្ចូល PIN ៤ ខ្ទង់",
+  "lock.enterPin": "បញ្ចូល PIN ៦ ខ្ទង់",
   "lock.wrongPin": "PIN មិនត្រឹមត្រូវ (នៅសល់ {left} ដង)",
   "lock.lockedOut": "ព្យាយាមច្រើនដងពេក។ រង់ចាំ {seconds}s",
   "lock.useBiometric": "ប្រើ FaceID / ស្នាមម្រាមដៃ",
@@ -40,10 +40,10 @@ const km = {
   "lock.forgotPin": "ភ្លេច PIN? ចាកចេញ",
   "lock.forgotPinConfirm": "ការចាកចេញនឹងលុប PIN និងការកំណត់ជីវមាត្រលើឧបករណ៍នេះ។ ទិន្នន័យសាកល្បង (Guest) នឹងត្រូវបាត់។ បន្តឬទេ?",
 
-  "pin.createTitle": "បង្កើត PIN ៤ ខ្ទង់",
+  "pin.createTitle": "បង្កើត PIN ៦ ខ្ទង់",
   "pin.confirmTitle": "បញ្ជាក់ PIN ម្តងទៀត",
   "pin.mismatch": "PIN មិនដូចគ្នាទេ។ សូមចាប់ផ្តើមម្តងទៀត។",
-  "pin.weak": "PIN ងាយទាយពេក (ឧ. 1234, 0000)។ សូមជ្រើសផ្សេង។",
+  "pin.weak": "PIN ងាយទាយពេក (ឧ. 123456, 111111, 121212)។ សូមជ្រើសផ្សេង។",
   "pin.saved": "បានកំណត់ PIN ដោយជោគជ័យ",
   "pin.verifyCurrent": "បញ្ចូល PIN បច្ចុប្បន្ន",
   "pin.wrongCurrent": "PIN មិនត្រឹមត្រូវ",
@@ -57,7 +57,7 @@ const km = {
   "home.guestBannerHint": "ទិន្នន័យនៅលើឧបករណ៍នេះប៉ុណ្ណោះ។ បង្កើតគណនី ហើយយើងនឹងផ្ទេរវាទៅ Cloud ឲ្យ។",
   "home.createAccount": "បង្កើតគណនី និងរក្សាទិន្នន័យ",
   "home.secureTitle": "ការពារអេបរបស់អ្នក",
-  "home.secureHint": "កំណត់ PIN ៤ ខ្ទង់ និង FaceID / ស្នាមម្រាមដៃ ដើម្បីចាក់សោអេបដោយស្វ័យប្រវត្តិ។",
+  "home.secureHint": "កំណត់ PIN ៦ ខ្ទង់ និង FaceID / ស្នាមម្រាមដៃ ដើម្បីចាក់សោអេបដោយស្វ័យប្រវត្តិ។",
   "home.setPin": "កំណត់ PIN",
 
   "settings.title": "ការកំណត់",
@@ -68,7 +68,7 @@ const km = {
   "settings.theme.dark": "ងងឹត",
   "settings.theme.system": "តាមប្រព័ន្ធ",
   "settings.security": "សុវត្ថិភាព",
-  "settings.pin": "PIN ៤ ខ្ទង់",
+  "settings.pin": "PIN ៦ ខ្ទង់",
   "settings.pinOn": "បានបើក",
   "settings.pinOff": "មិនទាន់កំណត់",
   "settings.setPin": "កំណត់ PIN",
@@ -729,6 +729,8 @@ const km = {
   "holiday.water_festival": "រីករាយបុណ្យអុំទូក",
   "holiday.christmas": "រីករាយបុណ្យណូអែល និងឆ្នាំថ្មី",
   "holiday.chinese_new_year": "រីករាយបុណ្យចូលឆ្នាំចិន",
+  "lock.enterOldPin": "បញ្ចូល PIN ៤ ខ្ទង់ចាស់របស់អ្នក",
+  "pin.upgradeHint": "ដើម្បីសុវត្ថិភាពដូចកម្មវិធីធនាគារ PIN ឥឡូវត្រូវមាន ៦ ខ្ទង់។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -765,7 +767,7 @@ const en: Record<MessageKey, string> = {
   "login.oauthError": "Sign-in failed. Please try again.",
 
   "lock.title": "App locked",
-  "lock.enterPin": "Enter your 4-digit PIN",
+  "lock.enterPin": "Enter your 6-digit PIN",
   "lock.wrongPin": "Wrong PIN ({left} attempts left)",
   "lock.lockedOut": "Too many attempts. Wait {seconds}s",
   "lock.useBiometric": "Use FaceID / fingerprint",
@@ -773,10 +775,10 @@ const en: Record<MessageKey, string> = {
   "lock.forgotPin": "Forgot PIN? Sign out",
   "lock.forgotPinConfirm": "Signing out removes the PIN and biometric settings on this device. Guest data will be lost. Continue?",
 
-  "pin.createTitle": "Create a 4-digit PIN",
+  "pin.createTitle": "Create a 6-digit PIN",
   "pin.confirmTitle": "Confirm your PIN",
   "pin.mismatch": "PINs don't match. Please start again.",
-  "pin.weak": "That PIN is too easy to guess (e.g. 1234, 0000). Choose another.",
+  "pin.weak": "That PIN is too easy to guess (e.g. 123456, 111111, 121212). Choose another.",
   "pin.saved": "PIN set successfully",
   "pin.verifyCurrent": "Enter your current PIN",
   "pin.wrongCurrent": "Wrong PIN",
@@ -790,7 +792,7 @@ const en: Record<MessageKey, string> = {
   "home.guestBannerHint": "Your data is only on this device. Create an account and we'll move it to the cloud.",
   "home.createAccount": "Create account & keep my data",
   "home.secureTitle": "Protect your app",
-  "home.secureHint": "Set a 4-digit PIN and FaceID / fingerprint to auto-lock the app.",
+  "home.secureHint": "Set a 6-digit PIN and FaceID / fingerprint to auto-lock the app.",
   "home.setPin": "Set PIN",
 
   "settings.title": "Settings",
@@ -801,7 +803,7 @@ const en: Record<MessageKey, string> = {
   "settings.theme.dark": "Dark",
   "settings.theme.system": "System",
   "settings.security": "Security",
-  "settings.pin": "4-digit PIN",
+  "settings.pin": "6-digit PIN",
   "settings.pinOn": "On",
   "settings.pinOff": "Not set",
   "settings.setPin": "Set PIN",
@@ -1462,6 +1464,8 @@ const en: Record<MessageKey, string> = {
   "holiday.water_festival": "Happy Water Festival",
   "holiday.christmas": "Merry Christmas & Happy New Year",
   "holiday.chinese_new_year": "Happy Chinese New Year",
+  "lock.enterOldPin": "Enter your old 4-digit PIN",
+  "pin.upgradeHint": "For bank-grade safety, PINs now have 6 digits.",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }
