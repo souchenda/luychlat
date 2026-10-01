@@ -2,7 +2,7 @@
 
 import { format, isToday, isYesterday } from "date-fns"
 import { enUS, km } from "date-fns/locale"
-import { ArrowRightIcon, PaperclipIcon } from "lucide-react"
+import { ArrowRightIcon, CircleCheckIcon, PaperclipIcon } from "lucide-react"
 
 import { CategoryIcon } from "@/components/categories/category-icon"
 import { RecordedBy } from "@/components/family/member-avatar"
@@ -73,6 +73,7 @@ export function TransactionList({ transactions, wallets, categories, onSelect, g
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium">{title}</span>
           <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+            {tx.reconciled_at && <CircleCheckIcon className="size-3 shrink-0 text-emerald-600" aria-label={t("recon.verified")} />}
             {tx.receipt_url && <PaperclipIcon className="size-3 shrink-0" aria-label={t("entry.receipt")} />}
             <span className="truncate">{subtitle}</span>
           </span>

@@ -1,7 +1,8 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArchiveIcon, ArchiveRestoreIcon, LockIcon, Loader2Icon, ScaleIcon, Trash2Icon, UserIcon, UsersIcon } from "lucide-react"
+import { ArchiveIcon, ArchiveRestoreIcon, ChevronRightIcon, CrownIcon, FileSpreadsheetIcon, LockIcon, Loader2Icon, ScaleIcon, Trash2Icon, UserIcon, UsersIcon } from "lucide-react"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -18,7 +19,7 @@ import { PersonalWalletError, PlanLimitError, WalletInUseError, type Currency, t
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { parseAmount, roundMoney } from "@/lib/money"
-import { showUpgrade } from "@/lib/plan"
+import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { getProvider, WALLET_PROVIDERS } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -47,6 +48,7 @@ type WalletFormSheetProps = {
 
 export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHistory }: WalletFormSheetProps) {
   const t = useT()
+  const { isPro } = usePlan()
   const locale = useLocaleStore((s) => s.locale)
   const mutations = useWalletMutations(workspaceId)
   const { workspace } = useActiveWorkspace()
@@ -264,7 +266,23 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
               {t("reconcile.button")}
             </Button>
           </div>
-        ) : (
+        ) : null}
+        {wallet && (
+          <Link
+            href={`/wallets/${wallet.id}/reconcile`}
+            onClick={() => onOpenChange(false)}
+            className="flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted/60"
+          >
+            <FileSpreadsheetIcon className="size-5 shrink-0 text-emerald-600" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">{t("recon.title")}</span>
+              <span className="block text-xs text-muted-foreground">{t("recon.entryHint")}</span>
+            </span>
+            {!isPro && <CrownIcon className="size-4 text-amber-500" aria-label="PRO" />}
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Link>
+        )}
+        {wallet ? null : (
         <div className="space-y-2">
           <Label htmlFor="wallet-balance">{t("walletForm.openingBalance")}</Label>
           <Input

@@ -33,6 +33,7 @@ const COMPARE: { label: MessageKey; free: MessageKey | false; pro: MessageKey | 
   { label: "upgrade.row.wallets", free: "upgrade.free.wallets", pro: "upgrade.unlimited" },
   { label: "upgrade.row.family", free: "upgrade.free.family", pro: "upgrade.unlimited" },
   { label: "upgrade.row.ai", free: "upgrade.free.ai", pro: "upgrade.pro.ai" },
+  { label: "upgrade.row.reconcile", free: false, pro: true },
   { label: "upgrade.row.export", free: false, pro: true },
   { label: "upgrade.row.score", free: false, pro: true },
 ]

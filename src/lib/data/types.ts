@@ -37,6 +37,9 @@ export type Wallet = {
   visibility: WalletVisibility
   /** Who created it; for a PERSONAL wallet, the only person who may use it. */
   owner_id: string | null
+  /** Last bank statement this wallet was reconciled with (signed-in only). */
+  last_reconciled_on?: string | null
+  last_reconciled_balance?: number | null
 }
 
 export type Transaction = {
@@ -56,6 +59,10 @@ export type Transaction = {
   created_at: string
   /** Set when this row is a debt repayment; edit it from the debt. */
   debt_id: string | null
+  /** Confirmed against a bank statement line (cleared when its money changes). */
+  reconciled_at?: string | null
+  /** The bank's transaction reference, when known. */
+  bank_ref?: string | null
 } & Attribution
 
 /** Who recorded a row; the name is a snapshot taken when it was recorded. */

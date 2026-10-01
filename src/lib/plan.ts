@@ -112,7 +112,7 @@ export function useIsPro(feature: ProFeature): boolean {
 }
 
 /** Why the upgrade sheet was opened (shown as its first line). */
-export type UpgradeReason = "general" | "wallets" | "family" | "export" | "ai" | "credit_score"
+export type UpgradeReason = "general" | "wallets" | "family" | "export" | "ai" | "credit_score" | "reconcile"
 
 export const useUpgradeStore = create<{ open: boolean; reason: UpgradeReason; show: (reason?: UpgradeReason) => void; close: () => void }>()(
   (set) => ({
