@@ -1,6 +1,6 @@
 "use client"
 
-import { ChartColumnIcon, ChevronRightIcon, CloudUploadIcon, CoinsIcon, TargetIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import { BookOpenIcon, ChartColumnIcon, ChevronRightIcon, CloudUploadIcon, CoinsIcon, TargetIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -269,6 +269,14 @@ export default function SettingsPage() {
             {isGuest ? t("settings.endGuest") : t("settings.signOut")}
           </Button>
         </div>
+      </Section>
+
+      <Section title={t("settings.help")}>
+        <Link href="/guide" className="block hover:bg-muted/60">
+          <Row icon={<BookOpenIcon />} title={t("guide.title")} hint={t("guide.settingsHint")}>
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Row>
+        </Link>
       </Section>
 
       <DataManagement />

@@ -4,6 +4,7 @@ import { SettingsIcon, SparklesIcon } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 
+import { HelpLink } from "@/components/common/help-link"
 import { AdvisorChat } from "@/components/advisor/advisor-chat"
 import { InsightList, StrategyCard } from "@/components/advisor/advisor-widgets"
 import { CreditScoreCard } from "@/components/advisor/credit-score-card"
@@ -39,12 +40,15 @@ export default function AdvisorPage() {
             {t(`advisor.mode.${provider}`)}
           </Badge>
         </div>
+        <div className="flex items-center">
+        <HelpLink section="ai" />
         <Button asChild size="sm" variant="ghost">
           <Link href="/settings#ai">
             <SettingsIcon />
             {t("advisor.configure")}
           </Link>
         </Button>
+        </div>
       </div>
 
       {loading || !snapshot || !labels ? (

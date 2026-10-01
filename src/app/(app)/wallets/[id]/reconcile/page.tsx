@@ -8,6 +8,7 @@ import { useParams } from "next/navigation"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
 
+import { HelpLink } from "@/components/common/help-link"
 import { MappingStep } from "@/components/reconcile/mapping-step"
 import { ReviewStep } from "@/components/reconcile/review-step"
 import { Button } from "@/components/ui/button"
@@ -134,6 +135,7 @@ export default function ReconcileStatementPage() {
             {wallet.last_reconciled_on && ` · ${t("recon.lastReconciled", { date: fmt(wallet.last_reconciled_on) })}`}
           </p>
         </div>
+        <HelpLink section="reconcile" />
       </div>
 
       {!isPro ? (

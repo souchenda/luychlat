@@ -947,6 +947,13 @@ const km = {
   "recon.undoConfirm": "លុបការនាំចូលនេះ? សញ្ញា ✓ នឹងត្រូវដកចេញ ប៉ុន្តែប្រតិបត្តិការដែលបានបន្ថែមនៅដដែល។",
   "recon.undone": "បានលុបការនាំចូល",
   "recon.verified": "បានផ្ទៀងផ្ទាត់ជាមួយធនាគារ",
+  "settings.help": "ជំនួយ",
+  "guide.title": "របៀបប្រើប្រាស់",
+  "guide.settingsHint": "សំណួរញឹកញាប់ និងការណែនាំជាជំហាន",
+  "guide.search": "ស្វែងរកសំណួរ…",
+  "guide.noResults": "រកមិនឃើញ។ សាកពាក្យផ្សេង។",
+  "guide.stillStuck": "នៅតែមានសំណួរ? ទាក់ទងក្រុមការងារយើង។",
+  "guide.needHelp": "ត្រូវការជំនួយ?",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -1898,6 +1905,13 @@ const en: Record<MessageKey, string> = {
   "recon.undoConfirm": "Undo this import? The ✓ marks are removed; transactions that were added stay.",
   "recon.undone": "Import removed",
   "recon.verified": "Verified with bank",
+  "settings.help": "Help",
+  "guide.title": "User Guide",
+  "guide.settingsHint": "FAQs and step-by-step help",
+  "guide.search": "Search questions…",
+  "guide.noResults": "Nothing found. Try other words.",
+  "guide.stillStuck": "Still have a question? Contact our team.",
+  "guide.needHelp": "Need help?",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }
