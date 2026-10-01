@@ -1,4 +1,5 @@
-import { CATEGORY_PRESETS } from "@/lib/categories/presets"
+import { CATEGORY_PRESETS, DEBT_CATEGORY_PRESETS } from "@/lib/categories/presets"
+import { debtStatus, remaining } from "@/lib/debts"
 import { roundMoney } from "@/lib/money"
 import { useGuestDataStore } from "@/stores/guest-data-store"
 
@@ -6,9 +7,13 @@ import { guestReceipts } from "./guest-receipts"
 import { walletDeltas } from "./ledger"
 import type { DataRepo } from "./repo"
 import {
+  DebtLinkedError,
   InsufficientBalanceError,
+  RepaymentTooLargeError,
   WalletInUseError,
   type Category,
+  type Debt,
+  type DebtRepayment,
   type EntryInput,
   type Transaction,
   type TransactionFilter,
@@ -98,8 +103,15 @@ function validate(workspaceId: string, tx: Transaction) {
  * Atomically replaces `before` with `after` (either may be null) and moves
  * wallet balances accordingly, like the transactions_balance trigger.
  */
-function commit(before: Transaction | null, after: Transaction | null) {
-  const { wallets, transactions } = store.getState()
+type GuestState = ReturnType<typeof store.getState>
+
+function commit(
+  before: Transaction | null,
+  after: Transaction | null,
+  extra?: (state: GuestState) => Partial<GuestState>,
+) {
+  const state = store.getState()
+  const { wallets, transactions } = state
   const currencyOf = (id: string) => wallets.find((w) => w.id === id)!.currency
   const deltas = new Map<string, number>()
   const add = (tx: Transaction, sign: 1 | -1) =>
@@ -118,7 +130,41 @@ function commit(before: Transaction | null, after: Transaction | null) {
 
   let nextTransactions = before ? transactions.filter((t) => t.id !== before.id) : transactions
   if (after) nextTransactions = [...nextTransactions, after]
-  store.setState({ wallets: nextWallets, transactions: nextTransactions })
+  store.setState({ ...extra?.(state), wallets: nextWallets, transactions: nextTransactions })
+}
+
+/** Mirrors the debts_derive trigger: paid amount and status come from repayments. */
+function derive(debt: Debt, repayments: DebtRepayment[]): Debt {
+  const paid = repayments.filter((r) => r.debt_id === debt.id).reduce((acc, r) => acc + r.amount_paid, 0)
+  const next = { ...debt, paid_amount: roundMoney(paid, debt.currency) }
+  return { ...next, status: debtStatus(next) }
+}
+
+function getDebt(id: string): Debt {
+  const debt = store.getState().debts.find((d) => d.id === id)
+  if (!debt) throw new Error("Debt not found")
+  return debt
+}
+
+/** Mirrors public.ensure_preset_category(). */
+function ensureDebtCategory(workspaceId: string, type: Debt["type"]): string {
+  const preset = DEBT_CATEGORY_PRESETS[type]
+  const existing = store
+    .getState()
+    .categories.find((c) => c.workspace_id === workspaceId && c.preset_key === preset.key)
+  if (existing) return existing.id
+  const category: Category = {
+    id: crypto.randomUUID(),
+    workspace_id: workspaceId,
+    name: preset.name.km,
+    type: preset.type,
+    icon: preset.icon,
+    color: preset.color,
+    preset_key: preset.key,
+    created_at: now(),
+  }
+  store.setState((s) => ({ categories: [...s.categories, category] }))
+  return category.id
 }
 
 function matches(tx: Transaction, workspaceId: string, f: TransactionFilter) {
@@ -247,6 +293,7 @@ export const guestRepo: DataRepo = {
       to_wallet_id: null,
       to_amount: null,
       created_at: now(),
+      debt_id: null,
       ...input,
     }
     validate(workspaceId, tx)
@@ -264,6 +311,7 @@ export const guestRepo: DataRepo = {
       type: "TRANSFER",
       receipt_url: null,
       created_at: now(),
+      debt_id: null,
     }
     validate(input.workspace_id, tx)
     commit(null, tx)
@@ -277,6 +325,17 @@ export const guestRepo: DataRepo = {
       input.type === "TRANSFER"
         ? { ...before, ...input, currency: getWallet(input.wallet_id).currency }
         : { ...before, ...input }
+    // Same rule as the transactions_debt_guard trigger.
+    if (
+      before.debt_id &&
+      (after.amount !== before.amount ||
+        after.currency !== before.currency ||
+        after.wallet_id !== before.wallet_id ||
+        after.type !== before.type ||
+        after.exchange_rate !== before.exchange_rate)
+    ) {
+      throw new DebtLinkedError()
+    }
     validate(before.workspace_id, after)
     commit(before, after)
     if (before.receipt_url && before.receipt_url !== after.receipt_url) await guestReceipts.remove(before.receipt_url)
@@ -285,8 +344,109 @@ export const guestRepo: DataRepo = {
 
   async deleteTransaction(id) {
     const before = getTransaction(id)
-    commit(before, null)
+    // Like the FK cascade to debt_repayments + the debt_repayments_rederive trigger.
+    commit(before, null, (s) => {
+      const repayments = s.repayments.filter((r) => r.transaction_id !== id)
+      return {
+        repayments,
+        debts: s.debts.map((d) => (d.id === before.debt_id ? derive(d, repayments) : d)),
+      }
+    })
     if (before.receipt_url) await guestReceipts.remove(before.receipt_url)
+  },
+
+  // --- debts ---------------------------------------------------------------
+
+  async listDebts(workspaceId) {
+    return store
+      .getState()
+      .debts.filter((d) => d.workspace_id === workspaceId)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  },
+
+  async createDebt(workspaceId, input) {
+    const debt = derive(
+      { id: crypto.randomUUID(), workspace_id: workspaceId, ...input, paid_amount: 0, status: "ACTIVE", created_at: now() },
+      [],
+    )
+    store.setState((s) => ({ debts: [...s.debts, debt] }))
+    return debt
+  },
+
+  async updateDebt(id, input) {
+    const current = getDebt(id)
+    if (input.currency !== current.currency && current.paid_amount > 0) {
+      throw new Error("cannot change currency of a debt with repayments")
+    }
+    if (input.total_amount < current.paid_amount) throw new Error("total_amount is below the amount already paid")
+    const next = derive({ ...current, ...input }, store.getState().repayments)
+    store.setState((s) => ({ debts: s.debts.map((d) => (d.id === id ? next : d)) }))
+    return next
+  },
+
+  async deleteDebt(id) {
+    // Repayment records go with the debt; their ledger rows stay, unlinked.
+    store.setState((s) => ({
+      debts: s.debts.filter((d) => d.id !== id),
+      repayments: s.repayments.filter((r) => r.debt_id !== id),
+      transactions: s.transactions.map((t) => (t.debt_id === id ? { ...t, debt_id: null } : t)),
+    }))
+  },
+
+  async listRepayments(debtId) {
+    return store
+      .getState()
+      .repayments.filter((r) => r.debt_id === debtId)
+      .sort((a, b) => b.payment_date.localeCompare(a.payment_date) || b.created_at.localeCompare(a.created_at))
+  },
+
+  async recordRepayment(input) {
+    const debt = getDebt(input.debt_id)
+    const wallet = getWallet(input.wallet_id)
+    if (wallet.workspace_id !== debt.workspace_id) throw new Error("wallet not found in this workspace")
+    if (!(input.amount > 0)) throw new Error("amount must be positive")
+    if (input.amount > remaining(debt)) throw new RepaymentTooLargeError()
+
+    const tx: Transaction = {
+      id: crypto.randomUUID(),
+      workspace_id: debt.workspace_id,
+      wallet_id: wallet.id,
+      to_wallet_id: null,
+      category_id: ensureDebtCategory(debt.workspace_id, debt.type),
+      amount: input.amount,
+      to_amount: null,
+      currency: debt.currency,
+      type: debt.type === "PAYABLE" ? "EXPENSE" : "INCOME",
+      exchange_rate: wallet.currency === debt.currency ? null : input.exchange_rate,
+      note: input.note ?? debt.party_name,
+      receipt_url: null,
+      transaction_date: input.payment_date,
+      created_at: now(),
+      debt_id: debt.id,
+    }
+    validate(debt.workspace_id, tx)
+    const repayment: DebtRepayment = {
+      id: crypto.randomUUID(),
+      debt_id: debt.id,
+      wallet_id: wallet.id,
+      amount_paid: input.amount,
+      payment_date: input.payment_date,
+      note: input.note,
+      transaction_id: tx.id,
+      created_at: now(),
+    }
+    // One setState: ledger row, wallet balance, repayment and debt together.
+    commit(null, tx, (s) => {
+      const repayments = [...s.repayments, repayment]
+      return { repayments, debts: s.debts.map((d) => (d.id === debt.id ? derive(d, repayments) : d)) }
+    })
+    return repayment
+  },
+
+  async deleteRepayment(id) {
+    const repayment = store.getState().repayments.find((r) => r.id === id)
+    if (!repayment) throw new Error("Repayment not found")
+    await guestRepo.deleteTransaction(repayment.transaction_id)
   },
 
   // --- receipts ------------------------------------------------------------

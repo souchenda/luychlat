@@ -41,9 +41,73 @@ export type Transaction = {
   receipt_url: string | null
   transaction_date: string
   created_at: string
+  /** Set when this row is a debt repayment; edit it from the debt. */
+  debt_id: string | null
 }
 
 export type CategoryType = Exclude<TransactionType, "TRANSFER">
+
+export type DebtType = "PAYABLE" | "RECEIVABLE"
+export type DebtStatus = "ACTIVE" | "PARTIALLY_PAID" | "SETTLED" | "OVERDUE"
+export type InterestPeriod = "YEAR" | "MONTH"
+
+export type Debt = {
+  id: string
+  workspace_id: string
+  type: DebtType
+  party_name: string
+  contact_phone: string | null
+  total_amount: number
+  /** Derived from repayments (never written by the app). */
+  paid_amount: number
+  currency: Currency
+  /** Percent per `interest_period`; informational (simple interest estimate). */
+  interest_rate: number
+  interest_period: InterestPeriod
+  start_date: string
+  /** yyyy-MM-dd, local calendar date. */
+  due_date: string | null
+  /** Stored status; OVERDUE also depends on today, see lib/debts.ts. */
+  status: DebtStatus
+  note: string | null
+  created_at: string
+}
+
+export type DebtInput = {
+  type: DebtType
+  party_name: string
+  contact_phone: string | null
+  total_amount: number
+  currency: Currency
+  interest_rate: number
+  interest_period: InterestPeriod
+  start_date: string
+  due_date: string | null
+  note: string | null
+}
+
+export type DebtRepayment = {
+  id: string
+  debt_id: string
+  wallet_id: string
+  /** In the debt currency. */
+  amount_paid: number
+  payment_date: string
+  note: string | null
+  transaction_id: string
+  created_at: string
+}
+
+export type RepaymentInput = {
+  debt_id: string
+  wallet_id: string
+  /** In the debt currency. */
+  amount: number
+  /** KHR per 1 USD; required when the wallet uses the other currency. */
+  exchange_rate: number | null
+  payment_date: string
+  note: string | null
+}
 
 export type Category = {
   id: string
@@ -118,6 +182,22 @@ export class WalletInUseError extends Error {
   constructor() {
     super("Wallet has transactions")
     this.name = "WalletInUseError"
+  }
+}
+
+/** Thrown when a repayment exceeds what is left on the debt. */
+export class RepaymentTooLargeError extends Error {
+  constructor() {
+    super("Amount exceeds the remaining balance")
+    this.name = "RepaymentTooLargeError"
+  }
+}
+
+/** Thrown when editing a ledger row that belongs to a debt repayment. */
+export class DebtLinkedError extends Error {
+  constructor() {
+    super("Debt repayment transactions are edited from the debt")
+    this.name = "DebtLinkedError"
   }
 }
 

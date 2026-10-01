@@ -1,7 +1,8 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2Icon, Trash2Icon } from "lucide-react"
+import { HandCoinsIcon, Loader2Icon, Trash2Icon } from "lucide-react"
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
@@ -17,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { WalletSelect } from "@/components/wallets/wallet-select"
 import { useCategories, useTransactionMutations } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
-import type { CategoryType, Currency, EntryInput, Transaction, Wallet } from "@/lib/data/types"
+import { DebtLinkedError, type CategoryType, type Currency, type EntryInput, type Transaction, type Wallet } from "@/lib/data/types"
 import { fromDateInput, toDateInput } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -55,6 +56,8 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
   const categoriesQuery = useCategories(workspaceId)
   const mutations = useTransactionMutations(workspaceId)
   const editing = Boolean(transaction)
+  // Repayment rows: money fields are managed from the debt (see transactions_debt_guard).
+  const debtLinked = Boolean(transaction?.debt_id)
   const type = (transaction?.type as CategoryType | undefined) ?? newType
 
   const [receipt, setReceipt] = useState<ReceiptValue>({ kind: "none" })
@@ -135,8 +138,8 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
       else await mutations.createEntry.mutateAsync(input)
       toast.success(t("entry.saved"))
       onOpenChange(false)
-    } catch {
-      toast.error(t("common.error"))
+    } catch (error) {
+      toast.error(error instanceof DebtLinkedError ? t("ledger.debtLinked") : t("common.error"))
     }
   })
 
@@ -163,6 +166,16 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
           <p className="py-6 text-center text-sm text-muted-foreground">{t("entry.noWallet")}</p>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
+            {debtLinked && transaction?.debt_id && (
+              <div className="flex items-center gap-2 rounded-xl bg-sky-500/10 p-3 text-sm">
+                <HandCoinsIcon className="size-5 shrink-0 text-sky-600" />
+                <span className="flex-1">{t("ledger.debtLinked")}</span>
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/debts/${transaction.debt_id}`}>{t("ledger.openDebt")}</Link>
+                </Button>
+              </div>
+            )}
+            <fieldset disabled={debtLinked} className="space-y-4 disabled:opacity-60">
             <div className="space-y-2">
               <Label htmlFor="entry-amount">{t("entry.amount")}</Label>
               <div className="flex items-center gap-2">
@@ -242,6 +255,7 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
               />
               {err(formState.errors.categoryId?.message)}
             </div>
+            </fieldset>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">

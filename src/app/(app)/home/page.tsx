@@ -1,12 +1,14 @@
 "use client"
 
-import { ArrowLeftRightIcon, ChevronRightIcon, CloudOffIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChevronRightIcon, HandshakeIcon, CloudOffIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, WalletIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
+import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
+import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
 import { TransactionEditor } from "@/components/transactions/transaction-editor"
@@ -19,7 +21,7 @@ import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { WalletList } from "@/components/wallets/wallet-list"
 import { cashFlow } from "@/lib/analytics"
-import { useActiveWorkspace, useCategories, useTransactions, useWallets } from "@/lib/data/hooks"
+import { useActiveWorkspace, useCategories, useDebts, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
@@ -52,12 +54,14 @@ export default function HomePage() {
   const walletsQuery = useWallets(ws)
   const categoriesQuery = useCategories(ws)
   const txQuery = useTransactions(ws, filter)
+  const debtsQuery = useDebts(ws)
 
   const [pinOpen, setPinOpen] = useState(false)
   const [walletFormOpen, setWalletFormOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [entryType, setEntryType] = useState<CategoryType | null>(null)
   const [editing, setEditing] = useState<Transaction | null>(null)
+  const [debtFormOpen, setDebtFormOpen] = useState(false)
 
   const wallets = walletsQuery.data ?? []
   const active = wallets.filter((w) => !w.archived_at)
@@ -75,9 +79,15 @@ export default function HomePage() {
 
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-xl font-bold">{t("home.greeting")}</h1>
-        {identity && <p className="text-sm text-muted-foreground">{identity}</p>}
+      <header className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold">{t("home.greeting")}</h1>
+          {identity && <p className="truncate text-sm text-muted-foreground">{identity}</p>}
+        </div>
+        <Button size="sm" variant="outline" onClick={() => setDebtFormOpen(true)}>
+          <HandshakeIcon />
+          {t("debts.add")}
+        </Button>
       </header>
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} />
@@ -109,6 +119,8 @@ export default function HomePage() {
       </div>
 
       <CashFlowCard flow={flow} loading={txQuery.isLoading} />
+
+      <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} />
 
       <CashFlowCharts transactions={transactions} categories={categoriesQuery.data ?? []} months={months} />
 
@@ -217,6 +229,7 @@ export default function HomePage() {
         wallets={wallets}
         type={entryType ?? "EXPENSE"}
       />
+      <DebtFormSheet open={debtFormOpen} onOpenChange={setDebtFormOpen} workspaceId={ws} />
       <TransactionEditor workspaceId={ws} wallets={wallets} transaction={editing} onClose={() => setEditing(null)} />
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { HouseIcon, ReceiptTextIcon, SettingsIcon, WalletIcon } from "lucide-react"
+import { ClipboardListIcon, HouseIcon, ReceiptTextIcon, SettingsIcon, WalletIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 const ITEMS: { href: string; label: MessageKey; icon: typeof HouseIcon }[] = [
   { href: "/home", label: "nav.home", icon: HouseIcon },
   { href: "/transactions", label: "nav.transactions", icon: ReceiptTextIcon },
+  { href: "/debts", label: "nav.debts", icon: ClipboardListIcon },
   { href: "/wallets", label: "nav.wallets", icon: WalletIcon },
   { href: "/settings", label: "nav.settings", icon: SettingsIcon },
 ]
@@ -29,7 +30,7 @@ export function BottomNav() {
               <Link
                 href={href}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-xs",
+                  "flex flex-col items-center gap-1 py-2.5 text-[11px]",
                   active ? "text-primary" : "text-muted-foreground",
                 )}
                 aria-current={active ? "page" : undefined}

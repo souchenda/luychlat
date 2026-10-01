@@ -1,7 +1,11 @@
 import type {
   Category,
   CategoryInput,
+  Debt,
+  DebtInput,
+  DebtRepayment,
   EntryInput,
+  RepaymentInput,
   Transaction,
   TransactionFilter,
   TransferInput,
@@ -40,10 +44,29 @@ export interface DataRepo {
   createEntry(workspaceId: string, input: EntryInput): Promise<Transaction>
   /** Throws InsufficientBalanceError when the source wallet would go negative. */
   createTransfer(input: TransferInput): Promise<Transaction>
-  /** Re-applies wallet balances; a transfer can't change into an entry or back. */
+  /**
+   * Re-applies wallet balances; a transfer can't change into an entry or back.
+   * Throws DebtLinkedError when money fields of a debt repayment row change.
+   */
   updateTransaction(id: string, input: EntryInput | TransferUpdate): Promise<Transaction>
-  /** Reverses the balance effect and removes the receipt. */
+  /** Reverses the balance effect and removes the receipt (and its debt repayment, if any). */
   deleteTransaction(id: string): Promise<void>
+
+  listDebts(workspaceId: string): Promise<Debt[]>
+  createDebt(workspaceId: string, input: DebtInput): Promise<Debt>
+  /** Currency is fixed once repaid; the total can't drop below what was paid. */
+  updateDebt(id: string, input: DebtInput): Promise<Debt>
+  /** Removes the debt and its repayment records; the ledger rows stay (unlinked). */
+  deleteDebt(id: string): Promise<void>
+  listRepayments(debtId: string): Promise<DebtRepayment[]>
+  /**
+   * Atomically records a ledger row (expense for a payable, income for a
+   * receivable) and the repayment. Throws RepaymentTooLargeError above the
+   * remaining balance.
+   */
+  recordRepayment(input: RepaymentInput): Promise<DebtRepayment>
+  /** Deletes the repayment's ledger row, which reverses the wallet and the debt. */
+  deleteRepayment(id: string): Promise<void>
 
   /** Stores a (compressed) receipt image; returns the reference saved in receipt_url. */
   uploadReceipt(image: Blob): Promise<string>

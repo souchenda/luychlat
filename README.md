@@ -3,7 +3,7 @@
 Mobile-first PWA for personal and small-business money & debt management in Cambodia.
 Architecture, schema and roadmap: see [guideline.md](guideline.md).
 
-**Status:** Roadmap phases 1-3 done: Auth (Phone, Biometric Mock, Guest Mode); Workspace Switcher + Wallets; Income/Expense ledger, categories and cash-flow dashboard.
+**Status:** Roadmap phases 1-4 done: Auth (Phone, Biometric Mock, Guest Mode); Workspace Switcher + Wallets; Income/Expense ledger and cash-flow dashboard; Debt engine with repayments and reminders.
 
 ## Stack
 
@@ -35,14 +35,16 @@ src/
     login/              Phone (+855) OTP, Google, Apple, Telegram (phase 5), Guest Mode
     auth/callback/      OAuth code exchange
     (app)/              Auth-gated shell: workspace switcher, App Lock overlay, bottom nav
-      home/  transactions/  wallets/  categories/  settings/
+      home/  transactions/  debts/ (+ [id])  wallets/  categories/  settings/
     manifest.ts         PWA manifest
   components/
-    auth/  lock/  layout/  wallets/  workspace/  transactions/  categories/  dashboard/  money/  common/  ui/ (shadcn)
+    auth/  lock/  layout/  wallets/  workspace/  transactions/  categories/  debts/  dashboard/  money/  common/  ui/ (shadcn)
   lib/
     data/               DataRepo interface: guest-repo (localStorage) and supabase-repo, plus React Query hooks
     data/ledger.ts      Wallet balance effects (mirrors the DB trigger, used by Guest Mode)
     analytics.ts        Monthly cash flow, 6-month trend, top spending
+    debts.ts            Remaining, status, urgency bands (>7d / 1-7d / due), interest estimate
+    reminder.ts         Khmer / English payment-reminder text, Telegram & SMS share links
     categories/         Preset categories (Personal / Business) and icon set
     money.ts            USD/KHR rounding, conversion, formatting
     wallets/providers.ts  ABA, ACLEDA, Wing, Canadia, TrueMoney, Cash presets
@@ -57,7 +59,7 @@ public/sw.js            Service worker (static assets + offline shell; never cac
 
 ## Guest Mode
 
-Guest Mode runs the full app with no Supabase project. Workspaces, wallets, categories and transactions live in localStorage (`luysmart-guest-data`); receipt photos live in IndexedDB (`luysmart-guest`). Both go through `guest-repo`. It has the same semantics as the cloud: atomic balance updates, overdraft check, and the delete and currency guards. Ending Guest Mode from Settings deletes all of it, receipts included.
+Guest Mode runs the full app with no Supabase project. Workspaces, wallets, categories, transactions, debts and repayments live in localStorage (`luysmart-guest-data`); receipt photos live in IndexedDB (`luysmart-guest`). Both go through `guest-repo`. It has the same semantics as the cloud: atomic balance updates, overdraft check, and the delete and currency guards. Ending Guest Mode from Settings deletes all of it, receipts included.
 
 ## Security notes
 
@@ -87,3 +89,8 @@ Guest Mode runs the full app with no Supabase project. Workspaces, wallets, cate
 | Income/expense in either currency | `amount`/`currency` are as entered; the trigger moves the wallet by the converted amount at `exchange_rate` |
 | `transactions_category_guard` trigger | A transaction's category must match income/expense |
 | `receipts` Storage bucket | Private; one folder per user (`<uid>/...`); `receipt_url` holds the object path, shown via signed URLs |
+| `debts.note`, `interest_period`, `start_date` | Purpose, % per year or month, and the start for the interest estimate |
+| `transactions.debt_id`, `debt_repayments.transaction_id` | Each repayment is also a ledger row (expense for a payable, income for a receivable), so wallets, history and cash flow stay consistent |
+| `record_debt_repayment()` | Records the ledger row and the repayment atomically; rejects amounts above what is left |
+| `debts_derive` and repayment triggers | `paid_amount` and `status` are always derived from repayments; a debt's currency is fixed once repaid |
+| `transactions_debt_guard` | A repayment's ledger row can't change amount, wallet or currency (only note, date, category); deleting it deletes the repayment |

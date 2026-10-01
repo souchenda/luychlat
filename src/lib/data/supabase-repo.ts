@@ -2,9 +2,13 @@ import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js"
 
 import type { DataRepo } from "./repo"
 import {
+  DebtLinkedError,
   InsufficientBalanceError,
+  RepaymentTooLargeError,
   WalletInUseError,
   type Category,
+  type Debt,
+  type DebtRepayment,
   type Transaction,
   type Wallet,
   type Workspace,
@@ -18,6 +22,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 function unwrap<T>({ data, error }: { data: T | null; error: PostgrestError | null }): T {
   if (error) {
     if (error.message.includes("insufficient_balance")) throw new InsufficientBalanceError()
+    if (error.message.includes("exceeds the remaining balance")) throw new RepaymentTooLargeError()
+    if (error.message.includes("edited from the debt")) throw new DebtLinkedError()
     throw error
   }
   return data as T
@@ -31,6 +37,14 @@ const toTransaction = (row: Transaction): Transaction => ({
   to_amount: row.to_amount === null ? null : Number(row.to_amount),
   exchange_rate: row.exchange_rate === null ? null : Number(row.exchange_rate),
 })
+
+const toDebt = (row: Debt): Debt => ({
+  ...row,
+  total_amount: Number(row.total_amount),
+  paid_amount: Number(row.paid_amount),
+  interest_rate: Number(row.interest_rate),
+})
+const toRepayment = (row: DebtRepayment): DebtRepayment => ({ ...row, amount_paid: Number(row.amount_paid) })
 
 /** Cloud data for signed-in users. Every query is scoped by RLS to auth.uid(). */
 export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
@@ -191,6 +205,69 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
       ) as Pick<Transaction, "receipt_url">[]
       const receipt = rows[0]?.receipt_url
       if (receipt) await repo.deleteReceipt(receipt)
+    },
+
+    // --- debts (paid_amount / status derived by the debts_derive trigger) ------
+
+    async listDebts(workspaceId) {
+      const rows = unwrap(
+        await supabase.from("debts").select("*").eq("workspace_id", workspaceId).order("created_at", { ascending: false }),
+      ) as Debt[]
+      return rows.map(toDebt)
+    },
+
+    async createDebt(workspaceId, input) {
+      const row = unwrap(
+        await supabase
+          .from("debts")
+          .insert({ workspace_id: workspaceId, ...input })
+          .select()
+          .single(),
+      ) as Debt
+      return toDebt(row)
+    },
+
+    async updateDebt(id, input) {
+      const row = unwrap(await supabase.from("debts").update(input).eq("id", id).select().single()) as Debt
+      return toDebt(row)
+    },
+
+    async deleteDebt(id) {
+      unwrap(await supabase.from("debts").delete().eq("id", id))
+    },
+
+    async listRepayments(debtId) {
+      const rows = unwrap(
+        await supabase
+          .from("debt_repayments")
+          .select("*")
+          .eq("debt_id", debtId)
+          .order("payment_date", { ascending: false })
+          .order("created_at", { ascending: false }),
+      ) as DebtRepayment[]
+      return rows.map(toRepayment)
+    },
+
+    async recordRepayment(input) {
+      const row = unwrap(
+        await supabase.rpc("record_debt_repayment", {
+          p_debt_id: input.debt_id,
+          p_wallet_id: input.wallet_id,
+          p_amount: input.amount,
+          p_exchange_rate: input.exchange_rate,
+          p_payment_date: input.payment_date,
+          p_note: input.note,
+        }),
+      ) as DebtRepayment
+      return toRepayment(row)
+    },
+
+    async deleteRepayment(id) {
+      const row = unwrap(
+        await supabase.from("debt_repayments").select("transaction_id").eq("id", id).single(),
+      ) as Pick<DebtRepayment, "transaction_id">
+      // Cascades to the repayment; triggers restore the wallet and the debt.
+      await repo.deleteTransaction(row.transaction_id)
     },
 
     // --- receipts: private bucket, receipts/<uid>/<uuid>.jpg -----------------

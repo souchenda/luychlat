@@ -50,10 +50,29 @@ export const CATEGORY_PRESETS: Record<WorkspaceType, CategoryPreset[]> = {
   ],
 }
 
+/**
+ * Categories used by debt repayments, created on first use (see
+ * public.record_debt_repayment / ensure_preset_category).
+ */
+export const DEBT_CATEGORY_PRESETS: Record<"PAYABLE" | "RECEIVABLE", CategoryPreset> = {
+  PAYABLE: {
+    key: "debt_repayment",
+    type: "EXPENSE",
+    icon: "hand-coins",
+    color: "#64748b",
+    name: { km: "សងបំណុល", en: "Debt repayment" },
+  },
+  RECEIVABLE: {
+    key: "debt_collection",
+    type: "INCOME",
+    icon: "hand-coins",
+    color: "#0ea5e9",
+    name: { km: "ទទួលប្រាក់សងបំណុល", en: "Debt collection" },
+  },
+}
+
 const PRESET_NAMES = new Map(
-  Object.values(CATEGORY_PRESETS)
-    .flat()
-    .map((p) => [p.key, p.name]),
+  [...Object.values(CATEGORY_PRESETS).flat(), ...Object.values(DEBT_CATEGORY_PRESETS)].map((p) => [p.key, p.name]),
 )
 
 /** Preset categories show in the UI language; custom ones keep the user's name. */

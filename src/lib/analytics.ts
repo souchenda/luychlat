@@ -5,7 +5,8 @@ import { roundMoney } from "@/lib/money"
 /** A money total expressed in both currencies at the configured rate. */
 export type DualTotal = { usd: number; khr: number }
 
-function dual(usdNative: number, khrNative: number, khrPerUsd: number): DualTotal {
+/** USD-native and KHR-native sums combined into both currencies at the given rate. */
+export function dualTotal(usdNative: number, khrNative: number, khrPerUsd: number): DualTotal {
   return {
     usd: roundMoney(usdNative + khrNative / khrPerUsd, "USD"),
     khr: roundMoney(khrNative + usdNative * khrPerUsd, "KHR"),
@@ -19,8 +20,8 @@ export function cashFlow(transactions: Transaction[], khrPerUsd: number) {
     if (tx.type === "TRANSFER") continue
     sums[tx.type][tx.currency] += tx.amount
   }
-  const income = dual(sums.INCOME.USD, sums.INCOME.KHR, khrPerUsd)
-  const expense = dual(sums.EXPENSE.USD, sums.EXPENSE.KHR, khrPerUsd)
+  const income = dualTotal(sums.INCOME.USD, sums.INCOME.KHR, khrPerUsd)
+  const expense = dualTotal(sums.EXPENSE.USD, sums.EXPENSE.KHR, khrPerUsd)
   return {
     income,
     expense,
