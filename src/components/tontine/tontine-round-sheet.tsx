@@ -22,7 +22,7 @@ const NONE = "__none"
 const fmtDate = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}/${ymd.slice(0, 4)}`
 
 /**
- * "pay": បង់លុយជើងនេះ — one round's share (live members usually pay less: the
+ * "pay": បង់លុយក្បាលនេះ — one round's share (live members usually pay less: the
  * share minus that round's bid). "collect": ដេញបាន — the pot comes in and the
  * user becomes a dead member (កូនងាប់).
  */

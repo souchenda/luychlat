@@ -71,10 +71,10 @@ export const GUIDE: GuideSection[] = [
         ],
       },
       {
-        q: { km: "តាមដានតុងទីន (ជើង) យ៉ាងដូចម្តេច?", en: "How do I track a tontine?" },
+        q: { km: "តាមដានតុងទីន (ក្បាល) យ៉ាងដូចម្តេច?", en: "How do I track a tontine?" },
         a: [
-          { km: "«បំណុល» › ផ្ទាំង «តុងទីន» › «បន្ថែមជើងតុងទីន»។ បញ្ចូលចំណែកក្នុងមួយវេន ចំនួនវេន និងថ្ងៃវេនទី ១ — កម្មវិធីគណនាថ្ងៃត្រូវបង់ឱ្យ ហើយរំលឹកនៅទំព័រដើម។", en: "Debts › Tontine tab › Add a tontine. Enter the share per round, the number of rounds and the round 1 date; the app works out the due dates and reminds you on Home." },
-          { km: "«បង់លុយជើងនេះ» កត់ចំណាយ «បង់តុងទីន» ពីកាបូប។ កូនរស់ (មិនទាន់ដេញបាន) ជាធម្មតាបង់តិចជាងចំណែក — បញ្ចូលចំនួនពិត ហើយកម្មវិធីគណនាប្រាក់សន្សំបានពីការដេញ។", en: "\"Pay this round\" records a \"Tontine payment\" expense from your wallet. Live members (not won yet) usually pay less than the share: enter the real amount and the app counts what you saved through bids." },
+          { km: "«បំណុល» › ផ្ទាំង «តុងទីន» › «បន្ថែមក្បាលតុងទីន»។ បញ្ចូលចំណែកក្នុងមួយវេន ចំនួនវេន និងថ្ងៃវេនទី ១ — កម្មវិធីគណនាថ្ងៃត្រូវបង់ឱ្យ ហើយរំលឹកនៅទំព័រដើម។", en: "Debts › Tontine tab › Add a tontine. Enter the share per round, the number of rounds and the round 1 date; the app works out the due dates and reminds you on Home." },
+          { km: "«បង់លុយក្បាលនេះ» កត់ចំណាយ «បង់តុងទីន» ពីកាបូប។ កូនរស់ (មិនទាន់ដេញបាន) ជាធម្មតាបង់តិចជាងចំណែក — បញ្ចូលចំនួនពិត ហើយកម្មវិធីគណនាប្រាក់សន្សំបានពីការដេញ។", en: "\"Pay this round\" records a \"Tontine payment\" expense from your wallet. Live members (not won yet) usually pay less than the share: enter the real amount and the app counts what you saved through bids." },
           { km: "«ដេញបាន» កត់ចំណូល «ដេញតុងទីនបាន» ចូលកាបូប ហើយអ្នកក្លាយជា កូនងាប់ — ត្រូវបង់ពេញរហូតដល់វេនចុងក្រោយ។ ចុចវេនដែលបានបង់ ដើម្បីលុបវិញបើកត់ខុស។", en: "\"Won the bid\" records the pot as \"Tontine pot won\" income and makes you a dead member, who pays the full share until the last round. Tap a paid round to undo a mistake." },
         ],
       },

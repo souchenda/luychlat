@@ -18,7 +18,7 @@ import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 
 const NONE = "__none"
 
-/** Create or edit one hand (ជើង) of a tontine. */
+/** Create or edit one hand (ក្បាល) of a tontine. */
 export function TontineFormSheet({
   open,
   onOpenChange,

@@ -4479,7 +4479,7 @@ $$;
 -- ===========================================================================
 -- តុងទីន (Tontine / ROSCA) tracker, from the player's side.
 --
--- One row in `tontines` per hand (ជើង) the user plays. Each round they pay a
+-- One row in `tontines` per hand (ក្បាល) the user plays. Each round they pay a
 -- share; a live member (កូនរស់, hasn't won yet) usually pays the share minus
 -- that round's winning bid, a dead member (កូនងាប់, already won) pays the full
 -- share. The round they win the bid (ដេញបាន) they collect the pot instead.

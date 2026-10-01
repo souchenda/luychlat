@@ -165,13 +165,13 @@ export type DebtRepayment = {
   created_at: string
 } & Attribution
 
-/** តុងទីន: one hand (ជើង) the user plays in a rotating savings group. */
+/** តុងទីន: one hand (ក្បាល) the user plays in a rotating savings group. */
 export type TontineFrequency = "WEEKLY" | "MONTHLY"
 
 export type Tontine = {
   id: string
   workspace_id: string
-  /** e.g. "ជើង ៥០ ដុល្លារ" */
+  /** e.g. "ក្បាល ៥០ ដុល្លារ" */
   name: string
   /** មេតុងទីន */
   leader_name: string | null
