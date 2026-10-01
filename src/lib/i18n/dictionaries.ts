@@ -727,10 +727,13 @@ const km = {
   "holiday.khmer_new_year": "រីករាយបុណ្យចូលឆ្នាំខ្មែរ",
   "holiday.pchum_ben": "រីករាយពិធីបុណ្យភ្ជុំបិណ្ឌ",
   "holiday.water_festival": "រីករាយបុណ្យអុំទូក",
-  "holiday.christmas": "រីករាយបុណ្យណូអែល និងឆ្នាំថ្មី",
+  "holiday.christmas": "រីករាយបុណ្យណូអែល",
   "holiday.chinese_new_year": "រីករាយបុណ្យចូលឆ្នាំចិន",
   "lock.enterOldPin": "បញ្ចូល PIN ៤ ខ្ទង់ចាស់របស់អ្នក",
   "pin.upgradeHint": "ដើម្បីសុវត្ថិភាពដូចកម្មវិធីធនាគារ PIN ឥឡូវត្រូវមាន ៦ ខ្ទង់។",
+  "holiday.kan_ben": "រីករាយពិធីកាន់បិណ្ឌ (បិណ្ឌទី {day})",
+  "holiday.new_year": "រីករាយឆ្នាំសកលថ្មី",
+  "holiday.everyday": "សូមឱ្យថ្ងៃនេះជាថ្ងៃល្អ និងទទួលបានជោគជ័យ!",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -1462,10 +1465,13 @@ const en: Record<MessageKey, string> = {
   "holiday.khmer_new_year": "Happy Khmer New Year",
   "holiday.pchum_ben": "Happy Pchum Ben",
   "holiday.water_festival": "Happy Water Festival",
-  "holiday.christmas": "Merry Christmas & Happy New Year",
+  "holiday.christmas": "Merry Christmas",
   "holiday.chinese_new_year": "Happy Chinese New Year",
   "lock.enterOldPin": "Enter your old 4-digit PIN",
   "pin.upgradeHint": "For bank-grade safety, PINs now have 6 digits.",
+  "holiday.kan_ben": "Happy Kan Ben (day {day})",
+  "holiday.new_year": "Happy New Year",
+  "holiday.everyday": "Wishing you a good and successful day!",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

@@ -28,8 +28,9 @@ import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { monthKey, monthRange, recentMonths } from "@/lib/dates"
-import { holidayGreeting } from "@/lib/holidays"
+import { homeGreeting } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
+import { useLocaleStore } from "@/stores/locale-store"
 import { useLockStore } from "@/stores/lock-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
@@ -47,7 +48,7 @@ const TREND_MONTHS = 6
 export default function HomePage() {
   const t = useT()
   const router = useRouter()
-  const { user, isGuest, endGuest } = useSessionStore()
+  const { isGuest, endGuest } = useSessionStore()
   const hasPin = useLockStore((s) => Boolean(s.pinHash))
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { workspace } = useActiveWorkspace()
@@ -84,20 +85,23 @@ export default function HomePage() {
   )
   // The display name from Settings, once the user has set one.
   const displayName = useProfile().data?.display_name?.trim()
-  const holiday = holidayGreeting()
-  const identity = user?.phone ? `+${user.phone}` : (user?.email ?? null)
+  const locale = useLocaleStore((s) => s.locale)
+  const greeting = homeGreeting()
+  const festive = greeting.key !== "holiday.everyday"
+  // Khmer numerals for the Ben day in Khmer (បិណ្ឌទី ៥).
+  const greetingParams = Object.fromEntries(
+    Object.entries(greeting.params ?? {}).map(([k, v]) => [k, locale === "km" ? String(v).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)]) : v]),
+  )
 
   return (
     <div className="space-y-5">
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h1 className="text-xl font-bold">{displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}</h1>
-          {/* During a festival, one quiet line instead of the email. */}
-          {holiday ? (
-            <p className="truncate text-sm font-medium text-primary">{t(holiday)} ✨</p>
-          ) : (
-            workspace?.type !== "FAMILY" && identity && <p className="truncate text-sm text-muted-foreground">{identity}</p>
-          )}
+          {/* One quiet line: the festival of the day (Kan Ben day, Pchum Ben, …) or an everyday wish. */}
+          <p className={festive ? "truncate text-sm font-medium text-primary" : "truncate text-sm text-muted-foreground"}>
+            {t(greeting.key, greetingParams)} ✨
+          </p>
           {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
         </div>
         {editable && (
