@@ -1,0 +1,42 @@
+# LuySmart · single-container deployment
+#
+#   cp .env.example .env      # set NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY (optional)
+#   docker compose up -d --build
+#   docker compose ps         # STATUS should become "healthy"
+#
+# Compose reads variables from .env in this folder (not .env.local):
+#   APP_BIND   host interface (default 0.0.0.0). Behind Nginx use 127.0.0.1 so the
+#              port isn't exposed directly (Docker-published ports bypass UFW).
+#   APP_PORT   host port (default 3000). Change it if 3000 is already used on a
+#              shared server; the container always listens on 3000 inside.
+#   APP_MEMORY memory cap (default 512m) so the app can't starve other services.
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+        NEXT_PUBLIC_BIOMETRIC_MOCK: "false"
+    image: luysmart:latest
+    container_name: luysmart
+    restart: unless-stopped
+    ports:
+      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    mem_limit: ${APP_MEMORY:-512m}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

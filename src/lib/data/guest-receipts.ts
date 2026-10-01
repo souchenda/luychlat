@@ -1,10 +1,11 @@
+import { uuid } from "@/lib/uuid"
 import { guestDb } from "./guest-db"
 
 /** Guest Mode receipt images (IndexedDB: localStorage is too small for photos). */
 const PREFIX = "local:"
 
 export const guestReceipts = {
-  async put(blob: Blob, id: string = crypto.randomUUID()): Promise<string> {
+  async put(blob: Blob, id: string = uuid()): Promise<string> {
     await guestDb.receipts.put({ id, blob, created_at: new Date().toISOString() })
     return `${PREFIX}${id}`
   },

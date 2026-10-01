@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid"
 import { dueAlerts, alertText } from "@/lib/alerts"
 import {
   ADJUSTMENT_CATEGORY_PRESETS,
@@ -38,8 +39,8 @@ function ensureWorkspaces(): Workspace[] {
   const { workspaces } = store.getState()
   if (workspaces.length > 0) return workspaces
   const seeded: Workspace[] = [
-    { id: crypto.randomUUID(), name: "ផ្ទាល់ខ្លួន", type: "PERSONAL", currency_default: "USD", created_at: now() },
-    { id: crypto.randomUUID(), name: "អាជីវកម្ម", type: "BUSINESS", currency_default: "USD", created_at: now() },
+    { id: uuid(), name: "ផ្ទាល់ខ្លួន", type: "PERSONAL", currency_default: "USD", created_at: now() },
+    { id: uuid(), name: "អាជីវកម្ម", type: "BUSINESS", currency_default: "USD", created_at: now() },
   ]
   store.setState({ workspaces: seeded })
   return seeded
@@ -52,7 +53,7 @@ function ensureCategories(workspaceId: string) {
   const workspace = state.workspaces.find((w) => w.id === workspaceId)
   if (!workspace) return
   const seeded: Category[] = CATEGORY_PRESETS[workspace.type].map((p) => ({
-    id: crypto.randomUUID(),
+    id: uuid(),
     workspace_id: workspaceId,
     name: p.name.km,
     type: p.type,
@@ -161,7 +162,7 @@ function ensurePresetCategory(workspaceId: string, preset: CategoryPreset): stri
     .categories.find((c) => c.workspace_id === workspaceId && c.preset_key === preset.key)
   if (existing) return existing.id
   const category: Category = {
-    id: crypto.randomUUID(),
+    id: uuid(),
     workspace_id: workspaceId,
     name: preset.name.km,
     type: preset.type,
@@ -202,7 +203,7 @@ export const guestRepo: DataRepo = {
   async createWallet(workspaceId, input) {
     const siblings = store.getState().wallets.filter((w) => w.workspace_id === workspaceId)
     const wallet: Wallet = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       workspace_id: workspaceId,
       ...input,
       sort_order: siblings.reduce((max, w) => Math.max(max, w.sort_order), -1) + 1,
@@ -272,7 +273,7 @@ export const guestRepo: DataRepo = {
 
   async createCategory(workspaceId, input) {
     const category: Category = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       workspace_id: workspaceId,
       ...input,
       preset_key: null,
@@ -314,7 +315,7 @@ export const guestRepo: DataRepo = {
 
   async createEntry(workspaceId, input) {
     const tx: Transaction = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       workspace_id: workspaceId,
       to_wallet_id: null,
       to_amount: null,
@@ -330,7 +331,7 @@ export const guestRepo: DataRepo = {
   async createTransfer(input) {
     const from = getWallet(input.wallet_id)
     const tx: Transaction = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       ...input,
       category_id: null,
       currency: from.currency,
@@ -407,7 +408,7 @@ export const guestRepo: DataRepo = {
   async createDebt(workspaceId, input, disbursement) {
     let debt = derive(
       {
-        id: crypto.randomUUID(),
+        id: uuid(),
         workspace_id: workspaceId,
         ...input,
         paid_amount: 0,
@@ -426,7 +427,7 @@ export const guestRepo: DataRepo = {
     const wallet = getWallet(disbursement.wallet_id)
     if (wallet.workspace_id !== workspaceId) throw new Error("wallet not found in this workspace")
     const tx: Transaction = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       workspace_id: workspaceId,
       wallet_id: wallet.id,
       to_wallet_id: null,
@@ -486,7 +487,7 @@ export const guestRepo: DataRepo = {
     if (input.amount > remaining(debt)) throw new RepaymentTooLargeError()
 
     const tx: Transaction = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       workspace_id: debt.workspace_id,
       wallet_id: wallet.id,
       to_wallet_id: null,
@@ -504,7 +505,7 @@ export const guestRepo: DataRepo = {
     }
     validate(debt.workspace_id, tx)
     const repayment: DebtRepayment = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       debt_id: debt.id,
       wallet_id: wallet.id,
       amount_paid: input.amount,
@@ -552,7 +553,7 @@ export const guestRepo: DataRepo = {
       .map(({ debt, stage }) => {
         const { title, body } = alertText(debt, stage, language)
         return {
-          id: crypto.randomUUID(),
+          id: uuid(),
           workspace_id: workspaceId,
           debt_id: debt.id,
           title,

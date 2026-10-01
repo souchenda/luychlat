@@ -1,0 +1,32 @@
+# Keep the build context small and secret-free.
+node_modules
+.next
+out
+build
+coverage
+*.log
+npm-debug.log*
+
+# Local secrets and dev-only settings (e.g. NEXT_PUBLIC_BIOMETRIC_MOCK=true).
+# Pass production values as build args / App Platform env vars instead.
+.env*
+!.env.example
+
+# Tooling / VCS / editor
+.git
+.gitignore
+.vercel
+.vercelignore
+.claude
+.vscode
+.idea
+.DS_Store
+
+# Not needed inside the image
+Dockerfile
+.dockerignore
+docker-compose.yml
+.do
+deploy
+docs
+supabase

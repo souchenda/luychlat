@@ -1,0 +1,9 @@
+# Never upload local secrets or dev-only settings (e.g. NEXT_PUBLIC_BIOMETRIC_MOCK=true).
+# Configure production variables in Vercel → Project → Settings → Environment Variables.
+.env*
+!.env.example
+
+node_modules
+.next
+.claude
+*.log

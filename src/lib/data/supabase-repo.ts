@@ -1,3 +1,4 @@
+import { uuid } from "@/lib/uuid"
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js"
 
 import type { DataRepo } from "./repo"
@@ -361,7 +362,7 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
     async uploadReceipt(image) {
       const { data } = await supabase.auth.getUser()
       if (!data.user) throw new Error("Not signed in")
-      const path = `${data.user.id}/${crypto.randomUUID()}.jpg`
+      const path = `${data.user.id}/${uuid()}.jpg`
       const { error } = await supabase.storage.from(RECEIPT_BUCKET).upload(path, image, { contentType: image.type })
       if (error) throw error
       return path

@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dev:lan": "next dev --turbopack -H 0.0.0.0",
+    "build:standalone": "next build --turbopack && node scripts/prepare-standalone.mjs",
+    "start:standalone": "node .next/standalone/server.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

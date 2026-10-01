@@ -41,6 +41,9 @@ Open http://localhost:3000 and tap **សាកល្បងប្រើប្រ�
 | --- | --- |
 | `npm run dev` | Development server with hot reload |
 | `npm run build && npm start` | Production build. The service worker (offline / install) only runs here |
+| `npm run dev:lan` | Dev server reachable from phones on the same Wi-Fi (`http://<PC-IP>:3000`; add the IP to `allowedDevOrigins` in `next.config.ts`) |
+| `npm run build:standalone` · `npm run start:standalone` | Self-contained server for Docker / PM2 deployments |
+| `docker compose up -d --build` | Build and run the production container on port 3000 |
 | `npm run lint` · `npx tsc --noEmit` | Lint and typecheck |
 | `node scripts/generate-icons.mjs` | Regenerate the PWA / iOS icons in `public/icons/` |
 
@@ -97,6 +100,8 @@ Open http://localhost:3000 and tap **សាកល្បងប្រើប្រ�
 5. **Install on a phone:** open the HTTPS site on the phone. Use Android Chrome → *Install app*, or iOS Safari → Share → *Add to Home Screen*.
 
 You can also deploy from the terminal: `npx vercel` for a preview, `npx vercel --prod` for production.
+
+**DigitalOcean instead?** See [docs/deploy-digitalocean.md](docs/deploy-digitalocean.md). It covers App Platform (from GitHub) and a Droplet (Docker or PM2, plus Nginx and Certbot SSL), using the included `Dockerfile`, `docker-compose.yml` and `.do/app.yaml`.
 
 Server routes and services on Vercel:
 

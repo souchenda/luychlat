@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Pull the latest code, rebuild the container and wait until it is healthy.
+# Run from the repository folder on the Droplet:  ./deploy/update.sh
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+echo "→ Pulling latest code"
+git pull --ff-only
+
+echo "→ Building and restarting the container"
+docker compose up -d --build
+
+echo "→ Waiting for the health check"
+for i in $(seq 1 30); do
+  status=$(docker inspect --format '{{.State.Health.Status}}' luysmart 2>/dev/null || echo "starting")
+  if [ "$status" = "healthy" ]; then
+    echo "✓ luysmart is healthy"
+    docker image prune -f >/dev/null
+    exit 0
+  fi
+  sleep 3
+done
+
+echo "✗ Container did not become healthy. Recent logs:"
+docker compose logs --tail=50 app
+exit 1
