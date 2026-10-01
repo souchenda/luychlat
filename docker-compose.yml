@@ -18,6 +18,7 @@ services:
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+        NEXT_PUBLIC_AUTH_METHODS: ${NEXT_PUBLIC_AUTH_METHODS:-email}
         NEXT_PUBLIC_BIOMETRIC_MOCK: "false"
     image: luysmart:latest
     container_name: luysmart

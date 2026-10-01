@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useHydrated } from "@/hooks/use-hydrated"
 import { useT } from "@/lib/i18n/use-t"
-import { isSupabaseConfigured } from "@/lib/supabase/config"
+import { authMethods, isSupabaseConfigured } from "@/lib/supabase/config"
 import { useSessionStore } from "@/stores/session-store"
 
 function OAuthError() {
@@ -65,23 +65,32 @@ export default function LoginPage() {
             <OAuthError />
           </Suspense>
 
-          <EmailLogin disabled={cloudDisabled} />
+          {/* Only methods enabled in Supabase are offered (NEXT_PUBLIC_AUTH_METHODS). */}
+          {authMethods.has("email") && <EmailLogin disabled={cloudDisabled} />}
 
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <Separator className="flex-1" />
-            {t("login.orPhone")}
-            <Separator className="flex-1" />
-          </div>
+          {authMethods.has("phone") && (
+            <>
+              {authMethods.has("email") && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <Separator className="flex-1" />
+                  {t("login.orPhone")}
+                  <Separator className="flex-1" />
+                </div>
+              )}
+              <PhoneLogin disabled={cloudDisabled} />
+            </>
+          )}
 
-          <PhoneLogin disabled={cloudDisabled} />
-
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <Separator className="flex-1" />
-            {t("login.or")}
-            <Separator className="flex-1" />
-          </div>
-
-          <SocialLogin disabled={cloudDisabled} />
+          {(authMethods.has("google") || authMethods.has("apple")) && (
+            <>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <Separator className="flex-1" />
+                {t("login.or")}
+                <Separator className="flex-1" />
+              </div>
+              <SocialLogin disabled={cloudDisabled} />
+            </>
+          )}
 
           <div className="mt-auto pt-6 text-center">
             <Button variant="secondary" className="h-12 w-full text-base" onClick={startGuest}>

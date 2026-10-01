@@ -1,13 +1,12 @@
 "use client"
 
 import type { Provider } from "@supabase/supabase-js"
-import { SendIcon } from "lucide-react"
 import { toast } from "sonner"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { authMethods } from "@/lib/supabase/config"
 
 function GoogleIcon() {
   return (
@@ -40,20 +39,18 @@ export function SocialLogin({ disabled }: { disabled?: boolean }) {
 
   return (
     <div className="grid gap-2.5">
-      <Button variant="outline" className="h-12 text-base" onClick={() => signIn("google")} disabled={disabled}>
-        <GoogleIcon />
-        {t("login.google")}
-      </Button>
-      <Button variant="outline" className="h-12 text-base" onClick={() => signIn("apple")} disabled={disabled}>
-        <AppleIcon />
-        {t("login.apple")}
-      </Button>
-      {/* Telegram OTP needs the bot from roadmap phase 5. */}
-      <Button variant="outline" className="h-12 text-base" disabled>
-        <SendIcon className="text-sky-500" />
-        {t("login.telegram")}
-        <Badge variant="secondary">{t("common.comingSoon")}</Badge>
-      </Button>
+      {authMethods.has("google") && (
+        <Button variant="outline" className="h-12 text-base" onClick={() => signIn("google")} disabled={disabled}>
+          <GoogleIcon />
+          {t("login.google")}
+        </Button>
+      )}
+      {authMethods.has("apple") && (
+        <Button variant="outline" className="h-12 text-base" onClick={() => signIn("apple")} disabled={disabled}>
+          <AppleIcon />
+          {t("login.apple")}
+        </Button>
+      )}
     </div>
   )
 }
