@@ -2,12 +2,14 @@ import Dexie, { type EntityTable } from "dexie"
 
 import type {
   AppNotification,
+  Budget,
   Category,
   Debt,
   DebtRepayment,
   Transaction,
   Wallet,
   Workspace,
+  WorkspaceMember,
 } from "./types"
 
 /** Everything financial in Guest Mode (what snapshots and backups contain). */
@@ -20,6 +22,9 @@ export type GuestData = {
   repayments: DebtRepayment[]
   notifications: AppNotification[]
   seededWorkspaceIds: string[]
+  /** Added in Phase 7; absent in older snapshots and backups. */
+  budgets?: Budget[]
+  members?: WorkspaceMember[]
 }
 
 export type ReceiptRow = { id: string; blob: Blob; created_at: string }

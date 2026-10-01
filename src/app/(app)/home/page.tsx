@@ -1,12 +1,14 @@
 "use client"
 
-import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, HandshakeIcon, CloudOffIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, HandshakeIcon, CloudOffIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, TargetIcon, WalletIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 
 import { AdvisorHomeCard } from "@/components/advisor/advisor-home-card"
+import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
+import { FamilyStrip } from "@/components/family/family-strip"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
@@ -23,7 +25,7 @@ import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { WalletList } from "@/components/wallets/wallet-list"
 import { cashFlow } from "@/lib/analytics"
 import { adjustmentCategoryIds } from "@/lib/categories/presets"
-import { useActiveWorkspace, useCategories, useDebts, useTransactions, useWallets } from "@/lib/data/hooks"
+import { canWrite, useActiveWorkspace, useCategories, useDebts, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
@@ -49,6 +51,8 @@ export default function HomePage() {
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id
+  // Viewers in a family workspace can look but not record.
+  const editable = canWrite(workspace)
 
   // One query covers the trend chart, this month's summary and the recent list.
   const months = useMemo(() => recentMonths(TREND_MONTHS), [])
@@ -69,14 +73,13 @@ export default function HomePage() {
   const active = wallets.filter((w) => !w.archived_at)
   const transactions = useMemo(() => txQuery.data ?? [], [txQuery.data])
   const thisMonth = monthKey()
+  const monthTransactions = useMemo(
+    () => transactions.filter((tx) => monthKey(new Date(tx.transaction_date)) === thisMonth),
+    [transactions, thisMonth],
+  )
   const flow = useMemo(
-    () =>
-      cashFlow(
-        transactions.filter((tx) => monthKey(new Date(tx.transaction_date)) === thisMonth),
-        khrPerUsd,
-        adjustmentCategoryIds(categoriesQuery.data ?? []),
-      ),
-    [transactions, thisMonth, khrPerUsd, categoriesQuery.data],
+    () => cashFlow(monthTransactions, khrPerUsd, adjustmentCategoryIds(categoriesQuery.data ?? [])),
+    [monthTransactions, khrPerUsd, categoriesQuery.data],
   )
   const identity = user?.phone ? `+${user.phone}` : (user?.email ?? null)
 
@@ -85,17 +88,30 @@ export default function HomePage() {
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h1 className="text-xl font-bold">{t("home.greeting")}</h1>
-          {identity && <p className="truncate text-sm text-muted-foreground">{identity}</p>}
+          {workspace?.type === "FAMILY" ? (
+            <FamilyStrip workspace={workspace} />
+          ) : (
+            identity && <p className="truncate text-sm text-muted-foreground">{identity}</p>
+          )}
         </div>
-        <Button size="sm" variant="outline" onClick={() => setDebtFormOpen(true)}>
-          <HandshakeIcon />
-          {t("debts.add")}
-        </Button>
+        {editable && (
+          <Button size="sm" variant="outline" onClick={() => setDebtFormOpen(true)}>
+            <HandshakeIcon />
+            {t("debts.add")}
+          </Button>
+        )}
       </header>
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} />
 
-      <div className="grid grid-cols-3 gap-2">
+      {!editable && (
+        <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
+          <EyeIcon className="size-4 shrink-0" aria-hidden />
+          {t("family.viewerNotice")}
+        </p>
+      )}
+
+      <div className={editable ? "grid grid-cols-3 gap-2" : "hidden"}>
         <Button
           className="h-12 flex-col gap-0.5 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
           onClick={() => setEntryType("INCOME")}
@@ -122,14 +138,24 @@ export default function HomePage() {
       </div>
 
       <CashFlowCard flow={flow} loading={txQuery.isLoading} />
-      <Link
-        href="/reports"
-        className="-mt-2 flex items-center justify-end gap-1 px-1 text-sm text-primary"
-      >
-        <ChartColumnIcon className="size-4" aria-hidden />
-        {t(workspace?.type === "BUSINESS" ? "pl.title" : "reports.title")}
-        <ChevronRightIcon className="size-4" />
-      </Link>
+      <div className="-mt-2 flex items-center justify-end gap-4 px-1 text-sm">
+        <Link href="/budgets" className="flex items-center gap-1 text-primary">
+          <TargetIcon className="size-4" aria-hidden />
+          {t("budget.title")}
+        </Link>
+        <Link href="/reports" className="flex items-center gap-1 text-primary">
+          <ChartColumnIcon className="size-4" aria-hidden />
+          {t(workspace?.type === "BUSINESS" ? "pl.title" : "reports.title")}
+          <ChevronRightIcon className="size-4" />
+        </Link>
+      </div>
+
+      <BudgetHomeCard
+        workspaceId={ws}
+        currency={workspace?.currency_default ?? "USD"}
+        categories={categoriesQuery.data ?? []}
+        monthTransactions={monthTransactions}
+      />
 
       <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} />
 

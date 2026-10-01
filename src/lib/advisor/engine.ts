@@ -1,5 +1,6 @@
 import { formatMoney } from "@/lib/money"
 
+import { scoreGaps, type CreditBand, type ScoreFactor } from "./credit-score"
 import type { Snapshot, SnapshotLabels } from "./snapshot"
 import { scoreBand } from "./snapshot"
 import { compareStrategies } from "./strategy"
@@ -11,17 +12,72 @@ import { compareStrategies } from "./strategy"
 export type Lang = "km" | "en"
 export type Severity = "good" | "info" | "warn" | "critical"
 export type Insight = { id: string; severity: Severity; title: string; body: string }
-export type Intent = "debt_first" | "month_status" | "shortfall" | "save_tips" | "health"
+export type Intent = "debt_first" | "month_status" | "shortfall" | "save_tips" | "health" | "improve_score"
 
 const L = (lang: Lang, km: string, en: string) => (lang === "km" ? km : en)
 const usd = (n: number) => formatMoney(n, "USD")
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
+const BAND: Record<CreditBand, { km: string; en: string }> = {
+  excellent: { km: "ល្អឥតខ្ចោះ", en: "Excellent" },
+  good: { km: "ល្អបង្គួរ", en: "Good" },
+  fair: { km: "មធ្យម", en: "Fair" },
+  needs_work: { km: "ត្រូវការកែលម្អ", en: "Needs work" },
+}
+
+export const bandLabel = (score: number, lang: Lang) => BAND[scoreBand(score)][lang]
+
+/** One concrete step per weak factor, with the points it could add. */
+export function scoreTips(s: Snapshot, labels: SnapshotLabels, lang: Lang): { factor: ScoreFactor; points: number; text: string }[] {
+  return scoreGaps(s.scoreFactors).map(({ factor, points }) => {
+    let text: string
+    if (factor === "repayment") {
+      const overdue = s.debts.filter((d) => d.type === "PAYABLE" && d.status === "OVERDUE")
+      const names = overdue.map((d) => debtName(d.ref, labels, lang)).join(", ")
+      text = L(
+        lang,
+        `សងបំណុលហួសកំណត់ (${names}) ជាមុនសិន ឬទាក់ទងម្ចាស់បំណុលដើម្បីចរចាកាលវិភាគថ្មី។`,
+        `Clear the overdue debt(s) first (${names}), or agree a new schedule with the lender.`,
+      )
+    } else if (factor === "dti") {
+      const excess = s.dti !== null ? Math.max(0, s.monthlyDebtService - 0.36 * s.avgIncome) : s.monthlyDebtService
+      text =
+        s.dti === null
+          ? L(lang, "កត់ត្រាចំណូលប្រចាំខែ ដើម្បីគណនា DTI ហើយជៀសវាងខ្ចីបន្ថែម។", "Record your monthly income so DTI can be measured, and avoid new borrowing.")
+          : L(
+              lang,
+              `បន្ថយ DTI ពី ${pct(s.dti)} មកក្រោម ៣៦%: កាត់បន្ថយការសងបំណុលប្រចាំខែ ~${usd(excess)} (សងបំណុលការប្រាក់ខ្ពស់មុន ឬពន្យារកាលវិភាគ) និងកុំខ្ចីថ្មី។`,
+              `Bring DTI from ${pct(s.dti)} below 36%: lower monthly debt payments by ~${usd(excess)} (clear high-interest debt first or extend terms) and avoid new loans.`,
+            )
+    } else if (factor === "savings") {
+      const cut = Math.max(0, s.avgExpense - 0.8 * s.avgIncome)
+      const top = s.topExpenses[0]
+      text =
+        s.savingsRate === null
+          ? L(lang, "កត់ត្រាចំណូល ដើម្បីដឹងអត្រាសន្សំ ហើយរក្សាទុកយ៉ាងហោចណាស់ ២០%។", "Record your income to see your savings rate, then keep at least 20% of it.")
+          : L(
+              lang,
+              `បង្កើនអត្រាសន្សំពី ${pct(s.savingsRate)} ទៅ ២០%: កាត់ចំណាយ ~${usd(cut)}/ខែ${top ? ` (ចាប់ផ្តើមពី ${categoryName(top.category, labels)})` : ""}។`,
+              `Raise your savings rate from ${pct(s.savingsRate)} to 20%: cut spending by ~${usd(cut)}/month${top ? ` (start with ${categoryName(top.category, labels)})` : ""}.`,
+            )
+    } else {
+      const months = s.avgExpense > 0 ? Math.max(0, s.cashUsd / s.avgExpense) : 0
+      const target = 3 * s.avgExpense
+      text = L(
+        lang,
+        `កសាងប្រាក់បម្រុងគ្រាអាសន្ន ៣ ខែ (${usd(target)})។ បច្ចុប្បន្នគ្របដណ្តប់បាន ${months.toFixed(1)} ខែ។`,
+        `Build a 3-month emergency fund (${usd(target)}). Your cash covers ${months.toFixed(1)} months today.`,
+      )
+    }
+    return { factor, points, text }
+  })
+}
+
 function dual(n: number, s: Snapshot) {
   return `${usd(n)} (≈ ${formatMoney(Math.round(n * s.khrPerUsd), "KHR")})`
 }
 
-function debtName(ref: string, labels: SnapshotLabels, lang: Lang) {
+function debtName(ref: string, labels: SnapshotLabels, lang: Lang): string {
   const name = labels.debts[ref]
   return name ? `${name}` : L(lang, `បំណុល ${ref}`, `Debt ${ref}`)
 }
@@ -143,6 +199,7 @@ export function insights(s: Snapshot, labels: SnapshotLabels, lang: Lang): Insig
 /** Maps free text (Khmer or English) to a supported question. */
 export function detectIntent(text: string): Intent {
   const q = text.toLowerCase()
+  if (/(ពិន្ទុ|ឥណទាន|score|credit|fico)/.test(q)) return "improve_score"
   if (/(បំណុល|សង|debt|loan|owe|snowball|avalanche|pay off)/.test(q)) return "debt_first"
   if (/(ខ្វះ|សាច់ប្រាក់|cash|short|liquid|30)/.test(q)) return "shortfall"
   if (/(សន្សំ|កាត់បន្ថយ|save|saving|cut|reduce)/.test(q)) return "save_tips"
@@ -186,7 +243,7 @@ export function answer(intent: Intent, s: Snapshot, labels: SnapshotLabels, lang
         s.anomalies[0]
           ? L(lang, `${categoryName(s.anomalies[0].category, labels)} កើនឡើង ${s.anomalies[0].ratio}× ធៀបនឹងធម្មតា។`, `${categoryName(s.anomalies[0].category, labels)} is ${s.anomalies[0].ratio}× higher than usual.`)
           : "",
-        L(lang, `ពិន្ទុសុខភាពហិរញ្ញវត្ថុ: ${s.score}/100`, `Financial health score: ${s.score}/100`),
+        L(lang, `ពិន្ទុសុខភាពហិរញ្ញវត្ថុ: ${s.score}/850 (${bandLabel(s.score, lang)})`, `Financial health score: ${s.score}/850 (${bandLabel(s.score, lang)})`),
       ]
         .filter(Boolean)
         .join("\n")
@@ -215,10 +272,19 @@ export function answer(intent: Intent, s: Snapshot, labels: SnapshotLabels, lang
         .filter(Boolean)
         .join("\n")
     }
-    default: {
-      const band = scoreBand(s.score)
+    case "improve_score": {
+      const tips = scoreTips(s, labels, lang)
+      if (!tips.length) {
+        return L(lang, `ពិន្ទុរបស់អ្នក ${s.score}/850 គឺពេញលេញហើយ! បន្តរក្សាទម្លាប់ល្អនេះ។`, `Your score is ${s.score}/850, already at the top. Keep it up!`)
+      }
       return [
-        L(lang, `ពិន្ទុសុខភាពហិរញ្ញវត្ថុ: ${s.score}/100 (${band === "good" ? "ល្អ" : band === "fair" ? "មធ្យម" : "ត្រូវយកចិត្តទុកដាក់"})`, `Financial health: ${s.score}/100 (${band})`),
+        L(lang, `ពិន្ទុបច្ចុប្បន្ន: **${s.score}/850** (${bandLabel(s.score, lang)})។ ជំហានដែលបង្កើនពិន្ទុច្រើនបំផុត:`, `Current score: **${s.score}/850** (${bandLabel(s.score, lang)}). Steps that add the most points:`),
+        ...tips.map((tip, i) => `${i + 1}. ${tip.text} **+${tip.points}**`),
+      ].join("\n")
+    }
+    default: {
+      return [
+        L(lang, `ពិន្ទុសុខភាពហិរញ្ញវត្ថុ: ${s.score}/850 (${bandLabel(s.score, lang)})`, `Financial health: ${s.score}/850 (${bandLabel(s.score, lang)})`),
         L(lang, `• សាច់ប្រាក់: ${dual(s.cashUsd, s)}`, `• Cash: ${dual(s.cashUsd, s)}`),
         L(lang, `• ចំណូល/ចំណាយមធ្យម: ${usd(s.avgIncome)} / ${usd(s.avgExpense)}`, `• Avg income/expense: ${usd(s.avgIncome)} / ${usd(s.avgExpense)}`),
         L(lang, `• បំណុលត្រូវសង: ${usd(s.payableUsd)} · គេជំពាក់: ${usd(s.receivableUsd)}`, `• Payables: ${usd(s.payableUsd)} · Receivables: ${usd(s.receivableUsd)}`),

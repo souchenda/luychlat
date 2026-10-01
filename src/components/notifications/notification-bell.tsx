@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
+import { MemberAvatar } from "@/components/family/member-avatar"
 import { Button } from "@/components/ui/button"
 import { alertText } from "@/lib/alerts"
 import { useActiveWorkspace, useDebts, useNotificationMutations, useNotifications } from "@/lib/data/hooks"
@@ -81,11 +82,21 @@ export function NotificationBell() {
                       unreadAtOpen.has(n.id) && "bg-primary/5",
                     )}
                     onClick={() => {
-                      if (!n.debt_id) return
+                      const target = n.debt_id ? `/debts/${n.debt_id}` : n.type === "ACTIVITY" ? "/transactions" : null
+                      if (!target) return
                       setOpen(false)
-                      router.push(`/debts/${n.debt_id}`)
+                      router.push(target)
                     }}
                   >
+                    {n.type === "ACTIVITY" ? (
+                      <span className="relative shrink-0" aria-hidden>
+                        <MemberAvatar id={n.actor_name} name={n.actor_name ?? "?"} className="size-9 text-sm" />
+                        <BellIcon className="absolute -right-1 -bottom-1 size-4 rounded-full bg-popover p-0.5 text-primary" />
+                        {unreadAtOpen.has(n.id) && (
+                          <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-popover" />
+                        )}
+                      </span>
+                    ) : (
                     <span
                       className={cn(
                         "relative flex size-9 shrink-0 items-center justify-center rounded-full",
@@ -98,6 +109,7 @@ export function NotificationBell() {
                       {n.alert_key === "D7" || n.alert_key === "D3" ? <AlarmClockIcon className="size-4" /> : <TriangleAlertIcon className="size-4" />}
                       {unreadAtOpen.has(n.id) && <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-popover" />}
                     </span>
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold">{title}</span>
                       <span className="block text-xs whitespace-pre-line text-muted-foreground">{body}</span>

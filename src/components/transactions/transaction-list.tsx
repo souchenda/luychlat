@@ -5,6 +5,7 @@ import { enUS, km } from "date-fns/locale"
 import { ArrowRightIcon, PaperclipIcon } from "lucide-react"
 
 import { CategoryIcon } from "@/components/categories/category-icon"
+import { RecordedBy } from "@/components/family/member-avatar"
 import { Amount } from "@/components/money/amount"
 import { Card } from "@/components/ui/card"
 import { categoryLabel } from "@/lib/categories/presets"
@@ -75,6 +76,7 @@ export function TransactionList({ transactions, wallets, categories, onSelect, g
             {tx.receipt_url && <PaperclipIcon className="size-3 shrink-0" aria-label={t("entry.receipt")} />}
             <span className="truncate">{subtitle}</span>
           </span>
+          <RecordedBy row={tx} className="mt-0.5 flex" />
         </span>
         <span className="text-right">
           <Amount

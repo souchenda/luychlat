@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { WalletSelect } from "@/components/wallets/wallet-select"
-import { useDebtMutations } from "@/lib/data/hooks"
+import { usableWallets, useDebtMutations, useProfile } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
 import { RepaymentTooLargeError, type Debt, type Wallet } from "@/lib/data/types"
 import { fromDateInput, toDateInput } from "@/lib/dates"
@@ -56,7 +56,8 @@ export function RepaymentSheet({
   const { recordRepayment } = useDebtMutations(debt.workspace_id)
   const left = remaining(debt)
   const schema = useMemo(() => buildSchema(left), [left])
-  const active = useMemo(() => wallets.filter((w) => !w.archived_at), [wallets])
+  const me = useProfile().data?.id
+  const active = useMemo(() => usableWallets(wallets, me).filter((w) => !w.archived_at), [wallets, me])
   const byId = useMemo(() => new Map(active.map((w) => [w.id, w])), [active])
 
   const defaults = (): FormValues => ({

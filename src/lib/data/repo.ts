@@ -1,5 +1,12 @@
 import type {
   AppNotification,
+  Budget,
+  BudgetInput,
+  InviteLookup,
+  Profile,
+  WorkspaceInvite,
+  WorkspaceMember,
+  WorkspaceRole,
   Category,
   CategoryInput,
   Debt,
@@ -25,7 +32,36 @@ import type {
  * - supabase-repo: signed-in users, protected by RLS; balances kept by DB triggers
  */
 export interface DataRepo {
+  /** Every workspace the user can open (own Personal/Business, plus family ones), with their role. */
   listWorkspaces(): Promise<Workspace[]>
+
+  // --- family sharing ------------------------------------------------------
+  /** The current user's display name (shown as "recorded by" to other members). */
+  getProfile(): Promise<Profile>
+  updateProfile(displayName: string): Promise<Profile>
+  /** Creates the user's one family workspace (with personal category presets). */
+  createFamilyWorkspace(name: string): Promise<Workspace>
+  /** Owner only; removes everything in it. */
+  deleteFamilyWorkspace(workspaceId: string): Promise<void>
+  /** Owner first, then by join date. */
+  listMembers(workspaceId: string): Promise<WorkspaceMember[]>
+  /** Owner only. */
+  setMemberRole(memberId: string, role: Exclude<WorkspaceRole, "OWNER">): Promise<void>
+  /** The owner removes someone, or a member removes themselves (leave). */
+  removeMember(memberId: string): Promise<void>
+  /** Owner only: a single-use 6-character code, valid for 7 days. */
+  createInvite(workspaceId: string, role: Exclude<WorkspaceRole, "OWNER">): Promise<WorkspaceInvite>
+  /** Unused, unexpired codes. */
+  listInvites(workspaceId: string): Promise<WorkspaceInvite[]>
+  revokeInvite(id: string): Promise<void>
+  /** Checks a code, and with `accept` joins its workspace. */
+  lookupInvite(code: string, accept: boolean): Promise<InviteLookup>
+
+  // --- budgets -------------------------------------------------------------
+  listBudgets(workspaceId: string): Promise<Budget[]>
+  /** Creates or replaces the cap for that category. */
+  saveBudget(workspaceId: string, input: BudgetInput): Promise<Budget>
+  deleteBudget(id: string): Promise<void>
 
   /** All wallets of a workspace, including archived ones, ordered by sort_order. */
   listWallets(workspaceId: string): Promise<Wallet[]>

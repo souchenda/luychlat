@@ -6,6 +6,8 @@ import { monthKey, monthStart } from "@/lib/dates"
 import { daysLeft, debtStatus, remaining, todayDate } from "@/lib/debts"
 import { roundMoney } from "@/lib/money"
 
+import { creditBand, creditScore, scoreFactors, type CreditBand, type ScoreFactors } from "./credit-score"
+
 /**
  * Aggregated, anonymous financial picture (all amounts in USD equivalent).
  * This object is what the AI sees: no names, phones, notes or free text.
@@ -52,8 +54,10 @@ export type Snapshot = {
   shortfall30: number
   overduePayables: number
   overdueReceivables: number
-  /** 0–100 */
+  /** Financial health on the 300–850 scale (see credit-score.ts). */
   score: number
+  /** The four weighted factors behind `score`, each 0–1. */
+  scoreFactors: ScoreFactors
 }
 
 export type SnapshotLabels = {
@@ -176,20 +180,22 @@ export function computeSnapshot(input: {
   const payablesDue30 = sum(payables.filter(within30))
   const receivablesDue30 = sum(receivables.filter(within30))
   const projectedCash30 = r2(cashUsd + (avgIncome - avgExpense))
-  const shortfall30 = r2(Math.max(0, payablesDue30 - projectedCash30))
+  // Only a shortfall when debts actually fall due (negative projected cash alone is the savings factor's job).
+  const shortfall30 = payablesDue30 > 0 ? r2(Math.max(0, payablesDue30 - projectedCash30)) : 0
   const overduePayables = payables.filter((d) => d.status === "OVERDUE").length
   const overdueReceivables = receivables.filter((d) => d.status === "OVERDUE").length
 
-  // --- health score
-  let score = 100
-  if (savingsRate !== null) score -= savingsRate < 0 ? 25 : savingsRate < 0.1 ? 10 : 0
-  else if (avgExpense > 0) score -= 15
-  if (dti !== null) score -= dti > 0.5 ? 30 : dti > 0.36 ? 15 : 0
-  else if (monthlyDebtService > 0) score -= 15
-  if (shortfall30 > 0) score -= 25
-  score -= Math.min(20, overduePayables * 10)
-  if (avgExpense > 0 && cashUsd < avgExpense) score -= 10
-  score = Math.max(0, Math.min(100, Math.round(score)))
+  // --- health score (300–850)
+  const factors = scoreFactors({
+    openPayables: payables.length,
+    overduePayables,
+    dti,
+    monthlyDebtService,
+    savingsRate,
+    avgExpense,
+    cashUsd,
+  })
+  const score = creditScore(factors)
 
   return {
     labels,
@@ -218,12 +224,13 @@ export function computeSnapshot(input: {
       overduePayables,
       overdueReceivables,
       score,
+      scoreFactors: factors,
     },
   }
 }
 
-export function scoreBand(score: number): "good" | "fair" | "poor" {
-  return score >= 75 ? "good" : score >= 50 ? "fair" : "poor"
+export function scoreBand(score: number): CreditBand {
+  return creditBand(score)
 }
 
 export const monthLabel = (key: string) => format(monthStart(key), "MM/yyyy")

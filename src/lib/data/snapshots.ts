@@ -24,6 +24,8 @@ export function currentGuestData(): GuestData {
     repayments: s.repayments,
     notifications: s.notifications,
     seededWorkspaceIds: s.seededWorkspaceIds,
+    budgets: s.budgets,
+    members: s.members,
   }
 }
 
@@ -59,9 +61,35 @@ export async function listSnapshots(): Promise<SnapshotRow[]> {
   return rows
 }
 
+/** Fills fields added after older snapshots/backups were taken. */
+function normalize(data: GuestData): GuestData {
+  // Old rows may lack the fields even though the types say otherwise.
+  const by = <T extends { created_by: string | null; created_by_name: string | null }>(row: T): T => ({
+    ...row,
+    created_by: row.created_by ?? null,
+    created_by_name: row.created_by_name ?? null,
+  })
+  return {
+    ...data,
+    workspaces: data.workspaces.map((w) => ({ ...w, user_id: w.user_id ?? "", role: w.role ?? "OWNER", member_count: w.member_count ?? 1 })),
+    wallets: data.wallets.map((w) => ({ ...w, visibility: w.visibility ?? "SHARED", owner_id: w.owner_id ?? null })),
+    transactions: data.transactions.map(by),
+    debts: data.debts.map(by),
+    repayments: data.repayments.map(by),
+    notifications: data.notifications.map((n) => ({
+      ...n,
+      user_id: n.user_id ?? null,
+      transaction_id: n.transaction_id ?? null,
+      actor_name: n.actor_name ?? null,
+    })),
+    budgets: data.budgets ?? [],
+    members: data.members ?? [],
+  }
+}
+
 /** Replaces the guest data with `data` (receipts are kept). */
 export function applyGuestData(data: GuestData) {
-  useGuestDataStore.setState(structuredClone(data))
+  useGuestDataStore.setState(structuredClone(normalize(data)))
 }
 
 /** Restores a snapshot after saving the current state as an undo point. */

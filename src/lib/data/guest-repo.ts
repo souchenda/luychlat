@@ -17,9 +17,12 @@ import type { DataRepo } from "./repo"
 import {
   DebtLinkedError,
   InsufficientBalanceError,
+  PersonalWalletError,
   RepaymentTooLargeError,
   WalletInUseError,
   type AppNotification,
+  type Attribution,
+  type Budget,
   type Category,
   type Debt,
   type DebtRepayment,
@@ -29,21 +32,44 @@ import {
   type TransferUpdate,
   type Wallet,
   type Workspace,
+  type WorkspaceInvite,
+  type WorkspaceMember,
 } from "./types"
 
 const store = useGuestDataStore
 const now = () => new Date().toISOString()
 
+const me = () => store.getState().profile
+
+/** Mirrors the stamp_created_by trigger. */
+const stamp = (): Attribution => ({ created_by: me().id, created_by_name: me().display_name })
+
+/** The guest owns everything on this device; other family members are simulated. */
+function withAccess(w: Workspace): Workspace {
+  const others = store.getState().members.filter((m) => m.workspace_id === w.id && m.user_id !== me().id && m.role !== "OWNER")
+  return { ...w, user_id: me().id, role: "OWNER", member_count: 1 + others.length }
+}
+
 /** Mirrors the signup trigger: every user starts with a Personal and a Business workspace. */
 function ensureWorkspaces(): Workspace[] {
   const { workspaces } = store.getState()
-  if (workspaces.length > 0) return workspaces
+  if (workspaces.length > 0) return workspaces.map(withAccess)
+  const base = { currency_default: "USD" as const, created_at: now(), user_id: me().id, role: "OWNER" as const, member_count: 1 }
   const seeded: Workspace[] = [
-    { id: uuid(), name: "ផ្ទាល់ខ្លួន", type: "PERSONAL", currency_default: "USD", created_at: now() },
-    { id: uuid(), name: "អាជីវកម្ម", type: "BUSINESS", currency_default: "USD", created_at: now() },
+    { id: uuid(), name: "ផ្ទាល់ខ្លួន", type: "PERSONAL", ...base },
+    { id: uuid(), name: "អាជីវកម្ម", type: "BUSINESS", ...base },
   ]
   store.setState({ workspaces: seeded })
   return seeded
+}
+
+const ORDER = { PERSONAL: 0, BUSINESS: 1, FAMILY: 2 } as const
+
+/** Same alphabet as public.create_workspace_invite(). */
+function inviteCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  const bytes = crypto.getRandomValues(new Uint8Array(6))
+  return Array.from(bytes, (b) => alphabet[b % 32]).join("")
 }
 
 /** Mirrors public.seed_default_categories(). */
@@ -87,6 +113,17 @@ function patchWallets(update: (w: Wallet) => Wallet) {
 const bySortOrder = (a: Wallet, b: Wallet) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at)
 
 /** Same checks as the table constraints and triggers. */
+/** Mirrors the transactions_personal_wallet_guard trigger. */
+function guardPersonal(...txs: (Transaction | null)[]) {
+  for (const tx of txs) {
+    if (!tx) continue
+    for (const id of [tx.wallet_id, tx.to_wallet_id]) {
+      const w = id ? store.getState().wallets.find((x) => x.id === id) : undefined
+      if (w?.visibility === "PERSONAL" && w.owner_id && w.owner_id !== me().id) throw new PersonalWalletError()
+    }
+  }
+}
+
 function validate(workspaceId: string, tx: Transaction) {
   const from = getWallet(tx.wallet_id)
   if (from.workspace_id !== workspaceId) throw new Error("Wallet not in workspace")
@@ -121,6 +158,13 @@ function commit(
 ) {
   const state = store.getState()
   const { wallets, transactions } = state
+  const moneyChanged =
+    !before ||
+    !after ||
+    (["wallet_id", "to_wallet_id", "amount", "to_amount", "currency", "type", "exchange_rate"] as const).some(
+      (k) => before[k] !== after[k],
+    )
+  if (moneyChanged) guardPersonal(before, after)
   const currencyOf = (id: string) => wallets.find((w) => w.id === id)!.currency
   const deltas = new Map<string, number>()
   const add = (tx: Transaction, sign: 1 | -1) =>
@@ -188,7 +232,157 @@ function matches(tx: Transaction, workspaceId: string, f: TransactionFilter) {
 
 export const guestRepo: DataRepo = {
   async listWorkspaces() {
-    return ensureWorkspaces()
+    return ensureWorkspaces().sort((a, b) => ORDER[a.type] - ORDER[b.type])
+  },
+
+  // --- family (other members are simulated on this device) ------------------
+
+  async getProfile() {
+    return me()
+  },
+
+  async updateProfile(displayName) {
+    const profile = { ...me(), display_name: displayName.trim().slice(0, 40) }
+    store.setState({ profile })
+    return profile
+  },
+
+  async createFamilyWorkspace(name) {
+    ensureWorkspaces()
+    if (store.getState().workspaces.some((w) => w.type === "FAMILY")) throw new Error("family_exists")
+    const workspace: Workspace = {
+      id: uuid(),
+      name: name.trim().slice(0, 60) || "គ្រួសារ",
+      type: "FAMILY",
+      currency_default: "USD",
+      created_at: now(),
+      user_id: me().id,
+      role: "OWNER",
+      member_count: 1,
+    }
+    store.setState((s) => ({ workspaces: [...s.workspaces, workspace] }))
+    return workspace
+  },
+
+  async deleteFamilyWorkspace(workspaceId) {
+    const target = store.getState().workspaces.find((w) => w.id === workspaceId)
+    if (target?.type !== "FAMILY") throw new Error("only the family workspace can be deleted")
+    const receipts = store
+      .getState()
+      .transactions.filter((t) => t.workspace_id === workspaceId && t.receipt_url)
+      .map((t) => t.receipt_url!)
+    const debtIds = new Set(store.getState().debts.filter((d) => d.workspace_id === workspaceId).map((d) => d.id))
+    store.setState((s) => ({
+      workspaces: s.workspaces.filter((w) => w.id !== workspaceId),
+      wallets: s.wallets.filter((w) => w.workspace_id !== workspaceId),
+      categories: s.categories.filter((c) => c.workspace_id !== workspaceId),
+      transactions: s.transactions.filter((t) => t.workspace_id !== workspaceId),
+      debts: s.debts.filter((d) => d.workspace_id !== workspaceId),
+      repayments: s.repayments.filter((r) => !debtIds.has(r.debt_id)),
+      notifications: s.notifications.filter((n) => n.workspace_id !== workspaceId),
+      members: s.members.filter((m) => m.workspace_id !== workspaceId),
+      invites: s.invites.filter((i) => i.workspace_id !== workspaceId),
+      budgets: s.budgets.filter((b) => b.workspace_id !== workspaceId),
+      seededWorkspaceIds: s.seededWorkspaceIds.filter((id) => id !== workspaceId),
+    }))
+    await Promise.all(receipts.map((r) => guestReceipts.remove(r)))
+  },
+
+  async listMembers(workspaceId) {
+    const workspace = store.getState().workspaces.find((w) => w.id === workspaceId)
+    if (!workspace) return []
+    const owner: WorkspaceMember = {
+      id: `owner:${workspaceId}`,
+      workspace_id: workspaceId,
+      user_id: me().id,
+      role: "OWNER",
+      joined_at: workspace.created_at,
+      display_name: me().display_name,
+    }
+    const others = store
+      .getState()
+      .members.filter((m) => m.workspace_id === workspaceId && m.user_id !== me().id && m.role !== "OWNER")
+      .sort((a, b) => a.joined_at.localeCompare(b.joined_at))
+    return [owner, ...others]
+  },
+
+  async setMemberRole(memberId, role) {
+    store.setState((s) => ({ members: s.members.map((m) => (m.id === memberId ? { ...m, role } : m)) }))
+  },
+
+  async removeMember(memberId) {
+    const member = store.getState().members.find((m) => m.id === memberId)
+    if (!member) return
+    // Like on_member_removed(): their personal wallets become shared.
+    store.setState((s) => ({
+      members: s.members.filter((m) => m.id !== memberId),
+      wallets: s.wallets.map((w) =>
+        w.workspace_id === member.workspace_id && w.owner_id === member.user_id ? { ...w, visibility: "SHARED" } : w,
+      ),
+    }))
+  },
+
+  async createInvite(workspaceId, role) {
+    const invite: WorkspaceInvite = {
+      id: uuid(),
+      workspace_id: workspaceId,
+      code: inviteCode(),
+      role,
+      created_at: now(),
+      expires_at: new Date(Date.now() + 7 * 864e5).toISOString(),
+      used_at: null,
+    }
+    store.setState((s) => ({ invites: [...s.invites, invite] }))
+    return invite
+  },
+
+  async listInvites(workspaceId) {
+    const at = now()
+    return store
+      .getState()
+      .invites.filter((i) => i.workspace_id === workspaceId && !i.used_at && i.expires_at > at)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  },
+
+  async revokeInvite(id) {
+    store.setState((s) => ({ invites: s.invites.filter((i) => i.id !== id) }))
+  },
+
+  async lookupInvite(code) {
+    // Codes created here belong to the guest's own workspace; joining someone else needs an account.
+    const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, "")
+    const invite = store.getState().invites.find((i) => i.code === normalized)
+    const workspace = invite && store.getState().workspaces.find((w) => w.id === invite.workspace_id)
+    if (!workspace) return { status: "invalid" }
+    return { status: "already_member", workspace_id: workspace.id, workspace_name: workspace.name }
+  },
+
+  // --- budgets -------------------------------------------------------------
+
+  async listBudgets(workspaceId) {
+    return store
+      .getState()
+      .budgets.filter((b) => b.workspace_id === workspaceId)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+  },
+
+  async saveBudget(workspaceId, input) {
+    // Same rules as budgets_guard and unique (workspace_id, category_id).
+    const category = store.getState().categories.find((c) => c.id === input.category_id)
+    if (!category || category.workspace_id !== workspaceId || category.type !== "EXPENSE") {
+      throw new Error("budgets apply to expense categories")
+    }
+    if (!(input.amount > 0)) throw new Error("amount must be positive")
+    const existing = store.getState().budgets.find((b) => b.workspace_id === workspaceId && b.category_id === input.category_id)
+    const budget: Budget = existing
+      ? { ...existing, ...input, updated_at: now() }
+      : { id: uuid(), workspace_id: workspaceId, ...input, created_at: now(), updated_at: now() }
+    store.setState((s) => ({ budgets: [...s.budgets.filter((b) => b.id !== budget.id), budget] }))
+    return budget
+  },
+
+  async deleteBudget(id) {
+    store.setState((s) => ({ budgets: s.budgets.filter((b) => b.id !== id) }))
   },
 
   // --- wallets -------------------------------------------------------------
@@ -209,6 +403,7 @@ export const guestRepo: DataRepo = {
       sort_order: siblings.reduce((max, w) => Math.max(max, w.sort_order), -1) + 1,
       archived_at: null,
       created_at: now(),
+      owner_id: me().id,
     }
     store.setState((s) => ({ wallets: [...s.wallets, wallet] }))
     return wallet
@@ -221,7 +416,11 @@ export const guestRepo: DataRepo = {
     if (hasHistory && input.currency !== current.currency) {
       throw new Error("cannot change currency of a wallet with transactions")
     }
-    const next: Wallet = { ...current, ...input }
+    // Same rule as wallets_accounts_owner_guard.
+    if (input.visibility !== current.visibility && current.owner_id && current.owner_id !== me().id) {
+      throw new PersonalWalletError()
+    }
+    const next: Wallet = { ...current, ...input, owner_id: current.owner_id }
     patchWallets((w) => (w.id === id ? next : w))
     return next
   },
@@ -299,6 +498,7 @@ export const guestRepo: DataRepo = {
   async deleteCategory(id) {
     store.setState((s) => ({
       categories: s.categories.filter((c) => c.id !== id),
+      budgets: s.budgets.filter((b) => b.category_id !== id),
       transactions: s.transactions.map((t) => (t.category_id === id ? { ...t, category_id: null } : t)),
     }))
   },
@@ -322,6 +522,7 @@ export const guestRepo: DataRepo = {
       created_at: now(),
       debt_id: null,
       ...input,
+      ...stamp(),
     }
     validate(workspaceId, tx)
     commit(null, tx)
@@ -339,6 +540,7 @@ export const guestRepo: DataRepo = {
       receipt_url: null,
       created_at: now(),
       debt_id: null,
+      ...stamp(),
     }
     validate(input.workspace_id, tx)
     commit(null, tx)
@@ -415,6 +617,7 @@ export const guestRepo: DataRepo = {
         status: "ACTIVE",
         created_at: now(),
         disbursement_transaction_id: null,
+        ...stamp(),
       },
       [],
     )
@@ -442,6 +645,7 @@ export const guestRepo: DataRepo = {
       transaction_date: disbursement.date,
       created_at: now(),
       debt_id: debt.id,
+      ...stamp(),
     }
     if (disbursement.amount !== undefined && !(disbursement.amount > 0 && disbursement.amount <= debt.total_amount)) {
       throw new Error("disbursement amount must be between 0 and the debt total")
@@ -502,6 +706,7 @@ export const guestRepo: DataRepo = {
       transaction_date: input.payment_date,
       created_at: now(),
       debt_id: debt.id,
+      ...stamp(),
     }
     validate(debt.workspace_id, tx)
     const repayment: DebtRepayment = {
@@ -513,6 +718,7 @@ export const guestRepo: DataRepo = {
       note: input.note,
       transaction_id: tx.id,
       created_at: now(),
+      ...stamp(),
     }
     // One setState: ledger row, wallet balance, repayment and debt together.
     commit(null, tx, (s) => {
@@ -533,7 +739,7 @@ export const guestRepo: DataRepo = {
   async listNotifications(workspaceId) {
     return store
       .getState()
-      .notifications.filter((n) => n.workspace_id === workspaceId)
+      .notifications.filter((n) => n.workspace_id === workspaceId && (!n.user_id || n.user_id === me().id))
       .sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at))
   },
 
@@ -562,6 +768,9 @@ export const guestRepo: DataRepo = {
           is_read: false,
           scheduled_at: now(),
           alert_key: stage,
+          user_id: null,
+          transaction_id: null,
+          actor_name: null,
         }
       })
     if (created.length) store.setState((s) => ({ notifications: [...s.notifications, ...created] }))

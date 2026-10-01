@@ -13,6 +13,7 @@ import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { WalletList } from "@/components/wallets/wallet-list"
 import {
+  canWrite,
   useActiveWorkspace,
   useCategories,
   useTransactions,
@@ -28,6 +29,7 @@ const RECENT_TRANSFERS: TransactionFilter = { type: "TRANSFER", limit: 10 }
 export default function WalletsPage() {
   const t = useT()
   const { workspace } = useActiveWorkspace()
+  const editable = canWrite(workspace)
   const walletsQuery = useWallets(workspace?.id)
   const transfersQuery = useTransactions(workspace?.id, RECENT_TRANSFERS)
   const categories = useCategories(workspace?.id).data ?? []
@@ -66,7 +68,7 @@ export default function WalletsPage() {
 
       <NetWorthCard wallets={all} loading={walletsQuery.isLoading} />
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className={editable ? "grid grid-cols-2 gap-2" : "hidden"}>
         <Button className="h-11" onClick={openCreate}>
           <PlusIcon />
           {t("wallets.add")}

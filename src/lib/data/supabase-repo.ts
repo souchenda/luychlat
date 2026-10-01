@@ -5,10 +5,16 @@ import type { DataRepo } from "./repo"
 import {
   DebtLinkedError,
   InsufficientBalanceError,
+  PersonalWalletError,
   RepaymentTooLargeError,
   WalletInUseError,
   type AppNotification,
+  type Budget,
   type Category,
+  type InviteLookup,
+  type Profile,
+  type WorkspaceInvite,
+  type WorkspaceMember,
   type Debt,
   type DebtRepayment,
   type TelegramSettings,
@@ -27,6 +33,7 @@ function unwrap<T>({ data, error }: { data: T | null; error: PostgrestError | nu
     if (error.message.includes("insufficient_balance")) throw new InsufficientBalanceError()
     if (error.message.includes("exceeds the remaining balance")) throw new RepaymentTooLargeError()
     if (error.message.includes("edited from the debt")) throw new DebtLinkedError()
+    if (error.message.includes("personal_wallet")) throw new PersonalWalletError()
     throw error
   }
   return data as T
@@ -48,16 +55,140 @@ const toDebt = (row: Debt): Debt => ({
   interest_rate: Number(row.interest_rate),
 })
 const toRepayment = (row: DebtRepayment): DebtRepayment => ({ ...row, amount_paid: Number(row.amount_paid) })
+const toBudget = (row: Budget): Budget => ({ ...row, amount: Number(row.amount) })
 
-/** Cloud data for signed-in users. Every query is scoped by RLS to auth.uid(). */
-export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
+const WORKSPACE_ORDER = { PERSONAL: 0, BUSINESS: 1, FAMILY: 2 } as const
+type WorkspaceRow = Omit<Workspace, "role" | "member_count">
+type MemberRow = Omit<WorkspaceMember, "display_name"> & { profile: { display_name: string } | null }
+const INVITE_COLUMNS = "id, workspace_id, code, role, created_at, expires_at, used_at"
+
+/** Cloud data for signed-in users. Every query is scoped by RLS to the workspaces `userId` belongs to. */
+export function createSupabaseRepo(supabase: SupabaseClient, userId: string): DataRepo {
   const walletCurrency = async (id: string) =>
     (unwrap(await supabase.from("wallets_accounts").select("currency").eq("id", id).single()) as Pick<Wallet, "currency">)
       .currency
 
   const repo: DataRepo = {
     async listWorkspaces() {
-      return unwrap(await supabase.from("workspaces").select("*").order("type")) as Workspace[]
+      const [workspaces, members] = await Promise.all([
+        supabase.from("workspaces").select("*"),
+        supabase.from("workspace_members").select("workspace_id, user_id, role"),
+      ])
+      const memberRows = unwrap(members) as Pick<WorkspaceMember, "workspace_id" | "user_id" | "role">[]
+      return (unwrap(workspaces) as WorkspaceRow[])
+        .map((w) => {
+          const of = memberRows.filter((m) => m.workspace_id === w.id)
+          return {
+            ...w,
+            role: of.find((m) => m.user_id === userId)?.role ?? "VIEWER",
+            member_count: Math.max(1, of.length),
+          }
+        })
+        .sort(
+          (a, b) =>
+            WORKSPACE_ORDER[a.type] - WORKSPACE_ORDER[b.type] ||
+            Number(b.user_id === userId) - Number(a.user_id === userId) ||
+            a.created_at.localeCompare(b.created_at),
+        )
+    },
+
+    // --- family sharing ------------------------------------------------------
+
+    async getProfile() {
+      const row = unwrap(await supabase.from("profiles").select("id, display_name").eq("id", userId).maybeSingle()) as Profile | null
+      return row ?? { id: userId, display_name: "" }
+    },
+
+    async updateProfile(displayName) {
+      return unwrap(
+        await supabase
+          .from("profiles")
+          .upsert({ id: userId, display_name: displayName.trim().slice(0, 40), updated_at: new Date().toISOString() })
+          .select("id, display_name")
+          .single(),
+      ) as Profile
+    },
+
+    async createFamilyWorkspace(name) {
+      const row = unwrap(await supabase.rpc("create_family_workspace", { p_name: name })) as WorkspaceRow
+      return { ...row, role: "OWNER", member_count: 1 }
+    },
+
+    async deleteFamilyWorkspace(workspaceId) {
+      unwrap(await supabase.rpc("delete_family_workspace", { p_workspace_id: workspaceId }))
+    },
+
+    async listMembers(workspaceId) {
+      const rows = unwrap(
+        await supabase
+          .from("workspace_members")
+          .select("id, workspace_id, user_id, role, joined_at, profile:profiles(display_name)")
+          .eq("workspace_id", workspaceId)
+          .order("joined_at"),
+      ) as unknown as MemberRow[]
+      return rows
+        .map(({ profile, ...m }) => ({ ...m, display_name: profile?.display_name ?? "—" }))
+        .sort((a, b) => Number(b.role === "OWNER") - Number(a.role === "OWNER"))
+    },
+
+    async setMemberRole(memberId, role) {
+      unwrap(await supabase.from("workspace_members").update({ role }).eq("id", memberId))
+    },
+
+    async removeMember(memberId) {
+      unwrap(await supabase.from("workspace_members").delete().eq("id", memberId))
+    },
+
+    async createInvite(workspaceId, role) {
+      const row = unwrap(
+        await supabase.rpc("create_workspace_invite", { p_workspace_id: workspaceId, p_role: role }),
+      ) as WorkspaceInvite & Record<string, unknown>
+      const { id, workspace_id, code, created_at, expires_at, used_at } = row
+      return { id, workspace_id, code, role: row.role, created_at, expires_at, used_at }
+    },
+
+    async listInvites(workspaceId) {
+      return unwrap(
+        await supabase
+          .from("workspace_invites")
+          .select(INVITE_COLUMNS)
+          .eq("workspace_id", workspaceId)
+          .is("used_at", null)
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: false }),
+      ) as WorkspaceInvite[]
+    },
+
+    async revokeInvite(id) {
+      unwrap(await supabase.from("workspace_invites").delete().eq("id", id))
+    },
+
+    async lookupInvite(code, accept) {
+      return unwrap(await supabase.rpc("lookup_workspace_invite", { p_code: code, p_accept: accept })) as InviteLookup
+    },
+
+    // --- budgets -------------------------------------------------------------
+
+    async listBudgets(workspaceId) {
+      const rows = unwrap(
+        await supabase.from("budgets").select("*").eq("workspace_id", workspaceId).order("created_at"),
+      ) as Budget[]
+      return rows.map(toBudget)
+    },
+
+    async saveBudget(workspaceId, input) {
+      const row = unwrap(
+        await supabase
+          .from("budgets")
+          .upsert({ workspace_id: workspaceId, ...input }, { onConflict: "workspace_id,category_id" })
+          .select()
+          .single(),
+      ) as Budget
+      return toBudget(row)
+    },
+
+    async deleteBudget(id) {
+      unwrap(await supabase.from("budgets").delete().eq("id", id))
     },
 
     // --- wallets -----------------------------------------------------------
@@ -228,7 +359,7 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
           .lt("transaction_date", to)
           .select("receipt_url"),
       ) as Pick<Transaction, "receipt_url">[]
-      const receipts = rows.flatMap((r) => (r.receipt_url ? [r.receipt_url] : []))
+      const receipts = rows.flatMap((r) => (r.receipt_url?.startsWith(`${userId}/`) ? [r.receipt_url] : []))
       if (receipts.length) await supabase.storage.from(RECEIPT_BUCKET).remove(receipts)
       return rows.length
     },
@@ -360,9 +491,7 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
     // --- receipts: private bucket, receipts/<uid>/<uuid>.jpg -----------------
 
     async uploadReceipt(image) {
-      const { data } = await supabase.auth.getUser()
-      if (!data.user) throw new Error("Not signed in")
-      const path = `${data.user.id}/${uuid()}.jpg`
+      const path = `${userId}/${uuid()}.jpg`
       const { error } = await supabase.storage.from(RECEIPT_BUCKET).upload(path, image, { contentType: image.type })
       if (error) throw error
       return path
@@ -374,6 +503,8 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
     },
 
     async deleteReceipt(ref) {
+      // Only the uploader's own folder can be cleaned up; a member's photo stays with their account.
+      if (!ref.startsWith(`${userId}/`)) return
       await supabase.storage.from(RECEIPT_BUCKET).remove([ref])
     },
   }

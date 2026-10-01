@@ -11,6 +11,7 @@ import { guestRepo } from "./guest-repo"
 import type { DataRepo } from "./repo"
 import { createSupabaseRepo } from "./supabase-repo"
 import type {
+  BudgetInput,
   CategoryInput,
   DebtDisbursement,
   DebtInput,
@@ -20,8 +21,11 @@ import type {
   TransactionFilter,
   TransferInput,
   TransferUpdate,
+  Wallet,
   WalletInput,
   WalletUpdate,
+  Workspace,
+  WorkspaceRole,
 } from "./types"
 
 /** Guest repo in Guest Mode, Supabase repo for signed-in users. */
@@ -29,7 +33,7 @@ export function useRepo(): { repo: DataRepo; scope: string } {
   const userId = useSessionStore((s) => s.user?.id ?? null)
   return useMemo(() => {
     const supabase = getSupabaseBrowserClient()
-    if (userId && supabase) return { repo: createSupabaseRepo(supabase), scope: userId }
+    if (userId && supabase) return { repo: createSupabaseRepo(supabase, userId), scope: userId }
     return { repo: guestRepo, scope: "guest" }
   }, [userId])
 }
@@ -45,6 +49,10 @@ export const queryKeys = {
   repayments: (scope: string, workspaceId: string) => ["repayments", scope, workspaceId] as const,
   notifications: (scope: string, workspaceId: string) => ["notifications", scope, workspaceId] as const,
   telegram: (scope: string) => ["telegram", scope] as const,
+  profile: (scope: string) => ["profile", scope] as const,
+  members: (scope: string, workspaceId: string) => ["members", scope, workspaceId] as const,
+  invites: (scope: string, workspaceId: string) => ["invites", scope, workspaceId] as const,
+  budgets: (scope: string, workspaceId: string) => ["budgets", scope, workspaceId] as const,
 }
 
 export function useWorkspaces() {
@@ -52,11 +60,121 @@ export function useWorkspaces() {
   return useQuery({ queryKey: queryKeys.workspaces(scope), queryFn: () => repo.listWorkspaces() })
 }
 
+/**
+ * Resolves the switcher choice: Personal/Business are the user's own; Family
+ * is the remembered family workspace (own or joined), else the first one.
+ * Falls back to Personal when no family workspace is available any more.
+ */
+export function pickWorkspace(workspaces: Workspace[] | undefined, type: Workspace["type"], familyId: string | null) {
+  if (!workspaces) return undefined
+  const own = (t: Workspace["type"]) => workspaces.find((w) => w.type === t && w.role === "OWNER") ?? workspaces.find((w) => w.type === t)
+  if (type === "FAMILY") {
+    const families = workspaces.filter((w) => w.type === "FAMILY")
+    return families.find((w) => w.id === familyId) ?? families[0] ?? own("PERSONAL")
+  }
+  return own(type)
+}
+
 /** The workspace picked in the switcher. */
 export function useActiveWorkspace() {
   const type = usePrefsStore((s) => s.activeWorkspace)
+  const familyId = usePrefsStore((s) => s.activeFamilyId)
   const query = useWorkspaces()
-  return { ...query, workspace: query.data?.find((w) => w.type === type) }
+  const workspace = useMemo(() => pickWorkspace(query.data, type, familyId), [query.data, type, familyId])
+  return { ...query, workspace }
+}
+
+/** The current user as seen by the data layer (cloud account or this device's guest identity). */
+export function useProfile() {
+  const { repo, scope } = useRepo()
+  return useQuery({ queryKey: queryKeys.profile(scope), queryFn: () => repo.getProfile(), staleTime: 60_000 })
+}
+
+/** Whether the current user may add or change records in the workspace (viewers can't). */
+export function canWrite(workspace: Workspace | undefined) {
+  return workspace?.role === "OWNER" || workspace?.role === "MEMBER"
+}
+
+/** Wallets the current user may move money with: shared ones and their own personal ones. */
+export function usableWallets(wallets: Wallet[], userId: string | undefined) {
+  return wallets.filter((w) => w.visibility !== "PERSONAL" || !w.owner_id || w.owner_id === userId)
+}
+
+export function useMembers(workspaceId: string | undefined) {
+  const { repo, scope } = useRepo()
+  return useQuery({
+    queryKey: queryKeys.members(scope, workspaceId ?? ""),
+    queryFn: () => repo.listMembers(workspaceId!),
+    enabled: Boolean(workspaceId),
+  })
+}
+
+export function useInvites(workspaceId: string | undefined, enabled = true) {
+  const { repo, scope } = useRepo()
+  return useQuery({
+    queryKey: queryKeys.invites(scope, workspaceId ?? ""),
+    queryFn: () => repo.listInvites(workspaceId!),
+    enabled: Boolean(workspaceId) && enabled,
+  })
+}
+
+/** Family workspace, members, invitations and the user's display name. */
+export function useFamilyMutations() {
+  const { repo, scope } = useRepo()
+  const queryClient = useQueryClient()
+  const refresh = (...keys: readonly (readonly unknown[])[]) =>
+    keys.forEach((queryKey) => void queryClient.invalidateQueries({ queryKey }))
+  const workspaces = queryKeys.workspaces(scope)
+  const members = ["members", scope] as const
+  const invites = ["invites", scope] as const
+
+  return {
+    updateProfile: useMutation({
+      mutationFn: (name: string) => repo.updateProfile(name),
+      onSuccess: () => refresh(queryKeys.profile(scope), members),
+    }),
+    createFamily: useMutation({ mutationFn: (name: string) => repo.createFamilyWorkspace(name), onSuccess: () => refresh(workspaces) }),
+    deleteFamily: useMutation({ mutationFn: (id: string) => repo.deleteFamilyWorkspace(id), onSuccess: () => refresh(workspaces) }),
+    setRole: useMutation({
+      mutationFn: ({ memberId, role }: { memberId: string; role: Exclude<WorkspaceRole, "OWNER"> }) => repo.setMemberRole(memberId, role),
+      onSuccess: () => refresh(members),
+    }),
+    removeMember: useMutation({
+      mutationFn: (memberId: string) => repo.removeMember(memberId),
+      onSuccess: () => refresh(members, workspaces, ["wallets", scope]),
+    }),
+    createInvite: useMutation({
+      mutationFn: ({ workspaceId, role }: { workspaceId: string; role: Exclude<WorkspaceRole, "OWNER"> }) =>
+        repo.createInvite(workspaceId, role),
+      onSuccess: () => refresh(invites),
+    }),
+    revokeInvite: useMutation({ mutationFn: (id: string) => repo.revokeInvite(id), onSuccess: () => refresh(invites) }),
+    lookupInvite: useMutation({
+      mutationFn: ({ code, accept }: { code: string; accept: boolean }) => repo.lookupInvite(code, accept),
+      onSuccess: (result, { accept }) => {
+        if (accept && result.status === "ok") refresh(workspaces)
+      },
+    }),
+  }
+}
+
+export function useBudgets(workspaceId: string | undefined) {
+  const { repo, scope } = useRepo()
+  return useQuery({
+    queryKey: queryKeys.budgets(scope, workspaceId ?? ""),
+    queryFn: () => repo.listBudgets(workspaceId!),
+    enabled: Boolean(workspaceId),
+  })
+}
+
+export function useBudgetMutations(workspaceId: string | undefined) {
+  const { repo } = useRepo()
+  const invalidate = useInvalidate(workspaceId)
+  const ws = workspaceId ?? ""
+  return {
+    save: useMutation({ mutationFn: (input: BudgetInput) => repo.saveBudget(ws, input), onSuccess: () => invalidate("budgets") }),
+    remove: useMutation({ mutationFn: (id: string) => repo.deleteBudget(id), onSuccess: () => invalidate("budgets") }),
+  }
 }
 
 export function useWallets(workspaceId: string | undefined) {
@@ -116,7 +234,7 @@ function useInvalidate(workspaceId: string | undefined) {
   const { scope } = useRepo()
   const queryClient = useQueryClient()
   const ws = workspaceId ?? ""
-  return (...keys: ("wallets" | "categories" | "transactions" | "debts" | "repayments" | "notifications")[]) =>
+  return (...keys: ("wallets" | "categories" | "transactions" | "debts" | "repayments" | "notifications" | "budgets")[]) =>
     keys.forEach((k) => void queryClient.invalidateQueries({ queryKey: queryKeys[k](scope, ws) }))
 }
 
@@ -201,7 +319,7 @@ export function useCategoryMutations(workspaceId: string | undefined) {
     }),
     remove: useMutation({
       mutationFn: (id: string) => repo.deleteCategory(id),
-      onSuccess: () => invalidate("categories", "transactions"),
+      onSuccess: () => invalidate("categories", "transactions", "budgets"),
     }),
   }
 }

@@ -11,6 +11,7 @@ import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
 import { DebtProgress } from "@/components/debts/debt-progress"
 import { ReminderSheet } from "@/components/debts/reminder-sheet"
 import { RepaymentSheet } from "@/components/debts/repayment-sheet"
+import { RecordedBy } from "@/components/family/member-avatar"
 import { UrgencyBadge } from "@/components/debts/urgency-badge"
 import { Amount } from "@/components/money/amount"
 import { Button } from "@/components/ui/button"
@@ -173,6 +174,7 @@ export default function DebtDetailPage() {
                     <p className="truncate text-xs text-muted-foreground">
                       {[wallet?.name, r.note].filter(Boolean).join(" · ")}
                     </p>
+                    <RecordedBy row={r} className="mt-0.5 flex" />
                   </div>
                   <Amount value={r.amount_paid} currency={debt.currency} className="text-sm font-semibold" />
                   <Button

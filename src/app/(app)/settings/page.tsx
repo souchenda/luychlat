@@ -1,12 +1,13 @@
 "use client"
 
-import { ChartColumnIcon, ChevronRightIcon, CoinsIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import { ChartColumnIcon, ChevronRightIcon, CoinsIcon, TargetIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { FamilySettings } from "@/components/family/family-settings"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { AiSettingsCard } from "@/components/settings/ai-settings"
 import { DangerZone } from "@/components/settings/danger-zone"
@@ -192,12 +193,19 @@ export default function SettingsPage() {
             <ChevronRightIcon className="size-4 text-muted-foreground" />
           </Row>
         </Link>
+        <Link href="/budgets" className="block hover:bg-muted/60">
+          <Row icon={<TargetIcon />} title={t("budget.title")} hint={t("budget.settingsHint")}>
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Row>
+        </Link>
         <Link href="/reports" className="block hover:bg-muted/60">
           <Row icon={<ChartColumnIcon />} title={t("reports.title")} hint={t("reports.settingsHint")}>
             <ChevronRightIcon className="size-4 text-muted-foreground" />
           </Row>
         </Link>
       </Section>
+
+      <FamilySettings />
 
       <InstallAppCard />
 

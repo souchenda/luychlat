@@ -20,6 +20,9 @@ const iso = z.string().min(10).max(40)
 const money = z.number().finite()
 const currency = z.enum(["USD", "KHR"])
 const text = (max: number) => z.string().max(max).nullable()
+// Fields added in Phase 7 are optional so older backups still restore.
+const attribution = { created_by: id.nullable().optional(), created_by_name: text(40).optional() }
+const role = z.enum(["OWNER", "MEMBER", "VIEWER"])
 
 const schema = z.object({
   format: z.literal(BACKUP_FORMAT),
@@ -27,7 +30,16 @@ const schema = z.object({
   exportedAt: iso,
   data: z.object({
     workspaces: z.array(
-      z.object({ id, name: z.string().max(60), type: z.enum(["PERSONAL", "BUSINESS"]), currency_default: currency, created_at: iso }),
+      z.object({
+        id,
+        name: z.string().max(60),
+        type: z.enum(["PERSONAL", "BUSINESS", "FAMILY"]),
+        currency_default: currency,
+        created_at: iso,
+        user_id: z.string().max(64).optional(),
+        role: role.optional(),
+        member_count: z.number().int().min(1).optional(),
+      }),
     ),
     wallets: z.array(
       z.object({
@@ -41,6 +53,8 @@ const schema = z.object({
         sort_order: z.number().int(),
         archived_at: iso.nullable(),
         created_at: iso,
+        visibility: z.enum(["SHARED", "PERSONAL"]).optional(),
+        owner_id: id.nullable().optional(),
       }),
     ),
     categories: z.array(
@@ -72,6 +86,7 @@ const schema = z.object({
         transaction_date: iso,
         created_at: iso,
         debt_id: id.nullable(),
+        ...attribution,
       }),
     ),
     debts: z.array(
@@ -92,6 +107,7 @@ const schema = z.object({
         note: text(500),
         created_at: iso,
         disbursement_transaction_id: id.nullable(),
+        ...attribution,
       }),
     ),
     repayments: z.array(
@@ -104,6 +120,7 @@ const schema = z.object({
         note: text(500),
         transaction_id: id,
         created_at: iso,
+        ...attribution,
       }),
     ),
     notifications: z.array(
@@ -113,12 +130,32 @@ const schema = z.object({
         debt_id: id.nullable(),
         title: z.string().max(300),
         message: z.string().max(2000),
-        type: z.enum(["DUE_DATE", "SYSTEM", "AI_ADVICE"]),
+        type: z.enum(["DUE_DATE", "SYSTEM", "AI_ADVICE", "ACTIVITY"]),
         is_read: z.boolean(),
         scheduled_at: iso,
         alert_key: z.enum(["D7", "D3", "D0", "OVERDUE"]).nullable(),
+        user_id: id.nullable().optional(),
+        transaction_id: id.nullable().optional(),
+        actor_name: text(40).optional(),
       }),
     ),
+    budgets: z
+      .array(
+        z.object({ id, workspace_id: id, category_id: id, amount: money, currency, created_at: iso, updated_at: iso }),
+      )
+      .optional(),
+    members: z
+      .array(
+        z.object({
+          id,
+          workspace_id: id,
+          user_id: z.string().max(64),
+          role,
+          joined_at: iso,
+          display_name: z.string().max(40),
+        }),
+      )
+      .optional(),
     seededWorkspaceIds: z.array(id),
   }),
   receipts: z.record(id, z.string().max(MAX_RECEIPT_CHARS).regex(/^data:image\/(jpeg|png|webp);base64,/)).default({}),
@@ -132,6 +169,7 @@ function checkIntegrity(data: GuestData) {
   const wallets = new Set(data.wallets.map((w) => w.id))
   const debts = new Set(data.debts.map((d) => d.id))
   const txs = new Set(data.transactions.map((t) => t.id))
+  const categories = new Set(data.categories.map((c) => c.id))
   const ok =
     data.wallets.every((w) => ws.has(w.workspace_id)) &&
     data.categories.every((c) => ws.has(c.workspace_id)) &&
@@ -139,7 +177,9 @@ function checkIntegrity(data: GuestData) {
       (t) => ws.has(t.workspace_id) && wallets.has(t.wallet_id) && (!t.to_wallet_id || wallets.has(t.to_wallet_id)),
     ) &&
     data.debts.every((d) => ws.has(d.workspace_id)) &&
-    data.repayments.every((r) => debts.has(r.debt_id) && txs.has(r.transaction_id) && wallets.has(r.wallet_id))
+    data.repayments.every((r) => debts.has(r.debt_id) && txs.has(r.transaction_id) && wallets.has(r.wallet_id)) &&
+    (data.budgets ?? []).every((b) => ws.has(b.workspace_id) && categories.has(b.category_id)) &&
+    (data.members ?? []).every((m) => ws.has(m.workspace_id))
   if (!ok) throw new Error("integrity")
 }
 
@@ -165,7 +205,18 @@ export async function buildBackup(repo: DataRepo, mode: "guest" | "cloud"): Prom
     }
   } else {
     const workspaces = await repo.listWorkspaces()
-    data = { workspaces, wallets: [], categories: [], transactions: [], debts: [], repayments: [], notifications: [], seededWorkspaceIds: workspaces.map((w) => w.id) }
+    data = {
+      workspaces,
+      wallets: [],
+      categories: [],
+      transactions: [],
+      debts: [],
+      repayments: [],
+      notifications: [],
+      budgets: [],
+      members: [],
+      seededWorkspaceIds: workspaces.map((w) => w.id),
+    }
     for (const w of workspaces) {
       data.wallets.push(...(await repo.listWallets(w.id)))
       data.categories.push(...(await repo.listCategories(w.id)))
@@ -174,6 +225,8 @@ export async function buildBackup(repo: DataRepo, mode: "guest" | "cloud"): Prom
       data.debts.push(...debts)
       for (const d of debts) data.repayments.push(...(await repo.listRepayments(d.id)))
       data.notifications.push(...(await repo.listNotifications(w.id)))
+      data.budgets!.push(...(await repo.listBudgets(w.id)))
+      data.members!.push(...(await repo.listMembers(w.id)))
     }
     // Cloud receipt paths only work in that account; drop them from the file.
     data.transactions = data.transactions.map((t) => ({ ...t, receipt_url: null }))

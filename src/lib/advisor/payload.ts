@@ -14,7 +14,7 @@ const categoryKey = z.string().regex(/^(custom_\d{1,3}|uncategorized|[a-z_]{2,24
 export const anonymousSnapshotSchema = z
   .object({
     asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    workspaceType: z.enum(["PERSONAL", "BUSINESS"]),
+    workspaceType: z.enum(["PERSONAL", "BUSINESS", "FAMILY"]),
     khrPerUsd: amount,
     cashUsd: amount,
     walletCount: z.number().int().min(0).max(1000),
@@ -54,7 +54,15 @@ export const anonymousSnapshotSchema = z
     shortfall30: amount,
     overduePayables: z.number().int(),
     overdueReceivables: z.number().int(),
-    score: z.number().int().min(0).max(100),
+    score: z.number().int().min(300).max(850),
+    scoreFactors: z
+      .object({
+        repayment: z.number().min(0).max(1),
+        dti: z.number().min(0).max(1),
+        savings: z.number().min(0).max(1),
+        buffer: z.number().min(0).max(1),
+      })
+      .strict(),
   })
   .strict()
 

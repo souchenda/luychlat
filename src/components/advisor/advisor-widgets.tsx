@@ -4,7 +4,8 @@ import { ArrowUpNarrowWideIcon, CircleAlertIcon, CircleCheckIcon, InfoIcon, Octa
 
 import { Card } from "@/components/ui/card"
 import type { Insight, Severity } from "@/lib/advisor/engine"
-import { scoreBand, type Snapshot, type SnapshotLabels } from "@/lib/advisor/snapshot"
+import { scoreFraction } from "@/lib/advisor/credit-score"
+import { scoreBand, type SnapshotLabels } from "@/lib/advisor/snapshot"
 import type { StrategyComparison } from "@/lib/advisor/strategy"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
@@ -19,12 +20,14 @@ const SEVERITY: Record<Severity, { icon: typeof InfoIcon; className: string }> =
   critical: { icon: OctagonAlertIcon, className: "text-red-600 dark:text-red-400" },
 }
 
+const RING_COLORS = { excellent: "#10b981", good: "#84cc16", fair: "#f59e0b", needs_work: "#ef4444" } as const
+
+/** Compact score badge for the dashboard (300–850). */
 export function ScoreRing({ score, className }: { score: number; className?: string }) {
-  const band = scoreBand(score)
-  const color = band === "good" ? "#10b981" : band === "fair" ? "#f59e0b" : "#ef4444"
+  const color = RING_COLORS[scoreBand(score)]
   const circumference = 2 * Math.PI * 26
   return (
-    <div className={cn("relative size-16 shrink-0", className)} role="img" aria-label={`${score}/100`}>
+    <div className={cn("relative size-16 shrink-0", className)} role="img" aria-label={`${score}/850`}>
       <svg viewBox="0 0 64 64" className="size-full -rotate-90">
         <circle cx="32" cy="32" r="26" fill="none" stroke="var(--muted)" strokeWidth="7" />
         <circle
@@ -36,43 +39,11 @@ export function ScoreRing({ score, className }: { score: number; className?: str
           strokeWidth="7"
           strokeLinecap="round"
           strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - score / 100)}
+          strokeDashoffset={circumference * (1 - scoreFraction(score))}
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-lg font-bold tabular-nums">{score}</span>
+      <span className="absolute inset-0 flex items-center justify-center text-sm font-bold tabular-nums">{score}</span>
     </div>
-  )
-}
-
-export function HealthCard({ snapshot }: { snapshot: Snapshot }) {
-  const t = useT()
-  const hidden = usePrefsStore((s) => s.hideBalances)
-  const band = scoreBand(snapshot.score)
-  const pct = (n: number | null) => (n === null ? "—" : `${Math.round(n * 100)}%`)
-  return (
-    <Card className="gap-3 px-4 py-4">
-      <div className="flex items-center gap-4">
-        <ScoreRing score={snapshot.score} />
-        <div>
-          <p className="text-sm text-muted-foreground">{t("advisor.health")}</p>
-          <p className="text-lg font-semibold">{t(`advisor.band.${band}`)}</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-lg bg-muted/60 p-2">
-          <p className="text-[11px] text-muted-foreground">DTI</p>
-          <p className="text-sm font-semibold tabular-nums">{pct(snapshot.dti)}</p>
-        </div>
-        <div className="rounded-lg bg-muted/60 p-2">
-          <p className="text-[11px] text-muted-foreground">{t("advisor.savingsRate")}</p>
-          <p className="text-sm font-semibold tabular-nums">{pct(snapshot.savingsRate)}</p>
-        </div>
-        <div className="rounded-lg bg-muted/60 p-2">
-          <p className="text-[11px] text-muted-foreground">{t("advisor.cash")}</p>
-          <p className="text-sm font-semibold tabular-nums">{formatMoney(snapshot.cashUsd, "USD", { hidden })}</p>
-        </div>
-      </div>
-    </Card>
   )
 }
 

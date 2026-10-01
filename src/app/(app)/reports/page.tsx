@@ -1,7 +1,8 @@
 "use client"
 
 import { format } from "date-fns"
-import { ChartColumnIcon, FileSpreadsheetIcon, Loader2Icon, PrinterIcon } from "lucide-react"
+import { ChartColumnIcon, ChevronRightIcon, FileSpreadsheetIcon, Loader2Icon, PrinterIcon, TargetIcon } from "lucide-react"
+import Link from "next/link"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -158,6 +159,18 @@ export default function ReportsPage() {
           </div>
         )}
       </Card>
+
+      <Link
+        href="/budgets"
+        className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted/60 print:hidden"
+      >
+        <TargetIcon className="size-5 text-primary" aria-hidden />
+        <span className="flex-1">
+          <span className="block text-sm font-medium">{t("budget.title")}</span>
+          <span className="block text-xs text-muted-foreground">{t("budget.settingsHint")}</span>
+        </span>
+        <ChevronRightIcon className="size-4 text-muted-foreground" />
+      </Link>
 
       {/* Exports */}
       <section className="space-y-2 print:hidden">

@@ -22,6 +22,7 @@ function systemPrompt(req: AdvisorRequest) {
     "Debts are anonymous references (P1, P2 = money the user owes; R1 = money owed to the user). Refer to them by these references.",
     "When asked which debt to pay first, compare Debt Snowball (smallest balance first) and Debt Avalanche (highest interest first) using the balances, rates and due dates.",
     "Debt-to-income (dti) is monthlyDebtService / avgIncome; above 0.36 is high, above 0.5 is risky. shortfall30 > 0 means payables due within 30 days exceed projected cash.",
+    "score is a 300–850 financial health score (like a credit score): 740+ excellent, 670+ good, 580+ fair, below that needs work. scoreFactors (0–1 each) are its weighted parts: repayment 40% (no overdue payables), dti 30%, savings 20% (savings rate), buffer 10% (months of spending held as cash). When asked how to raise the score, start with the factor that has the most points left (weight × (1 − value) × 550) and give concrete, numbered steps with amounts.",
     "You give general guidance, not licensed financial advice; mention this briefly only when recommending a significant decision.",
     "",
     "Financial data (JSON):",

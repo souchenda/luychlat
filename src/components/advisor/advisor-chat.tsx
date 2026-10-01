@@ -16,6 +16,7 @@ import { effectiveProvider, useAiStore } from "@/stores/ai-store"
 type ChatMessage = { role: "user" | "assistant"; content: string; offline?: boolean }
 
 const CHIPS: { intent: Intent; label: MessageKey }[] = [
+  { intent: "improve_score", label: "advisor.chip.score" },
   { intent: "debt_first", label: "advisor.chip.debtFirst" },
   { intent: "month_status", label: "advisor.chip.month" },
   { intent: "shortfall", label: "advisor.chip.shortfall" },
@@ -38,7 +39,18 @@ function RichText({ text }: { text: string }) {
   )
 }
 
-export function AdvisorChat({ snapshot, labels, lang }: { snapshot: Snapshot; labels: SnapshotLabels; lang: Lang }) {
+export function AdvisorChat({
+  snapshot,
+  labels,
+  lang,
+  request,
+}: {
+  snapshot: Snapshot
+  labels: SnapshotLabels
+  lang: Lang
+  /** A question asked from elsewhere on the page (e.g. the score card); sent once per id. */
+  request?: { id: number; text: string } | null
+}) {
   const t = useT()
   const ai = useAiStore()
   const provider = effectiveProvider(ai)
@@ -93,6 +105,14 @@ export function AdvisorChat({ snapshot, labels, lang }: { snapshot: Snapshot; la
       setPending(false)
     }
   }
+
+  const lastRequest = useRef<number | null>(null)
+  useEffect(() => {
+    if (!request || request.id === lastRequest.current) return
+    lastRequest.current = request.id
+    void ask(request.text, "improve_score")
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per request id
+  }, [request?.id])
 
   return (
     <section className="space-y-3">

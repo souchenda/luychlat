@@ -15,7 +15,7 @@ export type CategoryPreset = {
  * Keep in sync with public.seed_default_categories() in
  * supabase/migrations/20261001020000_ledger.sql.
  */
-export const CATEGORY_PRESETS: Record<WorkspaceType, CategoryPreset[]> = {
+const BASE_PRESETS: Record<Exclude<WorkspaceType, "FAMILY">, CategoryPreset[]> = {
   PERSONAL: [
     { key: "food", type: "EXPENSE", icon: "utensils", color: "#f97316", name: { km: "ម្ហូបអាហារ", en: "Food & drinks" } },
     { key: "transport", type: "EXPENSE", icon: "bus", color: "#0ea5e9", name: { km: "ការធ្វើដំណើរ", en: "Transport" } },
@@ -49,6 +49,9 @@ export const CATEGORY_PRESETS: Record<WorkspaceType, CategoryPreset[]> = {
     { key: "other_income", type: "INCOME", icon: "coins", color: "#64748b", name: { km: "ចំណូលផ្សេងៗ", en: "Other income" } },
   ],
 }
+
+/** A family workspace starts with the personal presets. */
+export const CATEGORY_PRESETS: Record<WorkspaceType, CategoryPreset[]> = { ...BASE_PRESETS, FAMILY: BASE_PRESETS.PERSONAL }
 
 /**
  * Categories used by debt repayments, created on first use (see

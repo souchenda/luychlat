@@ -1,7 +1,11 @@
 /** Row shapes mirror supabase/migrations (guideline §3). */
 
 export type Currency = "USD" | "KHR"
-export type WorkspaceType = "PERSONAL" | "BUSINESS"
+export type WorkspaceType = "PERSONAL" | "BUSINESS" | "FAMILY"
+/** OWNER manages members; MEMBER reads and writes; VIEWER only reads. */
+export type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER"
+/** SHARED: anyone who can write may use it. PERSONAL: everyone sees it, only its owner moves money. */
+export type WalletVisibility = "SHARED" | "PERSONAL"
 export type TransactionType = "INCOME" | "EXPENSE" | "TRANSFER"
 
 export type Workspace = {
@@ -10,6 +14,12 @@ export type Workspace = {
   type: WorkspaceType
   currency_default: Currency
   created_at: string
+  /** The owner (creator). */
+  user_id: string
+  /** The current user's role here. */
+  role: WorkspaceRole
+  /** Number of people with access (1 unless shared). */
+  member_count: number
 }
 
 export type Wallet = {
@@ -24,6 +34,9 @@ export type Wallet = {
   sort_order: number
   archived_at: string | null
   created_at: string
+  visibility: WalletVisibility
+  /** Who created it; for a PERSONAL wallet, the only person who may use it. */
+  owner_id: string | null
 }
 
 export type Transaction = {
@@ -43,6 +56,12 @@ export type Transaction = {
   created_at: string
   /** Set when this row is a debt repayment; edit it from the debt. */
   debt_id: string | null
+} & Attribution
+
+/** Who recorded a row; the name is a snapshot taken when it was recorded. */
+export type Attribution = {
+  created_by: string | null
+  created_by_name: string | null
 }
 
 export type CategoryType = Exclude<TransactionType, "TRANSFER">
@@ -73,7 +92,7 @@ export type Debt = {
   created_at: string
   /** Ledger row created when the debt was opened with "move money", if any. */
   disbursement_transaction_id: string | null
-}
+} & Attribution
 
 /** Optional money movement when a debt is created (see public.disburse_debt). */
 export type DebtDisbursement = {
@@ -85,7 +104,8 @@ export type DebtDisbursement = {
   amount?: number
 }
 
-export type NotificationType = "DUE_DATE" | "SYSTEM" | "AI_ADVICE"
+/** ACTIVITY: another family member recorded something. */
+export type NotificationType = "DUE_DATE" | "SYSTEM" | "AI_ADVICE" | "ACTIVITY"
 /** D7: 4–7 days left · D3: 1–3 days · D0: due today · OVERDUE (see lib/alerts.ts). */
 export type AlertKey = "D7" | "D3" | "D0" | "OVERDUE"
 
@@ -99,6 +119,11 @@ export type AppNotification = {
   is_read: boolean
   scheduled_at: string
   alert_key: AlertKey | null
+  /** Recipient; null = everyone in the workspace. */
+  user_id: string | null
+  /** The ledger row an ACTIVITY alert is about. */
+  transaction_id: string | null
+  actor_name: string | null
 }
 
 export type TelegramSettings = {
@@ -131,7 +156,7 @@ export type DebtRepayment = {
   note: string | null
   transaction_id: string
   created_at: string
-}
+} & Attribution
 
 export type RepaymentInput = {
   debt_id: string
@@ -197,6 +222,7 @@ export type WalletInput = {
   name: string
   icon: string
   color: string | null
+  visibility: WalletVisibility
   currency: Currency
   balance: number
 }
@@ -213,6 +239,61 @@ export type TransferInput = {
   exchange_rate: number | null
   note: string | null
   transaction_date: string
+}
+
+export type Profile = { id: string; display_name: string }
+
+export type WorkspaceMember = {
+  id: string
+  workspace_id: string
+  user_id: string
+  role: WorkspaceRole
+  joined_at: string
+  display_name: string
+}
+
+export type WorkspaceInvite = {
+  id: string
+  workspace_id: string
+  code: string
+  role: Exclude<WorkspaceRole, "OWNER">
+  created_at: string
+  expires_at: string
+  used_at: string | null
+}
+
+export type InviteLookup =
+  | { status: "ok"; workspace_id: string; workspace_name: string; inviter_name?: string; role: WorkspaceRole }
+  | { status: "already_member"; workspace_id: string; workspace_name: string }
+  | { status: "invalid" | "expired" | "used" | "rate_limited" }
+
+/** Monthly spending cap for one expense category. */
+export type Budget = {
+  id: string
+  workspace_id: string
+  category_id: string
+  amount: number
+  currency: Currency
+  created_at: string
+  updated_at: string
+}
+
+export type BudgetInput = { category_id: string; amount: number; currency: Currency }
+
+/** Thrown for features that need a signed-in account (e.g. real invitations). */
+export class AccountRequiredError extends Error {
+  constructor() {
+    super("Sign in to use this feature")
+    this.name = "AccountRequiredError"
+  }
+}
+
+/** Thrown when someone else's personal wallet would be used. */
+export class PersonalWalletError extends Error {
+  constructor() {
+    super("Only its owner can use this wallet")
+    this.name = "PersonalWalletError"
+  }
 }
 
 /** Thrown when deleting a wallet that still has transactions; archive it instead. */

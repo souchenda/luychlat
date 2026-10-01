@@ -1,9 +1,10 @@
 "use client"
 
-import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, UserIcon, UsersIcon } from "lucide-react"
 
 import { Amount } from "@/components/money/amount"
 import { Card } from "@/components/ui/card"
+import { useActiveWorkspace, useMembers } from "@/lib/data/hooks"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { convert } from "@/lib/money"
@@ -27,6 +28,10 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: Wa
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
+  const { workspace } = useActiveWorkspace()
+  const family = workspace?.type === "FAMILY"
+  const members = useMembers(family ? workspace.id : undefined).data ?? []
+  const ownerName = (w: Wallet) => members.find((m) => m.user_id === w.owner_id)?.display_name
 
   return (
     <Card className={cn("gap-0 divide-y py-0", muted && "opacity-70")}>
@@ -37,8 +42,23 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: Wa
             <WalletAvatar icon={wallet.icon} color={wallet.color} />
             <span className="min-w-0 flex-1 text-left">
               <span className="block truncate text-sm font-medium">{wallet.name}</span>
-              <span className="block truncate text-xs text-muted-foreground">
-                {getProvider(wallet.icon).name[locale]} · {wallet.currency}
+              <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                {family && (
+                  <span
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium",
+                      wallet.visibility === "PERSONAL"
+                        ? "bg-violet-500/12 text-violet-700 dark:text-violet-300"
+                        : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+                    )}
+                  >
+                    {wallet.visibility === "PERSONAL" ? <UserIcon className="size-2.5" aria-hidden /> : <UsersIcon className="size-2.5" aria-hidden />}
+                    {wallet.visibility === "PERSONAL" ? (ownerName(wallet) ?? t("wallet.PERSONAL")) : t("wallet.sharedShort")}
+                  </span>
+                )}
+                <span className="truncate">
+                  {getProvider(wallet.icon).name[locale]} · {wallet.currency}
+                </span>
               </span>
             </span>
             <span className="text-right">

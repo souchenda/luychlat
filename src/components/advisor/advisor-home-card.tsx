@@ -43,7 +43,7 @@ export function AdvisorHomeCard() {
         <Link href="/advisor" className="flex items-center gap-3">
           <ScoreRing score={snapshot.score} className="size-14" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-muted-foreground">{t("advisor.health")}</p>
+            <p className="text-sm text-muted-foreground">{t("score.title")}</p>
             <p className="font-semibold">{t(`advisor.band.${scoreBand(snapshot.score)}`)}</p>
           </div>
           <SparklesIcon className="size-6 text-primary" aria-hidden />

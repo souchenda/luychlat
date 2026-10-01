@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArchiveIcon, ArchiveRestoreIcon, Loader2Icon, ScaleIcon, Trash2Icon } from "lucide-react"
+import { ArchiveIcon, ArchiveRestoreIcon, LockIcon, Loader2Icon, ScaleIcon, Trash2Icon, UserIcon, UsersIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -13,8 +13,8 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useWalletMutations } from "@/lib/data/hooks"
-import { WalletInUseError, type Currency, type Wallet } from "@/lib/data/types"
+import { useActiveWorkspace, useMembers, useProfile, useWalletMutations } from "@/lib/data/hooks"
+import { PersonalWalletError, WalletInUseError, type Currency, type Wallet, type WalletVisibility } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { parseAmount, roundMoney } from "@/lib/money"
@@ -30,6 +30,7 @@ const schema = z.object({
   name: z.string().trim().min(1, "walletForm.nameRequired").max(60),
   currency: z.enum(["USD", "KHR"]),
   balance: z.string().refine((v) => !Number.isNaN(parseAmount(v)), "walletForm.amountInvalid"),
+  visibility: z.enum(["SHARED", "PERSONAL"]),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -47,13 +48,28 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const mutations = useWalletMutations(workspaceId)
+  const { workspace } = useActiveWorkspace()
+  const me = useProfile().data?.id
+  const members = useMembers(workspace?.type === "FAMILY" ? workspace.id : undefined).data ?? []
   const editing = Boolean(wallet)
   const [reconcileOpen, setReconcileOpen] = useState(false)
+  // Shared vs personal only matters in a family workspace.
+  const family = workspace?.type === "FAMILY"
+  // Someone else's personal wallet: visible, but only its owner may change or use it.
+  const othersPersonal = Boolean(wallet && wallet.visibility === "PERSONAL" && wallet.owner_id && wallet.owner_id !== me)
+  const ownerName = members.find((m) => m.user_id === wallet?.owner_id)?.display_name
+  const canChangeVisibility = !wallet || !wallet.owner_id || wallet.owner_id === me
 
   const defaults = (): FormValues =>
     wallet
-      ? { icon: wallet.icon ?? "other", name: wallet.name, currency: wallet.currency, balance: String(wallet.balance) }
-      : { icon: "cash", name: getProvider("cash").name[locale], currency: "USD", balance: "" }
+      ? {
+          icon: wallet.icon ?? "other",
+          name: wallet.name,
+          currency: wallet.currency,
+          balance: String(wallet.balance),
+          visibility: wallet.visibility,
+        }
+      : { icon: "cash", name: getProvider("cash").name[locale], currency: "USD", balance: "", visibility: "SHARED" }
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults() })
   const { register, control, handleSubmit, setValue, getValues, reset, formState } = form
@@ -77,21 +93,27 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
 
   const onSubmit = handleSubmit(async (values) => {
     const currency = values.currency as Currency
+    const visibility: WalletVisibility = family ? values.visibility : (wallet?.visibility ?? "SHARED")
     const input = {
       name: values.name.trim(),
       icon: values.icon,
       color: null,
+      visibility,
       currency,
       balance: roundMoney(parseAmount(values.balance || "0"), currency),
     }
     try {
       // Existing wallets: the balance only changes through the ledger or Reconcile.
-      if (wallet) await mutations.update.mutateAsync({ id: wallet.id, input: { name: input.name, icon: input.icon, color: input.color, currency } })
-      else await mutations.create.mutateAsync(input)
+      if (wallet) {
+        await mutations.update.mutateAsync({
+          id: wallet.id,
+          input: { name: input.name, icon: input.icon, color: input.color, visibility, currency },
+        })
+      } else await mutations.create.mutateAsync(input)
       toast.success(t("walletForm.saved"))
       onOpenChange(false)
-    } catch {
-      toast.error(t("common.error"))
+    } catch (error) {
+      toast.error(error instanceof PersonalWalletError ? t("wallet.personalOnly") : t("common.error"))
     }
   })
 
@@ -124,6 +146,13 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
       title={editing ? t("walletForm.editTitle") : t("walletForm.createTitle")}
     >
       <form onSubmit={onSubmit} className="space-y-5">
+        {othersPersonal && (
+          <p className="flex items-start gap-2 rounded-xl bg-muted px-3 py-2.5 text-sm text-muted-foreground">
+            <LockIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {t("wallet.othersPersonal", { name: ownerName ?? t("family.someone") })}
+          </p>
+        )}
+        <fieldset disabled={othersPersonal} className="space-y-5">
         <div className="space-y-2">
           <Label>{t("walletForm.provider")}</Label>
           <Controller
@@ -178,6 +207,45 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           {hasHistory && <p className="text-xs text-muted-foreground">{t("walletForm.currencyLocked")}</p>}
         </div>
 
+        {family && (
+          <div className="space-y-2">
+            <Label>{t("wallet.visibility")}</Label>
+            <Controller
+              control={control}
+              name="visibility"
+              render={({ field }) => (
+                <Segmented
+                  aria-label={t("wallet.visibility")}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={!canChangeVisibility}
+                  options={[
+                    {
+                      value: "SHARED",
+                      label: (
+                        <span className="inline-flex items-center gap-1.5">
+                          <UsersIcon className="size-4" aria-hidden />
+                          {t("wallet.SHARED")}
+                        </span>
+                      ),
+                    },
+                    {
+                      value: "PERSONAL",
+                      label: (
+                        <span className="inline-flex items-center gap-1.5">
+                          <UserIcon className="size-4" aria-hidden />
+                          {t("wallet.PERSONAL")}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
+              )}
+            />
+            <p className="text-xs text-muted-foreground">{t("wallet.visibilityHint")}</p>
+          </div>
+        )}
+
         {wallet ? (
           <div className="flex items-center justify-between gap-3 rounded-xl border p-3">
             <div>
@@ -210,7 +278,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           {t("common.save")}
         </Button>
 
-        {wallet && (
+        {wallet && !othersPersonal && (
           <div className="grid grid-cols-2 gap-2">
             <Button type="button" variant="outline" onClick={toggleArchive}>
               {wallet.archived_at ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
@@ -222,6 +290,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
             </Button>
           </div>
         )}
+        </fieldset>
       </form>
       {wallet && <ReconcileSheet open={reconcileOpen} onOpenChange={setReconcileOpen} wallet={wallet} />}
     </BottomSheet>

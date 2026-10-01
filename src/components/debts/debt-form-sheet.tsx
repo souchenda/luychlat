@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { WalletSelect } from "@/components/wallets/wallet-select"
-import { useDebtMutations, useWallets } from "@/lib/data/hooks"
+import { usableWallets, useDebtMutations, useProfile, useWallets } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
 import type { Debt, DebtDisbursement, DebtInput, DebtType } from "@/lib/data/types"
 import { fromDateInput } from "@/lib/dates"
@@ -85,7 +85,8 @@ export function DebtFormSheet({
   const t = useT()
   const mutations = useDebtMutations(workspaceId)
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
-  const activeWallets = (useWallets(workspaceId).data ?? []).filter((w) => !w.archived_at)
+  const me = useProfile().data?.id
+  const activeWallets = usableWallets(useWallets(workspaceId).data ?? [], me).filter((w) => !w.archived_at)
   const paid = debt?.paid_amount ?? 0
   const schema = useMemo(() => buildSchema(paid), [paid])
 

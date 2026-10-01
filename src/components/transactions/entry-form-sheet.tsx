@@ -10,6 +10,7 @@ import { z } from "zod"
 
 import { CategoryFormSheet } from "@/components/categories/category-form-sheet"
 import { CategoryPicker } from "@/components/categories/category-picker"
+import { RecordedBy } from "@/components/family/member-avatar"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
@@ -17,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { WalletSelect } from "@/components/wallets/wallet-select"
 import { NON_OPERATING_KEYS } from "@/lib/categories/presets"
-import { useCategories, useTransactionMutations } from "@/lib/data/hooks"
+import { usableWallets, useCategories, useProfile, useTransactionMutations } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
 import { DebtLinkedError, type CategoryType, type Currency, type EntryInput, type Transaction, type Wallet } from "@/lib/data/types"
 import { fromDateInput, toDateInput } from "@/lib/dates"
@@ -74,10 +75,14 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
       ) ?? [],
     [categoriesQuery.data, type, transaction?.category_id],
   )
-  // Active wallets, plus an archived one this entry already uses.
+  const me = useProfile().data?.id
+  // Active wallets the user may spend from, plus the one this entry already uses.
   const selectable = useMemo(
-    () => wallets.filter((w) => !w.archived_at || w.id === transaction?.wallet_id),
-    [wallets, transaction?.wallet_id],
+    () =>
+      wallets.filter(
+        (w) => w.id === transaction?.wallet_id || (!w.archived_at && usableWallets([w], me).length > 0),
+      ),
+    [wallets, transaction?.wallet_id, me],
   )
   const walletById = useMemo(() => new Map(selectable.map((w) => [w.id, w])), [selectable])
 
@@ -176,6 +181,7 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
           <p className="py-6 text-center text-sm text-muted-foreground">{t("entry.noWallet")}</p>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
+            {transaction && <RecordedBy row={transaction} className="rounded-full bg-muted px-2.5 py-1" />}
             {debtLinked && transaction?.debt_id && (
               <div className="flex items-center gap-2 rounded-xl bg-sky-500/10 p-3 text-sm">
                 <HandCoinsIcon className="size-5 shrink-0 text-sky-600" />

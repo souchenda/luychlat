@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useActiveWorkspace, useDebts } from "@/lib/data/hooks"
+import { canWrite, useActiveWorkspace, useDebts } from "@/lib/data/hooks"
 import type { DebtType } from "@/lib/data/types"
 import { byUrgency, debtStatus } from "@/lib/debts"
 import { useT } from "@/lib/i18n/use-t"
@@ -21,6 +21,7 @@ function DebtsView() {
   const t = useT()
   const params = useSearchParams()
   const { workspace } = useActiveWorkspace()
+  const editable = canWrite(workspace)
   const debtsQuery = useDebts(workspace?.id)
   const [tab, setTab] = useState<DebtType>(params.get("tab") === "RECEIVABLE" ? "RECEIVABLE" : "PAYABLE")
   const [formOpen, setFormOpen] = useState(false)
@@ -40,10 +41,12 @@ function DebtsView() {
               {t("loan.short")}
             </Link>
           </Button>
-          <Button size="sm" onClick={() => setFormOpen(true)}>
-            <HandshakeIcon />
-            {t("debts.add")}
-          </Button>
+          {editable && (
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              <HandshakeIcon />
+              {t("debts.add")}
+            </Button>
+          )}
         </div>
       </div>
 

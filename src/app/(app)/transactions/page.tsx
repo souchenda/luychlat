@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { cashFlow } from "@/lib/analytics"
 import { adjustmentCategoryIds, categoryLabel } from "@/lib/categories/presets"
-import { useActiveWorkspace, useCategories, useTransactions, useWallets } from "@/lib/data/hooks"
+import { canWrite, useActiveWorkspace, useCategories, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction, TransactionFilter, TransactionType } from "@/lib/data/types"
 import { monthKey, monthRange, monthStart, recentMonths } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
@@ -32,6 +32,7 @@ export default function TransactionsPage() {
   const locale = useLocaleStore((s) => s.locale)
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { workspace } = useActiveWorkspace()
+  const editable = canWrite(workspace)
   const ws = workspace?.id
   const wallets = useWallets(ws).data ?? []
   const categoriesData = useCategories(ws).data
@@ -78,20 +79,27 @@ export default function TransactionsPage() {
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">{t("ledger.title")}</h1>
         <div className="flex gap-1.5">
-          <Button size="icon" variant="outline" onClick={() => setBulkOpen(true)} aria-label={t("bulk.title")}>
-            <Trash2Icon />
-          </Button>
+          {/* Bulk delete is for the workspace owner only (it can wipe a shared ledger). */}
+          {workspace?.role === "OWNER" && (
+            <Button size="icon" variant="outline" onClick={() => setBulkOpen(true)} aria-label={t("bulk.title")}>
+              <Trash2Icon />
+            </Button>
+          )}
           <Button asChild size="icon" variant="outline" aria-label={t("reports.title")}>
             <Link href="/reports">
               <ChartColumnIcon />
             </Link>
           </Button>
-          <Button size="icon" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => setEntryType("INCOME")} aria-label={t("entry.newINCOME")}>
-            <PlusIcon />
-          </Button>
-          <Button size="icon" className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => setEntryType("EXPENSE")} aria-label={t("entry.newEXPENSE")}>
-            <MinusIcon />
-          </Button>
+          {editable && (
+            <>
+              <Button size="icon" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => setEntryType("INCOME")} aria-label={t("entry.newINCOME")}>
+                <PlusIcon />
+              </Button>
+              <Button size="icon" className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => setEntryType("EXPENSE")} aria-label={t("entry.newEXPENSE")}>
+                <MinusIcon />
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
