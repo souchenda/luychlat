@@ -4,6 +4,7 @@ import { UserRoundIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect } from "react"
 
+import { EmailLogin } from "@/components/auth/email-login"
 import { PhoneLogin } from "@/components/auth/phone-login"
 import { SocialLogin } from "@/components/auth/social-login"
 import { BrandMark } from "@/components/brand-mark"
@@ -63,6 +64,14 @@ export default function LoginPage() {
           <Suspense>
             <OAuthError />
           </Suspense>
+
+          <EmailLogin disabled={cloudDisabled} />
+
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <Separator className="flex-1" />
+            {t("login.orPhone")}
+            <Separator className="flex-1" />
+          </div>
 
           <PhoneLogin disabled={cloudDisabled} />
 
