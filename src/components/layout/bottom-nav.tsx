@@ -21,7 +21,7 @@ export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t print:hidden bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t print:hidden bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:inset-x-auto md:bottom-6 md:left-1/2 md:w-full md:max-w-md md:-translate-x-1/2 md:overflow-hidden md:rounded-b-[2rem] md:border-x md:border-b">
       <ul className="mx-auto flex max-w-md">
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)

@@ -64,26 +64,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <PendingReferralRedeemer />
       <UpgradeSheet />
       <div hidden={isLocked} inert={isLocked}>
-        <header className="sticky top-0 z-30 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-          <div className="mx-auto flex w-full max-w-md items-center gap-1 px-4 py-2.5">
-            <div className="min-w-0 flex-1">
-              <WorkspaceSwitcher />
+        {/* Phones: full screen. Tablets and up: a centered card (see .app-frame). */}
+        <div className="app-frame">
+          <header className="sticky top-0 z-30 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+            <div className="mx-auto flex w-full max-w-md items-center gap-1 px-4 py-2.5">
+              <div className="min-w-0 flex-1">
+                <WorkspaceSwitcher />
+              </div>
+              <NotificationBell />
+              <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label={t("nav.settings")}>
+                <Link href="/settings">
+                  <SettingsIcon className="size-5" />
+                </Link>
+              </Button>
             </div>
-            <NotificationBell />
-            <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label={t("nav.settings")}>
-              <Link href="/settings">
-                <SettingsIcon className="size-5" />
-              </Link>
-            </Button>
-          </div>
-        </header>
-        {/* Re-keyed on switch so the new workspace's content fades in. */}
-        <main
-          key={workspace?.id ?? activeWorkspace}
-          className="mx-auto min-h-dvh w-full max-w-md px-4 pt-5 pb-24 print:max-w-none print:p-0 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
-        >
-          {children}
-        </main>
+          </header>
+          {/* Re-keyed on switch so the new workspace's content fades in. */}
+          <main
+            key={workspace?.id ?? activeWorkspace}
+            className="mx-auto min-h-dvh w-full max-w-md px-4 pt-5 pb-24 md:min-h-0 print:max-w-none print:p-0 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+          >
+            {children}
+          </main>
+        </div>
         <BottomNav />
       </div>
     </>

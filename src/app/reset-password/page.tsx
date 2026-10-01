@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-6 py-8">
+    <main className="app-frame flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-6 py-8">
       <BrandMark className="mx-auto size-12 text-2xl" />
       {!hydrated || !authReady ? (
         <Loader2Icon className="mx-auto size-6 animate-spin text-muted-foreground" />

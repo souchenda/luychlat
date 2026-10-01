@@ -61,6 +61,9 @@
   --viz-expense: #eb6834;
   --viz-bar: #2a78d6;
   --background: oklch(1 0 0);
+  /* Around the centered app on tablets and larger: a faint emerald wash. */
+  --backdrop: oklch(0.965 0.012 165);
+  --frame-shadow: 0 1px 2px oklch(0 0 0 / 0.04), 0 24px 56px -16px oklch(0.35 0.06 165 / 0.18);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -100,6 +103,8 @@
   --viz-expense: #d95926;
   --viz-bar: #3987e5;
   --background: oklch(0.145 0 0);
+  --backdrop: oklch(0.1 0.008 165);
+  --frame-shadow: 0 0 0 1px oklch(1 0 0 / 0.02), 0 24px 56px -16px oklch(0 0 0 / 0.6);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
@@ -139,7 +144,54 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Tablets and larger: the phone layout sits centered on a soft backdrop. */
+  @media (width >= 48rem) {
+    body {
+      background:
+        radial-gradient(60rem 40rem at 50% -10%, oklch(0.75 0.12 165 / 0.12), transparent 70%),
+        var(--backdrop);
+      background-attachment: fixed;
+    }
+  }
+  @media print {
+    body {
+      background: var(--background);
+    }
+  }
   html {
     @apply font-sans;
+  }
+}
+
+/*
+ * The app column. On phones it is the whole screen; from 768px (iPad
+ * portrait) it becomes a centered max-w-md card with rounded corners,
+ * a hairline border and a soft shadow, so the layout never stretches.
+ */
+@layer components {
+  .app-frame {
+    width: 100%;
+    max-width: 28rem;
+    margin-inline: auto;
+    background: var(--background);
+  }
+  @media (width >= 48rem) {
+    .app-frame {
+      margin-block: 1.5rem;
+      min-height: calc(100dvh - 3rem);
+      border: 1px solid var(--border);
+      border-radius: 2rem;
+      box-shadow: var(--frame-shadow);
+      overflow: clip;
+    }
+  }
+  @media print {
+    .app-frame {
+      max-width: none;
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
   }
 }

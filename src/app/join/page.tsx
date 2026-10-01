@@ -160,7 +160,7 @@ export default function JoinPage() {
   // A code typed or opened earlier (before signing in) is resumed here too.
   const [fallback] = useState(() => (typeof window === "undefined" ? null : readPendingInvite()))
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-6 py-8">
+    <main className="app-frame flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-6 py-8">
       <BrandMark className="mx-auto size-12 text-2xl" />
       {hydrated ? (
         <Suspense>
