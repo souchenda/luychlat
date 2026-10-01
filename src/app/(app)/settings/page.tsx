@@ -1,6 +1,6 @@
 "use client"
 
-import { FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TimerIcon } from "lucide-react"
+import { CoinsIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
@@ -16,7 +17,9 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { BIOMETRIC_MOCK, isBiometricAvailable, registerBiometric } from "@/lib/security/biometric"
 import { AUTO_LOCK_OPTIONS, type AutoLockMinutes, useLockStore } from "@/stores/lock-store"
+import { parseAmount } from "@/lib/money"
 import { useLocaleStore } from "@/stores/locale-store"
+import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
 function Row({ icon, title, hint, children }: { icon?: React.ReactNode; title: string; hint?: string; children?: React.ReactNode }) {
@@ -38,6 +41,48 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="px-1 text-sm font-medium text-muted-foreground">{title}</h2>
       <Card className="gap-0 divide-y py-0">{children}</Card>
     </section>
+  )
+}
+
+function ExchangeRateRow() {
+  const t = useT()
+  const { khrPerUsd, setKhrPerUsd } = usePrefsStore()
+  const [value, setValue] = useState(String(khrPerUsd))
+  const parsed = parseAmount(value)
+  const valid = parsed >= 1000 && parsed <= 10000
+
+  const save = () => {
+    if (!valid) return
+    setKhrPerUsd(Math.round(parsed))
+    toast.success(t("settings.rateSaved"))
+  }
+
+  return (
+    <Row icon={<CoinsIcon />} title={t("settings.exchangeRate")} hint={t("settings.exchangeRateHint")}>
+      <form
+        className="flex items-center gap-1.5"
+        onSubmit={(e) => {
+          e.preventDefault()
+          save()
+        }}
+      >
+        <span className="text-xs text-muted-foreground">$1 =</span>
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          inputMode="numeric"
+          className="h-8 w-20 text-right tabular-nums"
+          aria-label={t("settings.exchangeRate")}
+          aria-invalid={!valid}
+        />
+        <span className="text-xs text-muted-foreground">៛</span>
+        {valid && Math.round(parsed) !== khrPerUsd && (
+          <Button type="submit" size="sm">
+            {t("common.save")}
+          </Button>
+        )}
+      </form>
+    </Row>
   )
 }
 
@@ -132,6 +177,10 @@ export default function SettingsPage() {
             </Button>
           </div>
         )}
+      </Section>
+
+      <Section title={t("settings.money")}>
+        <ExchangeRateRow />
       </Section>
 
       <Section title={t("settings.appearance")}>

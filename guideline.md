@@ -103,7 +103,7 @@
 ## ៥. ផែនទីបង្ហាញផ្លូវនៃការអភិវឌ្ឍ (Development Roadmap)
 
 - [x] **ដំណាក់កាលទី ១:** Setup Next.js, Tailwind, shadcn/ui និងប្រព័ន្ធ Auth (Phone + Biometric Mock + Guest Mode)
-- [ ] **ដំណាក់កាលទី ២:** បង្កើត Workspace Switcher (ផ្ទាល់ខ្លួន vs អាជីវកម្ម) និងតារាងកាបូបលុយ (Wallets)
+- [x] **ដំណាក់កាលទី ២:** បង្កើត Workspace Switcher (ផ្ទាល់ខ្លួន vs អាជីវកម្ម) និងតារាងកាបូបលុយ (Wallets)
 - [ ] **ដំណាក់កាលទី ៣:** បង្កើតទម្រង់កត់ត្រាចំណូល-ចំណាយ (USD/KHR) និង Dashboard
 - [ ] **ដំណាក់កាលទី ៤:** បង្កើតម៉ូឌុលគ្រប់គ្រងបំណុល (Debt Engine) និងប្រព័ន្ធសងរំលស់
 - [ ] **ដំណាក់កាលទី ៥:** ភ្ជាប់ Telegram Bot Notification និងទីប្រឹក្សា AI Advisor

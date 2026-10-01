@@ -1,6 +1,6 @@
 "use client"
 
-import { HouseIcon, SettingsIcon } from "lucide-react"
+import { HouseIcon, SettingsIcon, WalletIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 
 const ITEMS: { href: string; label: MessageKey; icon: typeof HouseIcon }[] = [
   { href: "/home", label: "nav.home", icon: HouseIcon },
+  { href: "/wallets", label: "nav.wallets", icon: WalletIcon },
   { href: "/settings", label: "nav.settings", icon: SettingsIcon },
 ]
 

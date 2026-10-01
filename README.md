@@ -3,7 +3,7 @@
 Mobile-first PWA for personal and small-business money & debt management in Cambodia.
 Architecture, schema and roadmap: see [guideline.md](guideline.md).
 
-**Status:** Roadmap phase 1 done (setup + Auth: Phone, Biometric Mock, Guest Mode).
+**Status:** Roadmap phases 1-2 done: Auth (Phone, Biometric Mock, Guest Mode) and Workspace Switcher + Wallets.
 
 ## Stack
 
@@ -34,20 +34,27 @@ src/
   app/
     login/              Phone (+855) OTP, Google, Apple, Telegram (phase 5), Guest Mode
     auth/callback/      OAuth code exchange
-    (app)/              Auth-gated shell: App Lock overlay + bottom nav
-      home/  settings/
+    (app)/              Auth-gated shell: workspace switcher, App Lock overlay, bottom nav
+      home/  wallets/  settings/
     manifest.ts         PWA manifest
   components/
-    auth/  lock/  layout/  ui/ (shadcn)
+    auth/  lock/  layout/  wallets/  workspace/  money/  common/  ui/ (shadcn)
   lib/
+    data/               DataRepo interface: guest-repo (localStorage) and supabase-repo, plus React Query hooks
+    money.ts            USD/KHR rounding, conversion, formatting
+    wallets/providers.ts  ABA, ACLEDA, Wing, Canadia, TrueMoney, Cash presets
     supabase/           browser / server / middleware clients
     security/           pin.ts (PBKDF2), biometric.ts (WebAuthn / mock)
     i18n/               km (primary) + en dictionaries, useT()
     phone.ts            Cambodian number normalisation & formatting
-  stores/               Zustand: session (guest/user), lock, locale
+  stores/               Zustand: session, lock, locale, prefs (active workspace, hide balances, rate), guest-data
 supabase/migrations/    Schema + RLS (guideline §3)
 public/sw.js            Service worker (static assets + offline shell; never caches API data)
 ```
+
+## Guest Mode
+
+Guest Mode runs the full app with no Supabase project. Workspaces, wallets and transfers live in localStorage (`luysmart-guest-data`) through `guest-repo`. It has the same semantics as the cloud: atomic balance updates, overdraft check, and the delete and currency guards. Ending Guest Mode from Settings deletes that data.
 
 ## Security notes
 
@@ -67,3 +74,8 @@ public/sw.js            Service worker (static assets + offline shell; never cac
 | `transactions.to_wallet_id` | Destination wallet for `TRANSFER` (cross-wallet transfers) |
 | `created_at` on all tables | Ordering / auditing |
 | Signup trigger | Creates "ផ្ទាល់ខ្លួន" (PERSONAL) + "អាជីវកម្ម" (BUSINESS) workspaces for each new user |
+| `wallets_accounts.sort_order`, `archived_at`, `color` | Reorder and archive wallets; `icon` holds the provider preset key |
+| `transactions.to_amount` | Destination amount for cross-currency transfers; `exchange_rate` is always KHR per 1 USD |
+| `transactions_balance` trigger | Keeps wallet balances in sync with transactions and blocks transfer overdrafts |
+| Wallet FKs `ON DELETE NO ACTION` | A wallet with history can only be archived, not deleted |
+| `wallets_accounts_currency_guard` trigger | A wallet's currency is fixed once it has transactions |
