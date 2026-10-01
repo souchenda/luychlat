@@ -2,8 +2,9 @@
 
 import { UserRoundIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useEffect } from "react"
+import { Suspense, useEffect, useState } from "react"
 
+import { EmailCodeLogin } from "@/components/auth/email-code-login"
 import { EmailLogin } from "@/components/auth/email-login"
 import { PhoneLogin } from "@/components/auth/phone-login"
 import { SocialLogin } from "@/components/auth/social-login"
@@ -33,8 +34,13 @@ function GuestDataNote() {
 function OAuthError() {
   const t = useT()
   const params = useSearchParams()
-  if (params.get("error") !== "oauth") return null
-  return <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{t("login.oauthError")}</p>
+  const error = params.get("error")
+  if (error !== "oauth" && error !== "link") return null
+  return (
+    <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+      {t(error === "link" ? "login.linkError" : "login.oauthError")}
+    </p>
+  )
 }
 
 export default function LoginPage() {
@@ -48,6 +54,10 @@ export default function LoginPage() {
   }, [user, isGuest, router])
 
   const cloudDisabled = !isSupabaseConfigured
+  // With email codes on, they're the main way in; the password form is one tap away.
+  const [usePassword, setUsePassword] = useState(false)
+  const codeFirst = authMethods.has("email_code")
+  const showPassword = authMethods.has("email") && (!codeFirst || usePassword)
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 py-8">
@@ -81,11 +91,17 @@ export default function LoginPage() {
           <GuestDataNote />
 
           {/* Only methods enabled in Supabase are offered (NEXT_PUBLIC_AUTH_METHODS). */}
-          {authMethods.has("email") && <EmailLogin disabled={cloudDisabled} />}
+          {codeFirst && !usePassword && <EmailCodeLogin disabled={cloudDisabled} />}
+          {showPassword && <EmailLogin disabled={cloudDisabled} />}
+          {codeFirst && authMethods.has("email") && (
+            <button type="button" className="-mt-2 text-center text-sm text-primary" onClick={() => setUsePassword((v) => !v)}>
+              {usePassword ? t("login.useCode") : t("login.usePassword")}
+            </button>
+          )}
 
           {authMethods.has("phone") && (
             <>
-              {authMethods.has("email") && (
+              {(authMethods.has("email") || codeFirst) && (
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <Separator className="flex-1" />
                   {t("login.orPhone")}
