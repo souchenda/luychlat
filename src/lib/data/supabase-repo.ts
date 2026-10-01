@@ -1,9 +1,19 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js"
 
 import type { DataRepo } from "./repo"
-import { InsufficientBalanceError, WalletInUseError, type Transaction, type Wallet, type Workspace } from "./types"
+import {
+  InsufficientBalanceError,
+  WalletInUseError,
+  type Category,
+  type Transaction,
+  type Wallet,
+  type Workspace,
+} from "./types"
 
 const FOREIGN_KEY_VIOLATION = "23503"
+const RECEIPT_BUCKET = "receipts"
+const SIGNED_URL_SECONDS = 600
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function unwrap<T>({ data, error }: { data: T | null; error: PostgrestError | null }): T {
   if (error) {
@@ -24,10 +34,16 @@ const toTransaction = (row: Transaction): Transaction => ({
 
 /** Cloud data for signed-in users. Every query is scoped by RLS to auth.uid(). */
 export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
-  return {
+  const walletCurrency = async (id: string) =>
+    (unwrap(await supabase.from("wallets_accounts").select("currency").eq("id", id).single()) as Pick<Wallet, "currency">)
+      .currency
+
+  const repo: DataRepo = {
     async listWorkspaces() {
       return unwrap(await supabase.from("workspaces").select("*").order("type")) as Workspace[]
     },
+
+    // --- wallets -----------------------------------------------------------
 
     async listWallets(workspaceId) {
       const rows = unwrap(
@@ -89,32 +105,113 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
       if (error) throw error
     },
 
-    async listTransfers(workspaceId, limit = 20) {
-      const rows = unwrap(
-        await supabase
-          .from("transactions")
-          .select("*")
-          .eq("workspace_id", workspaceId)
-          .eq("type", "TRANSFER")
-          .order("transaction_date", { ascending: false })
-          .limit(limit),
-      ) as Transaction[]
-      return rows.map(toTransaction)
+    // --- categories (seeded by the signup trigger) --------------------------
+
+    async listCategories(workspaceId) {
+      return unwrap(
+        await supabase.from("categories").select("*").eq("workspace_id", workspaceId).order("created_at"),
+      ) as Category[]
     },
 
-    async createTransfer(input) {
-      const from = unwrap(
-        await supabase.from("wallets_accounts").select("currency").eq("id", input.wallet_id).single(),
-      ) as Pick<Wallet, "currency">
-      // Balances are updated by the transactions_balance trigger in the same statement.
+    async createCategory(workspaceId, input) {
+      return unwrap(
+        await supabase
+          .from("categories")
+          .insert({ workspace_id: workspaceId, ...input })
+          .select()
+          .single(),
+      ) as Category
+    },
+
+    async updateCategory(id, input) {
+      const current = unwrap(await supabase.from("categories").select("name").eq("id", id).single()) as Pick<Category, "name">
+      // A renamed preset stops being translated.
+      const patch = current.name === input.name ? input : { ...input, preset_key: null }
+      return unwrap(await supabase.from("categories").update(patch).eq("id", id).select().single()) as Category
+    },
+
+    async deleteCategory(id) {
+      unwrap(await supabase.from("categories").delete().eq("id", id))
+    },
+
+    // --- transactions (balances maintained by the transactions_balance trigger)
+
+    async listTransactions(workspaceId, filter = {}) {
+      let query = supabase.from("transactions").select("*").eq("workspace_id", workspaceId)
+      if (filter.type) query = query.eq("type", filter.type)
+      if (filter.categoryId) query = query.eq("category_id", filter.categoryId)
+      if (filter.walletId) {
+        if (!UUID.test(filter.walletId)) throw new Error("Invalid wallet id")
+        query = query.or(`wallet_id.eq.${filter.walletId},to_wallet_id.eq.${filter.walletId}`)
+      }
+      if (filter.from) query = query.gte("transaction_date", filter.from)
+      if (filter.to) query = query.lt("transaction_date", filter.to)
+      query = query.order("transaction_date", { ascending: false }).order("created_at", { ascending: false })
+      if (filter.limit) query = query.limit(filter.limit)
+      return (unwrap(await query) as Transaction[]).map(toTransaction)
+    },
+
+    async createEntry(workspaceId, input) {
       const row = unwrap(
         await supabase
           .from("transactions")
-          .insert({ ...input, type: "TRANSFER", currency: from.currency })
+          .insert({ workspace_id: workspaceId, ...input })
           .select()
           .single(),
       ) as Transaction
       return toTransaction(row)
     },
+
+    async createTransfer(input) {
+      const currency = await walletCurrency(input.wallet_id)
+      const row = unwrap(
+        await supabase
+          .from("transactions")
+          .insert({ ...input, type: "TRANSFER", currency })
+          .select()
+          .single(),
+      ) as Transaction
+      return toTransaction(row)
+    },
+
+    async updateTransaction(id, input) {
+      const before = unwrap(
+        await supabase.from("transactions").select("type, receipt_url").eq("id", id).single(),
+      ) as Pick<Transaction, "type" | "receipt_url">
+      if ((before.type === "TRANSFER") !== (input.type === "TRANSFER")) throw new Error("Can't change transaction kind")
+      const patch = input.type === "TRANSFER" ? { ...input, currency: await walletCurrency(input.wallet_id) } : input
+      const row = unwrap(await supabase.from("transactions").update(patch).eq("id", id).select().single()) as Transaction
+      if (before.receipt_url && before.receipt_url !== row.receipt_url) await repo.deleteReceipt(before.receipt_url)
+      return toTransaction(row)
+    },
+
+    async deleteTransaction(id) {
+      const rows = unwrap(
+        await supabase.from("transactions").delete().eq("id", id).select("receipt_url"),
+      ) as Pick<Transaction, "receipt_url">[]
+      const receipt = rows[0]?.receipt_url
+      if (receipt) await repo.deleteReceipt(receipt)
+    },
+
+    // --- receipts: private bucket, receipts/<uid>/<uuid>.jpg -----------------
+
+    async uploadReceipt(image) {
+      const { data } = await supabase.auth.getUser()
+      if (!data.user) throw new Error("Not signed in")
+      const path = `${data.user.id}/${crypto.randomUUID()}.jpg`
+      const { error } = await supabase.storage.from(RECEIPT_BUCKET).upload(path, image, { contentType: image.type })
+      if (error) throw error
+      return path
+    },
+
+    async getReceiptUrl(ref) {
+      const { data } = await supabase.storage.from(RECEIPT_BUCKET).createSignedUrl(ref, SIGNED_URL_SECONDS)
+      return data?.signedUrl ?? null
+    },
+
+    async deleteReceipt(ref) {
+      await supabase.storage.from(RECEIPT_BUCKET).remove([ref])
+    },
   }
+  return repo
 }

@@ -1,7 +1,8 @@
 "use client"
 
-import { CoinsIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TimerIcon } from "lucide-react"
+import { ChevronRightIcon, CoinsIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -181,6 +182,11 @@ export default function SettingsPage() {
 
       <Section title={t("settings.money")}>
         <ExchangeRateRow />
+        <Link href="/categories" className="block hover:bg-muted/60">
+          <Row icon={<TagsIcon />} title={t("settings.categories")} hint={t("settings.categoriesHint")}>
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Row>
+        </Link>
       </Section>
 
       <Section title={t("settings.appearance")}>

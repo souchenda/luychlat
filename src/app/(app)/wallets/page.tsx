@@ -4,37 +4,46 @@ import { ArrowLeftRightIcon, ArrowUpDownIcon, CheckIcon, PlusIcon, WalletIcon } 
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { TransactionEditor } from "@/components/transactions/transaction-editor"
+import { TransactionList } from "@/components/transactions/transaction-list"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { NetWorthCard } from "@/components/wallets/net-worth-card"
-import { TransferList } from "@/components/wallets/transfer-list"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { WalletList } from "@/components/wallets/wallet-list"
-import { useActiveWorkspace, useTransfers, useWalletMutations, useWallets } from "@/lib/data/hooks"
-import type { Wallet } from "@/lib/data/types"
+import {
+  useActiveWorkspace,
+  useCategories,
+  useTransactions,
+  useWalletHasHistory,
+  useWalletMutations,
+  useWallets,
+} from "@/lib/data/hooks"
+import type { Transaction, TransactionFilter, Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
+
+const RECENT_TRANSFERS: TransactionFilter = { type: "TRANSFER", limit: 10 }
 
 export default function WalletsPage() {
   const t = useT()
   const { workspace } = useActiveWorkspace()
   const walletsQuery = useWallets(workspace?.id)
-  const transfersQuery = useTransfers(workspace?.id)
+  const transfersQuery = useTransactions(workspace?.id, RECENT_TRANSFERS)
+  const categories = useCategories(workspace?.id).data ?? []
   const { reorder } = useWalletMutations(workspace?.id)
 
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Wallet | null>(null)
   const [transferOpen, setTransferOpen] = useState(false)
   const [reorderMode, setReorderMode] = useState(false)
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null)
+  const hasHistory = useWalletHasHistory(workspace?.id, editing?.id)
 
   const all = walletsQuery.data
   const active = useMemo(() => all?.filter((w) => !w.archived_at) ?? [], [all])
   const archived = useMemo(() => all?.filter((w) => w.archived_at) ?? [], [all])
   const transfers = useMemo(() => transfersQuery.data ?? [], [transfersQuery.data])
-  const walletsWithHistory = useMemo(
-    () => new Set(transfers.flatMap((tx) => [tx.wallet_id, tx.to_wallet_id ?? ""])),
-    [transfers],
-  )
 
   const openCreate = () => {
     setEditing(null)
@@ -105,7 +114,11 @@ export default function WalletsPage() {
 
       <section className="space-y-2">
         <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("transfer.recent")}</h2>
-        <TransferList transfers={transfers} wallets={all ?? []} />
+        {transfers.length === 0 ? (
+          <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">{t("transfer.none")}</p>
+        ) : (
+          <TransactionList transactions={transfers} wallets={all ?? []} categories={categories} onSelect={setEditingTx} />
+        )}
       </section>
 
       <WalletFormSheet
@@ -113,9 +126,15 @@ export default function WalletsPage() {
         onOpenChange={setFormOpen}
         workspaceId={workspace?.id}
         wallet={editing}
-        hasHistory={editing ? walletsWithHistory.has(editing.id) : false}
+        hasHistory={hasHistory}
       />
-      <TransferSheet open={transferOpen} onOpenChange={setTransferOpen} workspaceId={workspace?.id} wallets={active} />
+      <TransferSheet open={transferOpen} onOpenChange={setTransferOpen} workspaceId={workspace?.id} wallets={all ?? []} />
+      <TransactionEditor
+        workspaceId={workspace?.id}
+        wallets={all ?? []}
+        transaction={editingTx}
+        onClose={() => setEditingTx(null)}
+      />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { usePrefsStore } from "@/stores/prefs-store"
@@ -10,7 +10,7 @@ import { useSessionStore } from "@/stores/session-store"
 import { guestRepo } from "./guest-repo"
 import type { DataRepo } from "./repo"
 import { createSupabaseRepo } from "./supabase-repo"
-import type { TransferInput, WalletInput } from "./types"
+import type { CategoryInput, EntryInput, TransactionFilter, TransferInput, TransferUpdate, WalletInput } from "./types"
 
 /** Guest repo in Guest Mode, Supabase repo for signed-in users. */
 export function useRepo(): { repo: DataRepo; scope: string } {
@@ -25,7 +25,9 @@ export function useRepo(): { repo: DataRepo; scope: string } {
 export const queryKeys = {
   workspaces: (scope: string) => ["workspaces", scope] as const,
   wallets: (scope: string, workspaceId: string) => ["wallets", scope, workspaceId] as const,
-  transfers: (scope: string, workspaceId: string) => ["transfers", scope, workspaceId] as const,
+  categories: (scope: string, workspaceId: string) => ["categories", scope, workspaceId] as const,
+  /** Prefix for every transaction list of a workspace. */
+  transactions: (scope: string, workspaceId: string) => ["transactions", scope, workspaceId] as const,
 }
 
 export function useWorkspaces() {
@@ -49,49 +51,127 @@ export function useWallets(workspaceId: string | undefined) {
   })
 }
 
-export function useTransfers(workspaceId: string | undefined) {
+export function useCategories(workspaceId: string | undefined) {
   const { repo, scope } = useRepo()
   return useQuery({
-    queryKey: queryKeys.transfers(scope, workspaceId ?? ""),
-    queryFn: () => repo.listTransfers(workspaceId!),
+    queryKey: queryKeys.categories(scope, workspaceId ?? ""),
+    queryFn: () => repo.listCategories(workspaceId!),
     enabled: Boolean(workspaceId),
   })
 }
 
-/** Mutations for one workspace's wallets; each refreshes wallets (and transfers where relevant). */
-export function useWalletMutations(workspaceId: string | undefined) {
+export function useTransactions(workspaceId: string | undefined, filter: TransactionFilter = {}) {
   const { repo, scope } = useRepo()
+  return useQuery({
+    queryKey: [...queryKeys.transactions(scope, workspaceId ?? ""), filter],
+    queryFn: () => repo.listTransactions(workspaceId!, filter),
+    enabled: Boolean(workspaceId),
+  })
+}
+
+/** True when the wallet appears in any transaction (its currency is then locked). */
+export function useWalletHasHistory(workspaceId: string | undefined, walletId: string | undefined) {
+  const query = useTransactions(walletId ? workspaceId : undefined, { walletId, limit: 1 })
+  return (query.data?.length ?? 0) > 0
+}
+
+/** Resolves a receipt reference to a displayable URL (object URLs are revoked on change). */
+export function useReceiptUrl(ref: string | null | undefined) {
+  const { repo } = useRepo()
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!ref) return setUrl(null)
+    let cancelled = false
+    let created: string | null = null
+    void repo.getReceiptUrl(ref).then((u) => {
+      created = u
+      if (!cancelled) setUrl(u)
+    })
+    return () => {
+      cancelled = true
+      if (created?.startsWith("blob:")) URL.revokeObjectURL(created)
+    }
+  }, [ref, repo])
+  return url
+}
+
+function useInvalidate(workspaceId: string | undefined) {
+  const { scope } = useRepo()
   const queryClient = useQueryClient()
   const ws = workspaceId ?? ""
-  const refresh = (withTransfers = false) => {
-    void queryClient.invalidateQueries({ queryKey: queryKeys.wallets(scope, ws) })
-    if (withTransfers) void queryClient.invalidateQueries({ queryKey: queryKeys.transfers(scope, ws) })
-  }
+  return (...keys: ("wallets" | "categories" | "transactions")[]) =>
+    keys.forEach((k) => void queryClient.invalidateQueries({ queryKey: queryKeys[k](scope, ws) }))
+}
+
+/** Mutations for one workspace's wallets. */
+export function useWalletMutations(workspaceId: string | undefined) {
+  const { repo } = useRepo()
+  const invalidate = useInvalidate(workspaceId)
+  const ws = workspaceId ?? ""
 
   return {
     create: useMutation({
       mutationFn: (input: WalletInput) => repo.createWallet(ws, input),
-      onSuccess: () => refresh(),
+      onSuccess: () => invalidate("wallets"),
     }),
     update: useMutation({
       mutationFn: ({ id, input }: { id: string; input: WalletInput }) => repo.updateWallet(id, input),
-      onSuccess: () => refresh(),
+      onSuccess: () => invalidate("wallets"),
     }),
     reorder: useMutation({
       mutationFn: (orderedIds: string[]) => repo.reorderWallets(ws, orderedIds),
-      onSuccess: () => refresh(),
+      onSuccess: () => invalidate("wallets"),
     }),
     setArchived: useMutation({
       mutationFn: ({ id, archived }: { id: string; archived: boolean }) => repo.setWalletArchived(id, archived),
-      onSuccess: () => refresh(),
+      onSuccess: () => invalidate("wallets"),
     }),
     remove: useMutation({
       mutationFn: (id: string) => repo.deleteWallet(id),
-      onSuccess: () => refresh(),
+      onSuccess: () => invalidate("wallets"),
     }),
     transfer: useMutation({
       mutationFn: (input: Omit<TransferInput, "workspace_id">) => repo.createTransfer({ ...input, workspace_id: ws }),
-      onSuccess: () => refresh(true),
+      onSuccess: () => invalidate("wallets", "transactions"),
+    }),
+  }
+}
+
+/** Income / expense / transfer edits; every change refreshes balances too. */
+export function useTransactionMutations(workspaceId: string | undefined) {
+  const { repo } = useRepo()
+  const invalidate = useInvalidate(workspaceId)
+  const ws = workspaceId ?? ""
+  const onSuccess = () => invalidate("wallets", "transactions")
+
+  return {
+    createEntry: useMutation({ mutationFn: (input: EntryInput) => repo.createEntry(ws, input), onSuccess }),
+    update: useMutation({
+      mutationFn: ({ id, input }: { id: string; input: EntryInput | TransferUpdate }) => repo.updateTransaction(id, input),
+      onSuccess,
+    }),
+    remove: useMutation({ mutationFn: (id: string) => repo.deleteTransaction(id), onSuccess }),
+    uploadReceipt: useMutation({ mutationFn: (image: Blob) => repo.uploadReceipt(image) }),
+  }
+}
+
+export function useCategoryMutations(workspaceId: string | undefined) {
+  const { repo } = useRepo()
+  const invalidate = useInvalidate(workspaceId)
+  const ws = workspaceId ?? ""
+
+  return {
+    create: useMutation({
+      mutationFn: (input: CategoryInput) => repo.createCategory(ws, input),
+      onSuccess: () => invalidate("categories"),
+    }),
+    update: useMutation({
+      mutationFn: ({ id, input }: { id: string; input: CategoryInput }) => repo.updateCategory(id, input),
+      onSuccess: () => invalidate("categories"),
+    }),
+    remove: useMutation({
+      mutationFn: (id: string) => repo.deleteCategory(id),
+      onSuccess: () => invalidate("categories", "transactions"),
     }),
   }
 }

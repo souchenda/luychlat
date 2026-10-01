@@ -43,6 +43,54 @@ export type Transaction = {
   created_at: string
 }
 
+export type CategoryType = Exclude<TransactionType, "TRANSFER">
+
+export type Category = {
+  id: string
+  workspace_id: string
+  name: string
+  type: CategoryType
+  /** Key into lib/categories/icons.ts */
+  icon: string | null
+  color: string | null
+  /** Seeded preset; its label is translated until the user renames it. */
+  preset_key: string | null
+  created_at: string
+}
+
+export type CategoryInput = {
+  name: string
+  type: CategoryType
+  icon: string
+  color: string
+}
+
+/** Income or expense. `amount`/`currency` are as entered; the wallet may use the other currency. */
+export type EntryInput = {
+  type: CategoryType
+  wallet_id: string
+  category_id: string | null
+  amount: number
+  currency: Currency
+  /** KHR per 1 USD; required when `currency` differs from the wallet's. */
+  exchange_rate: number | null
+  note: string | null
+  transaction_date: string
+  receipt_url: string | null
+}
+
+export type TransactionFilter = {
+  /** Inclusive ISO lower bound on transaction_date. */
+  from?: string
+  /** Exclusive ISO upper bound on transaction_date. */
+  to?: string
+  /** Matches either side of a transfer. */
+  walletId?: string
+  categoryId?: string
+  type?: TransactionType
+  limit?: number
+}
+
 export type WalletInput = {
   name: string
   icon: string
@@ -50,6 +98,9 @@ export type WalletInput = {
   currency: Currency
   balance: number
 }
+
+/** Transfer update payload (workspace is fixed). */
+export type TransferUpdate = Omit<TransferInput, "workspace_id"> & { type: "TRANSFER" }
 
 export type TransferInput = {
   workspace_id: string

@@ -1,3 +1,4 @@
+import { guestReceipts } from "@/lib/data/guest-receipts"
 import { getQueryClient } from "@/lib/query-client"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useGuestDataStore } from "@/stores/guest-data-store"
@@ -9,7 +10,10 @@ import { useSessionStore } from "@/stores/session-store"
  * settings. Ending Guest Mode also deletes the guest data on this device.
  */
 export async function signOutEverywhere() {
-  if (useSessionStore.getState().isGuest) useGuestDataStore.getState().clear()
+  if (useSessionStore.getState().isGuest) {
+    useGuestDataStore.getState().clear()
+    await guestReceipts.clear()
+  }
   await getSupabaseBrowserClient()?.auth.signOut()
   useSessionStore.getState().endGuest()
   useSessionStore.getState().setUser(null)

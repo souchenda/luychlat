@@ -3,7 +3,7 @@
 Mobile-first PWA for personal and small-business money & debt management in Cambodia.
 Architecture, schema and roadmap: see [guideline.md](guideline.md).
 
-**Status:** Roadmap phases 1-2 done: Auth (Phone, Biometric Mock, Guest Mode) and Workspace Switcher + Wallets.
+**Status:** Roadmap phases 1-3 done: Auth (Phone, Biometric Mock, Guest Mode); Workspace Switcher + Wallets; Income/Expense ledger, categories and cash-flow dashboard.
 
 ## Stack
 
@@ -35,12 +35,15 @@ src/
     login/              Phone (+855) OTP, Google, Apple, Telegram (phase 5), Guest Mode
     auth/callback/      OAuth code exchange
     (app)/              Auth-gated shell: workspace switcher, App Lock overlay, bottom nav
-      home/  wallets/  settings/
+      home/  transactions/  wallets/  categories/  settings/
     manifest.ts         PWA manifest
   components/
-    auth/  lock/  layout/  wallets/  workspace/  money/  common/  ui/ (shadcn)
+    auth/  lock/  layout/  wallets/  workspace/  transactions/  categories/  dashboard/  money/  common/  ui/ (shadcn)
   lib/
     data/               DataRepo interface: guest-repo (localStorage) and supabase-repo, plus React Query hooks
+    data/ledger.ts      Wallet balance effects (mirrors the DB trigger, used by Guest Mode)
+    analytics.ts        Monthly cash flow, 6-month trend, top spending
+    categories/         Preset categories (Personal / Business) and icon set
     money.ts            USD/KHR rounding, conversion, formatting
     wallets/providers.ts  ABA, ACLEDA, Wing, Canadia, TrueMoney, Cash presets
     supabase/           browser / server / middleware clients
@@ -54,7 +57,7 @@ public/sw.js            Service worker (static assets + offline shell; never cac
 
 ## Guest Mode
 
-Guest Mode runs the full app with no Supabase project. Workspaces, wallets and transfers live in localStorage (`luysmart-guest-data`) through `guest-repo`. It has the same semantics as the cloud: atomic balance updates, overdraft check, and the delete and currency guards. Ending Guest Mode from Settings deletes that data.
+Guest Mode runs the full app with no Supabase project. Workspaces, wallets, categories and transactions live in localStorage (`luysmart-guest-data`); receipt photos live in IndexedDB (`luysmart-guest`). Both go through `guest-repo`. It has the same semantics as the cloud: atomic balance updates, overdraft check, and the delete and currency guards. Ending Guest Mode from Settings deletes all of it, receipts included.
 
 ## Security notes
 
@@ -65,6 +68,7 @@ Guest Mode runs the full app with no Supabase project. Workspaces, wallets and t
   - While locked, page content is `hidden` + `inert`, not just covered by the overlay.
 - **Biometrics (phase 1 "mock"):** uses a WebAuthn platform credential (FaceID / fingerprint / Windows Hello) with `userVerification: "required"`. It's a local unlock gate only; no server verifies it. Setting `NEXT_PUBLIC_BIOMETRIC_MOCK=true` simulates a successful scan for testing.
 - **Sign-out:** wipes the PIN and biometric settings on the device.
+- **Receipts:** photos are downscaled and re-encoded on the device before upload, which also strips EXIF metadata such as GPS location.
 
 ## Schema additions beyond guideline §3
 
@@ -79,3 +83,7 @@ Guest Mode runs the full app with no Supabase project. Workspaces, wallets and t
 | `transactions_balance` trigger | Keeps wallet balances in sync with transactions and blocks transfer overdrafts |
 | Wallet FKs `ON DELETE NO ACTION` | A wallet with history can only be archived, not deleted |
 | `wallets_accounts_currency_guard` trigger | A wallet's currency is fixed once it has transactions |
+| `categories.preset_key` + `seed_default_categories()` | Presets are seeded per workspace and translated in the UI until renamed |
+| Income/expense in either currency | `amount`/`currency` are as entered; the trigger moves the wallet by the converted amount at `exchange_rate` |
+| `transactions_category_guard` trigger | A transaction's category must match income/expense |
+| `receipts` Storage bucket | Private; one folder per user (`<uid>/...`); `receipt_url` holds the object path, shown via signed URLs |

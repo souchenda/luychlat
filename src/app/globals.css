@@ -56,6 +56,10 @@
 }
 
 :root {
+  /* Data viz (validated: dataviz validate_palette.js, light surface) */
+  --viz-income: #1baf7a;
+  --viz-expense: #eb6834;
+  --viz-bar: #2a78d6;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -91,6 +95,10 @@
 }
 
 .dark {
+  /* Data viz, dark steps (validated against the dark surface) */
+  --viz-income: #199e70;
+  --viz-expense: #d95926;
+  --viz-bar: #3987e5;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

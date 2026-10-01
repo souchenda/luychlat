@@ -1,26 +1,24 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowDownIcon, Loader2Icon } from "lucide-react"
+import { ArrowDownIcon, Loader2Icon, Trash2Icon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
-import { Amount } from "@/components/money/amount"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useWalletMutations } from "@/lib/data/hooks"
-import { InsufficientBalanceError, type Currency, type Wallet } from "@/lib/data/types"
+import { useTransactionMutations, useWalletMutations } from "@/lib/data/hooks"
+import { InsufficientBalanceError, type Currency, type Transaction, type Wallet } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { usePrefsStore } from "@/stores/prefs-store"
 
-import { WalletAvatar } from "./wallet-avatar"
+import { WalletSelect } from "./wallet-select"
 
 /** Converts with an explicit KHR-per-USD rate. */
 function convertWithRate(amount: number, from: Currency, to: Currency, khrPerUsd: number) {
@@ -28,7 +26,12 @@ function convertWithRate(amount: number, from: Currency, to: Currency, khrPerUsd
   return roundMoney(from === "USD" ? amount * khrPerUsd : amount / khrPerUsd, to)
 }
 
-function buildSchema(wallets: Map<string, Wallet>) {
+/** Balance available to send; when editing, the original transfer is given back first. */
+function available(wallet: Wallet, editing: Transaction | null | undefined) {
+  return wallet.balance + (editing?.wallet_id === wallet.id ? editing.amount : 0)
+}
+
+function buildSchema(wallets: Map<string, Wallet>, editing: Transaction | null | undefined) {
   return z
     .object({
       from: z.string().min(1, "transfer.select"),
@@ -43,7 +46,9 @@ function buildSchema(wallets: Map<string, Wallet>) {
       if (v.from && v.from === v.to) ctx.addIssue({ code: "custom", path: ["to"], message: "transfer.sameWallet" })
       const amount = parseAmount(v.amount)
       if (!(amount > 0)) return ctx.addIssue({ code: "custom", path: ["amount"], message: "walletForm.amountInvalid" })
-      if (from && amount > from.balance) ctx.addIssue({ code: "custom", path: ["amount"], message: "transfer.insufficient" })
+      if (from && amount > available(from, editing)) {
+        ctx.addIssue({ code: "custom", path: ["amount"], message: "transfer.insufficient" })
+      }
       if (from && to && from.currency !== to.currency) {
         const rate = parseAmount(v.rate)
         if (!(rate > 0)) return ctx.addIssue({ code: "custom", path: ["rate"], message: "walletForm.amountInvalid" })
@@ -59,21 +64,39 @@ type TransferSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   workspaceId: string | undefined
-  /** Active (non-archived) wallets of the workspace. */
+  /** All wallets of the workspace; archived ones are only offered when the edited transfer uses them. */
   wallets: Wallet[]
-  defaultFromId?: string
+  /** Edit this transfer instead of creating one. */
+  transaction?: Transaction | null
 }
 
-export function TransferSheet({ open, onOpenChange, workspaceId, wallets, defaultFromId }: TransferSheetProps) {
+export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transaction }: TransferSheetProps) {
   const t = useT()
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { transfer } = useWalletMutations(workspaceId)
-  const byId = useMemo(() => new Map(wallets.map((w) => [w.id, w])), [wallets])
-  const schema = useMemo(() => buildSchema(byId), [byId])
+  const txMutations = useTransactionMutations(workspaceId)
+  const selectable = useMemo(
+    () =>
+      wallets.filter(
+        (w) => !w.archived_at || w.id === transaction?.wallet_id || w.id === transaction?.to_wallet_id,
+      ),
+    [wallets, transaction],
+  )
+  const byId = useMemo(() => new Map(selectable.map((w) => [w.id, w])), [selectable])
+  const schema = useMemo(() => buildSchema(byId, transaction), [byId, transaction])
 
   const defaults = (): FormValues => {
-    const from = defaultFromId ?? wallets[0]?.id ?? ""
-    return { from, to: wallets.find((w) => w.id !== from)?.id ?? "", amount: "", rate: String(khrPerUsd), note: "" }
+    if (transaction) {
+      return {
+        from: transaction.wallet_id,
+        to: transaction.to_wallet_id ?? "",
+        amount: String(transaction.amount),
+        rate: String(transaction.exchange_rate ?? khrPerUsd),
+        note: transaction.note ?? "",
+      }
+    }
+    const from = selectable[0]?.id ?? ""
+    return { from, to: selectable.find((w) => w.id !== from)?.id ?? "", amount: "", rate: String(khrPerUsd), note: "" }
   }
   const { control, register, handleSubmit, reset, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -83,7 +106,7 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, defaul
   useEffect(() => {
     if (open) reset(defaults())
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the sheet opens
-  }, [open])
+  }, [open, transaction?.id])
 
   const [fromId, toId, amountText, rateText] = useWatch({ control, name: ["from", "to", "amount", "rate"] })
   const from = byId.get(fromId)
@@ -98,16 +121,21 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, defaul
     const target = byId.get(v.to)!
     const sent = roundMoney(parseAmount(v.amount), source.currency)
     const khrRate = parseAmount(v.rate)
+    const input = {
+      wallet_id: source.id,
+      to_wallet_id: target.id,
+      amount: sent,
+      to_amount: convertWithRate(sent, source.currency, target.currency, khrRate),
+      exchange_rate: source.currency === target.currency ? null : khrRate,
+      note: v.note.trim() || null,
+      transaction_date: transaction?.transaction_date ?? new Date().toISOString(),
+    }
     try {
-      await transfer.mutateAsync({
-        wallet_id: source.id,
-        to_wallet_id: target.id,
-        amount: sent,
-        to_amount: convertWithRate(sent, source.currency, target.currency, khrRate),
-        exchange_rate: source.currency === target.currency ? null : khrRate,
-        note: v.note.trim() || null,
-        transaction_date: new Date().toISOString(),
-      })
+      if (transaction) {
+        await txMutations.update.mutateAsync({ id: transaction.id, input: { ...input, type: "TRANSFER" } })
+      } else {
+        await transfer.mutateAsync(input)
+      }
       toast.success(t("transfer.success"))
       onOpenChange(false)
     } catch (error) {
@@ -115,51 +143,45 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, defaul
     }
   })
 
+  const remove = async () => {
+    if (!transaction || !window.confirm(t("entry.deleteConfirm"))) return
+    try {
+      await txMutations.remove.mutateAsync(transaction.id)
+      toast.success(t("entry.deleted"))
+      onOpenChange(false)
+    } catch {
+      toast.error(t("common.error"))
+    }
+  }
+
   const err = (message?: string) =>
     message ? <p className="text-sm text-destructive">{t(message as MessageKey)}</p> : null
 
-  const walletSelect = (name: "from" | "to", label: string) => (
+  const walletField = (name: "from" | "to", label: string) => (
     <div className="space-y-2">
       <Label>{label}</Label>
       <Controller
         control={control}
         name={name}
-        render={({ field }) => (
-          <Select value={field.value} onValueChange={field.onChange}>
-            <SelectTrigger className="h-14! w-full" aria-label={label}>
-              <SelectValue placeholder={t("transfer.select")} />
-            </SelectTrigger>
-            <SelectContent>
-              {wallets.map((w) => (
-                <SelectItem key={w.id} value={w.id} className="py-2">
-                  <WalletAvatar icon={w.icon} color={w.color} className="size-8 text-[10px]" />
-                  <span className="flex flex-col items-start">
-                    <span>{w.name}</span>
-                    <Amount value={w.balance} currency={w.currency} className="text-xs text-muted-foreground" />
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        render={({ field }) => <WalletSelect wallets={selectable} value={field.value} onChange={field.onChange} label={label} />}
       />
       {err(formState.errors[name]?.message)}
     </div>
   )
 
   return (
-    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("transfer.title")}>
-      {wallets.length < 2 ? (
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={transaction ? t("transfer.editTitle") : t("transfer.title")}>
+      {selectable.length < 2 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">{t("transfer.needTwo")}</p>
       ) : (
         <form onSubmit={onSubmit} className="space-y-4">
-          {walletSelect("from", t("transfer.from"))}
+          {walletField("from", t("transfer.from"))}
           <div className="flex justify-center">
             <span className="flex size-8 items-center justify-center rounded-full bg-muted">
               <ArrowDownIcon className="size-4" />
             </span>
           </div>
-          {walletSelect("to", t("transfer.to"))}
+          {walletField("to", t("transfer.to"))}
 
           <div className="space-y-2">
             <div className="flex items-baseline justify-between">
@@ -168,7 +190,7 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, defaul
               </Label>
               {from && (
                 <span className="text-xs text-muted-foreground">
-                  {t("transfer.available", { amount: formatMoney(from.balance, from.currency) })}
+                  {t("transfer.available", { amount: formatMoney(available(from, transaction), from.currency) })}
                 </span>
               )}
             </div>
@@ -203,8 +225,14 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, defaul
 
           <Button type="submit" className="h-12 w-full text-base" disabled={formState.isSubmitting}>
             {formState.isSubmitting && <Loader2Icon className="animate-spin" />}
-            {t("transfer.submit")}
+            {transaction ? t("common.save") : t("transfer.submit")}
           </Button>
+          {transaction && (
+            <Button type="button" variant="outline" className="w-full text-destructive" onClick={remove}>
+              <Trash2Icon />
+              {t("common.delete")}
+            </Button>
+          )}
         </form>
       )}
     </BottomSheet>
