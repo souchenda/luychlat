@@ -1,0 +1,45 @@
+import type { Metadata, Viewport } from "next"
+import { Geist_Mono, Kantumruy_Pro } from "next/font/google"
+
+import { Providers } from "@/components/providers"
+
+import "./globals.css"
+
+// Kantumruy Pro covers both Khmer and Latin glyphs.
+const kantumruy = Kantumruy_Pro({
+  variable: "--font-sans",
+  subsets: ["khmer", "latin"],
+})
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+})
+
+export const metadata: Metadata = {
+  title: "លុយឆ្លាត · LuySmart",
+  description: "គ្រប់គ្រងលុយ និងបំណុល ផ្ទាល់ខ្លួន និងអាជីវកម្ម",
+  applicationName: "LuySmart",
+  appleWebApp: { capable: true, title: "លុយឆ្លាត", statusBarStyle: "default" },
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+}
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="km" className={`${kantumruy.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <body className="antialiased">
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  )
+}
