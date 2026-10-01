@@ -6,6 +6,7 @@ import {
   DebtLinkedError,
   InsufficientBalanceError,
   PersonalWalletError,
+  PlanLimitError,
   RepaymentTooLargeError,
   WalletInUseError,
   type AppNotification,
@@ -34,6 +35,8 @@ function unwrap<T>({ data, error }: { data: T | null; error: PostgrestError | nu
     if (error.message.includes("exceeds the remaining balance")) throw new RepaymentTooLargeError()
     if (error.message.includes("edited from the debt")) throw new DebtLinkedError()
     if (error.message.includes("personal_wallet")) throw new PersonalWalletError()
+    if (error.message.includes("plan_limit:wallets")) throw new PlanLimitError("wallets")
+    if (error.message.includes("plan_limit:family")) throw new PlanLimitError("family")
     throw error
   }
   return data as T
@@ -239,6 +242,7 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
     },
 
     async setWalletArchived(id, archived) {
+      // Un-archiving counts against the Free wallet limit (plan_limit:wallets).
       unwrap(
         await supabase
           .from("wallets_accounts")

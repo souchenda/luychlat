@@ -8,6 +8,7 @@ import { EmailCodeLogin } from "@/components/auth/email-code-login"
 import { EmailLogin } from "@/components/auth/email-login"
 import { PhoneLogin } from "@/components/auth/phone-login"
 import { SocialLogin } from "@/components/auth/social-login"
+import { ReferralCapture } from "@/components/billing/referral"
 import { BrandMark } from "@/components/brand-mark"
 import { useGuestSummary } from "@/components/settings/guest-import"
 import { LanguageToggle } from "@/components/layout/language-toggle"
@@ -87,6 +88,7 @@ export default function LoginPage() {
           )}
           <Suspense>
             <OAuthError />
+            <ReferralCapture />
           </Suspense>
           <GuestDataNote />
 

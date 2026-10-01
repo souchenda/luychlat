@@ -76,7 +76,9 @@ function JoinFlow() {
 
   const status = preview?.status
   const errorKey: MessageKey | null =
-    status === "invalid" || status === "expired" || status === "used" || status === "rate_limited" ? `join.${status}` : null
+    status === "invalid" || status === "expired" || status === "used" || status === "rate_limited" || status === "member_limit"
+      ? `join.${status}`
+      : null
 
   return (
     <Card className="gap-4 px-5 py-6">

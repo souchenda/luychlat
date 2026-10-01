@@ -75,8 +75,9 @@ export function toAnonymousPayload(snapshot: Snapshot): AnonymousSnapshot {
 
 export const advisorRequestSchema = z
   .object({
-    provider: z.enum(["anthropic", "openai"]),
-    apiKey: z.string().min(20).max(300),
+    // "luysmart": Pro AI with the server's own key (quota checked on the server).
+    provider: z.enum(["anthropic", "openai", "luysmart"]),
+    apiKey: z.string().min(20).max(300).optional(),
     model: z.string().regex(/^[a-zA-Z0-9._:-]{2,64}$/).optional(),
     language: z.enum(["km", "en"]),
     snapshot: anonymousSnapshotSchema,
@@ -86,5 +87,6 @@ export const advisorRequestSchema = z
     question: z.string().min(1).max(1000),
   })
   .strict()
+  .refine((r) => r.provider === "luysmart" || Boolean(r.apiKey), { message: "apiKey required", path: ["apiKey"] })
 
 export type AdvisorRequest = z.infer<typeof advisorRequestSchema>

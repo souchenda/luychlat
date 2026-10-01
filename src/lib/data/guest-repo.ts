@@ -18,6 +18,7 @@ import {
   DebtLinkedError,
   InsufficientBalanceError,
   PersonalWalletError,
+  PlanLimitError,
   RepaymentTooLargeError,
   WalletInUseError,
   type AppNotification,
@@ -93,6 +94,11 @@ function ensureCategories(workspaceId: string) {
     seededWorkspaceIds: [...s.seededWorkspaceIds, workspaceId],
   }))
 }
+
+/** Free plan limits (Guest Mode is always Free); mirrors guard_wallet_limit / family_member_limit_reached. */
+const GUEST_MAX_WALLETS = 2
+const GUEST_MAX_FAMILY_MEMBERS = 1
+const activeWalletCount = () => store.getState().wallets.filter((w) => !w.archived_at).length
 
 function getWallet(id: string): Wallet {
   const wallet = store.getState().wallets.find((w) => w.id === id)
@@ -323,6 +329,8 @@ export const guestRepo: DataRepo = {
   },
 
   async createInvite(workspaceId, role) {
+    const others = store.getState().members.filter((m) => m.workspace_id === workspaceId && m.role !== "OWNER" && m.user_id !== me().id)
+    if (others.length >= GUEST_MAX_FAMILY_MEMBERS) throw new PlanLimitError("family")
     const invite: WorkspaceInvite = {
       id: uuid(),
       workspace_id: workspaceId,
@@ -395,6 +403,7 @@ export const guestRepo: DataRepo = {
   },
 
   async createWallet(workspaceId, input) {
+    if (activeWalletCount() >= GUEST_MAX_WALLETS) throw new PlanLimitError("wallets")
     const siblings = store.getState().wallets.filter((w) => w.workspace_id === workspaceId)
     const wallet: Wallet = {
       id: uuid(),
@@ -431,6 +440,7 @@ export const guestRepo: DataRepo = {
   },
 
   async setWalletArchived(id, archived) {
+    if (!archived && getWallet(id).archived_at && activeWalletCount() >= GUEST_MAX_WALLETS) throw new PlanLimitError("wallets")
     patchWallets((w) => (w.id === id ? { ...w, archived_at: archived ? now() : null } : w))
   },
 

@@ -30,6 +30,9 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
+      # Server-only (never NEXT_PUBLIC_): LuySmart AI for PRO users. Read at runtime,
+      # not baked into the image. Leave empty to turn LuySmart AI off.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     mem_limit: ${APP_MEMORY:-512m}
     pids_limit: 256
     # The Node server needs no Linux capabilities and never escalates privileges.

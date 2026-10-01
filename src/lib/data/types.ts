@@ -265,7 +265,7 @@ export type WorkspaceInvite = {
 export type InviteLookup =
   | { status: "ok"; workspace_id: string; workspace_name: string; inviter_name?: string; role: WorkspaceRole }
   | { status: "already_member"; workspace_id: string; workspace_name: string }
-  | { status: "invalid" | "expired" | "used" | "rate_limited" }
+  | { status: "invalid" | "expired" | "used" | "rate_limited" | "member_limit" }
 
 /** Monthly spending cap for one expense category. */
 export type Budget = {
@@ -285,6 +285,14 @@ export class AccountRequiredError extends Error {
   constructor() {
     super("Sign in to use this feature")
     this.name = "AccountRequiredError"
+  }
+}
+
+/** Thrown when the Free plan's limit is reached (the database refuses; the app offers an upgrade). */
+export class PlanLimitError extends Error {
+  constructor(readonly limit: "wallets" | "family") {
+    super(`Plan limit: ${limit}`)
+    this.name = "PlanLimitError"
   }
 }
 

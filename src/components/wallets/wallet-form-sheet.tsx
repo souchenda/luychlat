@@ -14,10 +14,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useActiveWorkspace, useMembers, useProfile, useWalletMutations } from "@/lib/data/hooks"
-import { PersonalWalletError, WalletInUseError, type Currency, type Wallet, type WalletVisibility } from "@/lib/data/types"
+import { PersonalWalletError, PlanLimitError, WalletInUseError, type Currency, type Wallet, type WalletVisibility } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { parseAmount, roundMoney } from "@/lib/money"
+import { showUpgrade } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { getProvider, WALLET_PROVIDERS } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -113,6 +114,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
       toast.success(t("walletForm.saved"))
       onOpenChange(false)
     } catch (error) {
+      if (error instanceof PlanLimitError) return showUpgrade("wallets")
       toast.error(error instanceof PersonalWalletError ? t("wallet.personalOnly") : t("common.error"))
     }
   })
@@ -120,7 +122,12 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   const toggleArchive = async () => {
     if (!wallet) return
     const archived = !wallet.archived_at
-    await mutations.setArchived.mutateAsync({ id: wallet.id, archived })
+    try {
+      await mutations.setArchived.mutateAsync({ id: wallet.id, archived })
+    } catch (error) {
+      if (error instanceof PlanLimitError) return showUpgrade("wallets")
+      return void toast.error(t("common.error"))
+    }
     if (archived) toast.success(t("walletForm.archivedToast"))
     onOpenChange(false)
   }

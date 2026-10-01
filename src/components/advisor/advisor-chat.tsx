@@ -10,6 +10,7 @@ import { toAnonymousPayload } from "@/lib/advisor/payload"
 import type { Snapshot, SnapshotLabels } from "@/lib/advisor/snapshot"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { showUpgrade, usePlan, useRefreshPlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { effectiveProvider, useAiStore } from "@/stores/ai-store"
 
@@ -58,6 +59,8 @@ export function AdvisorChat({
   const [input, setInput] = useState("")
   const [pending, setPending] = useState(false)
   const [showPayload, setShowPayload] = useState(false)
+  const { plan, isPro } = usePlan()
+  const refreshPlan = useRefreshPlan()
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -73,6 +76,13 @@ export function AdvisorChat({
     setPending(true)
 
     const offline = () => answer(intent ?? detectIntent(text), snapshot, labels, lang)
+    // LuySmart AI is a Pro feature: without Pro, answer offline and offer the upgrade.
+    if (provider === "luysmart" && !isPro) {
+      setMessages((m) => [...m, { role: "assistant", content: `${t("advisor.proOnly")}\n\n${offline()}`, offline: true }])
+      setPending(false)
+      showUpgrade("ai")
+      return
+    }
     if (provider === "simulated") {
       await new Promise((r) => setTimeout(r, 450)) // feels like a reply, keeps the UI honest about "thinking"
       setMessages((m) => [...m, { role: "assistant", content: offline() }])
@@ -86,7 +96,7 @@ export function AdvisorChat({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider,
-          apiKey: provider === "anthropic" ? ai.anthropicKey : ai.openaiKey,
+          apiKey: provider === "anthropic" ? ai.anthropicKey : provider === "openai" ? ai.openaiKey : undefined,
           model: provider === "openai" ? ai.openaiModel : undefined,
           language: lang,
           snapshot: toAnonymousPayload(snapshot),
@@ -95,11 +105,25 @@ export function AdvisorChat({
         }),
       })
       const data = (await res.json()) as { text?: string; error?: string }
+      if (provider === "luysmart") void refreshPlan()
       if (!res.ok || !data.text) throw new Error(data.error ?? "provider_error")
       setMessages((m) => [...m, { role: "assistant", content: data.text! }])
     } catch (error) {
       const reason = error instanceof Error ? error.message : "provider_error"
-      const note = t(reason === "invalid_key" ? "advisor.errorKey" : reason === "rate_limited" ? "advisor.errorRate" : "advisor.errorGeneric")
+      const note = t(
+        reason === "invalid_key"
+          ? "advisor.errorKey"
+          : reason === "rate_limited"
+            ? "advisor.errorRate"
+            : reason === "quota_exceeded"
+              ? "advisor.errorQuota"
+              : reason === "plan_required"
+                ? "advisor.proOnly"
+                : reason === "ai_unavailable"
+                  ? "advisor.errorUnavailable"
+                  : "advisor.errorGeneric",
+      )
+      if (reason === "plan_required") showUpgrade("ai")
       setMessages((m) => [...m, { role: "assistant", content: `${note}\n\n${offline()}`, offline: true }])
     } finally {
       setPending(false)
@@ -114,8 +138,13 @@ export function AdvisorChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per request id
   }, [request?.id])
 
+  const quotaLeft = Math.max(0, plan.ai_queries_per_month - plan.ai_queries_used)
+
   return (
     <section className="space-y-3">
+      {provider === "luysmart" && isPro && (
+        <p className="text-xs text-muted-foreground">{t("advisor.quota", { left: quotaLeft, limit: plan.ai_queries_per_month })}</p>
+      )}
       <div className="flex flex-wrap gap-1.5">
         {CHIPS.map((chip) => (
           <Button

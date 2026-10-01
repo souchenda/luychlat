@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { PlanCard } from "@/components/billing/plan-card"
+import { ReferralCard } from "@/components/billing/referral"
 import { FamilySettings } from "@/components/family/family-settings"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { AiSettingsCard } from "@/components/settings/ai-settings"
@@ -143,6 +145,10 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
+
+      <PlanCard />
+
+      <ReferralCard />
 
       <Section title={t("settings.security")}>
         <Row

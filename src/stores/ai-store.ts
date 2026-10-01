@@ -1,7 +1,8 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
-export type AiProvider = "simulated" | "anthropic" | "openai"
+/** "luysmart" = Pro AI provided by LuySmart (no key needed). */
+export type AiProvider = "simulated" | "anthropic" | "openai" | "luysmart"
 
 export const DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
@@ -16,7 +17,7 @@ type AiState = {
   openaiKey: string
   openaiModel: string
   setProvider: (provider: AiProvider) => void
-  setKey: (provider: Exclude<AiProvider, "simulated">, key: string) => void
+  setKey: (provider: "anthropic" | "openai", key: string) => void
   setOpenaiModel: (model: string) => void
   clearKeys: () => void
 }
@@ -41,5 +42,6 @@ export const useAiStore = create<AiState>()(
 export function effectiveProvider(state: Pick<AiState, "provider" | "anthropicKey" | "openaiKey">): AiProvider {
   if (state.provider === "anthropic" && state.anthropicKey) return "anthropic"
   if (state.provider === "openai" && state.openaiKey) return "openai"
+  if (state.provider === "luysmart") return "luysmart"
   return "simulated"
 }

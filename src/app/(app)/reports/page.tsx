@@ -18,6 +18,7 @@ import { formatMoney } from "@/lib/money"
 import { exportDebtsXlsx, exportFileName, exportTransactionsXlsx } from "@/lib/reports/export"
 import { profitAndLoss } from "@/lib/reports/pl"
 import { formatRange, presetRange, rangeToFilter, type DateRange, type RangePreset } from "@/lib/reports/ranges"
+import { showUpgrade, useIsPro } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
@@ -26,6 +27,9 @@ const PRESETS: RangePreset[] = ["thisMonth", "lastMonth", "thisQuarter", "ytd", 
 
 export default function ReportsPage() {
   const t = useT()
+  // Excel/PDF exports are Pro; Free users see the upgrade sheet instead.
+  const canExport = useIsPro("export")
+  const proOnly = (run: () => unknown) => () => (canExport ? void run() : showUpgrade("export"))
   const lang = useLocaleStore((s) => s.locale)
   const { khrPerUsd, hideBalances } = usePrefsStore()
   const { repo } = useRepo()
@@ -176,17 +180,17 @@ export default function ReportsPage() {
       <section className="space-y-2 print:hidden">
         <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("reports.export")}</h2>
         <Card className="gap-2 px-4 py-4">
-          <Button variant="outline" className="h-11 justify-start" onClick={exportTransactions} disabled={busy !== null || !txQuery.data}>
+          <Button variant="outline" className="h-11 justify-start" onClick={proOnly(exportTransactions)} disabled={busy !== null || !txQuery.data}>
             {busy === "tx" ? <Loader2Icon className="animate-spin" /> : <FileSpreadsheetIcon className="text-emerald-600" />}
             <span className="flex-1 text-left">{t("reports.exportTransactions")}</span>
             <span className="text-xs text-muted-foreground">.xlsx</span>
           </Button>
-          <Button variant="outline" className="h-11 justify-start" onClick={exportDebts} disabled={busy !== null}>
+          <Button variant="outline" className="h-11 justify-start" onClick={proOnly(exportDebts)} disabled={busy !== null}>
             {busy === "debts" ? <Loader2Icon className="animate-spin" /> : <FileSpreadsheetIcon className="text-emerald-600" />}
             <span className="flex-1 text-left">{t("reports.exportDebts")}</span>
             <span className="text-xs text-muted-foreground">.xlsx</span>
           </Button>
-          <Button variant="outline" className={cn("h-11 justify-start")} onClick={() => window.print()} disabled={!pl}>
+          <Button variant="outline" className={cn("h-11 justify-start")} onClick={proOnly(() => window.print())} disabled={!pl}>
             <PrinterIcon className="text-sky-600" />
             <span className="flex-1 text-left">{t("reports.print")}</span>
             <span className="text-xs text-muted-foreground">PDF</span>

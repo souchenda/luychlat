@@ -18,6 +18,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { computeSchedule, MAX_MONTHS, type LoanMethod } from "@/lib/loans/amortization"
 import { formatMoney, parseAmount } from "@/lib/money"
 import { exportAmortizationXlsx } from "@/lib/reports/export"
+import { showUpgrade, useIsPro } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 
@@ -86,8 +87,10 @@ export default function LoanCalculatorPage() {
       }
     : undefined
 
+  const canExport = useIsPro("export")
   const exportSchedule = async () => {
     if (!schedule) return
+    if (!canExport) return showUpgrade("export")
     try {
       await exportAmortizationXlsx({
         schedule,

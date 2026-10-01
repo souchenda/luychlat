@@ -10,12 +10,14 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useT } from "@/lib/i18n/use-t"
+import { showUpgrade, usePlan } from "@/lib/plan"
 import { DEFAULT_OPENAI_MODEL, useAiStore, type AiProvider } from "@/stores/ai-store"
 
 /** Choose the offline advisor or a live model with the user's own API key (kept on this device). */
 export function AiSettingsCard() {
   const t = useT()
   const { provider, anthropicKey, openaiKey, openaiModel, setProvider, setKey, setOpenaiModel, clearKeys } = useAiStore()
+  const { plan, isPro } = usePlan()
   const [show, setShow] = useState(false)
   const keyed = provider === "anthropic" || provider === "openai"
   const key = provider === "anthropic" ? anthropicKey : openaiKey
@@ -33,10 +35,21 @@ export function AiSettingsCard() {
           onChange={setProvider}
           options={[
             { value: "simulated", label: t("aiSettings.offline") },
+            { value: "luysmart", label: t("aiSettings.luysmart") },
             { value: "anthropic", label: "Claude" },
             { value: "openai", label: "OpenAI" },
           ]}
         />
+        {provider === "luysmart" && (
+          <div className="flex items-start gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+            <span className="flex-1">{isPro ? t("aiSettings.luysmartPro", { limit: plan.ai_queries_per_month }) : t("aiSettings.luysmartFree")}</span>
+            {!isPro && (
+              <Button size="sm" className="h-7" onClick={() => showUpgrade("ai")}>
+                {t("upgrade.cta")}
+              </Button>
+            )}
+          </div>
+        )}
 
         {keyed ? (
           <>

@@ -18,7 +18,7 @@ import {
 } from "@/lib/advisor/credit-score"
 import type { Snapshot, SnapshotLabels } from "@/lib/advisor/snapshot"
 import { useT } from "@/lib/i18n/use-t"
-import { useIsPro } from "@/lib/plan"
+import { showUpgrade, useIsPro } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 
 // Bands in score order; colour is paired with the band's text label everywhere.
@@ -215,7 +215,7 @@ export function CreditScoreCard({
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/60 px-6 text-center">
           <LockIcon className="size-6 text-muted-foreground" aria-hidden />
           <p className="font-semibold">{t("score.proTitle")}</p>
-          <Button size="sm" disabled>
+          <Button size="sm" onClick={() => showUpgrade("credit_score")}>
             <CrownIcon />
             {t("score.upgrade")}
           </Button>

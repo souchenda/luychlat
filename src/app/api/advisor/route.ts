@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 
 import { advisorRequestSchema, type AdvisorRequest } from "@/lib/advisor/payload"
 import { guardRequest, readJson } from "@/lib/server/guard"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 // Snapshot + 12 short messages fit well within this.
 const MAX_BYTES = 64_000
@@ -41,8 +42,8 @@ function conversation(req: AdvisorRequest) {
   return [...history, { role: "user" as const, content: req.question }]
 }
 
-async function askClaude(req: AdvisorRequest): Promise<string> {
-  const client = new Anthropic({ apiKey: req.apiKey })
+async function askClaude(req: AdvisorRequest, apiKey: string): Promise<string> {
+  const client = new Anthropic({ apiKey })
   const response = await client.beta.messages.create({
     model: CLAUDE_MODEL,
     max_tokens: 16000,
@@ -84,6 +85,37 @@ async function askOpenAI(req: AdvisorRequest): Promise<string> {
   return data?.choices?.[0]?.message?.content?.trim() ?? ""
 }
 
+type Quota = { ok: boolean; reason?: "plan_required" | "quota_exceeded"; used: number; limit: number }
+
+/**
+ * Pro AI: LuySmart's own Anthropic key (server-only ANTHROPIC_API_KEY). The
+ * signed-in user is verified with auth.getUser(), the plan and monthly quota
+ * are checked in the database before the call, and one query is counted
+ * only after a successful answer.
+ */
+async function askLuySmart(req: AdvisorRequest) {
+  const serverKey = process.env.ANTHROPIC_API_KEY
+  if (!serverKey) return NextResponse.json({ error: "ai_unavailable" }, { status: 503 })
+  const supabase = await createSupabaseServerClient()
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return NextResponse.json({ error: "not_signed_in" }, { status: 401 })
+
+  const check = await supabase.rpc("use_ai_query", { p_commit: false })
+  if (check.error) return NextResponse.json({ error: "provider_error" }, { status: 502 })
+  const quota = check.data as Quota
+  if (!quota.ok) return NextResponse.json({ error: quota.reason, quota }, { status: 402 })
+
+  try {
+    const text = await askClaude(req, serverKey)
+    const used = await supabase.rpc("use_ai_query", { p_commit: true })
+    return NextResponse.json({ text, quota: used.data ?? quota })
+  } catch (error) {
+    // Never blame the user's key here: it's ours.
+    if (error instanceof Anthropic.RateLimitError) return NextResponse.json({ error: "rate_limited" }, { status: 429 })
+    return NextResponse.json({ error: "provider_error" }, { status: 502 })
+  }
+}
+
 export async function POST(request: Request) {
   const blocked = guardRequest(request, { name: "advisor", limit: 20, windowMs: 60_000, maxBytes: MAX_BYTES })
   if (blocked) return blocked
@@ -91,8 +123,10 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "invalid_input" }, { status: 400 })
   const req = parsed.data
 
+  if (req.provider === "luysmart") return askLuySmart(req)
+
   try {
-    const text = req.provider === "anthropic" ? await askClaude(req) : await askOpenAI(req)
+    const text = req.provider === "anthropic" ? await askClaude(req, req.apiKey!) : await askOpenAI(req)
     return NextResponse.json({ text })
   } catch (error) {
     // Most specific first; never echo the key back.

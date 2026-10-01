@@ -31,7 +31,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useFamilyMutations, useInvites, useMembers, useProfile, useWorkspaces } from "@/lib/data/hooks"
-import type { Workspace, WorkspaceInvite, WorkspaceMember, WorkspaceRole } from "@/lib/data/types"
+import { PlanLimitError, type Workspace, type WorkspaceInvite, type WorkspaceMember, type WorkspaceRole } from "@/lib/data/types"
+import { showUpgrade } from "@/lib/plan"
 import { simulateJoin, simulateMemberExpense } from "@/lib/family/guest-simulation"
 import { formatCode, inviteLink, normalizeCode } from "@/lib/family/invite-code"
 import { useT } from "@/lib/i18n/use-t"
@@ -116,7 +117,11 @@ function InviteSheet({ open, onOpenChange, workspace }: { open: boolean; onOpenC
   const generate = async () => {
     try {
       setInvite(await createInvite.mutateAsync({ workspaceId: workspace.id, role }))
-    } catch {
+    } catch (error) {
+      if (error instanceof PlanLimitError) {
+        onOpenChange(false)
+        return showUpgrade("family")
+      }
       toast.error(t("common.error"))
     }
   }
