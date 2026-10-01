@@ -21,6 +21,7 @@ import type {
   TransferInput,
   TransferUpdate,
   WalletInput,
+  WalletUpdate,
 } from "./types"
 
 /** Guest repo in Guest Mode, Supabase repo for signed-in users. */
@@ -131,7 +132,7 @@ export function useWalletMutations(workspaceId: string | undefined) {
       onSuccess: () => invalidate("wallets"),
     }),
     update: useMutation({
-      mutationFn: ({ id, input }: { id: string; input: WalletInput }) => repo.updateWallet(id, input),
+      mutationFn: ({ id, input }: { id: string; input: WalletUpdate }) => repo.updateWallet(id, input),
       onSuccess: () => invalidate("wallets"),
     }),
     reorder: useMutation({
@@ -168,6 +169,18 @@ export function useTransactionMutations(workspaceId: string | undefined) {
       onSuccess,
     }),
     remove: useMutation({ mutationFn: (id: string) => repo.deleteTransaction(id), onSuccess }),
+    removeRange: useMutation({
+      mutationFn: ({ from, to }: { from: string; to: string }) => repo.deleteTransactionsInRange(ws, from, to),
+      onSuccess,
+    }),
+    reconcile: useMutation({
+      mutationFn: ({ walletId, actual, note }: { walletId: string; actual: number; note: string | null }) =>
+        repo.reconcileWallet(walletId, actual, note),
+      onSuccess: () => {
+        onSuccess()
+        invalidate("categories")
+      },
+    }),
     uploadReceipt: useMutation({ mutationFn: (image: Blob) => repo.uploadReceipt(image) }),
   }
 }

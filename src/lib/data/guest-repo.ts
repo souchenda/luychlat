@@ -1,5 +1,6 @@
 import { dueAlerts, alertText } from "@/lib/alerts"
 import {
+  ADJUSTMENT_CATEGORY_PRESETS,
   CATEGORY_PRESETS,
   DEBT_CATEGORY_PRESETS,
   DISBURSEMENT_CATEGORY_PRESETS,
@@ -240,6 +241,25 @@ export const guestRepo: DataRepo = {
     store.setState((s) => ({ wallets: s.wallets.filter((w) => w.id !== id) }))
   },
 
+  async reconcileWallet(walletId, actualBalance, note) {
+    const wallet = getWallet(walletId)
+    // Same rounding as public.reconcile_wallet().
+    const diff = roundMoney(actualBalance - wallet.balance, wallet.currency)
+    if (diff === 0) return null
+    const preset = diff > 0 ? ADJUSTMENT_CATEGORY_PRESETS.IN : ADJUSTMENT_CATEGORY_PRESETS.OUT
+    return guestRepo.createEntry(wallet.workspace_id, {
+      type: preset.type,
+      wallet_id: wallet.id,
+      category_id: ensurePresetCategory(wallet.workspace_id, preset),
+      amount: Math.abs(diff),
+      currency: wallet.currency,
+      exchange_rate: null,
+      note,
+      transaction_date: now(),
+      receipt_url: null,
+    })
+  },
+
   // --- categories ----------------------------------------------------------
 
   async listCategories(workspaceId) {
@@ -365,6 +385,16 @@ export const guestRepo: DataRepo = {
     if (before.receipt_url) await guestReceipts.remove(before.receipt_url)
   },
 
+  async deleteTransactionsInRange(workspaceId, from, to) {
+    const doomed = store
+      .getState()
+      .transactions.filter((t) => t.workspace_id === workspaceId && t.transaction_date >= from && t.transaction_date < to)
+    // Newest first: undoing a later transfer before an earlier income keeps every step valid.
+    doomed.sort((a, b) => b.transaction_date.localeCompare(a.transaction_date))
+    for (const tx of doomed) await guestRepo.deleteTransaction(tx.id)
+    return doomed.length
+  },
+
   // --- debts ---------------------------------------------------------------
 
   async listDebts(workspaceId) {
@@ -401,7 +431,7 @@ export const guestRepo: DataRepo = {
       wallet_id: wallet.id,
       to_wallet_id: null,
       category_id: ensurePresetCategory(workspaceId, DISBURSEMENT_CATEGORY_PRESETS[debt.type]),
-      amount: debt.total_amount,
+      amount: disbursement.amount ?? debt.total_amount,
       to_amount: null,
       currency: debt.currency,
       type: debt.type === "PAYABLE" ? "INCOME" : "EXPENSE",
@@ -411,6 +441,9 @@ export const guestRepo: DataRepo = {
       transaction_date: disbursement.date,
       created_at: now(),
       debt_id: debt.id,
+    }
+    if (disbursement.amount !== undefined && !(disbursement.amount > 0 && disbursement.amount <= debt.total_amount)) {
+      throw new Error("disbursement amount must be between 0 and the debt total")
     }
     validate(workspaceId, tx)
     debt = { ...debt, disbursement_transaction_id: tx.id }

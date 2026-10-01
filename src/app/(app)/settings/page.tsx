@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRightIcon, CoinsIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import { ChartColumnIcon, ChevronRightIcon, CoinsIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -9,6 +9,9 @@ import { toast } from "sonner"
 
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { AiSettingsCard } from "@/components/settings/ai-settings"
+import { DangerZone } from "@/components/settings/danger-zone"
+import { DataManagement } from "@/components/settings/data-management"
+import { InstallAppCard } from "@/components/settings/install-app"
 import { TelegramSettingsCard } from "@/components/settings/telegram-settings"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -189,7 +192,14 @@ export default function SettingsPage() {
             <ChevronRightIcon className="size-4 text-muted-foreground" />
           </Row>
         </Link>
+        <Link href="/reports" className="block hover:bg-muted/60">
+          <Row icon={<ChartColumnIcon />} title={t("reports.title")} hint={t("reports.settingsHint")}>
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Row>
+        </Link>
       </Section>
+
+      <InstallAppCard />
 
       <TelegramSettingsCard />
 
@@ -232,6 +242,10 @@ export default function SettingsPage() {
           </Button>
         </div>
       </Section>
+
+      <DataManagement />
+
+      <DangerZone />
 
       <PinSetupDialog open={pinOpen} onOpenChange={setPinOpen} />
     </div>

@@ -81,6 +81,8 @@ export type DebtDisbursement = {
   /** KHR per 1 USD; required when the wallet uses the other currency. */
   exchange_rate: number | null
   date: string
+  /** Amount moved (debt currency); defaults to the full total. A calculator loan moves only the principal. */
+  amount?: number
 }
 
 export type NotificationType = "DUE_DATE" | "SYSTEM" | "AI_ADVICE"
@@ -187,6 +189,9 @@ export type TransactionFilter = {
   type?: TransactionType
   limit?: number
 }
+
+/** Editable wallet fields; the balance only changes through ledger entries (or Reconcile). */
+export type WalletUpdate = Omit<WalletInput, "balance">
 
 export type WalletInput = {
   name: string

@@ -10,6 +10,7 @@ import { AppLock } from "@/components/lock/app-lock"
 import { useHydrated } from "@/hooks/use-hydrated"
 import { AlertScheduler } from "@/components/notifications/alert-scheduler"
 import { NotificationBell } from "@/components/notifications/notification-bell"
+import { SnapshotScheduler } from "@/components/notifications/snapshot-scheduler"
 import { Button } from "@/components/ui/button"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
 import { useT } from "@/lib/i18n/use-t"
@@ -47,8 +48,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <>
       <AppLock />
       <AlertScheduler />
+      <SnapshotScheduler />
       <div hidden={isLocked} inert={isLocked}>
-        <header className="sticky top-0 z-30 border-b bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <header className="sticky top-0 z-30 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
           <div className="mx-auto flex w-full max-w-md items-center gap-1 px-4 py-2.5">
             <div className="min-w-0 flex-1">
               <WorkspaceSwitcher />
@@ -64,7 +66,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Re-keyed on switch so the new workspace's content fades in. */}
         <main
           key={activeWorkspace}
-          className="mx-auto min-h-dvh w-full max-w-md px-4 pt-5 pb-24 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+          className="mx-auto min-h-dvh w-full max-w-md px-4 pt-5 pb-24 print:max-w-none print:p-0 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
         >
           {children}
         </main>

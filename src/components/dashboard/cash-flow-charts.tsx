@@ -8,7 +8,7 @@ import { CategoryIcon } from "@/components/categories/category-icon"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { monthlyTrend, topExpenseCategories } from "@/lib/analytics"
-import { categoryLabel } from "@/lib/categories/presets"
+import { adjustmentCategoryIds, categoryLabel } from "@/lib/categories/presets"
 import type { Category, Transaction } from "@/lib/data/types"
 import { monthKey, monthStart, type MonthKey } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
@@ -25,11 +25,11 @@ const SERIES = [
 const compactUsd = (v: number) =>
   `$${Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(v)}`
 
-function TrendChart({ transactions, months }: { transactions: Transaction[]; months: MonthKey[] }) {
+function TrendChart({ transactions, months, exclude }: { transactions: Transaction[]; months: MonthKey[]; exclude: Set<string> }) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const { khrPerUsd, hideBalances } = usePrefsStore()
-  const data = monthlyTrend(transactions, months, khrPerUsd)
+  const data = monthlyTrend(transactions, months, khrPerUsd, exclude)
   const current = data[data.length - 1]
   const money = (v: number) => formatMoney(v, "USD", { hidden: hideBalances })
   const monthLabel = (m: MonthKey) => format(monthStart(m), "MMM", { locale: locale === "km" ? km : enUS })
@@ -105,7 +105,7 @@ function TopSpending({ transactions, categories }: { transactions: Transaction[]
   const { khrPerUsd, hideBalances } = usePrefsStore()
   const thisMonth = monthKey()
   const monthTx = transactions.filter((tx) => monthKey(new Date(tx.transaction_date)) === thisMonth)
-  const { rows, other } = topExpenseCategories(monthTx, khrPerUsd)
+  const { rows, other } = topExpenseCategories(monthTx, khrPerUsd, 5, adjustmentCategoryIds(categories))
   const byId = new Map(categories.map((c) => [c.id, c]))
   const items = [
     ...rows.map((r) => {
@@ -165,7 +165,7 @@ export function CashFlowCharts({
           <TabsTrigger value="top">{t("chart.topTab")}</TabsTrigger>
         </TabsList>
         <TabsContent value="trend" className="pt-3">
-          <TrendChart transactions={transactions} months={months} />
+          <TrendChart transactions={transactions} months={months} exclude={adjustmentCategoryIds(categories)} />
         </TabsContent>
         <TabsContent value="top" className="pt-3">
           <TopSpending transactions={transactions} categories={categories} />

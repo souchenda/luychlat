@@ -1,6 +1,6 @@
 import { addMonths, format, getDaysInMonth } from "date-fns"
 
-import { DEBT_CATEGORY_PRESETS, DISBURSEMENT_CATEGORY_PRESETS } from "@/lib/categories/presets"
+import { NON_OPERATING_KEYS } from "@/lib/categories/presets"
 import type { Category, Debt, Transaction, Wallet, WorkspaceType } from "@/lib/data/types"
 import { monthKey, monthStart } from "@/lib/dates"
 import { daysLeft, debtStatus, remaining, todayDate } from "@/lib/debts"
@@ -61,11 +61,8 @@ export type SnapshotLabels = {
   categories: Record<string, string>
 }
 
-/** Principal movements of debts aren't spending or earning. */
-const DEBT_FLOW_KEYS = new Set([
-  ...Object.values(DEBT_CATEGORY_PRESETS).map((p) => p.key),
-  ...Object.values(DISBURSEMENT_CATEGORY_PRESETS).map((p) => p.key),
-])
+/** Debt principal and balance adjustments aren't spending or earning. */
+const DEBT_FLOW_KEYS = NON_OPERATING_KEYS
 
 const r2 = (n: number) => roundMoney(n, "USD")
 

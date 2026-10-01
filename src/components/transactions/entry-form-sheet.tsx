@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { WalletSelect } from "@/components/wallets/wallet-select"
+import { NON_OPERATING_KEYS } from "@/lib/categories/presets"
 import { useCategories, useTransactionMutations } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
 import { DebtLinkedError, type CategoryType, type Currency, type EntryInput, type Transaction, type Wallet } from "@/lib/data/types"
@@ -63,7 +64,16 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
   const [receipt, setReceipt] = useState<ReceiptValue>({ kind: "none" })
   const [categoryFormOpen, setCategoryFormOpen] = useState(false)
 
-  const categories = useMemo(() => categoriesQuery.data?.filter((c) => c.type === type) ?? [], [categoriesQuery.data, type])
+  // System categories (debt flows, balance adjustments) are only set by the app; keep the current one when editing.
+  const categories = useMemo(
+    () =>
+      categoriesQuery.data?.filter(
+        (c) =>
+          c.type === type &&
+          (!c.preset_key || !NON_OPERATING_KEYS.has(c.preset_key) || c.id === transaction?.category_id),
+      ) ?? [],
+    [categoriesQuery.data, type, transaction?.category_id],
+  )
   // Active wallets, plus an archived one this entry already uses.
   const selectable = useMemo(
     () => wallets.filter((w) => !w.archived_at || w.id === transaction?.wallet_id),

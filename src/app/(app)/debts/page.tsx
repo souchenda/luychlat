@@ -1,6 +1,7 @@
 "use client"
 
-import { ChevronDownIcon, HandshakeIcon } from "lucide-react"
+import { CalculatorIcon, ChevronDownIcon, HandshakeIcon } from "lucide-react"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
 
@@ -32,10 +33,18 @@ function DebtsView() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">{t("debts.title")}</h1>
-        <Button size="sm" onClick={() => setFormOpen(true)}>
-          <HandshakeIcon />
-          {t("debts.add")}
-        </Button>
+        <div className="flex gap-1.5">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/debts/calculator">
+              <CalculatorIcon />
+              {t("loan.short")}
+            </Link>
+          </Button>
+          <Button size="sm" onClick={() => setFormOpen(true)}>
+            <HandshakeIcon />
+            {t("debts.add")}
+          </Button>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as DebtType)}>

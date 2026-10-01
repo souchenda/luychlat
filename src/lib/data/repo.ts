@@ -15,6 +15,7 @@ import type {
   TransferUpdate,
   Wallet,
   WalletInput,
+  WalletUpdate,
   Workspace,
 } from "./types"
 
@@ -29,11 +30,17 @@ export interface DataRepo {
   /** All wallets of a workspace, including archived ones, ordered by sort_order. */
   listWallets(workspaceId: string): Promise<Wallet[]>
   createWallet(workspaceId: string, input: WalletInput): Promise<Wallet>
-  updateWallet(id: string, input: WalletInput): Promise<Wallet>
+  updateWallet(id: string, input: WalletUpdate): Promise<Wallet>
   reorderWallets(workspaceId: string, orderedIds: string[]): Promise<void>
   setWalletArchived(id: string, archived: boolean): Promise<void>
   /** Throws WalletInUseError when the wallet has transactions. */
   deleteWallet(id: string): Promise<void>
+  /**
+   * Sets the wallet to its real balance by recording one "balance adjustment"
+   * ledger row for the difference (see public.reconcile_wallet). Returns null
+   * when the balance already matches.
+   */
+  reconcileWallet(walletId: string, actualBalance: number, note: string | null): Promise<Transaction | null>
 
   /** Workspace categories (seeded with presets on first use). */
   listCategories(workspaceId: string): Promise<Category[]>
@@ -54,6 +61,12 @@ export interface DataRepo {
   updateTransaction(id: string, input: EntryInput | TransferUpdate): Promise<Transaction>
   /** Reverses the balance effect and removes the receipt (and its debt repayment, if any). */
   deleteTransaction(id: string): Promise<void>
+  /**
+   * Deletes every transaction of the workspace dated within [from, to) (ISO),
+   * reversing balances, repayments and receipts like single deletes. Returns
+   * the number of rows removed.
+   */
+  deleteTransactionsInRange(workspaceId: string, from: string, to: string): Promise<number>
 
   listDebts(workspaceId: string): Promise<Debt[]>
   /** With `disbursement`, also moves the money (deposit borrowed / pay out lent funds). */

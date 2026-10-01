@@ -26,6 +26,7 @@ import {
   PiggyBankIcon,
   PlaneIcon,
   ReceiptIcon,
+  ScaleIcon,
   ShirtIcon,
   ShoppingBagIcon,
   ShoppingCartIcon,
@@ -81,6 +82,7 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   landmark: LandmarkIcon,
   briefcase: BriefcaseIcon,
   receipt: ReceiptIcon,
+  scale: ScaleIcon,
   ellipsis: EllipsisIcon,
 }
 

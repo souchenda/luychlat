@@ -20,8 +20,17 @@ export const metadata: Metadata = {
   title: "លុយឆ្លាត · LuySmart",
   description: "គ្រប់គ្រងលុយ និងបំណុល ផ្ទាល់ខ្លួន និងអាជីវកម្ម",
   applicationName: "LuySmart",
-  appleWebApp: { capable: true, title: "លុយឆ្លាត", statusBarStyle: "default" },
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  appleWebApp: { capable: true, title: "លុយឆ្លាត", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
+  // Older iOS Safari only reads the apple-prefixed tag for standalone mode.
+  other: { "apple-mobile-web-app-capable": "yes" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
 }
 
 export const viewport: Viewport = {

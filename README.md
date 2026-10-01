@@ -3,7 +3,7 @@
 Mobile-first PWA for personal and small-business money & debt management in Cambodia.
 Architecture, schema and roadmap: see [guideline.md](guideline.md).
 
-**Status:** Roadmap phases 1-5 done. Phase 6 (P&L reports and Excel/PDF export) is next.
+**Status:** All 6 roadmap phases are done (see guideline.md).
 
 ## Stack
 
@@ -35,12 +35,12 @@ src/
     login/              Phone (+855) OTP, Google, Apple, Telegram (phase 5), Guest Mode
     auth/callback/      OAuth code exchange
     (app)/              Auth-gated shell: workspace switcher, App Lock overlay, bottom nav
-      home/  transactions/  debts/ (+ [id])  advisor/  wallets/  categories/  settings/
+      home/  transactions/  debts/ (+ [id], calculator/)  advisor/  reports/  wallets/  categories/  settings/
     api/telegram/       Proxy to the Telegram Bot API (test message, find chat ID); token per request, never stored
     api/advisor/        Live AI advisor: Claude (official SDK, claude-opus-5-5) or OpenAI with the user's own key
     manifest.ts         PWA manifest
   components/
-    auth/  lock/  layout/  wallets/  workspace/  transactions/  categories/  debts/  dashboard/  advisor/  notifications/  settings/  money/  common/  ui/ (shadcn)
+    auth/  lock/  layout/  wallets/  workspace/  transactions/  categories/  debts/  dashboard/  advisor/  notifications/  reports/  settings/  money/  common/  ui/ (shadcn)
   lib/
     data/               DataRepo interface: guest-repo (localStorage) and supabase-repo, plus React Query hooks
     data/ledger.ts      Wallet balance effects (mirrors the DB trigger, used by Guest Mode)
@@ -48,6 +48,11 @@ src/
     debts.ts            Remaining, status, urgency bands (>7d / 1-7d / due), interest estimate
     reminder.ts         Khmer / English payment-reminder text, Telegram & SMS share links
     alerts.ts           Due-date alert stages (D7 / D3 / D0 / OVERDUE) and Telegram message text
+    reports/            pl.ts (cash-basis P&L), ranges.ts (period presets), export.ts (.xlsx via SheetJS, loaded on demand)
+    loans/amortization.ts  Flat-rate vs reducing-balance schedules
+    data/snapshots.ts   Daily snapshots + rollback (Guest Mode, IndexedDB)
+    data/backup.ts      .json backup export / validated restore
+    auth/reset.ts       Danger Zone: wipe cloud data (reset_my_data) and everything on the device
     advisor/            snapshot (metrics, DTI, 30-day liquidity, health score), strategy (Snowball vs Avalanche),
                         engine (offline answers), payload (strict anonymous schema sent to AI)
     categories/         Preset categories (Personal / Business) and icon set
@@ -60,6 +65,7 @@ src/
   stores/               Zustand: session, lock, locale, prefs (active workspace, hide balances, rate), guest-data, ai (provider + keys, device-only)
 supabase/migrations/    Schema + RLS (guideline §3)
 public/sw.js            Service worker (static assets + offline shell; never caches API data)
+public/icons/           PWA / iOS icons (regenerate: node scripts/generate-icons.mjs)
 ```
 
 ## Guest Mode
@@ -85,6 +91,60 @@ Guest Mode runs the full app with no Supabase project. Workspaces, wallets, cate
   - `lib/advisor/payload.ts` defines it as a strict Zod schema, and the server re-validates it.
   - The chat has a "see exactly what's sent" view.
 
+## Reports and export
+
+**Reports page:** open it from the Transactions page, the dashboard, or Settings.
+
+**Profit & Loss (cash basis):**
+- **Revenue:** income categories.
+- **COGS:** the stock purchases (`inventory`) category.
+- **Gross profit**, with its margin.
+- **Operating expenses:** every other expense category.
+- **Other income.**
+- **Net profit or loss**, with its margin.
+- **Not counted:** transfers, debt principal (borrowed, lent, repaid) and owner capital (`investment`). These are listed underneath the statement.
+- **Periods:** this month, last month, this quarter, year to date, or a custom range.
+- **Currencies:** every line is shown in USD and KHR.
+
+**Loan calculator** (Debts → គណនាកម្ចី):
+- **Methods:** flat rate (interest on the original amount, common with microfinance lenders) or reducing balance (amortization).
+- **Output:** monthly payment, total interest, total repayment, and the full monthly schedule.
+- **Excel export** of the schedule.
+- **Save as active loan:** creates a payable for principal plus interest. It can deposit just the principal into a wallet.
+
+**Exports:**
+- **Transactions (.xlsx):** Date, Type, Category, Wallet, Amount, Currency, Note, Debt Link.
+- **Debts (.xlsx):** a sheet of all debts and a sheet of repayment history.
+- **Library:** SheetJS 0.20.x, installed from the official SheetJS CDN tarball. The npm-registry `xlsx` package is stuck at 0.18.5 with known advisories.
+- **P&L:** Print / Save as PDF uses a print layout. The browser's PDF output renders Khmer correctly.
+
+## Data protection
+
+Settings → ការគ្រប់គ្រងទិន្នន័យ (Data management):
+
+- **Rollback to yesterday (Guest Mode):**
+  - A snapshot is saved to IndexedDB the first time the app opens each day, before any change. That is the end-of-yesterday state.
+  - The last 7 days are kept.
+  - Restoring first saves an undo point, so a rollback can itself be undone.
+- **Delete by date:** removes today's entries (or a date range) in the active workspace.
+  - It previews each wallet's change first.
+  - Balances and debt repayments are reversed, and older history is untouched.
+  - Also available from the Transactions page.
+- **Reconcile balance:** open a wallet, then កែតម្រូវ. Enter the real balance and one "balance adjustment" entry records the difference.
+  - Existing wallets no longer have an editable balance field.
+  - Adjustments are left out of cash flow, P&L and the advisor.
+- **Backup .json:**
+  - Export works in both modes. Guest Mode includes receipt photos; cloud exports include all data but no photos.
+  - Restore (Guest Mode) validates the file field by field and checks references between records before replacing anything, and saves an undo point first.
+- **Factory reset:** Danger Zone, with a typed confirmation.
+
+## Install (PWA)
+
+- **Manifest:** standalone display with PNG icons (192/512), a maskable icon, and shortcuts.
+- **iOS:** an `apple-touch-icon` and the apple-prefixed meta tags.
+- **Install prompt:** Settings → ដំឡើងកម្មវិធី uses the native prompt on Android and Chrome, and shows step-by-step instructions on iOS Safari.
+- **Service worker:** registers in production builds only (`npm run build && npm start`).
+
 ## Security notes
 
 - **RLS:** enabled on every table. Ownership flows from `workspaces.user_id = auth.uid()`. Child tables use composite FKs `(x_id, workspace_id)`, so a row can't reference another tenant's wallet, category or debt.
@@ -93,7 +153,11 @@ Guest Mode runs the full app with no Supabase project. Workspaces, wallets, cate
   - The app auto-locks when idle, or when it's left in the background for the configured time (immediately / 1 / 5 / 15 min).
   - While locked, page content is `hidden` + `inert`, not just covered by the overlay.
 - **Biometrics (phase 1 "mock"):** uses a WebAuthn platform credential (FaceID / fingerprint / Windows Hello) with `userVerification: "required"`. It's a local unlock gate only; no server verifies it. Setting `NEXT_PUBLIC_BIOMETRIC_MOCK=true` simulates a successful scan for testing.
-- **Sign-out:** wipes the PIN and biometric settings on the device.
+- **Sign-out:** wipes the PIN, biometric settings and AI keys on the device.
+- **Reset All Data (Danger Zone):**
+  - Needs typed confirmation (RESET).
+  - Deletes the user's cloud data (`reset_my_data()` and their receipt files).
+  - Clears every local store, IndexedDB and the offline caches.
 - **Receipts:** photos are downscaled and re-encoded on the device before upload, which also strips EXIF metadata such as GPS location.
 
 ## Schema additions beyond guideline §3
@@ -122,3 +186,6 @@ Guest Mode runs the full app with no Supabase project. Workspaces, wallets, cate
 | `telegram_settings` | Per-user bot token, chat ID, on/off and language (owner-only RLS) |
 | `notifications.alert_key` (unique per debt) | Each alert stage fires once per debt |
 | `run_debt_alerts()` + `pg_cron` job | Daily 08:00 alerts, in-app and via Telegram |
+| `reset_my_data()` | Danger Zone: deletes the caller's financial data and re-seeds default categories |
+| `reconcile_wallet()` | Atomic "set real balance": one adjustment ledger row for the difference |
+| `disburse_debt(..., p_amount)` | Optional amount, so a calculator loan deposits only the principal |

@@ -66,9 +66,22 @@ type DebtFormSheetProps = {
   defaultType?: DebtType
   debt?: Debt | null
   onSaved?: (debt: Debt) => void
+  /** Pre-filled values for a new debt (e.g. from the loan calculator). */
+  prefill?: Partial<DebtInput>
+  /** When moving money for a new debt, move this amount instead of the total (a loan's principal). */
+  disbursementAmount?: number
 }
 
-export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "PAYABLE", debt, onSaved }: DebtFormSheetProps) {
+export function DebtFormSheet({
+  open,
+  onOpenChange,
+  workspaceId,
+  defaultType = "PAYABLE",
+  debt,
+  onSaved,
+  prefill,
+  disbursementAmount,
+}: DebtFormSheetProps) {
   const t = useT()
   const mutations = useDebtMutations(workspaceId)
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
@@ -93,16 +106,16 @@ export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "
           walletId: "",
         }
       : {
-          type: defaultType,
-          party: "",
+          type: prefill?.type ?? defaultType,
+          party: prefill?.party_name ?? "",
           phone: "",
-          total: "",
-          currency: "USD",
-          interest: "",
-          interestPeriod: "YEAR",
-          startDate: todayDate(),
-          dueDate: "",
-          note: "",
+          total: prefill?.total_amount ? String(prefill.total_amount) : "",
+          currency: prefill?.currency ?? "USD",
+          interest: prefill?.interest_rate ? String(prefill.interest_rate) : "",
+          interestPeriod: prefill?.interest_period ?? "YEAR",
+          startDate: prefill?.start_date ?? todayDate(),
+          dueDate: prefill?.due_date ?? "",
+          note: prefill?.note ?? "",
           moveMoney: false,
           walletId: "",
         }
@@ -117,7 +130,7 @@ export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "
     name: ["type", "moveMoney", "walletId", "total", "currency"],
   })
   const moneyWallet = activeWallets.find((w) => w.id === walletId)
-  const totalValue = parseAmount(totalText)
+  const totalValue = disbursementAmount ?? parseAmount(totalText)
   const moneyConverted =
     moneyWallet && moneyWallet.currency !== currency && totalValue > 0
       ? amountInWalletCurrency(roundMoney(totalValue, currency), currency, khrPerUsd, moneyWallet.currency)
@@ -148,6 +161,8 @@ export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "
             wallet_id: target.id,
             exchange_rate: target.currency === v.currency ? null : khrPerUsd,
             date: fromDateInput(v.startDate),
+            // Never more than the (possibly edited) total.
+            amount: disbursementAmount !== undefined ? Math.min(disbursementAmount, input.total_amount) : undefined,
           }
         : undefined
     try {
@@ -326,7 +341,10 @@ export function DebtFormSheet({ open, onOpenChange, workspaceId, defaultType = "
                 })}
               />
               <span>
-                <span className="block font-medium">{t(`debtForm.moveMoney${selectedType}`)}</span>
+                <span className="block font-medium">
+                  {t(`debtForm.moveMoney${selectedType}`)}
+                  {disbursementAmount !== undefined && ` (${formatMoney(disbursementAmount, currency)})`}
+                </span>
                 <span className="block text-xs text-muted-foreground">{t("debtForm.moveMoneyHint")}</span>
               </span>
             </label>

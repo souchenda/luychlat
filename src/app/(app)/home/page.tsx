@@ -22,6 +22,7 @@ import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { WalletList } from "@/components/wallets/wallet-list"
 import { cashFlow } from "@/lib/analytics"
+import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { useActiveWorkspace, useCategories, useDebts, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { monthKey, monthRange, recentMonths } from "@/lib/dates"
@@ -73,8 +74,9 @@ export default function HomePage() {
       cashFlow(
         transactions.filter((tx) => monthKey(new Date(tx.transaction_date)) === thisMonth),
         khrPerUsd,
+        adjustmentCategoryIds(categoriesQuery.data ?? []),
       ),
-    [transactions, thisMonth, khrPerUsd],
+    [transactions, thisMonth, khrPerUsd, categoriesQuery.data],
   )
   const identity = user?.phone ? `+${user.phone}` : (user?.email ?? null)
 
@@ -120,6 +122,13 @@ export default function HomePage() {
       </div>
 
       <CashFlowCard flow={flow} loading={txQuery.isLoading} />
+      <Link
+        href="/reports"
+        className="-mt-2 flex items-center justify-end gap-1 px-1 text-sm text-primary"
+      >
+        📊 {t(workspace?.type === "BUSINESS" ? "pl.title" : "reports.title")}
+        <ChevronRightIcon className="size-4" />
+      </Link>
 
       <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} />
 

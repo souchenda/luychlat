@@ -2,11 +2,13 @@
 
 import { format } from "date-fns"
 import { enUS, km } from "date-fns/locale"
-import { FilterXIcon, MinusIcon, PlusIcon, SearchXIcon } from "lucide-react"
+import { ChartColumnIcon, FilterXIcon, MinusIcon, PlusIcon, SearchXIcon, Trash2Icon } from "lucide-react"
+import Link from "next/link"
 import { useMemo, useState } from "react"
 
 import { Segmented } from "@/components/common/segmented"
 import { Amount } from "@/components/money/amount"
+import { BulkDeleteSheet } from "@/components/transactions/bulk-delete-sheet"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
 import { TransactionEditor } from "@/components/transactions/transaction-editor"
 import { TransactionList } from "@/components/transactions/transaction-list"
@@ -14,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cashFlow } from "@/lib/analytics"
-import { categoryLabel } from "@/lib/categories/presets"
+import { adjustmentCategoryIds, categoryLabel } from "@/lib/categories/presets"
 import { useActiveWorkspace, useCategories, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction, TransactionFilter, TransactionType } from "@/lib/data/types"
 import { monthKey, monthRange, monthStart, recentMonths } from "@/lib/dates"
@@ -32,7 +34,8 @@ export default function TransactionsPage() {
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id
   const wallets = useWallets(ws).data ?? []
-  const categories = useCategories(ws).data ?? []
+  const categoriesData = useCategories(ws).data
+  const categories = useMemo(() => categoriesData ?? [], [categoriesData])
 
   const [month, setMonth] = useState(monthKey())
   const [type, setType] = useState<TransactionType | typeof ALL>(ALL)
@@ -40,6 +43,7 @@ export default function TransactionsPage() {
   const [categoryId, setCategoryId] = useState(ALL)
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [entryType, setEntryType] = useState<CategoryType | null>(null)
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   const filter = useMemo<TransactionFilter>(
     () => ({
@@ -52,7 +56,10 @@ export default function TransactionsPage() {
   )
   const txQuery = useTransactions(ws, filter)
   const transactions = useMemo(() => txQuery.data ?? [], [txQuery.data])
-  const flow = useMemo(() => cashFlow(transactions, khrPerUsd), [transactions, khrPerUsd])
+  const flow = useMemo(
+    () => cashFlow(transactions, khrPerUsd, adjustmentCategoryIds(categories)),
+    [transactions, khrPerUsd, categories],
+  )
 
   const months = useMemo(() => recentMonths(MONTH_OPTIONS).reverse(), [])
   const dateLocale = locale === "km" ? km : enUS
@@ -71,6 +78,14 @@ export default function TransactionsPage() {
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">{t("ledger.title")}</h1>
         <div className="flex gap-1.5">
+          <Button size="icon" variant="outline" onClick={() => setBulkOpen(true)} aria-label={t("bulk.title")}>
+            <Trash2Icon />
+          </Button>
+          <Button asChild size="icon" variant="outline" aria-label={t("reports.title")}>
+            <Link href="/reports">
+              <ChartColumnIcon />
+            </Link>
+          </Button>
           <Button size="icon" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => setEntryType("INCOME")} aria-label={t("entry.newINCOME")}>
             <PlusIcon />
           </Button>
@@ -176,6 +191,7 @@ export default function TransactionsPage() {
         wallets={wallets}
         type={entryType ?? "EXPENSE"}
       />
+      <BulkDeleteSheet open={bulkOpen} onOpenChange={setBulkOpen} workspaceId={ws} />
       <TransactionEditor workspaceId={ws} wallets={wallets} transaction={editing} onClose={() => setEditing(null)} />
     </div>
   )

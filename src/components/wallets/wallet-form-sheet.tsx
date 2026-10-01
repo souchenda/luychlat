@@ -1,13 +1,14 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArchiveIcon, ArchiveRestoreIcon, Loader2Icon, Trash2Icon } from "lucide-react"
-import { useEffect } from "react"
+import { ArchiveIcon, ArchiveRestoreIcon, Loader2Icon, ScaleIcon, Trash2Icon } from "lucide-react"
+import { useEffect, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
+import { Amount } from "@/components/money/amount"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils"
 import { getProvider, WALLET_PROVIDERS } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
 
+import { ReconcileSheet } from "./reconcile-sheet"
 import { WalletAvatar } from "./wallet-avatar"
 
 const schema = z.object({
@@ -46,6 +48,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   const locale = useLocaleStore((s) => s.locale)
   const mutations = useWalletMutations(workspaceId)
   const editing = Boolean(wallet)
+  const [reconcileOpen, setReconcileOpen] = useState(false)
 
   const defaults = (): FormValues =>
     wallet
@@ -82,7 +85,8 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
       balance: roundMoney(parseAmount(values.balance || "0"), currency),
     }
     try {
-      if (wallet) await mutations.update.mutateAsync({ id: wallet.id, input })
+      // Existing wallets: the balance only changes through the ledger or Reconcile.
+      if (wallet) await mutations.update.mutateAsync({ id: wallet.id, input: { name: input.name, icon: input.icon, color: input.color, currency } })
       else await mutations.create.mutateAsync(input)
       toast.success(t("walletForm.saved"))
       onOpenChange(false)
@@ -174,8 +178,20 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           {hasHistory && <p className="text-xs text-muted-foreground">{t("walletForm.currencyLocked")}</p>}
         </div>
 
+        {wallet ? (
+          <div className="flex items-center justify-between gap-3 rounded-xl border p-3">
+            <div>
+              <p className="text-xs text-muted-foreground">{t("walletForm.balance")}</p>
+              <Amount value={wallet.balance} currency={wallet.currency} className="text-lg font-semibold" />
+            </div>
+            <Button type="button" variant="outline" onClick={() => setReconcileOpen(true)}>
+              <ScaleIcon />
+              {t("reconcile.button")}
+            </Button>
+          </div>
+        ) : (
         <div className="space-y-2">
-          <Label htmlFor="wallet-balance">{t("walletForm.balance")}</Label>
+          <Label htmlFor="wallet-balance">{t("walletForm.openingBalance")}</Label>
           <Input
             id="wallet-balance"
             className="h-11 text-base tabular-nums"
@@ -187,6 +203,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           />
           {formState.errors.balance && <p className="text-sm text-destructive">{errorText(formState.errors.balance.message)}</p>}
         </div>
+        )}
 
         <Button type="submit" className="h-12 w-full text-base" disabled={busy}>
           {busy && <Loader2Icon className="animate-spin" />}
@@ -206,6 +223,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           </div>
         )}
       </form>
+      {wallet && <ReconcileSheet open={reconcileOpen} onOpenChange={setReconcileOpen} wallet={wallet} />}
     </BottomSheet>
   )
 }

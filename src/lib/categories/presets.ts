@@ -93,11 +93,48 @@ export const DISBURSEMENT_CATEGORY_PRESETS: Record<"PAYABLE" | "RECEIVABLE", Cat
   },
 }
 
+/**
+ * Wallet reconciliation entries (see public.reconcile_wallet). They correct a
+ * balance to reality and are not real income or spending, so reports and the
+ * advisor leave them out.
+ */
+export const ADJUSTMENT_CATEGORY_PRESETS: Record<"IN" | "OUT", CategoryPreset> = {
+  IN: {
+    key: "adjustment_in",
+    type: "INCOME",
+    icon: "scale",
+    color: "#64748b",
+    name: { km: "កែតម្រូវសមតុល្យ (+)", en: "Balance adjustment (+)" },
+  },
+  OUT: {
+    key: "adjustment_out",
+    type: "EXPENSE",
+    icon: "scale",
+    color: "#64748b",
+    name: { km: "កែតម្រូវសមតុល្យ (−)", en: "Balance adjustment (−)" },
+  },
+}
+
+const ADJUSTMENT_KEYS = new Set(Object.values(ADJUSTMENT_CATEGORY_PRESETS).map((p) => p.key))
+
+/** Ids of this workspace's balance-adjustment categories (left out of cash flow and charts). */
+export function adjustmentCategoryIds(categories: { id: string; preset_key: string | null }[]): Set<string> {
+  return new Set(categories.filter((c) => c.preset_key && ADJUSTMENT_KEYS.has(c.preset_key)).map((c) => c.id))
+}
+
+/** Category keys that move money without being income or spending (debt principal, adjustments). */
+export const NON_OPERATING_KEYS = new Set([
+  ...Object.values(DEBT_CATEGORY_PRESETS).map((p) => p.key),
+  ...Object.values(DISBURSEMENT_CATEGORY_PRESETS).map((p) => p.key),
+  ...Object.values(ADJUSTMENT_CATEGORY_PRESETS).map((p) => p.key),
+])
+
 const PRESET_NAMES = new Map(
   [
     ...Object.values(CATEGORY_PRESETS).flat(),
     ...Object.values(DEBT_CATEGORY_PRESETS),
     ...Object.values(DISBURSEMENT_CATEGORY_PRESETS),
+    ...Object.values(ADJUSTMENT_CATEGORY_PRESETS),
   ].map((p) => [p.key, p.name]),
 )
 

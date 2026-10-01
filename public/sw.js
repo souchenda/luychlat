@@ -1,10 +1,31 @@
 // LuySmart service worker: offline shell + cache-first static assets.
 // Never caches API traffic (Supabase), so financial data is not stored here.
-const CACHE = "luysmart-v1"
-const SHELL = ["/", "/login", "/home", "/icon.svg", "/manifest.webmanifest"]
+const CACHE = "luysmart-v3"
+const SHELL = [
+  "/",
+  "/login",
+  "/home",
+  "/transactions",
+  "/debts",
+  "/debts/calculator",
+  "/advisor",
+  "/wallets",
+  "/reports",
+  "/settings",
+  "/icon.svg",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/manifest.webmanifest",
+]
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()))
+  // allSettled: one missing page must not block installing the worker.
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((cache) => Promise.allSettled(SHELL.map((path) => cache.add(path))))
+      .then(() => self.skipWaiting()),
+  )
 })
 
 self.addEventListener("activate", (event) => {
@@ -20,9 +41,9 @@ self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
   if (request.method !== "GET" || url.origin !== self.location.origin) return
-  if (url.pathname.startsWith("/auth/")) return
+  if (url.pathname.startsWith("/auth/") || url.pathname.startsWith("/api/")) return
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/icon.svg") {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/icon.svg") {
     event.respondWith(
       caches.match(request).then(
         (hit) =>

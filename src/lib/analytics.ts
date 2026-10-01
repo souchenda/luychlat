@@ -14,10 +14,14 @@ export function dualTotal(usdNative: number, khrNative: number, khrPerUsd: numbe
 }
 
 /** Income, expense and net flow; transfers move money between wallets and are excluded. */
-export function cashFlow(transactions: Transaction[], khrPerUsd: number) {
+/** True for rows that count as income/expense (not transfers, not excluded categories such as adjustments). */
+const counts = (tx: Transaction, exclude?: Set<string>) =>
+  tx.type !== "TRANSFER" && !(tx.category_id && exclude?.has(tx.category_id))
+
+export function cashFlow(transactions: Transaction[], khrPerUsd: number, exclude?: Set<string>) {
   const sums = { INCOME: { USD: 0, KHR: 0 }, EXPENSE: { USD: 0, KHR: 0 } }
   for (const tx of transactions) {
-    if (tx.type === "TRANSFER") continue
+    if (tx.type === "TRANSFER" || !counts(tx, exclude)) continue
     sums[tx.type][tx.currency] += tx.amount
   }
   const income = dualTotal(sums.INCOME.USD, sums.INCOME.KHR, khrPerUsd)
@@ -32,10 +36,10 @@ export function cashFlow(transactions: Transaction[], khrPerUsd: number) {
 const toUsd = (tx: Transaction, khrPerUsd: number) => (tx.currency === "USD" ? tx.amount : tx.amount / khrPerUsd)
 
 /** Income and expense per month (USD equivalent), for `months` oldest first. */
-export function monthlyTrend(transactions: Transaction[], months: MonthKey[], khrPerUsd: number) {
+export function monthlyTrend(transactions: Transaction[], months: MonthKey[], khrPerUsd: number, exclude?: Set<string>) {
   const rows = new Map(months.map((m) => [m, { month: m, income: 0, expense: 0 }]))
   for (const tx of transactions) {
-    if (tx.type === "TRANSFER") continue
+    if (tx.type === "TRANSFER" || !counts(tx, exclude)) continue
     const row = rows.get(monthKey(new Date(tx.transaction_date)))
     if (!row) continue
     if (tx.type === "INCOME") row.income += toUsd(tx, khrPerUsd)
@@ -49,10 +53,10 @@ export function monthlyTrend(transactions: Transaction[], months: MonthKey[], kh
 }
 
 /** Expense per category (USD equivalent), largest first; the tail folds into one "other" row. */
-export function topExpenseCategories(transactions: Transaction[], khrPerUsd: number, limit = 5) {
+export function topExpenseCategories(transactions: Transaction[], khrPerUsd: number, limit = 5, exclude?: Set<string>) {
   const totals = new Map<string | null, number>()
   for (const tx of transactions) {
-    if (tx.type !== "EXPENSE") continue
+    if (tx.type !== "EXPENSE" || !counts(tx, exclude)) continue
     totals.set(tx.category_id, (totals.get(tx.category_id) ?? 0) + toUsd(tx, khrPerUsd))
   }
   const sorted = [...totals.entries()]

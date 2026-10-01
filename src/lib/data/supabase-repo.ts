@@ -121,6 +121,13 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
       if (error) throw error
     },
 
+    async reconcileWallet(walletId, actualBalance, note) {
+      const row = unwrap(
+        await supabase.rpc("reconcile_wallet", { p_wallet_id: walletId, p_actual: actualBalance, p_note: note }),
+      ) as Transaction | null
+      return row ? toTransaction(row) : null
+    },
+
     // --- categories (seeded by the signup trigger) --------------------------
 
     async listCategories(workspaceId) {
@@ -209,6 +216,22 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
       if (receipt) await repo.deleteReceipt(receipt)
     },
 
+    async deleteTransactionsInRange(workspaceId, from, to) {
+      // One statement = one database transaction; triggers reverse balances and repayments.
+      const rows = unwrap(
+        await supabase
+          .from("transactions")
+          .delete()
+          .eq("workspace_id", workspaceId)
+          .gte("transaction_date", from)
+          .lt("transaction_date", to)
+          .select("receipt_url"),
+      ) as Pick<Transaction, "receipt_url">[]
+      const receipts = rows.flatMap((r) => (r.receipt_url ? [r.receipt_url] : []))
+      if (receipts.length) await supabase.storage.from(RECEIPT_BUCKET).remove(receipts)
+      return rows.length
+    },
+
     // --- debts (paid_amount / status derived by the debts_derive trigger) ------
 
     async listDebts(workspaceId) {
@@ -232,6 +255,7 @@ export function createSupabaseRepo(supabase: SupabaseClient): DataRepo {
         p_wallet_id: disbursement.wallet_id,
         p_exchange_rate: disbursement.exchange_rate,
         p_date: disbursement.date,
+        p_amount: disbursement.amount ?? null,
       })
       if (moved.error) {
         // Don't leave a debt behind whose money movement failed.
