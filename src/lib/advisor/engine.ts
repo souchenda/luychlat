@@ -38,7 +38,7 @@ export function insights(s: Snapshot, labels: SnapshotLabels, lang: Lang): Insig
     out.push({
       id: "shortfall",
       severity: "critical",
-      title: L(lang, "⚠️ ហានិភ័យខ្វះសាច់ប្រាក់ ៣០ ថ្ងៃខាងមុខ", "⚠️ Cash shortfall risk in the next 30 days"),
+      title: L(lang, "ហានិភ័យខ្វះសាច់ប្រាក់ ៣០ ថ្ងៃខាងមុខ", "Cash shortfall risk in the next 30 days"),
       body: L(
         lang,
         `បំណុលត្រូវសងក្នុង ៣០ ថ្ងៃ ${dual(s.payablesDue30, s)} ច្រើនជាងសាច់ប្រាក់ដែលរំពឹងទុក ${usd(s.projectedCash30)} ប្រមាណ ${usd(s.shortfall30)}។`,
@@ -49,7 +49,7 @@ export function insights(s: Snapshot, labels: SnapshotLabels, lang: Lang): Insig
     out.push({
       id: "liquidity_ok",
       severity: "good",
-      title: L(lang, "✅ សាច់ប្រាក់គ្រប់គ្រាន់សម្រាប់បំណុល ៣០ ថ្ងៃ", "✅ Enough cash for the next 30 days of debts"),
+      title: L(lang, "សាច់ប្រាក់គ្រប់គ្រាន់សម្រាប់បំណុល ៣០ ថ្ងៃ", "Enough cash for the next 30 days of debts"),
       body: L(
         lang,
         `ត្រូវសង ${usd(s.payablesDue30)} ក្នុង ៣០ ថ្ងៃ ហើយសាច់ប្រាក់រំពឹងទុកមាន ${usd(s.projectedCash30)}។`,
@@ -62,7 +62,7 @@ export function insights(s: Snapshot, labels: SnapshotLabels, lang: Lang): Insig
     out.push({
       id: "overdue",
       severity: "critical",
-      title: L(lang, `🔴 មានបំណុលហួសកំណត់ ${s.overduePayables}`, `🔴 ${s.overduePayables} overdue debt(s)`),
+      title: L(lang, `មានបំណុលហួសកំណត់ ${s.overduePayables}`, `${s.overduePayables} overdue debt(s)`),
       body: L(lang, "សូមទាក់ទងម្ចាស់បំណុល ដើម្បីចរចាកាលវិភាគសងថ្មី មុនពេលការប្រាក់ ឬពិន័យកើនឡើង។", "Contact the lender to agree a new schedule before interest or penalties grow."),
     })
   }
@@ -101,7 +101,7 @@ export function insights(s: Snapshot, labels: SnapshotLabels, lang: Lang): Insig
     out.push({
       id: `anomaly_${a.category}`,
       severity: "warn",
-      title: L(lang, `📈 ចំណាយមិនប្រក្រតី: ${categoryName(a.category, labels)}`, `📈 Unusual spending: ${categoryName(a.category, labels)}`),
+      title: L(lang, `ចំណាយមិនប្រក្រតី: ${categoryName(a.category, labels)}`, `Unusual spending: ${categoryName(a.category, labels)}`),
       body: L(
         lang,
         `ខែនេះ ${usd(a.thisMonth)} គឺ ${a.ratio}× នៃមធ្យមភាគ ${usd(a.avgPrevious)}។`,
@@ -118,8 +118,8 @@ export function insights(s: Snapshot, labels: SnapshotLabels, lang: Lang): Insig
       severity: "info",
       title: L(
         lang,
-        `🎯 យុទ្ធសាស្ត្រ ${strategy.recommended === "avalanche" ? "Avalanche" : "Snowball"}`,
-        `🎯 ${strategy.recommended === "avalanche" ? "Avalanche" : "Snowball"} strategy`,
+        `យុទ្ធសាស្ត្រ ${strategy.recommended === "avalanche" ? "Avalanche" : "Snowball"}`,
+        `${strategy.recommended === "avalanche" ? "Avalanche" : "Snowball"} strategy`,
       ),
       body: L(
         lang,
@@ -154,7 +154,7 @@ export function answer(intent: Intent, s: Snapshot, labels: SnapshotLabels, lang
   switch (intent) {
     case "debt_first": {
       const strategy = compareStrategies(s)
-      if (!strategy) return L(lang, "🎉 អ្នកមិនមានបំណុលត្រូវសងទេ។ សូមពិចារណាដាក់សន្សំជាប្រាក់បម្រុងសម្រាប់ ៣–៦ ខែ។", "🎉 You have no payables. Consider building a 3–6 month emergency fund.")
+      if (!strategy) return L(lang, "អ្នកមិនមានបំណុលត្រូវសងទេ។ សូមពិចារណាដាក់សន្សំជាប្រាក់បម្រុងសម្រាប់ ៣–៦ ខែ។", "You have no payables. Consider building a 3–6 month emergency fund.")
       const plan = strategy[strategy.recommended]
       const order = plan.order.map((ref, i) => `${i + 1}. ${debtName(ref, labels, lang)}`).join("\n")
       const budgetNote = strategy.budgetAssumed
@@ -178,13 +178,13 @@ export function answer(intent: Intent, s: Snapshot, labels: SnapshotLabels, lang
       const t = s.thisMonth
       const top = s.topExpenses[0]
       return [
-        L(lang, `📊 ខែនេះ (ថ្ងៃទី ${t.daysElapsed}/${t.daysInMonth}):`, `📊 This month (day ${t.daysElapsed}/${t.daysInMonth}):`),
+        L(lang, `ខែនេះ (ថ្ងៃទី ${t.daysElapsed}/${t.daysInMonth}):`, `This month (day ${t.daysElapsed}/${t.daysInMonth}):`),
         L(lang, `• ចំណូល: ${dual(t.income, s)}`, `• Income: ${dual(t.income, s)}`),
         L(lang, `• ចំណាយ: ${dual(t.expense, s)}`, `• Expenses: ${dual(t.expense, s)}`),
         L(lang, `• សាច់ប្រាក់សល់: ${usd(t.net)}`, `• Net flow: ${usd(t.net)}`),
         top ? L(lang, `• ចំណាយច្រើនបំផុត: ${categoryName(top.category, labels)} (${pct(top.share)})`, `• Biggest spend: ${categoryName(top.category, labels)} (${pct(top.share)})`) : "",
         s.anomalies[0]
-          ? L(lang, `⚠️ ${categoryName(s.anomalies[0].category, labels)} កើនឡើង ${s.anomalies[0].ratio}× ធៀបនឹងធម្មតា។`, `⚠️ ${categoryName(s.anomalies[0].category, labels)} is ${s.anomalies[0].ratio}× higher than usual.`)
+          ? L(lang, `${categoryName(s.anomalies[0].category, labels)} កើនឡើង ${s.anomalies[0].ratio}× ធៀបនឹងធម្មតា។`, `${categoryName(s.anomalies[0].category, labels)} is ${s.anomalies[0].ratio}× higher than usual.`)
           : "",
         L(lang, `ពិន្ទុសុខភាពហិរញ្ញវត្ថុ: ${s.score}/100`, `Financial health score: ${s.score}/100`),
       ]
@@ -193,24 +193,24 @@ export function answer(intent: Intent, s: Snapshot, labels: SnapshotLabels, lang
     }
     case "shortfall":
       return [
-        L(lang, `💧 សាច់ប្រាក់បច្ចុប្បន្ន: ${dual(s.cashUsd, s)}`, `💧 Current cash: ${dual(s.cashUsd, s)}`),
+        L(lang, `សាច់ប្រាក់បច្ចុប្បន្ន: ${dual(s.cashUsd, s)}`, `Current cash: ${dual(s.cashUsd, s)}`),
         L(lang, `• បំណុលត្រូវសងក្នុង ៣០ ថ្ងៃ: ${usd(s.payablesDue30)}`, `• Payables due in 30 days: ${usd(s.payablesDue30)}`),
         L(lang, `• គេជំពាក់ដែលដល់ថ្ងៃក្នុង ៣០ ថ្ងៃ: ${usd(s.receivablesDue30)}`, `• Receivables due in 30 days: ${usd(s.receivablesDue30)}`),
         L(lang, `• សាច់ប្រាក់រំពឹងទុកក្នុង ៣០ ថ្ងៃ: ${usd(s.projectedCash30)}`, `• Projected cash in 30 days: ${usd(s.projectedCash30)}`),
         s.shortfall30 > 0
-          ? L(lang, `⚠️ អាចខ្វះប្រមាណ ${usd(s.shortfall30)}។ ពិចារណា: ប្រមូលប្រាក់គេជំពាក់មុន, កាត់បន្ថយចំណាយមិនចាំបាច់, ឬចរចាពន្យារថ្ងៃសង។`, `⚠️ Possible shortfall of about ${usd(s.shortfall30)}. Consider collecting receivables early, trimming non-essential spending, or negotiating a later due date.`)
-          : L(lang, "✅ មិនមានហានិភ័យខ្វះសាច់ប្រាក់ក្នុង ៣០ ថ្ងៃខាងមុខទេ។", "✅ No cash shortfall expected in the next 30 days."),
+          ? L(lang, `អាចខ្វះប្រមាណ ${usd(s.shortfall30)}។ ពិចារណា: ប្រមូលប្រាក់គេជំពាក់មុន, កាត់បន្ថយចំណាយមិនចាំបាច់, ឬចរចាពន្យារថ្ងៃសង។`, `Possible shortfall of about ${usd(s.shortfall30)}. Consider collecting receivables early, trimming non-essential spending, or negotiating a later due date.`)
+          : L(lang, "មិនមានហានិភ័យខ្វះសាច់ប្រាក់ក្នុង ៣០ ថ្ងៃខាងមុខទេ។", "No cash shortfall expected in the next 30 days."),
       ].join("\n")
     case "save_tips": {
       const tops = s.topExpenses.slice(0, 3)
       if (!tops.length) return L(lang, "មិនទាន់មានចំណាយខែនេះ ដើម្បីវិភាគទេ។", "No expenses this month to analyze yet.")
       const target = Math.round(s.avgIncome * 0.2 * 100) / 100
       return [
-        L(lang, "💡 កន្លែងដែលអាចកាត់បន្ថយបាន:", "💡 Where you could cut back:"),
+        L(lang, "កន្លែងដែលអាចកាត់បន្ថយបាន:", "Where you could cut back:"),
         ...tops.map((t) =>
           L(lang, `• ${categoryName(t.category, labels)}: ${usd(t.usd)} — កាត់ ១០% សន្សំបាន ${usd(t.usd * 0.1)}`, `• ${categoryName(t.category, labels)}: ${usd(t.usd)} — cutting 10% saves ${usd(t.usd * 0.1)}`),
         ),
-        target > 0 ? L(lang, `🎯 គោលដៅសន្សំ ២០%: ${usd(target)}/ខែ`, `🎯 20% savings target: ${usd(target)}/month`) : "",
+        target > 0 ? L(lang, `គោលដៅសន្សំ ២០%: ${usd(target)}/ខែ`, `20% savings target: ${usd(target)}/month`) : "",
       ]
         .filter(Boolean)
         .join("\n")
@@ -218,7 +218,7 @@ export function answer(intent: Intent, s: Snapshot, labels: SnapshotLabels, lang
     default: {
       const band = scoreBand(s.score)
       return [
-        L(lang, `🩺 ពិន្ទុសុខភាពហិរញ្ញវត្ថុ: ${s.score}/100 (${band === "good" ? "ល្អ" : band === "fair" ? "មធ្យម" : "ត្រូវយកចិត្តទុកដាក់"})`, `🩺 Financial health: ${s.score}/100 (${band})`),
+        L(lang, `ពិន្ទុសុខភាពហិរញ្ញវត្ថុ: ${s.score}/100 (${band === "good" ? "ល្អ" : band === "fair" ? "មធ្យម" : "ត្រូវយកចិត្តទុកដាក់"})`, `Financial health: ${s.score}/100 (${band})`),
         L(lang, `• សាច់ប្រាក់: ${dual(s.cashUsd, s)}`, `• Cash: ${dual(s.cashUsd, s)}`),
         L(lang, `• ចំណូល/ចំណាយមធ្យម: ${usd(s.avgIncome)} / ${usd(s.avgExpense)}`, `• Avg income/expense: ${usd(s.avgIncome)} / ${usd(s.avgExpense)}`),
         L(lang, `• បំណុលត្រូវសង: ${usd(s.payableUsd)} · គេជំពាក់: ${usd(s.receivableUsd)}`, `• Payables: ${usd(s.payableUsd)} · Receivables: ${usd(s.receivableUsd)}`),

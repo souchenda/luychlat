@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2Icon } from "lucide-react"
+import { ArrowDownLeftIcon, ArrowUpRightIcon, Loader2Icon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
@@ -172,7 +172,13 @@ export function RepaymentSheet({
           </div>
 
           <Button type="submit" className="h-12 w-full text-base" disabled={formState.isSubmitting}>
-            {formState.isSubmitting && <Loader2Icon className="animate-spin" />}
+            {formState.isSubmitting ? (
+              <Loader2Icon className="animate-spin" />
+            ) : debt.type === "PAYABLE" ? (
+              <ArrowUpRightIcon />
+            ) : (
+              <ArrowDownLeftIcon />
+            )}
             {t(`debt.record${debt.type}`)}
           </Button>
         </form>

@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react"
+import { ArrowLeftIcon, ChevronRightIcon, MinusIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -54,8 +54,8 @@ export default function CategoriesPage() {
         value={type}
         onChange={setType}
         options={[
-          { value: "EXPENSE", label: `➖ ${t("tx.EXPENSE")}` },
-          { value: "INCOME", label: `➕ ${t("tx.INCOME")}` },
+          { value: "EXPENSE", label: <span className="inline-flex items-center gap-1"><MinusIcon className="size-3.5 text-rose-600 dark:text-rose-400" aria-hidden />{t("tx.EXPENSE")}</span> },
+          { value: "INCOME", label: <span className="inline-flex items-center gap-1"><PlusIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />{t("tx.INCOME")}</span> },
         ]}
       />
 

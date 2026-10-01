@@ -2,7 +2,7 @@
 
 import { formatDistanceToNow } from "date-fns"
 import { enUS, km } from "date-fns/locale"
-import { BellIcon, BellOffIcon } from "lucide-react"
+import { AlarmClockIcon, BellIcon, BellOffIcon, TriangleAlertIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -87,9 +87,17 @@ export function NotificationBell() {
                     }}
                   >
                     <span
-                      className={cn("mt-1.5 size-2 shrink-0 rounded-full", unreadAtOpen.has(n.id) ? "bg-primary" : "bg-transparent")}
+                      className={cn(
+                        "relative flex size-9 shrink-0 items-center justify-center rounded-full",
+                        n.alert_key === "D7" || n.alert_key === "D3"
+                          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                          : "bg-red-500/12 text-red-600 dark:text-red-400",
+                      )}
                       aria-hidden
-                    />
+                    >
+                      {n.alert_key === "D7" || n.alert_key === "D3" ? <AlarmClockIcon className="size-4" /> : <TriangleAlertIcon className="size-4" />}
+                      {unreadAtOpen.has(n.id) && <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-popover" />}
+                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold">{title}</span>
                       <span className="block text-xs whitespace-pre-line text-muted-foreground">{body}</span>

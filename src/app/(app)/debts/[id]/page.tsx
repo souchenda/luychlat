@@ -1,7 +1,7 @@
 "use client"
 
 import { format, parseISO } from "date-fns"
-import { ArrowLeftIcon, PencilIcon, PhoneIcon, Trash2Icon } from "lucide-react"
+import { ArrowDownLeftIcon, ArrowLeftIcon, ArrowUpRightIcon, MegaphoneIcon, PencilIcon, PhoneIcon, Trash2Icon } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
@@ -85,8 +85,9 @@ export default function DebtDetailPage() {
             <ArrowLeftIcon />
           </Link>
         </Button>
-        <span className="flex-1 text-sm text-muted-foreground">
-          {debt.type === "PAYABLE" ? "📤" : "📥"} {t(`debts.${debt.type}`)}
+        <span className="flex flex-1 items-center gap-1.5 text-sm text-muted-foreground">
+          {debt.type === "PAYABLE" ? <ArrowUpRightIcon className="size-3.5 text-rose-600 dark:text-rose-400" aria-hidden /> : <ArrowDownLeftIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />}
+          {t(`debts.${debt.type}`)}
         </span>
         <Button size="icon" variant="ghost" onClick={() => setEditOpen(true)} aria-label={t("debtForm.edit")}>
           <PencilIcon />
@@ -143,10 +144,12 @@ export default function DebtDetailPage() {
         {!settled && (
           <div className={debt.type === "RECEIVABLE" ? "grid grid-cols-2 gap-2" : ""}>
             <Button className="h-11 w-full" onClick={() => setPayOpen(true)}>
+              {debt.type === "PAYABLE" ? <ArrowUpRightIcon /> : <ArrowDownLeftIcon />}
               {t(`debt.record${debt.type}`)}
             </Button>
             {debt.type === "RECEIVABLE" && (
               <Button variant="outline" className="h-11 w-full" onClick={() => setReminderOpen(true)}>
+                <MegaphoneIcon />
                 {t("reminder.button")}
               </Button>
             )}

@@ -1,6 +1,6 @@
 "use client"
 
-import { SettingsIcon } from "lucide-react"
+import { SettingsIcon, SparklesIcon } from "lucide-react"
 import Link from "next/link"
 import { useMemo } from "react"
 
@@ -28,7 +28,10 @@ export default function AdvisorPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-bold">🤖 {t("advisor.title")}</h1>
+          <h1 className="flex items-center gap-2 text-xl font-bold">
+          <SparklesIcon className="size-5 text-primary" aria-hidden />
+          {t("advisor.title")}
+        </h1>
           <Badge variant="secondary" className="mt-1">
             {t(`advisor.mode.${provider}`)}
           </Badge>

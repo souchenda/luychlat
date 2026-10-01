@@ -34,13 +34,17 @@ export function NetWorthCard({ wallets, loading }: { wallets: Wallet[] | undefin
   const totals = computeTotals(wallets ?? [], khrPerUsd)
 
   return (
-    <section className="rounded-3xl bg-primary p-5 text-primary-foreground shadow-sm">
+    <section className="relative isolate overflow-hidden rounded-3xl bg-linear-to-br from-emerald-600 via-emerald-500 to-teal-700 p-5 text-white shadow-lg shadow-emerald-900/25 ring-1 ring-white/15">
+      {/* Glass sheen: soft light blooms and a top highlight, purely decorative. */}
+      <span aria-hidden className="pointer-events-none absolute -top-20 -right-12 -z-10 size-56 rounded-full bg-white/20 blur-3xl" />
+      <span aria-hidden className="pointer-events-none absolute -bottom-24 -left-10 -z-10 size-56 rounded-full bg-teal-300/25 blur-3xl" />
+      <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 bg-linear-to-b from-white/12 to-transparent" />
       <div className="flex items-center justify-between">
-        <p className="text-sm opacity-85">{t("netWorth.title")}</p>
+        <p className="text-sm font-medium tracking-wide text-white/80">{t("netWorth.title")}</p>
         <button
           type="button"
           onClick={toggleHideBalances}
-          className="-m-2 rounded-full p-2 opacity-85 hover:bg-white/10 hover:opacity-100"
+          className="-m-2 rounded-full p-2 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
           aria-label={t("netWorth.toggle")}
           aria-pressed={hideBalances}
         >
@@ -55,21 +59,21 @@ export function NetWorthCard({ wallets, loading }: { wallets: Wallet[] | undefin
         </div>
       ) : (
         <>
-          <Amount value={totals.totalUsd} currency="USD" className="mt-1 block text-3xl font-bold" />
-          <p className="text-base opacity-90">
+          <Amount value={totals.totalUsd} currency="USD" className="mt-1 block text-3xl font-bold tracking-tight drop-shadow-sm" />
+          <p className="text-base text-white/85">
             ≈ <Amount value={totals.totalKhr} currency="KHR" />
           </p>
         </>
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded-full bg-white/15 px-2.5 py-1">
+        <span className="rounded-full bg-white/15 px-2.5 py-1 ring-1 ring-white/20 backdrop-blur-sm">
           <Amount value={totals.usdWallets} currency="USD" />
         </span>
-        <span className="rounded-full bg-white/15 px-2.5 py-1">
+        <span className="rounded-full bg-white/15 px-2.5 py-1 ring-1 ring-white/20 backdrop-blur-sm">
           <Amount value={totals.khrWallets} currency="KHR" />
         </span>
-        <span className="ml-auto opacity-80">
+        <span className="ml-auto text-white/75">
           {t("netWorth.walletCount", { count: totals.count })} · {t("netWorth.rate", { rate: khrPerUsd.toLocaleString("en-US") })}
         </span>
       </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { CheckIcon, Loader2Icon, Trash2Icon } from "lucide-react"
+import { CheckIcon, Loader2Icon, MinusIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useEffect } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
@@ -126,8 +126,8 @@ export function CategoryFormSheet({
                 onChange={field.onChange}
                 disabled={typeLocked}
                 options={[
-                  { value: "EXPENSE", label: `➖ ${t("tx.EXPENSE")}` },
-                  { value: "INCOME", label: `➕ ${t("tx.INCOME")}` },
+                  { value: "EXPENSE", label: <span className="inline-flex items-center gap-1"><MinusIcon className="size-3.5 text-rose-600 dark:text-rose-400" aria-hidden />{t("tx.EXPENSE")}</span> },
+                  { value: "INCOME", label: <span className="inline-flex items-center gap-1"><PlusIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />{t("tx.INCOME")}</span> },
                 ]}
               />
             )}

@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleAlertIcon, CircleCheckIcon, InfoIcon, OctagonAlertIcon, TrophyIcon } from "lucide-react"
+import { ArrowUpNarrowWideIcon, CircleAlertIcon, CircleCheckIcon, InfoIcon, OctagonAlertIcon, PercentIcon, TrophyIcon } from "lucide-react"
 
 import { Card } from "@/components/ui/card"
 import type { Insight, Severity } from "@/lib/advisor/engine"
@@ -117,7 +117,12 @@ export function StrategyCard({ strategy, labels }: { strategy: StrategyCompariso
           return (
             <div key={key} className={cn("space-y-1.5 rounded-xl border p-3", recommended && "border-primary bg-primary/5")}>
               <p className="flex items-center gap-1 text-sm font-semibold">
-                {key === "snowball" ? "⛄ Snowball" : "🏔️ Avalanche"}
+                {key === "snowball" ? (
+                  <ArrowUpNarrowWideIcon className="size-4 text-sky-600 dark:text-sky-400" aria-hidden />
+                ) : (
+                  <PercentIcon className="size-4 text-violet-600 dark:text-violet-400" aria-hidden />
+                )}
+                {key === "snowball" ? "Snowball" : "Avalanche"}
               </p>
               <p className="text-[11px] text-muted-foreground">{t(`advisor.${key}Desc`)}</p>
               {recommended && (

@@ -1,6 +1,6 @@
 "use client"
 
-import { CalculatorIcon, ChevronDownIcon, HandshakeIcon } from "lucide-react"
+import { ArrowDownLeftIcon, ArrowUpRightIcon, CalculatorIcon, ChevronDownIcon, HandshakeIcon } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
@@ -49,8 +49,14 @@ function DebtsView() {
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as DebtType)}>
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="PAYABLE">📤 {t("debts.PAYABLE")}</TabsTrigger>
-          <TabsTrigger value="RECEIVABLE">📥 {t("debts.RECEIVABLE")}</TabsTrigger>
+          <TabsTrigger value="PAYABLE">
+            <ArrowUpRightIcon className="size-3.5 text-rose-600 dark:text-rose-400" aria-hidden />
+            {t("debts.PAYABLE")}
+          </TabsTrigger>
+          <TabsTrigger value="RECEIVABLE">
+            <ArrowDownLeftIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            {t("debts.RECEIVABLE")}
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 

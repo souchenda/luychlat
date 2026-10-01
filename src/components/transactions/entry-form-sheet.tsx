@@ -167,7 +167,7 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
   const err = (message?: string) =>
     message ? <p className="text-sm text-destructive">{t(message as MessageKey)}</p> : null
   const title = editing ? t(`entry.edit${type}`) : t(`entry.new${type}`)
-  const accent = type === "INCOME" ? "text-emerald-600 dark:text-emerald-400" : "text-orange-600 dark:text-orange-400"
+  const accent = type === "INCOME" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
 
   return (
     <>

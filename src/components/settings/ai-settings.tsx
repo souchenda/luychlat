@@ -1,6 +1,6 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon, ShieldCheckIcon, Trash2Icon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, ShieldCheckIcon, SparklesIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -22,7 +22,10 @@ export function AiSettingsCard() {
 
   return (
     <section id="ai" className="scroll-mt-20 space-y-2">
-      <h2 className="px-1 text-sm font-medium text-muted-foreground">🤖 {t("aiSettings.title")}</h2>
+      <h2 className="flex items-center gap-1.5 px-1 text-sm font-medium text-muted-foreground">
+        <SparklesIcon className="size-4" aria-hidden />
+        {t("aiSettings.title")}
+      </h2>
       <Card className="gap-4 px-4 py-4">
         <Segmented<AiProvider>
           aria-label={t("aiSettings.title")}

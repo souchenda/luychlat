@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowDownLeftIcon, ArrowUpRightIcon, ScaleIcon } from "lucide-react"
+import { CoinsIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
 
 import { Amount } from "@/components/money/amount"
 import { Card } from "@/components/ui/card"
@@ -25,7 +25,7 @@ function Stat({
   return (
     <div className="flex min-w-0 flex-col gap-1 p-3">
       <span className="flex items-center gap-1 text-xs text-muted-foreground">
-        <span className={cn("[&_svg]:size-3.5", tone)}>{icon}</span>
+        <span className={cn("[&_svg]:size-4", tone)}>{icon}</span>
         <span className="truncate">{label}</span>
       </span>
       <Amount value={total.usd} currency="USD" signed={signed} className="truncate text-base font-semibold" />
@@ -50,9 +50,9 @@ export function CashFlowCard({
         <Skeleton className="h-24 w-full rounded-xl" />
       ) : (
         <Card className="grid grid-cols-3 gap-0 divide-x py-0">
-          <Stat label={t("flow.income")} total={flow.income} icon={<ArrowDownLeftIcon />} tone="text-emerald-600 dark:text-emerald-400" />
-          <Stat label={t("flow.expense")} total={flow.expense} icon={<ArrowUpRightIcon />} tone="text-orange-600 dark:text-orange-400" />
-          <Stat label={t("flow.net")} total={flow.net} icon={<ScaleIcon />} tone="text-muted-foreground" signed />
+          <Stat label={t("flow.income")} total={flow.income} icon={<TrendingUpIcon />} tone="text-emerald-600 dark:text-emerald-400" />
+          <Stat label={t("flow.expense")} total={flow.expense} icon={<TrendingDownIcon />} tone="text-rose-600 dark:text-rose-400" />
+          <Stat label={t("flow.net")} total={flow.net} icon={<CoinsIcon />} tone="text-cyan-600 dark:text-cyan-400" signed />
         </Card>
       )}
     </section>

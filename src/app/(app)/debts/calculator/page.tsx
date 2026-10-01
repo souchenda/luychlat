@@ -1,7 +1,7 @@
 "use client"
 
 import { addMonths, format, parseISO, startOfMonth } from "date-fns"
-import { ArrowLeftIcon, FileSpreadsheetIcon, HandshakeIcon } from "lucide-react"
+import { ArrowLeftIcon, CalculatorIcon, FileSpreadsheetIcon, HandshakeIcon } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -111,7 +111,10 @@ export default function LoanCalculatorPage() {
             <ArrowLeftIcon />
           </Link>
         </Button>
-        <h1 className="text-xl font-bold">🧮 {t("loan.title")}</h1>
+        <h1 className="flex items-center gap-2 text-xl font-bold">
+          <CalculatorIcon className="size-5 text-primary" aria-hidden />
+          {t("loan.title")}
+        </h1>
       </div>
 
       <Card className="gap-4 px-4 py-4 print:hidden">

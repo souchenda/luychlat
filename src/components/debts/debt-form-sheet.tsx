@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2Icon } from "lucide-react"
+import { ArrowDownLeftIcon, ArrowUpRightIcon, Loader2Icon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
@@ -203,8 +203,8 @@ export function DebtFormSheet({
                   value={field.value}
                   onChange={field.onChange}
                   options={[
-                    { value: "PAYABLE", label: `📤 ${t("debts.PAYABLE")}` },
-                    { value: "RECEIVABLE", label: `📥 ${t("debts.RECEIVABLE")}` },
+                    { value: "PAYABLE", label: <span className="inline-flex items-center gap-1"><ArrowUpRightIcon className="size-3.5 text-rose-600 dark:text-rose-400" aria-hidden />{t("debts.PAYABLE")}</span> },
+                    { value: "RECEIVABLE", label: <span className="inline-flex items-center gap-1"><ArrowDownLeftIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />{t("debts.RECEIVABLE")}</span> },
                   ]}
                 />
               )}

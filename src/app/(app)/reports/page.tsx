@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { FileSpreadsheetIcon, Loader2Icon, PrinterIcon } from "lucide-react"
+import { ChartColumnIcon, FileSpreadsheetIcon, Loader2Icon, PrinterIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -89,7 +89,10 @@ export default function ReportsPage() {
   return (
     <div className="space-y-4">
       <div className="print:hidden">
-        <h1 className="text-xl font-bold">📊 {t("reports.title")}</h1>
+        <h1 className="flex items-center gap-2 text-xl font-bold">
+          <ChartColumnIcon className="size-5 text-primary" aria-hidden />
+          {t("reports.title")}
+        </h1>
         <p className="text-sm text-muted-foreground">{workspace ? t(`ws.${workspace.type}`) : ""}</p>
       </div>
 

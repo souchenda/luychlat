@@ -89,7 +89,7 @@ export default function TransactionsPage() {
           <Button size="icon" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => setEntryType("INCOME")} aria-label={t("entry.newINCOME")}>
             <PlusIcon />
           </Button>
-          <Button size="icon" className="bg-orange-600 text-white hover:bg-orange-700" onClick={() => setEntryType("EXPENSE")} aria-label={t("entry.newEXPENSE")}>
+          <Button size="icon" className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => setEntryType("EXPENSE")} aria-label={t("entry.newEXPENSE")}>
             <MinusIcon />
           </Button>
         </div>

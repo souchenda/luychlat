@@ -1,6 +1,6 @@
 "use client"
 
-import { BotIcon, ChevronRightIcon } from "lucide-react"
+import { ChevronRightIcon, SparklesIcon } from "lucide-react"
 import Link from "next/link"
 import { useMemo } from "react"
 
@@ -30,7 +30,10 @@ export function AdvisorHomeCard() {
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-sm font-medium text-muted-foreground">🤖 {t("advisor.title")}</h2>
+        <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+          <SparklesIcon className="size-4" aria-hidden />
+          {t("advisor.title")}
+        </h2>
         <Link href="/advisor" className="flex items-center text-sm text-primary">
           {t("advisor.open")}
           <ChevronRightIcon className="size-4" />
@@ -43,7 +46,7 @@ export function AdvisorHomeCard() {
             <p className="text-sm text-muted-foreground">{t("advisor.health")}</p>
             <p className="font-semibold">{t(`advisor.band.${scoreBand(snapshot.score)}`)}</p>
           </div>
-          <BotIcon className="size-6 text-primary" aria-hidden />
+          <SparklesIcon className="size-6 text-primary" aria-hidden />
         </Link>
         <InsightList insights={top} limit={2} />
       </Card>

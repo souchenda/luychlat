@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftRightIcon, ChevronRightIcon, HandshakeIcon, CloudOffIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, HandshakeIcon, CloudOffIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, WalletIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -104,7 +104,7 @@ export default function HomePage() {
           <span className="text-xs">{t("tx.INCOME")}</span>
         </Button>
         <Button
-          className="h-12 flex-col gap-0.5 bg-orange-600 text-white hover:bg-orange-700 dark:bg-orange-600 dark:hover:bg-orange-500"
+          className="h-12 flex-col gap-0.5 bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500"
           onClick={() => setEntryType("EXPENSE")}
         >
           <MinusIcon className="size-4" />
@@ -126,7 +126,8 @@ export default function HomePage() {
         href="/reports"
         className="-mt-2 flex items-center justify-end gap-1 px-1 text-sm text-primary"
       >
-        📊 {t(workspace?.type === "BUSINESS" ? "pl.title" : "reports.title")}
+        <ChartColumnIcon className="size-4" aria-hidden />
+        {t(workspace?.type === "BUSINESS" ? "pl.title" : "reports.title")}
         <ChevronRightIcon className="size-4" />
       </Link>
 

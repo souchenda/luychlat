@@ -1,13 +1,15 @@
 "use client"
 
+import { Building2Icon, UserIcon, type LucideIcon } from "lucide-react"
+
 import type { WorkspaceType } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
 
-const OPTIONS: { type: WorkspaceType; emoji: string }[] = [
-  { type: "PERSONAL", emoji: "👤" },
-  { type: "BUSINESS", emoji: "🏢" },
+const OPTIONS: { type: WorkspaceType; icon: LucideIcon }[] = [
+  { type: "PERSONAL", icon: UserIcon },
+  { type: "BUSINESS", icon: Building2Icon },
 ]
 
 /** One-tap Personal / Business toggle with a sliding indicator. */
@@ -24,7 +26,7 @@ export function WorkspaceSwitcher() {
         className="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-background shadow-sm transition-transform duration-300 ease-out"
         style={{ transform: `translateX(${index * 100}%)` }}
       />
-      {OPTIONS.map(({ type, emoji }) => (
+      {OPTIONS.map(({ type, icon: Icon }) => (
         <button
           key={type}
           type="button"
@@ -36,7 +38,7 @@ export function WorkspaceSwitcher() {
             active === type ? "text-foreground" : "text-muted-foreground",
           )}
         >
-          <span aria-hidden>{emoji}</span>
+          <Icon className="size-3.5" aria-hidden />
           {t(`ws.${type}`)}
         </button>
       ))}

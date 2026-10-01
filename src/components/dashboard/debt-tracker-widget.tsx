@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRightIcon } from "lucide-react"
+import { ArrowDownLeftIcon, ArrowUpRightIcon, ChevronRightIcon, FileSpreadsheetIcon } from "lucide-react"
 import Link from "next/link"
 
 import { OutstandingAmount } from "@/components/debts/debt-summary"
@@ -23,7 +23,10 @@ export function DebtTrackerWidget({ debts, loading }: { debts: Debt[] | undefine
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-sm font-medium text-muted-foreground">📋 {t("debtWidget.title")}</h2>
+        <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+          <FileSpreadsheetIcon className="size-4" aria-hidden />
+          {t("debtWidget.title")}
+        </h2>
         <Link href="/debts" className="flex items-center text-sm text-primary">
           {t("wallets.seeAll")}
           <ChevronRightIcon className="size-4" />
@@ -36,8 +39,9 @@ export function DebtTrackerWidget({ debts, loading }: { debts: Debt[] | undefine
           <div className="grid grid-cols-2 divide-x border-b">
             {(["PAYABLE", "RECEIVABLE"] as const).map((type) => (
               <Link key={type} href={`/debts?tab=${type}`} className="px-4 py-3 hover:bg-muted/60">
-                <p className="text-xs text-muted-foreground">
-                  {type === "PAYABLE" ? "📤" : "📥"} {t(`debts.${type}`)}
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {type === "PAYABLE" ? <ArrowUpRightIcon className="size-3.5 text-rose-600 dark:text-rose-400" aria-hidden /> : <ArrowDownLeftIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />}
+                  {t(`debts.${type}`)}
                 </p>
                 <OutstandingAmount debts={all.filter((d) => d.type === type)} />
               </Link>
@@ -50,7 +54,13 @@ export function DebtTrackerWidget({ debts, loading }: { debts: Debt[] | undefine
               {urgent.map((d) => (
                 <li key={d.id}>
                   <Link href={`/debts/${d.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/60">
-                    <span aria-hidden>{d.type === "PAYABLE" ? "📤" : "📥"}</span>
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                      {d.type === "PAYABLE" ? (
+                        <ArrowUpRightIcon className="size-4 text-rose-600 dark:text-rose-400" aria-hidden />
+                      ) : (
+                        <ArrowDownLeftIcon className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                      )}
+                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{d.party_name}</span>
                       <UrgencyBadge debt={d} />

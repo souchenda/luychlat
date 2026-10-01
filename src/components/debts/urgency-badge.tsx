@@ -16,7 +16,7 @@ const STYLE: Record<Urgency, { className: string; icon: typeof CalendarIcon }> =
   none: { className: "bg-muted text-muted-foreground", icon: CalendarIcon },
 }
 
-/** 🟢 > 7 days · 🟠 1–7 days · 🔴 due today or overdue. */
+/** Green: more than 7 days · amber: 1–7 days · red: due today or overdue. */
 export function UrgencyBadge({ debt, className }: { debt: Debt; className?: string }) {
   const t = useT()
   const level = urgency(debt)
