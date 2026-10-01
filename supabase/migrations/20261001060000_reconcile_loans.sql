@@ -52,7 +52,7 @@ grant execute on function public.reconcile_wallet(uuid, numeric, text) to authen
 -- but only the principal is received. disburse_debt() therefore takes an
 -- optional amount (default: the full total, as before; must not exceed it).
 -- ---------------------------------------------------------------------------
-drop function public.disburse_debt(uuid, uuid, numeric, timestamptz);
+drop function if exists public.disburse_debt(uuid, uuid, numeric, timestamptz);
 
 create or replace function public.disburse_debt(
   p_debt_id uuid,

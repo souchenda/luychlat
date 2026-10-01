@@ -12,13 +12,13 @@
 --     them) or PERSONAL (everyone sees them, only owner_id may move money).
 --   * transactions / debts / debt_repayments record who created them.
 
-create type public.workspace_role    as enum ('OWNER', 'MEMBER', 'VIEWER');
-create type public.wallet_visibility as enum ('SHARED', 'PERSONAL');
+do $$ begin create type public.workspace_role    as enum ('OWNER', 'MEMBER', 'VIEWER'); exception when duplicate_object then null; end $$;
+do $$ begin create type public.wallet_visibility as enum ('SHARED', 'PERSONAL'); exception when duplicate_object then null; end $$;
 
 -- ---------------------------------------------------------------------------
 -- profiles: the display name shown as "កត់ដោយ៖ ..." to other members
 -- ---------------------------------------------------------------------------
-create table public.profiles (
+create table if not exists public.profiles (
   id           uuid primary key references auth.users (id) on delete cascade,
   display_name text not null check (char_length(display_name) between 1 and 40),
   updated_at   timestamptz not null default now()
@@ -52,7 +52,7 @@ on conflict (id) do nothing;
 -- ---------------------------------------------------------------------------
 -- workspace_members
 -- ---------------------------------------------------------------------------
-create table public.workspace_members (
+create table if not exists public.workspace_members (
   id           uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
   user_id      uuid not null references public.profiles (id) on delete cascade,
@@ -60,8 +60,8 @@ create table public.workspace_members (
   joined_at    timestamptz not null default now(),
   unique (workspace_id, user_id)
 );
-create index workspace_members_user_id_idx on public.workspace_members (user_id);
-create unique index workspace_members_one_owner_idx on public.workspace_members (workspace_id) where role = 'OWNER';
+create index if not exists workspace_members_user_id_idx on public.workspace_members (user_id);
+create unique index if not exists workspace_members_one_owner_idx on public.workspace_members (workspace_id) where role = 'OWNER';
 alter table public.workspace_members enable row level security;
 
 insert into public.workspace_members (workspace_id, user_id, role, joined_at)
@@ -86,7 +86,7 @@ begin
 end;
 $$;
 
-create trigger workspaces_add_owner
+create or replace trigger workspaces_add_owner
   after insert on public.workspaces
   for each row execute function public.add_workspace_owner();
 
@@ -143,24 +143,30 @@ grant execute on function public.is_workspace_member(uuid) to authenticated;
 grant execute on function public.can_write_workspace(uuid) to authenticated;
 grant execute on function public.shares_workspace_with(uuid) to authenticated;
 
+drop policy if exists profiles_select on public.profiles;
 create policy profiles_select on public.profiles
   for select to authenticated
   using (id = (select auth.uid()) or public.shares_workspace_with(id));
+drop policy if exists profiles_insert on public.profiles;
 create policy profiles_insert on public.profiles
   for insert to authenticated with check (id = (select auth.uid()));
+drop policy if exists profiles_update on public.profiles;
 create policy profiles_update on public.profiles
   for update to authenticated
   using (id = (select auth.uid()))
   with check (id = (select auth.uid()));
 
+drop policy if exists workspace_members_select on public.workspace_members;
 create policy workspace_members_select on public.workspace_members
   for select to authenticated using (public.is_workspace_member(workspace_id));
 -- The owner changes roles of others; nobody can become or stop being OWNER.
+drop policy if exists workspace_members_update on public.workspace_members;
 create policy workspace_members_update on public.workspace_members
   for update to authenticated
   using (public.owns_workspace(workspace_id) and role <> 'OWNER')
   with check (public.owns_workspace(workspace_id) and role in ('MEMBER', 'VIEWER'));
 -- The owner removes members; members may leave. The owner row stays.
+drop policy if exists workspace_members_delete on public.workspace_members;
 create policy workspace_members_delete on public.workspace_members
   for delete to authenticated
   using (role <> 'OWNER' and (public.owns_workspace(workspace_id) or user_id = (select auth.uid())));
@@ -168,7 +174,8 @@ create policy workspace_members_delete on public.workspace_members
 -- ---------------------------------------------------------------------------
 -- Workspace-scoped RLS: members read, OWNER/MEMBER write.
 -- ---------------------------------------------------------------------------
-drop policy workspaces_select on public.workspaces;
+drop policy if exists workspaces_select on public.workspaces;
+drop policy if exists workspaces_select on public.workspaces;
 create policy workspaces_select on public.workspaces
   for select to authenticated using (public.is_workspace_member(id));
 
@@ -178,10 +185,10 @@ declare
 begin
   foreach t in array array['wallets_accounts', 'categories', 'transactions', 'debts', 'notifications']
   loop
-    execute format('drop policy %1$s_select on public.%1$I', t);
-    execute format('drop policy %1$s_insert on public.%1$I', t);
-    execute format('drop policy %1$s_update on public.%1$I', t);
-    execute format('drop policy %1$s_delete on public.%1$I', t);
+    execute format('drop policy if exists %1$s_select on public.%1$I', t);
+    execute format('drop policy if exists %1$s_insert on public.%1$I', t);
+    execute format('drop policy if exists %1$s_update on public.%1$I', t);
+    execute format('drop policy if exists %1$s_delete on public.%1$I', t);
   end loop;
   foreach t in array array['categories', 'transactions', 'debts']
   loop
@@ -201,24 +208,28 @@ $$;
 -- Wallets: shared vs personal
 -- ---------------------------------------------------------------------------
 alter table public.wallets_accounts
-  add column visibility public.wallet_visibility not null default 'SHARED',
-  add column owner_id   uuid references auth.users (id) on delete set null default (auth.uid());
+  add column if not exists visibility public.wallet_visibility not null default 'SHARED',
+  add column if not exists owner_id   uuid references auth.users (id) on delete set null default (auth.uid());
 
 update public.wallets_accounts w set owner_id = ws.user_id
 from public.workspaces ws
 where ws.id = w.workspace_id and w.owner_id is null;
 
+drop policy if exists wallets_accounts_select on public.wallets_accounts;
 create policy wallets_accounts_select on public.wallets_accounts
   for select to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists wallets_accounts_insert on public.wallets_accounts;
 create policy wallets_accounts_insert on public.wallets_accounts
   for insert to authenticated
   with check (public.can_write_workspace(workspace_id) and owner_id = (select auth.uid()));
 -- Balance updates from the ledger trigger run as the caller, so this also
 -- covers money movements (personal wallets are additionally guarded below).
+drop policy if exists wallets_accounts_update on public.wallets_accounts;
 create policy wallets_accounts_update on public.wallets_accounts
   for update to authenticated
   using (public.can_write_workspace(workspace_id) and (visibility = 'SHARED' or owner_id = (select auth.uid())))
   with check (public.can_write_workspace(workspace_id) and (visibility = 'SHARED' or owner_id = (select auth.uid())));
+drop policy if exists wallets_accounts_delete on public.wallets_accounts;
 create policy wallets_accounts_delete on public.wallets_accounts
   for delete to authenticated
   using (public.can_write_workspace(workspace_id) and (visibility = 'SHARED' or owner_id = (select auth.uid())));
@@ -250,7 +261,7 @@ begin
 end;
 $$;
 
-create trigger wallets_accounts_owner_guard
+create or replace trigger wallets_accounts_owner_guard
   before insert or update on public.wallets_accounts
   for each row execute function public.guard_wallet_owner();
 
@@ -292,7 +303,7 @@ begin
 end;
 $$;
 
-create trigger transactions_personal_wallet_guard
+create or replace trigger transactions_personal_wallet_guard
   before insert or update or delete on public.transactions
   for each row execute function public.guard_personal_wallet_use();
 
@@ -301,33 +312,33 @@ create trigger transactions_personal_wallet_guard
 -- snapshot so the ledger still reads correctly after someone leaves.
 -- ---------------------------------------------------------------------------
 alter table public.transactions
-  add column created_by      uuid references auth.users (id) on delete set null,
-  add column created_by_name text check (created_by_name is null or char_length(created_by_name) <= 40);
+  add column if not exists created_by      uuid references auth.users (id) on delete set null,
+  add column if not exists created_by_name text check (created_by_name is null or char_length(created_by_name) <= 40);
 alter table public.debts
-  add column created_by      uuid references auth.users (id) on delete set null,
-  add column created_by_name text check (created_by_name is null or char_length(created_by_name) <= 40);
+  add column if not exists created_by      uuid references auth.users (id) on delete set null,
+  add column if not exists created_by_name text check (created_by_name is null or char_length(created_by_name) <= 40);
 alter table public.debt_repayments
-  add column created_by      uuid references auth.users (id) on delete set null,
-  add column created_by_name text check (created_by_name is null or char_length(created_by_name) <= 40);
+  add column if not exists created_by      uuid references auth.users (id) on delete set null,
+  add column if not exists created_by_name text check (created_by_name is null or char_length(created_by_name) <= 40);
 
--- Backfill: everything so far was recorded by the workspace owner. Triggers
+-- Backfill (rows not yet attributed): everything so far was recorded by the workspace owner. Triggers
 -- are off so balances and derived debt fields aren't recomputed.
 alter table public.transactions disable trigger user;
 update public.transactions t set created_by = ws.user_id, created_by_name = p.display_name
 from public.workspaces ws join public.profiles p on p.id = ws.user_id
-where ws.id = t.workspace_id;
+where ws.id = t.workspace_id and t.created_by is null;
 alter table public.transactions enable trigger user;
 
 alter table public.debts disable trigger user;
 update public.debts d set created_by = ws.user_id, created_by_name = p.display_name
 from public.workspaces ws join public.profiles p on p.id = ws.user_id
-where ws.id = d.workspace_id;
+where ws.id = d.workspace_id and d.created_by is null;
 alter table public.debts enable trigger user;
 
 alter table public.debt_repayments disable trigger user;
 update public.debt_repayments r set created_by = t.created_by, created_by_name = t.created_by_name
 from public.transactions t
-where t.id = r.transaction_id;
+where t.id = r.transaction_id and r.created_by is null;
 alter table public.debt_repayments enable trigger user;
 
 create or replace function public.stamp_created_by()
@@ -350,23 +361,23 @@ begin
 end;
 $$;
 
-create trigger transactions_stamp_created_by
+create or replace trigger transactions_stamp_created_by
   before insert or update on public.transactions
   for each row execute function public.stamp_created_by();
-create trigger debts_stamp_created_by
+create or replace trigger debts_stamp_created_by
   before insert or update on public.debts
   for each row execute function public.stamp_created_by();
-create trigger debt_repayments_stamp_created_by
+create or replace trigger debt_repayments_stamp_created_by
   before insert on public.debt_repayments
   for each row execute function public.stamp_created_by();
 
 -- ---------------------------------------------------------------------------
 -- debt_repayments: same membership rules through the debt and wallet.
 -- ---------------------------------------------------------------------------
-drop policy debt_repayments_select on public.debt_repayments;
-drop policy debt_repayments_insert on public.debt_repayments;
-drop policy debt_repayments_delete on public.debt_repayments;
-drop function public.debt_repayment_same_workspace(uuid, uuid);
+drop policy if exists debt_repayments_select on public.debt_repayments;
+drop policy if exists debt_repayments_insert on public.debt_repayments;
+drop policy if exists debt_repayments_delete on public.debt_repayments;
+drop function if exists public.debt_repayment_same_workspace(uuid, uuid);
 
 create or replace function public.debt_repayment_access(p_debt_id uuid, p_wallet_id uuid, p_write boolean)
 returns boolean
@@ -389,10 +400,13 @@ $$;
 revoke all on function public.debt_repayment_access(uuid, uuid, boolean) from public, anon;
 grant execute on function public.debt_repayment_access(uuid, uuid, boolean) to authenticated;
 
+drop policy if exists debt_repayments_select on public.debt_repayments;
 create policy debt_repayments_select on public.debt_repayments
   for select to authenticated using (public.debt_repayment_access(debt_id, wallet_id, false));
+drop policy if exists debt_repayments_insert on public.debt_repayments;
 create policy debt_repayments_insert on public.debt_repayments
   for insert to authenticated with check (public.debt_repayment_access(debt_id, wallet_id, true));
+drop policy if exists debt_repayments_delete on public.debt_repayments;
 create policy debt_repayments_delete on public.debt_repayments
   for delete to authenticated using (public.debt_repayment_access(debt_id, wallet_id, true));
 
@@ -400,23 +414,27 @@ create policy debt_repayments_delete on public.debt_repayments
 -- Notifications: optional recipient (null = everyone in the workspace).
 -- ---------------------------------------------------------------------------
 alter table public.notifications
-  add column user_id        uuid references auth.users (id) on delete cascade,
-  add column transaction_id uuid references public.transactions (id) on delete cascade,
-  add column actor_name     text check (actor_name is null or char_length(actor_name) <= 40);
-create index notifications_user_id_idx on public.notifications (user_id);
-create index notifications_transaction_id_idx on public.notifications (transaction_id);
+  add column if not exists user_id        uuid references auth.users (id) on delete cascade,
+  add column if not exists transaction_id uuid references public.transactions (id) on delete cascade,
+  add column if not exists actor_name     text check (actor_name is null or char_length(actor_name) <= 40);
+create index if not exists notifications_user_id_idx on public.notifications (user_id);
+create index if not exists notifications_transaction_id_idx on public.notifications (transaction_id);
 
+drop policy if exists notifications_select on public.notifications;
 create policy notifications_select on public.notifications
   for select to authenticated
   using (public.is_workspace_member(workspace_id) and (user_id is null or user_id = (select auth.uid())));
+drop policy if exists notifications_insert on public.notifications;
 create policy notifications_insert on public.notifications
   for insert to authenticated
   with check (public.can_write_workspace(workspace_id) and (user_id is null or user_id = (select auth.uid())));
 -- Any member may mark what they can see as read.
+drop policy if exists notifications_update on public.notifications;
 create policy notifications_update on public.notifications
   for update to authenticated
   using (public.is_workspace_member(workspace_id) and (user_id is null or user_id = (select auth.uid())))
   with check (public.is_workspace_member(workspace_id) and (user_id is null or user_id = (select auth.uid())));
+drop policy if exists notifications_delete on public.notifications;
 create policy notifications_delete on public.notifications
   for delete to authenticated
   using (public.can_write_workspace(workspace_id) and (user_id is null or user_id = (select auth.uid())));
@@ -547,7 +565,7 @@ revoke all on function public.delete_family_workspace(uuid) from public, anon;
 grant execute on function public.delete_family_workspace(uuid) to authenticated;
 
 -- Single-use codes: 6 characters without look-alikes (no I, O, 0, 1).
-create table public.workspace_invites (
+create table if not exists public.workspace_invites (
   id           uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
   code         text not null unique check (code ~ '^[A-HJ-NP-Z2-9]{6}$'),
@@ -558,19 +576,21 @@ create table public.workspace_invites (
   used_by      uuid references auth.users (id) on delete set null,
   used_at      timestamptz
 );
-create index workspace_invites_workspace_id_idx on public.workspace_invites (workspace_id);
+create index if not exists workspace_invites_workspace_id_idx on public.workspace_invites (workspace_id);
 alter table public.workspace_invites enable row level security;
+drop policy if exists workspace_invites_select on public.workspace_invites;
 create policy workspace_invites_select on public.workspace_invites
   for select to authenticated using (public.owns_workspace(workspace_id));
+drop policy if exists workspace_invites_delete on public.workspace_invites;
 create policy workspace_invites_delete on public.workspace_invites
   for delete to authenticated using (public.owns_workspace(workspace_id));
 
 -- Failed code lookups, to slow down guessing (10 per hour per user).
-create table public.invite_failures (
+create table if not exists public.invite_failures (
   user_id      uuid not null references auth.users (id) on delete cascade,
   attempted_at timestamptz not null default now()
 );
-create index invite_failures_user_idx on public.invite_failures (user_id, attempted_at);
+create index if not exists invite_failures_user_idx on public.invite_failures (user_id, attempted_at);
 alter table public.invite_failures enable row level security;
 
 create or replace function public.create_workspace_invite(p_workspace_id uuid, p_role public.workspace_role default 'MEMBER')
@@ -699,7 +719,7 @@ begin
 end;
 $$;
 
-create trigger workspace_members_removed
+create or replace trigger workspace_members_removed
   after delete on public.workspace_members
   for each row execute function public.on_member_removed();
 
@@ -783,7 +803,7 @@ begin
 end;
 $$;
 
-create trigger transactions_notify_activity
+create or replace trigger transactions_notify_activity
   after insert on public.transactions
   for each row execute function public.notify_workspace_activity();
 
@@ -919,7 +939,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Category budgets: a monthly spending cap per expense category.
 -- ---------------------------------------------------------------------------
-create table public.budgets (
+create table if not exists public.budgets (
   id           uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
   category_id  uuid not null,
@@ -931,14 +951,18 @@ create table public.budgets (
   foreign key (category_id, workspace_id) references public.categories (id, workspace_id) on delete cascade
 );
 alter table public.budgets enable row level security;
+drop policy if exists budgets_select on public.budgets;
 create policy budgets_select on public.budgets
   for select to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists budgets_insert on public.budgets;
 create policy budgets_insert on public.budgets
   for insert to authenticated with check (public.can_write_workspace(workspace_id));
+drop policy if exists budgets_update on public.budgets;
 create policy budgets_update on public.budgets
   for update to authenticated
   using (public.can_write_workspace(workspace_id))
   with check (public.can_write_workspace(workspace_id));
+drop policy if exists budgets_delete on public.budgets;
 create policy budgets_delete on public.budgets
   for delete to authenticated using (public.can_write_workspace(workspace_id));
 
@@ -956,14 +980,15 @@ begin
 end;
 $$;
 
-create trigger budgets_guard
+create or replace trigger budgets_guard
   before insert or update on public.budgets
   for each row execute function public.guard_budget_category();
 
 -- ---------------------------------------------------------------------------
 -- Receipts: members may view photos attached to their workspace's ledger.
 -- ---------------------------------------------------------------------------
-create index transactions_receipt_url_idx on public.transactions (receipt_url) where receipt_url is not null;
+create index if not exists transactions_receipt_url_idx on public.transactions (receipt_url) where receipt_url is not null;
+drop policy if exists receipts_select_shared on storage.objects;
 create policy receipts_select_shared on storage.objects
   for select to authenticated
   using (

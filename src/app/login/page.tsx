@@ -8,13 +8,27 @@ import { EmailLogin } from "@/components/auth/email-login"
 import { PhoneLogin } from "@/components/auth/phone-login"
 import { SocialLogin } from "@/components/auth/social-login"
 import { BrandMark } from "@/components/brand-mark"
+import { useGuestSummary } from "@/components/settings/guest-import"
 import { LanguageToggle } from "@/components/layout/language-toggle"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useHydrated } from "@/hooks/use-hydrated"
+import { hasGuestData } from "@/lib/data/guest-import"
 import { useT } from "@/lib/i18n/use-t"
 import { authMethods, isSupabaseConfigured } from "@/lib/supabase/config"
 import { useSessionStore } from "@/stores/session-store"
+
+/** Reassures a former guest that their device data will be offered for import. */
+function GuestDataNote() {
+  const t = useT()
+  const summary = useGuestSummary()
+  if (!hasGuestData(summary)) return null
+  return (
+    <p className="rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-400">
+      {t("login.guestDataKept", { wallets: summary.wallets, transactions: summary.transactions })}
+    </p>
+  )
+}
 
 function OAuthError() {
   const t = useT()
@@ -64,6 +78,7 @@ export default function LoginPage() {
           <Suspense>
             <OAuthError />
           </Suspense>
+          <GuestDataNote />
 
           {/* Only methods enabled in Supabase are offered (NEXT_PUBLIC_AUTH_METHODS). */}
           {authMethods.has("email") && <EmailLogin disabled={cloudDisabled} />}

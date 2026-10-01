@@ -10,6 +10,7 @@ import { AppLock } from "@/components/lock/app-lock"
 import { useHydrated } from "@/hooks/use-hydrated"
 import { PendingInviteRedirect } from "@/components/family/pending-invite"
 import { RealtimeSync } from "@/components/family/realtime-sync"
+import { GuestImportPrompt } from "@/components/settings/guest-import"
 import { AlertScheduler } from "@/components/notifications/alert-scheduler"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { SnapshotScheduler } from "@/components/notifications/snapshot-scheduler"
@@ -55,6 +56,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SnapshotScheduler />
       <RealtimeSync />
       <PendingInviteRedirect />
+      <GuestImportPrompt />
       <div hidden={isLocked} inert={isLocked}>
         <header className="sticky top-0 z-30 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
           <div className="mx-auto flex w-full max-w-md items-center gap-1 px-4 py-2.5">

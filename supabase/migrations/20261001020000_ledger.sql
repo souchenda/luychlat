@@ -4,7 +4,7 @@
 -- categories: preset key (translated in the UI until the user renames it)
 -- ---------------------------------------------------------------------------
 alter table public.categories
-  add column preset_key text;
+  add column if not exists preset_key text;
 
 -- Default categories per workspace type.
 -- Keep in sync with src/lib/categories/presets.ts.
@@ -95,7 +95,7 @@ begin
 end;
 $$;
 
-create trigger transactions_category_guard
+create or replace trigger transactions_category_guard
   before insert or update of category_id, type on public.transactions
   for each row execute function public.guard_transaction_category();
 
@@ -166,7 +166,7 @@ begin
 end;
 $$;
 
-create index transactions_workspace_type_date_idx on public.transactions (workspace_id, type, transaction_date desc);
+create index if not exists transactions_workspace_type_date_idx on public.transactions (workspace_id, type, transaction_date desc);
 
 -- ---------------------------------------------------------------------------
 -- Receipts: private bucket, one folder per user: receipts/<auth.uid()>/<file>.
@@ -177,12 +177,15 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('receipts', 'receipts', false, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
 on conflict (id) do nothing;
 
+drop policy if exists receipts_select on storage.objects;
 create policy receipts_select on storage.objects
   for select to authenticated
   using (bucket_id = 'receipts' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists receipts_insert on storage.objects;
 create policy receipts_insert on storage.objects
   for insert to authenticated
   with check (bucket_id = 'receipts' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists receipts_delete on storage.objects;
 create policy receipts_delete on storage.objects
   for delete to authenticated
   using (bucket_id = 'receipts' and (storage.foldername(name))[1] = (select auth.uid())::text);

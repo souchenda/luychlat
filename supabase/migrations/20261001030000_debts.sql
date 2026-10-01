@@ -8,25 +8,26 @@
 -- public.record_debt_repayment(); deleting the transaction deletes the
 -- repayment (cascade) and recomputes the debt.
 
-create type public.interest_period as enum ('YEAR', 'MONTH');
+do $$ begin create type public.interest_period as enum ('YEAR', 'MONTH'); exception when duplicate_object then null; end $$;
 
 alter table public.debts
-  add column note            text check (note is null or char_length(note) <= 500),
-  add column interest_period public.interest_period not null default 'YEAR',
-  add column start_date      date not null default current_date;
+  add column if not exists note            text check (note is null or char_length(note) <= 500),
+  add column if not exists interest_period public.interest_period not null default 'YEAR',
+  add column if not exists start_date      date not null default current_date;
 
 alter table public.transactions
-  add column debt_id uuid,
+  add column if not exists debt_id uuid,
+  drop constraint if exists transactions_debt_id_workspace_id_fkey,
   add constraint transactions_debt_id_workspace_id_fkey
     foreign key (debt_id, workspace_id) references public.debts (id, workspace_id) on delete set null (debt_id);
-create index transactions_debt_id_idx on public.transactions (debt_id);
+create index if not exists transactions_debt_id_idx on public.transactions (debt_id);
 
 alter table public.debt_repayments
-  add column transaction_id uuid not null unique references public.transactions (id) on delete cascade;
+  add column if not exists transaction_id uuid not null unique references public.transactions (id) on delete cascade;
 
 -- Repayments are immutable (delete + re-record); amounts must stay in sync with
 -- their transaction.
-drop policy debt_repayments_update on public.debt_repayments;
+drop policy if exists debt_repayments_update on public.debt_repayments;
 
 -- ---------------------------------------------------------------------------
 -- Debt status / paid amount are always derived, never trusted from clients.
@@ -69,7 +70,7 @@ begin
 end;
 $$;
 
-create trigger debts_derive
+create or replace trigger debts_derive
   before insert or update on public.debts
   for each row execute function public.on_debt_write();
 
@@ -93,7 +94,7 @@ begin
 end;
 $$;
 
-create trigger debt_repayments_guard
+create or replace trigger debt_repayments_guard
   before insert on public.debt_repayments
   for each row execute function public.guard_debt_repayment();
 
@@ -110,7 +111,7 @@ begin
 end;
 $$;
 
-create trigger debt_repayments_rederive
+create or replace trigger debt_repayments_rederive
   after insert or delete on public.debt_repayments
   for each row execute function public.on_debt_repayment_change();
 
@@ -134,7 +135,7 @@ begin
 end;
 $$;
 
-create trigger transactions_debt_guard
+create or replace trigger transactions_debt_guard
   before update on public.transactions
   for each row execute function public.guard_debt_transaction();
 
@@ -229,4 +230,4 @@ $$;
 revoke all on function public.record_debt_repayment(uuid, uuid, numeric, numeric, timestamptz, text) from public, anon;
 grant execute on function public.record_debt_repayment(uuid, uuid, numeric, numeric, timestamptz, text) to authenticated;
 
-create index debts_workspace_type_idx on public.debts (workspace_id, type, status);
+create index if not exists debts_workspace_type_idx on public.debts (workspace_id, type, status);

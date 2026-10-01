@@ -6,11 +6,11 @@
 -- canadia, truemoney, cash, other. `color` overrides the preset colour.
 -- ---------------------------------------------------------------------------
 alter table public.wallets_accounts
-  add column sort_order  integer not null default 0,
-  add column archived_at timestamptz,
-  add column color       text check (color is null or color ~ '^#[0-9a-fA-F]{6}$');
+  add column if not exists sort_order  integer not null default 0,
+  add column if not exists archived_at timestamptz,
+  add column if not exists color       text check (color is null or color ~ '^#[0-9a-fA-F]{6}$');
 
-create index wallets_accounts_workspace_sort_idx on public.wallets_accounts (workspace_id, sort_order);
+create index if not exists wallets_accounts_workspace_sort_idx on public.wallets_accounts (workspace_id, sort_order);
 
 -- A wallet's currency is fixed once it has transactions (amounts would no
 -- longer match the wallet).
@@ -29,7 +29,7 @@ begin
 end;
 $$;
 
-create trigger wallets_accounts_currency_guard
+create or replace trigger wallets_accounts_currency_guard
   before update of currency on public.wallets_accounts
   for each row execute function public.guard_wallet_currency();
 
@@ -40,22 +40,23 @@ create trigger wallets_accounts_currency_guard
 -- used, always expressed as KHR per 1 USD (e.g. 4100), whichever direction.
 -- ---------------------------------------------------------------------------
 alter table public.transactions
-  add column to_amount numeric(18, 2) check (to_amount is null or to_amount > 0),
+  add column if not exists to_amount numeric(18, 2) check (to_amount is null or to_amount > 0),
+  drop constraint if exists transactions_transfer_to_amount,
   add constraint transactions_transfer_to_amount check ((type = 'TRANSFER') = (to_amount is not null));
 
 -- A wallet with history must be archived, not deleted: deleting it would
 -- silently rewrite the counterpart wallet's balance. NO ACTION (checked at end
 -- of statement) still lets a whole workspace/user cascade-delete cleanly.
 alter table public.transactions
-  drop constraint transactions_wallet_id_workspace_id_fkey,
-  drop constraint transactions_to_wallet_id_workspace_id_fkey,
+  drop constraint if exists transactions_wallet_id_workspace_id_fkey,
+  drop constraint if exists transactions_to_wallet_id_workspace_id_fkey,
   add constraint transactions_wallet_id_workspace_id_fkey
     foreign key (wallet_id, workspace_id) references public.wallets_accounts (id, workspace_id) on delete no action,
   add constraint transactions_to_wallet_id_workspace_id_fkey
     foreign key (to_wallet_id, workspace_id) references public.wallets_accounts (id, workspace_id) on delete no action;
 
 alter table public.debt_repayments
-  drop constraint debt_repayments_wallet_id_fkey,
+  drop constraint if exists debt_repayments_wallet_id_fkey,
   add constraint debt_repayments_wallet_id_fkey
     foreign key (wallet_id) references public.wallets_accounts (id) on delete no action;
 
@@ -119,6 +120,6 @@ begin
 end;
 $$;
 
-create trigger transactions_balance
+create or replace trigger transactions_balance
   after insert or update or delete on public.transactions
   for each row execute function public.on_transaction_change();

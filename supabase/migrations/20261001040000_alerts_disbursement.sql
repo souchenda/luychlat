@@ -8,7 +8,7 @@
 -- has no debt_repayments row, so it never counts as a repayment.
 -- ---------------------------------------------------------------------------
 alter table public.debts
-  add column disbursement_transaction_id uuid unique references public.transactions (id) on delete set null;
+  add column if not exists disbursement_transaction_id uuid unique references public.transactions (id) on delete set null;
 
 create or replace function public.disburse_debt(
   p_debt_id uuid,
@@ -64,7 +64,7 @@ grant execute on function public.disburse_debt(uuid, uuid, numeric, timestamptz)
 -- Telegram settings (one bot per user). Owner-only via RLS. The token is the
 -- user's own bot token; it is used only by run_debt_alerts() below.
 -- ---------------------------------------------------------------------------
-create table public.telegram_settings (
+create table if not exists public.telegram_settings (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   bot_token  text not null check (bot_token ~ '^[0-9]{5,15}:[A-Za-z0-9_-]{30,64}$'),
   chat_id    text not null check (chat_id ~ '^(-?[0-9]{3,20}|@[A-Za-z0-9_]{5,32})$'),
@@ -73,6 +73,7 @@ create table public.telegram_settings (
   updated_at timestamptz not null default now()
 );
 alter table public.telegram_settings enable row level security;
+drop policy if exists telegram_settings_owner on public.telegram_settings;
 create policy telegram_settings_owner on public.telegram_settings
   for all to authenticated
   using (user_id = (select auth.uid()))
@@ -99,7 +100,8 @@ as $$
 $$;
 
 alter table public.notifications
-  add column alert_key text,
+  add column if not exists alert_key text,
+  drop constraint if exists notifications_debt_alert_unique,
   add constraint notifications_debt_alert_unique unique (debt_id, alert_key);
 
 create extension if not exists pg_net with schema extensions;

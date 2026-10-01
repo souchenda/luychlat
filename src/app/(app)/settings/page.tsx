@@ -1,6 +1,6 @@
 "use client"
 
-import { ChartColumnIcon, ChevronRightIcon, CoinsIcon, TargetIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import { ChartColumnIcon, ChevronRightIcon, CloudUploadIcon, CoinsIcon, TargetIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -12,6 +12,7 @@ import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { AiSettingsCard } from "@/components/settings/ai-settings"
 import { DangerZone } from "@/components/settings/danger-zone"
 import { DataManagement } from "@/components/settings/data-management"
+import { GuestImportRow } from "@/components/settings/guest-import"
 import { InstallAppCard } from "@/components/settings/install-app"
 import { TelegramSettingsCard } from "@/components/settings/telegram-settings"
 import { Button } from "@/components/ui/button"
@@ -122,8 +123,14 @@ export default function SettingsPage() {
   }
 
   const signOut = async () => {
-    if (!window.confirm(t("settings.signOutConfirm"))) return
+    if (!window.confirm(t(isGuest ? "settings.endGuestConfirm" : "settings.signOutConfirm"))) return
     await signOutEverywhere()
+    router.replace("/login")
+  }
+
+  // Guest -> account: the data stays on this device and is offered for import after sign-in.
+  const createAccount = () => {
+    useSessionStore.getState().endGuest()
     router.replace("/login")
   }
 
@@ -243,7 +250,14 @@ export default function SettingsPage() {
 
       <Section title={t("settings.account")}>
         <Row title={isGuest ? t("settings.guestAccount") : (user?.phone ? `+${user.phone}` : (user?.email ?? ""))} />
-        <div className="px-4 py-3">
+        <GuestImportRow />
+        <div className="space-y-2 px-4 py-3">
+          {isGuest && (
+            <Button className="w-full" onClick={createAccount}>
+              <CloudUploadIcon />
+              {t("home.createAccount")}
+            </Button>
+          )}
           <Button variant="outline" className="w-full text-destructive" onClick={signOut}>
             <LogOutIcon />
             {isGuest ? t("settings.endGuest") : t("settings.signOut")}
