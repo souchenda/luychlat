@@ -52,6 +52,7 @@ const km = {
   "nav.settings": "ការកំណត់",
 
   "home.greeting": "សួស្តី",
+  "home.greetingName": "សួស្តី {name}",
   "home.guestBanner": "អ្នកកំពុងប្រើ Guest Mode",
   "home.guestBannerHint": "ទិន្នន័យនៅលើឧបករណ៍នេះប៉ុណ្ណោះ។ ចុះឈ្មោះដើម្បីរក្សាទុកលើ Cloud។",
   "home.createAccount": "បង្កើតគណនី",
@@ -725,6 +726,7 @@ const en: Record<MessageKey, string> = {
   "nav.settings": "Settings",
 
   "home.greeting": "Hello",
+  "home.greetingName": "Hello, {name}",
   "home.guestBanner": "You're in Guest Mode",
   "home.guestBannerHint": "Data lives on this device only. Create an account to back it up.",
   "home.createAccount": "Create account",

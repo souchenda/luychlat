@@ -25,7 +25,7 @@ import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { WalletList } from "@/components/wallets/wallet-list"
 import { cashFlow } from "@/lib/analytics"
 import { adjustmentCategoryIds } from "@/lib/categories/presets"
-import { canWrite, useActiveWorkspace, useCategories, useDebts, useTransactions, useWallets } from "@/lib/data/hooks"
+import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
@@ -81,13 +81,15 @@ export default function HomePage() {
     () => cashFlow(monthTransactions, khrPerUsd, adjustmentCategoryIds(categoriesQuery.data ?? [])),
     [monthTransactions, khrPerUsd, categoriesQuery.data],
   )
+  // The display name from Settings, once the user has set one.
+  const displayName = useProfile().data?.display_name?.trim()
   const identity = user?.phone ? `+${user.phone}` : (user?.email ?? null)
 
   return (
     <div className="space-y-5">
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold">{t("home.greeting")}</h1>
+          <h1 className="text-xl font-bold">{displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}</h1>
           {workspace?.type === "FAMILY" ? (
             <FamilyStrip workspace={workspace} />
           ) : (
