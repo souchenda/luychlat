@@ -1,31 +1,118 @@
 # លុយឆ្លាត · LuySmart
 
-Mobile-first PWA for personal and small-business money & debt management in Cambodia.
-Architecture, schema and roadmap: see [guideline.md](guideline.md).
+Mobile-first PWA for personal and small-business money and debt management in Cambodia, in Khmer (primary) and English, with USD and KHR side by side.
+Architecture, schema and roadmap: [guideline.md](guideline.md).
 
-**Status:** All 6 roadmap phases are done (see guideline.md).
+**Status:** ✅ All 6 roadmap phases are complete.
+
+## Features
+
+| Phase | What you get |
+| --- | --- |
+| 1 · Auth & security | Phone (+855) OTP, Google, Apple, Guest Mode ("try first", fully offline)<br>4-digit PIN, biometrics, auto-lock |
+| 2 · Workspaces & wallets | 👤 Personal / 🏢 Business switcher<br>ABA, ACLEDA, Wing, Canadia, TrueMoney and cash wallets<br>Transfers, total balance in USD and KHR, hide-balance toggle |
+| 3 · Ledger | Income and expenses in either currency, categories, receipt photos<br>Monthly cash flow, charts, filtered transaction history |
+| 4 · Debts | Payables and receivables, partial repayments, urgency badges<br>Polite Khmer/English reminders via Telegram, SMS or share |
+| 5 · Alerts & AI | Daily Telegram due-date alerts and an in-app bell<br>AI advisor: offline, or Claude / OpenAI with your own key, anonymized |
+| 6 · Reports & safety | Business P&L, Excel/PDF exports, loan calculator<br>Rollback to yesterday, delete by date, reconcile, JSON backup, factory reset, installable PWA |
 
 ## Stack
 
-Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui · Supabase · TanStack Query · Zustand · Zod · Recharts
+Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui · Supabase (Postgres + RLS, Auth, Storage, pg_cron) · TanStack Query · Zustand · Zod · Recharts · SheetJS · Anthropic SDK
 
-## Getting started
+## Run locally
+
+**Requirements:** Node.js 20+ and npm.
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in Supabase URL + anon key
+cp .env.example .env.local
 npm run dev
 ```
 
-Without Supabase keys, the app runs in Guest Mode only, and phone/Google/Apple login is disabled.
+Open http://localhost:3000 and tap **សាកល្បងប្រើប្រាស់សិន** (Guest Mode).
 
-### Supabase setup
+- **No configuration needed:** Guest Mode stores everything on the device (localStorage + IndexedDB), so the whole app works without any keys.
+- **Signing in:** phone, Google and Apple login switch on once Supabase is connected (below).
+- **Biometric testing:** set `NEXT_PUBLIC_BIOMETRIC_MOCK=true` in `.env.local` to test FaceID / fingerprint unlock on a computer. Never enable it in production.
+- **Testing on a phone:** open the dev server from your phone on the same Wi-Fi.
 
-1. Apply the schema: `supabase db push` (or paste `supabase/migrations/*.sql` into the SQL editor).
-2. **Auth → Providers**
-   - **Phone:** enable it and configure an SMS provider (Twilio, MessageBird, Vonage…).
-   - **Google** and **Apple:** enable them with their OAuth credentials.
-3. **Auth → URL Configuration:** add `http://localhost:3000/auth/callback` (and your production URL) to the redirect URLs.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Development server with hot reload |
+| `npm run build && npm start` | Production build. The service worker (offline / install) only runs here |
+| `npm run lint` · `npx tsc --noEmit` | Lint and typecheck |
+| `node scripts/generate-icons.mjs` | Regenerate the PWA / iOS icons in `public/icons/` |
+
+## Connect Supabase
+
+1. **Create a project** at [supabase.com](https://supabase.com). The Singapore region (`ap-southeast-1`) is the closest to Cambodia.
+2. **Add the keys:** in Project Settings → API, copy the project URL and anon (public) key into `.env.local`:
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+   ```
+   Only the anon key belongs in the app. Never put the `service_role` key in a `NEXT_PUBLIC_*` variable.
+3. **Apply the database migrations.** There are 7 files in `supabase/migrations/`, and they run in order:
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <project-ref>
+   npx supabase db push
+   ```
+   - **What they create:** every table with Row-Level Security, the balance and debt triggers, the `receipts` storage bucket, and the daily alert job.
+   - **If `pg_cron` or `pg_net` fails:** enable them under Database → Extensions, then run `db push` again.
+   - **Without the CLI:** paste each file into the SQL editor, oldest first.
+4. **Configure Auth → Providers:**
+   - **Phone:** enable it and connect an SMS provider (Twilio, MessageBird, Vonage…).
+   - **Google** and **Apple:** enable them with your OAuth client credentials. In Google Cloud / Apple Developer, the authorized redirect URI is `https://<project-ref>.supabase.co/auth/v1/callback`.
+5. **Configure Auth → URL Configuration:**
+   - Set **Site URL** to your app's address.
+   - Add the **redirect URLs** `http://localhost:3000/auth/callback` and `https://<your-domain>/auth/callback`.
+6. **Check it worked:**
+   - **Restart** `npm run dev` so it picks up the new keys.
+   - **Sign in:** a new account should get Personal and Business workspaces with default categories.
+   - **Alert job:** Database → Cron should list `luysmart-debt-alerts` (`0 1 * * *` = 08:00 in Phnom Penh).
+
+## Deploy to Vercel
+
+1. **Push the repository to GitHub** (or GitLab / Bitbucket):
+   ```bash
+   git remote add origin https://github.com/<you>/luysmart.git
+   git push -u origin master
+   ```
+2. **Import the project:** in [vercel.com/new](https://vercel.com/new), import the repo. Vercel detects Next.js, so keep the default build settings.
+3. **Add environment variables** (Project → Settings → Environment Variables), for Production and Preview:
+
+   | Name | Value |
+   | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | your Supabase URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | your anon key |
+   | `NEXT_PUBLIC_BIOMETRIC_MOCK` | `false` |
+
+   Without the Supabase variables the deployment still works, in Guest Mode only.
+4. **Deploy.** Then, in Supabase Auth → URL Configuration:
+   - Set the **Site URL** to the Vercel domain, e.g. `https://luysmart.vercel.app`.
+   - Add `https://luysmart.vercel.app/auth/callback` to the **redirect URLs**.
+   - Add the same for any custom domain.
+5. **Install on a phone:** open the HTTPS site on the phone. Use Android Chrome → *Install app*, or iOS Safari → Share → *Add to Home Screen*.
+
+You can also deploy from the terminal: `npx vercel` for a preview, `npx vercel --prod` for production.
+
+Server routes and services on Vercel:
+
+| Route / service | Notes |
+| --- | --- |
+| `/api/advisor` | Live AI with the user's own key; runs up to 60 s (`maxDuration`). Keep within your Vercel plan's function limit |
+| `/api/telegram` | Edge proxy for test messages and the "Find chat ID" button |
+| Daily alerts | Run inside Supabase (`pg_cron` + `pg_net`), not on Vercel; no Vercel cron needed |
+
+### Before going live
+
+- **Biometric mock:** set `NEXT_PUBLIC_BIOMETRIC_MOCK=false` (it is off by default).
+- **Test the cloud path end to end:** phone OTP, Google/Apple login, a repayment, a receipt upload, and the Telegram test message.
+- **Database backups:** turn on Supabase backups or point-in-time recovery. In-app Rollback covers Guest Mode only.
+- **Guest data:** it lives only on the device. Users should export a backup (Settings → ការគ្រប់គ្រងទិន្នន័យ) before clearing the browser or switching phones.
+- **Known `npm audit` warning:** 2 findings in the `postcss` copy bundled inside Next.js 15. They clear with a future Next.js major upgrade.
 
 ## Project layout
 
