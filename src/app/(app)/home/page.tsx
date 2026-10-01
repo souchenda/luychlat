@@ -11,6 +11,7 @@ import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
 import { FamilyStrip } from "@/components/family/family-strip"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
+import { SeasonGreeting } from "@/components/dashboard/season-greeting"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
@@ -103,6 +104,8 @@ export default function HomePage() {
           </Button>
         )}
       </header>
+
+      <SeasonGreeting />
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} />
 

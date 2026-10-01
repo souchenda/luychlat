@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Geist_Mono, Kantumruy_Pro } from "next/font/google"
 
 import { Providers } from "@/components/providers"
+import { bootSeasonScript } from "@/lib/theme/seasons"
 
 import "./globals.css"
 
@@ -46,6 +47,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="km" className={`${kantumruy.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Seasonal colours before first paint (no flash); see lib/theme/seasons.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: bootSeasonScript }} />
+      </head>
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>

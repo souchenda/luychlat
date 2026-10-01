@@ -15,6 +15,7 @@ import { DataManagement } from "@/components/settings/data-management"
 import { GuestImportRow } from "@/components/settings/guest-import"
 import { InstallAppCard } from "@/components/settings/install-app"
 import { TelegramSettingsCard } from "@/components/settings/telegram-settings"
+import { ThemePicker } from "@/components/settings/theme-picker"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -219,6 +220,8 @@ export default function SettingsPage() {
       <TelegramSettingsCard />
 
       <AiSettingsCard />
+
+      <ThemePicker />
 
       <Section title={t("settings.appearance")}>
         <Row title={t("settings.language")}>
