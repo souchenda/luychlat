@@ -70,8 +70,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Link>
             </Button>
           </div>
-          {/* Season-coloured hairline (default: emerald). */}
-          <div aria-hidden className="h-0.5 bg-linear-to-r from-(--brand-from) via-(--brand-via) to-(--brand-to) opacity-80" />
         </header>
         {/* Re-keyed on switch so the new workspace's content fades in. */}
         <main

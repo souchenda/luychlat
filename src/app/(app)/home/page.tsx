@@ -11,7 +11,6 @@ import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
 import { FamilyStrip } from "@/components/family/family-strip"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
-import { SeasonGreeting } from "@/components/dashboard/season-greeting"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
@@ -29,6 +28,7 @@ import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { monthKey, monthRange, recentMonths } from "@/lib/dates"
+import { holidayGreeting } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
 import { useLockStore } from "@/stores/lock-store"
 import { usePrefsStore } from "@/stores/prefs-store"
@@ -84,6 +84,7 @@ export default function HomePage() {
   )
   // The display name from Settings, once the user has set one.
   const displayName = useProfile().data?.display_name?.trim()
+  const holiday = holidayGreeting()
   const identity = user?.phone ? `+${user.phone}` : (user?.email ?? null)
 
   return (
@@ -91,11 +92,13 @@ export default function HomePage() {
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h1 className="text-xl font-bold">{displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}</h1>
-          {workspace?.type === "FAMILY" ? (
-            <FamilyStrip workspace={workspace} />
+          {/* During a festival, one quiet line instead of the email. */}
+          {holiday ? (
+            <p className="truncate text-sm font-medium text-primary">{t(holiday)} ✨</p>
           ) : (
-            identity && <p className="truncate text-sm text-muted-foreground">{identity}</p>
+            workspace?.type !== "FAMILY" && identity && <p className="truncate text-sm text-muted-foreground">{identity}</p>
           )}
+          {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
         </div>
         {editable && (
           <Button size="sm" variant="outline" onClick={() => setDebtFormOpen(true)}>
@@ -104,8 +107,6 @@ export default function HomePage() {
           </Button>
         )}
       </header>
-
-      <SeasonGreeting />
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} />
 

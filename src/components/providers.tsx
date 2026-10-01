@@ -7,9 +7,7 @@ import { useEffect, useState } from "react"
 import { Toaster } from "@/components/ui/sonner"
 import { getQueryClient } from "@/lib/query-client"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { resolveSeason } from "@/lib/theme/seasons"
 import { useLocaleStore } from "@/stores/locale-store"
-import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
 function AuthListener() {
@@ -26,15 +24,6 @@ function AuthListener() {
     return () => data.subscription.unsubscribe()
   }, [setUser])
 
-  return null
-}
-
-/** Keeps <html data-season> in step with the theme setting (the boot script sets it first). */
-function SeasonTheme() {
-  const choice = usePrefsStore((s) => s.colorTheme)
-  useEffect(() => {
-    document.documentElement.dataset.season = resolveSeason(choice)
-  }, [choice])
   return null
 }
 
@@ -63,7 +52,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <AuthListener />
         <HtmlLang />
-        <SeasonTheme />
         <ServiceWorker />
         {children}
         <Toaster position="top-center" richColors />
