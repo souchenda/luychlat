@@ -10,6 +10,12 @@ export type CategoryPreset = {
   name: { km: string; en: string }
 }
 
+/** តុងទីន: seeded in every workspace (also used by pay_tontine_round / collect_tontine). */
+export const TONTINE_CATEGORY_PRESETS: Record<"PAY" | "COLLECT", CategoryPreset> = {
+  PAY: { key: "tontine_payment", type: "EXPENSE", icon: "piggy-bank", color: "#f59e0b", name: { km: "បង់តុងទីន", en: "Tontine payment" } },
+  COLLECT: { key: "tontine_payout", type: "INCOME", icon: "coins", color: "#10b981", name: { km: "ដេញតុងទីនបាន", en: "Tontine pot won" } },
+}
+
 /**
  * Default categories seeded into every workspace.
  * Keep in sync with public.seed_default_categories() in
@@ -32,6 +38,8 @@ const BASE_PRESETS: Record<Exclude<WorkspaceType, "FAMILY">, CategoryPreset[]> =
     { key: "side_income", type: "INCOME", icon: "trending-up", color: "#10b981", name: { km: "ចំណូលបន្ថែម", en: "Side income" } },
     { key: "gift_received", type: "INCOME", icon: "hand-heart", color: "#84cc16", name: { km: "ទទួលអំណោយ", en: "Gifts received" } },
     { key: "other_income", type: "INCOME", icon: "coins", color: "#64748b", name: { km: "ចំណូលផ្សេងៗ", en: "Other income" } },
+    TONTINE_CATEGORY_PRESETS.PAY,
+    TONTINE_CATEGORY_PRESETS.COLLECT,
   ],
   BUSINESS: [
     { key: "inventory", type: "EXPENSE", icon: "package", color: "#f97316", name: { km: "ថ្លៃទំនិញ/ស្តុក", en: "Inventory & stock" } },
@@ -47,6 +55,8 @@ const BASE_PRESETS: Record<Exclude<WorkspaceType, "FAMILY">, CategoryPreset[]> =
     { key: "services", type: "INCOME", icon: "briefcase", color: "#10b981", name: { km: "ចំណូលពីសេវាកម្ម", en: "Services" } },
     { key: "investment", type: "INCOME", icon: "piggy-bank", color: "#84cc16", name: { km: "ដើមទុនវិនិយោគ", en: "Capital injection" } },
     { key: "other_income", type: "INCOME", icon: "coins", color: "#64748b", name: { km: "ចំណូលផ្សេងៗ", en: "Other income" } },
+    TONTINE_CATEGORY_PRESETS.PAY,
+    TONTINE_CATEGORY_PRESETS.COLLECT,
   ],
 }
 

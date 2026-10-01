@@ -22,7 +22,8 @@ export function useGuestSummary(): GuestSummary {
   const transactions = useGuestDataStore((s) => s.transactions.length)
   const debts = useGuestDataStore((s) => s.debts.length)
   const budgets = useGuestDataStore((s) => s.budgets.length)
-  return { wallets, transactions, debts, budgets }
+  const tontines = useGuestDataStore((s) => s.tontines?.length ?? 0)
+  return { wallets, transactions, debts, budgets, tontines }
 }
 
 /** Asks to move this device's Guest Mode data into the signed-in account. */

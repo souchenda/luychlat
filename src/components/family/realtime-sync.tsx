@@ -10,7 +10,17 @@ import type { AppNotification } from "@/lib/data/types"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useSessionStore } from "@/stores/session-store"
 
-type CacheKey = "transactions" | "wallets" | "categories" | "debts" | "repayments" | "notifications" | "budgets" | "members"
+type CacheKey =
+  | "transactions"
+  | "wallets"
+  | "categories"
+  | "debts"
+  | "repayments"
+  | "notifications"
+  | "budgets"
+  | "members"
+  | "tontines"
+  | "tontinePayments"
 
 /**
  * Supabase Realtime for the active workspace: when another member (or another
@@ -59,11 +69,16 @@ export function RealtimeSync() {
         touch("transactions", "wallets", "debts", "repayments"),
       )
       .on("postgres_changes", { schema: "public", event: "DELETE", table: "transactions" }, ({ old }) => {
-        if (cached("transactions", old.id)) touch("transactions", "wallets", "debts", "repayments")
+        if (cached("transactions", old.id)) touch("transactions", "wallets", "debts", "repayments", "tontines", "tontinePayments")
       })
       .on("postgres_changes", { ...changes, event: "*", table: "wallets_accounts" }, () => touch("wallets"))
       .on("postgres_changes", { ...changes, event: "*", table: "categories" }, () => touch("categories"))
       .on("postgres_changes", { ...changes, event: "*", table: "budgets" }, () => touch("budgets"))
+      .on("postgres_changes", { ...changes, event: "*", table: "tontines" }, () => touch("tontines"))
+      .on("postgres_changes", { ...changes, event: "INSERT", table: "tontine_payments" }, () => touch("tontinePayments"))
+      .on("postgres_changes", { schema: "public", event: "DELETE", table: "tontine_payments" }, ({ old }) => {
+        if (cached("tontinePayments", old.id)) touch("tontinePayments")
+      })
       .on("postgres_changes", { ...changes, event: "INSERT", table: "debts" }, () => touch("debts"))
       .on("postgres_changes", { ...changes, event: "UPDATE", table: "debts" }, () => touch("debts", "repayments"))
       .on("postgres_changes", { schema: "public", event: "DELETE", table: "debts" }, ({ old }) => {

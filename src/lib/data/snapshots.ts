@@ -26,6 +26,8 @@ export function currentGuestData(): GuestData {
     seededWorkspaceIds: s.seededWorkspaceIds,
     budgets: s.budgets,
     members: s.members,
+    tontines: s.tontines,
+    tontinePayments: s.tontinePayments,
   }
 }
 
@@ -84,6 +86,8 @@ function normalize(data: GuestData): GuestData {
     })),
     budgets: data.budgets ?? [],
     members: data.members ?? [],
+    tontines: data.tontines ?? [],
+    tontinePayments: data.tontinePayments ?? [],
   }
 }
 

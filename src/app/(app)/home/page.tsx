@@ -8,6 +8,7 @@ import { useMemo, useState } from "react"
 
 import { AdvisorHomeCard } from "@/components/advisor/advisor-home-card"
 import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
+import { TontineDueCard } from "@/components/tontine/tontine-due-card"
 import { FamilyStrip } from "@/components/family/family-strip"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
@@ -166,6 +167,8 @@ export default function HomePage() {
         categories={categoriesQuery.data ?? []}
         monthTransactions={monthTransactions}
       />
+
+      <TontineDueCard workspaceId={ws} />
 
       <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} />
 

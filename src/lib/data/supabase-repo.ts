@@ -19,6 +19,8 @@ import {
   type Debt,
   type DebtRepayment,
   type TelegramSettings,
+  type Tontine,
+  type TontinePayment,
   type Transaction,
   type Wallet,
   type Workspace,
@@ -50,6 +52,15 @@ const toTransaction = (row: Transaction): Transaction => ({
   to_amount: row.to_amount === null ? null : Number(row.to_amount),
   exchange_rate: row.exchange_rate === null ? null : Number(row.exchange_rate),
 })
+
+const num = (v: unknown) => (v === null || v === undefined ? null : Number(v))
+const toTontine = (row: Tontine): Tontine => ({
+  ...row,
+  share_amount: Number(row.share_amount),
+  won_amount: num(row.won_amount),
+  won_bid: num(row.won_bid),
+})
+const toTontinePayment = (row: TontinePayment): TontinePayment => ({ ...row, amount: Number(row.amount), discount: Number(row.discount) })
 
 const toDebt = (row: Debt): Debt => ({
   ...row,
@@ -369,6 +380,84 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
     },
 
     // --- debts (paid_amount / status derived by the debts_derive trigger) ------
+
+    // --- tontine -------------------------------------------------------------
+    async listTontines(workspaceId) {
+      const rows = unwrap(
+        await supabase.from("tontines").select("*").eq("workspace_id", workspaceId).order("created_at", { ascending: false }),
+      ) as Tontine[]
+      return rows.map(toTontine)
+    },
+
+    async listTontinePayments(workspaceId) {
+      const rows = unwrap(
+        await supabase.from("tontine_payments").select("*").eq("workspace_id", workspaceId).order("round_no"),
+      ) as TontinePayment[]
+      return rows.map(toTontinePayment)
+    },
+
+    async createTontine(workspaceId, input) {
+      const row = unwrap(await supabase.from("tontines").insert({ workspace_id: workspaceId, ...input }).select().single()) as Tontine
+      return toTontine(row)
+    },
+
+    async updateTontine(id, input) {
+      const row = unwrap(await supabase.from("tontines").update(input).eq("id", id).select().single()) as Tontine
+      return toTontine(row)
+    },
+
+    async setTontineClosed(id, closed) {
+      unwrap(await supabase.from("tontines").update({ closed_at: closed ? new Date().toISOString() : null }).eq("id", id))
+    },
+
+    async deleteTontine(id) {
+      unwrap(await supabase.from("tontines").delete().eq("id", id))
+    },
+
+    async payTontineRound(input) {
+      const row = unwrap(
+        await supabase.rpc("pay_tontine_round", {
+          p_tontine_id: input.tontine_id,
+          p_round_no: input.round_no,
+          p_amount: input.amount,
+          p_discount: input.discount,
+          p_paid_on: input.paid_on,
+          p_wallet_id: input.wallet_id,
+          p_exchange_rate: input.exchange_rate,
+          p_note: input.note,
+        }),
+      ) as TontinePayment
+      return toTontinePayment(row)
+    },
+
+    async collectTontine(input) {
+      const row = unwrap(
+        await supabase.rpc("collect_tontine", {
+          p_tontine_id: input.tontine_id,
+          p_round_no: input.round_no,
+          p_amount: input.amount,
+          p_bid: input.bid,
+          p_received_on: input.received_on,
+          p_wallet_id: input.wallet_id,
+          p_exchange_rate: input.exchange_rate,
+          p_note: input.note,
+        }),
+      ) as Tontine
+      return toTontine(row)
+    },
+
+    async deleteTontinePayment(id) {
+      const row = unwrap(await supabase.from("tontine_payments").select("transaction_id").eq("id", id).single()) as {
+        transaction_id: string | null
+      }
+      // The ledger row cascades to the payment and refunds the wallet.
+      if (row.transaction_id) unwrap(await supabase.from("transactions").delete().eq("id", row.transaction_id))
+      else unwrap(await supabase.from("tontine_payments").delete().eq("id", id))
+    },
+
+    async undoTontineWin(tontineId) {
+      unwrap(await supabase.rpc("undo_tontine_win", { p_tontine_id: tontineId }))
+    },
 
     async listDebts(workspaceId) {
       const rows = unwrap(

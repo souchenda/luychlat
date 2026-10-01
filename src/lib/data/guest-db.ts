@@ -6,6 +6,8 @@ import type {
   Category,
   Debt,
   DebtRepayment,
+  Tontine,
+  TontinePayment,
   Transaction,
   Wallet,
   Workspace,
@@ -25,6 +27,9 @@ export type GuestData = {
   /** Added in Phase 7; absent in older snapshots and backups. */
   budgets?: Budget[]
   members?: WorkspaceMember[]
+  /** Added with Tontine. */
+  tontines?: Tontine[]
+  tontinePayments?: TontinePayment[]
 }
 
 export type ReceiptRow = { id: string; blob: Blob; created_at: string }

@@ -18,6 +18,9 @@ import type {
   EntryInput,
   RepaymentInput,
   TelegramSettings,
+  TontineCollectInput,
+  TontineInput,
+  TontinePayInput,
   TransactionFilter,
   TransferInput,
   TransferUpdate,
@@ -53,6 +56,8 @@ export const queryKeys = {
   members: (scope: string, workspaceId: string) => ["members", scope, workspaceId] as const,
   invites: (scope: string, workspaceId: string) => ["invites", scope, workspaceId] as const,
   budgets: (scope: string, workspaceId: string) => ["budgets", scope, workspaceId] as const,
+  tontines: (scope: string, workspaceId: string) => ["tontines", scope, workspaceId] as const,
+  tontinePayments: (scope: string, workspaceId: string) => ["tontinePayments", scope, workspaceId] as const,
 }
 
 export function useWorkspaces() {
@@ -234,7 +239,9 @@ function useInvalidate(workspaceId: string | undefined) {
   const { scope } = useRepo()
   const queryClient = useQueryClient()
   const ws = workspaceId ?? ""
-  return (...keys: ("wallets" | "categories" | "transactions" | "debts" | "repayments" | "notifications" | "budgets")[]) =>
+  return (
+    ...keys: ("wallets" | "categories" | "transactions" | "debts" | "repayments" | "notifications" | "budgets" | "tontines" | "tontinePayments")[]
+  ) =>
     keys.forEach((k) => void queryClient.invalidateQueries({ queryKey: queryKeys[k](scope, ws) }))
 }
 
@@ -366,6 +373,48 @@ export function useDebtMutations(workspaceId: string | undefined) {
     }),
     recordRepayment: useMutation({ mutationFn: (input: RepaymentInput) => repo.recordRepayment(input), onSuccess: moneyMoved }),
     deleteRepayment: useMutation({ mutationFn: (id: string) => repo.deleteRepayment(id), onSuccess: moneyMoved }),
+  }
+}
+
+export function useTontines(workspaceId: string | undefined) {
+  const { repo, scope } = useRepo()
+  return useQuery({
+    queryKey: queryKeys.tontines(scope, workspaceId ?? ""),
+    queryFn: () => repo.listTontines(workspaceId!),
+    enabled: Boolean(workspaceId),
+  })
+}
+
+export function useTontinePayments(workspaceId: string | undefined) {
+  const { repo, scope } = useRepo()
+  return useQuery({
+    queryKey: queryKeys.tontinePayments(scope, workspaceId ?? ""),
+    queryFn: () => repo.listTontinePayments(workspaceId!),
+    enabled: Boolean(workspaceId),
+  })
+}
+
+export function useTontineMutations(workspaceId: string | undefined) {
+  const { repo } = useRepo()
+  const invalidate = useInvalidate(workspaceId)
+  const ws = workspaceId ?? ""
+  const moneyMoved = () => invalidate("tontines", "tontinePayments", "wallets", "transactions", "categories")
+
+  return {
+    create: useMutation({ mutationFn: (input: TontineInput) => repo.createTontine(ws, input), onSuccess: () => invalidate("tontines") }),
+    update: useMutation({
+      mutationFn: ({ id, input }: { id: string; input: TontineInput }) => repo.updateTontine(id, input),
+      onSuccess: () => invalidate("tontines"),
+    }),
+    setClosed: useMutation({
+      mutationFn: ({ id, closed }: { id: string; closed: boolean }) => repo.setTontineClosed(id, closed),
+      onSuccess: () => invalidate("tontines"),
+    }),
+    remove: useMutation({ mutationFn: (id: string) => repo.deleteTontine(id), onSuccess: () => invalidate("tontines", "tontinePayments") }),
+    pay: useMutation({ mutationFn: (input: TontinePayInput) => repo.payTontineRound(input), onSuccess: moneyMoved }),
+    collect: useMutation({ mutationFn: (input: TontineCollectInput) => repo.collectTontine(input), onSuccess: moneyMoved }),
+    deletePayment: useMutation({ mutationFn: (id: string) => repo.deleteTontinePayment(id), onSuccess: moneyMoved }),
+    undoWin: useMutation({ mutationFn: (id: string) => repo.undoTontineWin(id), onSuccess: moneyMoved }),
   }
 }
 

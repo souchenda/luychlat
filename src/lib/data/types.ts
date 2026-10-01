@@ -165,6 +165,83 @@ export type DebtRepayment = {
   created_at: string
 } & Attribution
 
+/** តុងទីន: one hand (ជើង) the user plays in a rotating savings group. */
+export type TontineFrequency = "WEEKLY" | "MONTHLY"
+
+export type Tontine = {
+  id: string
+  workspace_id: string
+  /** e.g. "ជើង ៥០ ដុល្លារ" */
+  name: string
+  /** មេតុងទីន */
+  leader_name: string | null
+  leader_phone: string | null
+  currency: Currency
+  /** Full share per round (what a dead member pays). */
+  share_amount: number
+  frequency: TontineFrequency
+  total_rounds: number
+  /** Date of round 1 (yyyy-MM-dd). */
+  start_date: string
+  /** Suggested wallet for payments. */
+  wallet_id: string | null
+  /** Set once the user wins the bid (ដេញបាន): they become a dead member (កូនងាប់). */
+  won_round: number | null
+  won_amount: number | null
+  won_bid: number | null
+  won_on: string | null
+  won_transaction_id: string | null
+  note: string | null
+  closed_at: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export type TontineInput = Pick<
+  Tontine,
+  "name" | "leader_name" | "leader_phone" | "currency" | "share_amount" | "frequency" | "total_rounds" | "start_date" | "wallet_id" | "note"
+>
+
+export type TontinePayment = {
+  id: string
+  tontine_id: string
+  workspace_id: string
+  round_no: number
+  amount: number
+  /** Live members: how much less than the share they paid (the winning bid of that round). */
+  discount: number
+  paid_on: string
+  /** The expense row, when paid from a wallet; deleting it undoes the round. */
+  transaction_id: string | null
+  created_at: string
+}
+
+export type TontinePayInput = {
+  tontine_id: string
+  round_no: number
+  /** In the tontine currency. */
+  amount: number
+  discount: number
+  paid_on: string
+  /** null: record the round without moving money. */
+  wallet_id: string | null
+  exchange_rate: number | null
+  note: string | null
+}
+
+export type TontineCollectInput = {
+  tontine_id: string
+  round_no: number
+  /** The pot received, in the tontine currency. */
+  amount: number
+  /** The bid the user offered (optional, for their records). */
+  bid: number | null
+  received_on: string
+  wallet_id: string | null
+  exchange_rate: number | null
+  note: string | null
+}
+
 export type RepaymentInput = {
   debt_id: string
   wallet_id: string

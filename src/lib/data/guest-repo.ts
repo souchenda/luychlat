@@ -5,6 +5,7 @@ import {
   CATEGORY_PRESETS,
   DEBT_CATEGORY_PRESETS,
   DISBURSEMENT_CATEGORY_PRESETS,
+  TONTINE_CATEGORY_PRESETS,
   type CategoryPreset,
 } from "@/lib/categories/presets"
 import { debtStatus, remaining } from "@/lib/debts"
@@ -28,6 +29,8 @@ import {
   type Debt,
   type DebtRepayment,
   type EntryInput,
+  type Tontine,
+  type TontinePayment,
   type Transaction,
   type TransactionFilter,
   type TransferUpdate,
@@ -223,6 +226,55 @@ function ensurePresetCategory(workspaceId: string, preset: CategoryPreset): stri
   }
   store.setState((s) => ({ categories: [...s.categories, category] }))
   return category.id
+}
+
+function getTontine(id: string): Tontine {
+  const tontine = store.getState().tontines.find((t) => t.id === id)
+  if (!tontine) throw new Error("Tontine not found")
+  return tontine
+}
+
+/** Same checks as the tontines table constraints. */
+function validateTontine(workspaceId: string, input: Pick<Tontine, "name" | "share_amount" | "total_rounds" | "wallet_id">) {
+  if (!input.name.trim()) throw new Error("name is required")
+  if (!(input.share_amount > 0)) throw new Error("share must be positive")
+  if (!Number.isInteger(input.total_rounds) || input.total_rounds < 2 || input.total_rounds > 100) throw new Error("rounds must be 2–100")
+  if (input.wallet_id && getWallet(input.wallet_id).workspace_id !== workspaceId) throw new Error("wallet not in workspace")
+}
+
+/** The expense (pay) or income (pot) ledger row for a tontine round. */
+function tontineTransaction(
+  t: Tontine,
+  walletId: string,
+  kind: "PAY" | "COLLECT",
+  amount: number,
+  rate: number | null,
+  date: string,
+  note: string | null,
+  round: number,
+): Transaction {
+  const wallet = getWallet(walletId)
+  if (wallet.workspace_id !== t.workspace_id) throw new Error("wallet not found in this workspace")
+  const tx: Transaction = {
+    id: uuid(),
+    workspace_id: t.workspace_id,
+    wallet_id: wallet.id,
+    to_wallet_id: null,
+    category_id: ensurePresetCategory(t.workspace_id, TONTINE_CATEGORY_PRESETS[kind]),
+    amount,
+    to_amount: null,
+    currency: t.currency,
+    type: kind === "PAY" ? "EXPENSE" : "INCOME",
+    exchange_rate: wallet.currency === t.currency ? null : rate,
+    note: (note?.trim() || `${t.name} · #${round}`).slice(0, 500),
+    receipt_url: null,
+    transaction_date: new Date(`${date}T12:00:00+07:00`).toISOString(),
+    created_at: now(),
+    debt_id: null,
+    ...stamp(),
+  }
+  validate(t.workspace_id, tx)
+  return tx
 }
 
 function matches(tx: Transaction, workspaceId: string, f: TransactionFilter) {
@@ -587,6 +639,11 @@ export const guestRepo: DataRepo = {
     commit(before, null, (s) => {
       const repayments = s.repayments.filter((r) => r.transaction_id !== id)
       return {
+        // Like the FK cascade to tontine_payments and the clear_tontine_win trigger.
+        tontinePayments: s.tontinePayments.filter((p) => p.transaction_id !== id),
+        tontines: s.tontines.map((t) =>
+          t.won_transaction_id === id ? { ...t, won_round: null, won_amount: null, won_bid: null, won_on: null, won_transaction_id: null } : t,
+        ),
         repayments,
         debts: s.debts.map((d) =>
           d.id === before.debt_id
@@ -606,6 +663,134 @@ export const guestRepo: DataRepo = {
     doomed.sort((a, b) => b.transaction_date.localeCompare(a.transaction_date))
     for (const tx of doomed) await guestRepo.deleteTransaction(tx.id)
     return doomed.length
+  },
+
+  // --- tontine -------------------------------------------------------------
+
+  async listTontines(workspaceId) {
+    return store
+      .getState()
+      .tontines.filter((t) => t.workspace_id === workspaceId)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  },
+
+  async listTontinePayments(workspaceId) {
+    return store
+      .getState()
+      .tontinePayments.filter((p) => p.workspace_id === workspaceId)
+      .sort((a, b) => a.round_no - b.round_no)
+  },
+
+  async createTontine(workspaceId, input) {
+    validateTontine(workspaceId, input)
+    const tontine: Tontine = {
+      id: uuid(),
+      workspace_id: workspaceId,
+      ...input,
+      won_round: null,
+      won_amount: null,
+      won_bid: null,
+      won_on: null,
+      won_transaction_id: null,
+      closed_at: null,
+      created_by: me().id,
+      created_at: now(),
+    }
+    store.setState((s) => ({ tontines: [...s.tontines, tontine] }))
+    return tontine
+  },
+
+  async updateTontine(id, input) {
+    const current = getTontine(id)
+    validateTontine(current.workspace_id, input)
+    const maxRound = Math.max(0, current.won_round ?? 0, ...store.getState().tontinePayments.filter((p) => p.tontine_id === id).map((p) => p.round_no))
+    if (input.total_rounds < maxRound) throw new Error("round_out_of_range")
+    const next = { ...current, ...input }
+    store.setState((s) => ({ tontines: s.tontines.map((t) => (t.id === id ? next : t)) }))
+    return next
+  },
+
+  async setTontineClosed(id, closed) {
+    getTontine(id)
+    store.setState((s) => ({ tontines: s.tontines.map((t) => (t.id === id ? { ...t, closed_at: closed ? now() : null } : t)) }))
+  },
+
+  async deleteTontine(id) {
+    store.setState((s) => ({
+      tontines: s.tontines.filter((t) => t.id !== id),
+      tontinePayments: s.tontinePayments.filter((p) => p.tontine_id !== id),
+    }))
+  },
+
+  // Mirrors public.pay_tontine_round().
+  async payTontineRound(input) {
+    const t = getTontine(input.tontine_id)
+    if (!(input.amount > 0)) throw new Error("amount must be positive")
+    if (input.round_no < 1 || input.round_no > t.total_rounds) throw new Error("round_out_of_range")
+    if (input.round_no === t.won_round) throw new Error("round_is_won")
+    if (store.getState().tontinePayments.some((p) => p.tontine_id === t.id && p.round_no === input.round_no)) {
+      throw new Error("round_paid")
+    }
+    const tx = input.wallet_id
+      ? tontineTransaction(t, input.wallet_id, "PAY", input.amount, input.exchange_rate, input.paid_on, input.note, input.round_no)
+      : null
+    const payment: TontinePayment = {
+      id: uuid(),
+      tontine_id: t.id,
+      workspace_id: t.workspace_id,
+      round_no: input.round_no,
+      amount: input.amount,
+      discount: Math.max(0, input.discount),
+      paid_on: input.paid_on,
+      transaction_id: tx?.id ?? null,
+      created_at: now(),
+    }
+    if (tx) commit(null, tx, (s) => ({ tontinePayments: [...s.tontinePayments, payment] }))
+    else store.setState((s) => ({ tontinePayments: [...s.tontinePayments, payment] }))
+    return payment
+  },
+
+  // Mirrors public.collect_tontine().
+  async collectTontine(input) {
+    const t = getTontine(input.tontine_id)
+    if (t.won_round !== null) throw new Error("already_won")
+    if (!(input.amount > 0)) throw new Error("amount must be positive")
+    if (input.round_no < 1 || input.round_no > t.total_rounds) throw new Error("round_out_of_range")
+    if (store.getState().tontinePayments.some((p) => p.tontine_id === t.id && p.round_no === input.round_no)) {
+      throw new Error("round_paid")
+    }
+    const tx = input.wallet_id
+      ? tontineTransaction(t, input.wallet_id, "COLLECT", input.amount, input.exchange_rate, input.received_on, input.note, input.round_no)
+      : null
+    const next: Tontine = {
+      ...t,
+      won_round: input.round_no,
+      won_amount: input.amount,
+      won_bid: input.bid && input.bid > 0 ? input.bid : null,
+      won_on: input.received_on,
+      won_transaction_id: tx?.id ?? null,
+    }
+    const extra = (s: GuestState) => ({ tontines: s.tontines.map((x) => (x.id === t.id ? next : x)) })
+    if (tx) commit(null, tx, extra)
+    else store.setState(extra(store.getState()))
+    return next
+  },
+
+  async deleteTontinePayment(id) {
+    const payment = store.getState().tontinePayments.find((p) => p.id === id)
+    if (!payment) throw new Error("Payment not found")
+    if (payment.transaction_id) await guestRepo.deleteTransaction(payment.transaction_id)
+    else store.setState((s) => ({ tontinePayments: s.tontinePayments.filter((p) => p.id !== id) }))
+  },
+
+  async undoTontineWin(tontineId) {
+    const t = getTontine(tontineId)
+    if (t.won_transaction_id) await guestRepo.deleteTransaction(t.won_transaction_id)
+    else {
+      store.setState((s) => ({
+        tontines: s.tontines.map((x) => (x.id === t.id ? { ...x, won_round: null, won_amount: null, won_bid: null, won_on: null } : x)),
+      }))
+    }
   },
 
   // --- debts ---------------------------------------------------------------

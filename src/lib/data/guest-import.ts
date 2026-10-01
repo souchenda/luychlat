@@ -16,7 +16,7 @@ import type { Transaction, Workspace, WorkspaceType } from "./types"
  * a guest Family workspace becomes the user's own family workspace.
  */
 
-export type GuestSummary = { wallets: number; transactions: number; debts: number; budgets: number }
+export type GuestSummary = { wallets: number; transactions: number; debts: number; budgets: number; tontines: number }
 
 export function guestSummary(data: GuestData = currentGuestData()): GuestSummary {
   return {
@@ -24,10 +24,11 @@ export function guestSummary(data: GuestData = currentGuestData()): GuestSummary
     transactions: data.transactions.length,
     debts: data.debts.length,
     budgets: data.budgets?.length ?? 0,
+    tontines: data.tontines?.length ?? 0,
   }
 }
 
-export const hasGuestData = (s: GuestSummary) => s.wallets + s.transactions + s.debts + s.budgets > 0
+export const hasGuestData = (s: GuestSummary) => s.wallets + s.transactions + s.debts + s.budgets + s.tontines > 0
 
 export type ImportPayload = {
   categories: unknown[]
@@ -130,7 +131,18 @@ export function buildImportPayload(
   }
 }
 
-export type ImportResult = Record<"categories" | "wallets" | "transactions" | "debts" | "repayments" | "budgets", number>
+/** Tontines of one guest workspace (ids kept; see public.import_guest_tontines). */
+export function buildTontinePayload(data: GuestData, workspaceId: string) {
+  const tontines = (data.tontines ?? []).filter((t) => t.workspace_id === workspaceId)
+  const ids = new Set(tontines.map((t) => t.id))
+  return {
+    // workspace_id/created_by are set by the account side.
+    tontines,
+    payments: (data.tontinePayments ?? []).filter((p) => ids.has(p.tontine_id)),
+  }
+}
+
+export type ImportResult = Record<"categories" | "wallets" | "transactions" | "debts" | "repayments" | "budgets" | "tontines", number>
 
 /** Imports everything, then clears Guest Mode data on this device. */
 export async function importGuestData(supabase: SupabaseClient, userId: string): Promise<ImportResult> {
@@ -147,10 +159,11 @@ export async function importGuestData(supabase: SupabaseClient, userId: string):
     receiptPaths.set(tx.receipt_url, blob ? await repo.uploadReceipt(blob).catch(() => null) : null)
   }
 
-  const total: ImportResult = { categories: 0, wallets: 0, transactions: 0, debts: 0, repayments: 0, budgets: 0 }
+  const total: ImportResult = { categories: 0, wallets: 0, transactions: 0, debts: 0, repayments: 0, budgets: 0, tontines: 0 }
   for (const guest of data.workspaces) {
     const payload = buildImportPayload(data, guest.id, receiptPaths)
-    if (!payload.wallets.length && !payload.debts.length && !payload.budgets.length) continue
+    const tontinePayload = buildTontinePayload(data, guest.id)
+    if (!payload.wallets.length && !payload.debts.length && !payload.budgets.length && !tontinePayload.tontines.length) continue
     let target: Workspace | undefined = own(guest.type)
     if (!target && guest.type === "FAMILY") {
       target = await repo.createFamilyWorkspace(guest.name)
@@ -160,6 +173,11 @@ export async function importGuestData(supabase: SupabaseClient, userId: string):
     const { data: result, error } = await supabase.rpc("import_guest_data", { p_workspace_id: target.id, p_data: payload })
     if (error) throw error
     for (const key of Object.keys(total) as (keyof ImportResult)[]) total[key] += Number((result as ImportResult)[key] ?? 0)
+    if (tontinePayload.tontines.length) {
+      const tontines = await supabase.rpc("import_guest_tontines", { p_workspace_id: target.id, p_data: tontinePayload })
+      if (tontines.error) throw tontines.error
+      total.tontines += Number(tontines.data ?? 0)
+    }
   }
 
   await clearGuestData()

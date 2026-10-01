@@ -16,6 +16,11 @@ import type {
   EntryInput,
   RepaymentInput,
   TelegramSettings,
+  Tontine,
+  TontineCollectInput,
+  TontineInput,
+  TontinePayInput,
+  TontinePayment,
   Transaction,
   TransactionFilter,
   TransferInput,
@@ -103,6 +108,25 @@ export interface DataRepo {
    * the number of rows removed.
    */
   deleteTransactionsInRange(workspaceId: string, from: string, to: string): Promise<number>
+
+  // --- tontine (តុងទីន) ----------------------------------------------------
+  /** Newest first. */
+  listTontines(workspaceId: string): Promise<Tontine[]>
+  /** Every paid round of the workspace's tontines. */
+  listTontinePayments(workspaceId: string): Promise<TontinePayment[]>
+  createTontine(workspaceId: string, input: TontineInput): Promise<Tontine>
+  updateTontine(id: string, input: TontineInput): Promise<Tontine>
+  setTontineClosed(id: string, closed: boolean): Promise<void>
+  /** Removes it and its rounds; ledger rows stay (unlinked). */
+  deleteTontine(id: string): Promise<void>
+  /** Records the round and, with a wallet, the expense (public.pay_tontine_round). */
+  payTontineRound(input: TontinePayInput): Promise<TontinePayment>
+  /** Won the bid: records the pot and, with a wallet, the income (public.collect_tontine). */
+  collectTontine(input: TontineCollectInput): Promise<Tontine>
+  /** Removes a paid round; its expense (if any) is deleted and the wallet refunded. */
+  deleteTontinePayment(id: string): Promise<void>
+  /** Back to កូនរស់; the pot income (if any) is deleted. */
+  undoTontineWin(tontineId: string): Promise<void>
 
   listDebts(workspaceId: string): Promise<Debt[]>
   /** With `disbursement`, also moves the money (deposit borrowed / pay out lent funds). */

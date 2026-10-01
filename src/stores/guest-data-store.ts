@@ -8,12 +8,15 @@ import type {
   Debt,
   DebtRepayment,
   TelegramSettings,
+  Tontine,
+  TontinePayment,
   Transaction,
   Wallet,
   Workspace,
   WorkspaceInvite,
   WorkspaceMember,
 } from "@/lib/data/types"
+import { TONTINE_CATEGORY_PRESETS } from "@/lib/categories/presets"
 import { uuid } from "@/lib/uuid"
 
 /** Guest Mode database: lives only in this browser's localStorage (receipt images in IndexedDB). */
@@ -33,6 +36,8 @@ type GuestDataState = {
   /** Demo invite codes (nobody else can redeem them in Guest Mode). */
   invites: WorkspaceInvite[]
   budgets: Budget[]
+  tontines: Tontine[]
+  tontinePayments: TontinePayment[]
   /** Workspaces whose preset categories were already seeded (so deleting them all doesn't re-seed). */
   seededWorkspaceIds: string[]
   clear: () => void
@@ -50,6 +55,8 @@ const empty = {
   members: [],
   invites: [],
   budgets: [],
+  tontines: [],
+  tontinePayments: [],
   seededWorkspaceIds: [],
 }
 
@@ -65,7 +72,7 @@ export const useGuestDataStore = create<GuestDataState>()(
     }),
     {
       name: "luysmart-guest-data",
-      version: 5,
+      version: 6,
       migrate: (persisted, version) => {
         let state = persisted as Partial<GuestDataState>
         if (version < 2) state = { ...state, categories: [], seededWorkspaceIds: [] }
@@ -100,6 +107,26 @@ export const useGuestDataStore = create<GuestDataState>()(
             repayments: (state.repayments ?? []).map((r) => ({ ...r, ...attribution })),
             notifications: (state.notifications ?? []).map((n) => ({ ...n, user_id: null, transaction_id: null, actor_name: null })),
           }
+        }
+        if (version < 6) {
+          // Tontine, and its two default categories in workspaces already seeded.
+          const categories = [...(state.categories ?? [])]
+          for (const workspaceId of state.seededWorkspaceIds ?? []) {
+            for (const p of Object.values(TONTINE_CATEGORY_PRESETS)) {
+              if (categories.some((c) => c.workspace_id === workspaceId && c.preset_key === p.key)) continue
+              categories.push({
+                id: uuid(),
+                workspace_id: workspaceId,
+                name: p.name.km,
+                type: p.type,
+                icon: p.icon,
+                color: p.color,
+                preset_key: p.key,
+                created_at: new Date().toISOString(),
+              })
+            }
+          }
+          state = { ...state, categories, tontines: [], tontinePayments: [] }
         }
         return state as GuestDataState
       },
