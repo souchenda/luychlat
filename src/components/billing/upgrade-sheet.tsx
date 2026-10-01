@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { CheckIcon, CopyIcon, CrownIcon, Loader2Icon, MinusIcon, XIcon } from "lucide-react"
+import { CheckIcon, CopyIcon, CrownIcon, LifeBuoyIcon, Loader2Icon, MinusIcon, XIcon } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -272,6 +273,14 @@ export function UpgradeSheet() {
               </Button>
               <p className="text-center text-xs text-muted-foreground">{t("upgrade.reviewHint")}</p>
             </form>
+            <Link
+              href="/support?category=PAYMENT&from=upgrade"
+              onClick={close}
+              className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground underline-offset-4 hover:underline"
+            >
+              <LifeBuoyIcon className="size-3.5" aria-hidden />
+              {t("upgrade.needHelp")}
+            </Link>
 
             {pending.length > 0 && (
               <ul className="space-y-1.5">

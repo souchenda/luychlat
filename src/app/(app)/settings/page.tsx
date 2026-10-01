@@ -1,6 +1,6 @@
 "use client"
 
-import { BookOpenIcon, ChartColumnIcon, ChevronRightIcon, CloudUploadIcon, CoinsIcon, TargetIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import { BookOpenIcon, ChartColumnIcon, LifeBuoyIcon, ChevronRightIcon, CloudUploadIcon, CoinsIcon, TargetIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -274,6 +274,11 @@ export default function SettingsPage() {
       <Section title={t("settings.help")}>
         <Link href="/guide" className="block hover:bg-muted/60">
           <Row icon={<BookOpenIcon />} title={t("guide.title")} hint={t("guide.settingsHint")}>
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Row>
+        </Link>
+        <Link href="/support" className="block hover:bg-muted/60">
+          <Row icon={<LifeBuoyIcon />} title={t("support.title")} hint={t("support.settingsHint")}>
             <ChevronRightIcon className="size-4 text-muted-foreground" />
           </Row>
         </Link>

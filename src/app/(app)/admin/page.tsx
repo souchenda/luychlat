@@ -7,6 +7,7 @@ import {
   CheckIcon,
   CrownIcon,
   GiftIcon,
+  LifeBuoyIcon,
   Loader2Icon,
   SearchIcon,
   ShieldAlertIcon,
@@ -533,6 +534,161 @@ function PaymentInstructionsForm() {
   )
 }
 
+type AdminTicket = {
+  id: string
+  user_id: string
+  email: string | null
+  display_name: string | null
+  plan_code: string
+  category: string
+  message: string
+  contact: string | null
+  context: Record<string, unknown>
+  status: string
+  admin_reply: string | null
+  created_at: string
+}
+
+function TicketRow({ ticket }: { ticket: AdminTicket }) {
+  const t = useT()
+  const invalidate = useInvalidateAdmin()
+  const [reply, setReply] = useState("")
+  const update = useMutation({
+    mutationFn: (status: string) => rpc("admin_update_ticket", { p_ticket_id: ticket.id, p_status: status, p_reply: reply }),
+    onSuccess: () => {
+      setReply("")
+      toast.success(t("admin.saved"))
+      void invalidate()
+    },
+    onError: () => toast.error(t("common.error")),
+  })
+  return (
+    <div className="space-y-2 px-4 py-3">
+      <div className="flex items-center gap-2 text-xs">
+        <span className="font-semibold">{t(`support.category.${ticket.category}` as MessageKey)}</span>
+        <span className="text-muted-foreground">{ago(ticket.created_at)}</span>
+        <span className="ml-auto rounded-full bg-muted px-2 py-0.5">{t(`support.status.${ticket.status}` as MessageKey)}</span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {who(ticket)} · {ticket.plan_code}
+        {ticket.contact && <span className="font-medium text-foreground"> · {ticket.contact}</span>}
+        {typeof ticket.context?.from === "string" && <span> · {ticket.context.from}</span>}
+      </p>
+      <p className="text-sm whitespace-pre-line">{ticket.message}</p>
+      {ticket.admin_reply && <p className="rounded-lg bg-primary/5 p-2 text-xs whitespace-pre-line">↳ {ticket.admin_reply}</p>}
+      <Textarea rows={2} maxLength={2000} value={reply} onChange={(e) => setReply(e.target.value)} placeholder={t("admin.replyPlaceholder")} aria-label={t("admin.replyPlaceholder")} />
+      <div className="grid grid-cols-2 gap-2">
+        <Button size="sm" variant="outline" disabled={update.isPending} onClick={() => update.mutate("IN_PROGRESS")}>
+          {t("admin.ticketWorking")}
+        </Button>
+        <Button size="sm" disabled={update.isPending} onClick={() => update.mutate("RESOLVED")}>
+          <CheckIcon />
+          {t("admin.ticketResolve")}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function SupportTickets() {
+  const t = useT()
+  const [status, setStatus] = useState("active")
+  const { data } = useQuery({
+    queryKey: ["admin", "tickets", status],
+    queryFn: () => rpc<AdminTicket[]>("admin_list_tickets", { p_status: status, p_limit: 50 }),
+    refetchInterval: 60_000,
+  })
+  return (
+    <Section
+      title={t("admin.tickets")}
+      icon={<LifeBuoyIcon />}
+      action={
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger size="sm" className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {["active", "RESOLVED", "CLOSED", "all"].map((s) => (
+              <SelectItem key={s} value={s}>
+                {t(`admin.ticketFilter.${s}` as MessageKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      }
+    >
+      <Card className="gap-0 divide-y py-0">
+        {!data?.length ? (
+          <p className="px-4 py-4 text-sm text-muted-foreground">{t("admin.noTickets")}</p>
+        ) : (
+          data.map((ticket) => <TicketRow key={ticket.id} ticket={ticket} />)
+        )}
+      </Card>
+    </Section>
+  )
+}
+
+type Contacts = { telegram_url?: string; community_url?: string; phone?: string; hours?: string }
+
+function SupportContactsForm() {
+  const t = useT()
+  const queryClient = useQueryClient()
+  const { data } = useQuery({ queryKey: ["support-contacts"], queryFn: () => rpc<Contacts>("support_contacts") })
+  const [form, setForm] = useState<Contacts>({})
+  useEffect(() => {
+    if (data) setForm(data)
+  }, [data])
+  const save = useMutation({
+    mutationFn: () => rpc("admin_set_support_contacts", { p_value: form }),
+    onSuccess: () => {
+      toast.success(t("admin.saved"))
+      void queryClient.invalidateQueries({ queryKey: ["support-contacts"] })
+    },
+    onError: () => toast.error(t("admin.contactsInvalid")),
+  })
+  const field = (key: keyof Contacts) => ({
+    value: form[key] ?? "",
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [key]: e.target.value })),
+  })
+  return (
+    <Section title={t("admin.supportContacts")} icon={<LifeBuoyIcon />}>
+      <Card className="px-4 py-4">
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            save.mutate()
+          }}
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="sc-tg">{t("admin.supportTelegram")}</Label>
+            <Input id="sc-tg" placeholder="https://t.me/luysmart_support" inputMode="url" {...field("telegram_url")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="sc-community">{t("admin.supportCommunity")}</Label>
+            <Input id="sc-community" placeholder="https://t.me/+xxxxxxxx" inputMode="url" {...field("community_url")} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="sc-phone">{t("admin.supportPhone")}</Label>
+              <Input id="sc-phone" placeholder="+855 12 345 678" inputMode="tel" {...field("phone")} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sc-hours">{t("admin.supportHours")}</Label>
+              <Input id="sc-hours" placeholder="8:00–20:00" maxLength={80} {...field("hours")} />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("admin.supportNotifyHint")}</p>
+          <Button type="submit" className="w-full" disabled={save.isPending}>
+            {t("common.save")}
+          </Button>
+        </form>
+      </Card>
+    </Section>
+  )
+}
+
+
 export default function AdminPage() {
   const t = useT()
   const { plan, loading } = usePlan()
@@ -552,9 +708,11 @@ export default function AdminPage() {
       <h1 className="text-2xl font-bold">{t("admin.title")}</h1>
       <AnalyticsCard />
       <PendingPayments />
+      <SupportTickets />
       <Subscribers />
       <ReferralStatsCard />
       <PaymentInstructionsForm />
+      <SupportContactsForm />
     </div>
   )
 }

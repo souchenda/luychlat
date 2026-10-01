@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, BotIcon, ChevronDownIcon, CrownIcon, ListChecksIcon, ReceiptTextIcon, ScaleIcon, SearchIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftIcon, BotIcon, ChevronDownIcon, ChevronRightIcon, CrownIcon, LifeBuoyIcon, ReceiptTextIcon, ScaleIcon, SearchIcon, WalletIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -89,10 +89,11 @@ export default function GuidePage() {
         )
       })}
 
-      <Card className="flex-row items-center gap-3 px-4 py-4">
-        <ListChecksIcon className="size-5 shrink-0 text-primary" aria-hidden />
-        <p className="flex-1 text-sm text-muted-foreground">{t("guide.stillStuck")}</p>
-      </Card>
+      <Link href="/support" className="flex items-center gap-3 rounded-xl border bg-card px-4 py-4 transition-colors hover:bg-muted/60">
+        <LifeBuoyIcon className="size-5 shrink-0 text-primary" aria-hidden />
+        <span className="flex-1 text-sm">{t("guide.stillStuck")}</span>
+        <ChevronRightIcon className="size-4 text-muted-foreground" />
+      </Link>
     </div>
   )
 }
