@@ -43,7 +43,17 @@ export function EmailLogin({ disabled }: { disabled?: boolean }) {
       const { error } = await supabase.auth.signInWithPassword({ email: address, password })
       setBusy(false)
       // On success the AuthListener picks up the session and the login page redirects.
-      if (error) setError(/confirm/i.test(error.message) ? t("login.emailUnconfirmed") : t("login.emailError"))
+      if (error) {
+        const code = "code" in error ? String(error.code ?? "") : ""
+        const known =
+          code === "invalid_credentials"
+            ? t("login.emailError")
+            : code === "email_not_confirmed" || /confirm/i.test(error.message)
+              ? t("login.emailUnconfirmed")
+              : t("login.signinFailed")
+        // Show Supabase's own reason too, so a setup problem is visible instead of looking like a wrong password.
+        setError(`${known} (${code || error.status || "error"}: ${error.message})`)
+      }
       return
     }
     const { data, error } = await supabase.auth.signUp({
