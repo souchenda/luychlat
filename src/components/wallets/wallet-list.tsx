@@ -39,7 +39,7 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: Wa
         const other = wallet.currency === "USD" ? "KHR" : "USD"
         const content = (
           <>
-            <WalletAvatar icon={wallet.icon} color={wallet.color} />
+            <WalletAvatar icon={wallet.icon} color={wallet.color} name={wallet.name} />
             <span className="min-w-0 flex-1 text-left">
               <span className="block truncate text-sm font-medium">{wallet.name}</span>
               <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">

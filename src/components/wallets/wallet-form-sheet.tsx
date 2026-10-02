@@ -1,10 +1,26 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArchiveIcon, ArchiveRestoreIcon, ChevronRightIcon, CrownIcon, FileSpreadsheetIcon, LockIcon, Loader2Icon, ScaleIcon, Trash2Icon, UserIcon, UsersIcon } from "lucide-react"
+import {
+  ArchiveIcon,
+  ArchiveRestoreIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  CrownIcon,
+  FileSpreadsheetIcon,
+  LockIcon,
+  Loader2Icon,
+  PencilLineIcon,
+  PlusIcon,
+  ScaleIcon,
+  SearchIcon,
+  Trash2Icon,
+  UserIcon,
+  UsersIcon,
+} from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
@@ -21,7 +37,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { parseAmount, roundMoney } from "@/lib/money"
 import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
-import { getProvider, WALLET_PROVIDERS } from "@/lib/wallets/providers"
+import { getProvider, POPULAR_PROVIDERS, searchProviders } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
 
 import { ReconcileSheet } from "./reconcile-sheet"
@@ -44,6 +60,103 @@ type WalletFormSheetProps = {
   wallet?: Wallet | null
   /** True when the wallet has transactions (currency becomes read-only). */
   hasHistory?: boolean
+}
+
+type Locale = "km" | "en"
+
+function ProviderTile({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex flex-col items-center gap-1.5 rounded-xl border p-2 text-[11px] leading-tight transition-colors",
+        active ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted",
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+/**
+ * Bank / wallet picker: the popular ones first, "More" opens every bank with a
+ * search box, and "Type a name" covers anything not listed.
+ */
+function ProviderPicker({ value, name, locale, onPick }: { value: string; name: string; locale: Locale; onPick: (key: string) => void }) {
+  const t = useT()
+  const [showAll, setShowAll] = useState(false)
+  const [query, setQuery] = useState("")
+  const pick = (key: string) => {
+    onPick(key)
+    setShowAll(false)
+    setQuery("")
+  }
+
+  if (showAll) {
+    const results = searchProviders(query)
+    return (
+      <div className="space-y-2 rounded-xl border p-2">
+        <div className="relative">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("walletForm.search")}
+            className="h-10 pl-9"
+            aria-label={t("walletForm.search")}
+          />
+        </div>
+        <div className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto p-0.5">
+          {results.map((p) => (
+            <ProviderTile key={p.key} active={value === p.key} onClick={() => pick(p.key)}>
+              <WalletAvatar icon={p.key} className="size-9" />
+              <span className="line-clamp-2 text-center">{p.name[locale]}</span>
+            </ProviderTile>
+          ))}
+          <ProviderTile active={value === "other"} onClick={() => pick("other")}>
+            <span className="flex size-9 items-center justify-center rounded-xl border-2 border-dashed text-muted-foreground">
+              <PencilLineIcon className="size-4" aria-hidden />
+            </span>
+            <span className="line-clamp-2 text-center">{t("walletForm.custom")}</span>
+          </ProviderTile>
+        </div>
+        {results.length === 0 && <p className="px-1 text-xs text-muted-foreground">{t("walletForm.noMatch", { q: query.trim() })}</p>}
+        <button type="button" onClick={() => setShowAll(false)} className="flex w-full items-center justify-center gap-1 py-1 text-sm text-primary">
+          <ChevronUpIcon className="size-4" aria-hidden />
+          {t("walletForm.showLess")}
+        </button>
+      </div>
+    )
+  }
+
+  // The chosen bank stays visible even when it is not one of the popular ones.
+  const keys = POPULAR_PROVIDERS.includes(value) ? POPULAR_PROVIDERS : [...POPULAR_PROVIDERS, value]
+  return (
+    <div className="space-y-1.5">
+      <div className="grid grid-cols-4 gap-2">
+        {keys.map((key) => {
+          const p = getProvider(key)
+          const custom = key === "other"
+          return (
+            <ProviderTile key={key} active={value === key} onClick={() => pick(key)}>
+              <WalletAvatar icon={key} name={custom ? name : undefined} className="size-9" />
+              <span className="line-clamp-1">{custom ? name.trim() || t("walletForm.custom") : p.name[locale]}</span>
+            </ProviderTile>
+          )
+        })}
+        <ProviderTile active={false} onClick={() => setShowAll(true)}>
+          <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-foreground">
+            <PlusIcon className="size-5" aria-hidden />
+          </span>
+          <span className="line-clamp-1 font-medium text-primary">{t("walletForm.more")}</span>
+        </ProviderTile>
+      </div>
+      <p className="text-xs text-muted-foreground">{t("walletForm.customHint")}</p>
+    </div>
+  )
 }
 
 export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHistory }: WalletFormSheetProps) {
@@ -75,7 +188,9 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
       : { icon: "cash", name: getProvider("cash").name[locale], currency: "USD", balance: "", visibility: "SHARED" }
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults() })
-  const { register, control, handleSubmit, setValue, getValues, reset, formState } = form
+  const { register, control, handleSubmit, setValue, getValues, reset, setFocus, formState } = form
+  const icon = useWatch({ control, name: "icon" })
+  const name = useWatch({ control, name: "name" })
 
   useEffect(() => {
     if (open) reset(defaults())
@@ -164,34 +279,28 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
         <fieldset disabled={othersPersonal} className="space-y-5">
         <div className="space-y-2">
           <Label>{t("walletForm.provider")}</Label>
-          <Controller
-            control={control}
-            name="icon"
-            render={({ field }) => (
-              <div className="grid grid-cols-4 gap-2">
-                {WALLET_PROVIDERS.map((p) => (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => pickProvider(p.key)}
-                    aria-pressed={field.value === p.key}
-                    className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-xl border p-2 text-[11px] leading-tight transition-colors",
-                      field.value === p.key ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted",
-                    )}
-                  >
-                    <WalletAvatar icon={p.key} className="size-9" />
-                    <span className="line-clamp-1">{p.name[locale]}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+          <ProviderPicker
+            value={icon}
+            name={name}
+            locale={locale}
+            onPick={(key) => {
+              pickProvider(key)
+              // "Type a name": go straight to the name field.
+              if (key === "other") window.setTimeout(() => setFocus("name"), 50)
+            }}
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="wallet-name">{t("walletForm.name")}</Label>
-          <Input id="wallet-name" className="h-11" maxLength={60} {...register("name")} aria-invalid={Boolean(formState.errors.name)} />
+          <Input
+            id="wallet-name"
+            className="h-11"
+            maxLength={60}
+            placeholder={icon === "other" ? t("walletForm.customPlaceholder") : undefined}
+            {...register("name")}
+            aria-invalid={Boolean(formState.errors.name)}
+          />
           {formState.errors.name && <p className="text-sm text-destructive">{errorText(formState.errors.name.message)}</p>}
         </div>
 

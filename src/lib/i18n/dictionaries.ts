@@ -1191,6 +1191,13 @@ const km = {
   "nav.referHint": "ទទួលបាន PRO ឥតគិតថ្លៃ ៧ ថ្ងៃ",
   "nav.add": "កត់ត្រា",
   "nav.group.accounts": "កាបូប និងបំណុល",
+  "walletForm.more": "ច្រើនទៀត",
+  "walletForm.search": "ស្វែងរកធនាគារ ឬកាបូប…",
+  "walletForm.custom": "វាយឈ្មោះខ្លួនឯង",
+  "walletForm.customHint": "មិនឃើញធនាគាររបស់អ្នក? ចុច «ច្រើនទៀត» ឬ «វាយឈ្មោះខ្លួនឯង»។",
+  "walletForm.customPlaceholder": "ឧ. ធនាគារ ABC, ប្រអប់សន្សំ",
+  "walletForm.showLess": "បង្ហាញតិចវិញ",
+  "walletForm.noMatch": "រកមិនឃើញ «{q}» — ចុច «វាយឈ្មោះខ្លួនឯង»",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -2386,6 +2393,13 @@ const en: Record<MessageKey, string> = {
   "nav.referHint": "Get 7 days of PRO free",
   "nav.add": "Add",
   "nav.group.accounts": "Wallets & debts",
+  "walletForm.more": "More",
+  "walletForm.search": "Search banks and wallets…",
+  "walletForm.custom": "Type a name",
+  "walletForm.customHint": "Bank not shown? Tap “More”, or “Type a name”.",
+  "walletForm.customPlaceholder": "e.g. ABC Bank, savings box",
+  "walletForm.showLess": "Show less",
+  "walletForm.noMatch": "No match for “{q}” — tap “Type a name”",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

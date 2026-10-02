@@ -168,7 +168,7 @@ export default function DebtDetailPage() {
               const wallet = walletById.get(r.wallet_id)
               return (
                 <div key={r.id} className="flex items-center gap-3 px-4 py-3">
-                  <WalletAvatar icon={wallet?.icon ?? null} color={wallet?.color} className="size-9 text-[10px]" />
+                  <WalletAvatar icon={wallet?.icon ?? null} color={wallet?.color} name={wallet?.name} className="size-9 text-[10px]" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">{fmtDate(r.payment_date)}</p>
                     <p className="truncate text-xs text-muted-foreground">

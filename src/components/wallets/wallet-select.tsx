@@ -27,7 +27,7 @@ export function WalletSelect({
       <SelectContent>
         {wallets.map((w) => (
           <SelectItem key={w.id} value={w.id} className="py-2">
-            <WalletAvatar icon={w.icon} color={w.color} className="size-8 text-[10px]" />
+            <WalletAvatar icon={w.icon} color={w.color} name={w.name} className="size-8 text-[10px]" />
             <span className="flex flex-col items-start">
               <span>{w.name}</span>
               <Amount value={w.balance} currency={w.currency} className="text-xs text-muted-foreground" />

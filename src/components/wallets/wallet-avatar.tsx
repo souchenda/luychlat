@@ -1,7 +1,7 @@
 import { BanknoteIcon, WalletIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { getProvider } from "@/lib/wallets/providers"
+import { getProvider, nameMark } from "@/lib/wallets/providers"
 
 /** Dark text on light brand colours (e.g. Wing's lime), white otherwise. */
 function textColorFor(hex: string): string {
@@ -10,8 +10,20 @@ function textColorFor(hex: string): string {
   return luminance > 0.6 ? "#1a2e05" : "#ffffff"
 }
 
-export function WalletAvatar({ icon, color, className }: { icon: string | null; color?: string | null; className?: string }) {
+/** Brand mark for known banks; for a wallet the user named themselves ("Other"), the first letters of its name. */
+export function WalletAvatar({
+  icon,
+  color,
+  name,
+  className,
+}: {
+  icon: string | null
+  color?: string | null
+  name?: string
+  className?: string
+}) {
   const provider = getProvider(icon)
+  const custom = provider.key === "other" && name ? nameMark(name) : ""
   const background = color ?? provider.color
   return (
     <span
@@ -22,7 +34,7 @@ export function WalletAvatar({ icon, color, className }: { icon: string | null; 
       style={{ backgroundColor: background, color: textColorFor(background) }}
       aria-hidden
     >
-      {provider.mark || (provider.key === "cash" ? <BanknoteIcon className="size-5" /> : <WalletIcon className="size-5" />)}
+      {custom || provider.mark || (provider.key === "cash" ? <BanknoteIcon className="size-5" /> : <WalletIcon className="size-5" />)}
     </span>
   )
 }
