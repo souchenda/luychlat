@@ -23,14 +23,8 @@ import {
 } from "@/lib/data/hooks"
 import type { Transaction, TransactionFilter, Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
-import { usePrefsStore } from "@/stores/prefs-store"
+import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
-import { portfolio } from "@/lib/gold"
-import { useGoldHoldings, useGoldRates } from "@/lib/gold-data"
-import { assetsTotalUsd } from "@/lib/assets"
-import { usePhysicalAssets } from "@/lib/assets-data"
-import { investmentTotals } from "@/lib/investments"
-import { useInvestments, useMarketPrices } from "@/lib/investments-data"
 
 const RECENT_TRANSFERS: TransactionFilter = { type: "TRANSFER", limit: 10 }
 
@@ -39,16 +33,8 @@ export default function WalletsPage() {
   const { workspace } = useActiveWorkspace()
   const editable = canWrite(workspace)
   const walletsQuery = useWallets(workspace?.id)
-  // Net worth here matches Home: gold at today's market rate is included.
-  const khrRate = usePrefsStore((st) => st.khrPerUsd)
-  const goldHoldings = useGoldHoldings(workspace?.id).data
-  const { rates: goldRates } = useGoldRates()
-  const investments = useInvestments(workspace?.id).data
-  const { prices: marketPrices } = useMarketPrices()
-  const investValue = useMemo(() => investmentTotals(investments ?? [], marketPrices, khrRate).valueUsd, [investments, marketPrices, khrRate])
-  const physicalAssets = usePhysicalAssets(workspace?.id).data
-  const physicalValue = useMemo(() => assetsTotalUsd(physicalAssets ?? [], khrRate), [physicalAssets, khrRate])
-  const goldValue = useMemo(() => portfolio(goldHoldings ?? [], goldRates, khrRate).value, [goldHoldings, goldRates, khrRate])
+  // Assets (gold, diamonds, stocks & crypto, property) count in net worth.
+  const assets = useAssetsTotal(workspace?.id)
   const transfersQuery = useTransactions(workspace?.id, RECENT_TRANSFERS)
   const categories = useCategories(workspace?.id).data ?? []
   const { reorder } = useWalletMutations(workspace?.id)
@@ -85,7 +71,7 @@ export default function WalletsPage() {
     <div className="space-y-5">
       <h1 className="text-xl font-bold">{t("wallets.title")}</h1>
 
-      <NetWorthCard wallets={all} loading={walletsQuery.isLoading} assetsUsd={goldValue + investValue + physicalValue} />
+      <NetWorthCard wallets={all} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
 
       <div className={editable ? "grid grid-cols-2 gap-2" : "hidden"}>
         <Button className="h-11" onClick={openCreate}>

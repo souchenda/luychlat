@@ -33,13 +33,8 @@ import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useT
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { islamicGreeting, toHijri } from "@/lib/islamic"
+import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
-import { portfolio } from "@/lib/gold"
-import { useGoldHoldings, useGoldRates } from "@/lib/gold-data"
-import { assetsTotalUsd } from "@/lib/assets"
-import { usePhysicalAssets } from "@/lib/assets-data"
-import { investmentTotals } from "@/lib/investments"
-import { useInvestments, useMarketPrices } from "@/lib/investments-data"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
 import { homeGreeting } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
@@ -69,15 +64,8 @@ export default function HomePage() {
   const months = useMemo(() => recentMonths(TREND_MONTHS), [])
   const filter = useMemo(() => ({ from: monthRange(months[0]).from }), [months])
   const walletsQuery = useWallets(ws)
-  // Gold and platinum at today's market rate count in net worth.
-  const goldHoldings = useGoldHoldings(ws).data
-  const { rates: goldRates } = useGoldRates()
-  const investments = useInvestments(ws).data
-  const { prices: marketPrices } = useMarketPrices()
-  const investValue = useMemo(() => investmentTotals(investments ?? [], marketPrices, khrPerUsd).valueUsd, [investments, marketPrices, khrPerUsd])
-  const physicalAssets = usePhysicalAssets(ws).data
-  const physicalValue = useMemo(() => assetsTotalUsd(physicalAssets ?? [], khrPerUsd), [physicalAssets, khrPerUsd])
-  const goldValue = useMemo(() => portfolio(goldHoldings ?? [], goldRates, khrPerUsd).value, [goldHoldings, goldRates, khrPerUsd])
+  // Assets (gold, diamonds, stocks & crypto, property) count in net worth.
+  const assets = useAssetsTotal(ws)
   const categoriesQuery = useCategories(ws)
   const txQuery = useTransactions(ws, filter)
   const debtsQuery = useDebts(ws)
@@ -148,7 +136,7 @@ export default function HomePage() {
         <BusinessTrialTag workspace={workspace} className="mt-1.5" />
       </header>
 
-      <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} assetsUsd={goldValue + investValue + physicalValue} />
+      <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
 
       {workspace?.role === "VIEWER" && (
         <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">

@@ -6,17 +6,17 @@ import { useMemo, useState } from "react"
 
 import { AssetFormSheet } from "@/components/gold/asset-form-sheet"
 import { GoldFormSheet } from "@/components/gold/gold-form-sheet"
+import { DiamondsSection } from "@/components/gold/diamonds-section"
 import { InvestmentsTab } from "@/components/gold/investments-tab"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ASSET_EMOJI, assetEquity, assetsTotalUsd, type PhysicalAsset } from "@/lib/assets"
+import { ASSET_EMOJI, assetEquity, type PhysicalAsset } from "@/lib/assets"
 import { usePhysicalAssets } from "@/lib/assets-data"
 import { canWrite, useActiveWorkspace, useDebts } from "@/lib/data/hooks"
 import { formatWeight, GOLD_KINDS, HUN_PER_CHI, HUN_PER_DAMLUNG, holdingPnl, hunToGrams, portfolio } from "@/lib/gold"
 import { useGoldHoldings, useGoldRates, type GoldHolding } from "@/lib/gold-data"
-import { investmentTotals } from "@/lib/investments"
-import { useInvestments, useMarketPrices } from "@/lib/investments-data"
+import { useAssetsTotal } from "@/lib/assets-total"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
@@ -61,10 +61,8 @@ export default function AssetsPage() {
   const assetsQuery = usePhysicalAssets(ws)
   const assets = useMemo(() => assetsQuery.data ?? [], [assetsQuery.data])
   const debts = useDebts(ws).data ?? []
-  const physicalUsd = assetsTotalUsd(assets, khrPerUsd)
-  const investments = useInvestments(ws).data
-  const { prices: marketPrices } = useMarketPrices()
-  const investUsd = useMemo(() => investmentTotals(investments ?? [], marketPrices, khrPerUsd).valueUsd, [investments, marketPrices, khrPerUsd])
+  // Same total as net worth on Home (gold, diamonds at resale value, investments, property).
+  const all = useAssetsTotal(ws)
   const [active, setActive] = useState<TabKey>(() => {
     if (typeof window === "undefined") return "gold"
     const hash = window.location.hash.slice(1)
@@ -94,9 +92,9 @@ export default function AssetsPage() {
 
       <Card className="gap-1 px-4 py-4">
         <p className="text-sm text-muted-foreground">{t("assets.total")}</p>
-        <p className="text-3xl font-bold tabular-nums">{money(total.value + investUsd + physicalUsd)}</p>
+        <p className="text-3xl font-bold tabular-nums">{money(all.totalUsd)}</p>
         <p className="text-xs text-muted-foreground">
-          🪙 {money(total.value)} · 📈 {money(investUsd)} · 🏠 {money(physicalUsd)} — {t("assets.inNetWorth")}
+          🪙 {money(all.goldUsd)} · 💎 {money(all.diamondUsd)} · 📈 {money(all.investUsd)} · 🏠 {money(all.propertyUsd)} — {t("assets.inNetWorth")}
         </p>
       </Card>
 
@@ -248,6 +246,8 @@ export default function AssetsPage() {
           </section>
 
           <p className="px-1 text-[11px] text-muted-foreground">{t("gold.unitsNote")}</p>
+
+          <DiamondsSection workspaceId={ws} editable={editable} />
         </>
       )}
 
