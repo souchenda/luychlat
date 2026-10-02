@@ -43,7 +43,8 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin) return
   if (url.pathname.startsWith("/auth/") || url.pathname.startsWith("/api/")) return
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/icon.svg") {
+  // Adhan recordings: kept after the first play so prayer alerts sound offline.
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/adhan/") || url.pathname === "/icon.svg") {
     event.respondWith(
       caches.match(request).then(
         (hit) =>

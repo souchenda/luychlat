@@ -163,7 +163,7 @@ export default function ReconcileStatementPage() {
             <input
               ref={inputRef}
               type="file"
-              accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+              accept=".csv,.xlsx,.xls,.pdf,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
               className="sr-only"
               onChange={(e) => pick(e.target.files?.[0])}
               aria-label={t("recon.chooseFile")}

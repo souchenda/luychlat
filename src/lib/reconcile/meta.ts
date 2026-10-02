@@ -26,12 +26,13 @@ export type StatementMeta = {
 }
 
 const LABELS = {
-  accountName: /^(account\s*name|account\s*holder|customer\s*name|name\s*of\s*account|ឈ្មោះគណនី|ឈ្មោះអតិថិជន)\b\s*[:：]?/i,
+  accountName: /^(account\s*name|account\s*holder(\s*name)?|customer\s*name|name\s*of\s*account|ឈ្មោះគណនី|ឈ្មោះអតិថិជន)\b\s*[:：]?/i,
   accountNumber: /^(account\s*(no\.?|number|#)|a\/c\s*(no\.?)?|លេខគណនី)\s*[:：]?/i,
   currency: /^(currency|account\s*currency|រូបិយប័ណ្ណ)\s*[:：]?/i,
-  period: /^(statement\s*period|period|statement\s*date|date\s*range|from\s*date|កាលបរិច្ឆេទ|រយៈពេល)\s*[:：]?/i,
+  period: /^(statement\s*period|for\s*period|period|statement\s*date|date\s*range|from\s*date|from(?=\s+[A-Z0-9])|កាលបរិច្ឆេទ|រយៈពេល)\s*[:：]?/i,
   opening: /^(opening\s*balance|beginning\s*balance|balance\s*brought\s*forward|balance\s*b\/f|previous\s*balance|សមតុល្យដើម(គ្រា)?)\s*[:：]?/i,
-  closing: /^(closing\s*balance|ending\s*balance|balance\s*carried\s*forward|balance\s*c\/f|available\s*balance|សមតុល្យចុង(គ្រា)?)\s*[:：]?/i,
+  // Not "available balance": with an overdraft it differs from the ledger balance.
+  closing: /^(closing\s*balance|ending\s*balance|balance\s*carried\s*forward|balance\s*c\/f|សមតុល្យចុង(គ្រា)?)\s*[:：]?/i,
 }
 
 const clean = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim()
@@ -45,17 +46,31 @@ function valueFor(rows: string[][], label: RegExp): string | null {
       if (!m) continue
       const rest = clean(cell.slice(m[0].length)).replace(/^[:：\-–]\s*/, "")
       if (rest) return rest
-      const next = row.slice(i + 1).map(clean).find(Boolean)
-      if (next) return next.replace(/^[:：]\s*/, "")
+      // Skip a lone ":" cell (ACLEDA puts it in its own column).
+      const next = row
+        .slice(i + 1)
+        .map((c) => clean(c).replace(/^[:：]\s*/, ""))
+        .find(Boolean)
+      if (next) return next
     }
   }
   return null
 }
 
+/**
+ * The issuing bank. Descriptions mention other banks ("ABA Bank KHQR" on an
+ * ACLEDA statement), so the bank's own marks (SWIFT code, legal name, website)
+ * decide first, anywhere in the file; loose mentions only when there are none.
+ */
 export function detectBank(rows: string[][], fileName = ""): BankCode {
-  const text = `${fileName} ${rows.slice(0, 40).map((r) => r.join(" ")).join(" ")}`
-  if (/advanced\s+bank\s+of\s+asia|\bABA\b|ababank/i.test(text)) return "ABA"
-  if (/\bACLEDA\b|អេស៊ីលីដា/i.test(text)) return "ACLEDA"
+  const all = rows.map((r) => r.join(" ")).join(" ")
+  if (/ABAAKHPP/.test(all)) return "ABA"
+  if (/ACLBKHPP/.test(all)) return "ACLEDA"
+  if (/advanced\s+bank\s+of\s+asia|ababank\.com/i.test(all)) return "ABA"
+  if (/acledabank\.com/i.test(all)) return "ACLEDA"
+  const header = `${fileName} ${rows.slice(0, 40).map((r) => r.join(" ")).join(" ")}`
+  if (/\bACLEDA\b|អេស៊ីលីដា/i.test(header)) return "ACLEDA"
+  if (/\bABA\b/i.test(header)) return "ABA"
   return "GENERIC"
 }
 

@@ -109,15 +109,26 @@ export default function WalletsPage() {
         {walletsQuery.isLoading ? (
           <Skeleton className="h-36 w-full rounded-xl" />
         ) : active.length === 0 ? (
-          <button
-            type="button"
-            onClick={openCreate}
-            className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed p-6 text-center hover:bg-muted/50"
-          >
-            <WalletIcon className="size-8 text-muted-foreground" />
-            <span className="font-medium">{t("wallets.empty")}</span>
-            <span className="text-sm text-muted-foreground">{t("wallets.emptyHint")}</span>
-          </button>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={openCreate}
+              className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed p-6 text-center hover:bg-muted/50"
+            >
+              <WalletIcon className="size-8 text-muted-foreground" />
+              <span className="font-medium">{t("wallets.empty")}</span>
+              <span className="text-sm text-muted-foreground">{t("wallets.emptyHint")}</span>
+            </button>
+            {editable && (
+              <Link href="/wallets/import" className="flex items-center gap-3 rounded-xl border bg-primary/5 px-4 py-3 hover:bg-primary/10">
+                <FileUpIcon className="size-5 shrink-0 text-primary" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">{t("stmt.fromBank")}</span>
+                  <span className="block text-xs text-muted-foreground">{t("stmt.fromBankHint")}</span>
+                </span>
+              </Link>
+            )}
+          </div>
         ) : (
           <WalletList wallets={active} onSelect={openEdit} reorderMode={reorderMode} onMove={move} />
         )}

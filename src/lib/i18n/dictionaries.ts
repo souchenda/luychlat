@@ -1659,7 +1659,7 @@ const km = {
   "stmt.point1": "បង្កើតកាបូបជាមួយសមតុល្យពិតប្រាកដ ដោយមិនបាច់វាយបញ្ចូល",
   "stmt.point2": "ការលក់ KHQR ផ្ទេរផ្ទាល់ខ្លួន និងវិក្កយបត្រ ត្រូវបានដាក់ជាក្រុម — យល់ព្រមម្តងចុចម្តង",
   "stmt.point3": "ប្រតិបត្តិការដែលមានរួចហើយ នឹងមិនត្រូវនាំចូលស្ទួនទេ",
-  "stmt.formats": "គាំទ្រ៖ CSV និង Excel (.xlsx)។ PDF កំពុងរៀបចំ។",
+  "stmt.formats": "គាំទ្រ៖ PDF ពីកម្មវិធី ABA / ACLEDA, CSV និង Excel (.xlsx)។",
   "stmt.reading": "កំពុងអានឯកសារ…",
   "stmt.detecting": "កំពុងស្វែងរកព័ត៌មានគណនី…",
   "stmt.detected": "ព័ត៌មានដែលអានបានពីរបាយការណ៍",
@@ -1707,6 +1707,16 @@ const km = {
   "recon.groupHint.EXPENSE": "Transferred to, Purchase at, POS, ATM",
   "recon.groupHint.FEE": "កត់ជា «កម្រៃធនាគារ»",
   "recon.groupHint.REVIEW": "មិនអាចកំណត់ប្រភេទដោយស្វ័យប្រវត្តិ — ជ្រើសម្តងមួយៗ ឬរំលង។",
+  "recon.file.pdf_scanned": "PDF នេះជារូបភាពស្កេន (គ្មានអក្សរ) — មិនអាចអានបានទេ។ សូមទាញយករបាយការណ៍ពីកម្មវិធីធនាគារដោយផ្ទាល់ ឬជា CSV/Excel។",
+  "recon.file.pdf_no_table": "រកមិនឃើញតារាងប្រតិបត្តិការក្នុង PDF នេះទេ។ សូមប្រាកដថាជារបាយការណ៍គណនី (Account Statement)។",
+  "recon.group.TRANSFER_IN": "{count} ប្រាក់ផ្ទេរចូល",
+  "recon.groupHint.TRANSFER_IN": "Funds received from… — ពិនិត្យប្រភេទ មុនយល់ព្រម",
+  "stmt.fromBank": "នាំចូលពីធនាគារ",
+  "stmt.fromBankHint": "ផ្ទុករបាយការណ៍ ABA ឬ ACLEDA (PDF) — កាបូប សមតុល្យ និងប្រតិបត្តិការ នឹងរៀបចំជូនដោយស្វ័យប្រវត្តិ",
+  "prayerAlert.customFile": "ឯកសារពីទូរស័ព្ទ (កម្រិតខ្ពស់)",
+  "prayerAlert.customHint": "MP3/M4A — រក្សាទុកតែលើឧបករណ៍នេះ",
+  "prayerAlert.fajrAdhan": "អាហ្សានស៊ូពុហ៍ពេលស៊ូពុហ៍",
+  "prayerAlert.fajrAdhanHint": "មាន «អាស់សឡាទុ ខៃរុម មីណាន់ណាវម៍» — ចាក់តែពេលស៊ូពុហ៍ប៉ុណ្ណោះ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3370,7 +3380,7 @@ const en: Record<MessageKey, string> = {
   "stmt.point1": "Sets up the wallet with its real balance — nothing to type",
   "stmt.point2": "KHQR sales, own transfers and bills are grouped — approve each group in one tap",
   "stmt.point3": "Transactions already in the app are never imported twice",
-  "stmt.formats": "Supported: CSV and Excel (.xlsx). PDF is coming soon.",
+  "stmt.formats": "Supported: PDF from the ABA / ACLEDA apps, CSV and Excel (.xlsx).",
   "stmt.reading": "Reading the file…",
   "stmt.detecting": "Finding the account details…",
   "stmt.detected": "Read from your statement",
@@ -3418,6 +3428,16 @@ const en: Record<MessageKey, string> = {
   "recon.groupHint.EXPENSE": "Transferred to, Purchase at, POS, ATM",
   "recon.groupHint.FEE": "Recorded as “Bank fee”",
   "recon.groupHint.REVIEW": "Couldn't be sorted automatically — choose a category or skip.",
+  "recon.file.pdf_scanned": "This PDF is a scanned image with no text, so it can't be read. Please download the statement straight from your bank app, or as CSV/Excel.",
+  "recon.file.pdf_no_table": "Couldn't find a transaction table in this PDF. Make sure it's an account statement.",
+  "recon.group.TRANSFER_IN": "{count} transfers received",
+  "recon.groupHint.TRANSFER_IN": "Funds received from… — check the category before approving",
+  "stmt.fromBank": "Import from your bank",
+  "stmt.fromBankHint": "Upload an ABA or ACLEDA statement (PDF) — the wallet, balance and transactions are set up for you",
+  "prayerAlert.customFile": "File from your phone (advanced)",
+  "prayerAlert.customHint": "MP3/M4A — stays on this device",
+  "prayerAlert.fajrAdhan": "Fajr Adhan at Fajr",
+  "prayerAlert.fajrAdhanHint": "Includes “As-salatu khayrun minan-nawm” — played at Fajr only",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

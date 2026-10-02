@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  ArrowDownLeftIcon,
   CheckIcon,
   ChevronDownIcon,
   ClipboardListIcon,
@@ -36,6 +37,7 @@ const NONE = "__none"
 const GROUP_ICON: Record<LineGroup, LucideIcon> = {
   REMEMBERED: HistoryIcon,
   SALES: QrCodeIcon,
+  TRANSFER_IN: ArrowDownLeftIcon,
   OWNER: UserRoundIcon,
   BILLS: ReceiptIcon,
   EXPENSE: ShoppingBagIcon,
@@ -45,6 +47,7 @@ const GROUP_ICON: Record<LineGroup, LucideIcon> = {
 const GROUP_TONE: Record<LineGroup, string> = {
   REMEMBERED: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
   SALES: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  TRANSFER_IN: "bg-teal-500/15 text-teal-600 dark:text-teal-400",
   OWNER: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
   BILLS: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
   EXPENSE: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
@@ -52,7 +55,7 @@ const GROUP_TONE: Record<LineGroup, string> = {
   REVIEW: "bg-muted text-muted-foreground",
 }
 /** Groups whose category the user can change for all lines at once. */
-const PICKABLE: LineGroup[] = ["SALES", "BILLS", "EXPENSE"]
+const PICKABLE: LineGroup[] = ["SALES", "TRANSFER_IN", "BILLS", "EXPENSE"]
 
 const ownerNamesKey = (ws: string) => `luychlat-recon-owner-names-${ws}`
 function loadOwnerNames(ws: string): string[] {

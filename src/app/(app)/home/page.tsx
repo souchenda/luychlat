@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, TargetIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, FileUpIcon, MinusIcon, PlusIcon, ReceiptTextIcon, TargetIcon, WalletIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -206,10 +206,19 @@ export default function HomePage() {
         ) : transactions.length === 0 ? (
           <div className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-2.5">
             <ReceiptTextIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="min-w-0">
+            <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium">{t("recent.empty")}</span>
               <span className="block text-xs text-muted-foreground">{t("recent.emptyHint")}</span>
             </span>
+            {/* New accounts: bring in the history from a bank statement instead of typing it. */}
+            {editable && (
+              <Button asChild size="sm" variant="outline" className="shrink-0">
+                <Link href="/wallets/import">
+                  <FileUpIcon />
+                  {t("stmt.fromBank")}
+                </Link>
+              </Button>
+            )}
           </div>
         ) : (
           <TransactionList

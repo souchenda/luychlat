@@ -1,16 +1,20 @@
 /**
  * Reads a statement file into rows of text, on the device. CSV and Excel
- * (xlsx/xls) go through SheetJS; PDF comes in R2.
+ * (xlsx/xls) go through SheetJS; text PDFs (ABA, ACLEDA…) through pdf.js (pdf.ts).
  */
-export type StatementFile = { rows: string[][]; format: "CSV" | "XLSX"; sha256: string; name: string }
+import { pdfPagesToRows, PdfStatementError, readPdfPages } from "./pdf"
+
+export type StatementFile = { rows: string[][]; format: "CSV" | "XLSX" | "PDF"; sha256: string; name: string }
 
 export class StatementFileError extends Error {
-  constructor(readonly code: "too_large" | "pdf" | "unreadable" | "empty") {
+  constructor(readonly code: "too_large" | "pdf" | "pdf_scanned" | "pdf_no_table" | "unreadable" | "empty") {
     super(code)
   }
 }
 
 const MAX_BYTES = 5 * 1024 * 1024
+// Bank PDFs carry logos and QR images: a month of ABA activity is ~3.5 MB.
+const MAX_PDF_BYTES = 15 * 1024 * 1024
 const MAX_ROWS = 20_000
 
 export async function sha256Hex(data: ArrayBuffer | string): Promise<string> {
@@ -31,11 +35,22 @@ function cellText(value: unknown): string {
 }
 
 export async function readStatementFile(file: File): Promise<StatementFile> {
-  if (file.size > MAX_BYTES) throw new StatementFileError("too_large")
+  if (file.size > MAX_PDF_BYTES) throw new StatementFileError("too_large")
   const buffer = await file.arrayBuffer()
   const head = new Uint8Array(buffer.slice(0, 8))
   const isPdf = head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46 // %PDF
-  if (isPdf) throw new StatementFileError("pdf")
+  if (isPdf) {
+    // Hash first: pdf.js may take over (detach) the buffer it reads.
+    const sha256 = await sha256Hex(buffer)
+    try {
+      const rows = pdfPagesToRows(await readPdfPages(buffer.slice(0)))
+      return { rows, format: "PDF", sha256, name: file.name }
+    } catch (error) {
+      if (error instanceof PdfStatementError) throw new StatementFileError(error.code === "scanned" ? "pdf_scanned" : error.code === "no_table" ? "pdf_no_table" : "unreadable")
+      throw new StatementFileError("unreadable")
+    }
+  }
+  if (file.size > MAX_BYTES) throw new StatementFileError("too_large")
   const isZip = head[0] === 0x50 && head[1] === 0x4b // xlsx
   const isOle = head[0] === 0xd0 && head[1] === 0xcf // legacy xls
 

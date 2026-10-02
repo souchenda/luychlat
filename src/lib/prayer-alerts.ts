@@ -76,13 +76,36 @@ export const loadAdhan = () => tx<Blob | undefined>("readonly", (s) => s.get(KEY
 // ---------------------------------------------------------------- Sounds
 
 let playing: HTMLAudioElement | null = null
+/** Which source is playing (a preset id, "custom", or null), for ▶/⏸ buttons. */
+let playingSource: string | null = null
+const listeners = new Set<() => void>()
+const notify = () => listeners.forEach((l) => l())
+
+/** Re-renders a component when playback starts or stops. */
+export function onPlaybackChange(listener: () => void) {
+  listeners.add(listener)
+  return () => void listeners.delete(listener)
+}
+export const currentSource = () => playingSource
 
 /** Stops the Adhan if it is playing. */
 export function stopSound() {
   if (!playing) return
   playing.pause()
-  URL.revokeObjectURL(playing.src)
+  if (playing.src.startsWith("blob:")) URL.revokeObjectURL(playing.src)
   playing = null
+  playingSource = null
+  notify()
+}
+
+async function play(src: string, source: string) {
+  stopSound()
+  const audio = new Audio(src)
+  playing = audio
+  playingSource = source
+  audio.onended = stopSound
+  notify()
+  await audio.play()
 }
 
 /** A soft three-note bell, synthesised (no audio file needed). */
@@ -107,16 +130,25 @@ export function playChime() {
   window.setTimeout(() => void ctx.close(), 3_500)
 }
 
-/** Plays the saved Adhan; falls back to the chime when there is no file or the browser blocks it. */
-export async function playAdhan(): Promise<"adhan" | "chime"> {
-  stopSound()
+/** Plays a built-in Adhan by its /public path (preview or alert). */
+export async function playPreset(file: string, id: string) {
+  await play(file, id)
+}
+
+/**
+ * Plays the chosen Adhan: a built-in preset (`presetFile`) or the file picked
+ * from the phone. Falls back to the chime when there is none or the browser
+ * blocks playback.
+ */
+export async function playAdhan(choice: { presetFile?: string | null; presetId?: string } = {}): Promise<"adhan" | "chime"> {
   try {
+    if (choice.presetFile) {
+      await play(choice.presetFile, choice.presetId ?? "preset")
+      return "adhan"
+    }
     const blob = await loadAdhan()
     if (blob) {
-      const audio = new Audio(URL.createObjectURL(blob))
-      playing = audio
-      audio.onended = stopSound
-      await audio.play()
+      await play(URL.createObjectURL(blob), "custom")
       return "adhan"
     }
   } catch {
