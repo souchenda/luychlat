@@ -9,6 +9,7 @@ import { toast } from "sonner"
 
 import { PlanCard } from "@/components/billing/plan-card"
 import { ReferralCard } from "@/components/billing/referral"
+import { ActiveDevices } from "@/components/settings/active-devices"
 import { FamilySettings } from "@/components/family/family-settings"
 import { BiometricIcon } from "@/components/lock/biometric-icon"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
@@ -272,6 +273,7 @@ export default function SettingsPage() {
             </Button>
           </div>
         )}
+        <ActiveDevices />
       </Section>
 
       <Section title={t("settings.money")}>
