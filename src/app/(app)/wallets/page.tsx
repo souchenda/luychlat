@@ -29,6 +29,8 @@ import { portfolio } from "@/lib/gold"
 import { useGoldHoldings, useGoldRates } from "@/lib/gold-data"
 import { assetsTotalUsd } from "@/lib/assets"
 import { usePhysicalAssets } from "@/lib/assets-data"
+import { investmentTotals } from "@/lib/investments"
+import { useInvestments, useMarketPrices } from "@/lib/investments-data"
 
 const RECENT_TRANSFERS: TransactionFilter = { type: "TRANSFER", limit: 10 }
 
@@ -41,6 +43,9 @@ export default function WalletsPage() {
   const khrRate = usePrefsStore((st) => st.khrPerUsd)
   const goldHoldings = useGoldHoldings(workspace?.id).data
   const { rates: goldRates } = useGoldRates()
+  const investments = useInvestments(workspace?.id).data
+  const { prices: marketPrices } = useMarketPrices()
+  const investValue = useMemo(() => investmentTotals(investments ?? [], marketPrices, khrRate).valueUsd, [investments, marketPrices, khrRate])
   const physicalAssets = usePhysicalAssets(workspace?.id).data
   const physicalValue = useMemo(() => assetsTotalUsd(physicalAssets ?? [], khrRate), [physicalAssets, khrRate])
   const goldValue = useMemo(() => portfolio(goldHoldings ?? [], goldRates, khrRate).value, [goldHoldings, goldRates, khrRate])
@@ -80,7 +85,7 @@ export default function WalletsPage() {
     <div className="space-y-5">
       <h1 className="text-xl font-bold">{t("wallets.title")}</h1>
 
-      <NetWorthCard wallets={all} loading={walletsQuery.isLoading} assetsUsd={goldValue + physicalValue} />
+      <NetWorthCard wallets={all} loading={walletsQuery.isLoading} assetsUsd={goldValue + investValue + physicalValue} />
 
       <div className={editable ? "grid grid-cols-2 gap-2" : "hidden"}>
         <Button className="h-11" onClick={openCreate}>

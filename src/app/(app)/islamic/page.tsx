@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { portfolio } from "@/lib/gold"
 import { useGoldHoldingsOf } from "@/lib/gold-data"
+import { investmentTotals } from "@/lib/investments"
+import { useInvestmentsOf, useMarketPrices } from "@/lib/investments-data"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -62,9 +64,14 @@ function useIslamicData(includeBusiness: boolean) {
   })
   // Gold recorded on the Gold page counts too (pure gold content, platinum excluded).
   const gold = useGoldHoldingsOf(workspaces.map((w) => w.id))
+  // Stocks and crypto at today's market value count like cash.
+  const investments = useInvestmentsOf(workspaces.map((w) => w.id))
+  const { prices } = useMarketPrices()
+  const rate = usePrefsStore((s) => s.khrPerUsd)
   return {
     workspaces,
     goldGrams: portfolio(gold, {}, 1).pureGoldGrams,
+    investmentsUsd: investmentTotals(investments, prices, rate).valueUsd,
     wallets: wallets.flatMap((q) => q.data ?? []).filter((w) => !w.archived_at),
     debts: debts.flatMap((q) => q.data ?? []),
     categories: allCategories,
@@ -225,6 +232,7 @@ export default function IslamicPage() {
   const zakat = calculateZakat({
     cash,
     goldGrams: settings.gold_grams + data.goldGrams,
+    investments: data.investmentsUsd,
     goldPrice: effectiveGold,
     silverPrice: effectiveSilver,
     basis: settings.nisab_basis,
@@ -280,6 +288,7 @@ export default function IslamicPage() {
                 value={effectiveGold ? money(zakat.goldValue) : "—"}
               />
             )}
+            {data.investmentsUsd > 0 && <Line label={t("islamic.investments")} value={money(data.investmentsUsd)} />}
             {data.goldGrams > 0 && <p className="-mt-1 text-[11px] text-muted-foreground">{t("islamic.goldFromAssets", { grams: Math.round(data.goldGrams * 100) / 100 })}</p>}
             {settings.include_receivables && <Line label={t("islamic.receivables")} value={money(receivables)} />}
             <Line label={t("islamic.shortDebts")} value={`−${money(shortTermDebts)}`} negative={shortTermDebts > 0} />

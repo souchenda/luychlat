@@ -116,6 +116,8 @@ export type ZakatInput = {
   receivables: number
   /** Debts due within 12 months, in USD. */
   shortTermDebts: number
+  /** Stocks and crypto at market value (USD), counted like cash. */
+  investments?: number
 }
 
 export type ZakatResult = {
@@ -133,7 +135,7 @@ const cents = (n: number) => Math.round(n * 100) / 100
 
 export function calculateZakat(i: ZakatInput): ZakatResult {
   const goldValue = i.goldPrice ? i.goldGrams * i.goldPrice : 0
-  const netWealth = cents(i.cash + goldValue + i.receivables - i.shortTermDebts)
+  const netWealth = cents(i.cash + goldValue + (i.investments ?? 0) + i.receivables - i.shortTermDebts)
   const price = i.basis === "GOLD" ? i.goldPrice : i.silverPrice
   const nisab = price ? cents((i.basis === "GOLD" ? NISAB_GOLD_GRAMS : NISAB_SILVER_GRAMS) * price) : null
   const meetsNisab = nisab !== null && netWealth > 0 && netWealth >= nisab
