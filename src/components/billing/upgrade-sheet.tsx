@@ -2,12 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { CheckIcon, CopyIcon, CrownIcon, LifeBuoyIcon, Loader2Icon, MinusIcon, XIcon } from "lucide-react"
+import { CheckIcon, ChevronDownIcon, CopyIcon, CrownIcon, LifeBuoyIcon, QrCodeIcon, Loader2Icon, MinusIcon, XIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { KhqrCheckout } from "@/components/billing/khqr-checkout"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
@@ -65,6 +66,20 @@ function useInstructions(enabled: boolean) {
   })
 }
 
+/** KHQR checkout availability (server config: off / sandbox / production). */
+function useKhqrMode(enabled: boolean) {
+  return useQuery({
+    queryKey: ["khqr-mode"],
+    enabled,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const res = await fetch("/api/billing/khqr", { cache: "no-store" })
+      if (!res.ok) return "off" as const
+      return ((await res.json()) as { mode: "off" | "sandbox" | "production" }).mode
+    },
+  }).data ?? "off"
+}
+
 /** Global upgrade sheet; open it anywhere with showUpgrade(reason). */
 export function UpgradeSheet() {
   const t = useT()
@@ -82,6 +97,13 @@ export function UpgradeSheet() {
   const [currency, setCurrency] = useState<Currency>("USD")
   const [method, setMethod] = useState<(typeof METHODS)[number]>("BANK_TRANSFER")
   const [reference, setReference] = useState("")
+  const [checkout, setCheckout] = useState(false)
+  const khqrMode = useKhqrMode(open && signedIn)
+  const khqr = khqrMode !== "off"
+
+  useEffect(() => {
+    if (!open) setCheckout(false)
+  }, [open])
 
   const chosen = options.find((o) => o.code === planCode) ?? options[0]
   const monthly = options.find((o) => o.code === "PRO_MONTHLY")
@@ -89,7 +111,8 @@ export function UpgradeSheet() {
     monthly && chosen?.period_days && chosen.period_days >= 365
       ? Math.round((1 - chosen.price_usd / (monthly.price_usd * 12)) * 100)
       : 0
-  const pending = payments.data?.filter((p) => p.status === "PENDING") ?? []
+  // Open QRs resolve themselves; only manual requests wait for a review.
+  const pending = payments.data?.filter((p) => p.status === "PENDING" && p.method !== "KHQR") ?? []
 
   const request = useMutation({
     mutationFn: async () => {
@@ -132,6 +155,17 @@ export function UpgradeSheet() {
 
   return (
     <BottomSheet open={open} onOpenChange={(v) => !v && close()} title={t("upgrade.title")} description={t(`upgrade.reason.${reason satisfies UpgradeReason}`)}>
+      {checkout && signedIn ? (
+        <KhqrCheckout
+          planCode={planCode}
+          currency={currency}
+          onBack={() => setCheckout(false)}
+          onDone={() => {
+            setCheckout(false)
+            close()
+          }}
+        />
+      ) : (
       <div className="space-y-5">
         {isPro && plan.period_end && (
           <p className="flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
@@ -217,6 +251,83 @@ export function UpgradeSheet() {
               </div>
             </div>
 
+            {khqr && (
+              <div className="space-y-2">
+                <Button className="h-14 w-full text-base" onClick={() => setCheckout(true)}>
+                  <QrCodeIcon />
+                  {t("khqr.payWith", { amount: chosen ? price(chosen) : "" })}
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">{t("khqr.payHint")}</p>
+              </div>
+            )}
+
+            {khqr ? (
+              <details className="group space-y-3 rounded-xl border px-3 py-2">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-sm text-muted-foreground [&::-webkit-details-marker]:hidden">
+                  {t("khqr.manual")}
+                  <ChevronDownIcon className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+                </summary>
+                <div className="space-y-3 pb-2">
+              {/* How to pay (set by the admin) */}
+              <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm">
+                <p className="font-medium">{t("upgrade.howToPay", { amount: chosen ? price(chosen) : "" })}</p>
+                {instructions.account_number ? (
+                  <div className="space-y-0.5">
+                    {instructions.bank && <p>{instructions.bank}</p>}
+                    {instructions.account_name && <p className="text-muted-foreground">{instructions.account_name}</p>}
+                    <button
+                      type="button"
+                      onClick={() => copy(instructions.account_number!)}
+                      className="flex items-center gap-1.5 font-mono font-semibold tracking-wider"
+                    >
+                      {instructions.account_number}
+                      <CopyIcon className="size-3.5 text-muted-foreground" aria-label={t("family.copyCode")} />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">{t("upgrade.noInstructions")}</p>
+                )}
+                {note && <p className="text-xs whitespace-pre-line text-muted-foreground">{note}</p>}
+              </div>
+
+              <form
+                className="space-y-3"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  request.mutate()
+                }}
+              >
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <Label>{t("upgrade.method")}</Label>
+                    <Select value={method} onValueChange={(v) => setMethod(v as typeof method)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {METHODS.map((m) => (
+                          <SelectItem key={m} value={m}>
+                            {t(`upgrade.method.${m}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pay-ref">{t("upgrade.reference")}</Label>
+                    <Input id="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} placeholder="TRX..." />
+                  </div>
+                </div>
+                <Button type="submit" className="h-12 w-full text-base" disabled={request.isPending}>
+                  {request.isPending ? <Loader2Icon className="animate-spin" /> : <CrownIcon />}
+                  {t("upgrade.paid")}
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">{t("upgrade.reviewHint")}</p>
+              </form>
+                </div>
+              </details>
+            ) : (
+              <>
             {/* How to pay (set by the admin) */}
             <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm">
               <p className="font-medium">{t("upgrade.howToPay", { amount: chosen ? price(chosen) : "" })}</p>
@@ -273,6 +384,8 @@ export function UpgradeSheet() {
               </Button>
               <p className="text-center text-xs text-muted-foreground">{t("upgrade.reviewHint")}</p>
             </form>
+              </>
+            )}
             <Link
               href="/support?category=PAYMENT&from=upgrade"
               onClick={close}
@@ -300,6 +413,7 @@ export function UpgradeSheet() {
           </>
         )}
       </div>
+      )}
     </BottomSheet>
   )
 }

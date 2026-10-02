@@ -33,6 +33,18 @@ services:
       # Server-only (never NEXT_PUBLIC_): LuySmart AI for PRO users. Read at runtime,
       # not baked into the image. Leave empty to turn LuySmart AI off.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # KHQR checkout (Step B) — server-only, read at runtime. See docs/khqr.md.
+      KHQR_MODE: ${KHQR_MODE:-off}
+      KHQR_EXPIRY_MINUTES: ${KHQR_EXPIRY_MINUTES:-15}
+      BAKONG_ACCOUNT_ID: ${BAKONG_ACCOUNT_ID:-}
+      BAKONG_MERCHANT_NAME: ${BAKONG_MERCHANT_NAME:-LuySmart}
+      BAKONG_MERCHANT_CITY: ${BAKONG_MERCHANT_CITY:-Phnom Penh}
+      BAKONG_MERCHANT_ID: ${BAKONG_MERCHANT_ID:-}
+      BAKONG_ACQUIRING_BANK: ${BAKONG_ACQUIRING_BANK:-}
+      BAKONG_API_TOKEN: ${BAKONG_API_TOKEN:-}
+      BAKONG_API_URL: ${BAKONG_API_URL:-https://api-bakong.nbc.gov.kh}
+      # Supabase secret (service-role) key: confirms KHQR payments. Never NEXT_PUBLIC_.
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
     mem_limit: ${APP_MEMORY:-512m}
     pids_limit: 256
     # The Node server needs no Linux capabilities and never escalates privileges.

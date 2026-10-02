@@ -8,6 +8,7 @@ import {
   CrownIcon,
   GiftIcon,
   LifeBuoyIcon,
+  QrCodeIcon,
   Loader2Icon,
   SearchIcon,
   ShieldAlertIcon,
@@ -689,6 +690,64 @@ function SupportContactsForm() {
 }
 
 
+type KhqrHealth = {
+  requested_mode: string
+  mode: "off" | "sandbox" | "production"
+  problems: string[]
+  account: string | null
+  merchant_name: string
+  api_url: string
+  has_token: boolean
+  bakong: { kind: string; ok?: boolean; message: string; ms?: number }
+}
+
+/** KHQR checkout: mode, missing settings, and a live Bakong connection test. */
+function KhqrStatusCard() {
+  const t = useT()
+  const [result, setResult] = useState<KhqrHealth | null>(null)
+  const test = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/billing/khqr/health", { cache: "no-store" })
+      if (!res.ok) throw new Error(String(res.status))
+      return (await res.json()) as KhqrHealth
+    },
+    onSuccess: setResult,
+    onError: () => toast.error(t("common.error")),
+  })
+  const mode = result?.mode
+  return (
+    <Section title="KHQR · Bakong" icon={<QrCodeIcon />}>
+      <Card className="gap-3 px-4 py-4 text-sm">
+        <p className="text-xs text-muted-foreground">{t("admin.khqrHint")}</p>
+        <Button variant="outline" onClick={() => test.mutate()} disabled={test.isPending}>
+          {test.isPending ? <Loader2Icon className="animate-spin" /> : <ActivityIcon />}
+          {t("admin.khqrTest")}
+        </Button>
+        {result && (
+          <div className="space-y-1.5 rounded-lg bg-muted/60 p-3 text-xs">
+            <p>
+              <span className="text-muted-foreground">{t("admin.khqrMode")}: </span>
+              <span className={cn("font-semibold", mode === "production" ? "text-[#10B981]" : mode === "sandbox" ? "text-amber-600" : "text-muted-foreground")}>
+                {mode}
+              </span>
+              {result.requested_mode !== mode && <span className="text-[#F43F5E]"> ({t("admin.khqrRequested", { mode: result.requested_mode })})</span>}
+            </p>
+            {result.problems.map((p) => (
+              <p key={p} className="text-[#F43F5E]">• {p}</p>
+            ))}
+            <p className="font-mono break-all">{result.account ?? "—"} · {result.merchant_name}</p>
+            <p className="font-mono break-all text-muted-foreground">{result.api_url}</p>
+            <p className={result.bakong.ok ? "text-[#10B981]" : result.bakong.kind === "skipped" ? "text-muted-foreground" : "text-[#F43F5E]"}>
+              Bakong: {result.bakong.message}
+              {result.bakong.ms !== undefined && ` (${result.bakong.ms} ms)`}
+            </p>
+          </div>
+        )}
+      </Card>
+    </Section>
+  )
+}
+
 export default function AdminPage() {
   const t = useT()
   const { plan, loading } = usePlan()
@@ -711,6 +770,7 @@ export default function AdminPage() {
       <SupportTickets />
       <Subscribers />
       <ReferralStatsCard />
+      <KhqrStatusCard />
       <PaymentInstructionsForm />
       <SupportContactsForm />
     </div>
