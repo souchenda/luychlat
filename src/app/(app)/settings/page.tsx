@@ -1,6 +1,6 @@
 "use client"
 
-import { BookOpenIcon, ChartColumnIcon, InfoIcon, LifeBuoyIcon, ChevronRightIcon, CoinsIcon, TargetIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import { BookOpenIcon, ChartColumnIcon, InfoIcon, LifeBuoyIcon, MoonStarIcon, ChevronRightIcon, CoinsIcon, TargetIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -41,6 +41,7 @@ import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 import { useSaveExchangeRate } from "@/lib/exchange-rate"
+import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
 import { useActiveWorkspace } from "@/lib/data/hooks"
 
 function Row({ icon, title, hint, children }: { icon?: React.ReactNode; title: string; hint?: string; children?: React.ReactNode }) {
@@ -62,6 +63,37 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="px-1 text-sm font-medium text-muted-foreground">{title}</h2>
       <Card className="gap-0 divide-y py-0">{children}</Card>
     </section>
+  )
+}
+
+/** Optional Islamic Finance tools; the setting is private to the user (synced, never shown to family). */
+function IslamicToolsRow() {
+  const t = useT()
+  const { settings, loading } = useIslamicSettings()
+  const { setEnabled } = useIslamicMutations()
+  return (
+    <>
+      <Row icon={<MoonStarIcon />} title={t("islamic.toggle")} hint={t("islamic.toggleHint")}>
+        <Switch
+          checked={settings.enabled}
+          disabled={loading || setEnabled.isPending}
+          onCheckedChange={(on) =>
+            setEnabled.mutate(on, {
+              onSuccess: () => toast.success(t(on ? "islamic.enabled" : "islamic.disabled")),
+              onError: () => toast.error(t("common.error")),
+            })
+          }
+          aria-label={t("islamic.toggle")}
+        />
+      </Row>
+      {settings.enabled && (
+        <Link href="/islamic" className="block hover:bg-muted/60">
+          <Row title={t("islamic.open")} hint={t("islamic.openHint")}>
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Row>
+        </Link>
+      )}
+    </>
   )
 }
 
@@ -295,6 +327,7 @@ export default function SettingsPage() {
             </SelectContent>
           </Select>
         </Row>
+        <IslamicToolsRow />
       </Section>
 
       <Section title={t("settings.account")}>

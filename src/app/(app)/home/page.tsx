@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, HandshakeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, TargetIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, HandshakeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, TargetIcon, WalletIcon, MoonStarIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -31,6 +31,8 @@ import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
+import { formatHijri, islamicGreeting, toHijri } from "@/lib/islamic"
+import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
 import { homeGreeting } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -89,7 +91,12 @@ export default function HomePage() {
   const locale = useLocaleStore((s) => s.locale)
   const greeting = homeGreeting()
   const today = useToday()
-  const festive = greeting.key !== "holiday.everyday"
+  // Islamic tools (optional): Hijri date, and Ramadan / Eid greetings in season.
+  const islamic = useIslamicEnabled()
+  const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
+  const hijri = islamic ? toHijri(today, hijriOffset) : null
+  const islamicKey = islamicGreeting(hijri)
+  const festive = Boolean(islamicKey) || greeting.key !== "holiday.everyday"
   // Khmer numerals for the Ben day in Khmer (បិណ្ឌទី ៥).
   const greetingParams = Object.fromEntries(
     Object.entries(greeting.params ?? {}).map(([k, v]) => [k, locale === "km" ? String(v).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)]) : v]),
@@ -104,11 +111,12 @@ export default function HomePage() {
           <p className="text-xs text-muted-foreground">
             <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
               {longDate(today, locale)}
+              {hijri && ` · ${formatHijri(hijri, locale)}`}
             </time>
           </p>
           {/* One quiet line: the festival of the day (Kan Ben day, Pchum Ben, …) or an everyday wish. */}
           <p className={festive ? "truncate text-sm font-medium text-primary" : "truncate text-sm text-muted-foreground"}>
-            {t(greeting.key, greetingParams)} ✨
+            {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)} ✨
           </p>
           {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
         </div>
@@ -157,6 +165,12 @@ export default function HomePage() {
 
       <CashFlowCard flow={flow} loading={txQuery.isLoading} />
       <div className="-mt-2 flex items-center justify-end gap-4 px-1 text-sm">
+        {islamic && (
+          <Link href="/islamic" className="mr-auto flex items-center gap-1 text-primary">
+            <MoonStarIcon className="size-4" aria-hidden />
+            {t("islamic.short")}
+          </Link>
+        )}
         <Link href="/budgets" className="flex items-center gap-1 text-primary">
           <TargetIcon className="size-4" aria-hidden />
           {t("budget.title")}

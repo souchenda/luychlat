@@ -128,9 +128,26 @@ export const ADJUSTMENT_CATEGORY_PRESETS: Record<"IN" | "OUT", CategoryPreset> =
   },
 }
 
-const ADJUSTMENT_KEYS = new Set(Object.values(ADJUSTMENT_CATEGORY_PRESETS).map((p) => p.key))
+/**
+ * Islamic Finance tools (optional): created by public.set_islamic_tools when a
+ * user turns them on, and hidden from pickers when the tools are off.
+ */
+export const ISLAMIC_CATEGORY_PRESETS: Record<"zakat" | "sadaqah" | "waqf" | "riba_purification" | "bank_interest", CategoryPreset> = {
+  zakat: { key: "zakat", type: "EXPENSE", icon: "hand-heart", color: "#059669", name: { km: "ហ្សាកាត់", en: "Zakat" } },
+  sadaqah: { key: "sadaqah", type: "EXPENSE", icon: "hand-heart", color: "#0d9488", name: { km: "ទាន សាដាកះ", en: "Sadaqah" } },
+  waqf: { key: "waqf", type: "EXPENSE", icon: "landmark", color: "#0891b2", name: { km: "វ៉ាក់ហ្វ", en: "Waqf" } },
+  riba_purification: { key: "riba_purification", type: "EXPENSE", icon: "scale", color: "#64748b", name: { km: "សម្អាតការប្រាក់", en: "Riba purification" } },
+  bank_interest: { key: "bank_interest", type: "INCOME", icon: "landmark", color: "#64748b", name: { km: "ការប្រាក់ធនាគារ", en: "Bank interest (Riba)" } },
+}
+export const ISLAMIC_KEYS = new Set(Object.keys(ISLAMIC_CATEGORY_PRESETS))
 
-/** Ids of this workspace's balance-adjustment categories (left out of cash flow and charts). */
+/**
+ * Kept out of income/spending totals: balance adjustments, and (Islamic
+ * tools) bank interest with its purification — Riba is set aside, not income.
+ */
+const ADJUSTMENT_KEYS = new Set([...Object.values(ADJUSTMENT_CATEGORY_PRESETS).map((p) => p.key), "bank_interest", "riba_purification"])
+
+/** Ids of categories left out of cash flow and charts (balance adjustments, Riba and its purification). */
 export function adjustmentCategoryIds(categories: { id: string; preset_key: string | null }[]): Set<string> {
   return new Set(categories.filter((c) => c.preset_key && ADJUSTMENT_KEYS.has(c.preset_key)).map((c) => c.id))
 }
@@ -148,6 +165,7 @@ const PRESET_NAMES = new Map(
     ...Object.values(DEBT_CATEGORY_PRESETS),
     ...Object.values(DISBURSEMENT_CATEGORY_PRESETS),
     ...Object.values(ADJUSTMENT_CATEGORY_PRESETS),
+    ...Object.values(ISLAMIC_CATEGORY_PRESETS),
   ].map((p) => [p.key, p.name]),
 )
 
