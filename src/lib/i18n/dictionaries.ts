@@ -1184,6 +1184,11 @@ const km = {
   "login.support": "ជំនួយ",
   "legal.link": "លក្ខខណ្ឌ និងឯកជនភាព",
   "legal.updated": "ធ្វើបច្ចុប្បន្នភាព៖ {date}",
+  "nav.menu": "ម៉ឺនុយ",
+  "nav.group.tools": "ឧបករណ៍ហិរញ្ញវត្ថុ",
+  "nav.group.perks": "អត្ថប្រយោជន៍ពិសេស",
+  "nav.group.help": "ជំនួយ និងការកំណត់",
+  "nav.referHint": "ទទួលបាន PRO ឥតគិតថ្លៃ ៧ ថ្ងៃ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -2372,6 +2377,11 @@ const en: Record<MessageKey, string> = {
   "login.support": "Support",
   "legal.link": "Terms & Privacy",
   "legal.updated": "Last updated: {date}",
+  "nav.menu": "Menu",
+  "nav.group.tools": "Financial tools",
+  "nav.group.perks": "Perks & features",
+  "nav.group.help": "Help & preferences",
+  "nav.referHint": "Get 7 days of PRO free",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

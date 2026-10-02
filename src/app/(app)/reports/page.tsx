@@ -407,7 +407,7 @@ export default function ReportsPage() {
       </Link>
 
       {/* Exports */}
-      <section className="space-y-2 print:hidden">
+      <section id="export" className="scroll-mt-20 space-y-2 print:hidden">
         <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("reports.export")}</h2>
         <Card className="gap-2 px-4 py-4">
           <Button variant="outline" className="h-11 justify-start" onClick={proOnly(exportTransactions)} disabled={busy !== null || !periodTx}>

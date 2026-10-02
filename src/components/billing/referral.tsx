@@ -146,7 +146,7 @@ export function ReferralCard() {
   }
 
   return (
-    <section className="space-y-2">
+    <section id="referral" className="scroll-mt-20 space-y-2">
       <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("referral.title")}</h2>
       <Card className="gap-3 px-4 py-4">
         <p className="text-sm text-muted-foreground">{t("referral.hint")}</p>

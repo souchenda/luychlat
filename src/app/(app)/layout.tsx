@@ -1,7 +1,6 @@
 "use client"
 
-import { Loader2Icon, MoonStarIcon, SettingsIcon } from "lucide-react"
-import Link from "next/link"
+import { Loader2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
@@ -9,18 +8,17 @@ import { BillingSync } from "@/components/billing/billing-sync"
 import { ExchangeRateSync } from "@/lib/exchange-rate"
 import { PendingReferralRedeemer } from "@/components/billing/referral"
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet"
+import { DesktopSidebar, MobileNavTrigger } from "@/components/layout/app-nav"
 import { BottomNav } from "@/components/layout/bottom-nav"
+import { HashScroller } from "@/components/layout/hash-scroller"
 import { AppLock } from "@/components/lock/app-lock"
 import { useHydrated } from "@/hooks/use-hydrated"
 import { PendingInviteRedirect } from "@/components/family/pending-invite"
 import { RealtimeSync } from "@/components/family/realtime-sync"
 import { GuestImportPrompt } from "@/components/settings/guest-import"
 import { NotificationBell } from "@/components/notifications/notification-bell"
-import { Button } from "@/components/ui/button"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
 import { useActiveWorkspace } from "@/lib/data/hooks"
-import { useIslamicEnabled } from "@/lib/islamic-settings"
-import { useT } from "@/lib/i18n/use-t"
 import { useLockStore } from "@/stores/lock-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
@@ -30,14 +28,12 @@ import { useSessionStore } from "@/stores/session-store"
  * shows; data is protected by Supabase RLS, not by this gate.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const t = useT()
   const router = useRouter()
   const hydrated = useHydrated()
   const { user, authReady } = useSessionStore()
   const isLocked = useLockStore((s) => s.isLocked && Boolean(s.pinHash))
   const activeWorkspace = usePrefsStore((s) => s.activeWorkspace)
   const { workspace } = useActiveWorkspace()
-  const islamic = useIslamicEnabled()
   // An account is required for every screen (Guest Mode was retired).
   const allowed = Boolean(user)
 
@@ -64,27 +60,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <ExchangeRateSync />
       <PendingReferralRedeemer />
       <UpgradeSheet />
-      <div hidden={isLocked} inert={isLocked}>
+      <div hidden={isLocked} inert={isLocked} className="md:pl-68 print:pl-0">
+        <DesktopSidebar />
+        <HashScroller />
         {/* Phones: full screen. Tablets and up: a centered card (see .app-frame). */}
         <div className="app-frame">
           <header className="sticky top-0 z-30 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
             <div className="mx-auto flex w-full max-w-md items-center gap-1 px-4 py-2.5">
+              <MobileNavTrigger />
               <div className="min-w-0 flex-1">
                 <WorkspaceSwitcher />
               </div>
-              {islamic && (
-                <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label={t("islamic.title")}>
-                  <Link href="/islamic">
-                    <MoonStarIcon className="size-5" />
-                  </Link>
-                </Button>
-              )}
+              {/* Settings, Islamic tools and the rest live in the ☰ menu / sidebar. */}
               <NotificationBell />
-              <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label={t("nav.settings")}>
-                <Link href="/settings">
-                  <SettingsIcon className="size-5" />
-                </Link>
-              </Button>
             </div>
           </header>
           {/* Re-keyed on switch so the new workspace's content fades in. */}
