@@ -1,6 +1,6 @@
-// LuySmart service worker: offline shell + cache-first static assets.
+// LuyChlat service worker: offline shell + cache-first static assets.
 // Never caches API traffic (Supabase), so financial data is not stored here.
-const CACHE = "luysmart-v3"
+const CACHE = "luysmart-v4" // bump to drop caches from before the LuyChlat rename
 const SHELL = [
   "/",
   "/login",

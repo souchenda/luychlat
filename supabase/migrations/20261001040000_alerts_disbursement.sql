@@ -194,7 +194,7 @@ begin
         body := jsonb_build_object(
           'chat_id', r.chat_id,
           'parse_mode', 'HTML',
-          'text', '<b>' || title || E'</b>\n' || body || E'\n\n— លុយឆ្លាត · LuySmart'
+          'text', '<b>' || title || E'</b>\n' || body || E'\n\n— លុយឆ្លាត · LuyChlat'
         ),
         headers := '{"Content-Type": "application/json"}'::jsonb
       );

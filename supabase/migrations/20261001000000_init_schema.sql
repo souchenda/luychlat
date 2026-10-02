@@ -1,4 +1,4 @@
--- LuySmart initial schema (guideline.md §3)
+-- LuyChlat initial schema (guideline.md §3)
 -- Every table has Row-Level Security enabled. Ownership is always derived from
 -- workspaces.user_id = auth.uid(); child rows reference their workspace through
 -- composite foreign keys so a row can never point at another tenant's wallet,

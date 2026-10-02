@@ -1,4 +1,4 @@
-# LuySmart · production image (Next.js 15 standalone output)
+# LuyChlat · production image (Next.js 15 standalone output)
 #
 #   docker build -t luysmart \
 #     --build-arg NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co \

@@ -1,5 +1,5 @@
 -- ===========================================================================
--- Settings › About LuySmart: developer credits, mission and official links,
+-- Settings › About LuyChlat: developer credits, mission and official links,
 -- editable by admins (app_settings "about_info"; readable by signed-in users
 -- through the existing app_settings select policy). Idempotent.
 -- ===========================================================================

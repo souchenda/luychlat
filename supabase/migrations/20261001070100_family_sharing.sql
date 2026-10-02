@@ -793,7 +793,7 @@ begin
           'chat_id', m.chat_id,
           'parse_mode', 'HTML',
           'text', '🔔 <b>' || esc_title || '</b>' || case when esc_body = '' then '' else E'\n' || esc_body end
-            || E'\n\n— លុយឆ្លាត · LuySmart'
+            || E'\n\n— លុយឆ្លាត · LuyChlat'
         ),
         headers := '{"Content-Type": "application/json"}'::jsonb
       );
@@ -889,7 +889,7 @@ begin
         body := jsonb_build_object(
           'chat_id', m.chat_id,
           'parse_mode', 'HTML',
-          'text', '<b>' || txt.title || E'</b>\n' || txt.body || E'\n\n— លុយឆ្លាត · LuySmart'
+          'text', '<b>' || txt.title || E'</b>\n' || txt.body || E'\n\n— លុយឆ្លាត · LuyChlat'
         ),
         headers := '{"Content-Type": "application/json"}'::jsonb
       );

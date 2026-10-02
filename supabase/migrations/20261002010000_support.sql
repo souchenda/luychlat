@@ -119,7 +119,7 @@ begin
         'parse_mode', 'HTML',
         'text', '🆘 <b>Support · ' || ticket.category || '</b>' || E'\n'
           || public.html_escape(who) || coalesce(' · ' || public.html_escape(ticket.contact), '') || E'\n\n'
-          || public.html_escape(left(ticket.message, 1000)) || E'\n\n— LuySmart /admin'
+          || public.html_escape(left(ticket.message, 1000)) || E'\n\n— LuyChlat /admin'
       ),
       headers := '{"Content-Type": "application/json"}'::jsonb
     );
@@ -190,7 +190,7 @@ begin
         body := jsonb_build_object(
           'chat_id', tg.chat_id,
           'parse_mode', 'HTML',
-          'text', case when tg.language = 'en' then '💬 <b>LuySmart Support replied</b>' else '💬 <b>ក្រុមជំនួយ លុយឆ្លាត បានឆ្លើយតប</b>' end
+          'text', case when tg.language = 'en' then '💬 <b>LuyChlat Support replied</b>' else '💬 <b>ក្រុមជំនួយ លុយឆ្លាត បានឆ្លើយតប</b>' end
             || E'\n\n' || public.html_escape(reply)
         ),
         headers := '{"Content-Type": "application/json"}'::jsonb
