@@ -63,10 +63,32 @@ export function toHijri(date: Date, offsetDays = 0): HijriDate | null {
 
 const khmerDigits = (value: string) => value.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
-/** "21 Rabiʻ al-Thani 1448 H" (Khmer numerals in Khmer). */
-export function formatHijri(h: HijriDate, locale: "km" | "en"): string {
-  const text = `${h.day} ${HIJRI_MONTHS[h.month - 1]} ${h.year} H`
-  return locale === "km" ? khmerDigits(text) : text
+/** Hijri month names in Khmer script, as written by Cambodian Muslims (month 4 = រ៉ាប៊ីអ៊ុលអាឃីរ). */
+export const HIJRI_MONTHS_KM = [
+  "ម៉ូហារ៉ម",
+  "សាហ្វារ",
+  "រ៉ាប៊ីអ៊ុលអាវ៉ាល់",
+  "រ៉ាប៊ីអ៊ុលអាឃីរ",
+  "ជូម៉ាដាល់អ៊ូឡា",
+  "ជូម៉ាដាល់អាឃីរ",
+  "រ៉ាជាប់",
+  "សាអ្បាន",
+  "រ៉ាម៉ាឌន",
+  "សាវ៉ាល់",
+  "ហ្ស៊ុលកាអ៊ីដះ",
+  "ហ្ស៊ុលហ៊ីជ្ជះ",
+]
+
+/**
+ * Khmer: "ថ្ងៃទី២១ ខែរ៉ាប៊ីអ៊ុលអាឃីរ ឆ្នាំ១៤៤៨ មហាម៉ាត់សករាជ (ម.ស.)" (short: "២១ រ៉ាប៊ីអ៊ុលអាឃីរ ១៤៤៨ ម.ស.").
+ * English: "21 Rabiʻ al-Thani 1448 AH".
+ */
+export function formatHijri(h: HijriDate, locale: "km" | "en", opts?: { short?: boolean }): string {
+  if (locale === "en") return `${h.day} ${HIJRI_MONTHS[h.month - 1]} ${h.year} AH`
+  const day = khmerDigits(String(h.day).padStart(2, "0"))
+  const month = HIJRI_MONTHS_KM[h.month - 1]
+  const year = khmerDigits(String(h.year))
+  return opts?.short ? `${khmerDigits(String(h.day))} ${month} ${year} ម.ស.` : `ថ្ងៃទី${day} ខែ${month} ឆ្នាំ${year} មហាម៉ាត់សករាជ (ម.ស.)`
 }
 
 export type IslamicGreeting = "islamic.ramadan" | "islamic.eidFitr" | "islamic.eidAdha" | null

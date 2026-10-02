@@ -2,8 +2,7 @@
 
 import { useQueries, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { ArrowLeftIcon, CalendarClockIcon, CoinsIcon, HandHeartIcon, InfoIcon, Loader2Icon, ScaleIcon, SettingsIcon } from "lucide-react"
-import Link from "next/link"
+import { CalendarClockIcon, CoinsIcon, HandHeartIcon, InfoIcon, Loader2Icon, ScaleIcon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -25,6 +24,7 @@ import { useIslamicDefaults, useIslamicMutations, useIslamicSettings } from "@/l
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
+import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
 
 type LogKind = "zakat" | "sadaqah" | "waqf" | "riba_purification"
@@ -185,6 +185,7 @@ function LogSheet({
 
 export default function IslamicPage() {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   const rate = usePrefsStore((s) => s.khrPerUsd)
   const { settings, loading: settingsLoading } = useIslamicSettings()
   const defaults = useIslamicDefaults()
@@ -239,7 +240,6 @@ export default function IslamicPage() {
 
   const hawl = settings.hawl_start ? hawlStatus(settings.hawl_start, today) : null
   const hijriDue = hawl ? toHijri(new Date(`${hawl.due}T12:00:00`), offset) : null
-  const hijriToday = toHijri(today, offset)
   const money = (n: number) => formatMoney(roundMoney(n, "USD"), "USD")
   const savePrices = () =>
     update.mutate(
@@ -255,40 +255,11 @@ export default function IslamicPage() {
     setLogKind(kind)
   }
 
-  if (settingsLoading) return <Loader2Icon className="mx-auto mt-10 size-6 animate-spin text-muted-foreground" />
-  if (!settings.enabled) {
-    return (
-      <Card className="items-center gap-3 px-6 py-10 text-center">
-        <p className="text-sm text-muted-foreground">{t("islamic.off")}</p>
-        <Button asChild variant="outline">
-          <Link href="/settings">
-            <SettingsIcon />
-            {t("nav.settings")}
-          </Link>
-        </Button>
-      </Card>
-    )
-  }
+  // The layout shows the header, tabs and the "turned off" notice.
+  if (settingsLoading || !settings.enabled) return null
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-1">
-        <Button asChild size="icon" variant="ghost" aria-label={t("common.back")}>
-          <Link href="/home">
-            <ArrowLeftIcon />
-          </Link>
-        </Button>
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold">{t("islamic.title")}</h1>
-          {/* Today's Hijri date lives here, not on Home. Latin digits keep the transliterated month readable. */}
-          {hijriToday && (
-            <p className="text-xs text-muted-foreground">
-              <time suppressHydrationWarning>{formatHijri(hijriToday, "en")}</time>
-            </p>
-          )}
-        </div>
-      </div>
-
       {/* Zakat calculator */}
       <section className="space-y-2">
         <h2 className="flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground">
@@ -396,7 +367,7 @@ export default function IslamicPage() {
                   {hawl.isDue ? t("islamic.hawlIsDue") : t("islamic.daysLeft", { days: hawl.daysLeft })}
                 </p>
               </div>
-              {hijriDue && <p className="-mt-2 text-xs text-muted-foreground">{formatHijri(hijriDue, "en")}</p>}
+              {hijriDue && <p className="-mt-2 text-xs text-muted-foreground">{formatHijri(hijriDue, locale, { short: true })}</p>}
               <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={Math.round(hawl.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
                 <div className="h-full rounded-full bg-emerald-500" style={{ width: `${hawl.progress * 100}%` }} />
               </div>

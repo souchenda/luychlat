@@ -13,6 +13,7 @@ import { FamilyStrip } from "@/components/family/family-strip"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
+import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
 import { TransactionEditor } from "@/components/transactions/transaction-editor"
 import { TransactionList } from "@/components/transactions/transaction-list"
@@ -101,9 +102,17 @@ export default function HomePage() {
       {/* One row: greeting on the left, today's date and the festival / wish on the right. */}
       <header>
         <div className="flex items-start justify-between gap-3">
-          <h1 className="min-w-0 truncate pt-0.5 text-lg font-bold">
-            {displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}
-          </h1>
+          {workspace?.type === "BUSINESS" ? (
+            // Business workspace: the business's logo and name instead of a personal greeting.
+            <h1 className="flex min-w-0 items-center gap-2 text-lg font-bold">
+              <ProfileAvatar path={workspace.logo_path} name={workspace.name} business className="size-8 rounded-lg text-xs" />
+              <span className="truncate">{workspace.name}</span>
+            </h1>
+          ) : (
+            <h1 className="min-w-0 truncate pt-0.5 text-lg font-bold">
+              {displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}
+            </h1>
+          )}
           <div className="min-w-0 max-w-[62%] text-right leading-tight">
             <p className="truncate text-xs text-muted-foreground">
               <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>

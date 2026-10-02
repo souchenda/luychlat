@@ -24,6 +24,7 @@ import { toast } from "sonner"
 import { paymentCode, type PaymentInstructions } from "@/components/billing/upgrade-sheet"
 import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
 import { formatHijri, toHijri } from "@/lib/islamic"
+import { PlacesAdmin } from "@/components/islamic/places-admin"
 import type { IslamicDefaults } from "@/lib/islamic-settings"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
@@ -957,6 +958,7 @@ export default function AdminPage() {
       <SupportContactsForm />
       <AboutInfoForm />
       <IslamicDefaultsForm />
+      <PlacesAdmin />
     </div>
   )
 }

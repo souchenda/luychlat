@@ -22,6 +22,11 @@ export type Workspace = {
   member_count: number
   /** KHR per 1 USD saved for this workspace (null = not set yet: the default applies). */
   khr_per_usd?: number | null
+  /** Business profile (BUSINESS workspaces): logo storage path and contact details. */
+  logo_path?: string | null
+  business_phone?: string | null
+  business_address?: string | null
+  business_industry?: string | null
 }
 
 export type Wallet = {
@@ -327,7 +332,14 @@ export type TransferInput = {
   transaction_date: string
 }
 
-export type Profile = { id: string; display_name: string }
+export type Profile = {
+  id: string
+  display_name: string
+  /** Storage path of the profile photo (bucket profile-images). */
+  avatar_path?: string | null
+  phone?: string | null
+  bio?: string | null
+}
 
 export type WorkspaceMember = {
   id: string

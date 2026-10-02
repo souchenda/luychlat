@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  ArrowLeftRightIcon,
   BookOpenIcon,
   ChartColumnIcon,
   CrownIcon,
@@ -8,8 +9,10 @@ import {
   GiftIcon,
   HandCoinsIcon,
   HeadsetIcon,
+  LayoutDashboardIcon,
   MenuIcon,
   MoonStarIcon,
+  PencilIcon,
   SettingsIcon,
   ShieldIcon,
   TargetIcon,
@@ -21,11 +24,13 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { BrandMark } from "@/components/brand-mark"
+import { ProfileAvatar } from "@/components/profile/profile-avatar"
+import { BusinessProfileSheet, ProfileSheet } from "@/components/profile/profile-sheets"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
 import { APP_VERSION } from "@/lib/app-info"
-import { useProfile } from "@/lib/data/hooks"
+import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
@@ -34,17 +39,6 @@ import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
 
 type Item = { href: string; label: MessageKey; icon: LucideIcon; hint?: MessageKey; pro?: boolean }
-
-/** Up to two initials: "Sou Chenda" → "SC", "ចិន្តា" → "ចិ" (whole Khmer letter clusters). */
-export function initials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean)
-  const first = (w: string) => {
-    const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(w)[Symbol.iterator]().next().value
-    return seg?.segment ?? ""
-  }
-  if (!words.length) return "?"
-  return (words.length > 1 ? first(words[0]) + first(words[words.length - 1]) : first(words[0])).toUpperCase()
-}
 
 function NavLink({ item, active, onNavigate, badge }: { item: Item; active: boolean; onNavigate?: () => void; badge?: React.ReactNode }) {
   const t = useT()
@@ -70,27 +64,33 @@ function NavLink({ item, active, onNavigate, badge }: { item: Item; active: bool
 }
 
 /** Profile header, workspace pills and the grouped menu. Shared by the drawer (phones) and the sidebar (tablet / desktop). */
-function NavContent({ onNavigate }: { onNavigate?: () => void }) {
+function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawer?: boolean }) {
   const t = useT()
   const pathname = usePathname()
   const user = useSessionStore((s) => s.user)
-  const name = useProfile().data?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
-  const contact = user?.email || user?.phone || ""
+  const profile = useProfile().data
+  const { workspace } = useActiveWorkspace()
+  // In the Business workspace the header shows the business, not the person.
+  const business = workspace?.type === "BUSINESS" ? workspace : undefined
+  const personName = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
+  const name = business ? business.name : personName
+  const subtitle = business
+    ? [business.business_industry ? t(`industry.${business.business_industry}` as MessageKey) : null, business.business_phone].filter(Boolean).join(" · ") ||
+      t("business.addDetails")
+    : profile?.phone || user?.email || user?.phone || ""
+  const [editOpen, setEditOpen] = useState(false)
   const { plan } = usePlan()
   const pro = plan.tier === "PRO"
   const islamic = useIslamicEnabled()
 
   const groups: { title: MessageKey; items: Item[] }[] = [
     {
-      title: "nav.group.accounts",
+      title: "nav.group.finance",
       items: [
+        { href: "/home", label: "nav.home", icon: LayoutDashboardIcon },
         { href: "/wallets", label: "nav.wallets", icon: WalletIcon },
-        { href: "/debts", label: "nav.debts", icon: HandCoinsIcon },
-      ],
-    },
-    {
-      title: "nav.group.tools",
-      items: [
+        { href: "/transactions", label: "nav.transactions", icon: ArrowLeftRightIcon },
+        { href: "/debts", label: "nav.debtsTontine", icon: HandCoinsIcon },
         { href: "/reports", label: "reports.title", icon: ChartColumnIcon },
         { href: "/budgets", label: "budget.title", icon: TargetIcon },
         { href: "/reports#export", label: "reports.export", icon: FileSpreadsheetIcon, pro: true },
@@ -100,7 +100,7 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
       title: "nav.group.perks",
       items: [
         { href: "/settings#referral", label: "referral.title", icon: GiftIcon, hint: "nav.referHint" },
-        ...(islamic ? [{ href: "/islamic", label: "islamic.title", icon: MoonStarIcon } as Item] : []),
+        ...(islamic ? [{ href: "/islamic/prayer", label: "islamic.title", icon: MoonStarIcon } as Item] : []),
       ],
     },
     {
@@ -115,24 +115,31 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
     },
   ]
   // "/reports#export" is not "the Reports page" for highlighting; hash links never show as active.
-  const isActive = (href: string) => !href.includes("#") && (pathname === href || pathname.startsWith(`${href}/`))
+  const isActive = (href: string) => {
+    if (href.includes("#")) return false
+    // Every Islamic tab counts as the Islamic item.
+    if (href.startsWith("/islamic")) return pathname.startsWith("/islamic")
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
 
   return (
     <div className="flex h-full flex-col">
       {/* Profile */}
-      <div className="space-y-3 border-b px-4 pt-5 pb-4">
-        <div className="flex items-center gap-3">
-          <span
-            className="flex size-12 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-emerald-500 to-teal-600 text-base font-bold text-white shadow-sm"
-            aria-hidden
-          >
-            {initials(name)}
+      {/* In the drawer, leave room on the right for its ✕ button. */}
+      <div className={cn("space-y-3 border-b px-4 pt-5 pb-4", inDrawer && "pr-12")}>
+        <button
+          type="button"
+          onClick={() => setEditOpen(true)}
+          className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-2xl px-2 py-1.5 text-left transition-colors hover:bg-muted"
+          aria-label={t(business ? "business.title" : "profile.title")}
+        >
+          <ProfileAvatar path={business ? business.logo_path : profile?.avatar_path} name={name} business={Boolean(business)} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-semibold">{name}</span>
+            {subtitle && <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>}
           </span>
-          <div className="min-w-0">
-            <p className="truncate font-semibold">{name}</p>
-            {contact && <p className="truncate text-xs text-muted-foreground">{contact}</p>}
-          </div>
-        </div>
+          <PencilIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </button>
         {pro ? (
           <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
             <CrownIcon className="size-3.5" aria-hidden />
@@ -179,6 +186,12 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </nav>
 
+      {business ? (
+        <BusinessProfileSheet open={editOpen} onOpenChange={setEditOpen} workspace={business} />
+      ) : (
+        <ProfileSheet open={editOpen} onOpenChange={setEditOpen} profile={profile} email={user?.email} />
+      )}
+
       <div className="flex items-center gap-2 border-t px-5 py-3 text-[11px] text-muted-foreground">
         <BrandMark className="size-5 rounded-md text-[11px] shadow-none" />
         លុយឆ្លាត · LuyChlat v{APP_VERSION}
@@ -203,7 +216,7 @@ export function MobileNavTrigger() {
         <SheetContent side="left" className="w-[85%] max-w-xs gap-0 p-0 pt-[env(safe-area-inset-top)]">
           <SheetTitle className="sr-only">{t("nav.menu")}</SheetTitle>
           <SheetDescription className="sr-only">{t("app.name")}</SheetDescription>
-          <NavContent onNavigate={() => setOpen(false)} />
+          <NavContent inDrawer onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
     </>

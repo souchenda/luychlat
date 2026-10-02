@@ -110,7 +110,9 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
     // --- family sharing ------------------------------------------------------
 
     async getProfile() {
-      const row = unwrap(await supabase.from("profiles").select("id, display_name").eq("id", userId).maybeSingle()) as Profile | null
+      const row = unwrap(
+        await supabase.from("profiles").select("id, display_name, avatar_path, phone, bio").eq("id", userId).maybeSingle(),
+      ) as Profile | null
       return row ?? { id: userId, display_name: "" }
     },
 
