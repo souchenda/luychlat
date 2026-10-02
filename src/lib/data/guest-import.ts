@@ -7,10 +7,31 @@ import type { GuestData } from "./guest-db"
 import { guestReceipts } from "./guest-receipts"
 import { walletDeltas } from "./ledger"
 import { createSupabaseRepo } from "./supabase-repo"
-import { currentGuestData } from "./snapshots"
 import type { Transaction, Workspace, WorkspaceType } from "./types"
 
+/** Whatever a retired Guest Mode session left in this browser. */
+export function currentGuestData(): GuestData {
+  const s = useGuestDataStore.getState()
+  return {
+    workspaces: s.workspaces,
+    wallets: s.wallets,
+    categories: s.categories,
+    transactions: s.transactions,
+    debts: s.debts,
+    repayments: s.repayments,
+    notifications: s.notifications,
+    seededWorkspaceIds: s.seededWorkspaceIds,
+    budgets: s.budgets,
+    members: s.members,
+    tontines: s.tontines,
+    tontinePayments: s.tontinePayments,
+  }
+}
+
 /**
+ * Guest Mode was retired (every user signs in). Devices that still hold data
+ * from it are offered this one-time move into the account, so nothing is lost.
+ *
  * Moves Guest Mode data into the signed-in account (public.import_guest_data).
  * Each guest workspace goes into the account's workspace of the same kind;
  * a guest Family workspace becomes the user's own family workspace.

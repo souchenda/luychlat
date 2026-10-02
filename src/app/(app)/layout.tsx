@@ -14,9 +14,7 @@ import { useHydrated } from "@/hooks/use-hydrated"
 import { PendingInviteRedirect } from "@/components/family/pending-invite"
 import { RealtimeSync } from "@/components/family/realtime-sync"
 import { GuestImportPrompt } from "@/components/settings/guest-import"
-import { AlertScheduler } from "@/components/notifications/alert-scheduler"
 import { NotificationBell } from "@/components/notifications/notification-bell"
-import { SnapshotScheduler } from "@/components/notifications/snapshot-scheduler"
 import { Button } from "@/components/ui/button"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
 import { useActiveWorkspace } from "@/lib/data/hooks"
@@ -26,18 +24,19 @@ import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
 /**
- * Client-side gate for signed-in users and Guest Mode. This only controls what
- * the UI shows; cloud data is protected by Supabase RLS, not by this gate.
+ * Client-side gate: signed-in users only. This only controls what the UI
+ * shows; data is protected by Supabase RLS, not by this gate.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const t = useT()
   const router = useRouter()
   const hydrated = useHydrated()
-  const { user, isGuest, authReady } = useSessionStore()
+  const { user, authReady } = useSessionStore()
   const isLocked = useLockStore((s) => s.isLocked && Boolean(s.pinHash))
   const activeWorkspace = usePrefsStore((s) => s.activeWorkspace)
   const { workspace } = useActiveWorkspace()
-  const allowed = Boolean(user) || isGuest
+  // An account is required for every screen (Guest Mode was retired).
+  const allowed = Boolean(user)
 
   useEffect(() => {
     if (hydrated && authReady && !allowed) router.replace("/login")
@@ -55,8 +54,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <AppLock />
-      <AlertScheduler />
-      <SnapshotScheduler />
       <RealtimeSync />
       <PendingInviteRedirect />
       <GuestImportPrompt />

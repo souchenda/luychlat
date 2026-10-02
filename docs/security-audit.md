@@ -47,7 +47,7 @@ and `.dockerignore` exclude every `.env*` file except `.env.example`.
 - **Invite codes**: single use, 7-day expiry, 10 failed guesses per hour per user.
 - **Session checks**: the middleware refreshes sessions with `auth.getUser()`.
   The two API routes don't touch the database (they relay the user's own
-  Telegram/AI key, also in Guest Mode), so they are protected by origin, size
+  Telegram/AI key), so they are protected by origin, size
   and rate instead of a session; all their input is validated with Zod.
 - **XSS**: React escapes all text; the only raw HTML is the app's own boot
   script. Telegram messages escape names and notes. Excel exports write text

@@ -9,7 +9,7 @@ Architecture, schema and roadmap: [guideline.md](guideline.md).
 
 | Phase | What you get |
 | --- | --- |
-| 1 · Auth & security | Phone (+855) OTP, Google, Apple, Guest Mode ("try first", fully offline)<br>4-digit PIN, biometrics, auto-lock |
+| 1 · Auth & security | Email (password or code), Google, phone; an account is required (every user starts on Free)<br>4-digit PIN, biometrics, auto-lock |
 | 2 · Workspaces & wallets | 👤 Personal / 🏢 Business switcher<br>ABA, ACLEDA, Wing, Canadia, TrueMoney and cash wallets<br>Transfers, total balance in USD and KHR, hide-balance toggle |
 | 3 · Ledger | Income and expenses in either currency, categories, receipt photos<br>Monthly cash flow, charts, filtered transaction history |
 | 4 · Debts | Payables and receivables, partial repayments, urgency badges<br>Polite Khmer/English reminders via Telegram, SMS or share |
@@ -30,10 +30,10 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000 and tap **សាកល្បងប្រើប្រាស់សិន** (Guest Mode).
+Open http://localhost:3000 and sign in.
 
-- **No configuration needed:** Guest Mode stores everything on the device (localStorage + IndexedDB), so the whole app works without any keys.
-- **Signing in:** phone, Google and Apple login switch on once Supabase is connected (below).
+- **Supabase is required:** every user has an account (there is no offline Guest Mode), so fill in the Supabase variables in `.env.local` first (see "Connect Supabase" below).
+- **Sign-in methods:** `NEXT_PUBLIC_AUTH_METHODS` lists the ones enabled in Supabase (email, email_code, google, phone, apple).
 - **Biometric testing:** set `NEXT_PUBLIC_BIOMETRIC_MOCK=true` in `.env.local` to test FaceID / fingerprint unlock on a computer. Never enable it in production.
 - **Testing on a phone:** open the dev server from your phone on the same Wi-Fi.
 
@@ -92,7 +92,7 @@ Open http://localhost:3000 and tap **សាកល្បងប្រើប្រ�
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | your anon key |
    | `NEXT_PUBLIC_BIOMETRIC_MOCK` | `false` |
 
-   Without the Supabase variables the deployment still works, in Guest Mode only.
+   The Supabase variables are required: without them nobody can sign in.
 4. **Deploy.** Then, in Supabase Auth → URL Configuration:
    - Set the **Site URL** to the Vercel domain, e.g. `https://luysmart.vercel.app`.
    - Add `https://luysmart.vercel.app/auth/callback` to the **redirect URLs**.
@@ -115,8 +115,7 @@ Server routes and services on Vercel:
 
 - **Biometric mock:** set `NEXT_PUBLIC_BIOMETRIC_MOCK=false` (it is off by default).
 - **Test the cloud path end to end:** phone OTP, Google/Apple login, a repayment, a receipt upload, and the Telegram test message.
-- **Database backups:** turn on Supabase backups or point-in-time recovery. In-app Rollback covers Guest Mode only.
-- **Guest data:** it lives only on the device. Users should export a backup (Settings → ការគ្រប់គ្រងទិន្នន័យ) before clearing the browser or switching phones.
+- **Database backups:** turn on Supabase backups or point-in-time recovery. Users can also download a copy of their data (Settings → ការគ្រប់គ្រងទិន្នន័យ).
 - **Known `npm audit` warning:** 2 findings in the `postcss` copy bundled inside Next.js 15. They clear with a future Next.js major upgrade.
 
 ## Project layout
@@ -124,7 +123,7 @@ Server routes and services on Vercel:
 ```
 src/
   app/
-    login/              Phone (+855) OTP, Google, Apple, Telegram (phase 5), Guest Mode
+    login/              Google, email (password / code), phone
     auth/callback/      OAuth code exchange
     (app)/              Auth-gated shell: workspace switcher, App Lock overlay, bottom nav
       home/  transactions/  debts/ (+ [id], calculator/)  advisor/  reports/  wallets/  categories/  settings/
@@ -134,15 +133,14 @@ src/
   components/
     auth/  lock/  layout/  wallets/  workspace/  transactions/  categories/  debts/  dashboard/  advisor/  notifications/  reports/  settings/  money/  common/  ui/ (shadcn)
   lib/
-    data/               DataRepo interface: guest-repo (localStorage) and supabase-repo, plus React Query hooks
-    data/ledger.ts      Wallet balance effects (mirrors the DB trigger, used by Guest Mode)
+    data/               DataRepo interface (supabase-repo) plus React Query hooks
+    data/ledger.ts      Wallet balance effects (mirrors the DB trigger)
     analytics.ts        Monthly cash flow, 6-month trend, top spending
     debts.ts            Remaining, status, urgency bands (>7d / 1-7d / due), interest estimate
     reminder.ts         Khmer / English payment-reminder text, Telegram & SMS share links
     alerts.ts           Due-date alert stages (D7 / D3 / D0 / OVERDUE) and Telegram message text
     reports/            pl.ts (cash-basis P&L), ranges.ts (period presets), export.ts (.xlsx via SheetJS, loaded on demand)
     loans/amortization.ts  Flat-rate vs reducing-balance schedules
-    data/snapshots.ts   Daily snapshots + rollback (Guest Mode, IndexedDB)
     data/backup.ts      .json backup export / validated restore
     auth/reset.ts       Danger Zone: wipe cloud data (reset_my_data) and everything on the device
     advisor/            snapshot (metrics, DTI, 30-day liquidity, health score), strategy (Snowball vs Avalanche),
@@ -154,15 +152,17 @@ src/
     security/           pin.ts (PBKDF2), biometric.ts (WebAuthn / mock)
     i18n/               km (primary) + en dictionaries, useT()
     phone.ts            Cambodian number normalisation & formatting
-  stores/               Zustand: session, lock, locale, prefs (active workspace, hide balances, rate), guest-data, ai (provider + keys, device-only)
+  stores/               Zustand: session, lock, locale, prefs (active workspace, hide balances, rate), guest-data (old Guest Mode data, for the one-time move), ai (provider + keys, device-only)
 supabase/migrations/    Schema + RLS (guideline §3)
 public/sw.js            Service worker (static assets + offline shell; never caches API data)
 public/icons/           PWA / iOS icons (regenerate: node scripts/generate-icons.mjs)
 ```
 
-## Guest Mode
+## Accounts only (Guest Mode retired)
 
-Guest Mode runs the full app with no Supabase project. Workspaces, wallets, categories, transactions, debts and repayments live in localStorage (`luysmart-guest-data`); receipt photos live in IndexedDB (`luysmart-guest`). Both go through `guest-repo`. It has the same semantics as the cloud: atomic balance updates, overdraft check, and the delete and currency guards. Ending Guest Mode from Settings deletes all of it, receipts included.
+Every user signs in, and all data lives in Supabase from day one, so nothing is lost when a phone is changed or the browser is cleared. New accounts start on the Free plan with their Personal and Business workspaces ready (database trigger).
+
+Devices that still hold data from the old Guest Mode (`luysmart-guest-data` in localStorage, receipts in IndexedDB) are offered a one-time move into the signed-in account (`src/lib/data/guest-import.ts`). New users never see it.
 
 ## Debt alerts and Telegram
 
@@ -170,7 +170,6 @@ Guest Mode runs the full app with no Supabase project. Workspaces, wallets, cate
   - It creates one in-app notification per debt and stage: D7 = 4-7 days left, D3 = 1-3 days, D0 = due today, OVERDUE.
   - It posts the same alert to the owner's Telegram bot through `pg_net`.
   - Requires the `pg_cron` and `pg_net` extensions, both enabled by the migration.
-- **Guest Mode:** the app runs the same check when it opens, at most once a day. It sends through `/api/telegram`.
 - **Setup:** Settings → ការរំលឹកតាម Telegram. Create a bot with @BotFather, paste the token, then tap Find to fill in the Chat ID, and send a test message.
 
 ## AI advisor
@@ -214,10 +213,6 @@ Guest Mode runs the full app with no Supabase project. Workspaces, wallets, cate
 
 Settings → ការគ្រប់គ្រងទិន្នន័យ (Data management):
 
-- **Rollback to yesterday (Guest Mode):**
-  - A snapshot is saved to IndexedDB the first time the app opens each day, before any change. That is the end-of-yesterday state.
-  - The last 7 days are kept.
-  - Restoring first saves an undo point, so a rollback can itself be undone.
 - **Delete by date:** removes today's entries (or a date range) in the active workspace.
   - It previews each wallet's change first.
   - Balances and debt repayments are reversed, and older history is untouched.
@@ -225,9 +220,7 @@ Settings → ការគ្រប់គ្រងទិន្នន័យ (Data 
 - **Reconcile balance:** open a wallet, then កែតម្រូវ. Enter the real balance and one "balance adjustment" entry records the difference.
   - Existing wallets no longer have an editable balance field.
   - Adjustments are left out of cash flow, P&L and the advisor.
-- **Backup .json:**
-  - Export works in both modes. Guest Mode includes receipt photos; cloud exports include all data but no photos.
-  - Restore (Guest Mode) validates the file field by field and checks references between records before replacing anything, and saves an undo point first.
+- **Backup .json:** a downloadable copy of all the account's data (no receipt photos; they stay in the account).
 - **Factory reset:** Danger Zone, with a typed confirmation.
 
 ## Install (PWA)

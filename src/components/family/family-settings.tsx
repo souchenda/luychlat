@@ -1,9 +1,7 @@
 "use client"
 
 import {
-  CheckIcon,
   CopyIcon,
-  FlaskConicalIcon,
   Loader2Icon,
   LogOutIcon,
   PlusIcon,
@@ -15,7 +13,6 @@ import {
   UsersIcon,
   XIcon,
 } from "lucide-react"
-import { useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -33,18 +30,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useFamilyMutations, useInvites, useMembers, useProfile, useWorkspaces } from "@/lib/data/hooks"
 import { PlanLimitError, type Workspace, type WorkspaceInvite, type WorkspaceMember, type WorkspaceRole } from "@/lib/data/types"
 import { showUpgrade } from "@/lib/plan"
-import { simulateJoin, simulateMemberExpense } from "@/lib/family/guest-simulation"
 import { formatCode, inviteLink, normalizeCode } from "@/lib/family/invite-code"
 import { useT } from "@/lib/i18n/use-t"
-import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
-import { useSessionStore } from "@/stores/session-store"
 
 type InviteRole = Exclude<WorkspaceRole, "OWNER">
-
-function useIsGuest() {
-  return useSessionStore((s) => s.isGuest && !s.user)
-}
 
 async function copy(text: string, done: string) {
   try {
@@ -99,20 +89,16 @@ function DisplayNameRow() {
 /** Code, link and share actions for a fresh invitation. */
 function InviteSheet({ open, onOpenChange, workspace }: { open: boolean; onOpenChange: (v: boolean) => void; workspace: Workspace }) {
   const t = useT()
-  const isGuest = useIsGuest()
-  const queryClient = useQueryClient()
   const { createInvite } = useFamilyMutations()
   const [role, setRole] = useState<InviteRole>("MEMBER")
   const [invite, setInvite] = useState<WorkspaceInvite | null>(null)
-  const [partnerName, setPartnerName] = useState("")
 
   useEffect(() => {
     if (open) {
       setInvite(null)
       setRole("MEMBER")
-      setPartnerName(t("family.samplePartner"))
     }
-  }, [open, t])
+  }, [open])
 
   const generate = async () => {
     try {
@@ -137,13 +123,6 @@ function InviteSheet({ open, onOpenChange, workspace }: { open: boolean; onOpenC
         // Cancelled by the user.
       }
     } else await copy(`${text}\n${link}`, t("family.linkCopied"))
-  }
-
-  const simulate = () => {
-    const member = simulateJoin(workspace.id, partnerName)
-    void queryClient.invalidateQueries()
-    toast.success(t("family.simJoined", { name: member.display_name }))
-    onOpenChange(false)
   }
 
   return (
@@ -195,27 +174,6 @@ function InviteSheet({ open, onOpenChange, workspace }: { open: boolean; onOpenC
           </Button>
           <p className="text-center text-xs text-muted-foreground">{t("family.howToJoin")}</p>
 
-          {isGuest && (
-            <div className="space-y-2 rounded-xl bg-amber-500/10 p-3">
-              <p className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
-                <FlaskConicalIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {t("family.guestDemo")}
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  value={partnerName}
-                  onChange={(e) => setPartnerName(e.target.value)}
-                  maxLength={40}
-                  aria-label={t("family.simName")}
-                  className="h-9 bg-background"
-                />
-                <Button size="sm" className="h-9" onClick={simulate} disabled={!partnerName.trim()}>
-                  <CheckIcon />
-                  {t("family.simAccept")}
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </BottomSheet>
@@ -225,9 +183,6 @@ function InviteSheet({ open, onOpenChange, workspace }: { open: boolean; onOpenC
 function MemberRow({ member, workspace, me }: { member: WorkspaceMember; workspace: Workspace; me: string | undefined }) {
   const t = useT()
   const router = useRouter()
-  const lang = useLocaleStore((s) => s.locale)
-  const isGuest = useIsGuest()
-  const queryClient = useQueryClient()
   const setActive = usePrefsStore((s) => s.setActiveWorkspace)
   const { setRole, removeMember } = useFamilyMutations()
   const isMe = member.user_id === me
@@ -242,13 +197,6 @@ function MemberRow({ member, workspace, me }: { member: WorkspaceMember; workspa
       router.push("/home")
     }
     toast.success(isMe ? t("family.left") : t("family.removed", { name: member.display_name }))
-  }
-
-  const simulateExpense = async () => {
-    const result = await simulateMemberExpense(workspace.id, member, lang)
-    if (!result) return toast.error(t("family.simNeedsWallet"))
-    void queryClient.invalidateQueries()
-    toast(result.notification.title, { description: result.notification.message })
   }
 
   return (
@@ -281,12 +229,6 @@ function MemberRow({ member, workspace, me }: { member: WorkspaceMember; workspa
           aria-label={isMe ? t("family.leave") : t("family.remove", { name: member.display_name })}
         >
           {isMe ? <LogOutIcon className="size-4" /> : <UserMinusIcon className="size-4" />}
-        </Button>
-      )}
-      {isGuest && !isMe && member.role !== "VIEWER" && (
-        <Button size="sm" variant="secondary" className="basis-full" onClick={simulateExpense}>
-          <FlaskConicalIcon />
-          {t("family.simExpense", { name: member.display_name })}
         </Button>
       )}
     </li>

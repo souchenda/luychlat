@@ -1,6 +1,6 @@
 "use client"
 
-import { BookOpenIcon, ChartColumnIcon, LifeBuoyIcon, ChevronRightIcon, CloudUploadIcon, CoinsIcon, TargetIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import { BookOpenIcon, ChartColumnIcon, LifeBuoyIcon, ChevronRightIcon, CoinsIcon, TargetIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -109,7 +109,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const { locale, setLocale } = useLocaleStore()
-  const { user, isGuest } = useSessionStore()
+  const user = useSessionStore((s) => s.user)
   const {
     pinHash,
     biometricCredentialId,
@@ -144,14 +144,8 @@ export default function SettingsPage() {
   }
 
   const signOut = async () => {
-    if (!window.confirm(t(isGuest ? "settings.endGuestConfirm" : "settings.signOutConfirm"))) return
+    if (!window.confirm(t("settings.signOutConfirm"))) return
     await signOutEverywhere()
-    router.replace("/login")
-  }
-
-  // Guest -> account: the data stays on this device and is offered for import after sign-in.
-  const createAccount = () => {
-    useSessionStore.getState().endGuest()
     router.replace("/login")
   }
 
@@ -290,18 +284,12 @@ export default function SettingsPage() {
       </Section>
 
       <Section title={t("settings.account")}>
-        <Row title={isGuest ? t("settings.guestAccount") : (user?.phone ? `+${user.phone}` : (user?.email ?? ""))} />
+        <Row title={user?.phone ? `+${user.phone}` : (user?.email ?? "")} />
         <GuestImportRow />
         <div className="space-y-2 px-4 py-3">
-          {isGuest && (
-            <Button className="w-full" onClick={createAccount}>
-              <CloudUploadIcon />
-              {t("home.createAccount")}
-            </Button>
-          )}
           <Button variant="outline" className="w-full text-destructive" onClick={signOut}>
             <LogOutIcon />
-            {isGuest ? t("settings.endGuest") : t("settings.signOut")}
+            {t("settings.signOut")}
           </Button>
         </div>
       </Section>

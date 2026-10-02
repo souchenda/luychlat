@@ -1,6 +1,5 @@
 "use client"
 
-import { UserRoundIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 
@@ -12,7 +11,6 @@ import { ReferralCapture } from "@/components/billing/referral"
 import { BrandMark } from "@/components/brand-mark"
 import { useGuestSummary } from "@/components/settings/guest-import"
 import { LanguageToggle } from "@/components/layout/language-toggle"
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { useHydrated } from "@/hooks/use-hydrated"
 import { hasGuestData } from "@/lib/data/guest-import"
@@ -48,11 +46,11 @@ export default function LoginPage() {
   const t = useT()
   const router = useRouter()
   const hydrated = useHydrated()
-  const { user, isGuest, startGuest } = useSessionStore()
+  const user = useSessionStore((s) => s.user)
 
   useEffect(() => {
-    if (user || isGuest) router.replace("/home")
-  }, [user, isGuest, router])
+    if (user) router.replace("/home")
+  }, [user, router])
 
   const cloudDisabled = !isSupabaseConfigured
   // With email codes on, they're the main way in; the password form is one tap away.
@@ -125,13 +123,6 @@ export default function LoginPage() {
             </>
           )}
 
-          <div className="mt-auto pt-6 text-center">
-            <Button variant="secondary" className="h-12 w-full text-base" onClick={startGuest}>
-              <UserRoundIcon />
-              {t("login.guest")}
-            </Button>
-            <p className="mt-2 text-xs text-muted-foreground">{t("login.guestHint")}</p>
-          </div>
         </div>
       )}
     </main>

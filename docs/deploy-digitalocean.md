@@ -35,7 +35,7 @@ Files used here (all in the repo):
    git push -u origin master
    ```
    A private repository is fine.
-2. **Decide on Supabase.** Without keys the deployed app runs in **Guest Mode** only, which is fine for testing on your phone. To enable sign-in, follow "Connect Supabase" in the README first and have these two values ready:
+2. **Decide on Supabase.** The app requires accounts, so Supabase is needed: follow "Connect Supabase" in the README first and have these two values ready:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
@@ -59,7 +59,7 @@ Files used here (all in the repo):
 
    | Key | Value |
    | --- | --- |
-   | `NEXT_PUBLIC_SUPABASE_URL` | your Supabase URL (or leave empty for Guest Mode) |
+   | `NEXT_PUBLIC_SUPABASE_URL` | your Supabase URL (required) |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | your anon key (or empty) |
    | `NEXT_PUBLIC_BIOMETRIC_MOCK` | `false` |
 4. **Create the app.** The first build takes about 3–6 minutes. You get a URL like `https://luysmart-xxxxx.ondigitalocean.app`, with HTTPS already on.
@@ -152,7 +152,7 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt -y install nodejs
 sudo npm i -g pm2
 
-# Build-time public variables (gitignored); leave empty for Guest Mode
+# Build-time public variables (gitignored); required
 cat > .env.production.local <<'EOF'
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -274,7 +274,7 @@ printf '%s\n' \
   'APP_BIND=127.0.0.1' \
   'APP_PORT=3000' \
   'APP_MEMORY=512m' \
-  '# Leave empty for Guest Mode; fill in to enable sign-in (needs a rebuild to change)' \
+  '# Required: the app needs Supabase to sign in (needs a rebuild to change)' \
   'NEXT_PUBLIC_SUPABASE_URL=' \
   'NEXT_PUBLIC_SUPABASE_ANON_KEY=' > .env
 
@@ -351,7 +351,7 @@ PM2 listens on `127.0.0.1:3000`; the Nginx file from C6 works unchanged. To use 
 | Build killed / `JavaScript heap out of memory` | Add swap (B1 step 3) or build on a 2 GB droplet / App Platform |
 | `502 Bad Gateway` from Nginx | App not running: `docker compose logs -f` or `pm2 logs luysmart`; check `curl 127.0.0.1:3000/api/health` |
 | App Platform health check failing | HTTP port must be `3000`, health path `/api/health` |
-| "Login is disabled" / Guest Mode only | Supabase variables were empty **at build time**. Set them and redeploy / rebuild |
+| "Login is disabled" | Supabase variables were empty **at build time**. Set them and redeploy / rebuild |
 | PIN can't be set, no fingerprint, no install prompt | You're on `http://`. Use the HTTPS URL |
 | Sign-in redirects back with an error | Add the exact `https://…/auth/callback` URL in Supabase Auth → URL Configuration |
 | Users see an old version after deploying | The service worker updates on the next visit. Close and reopen the app once |

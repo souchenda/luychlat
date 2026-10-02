@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, HandshakeIcon, CloudOffIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, TargetIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, HandshakeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, TargetIcon, WalletIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -34,7 +34,6 @@ import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useLockStore } from "@/stores/lock-store"
 import { usePrefsStore } from "@/stores/prefs-store"
-import { useSessionStore } from "@/stores/session-store"
 
 // Recharts is heavy; load the chart card after the rest of the dashboard.
 const CashFlowCharts = dynamic(() => import("@/components/dashboard/cash-flow-charts").then((m) => m.CashFlowCharts), {
@@ -49,7 +48,6 @@ const TREND_MONTHS = 6
 export default function HomePage() {
   const t = useT()
   const router = useRouter()
-  const { isGuest, endGuest } = useSessionStore()
   const hasPin = useLockStore((s) => Boolean(s.pinHash))
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { workspace } = useActiveWorkspace()
@@ -230,29 +228,6 @@ export default function HomePage() {
           <WalletList wallets={active.slice(0, WALLET_PREVIEW)} onSelect={() => router.push("/wallets")} />
         )}
       </section>
-
-      {isGuest && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CloudOffIcon className="size-5 text-amber-600" />
-              {t("home.guestBanner")}
-            </CardTitle>
-            <CardDescription>{t("home.guestBannerHint")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              size="sm"
-              onClick={() => {
-                endGuest()
-                router.replace("/login")
-              }}
-            >
-              {t("home.createAccount")}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       {!hasPin && (
         <Card>

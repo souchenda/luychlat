@@ -108,7 +108,7 @@ export function UpgradeSheet() {
   const locale = useLocaleStore((s) => s.locale)
   const queryClient = useQueryClient()
   const { open, reason, close } = useUpgradeStore()
-  const { user, isGuest, endGuest } = useSessionStore()
+  const user = useSessionStore((s) => s.user)
   const signedIn = Boolean(user)
   const { plan, isPro } = usePlan()
   const options = usePlanOptions()
@@ -249,7 +249,6 @@ export function UpgradeSheet() {
               className="h-12 w-full text-base"
               onClick={() => {
                 close()
-                if (isGuest) endGuest()
                 router.push("/login")
               }}
             >

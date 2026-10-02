@@ -23,7 +23,7 @@ function JoinFlow() {
   const t = useT()
   const router = useRouter()
   const params = useSearchParams()
-  const { user, isGuest, authReady, endGuest } = useSessionStore()
+  const { user, authReady } = useSessionStore()
   const setActive = usePrefsStore((s) => s.setActiveWorkspace)
   const { lookupInvite } = useFamilyMutations()
   const [code, setCode] = useState(() => normalizeCode(params.get("code") ?? ""))
@@ -66,11 +66,10 @@ function JoinFlow() {
 
   const signIn = () => {
     if (code.length === 6) savePendingInvite(code)
-    if (isGuest) endGuest()
     router.push("/login")
   }
 
-  if (!authReady && !isGuest) {
+  if (!authReady) {
     return <Loader2Icon className="mx-auto size-6 animate-spin text-muted-foreground" />
   }
 
@@ -120,7 +119,7 @@ function JoinFlow() {
 
         {!user ? (
           <>
-            <p className="text-center text-sm text-muted-foreground">{t(isGuest ? "join.guestNeedsAccount" : "join.signInFirst")}</p>
+            <p className="text-center text-sm text-muted-foreground">{t("join.signInFirst")}</p>
             <Button type="button" className="h-12 w-full text-base" onClick={signIn}>
               <LogInIcon />
               {t("join.signIn")}
@@ -146,7 +145,7 @@ function JoinFlow() {
             {t("join.check")}
           </Button>
         )}
-        <Button type="button" variant="ghost" className="w-full" onClick={() => leave(user || isGuest ? "/home" : "/login")}>
+        <Button type="button" variant="ghost" className="w-full" onClick={() => leave(user ? "/home" : "/login")}>
           {t("join.notNow")}
         </Button>
       </form>

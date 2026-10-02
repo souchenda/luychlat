@@ -7,7 +7,6 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
-import { guestRepo } from "./guest-repo"
 import type { DataRepo } from "./repo"
 import { createSupabaseRepo } from "./supabase-repo"
 import type {
@@ -31,13 +30,18 @@ import type {
   WorkspaceRole,
 } from "./types"
 
-/** Guest repo in Guest Mode, Supabase repo for signed-in users. */
+/** Every call before sign-in fails (the app shows only the login screen then). */
+const signedOutRepo = new Proxy({} as DataRepo, {
+  get: () => () => Promise.reject(new Error("not_signed_in")),
+})
+
+/** The signed-in user's Supabase repo. */
 export function useRepo(): { repo: DataRepo; scope: string } {
   const userId = useSessionStore((s) => s.user?.id ?? null)
   return useMemo(() => {
     const supabase = getSupabaseBrowserClient()
     if (userId && supabase) return { repo: createSupabaseRepo(supabase, userId), scope: userId }
-    return { repo: guestRepo, scope: "guest" }
+    return { repo: signedOutRepo, scope: "signed-out" }
   }, [userId])
 }
 

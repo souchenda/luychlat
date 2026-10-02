@@ -4,7 +4,7 @@
 
 - **Contact channels:** Telegram support (the main channel), a call button and the community group. You set them in **/admin › Support contacts**.
   - Links must start with `https://t.me/`.
-  - Guests can see these too.
+  - Shown even before signing in.
 - **Report a problem:** pick Payment issue, Bug report, Feature request or Other, write a message, and optionally leave a Telegram name or phone for the reply.
   - Each user can send up to 5 messages a day and have up to 10 open at once.
   - Each message also records the screen, language, plan and browser, to help reproduce the problem. No personal data is included.

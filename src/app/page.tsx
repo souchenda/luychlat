@@ -10,13 +10,13 @@ import { useSessionStore } from "@/stores/session-store"
 export default function IndexPage() {
   const router = useRouter()
   const hydrated = useHydrated()
-  const { user, isGuest, authReady } = useSessionStore()
+  const { user, authReady } = useSessionStore()
 
   useEffect(() => {
     if (!hydrated) return
-    if (isGuest || user) router.replace("/home")
+    if (user) router.replace("/home")
     else if (authReady) router.replace("/login")
-  }, [hydrated, user, isGuest, authReady, router])
+  }, [hydrated, user, authReady, router])
 
   return (
     <div className="flex min-h-dvh items-center justify-center">
