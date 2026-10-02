@@ -23,6 +23,7 @@ import {
 } from "@/lib/data/hooks"
 import type { Transaction, TransactionFilter, Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
+import { isGoal } from "@/lib/goals"
 
 const RECENT_TRANSFERS: TransactionFilter = { type: "TRANSFER", limit: 10 }
 
@@ -43,8 +44,9 @@ export default function WalletsPage() {
   const hasHistory = useWalletHasHistory(workspace?.id, editing?.id)
 
   const all = walletsQuery.data
-  const active = useMemo(() => all?.filter((w) => !w.archived_at) ?? [], [all])
-  const archived = useMemo(() => all?.filter((w) => w.archived_at) ?? [], [all])
+  // Savings goals have their own page (/goals).
+  const active = useMemo(() => all?.filter((w) => !w.archived_at && !isGoal(w)) ?? [], [all])
+  const archived = useMemo(() => all?.filter((w) => w.archived_at && !isGoal(w)) ?? [], [all])
   const transfers = useMemo(() => transfersQuery.data ?? [], [transfersQuery.data])
 
   const openCreate = () => {

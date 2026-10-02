@@ -69,9 +69,13 @@ type TransferSheetProps = {
   wallets: Wallet[]
   /** Edit this transfer instead of creating one. */
   transaction?: Transaction | null
+  /** Pre-selected wallets for a new transfer (e.g. a savings-goal deposit or withdrawal). */
+  initialFrom?: string
+  initialTo?: string
+  title?: string
 }
 
-export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transaction }: TransferSheetProps) {
+export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transaction, initialFrom, initialTo, title }: TransferSheetProps) {
   const t = useT()
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { transfer } = useWalletMutations(workspaceId)
@@ -79,7 +83,7 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transa
   const me = useProfile().data?.id
   const selectable = useMemo(
     () =>
-      usableWallets(wallets, me).filter(
+      usableWallets(wallets, me, { goals: true }).filter(
         (w) => !w.archived_at || w.id === transaction?.wallet_id || w.id === transaction?.to_wallet_id,
       ),
     [wallets, transaction, me],
@@ -97,8 +101,11 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transa
         note: transaction.note ?? "",
       }
     }
-    const from = selectable[0]?.id ?? ""
-    return { from, to: selectable.find((w) => w.id !== from)?.id ?? "", amount: "", rate: String(khrPerUsd), note: "" }
+    // Ordinary wallets first; a savings goal is only pre-selected when asked for.
+    const plain = selectable.filter((w) => w.goal_target == null)
+    const to = initialTo ?? plain.find((w) => w.id !== initialFrom)?.id ?? ""
+    const from = initialFrom ?? plain.find((w) => w.id !== to)?.id ?? ""
+    return { from, to, amount: "", rate: String(khrPerUsd), note: "" }
   }
   const { control, register, handleSubmit, reset, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -108,7 +115,7 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transa
   useEffect(() => {
     if (open) reset(defaults())
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the sheet opens
-  }, [open, transaction?.id])
+  }, [open, transaction?.id, initialFrom, initialTo])
 
   const [fromId, toId, amountText, rateText] = useWatch({ control, name: ["from", "to", "amount", "rate"] })
   const from = byId.get(fromId)
@@ -172,7 +179,7 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transa
   )
 
   return (
-    <BottomSheet open={open} onOpenChange={onOpenChange} title={transaction ? t("transfer.editTitle") : t("transfer.title")}>
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={transaction ? t("transfer.editTitle") : (title ?? t("transfer.title"))}>
       {selectable.length < 2 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">{t("transfer.needTwo")}</p>
       ) : (

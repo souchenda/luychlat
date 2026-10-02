@@ -13,6 +13,7 @@ import { ReminderSheet } from "@/components/debts/reminder-sheet"
 import { RepaymentSheet } from "@/components/debts/repayment-sheet"
 import { RecordedBy } from "@/components/family/member-avatar"
 import { UrgencyBadge } from "@/components/debts/urgency-badge"
+import { InsuranceCard, InsuredBadge } from "@/components/debts/insurance-card"
 import { Amount } from "@/components/money/amount"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -107,7 +108,10 @@ export default function DebtDetailPage() {
             </a>
           )}
           {debt.note && <p className="text-sm text-muted-foreground">{debt.note}</p>}
-          <UrgencyBadge debt={debt} />
+          <div className="flex flex-wrap items-center gap-1.5">
+            <UrgencyBadge debt={debt} />
+            <InsuredBadge debt={debt} />
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center">
@@ -126,6 +130,8 @@ export default function DebtDetailPage() {
         </div>
 
         <DebtProgress debt={debt} />
+
+        <InsuranceCard debt={debt} />
 
         <div className="space-y-0.5 text-xs text-muted-foreground">
           <p>

@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowDownLeftIcon, ArrowUpRightIcon, Loader2Icon } from "lucide-react"
+import { ArrowDownLeftIcon, ArrowUpRightIcon, Loader2Icon, ShieldCheckIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
@@ -12,6 +12,7 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { WalletSelect } from "@/components/wallets/wallet-select"
 import { usableWallets, useDebtMutations, useProfile, useWallets } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
@@ -20,6 +21,7 @@ import { fromDateInput } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { INSURERS } from "@/lib/insurance"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { formatNationalNumber, isValidNationalNumber, KH_COUNTRY_CODE, toE164, toNationalNumber } from "@/lib/phone"
 import { usePrefsStore } from "@/stores/prefs-store"
@@ -40,6 +42,13 @@ function buildSchema(paid: number) {
       /** Move the money now (off by default: tracking an existing debt shouldn't touch wallets). */
       moveMoney: z.boolean(),
       walletId: z.string(),
+      /** Optional loan insurance (borrowed money only). */
+      insured: z.boolean(),
+      insurer: z.string().max(60),
+      policyNo: z.string().max(60),
+      premium: z.string(),
+      premiumCurrency: z.enum(["USD", "KHR"]),
+      renewal: z.string(),
     })
     .superRefine((v, ctx) => {
       if (v.moveMoney && !v.walletId) ctx.addIssue({ code: "custom", path: ["walletId"], message: "transfer.select" })
@@ -51,6 +60,9 @@ function buildSchema(paid: number) {
       }
       if (v.phone && !isValidNationalNumber(v.phone)) {
         ctx.addIssue({ code: "custom", path: ["phone"], message: "login.invalidPhone" })
+      }
+      if (v.insured && v.premium && !(parseAmount(v.premium) >= 0)) {
+        ctx.addIssue({ code: "custom", path: ["premium"], message: "walletForm.amountInvalid" })
       }
       if (v.dueDate && v.dueDate < v.startDate) {
         ctx.addIssue({ code: "custom", path: ["dueDate"], message: "debtForm.dueBeforeStart" })
@@ -105,6 +117,12 @@ export function DebtFormSheet({
           note: debt.note ?? "",
           moveMoney: false,
           walletId: "",
+          insured: debt.insured ?? false,
+          insurer: debt.insurer ?? "",
+          policyNo: debt.insurance_policy_no ?? "",
+          premium: debt.insurance_premium != null ? String(debt.insurance_premium) : "",
+          premiumCurrency: debt.insurance_currency ?? debt.currency,
+          renewal: debt.insurance_renewal_date ?? "",
         }
       : {
           type: prefill?.type ?? defaultType,
@@ -119,6 +137,12 @@ export function DebtFormSheet({
           note: prefill?.note ?? "",
           moveMoney: false,
           walletId: "",
+          insured: false,
+          insurer: "",
+          policyNo: "",
+          premium: "",
+          premiumCurrency: prefill?.currency ?? "USD",
+          renewal: "",
         }
 
   const { control, register, handleSubmit, reset, setValue, formState } = useForm<FormValues>({
@@ -126,9 +150,9 @@ export function DebtFormSheet({
     defaultValues: defaults(),
   })
 
-  const [selectedType, moveMoney, walletId, totalText, currency] = useWatch({
+  const [selectedType, moveMoney, walletId, totalText, currency, insured] = useWatch({
     control,
-    name: ["type", "moveMoney", "walletId", "total", "currency"],
+    name: ["type", "moveMoney", "walletId", "total", "currency", "insured"],
   })
   const moneyWallet = activeWallets.find((w) => w.id === walletId)
   const totalValue = disbursementAmount ?? parseAmount(totalText)
@@ -154,6 +178,17 @@ export function DebtFormSheet({
       start_date: v.startDate,
       due_date: v.dueDate || null,
       note: v.note.trim() || null,
+      // Loan insurance applies to money we borrowed; cleared otherwise.
+      ...(v.type === "PAYABLE" && v.insured
+        ? {
+            insured: true,
+            insurer: v.insurer.trim() || null,
+            insurance_policy_no: v.policyNo.trim() || null,
+            insurance_premium: v.premium ? roundMoney(parseAmount(v.premium), v.premiumCurrency) : null,
+            insurance_currency: v.premium ? v.premiumCurrency : null,
+            insurance_renewal_date: v.renewal || null,
+          }
+        : { insured: false, insurer: null, insurance_policy_no: null, insurance_premium: null, insurance_currency: null, insurance_renewal_date: null }),
     }
     const target = activeWallets.find((w) => w.id === v.walletId)
     const disbursement: DebtDisbursement | undefined =
@@ -377,6 +412,69 @@ export function DebtFormSheet({
                   </p>
                 )}
               </div>
+            )}
+          </div>
+        )}
+
+        {selectedType === "PAYABLE" && (
+          <div className="space-y-3 rounded-xl border p-3">
+            <Controller
+              control={control}
+              name="insured"
+              render={({ field }) => (
+                <label className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <ShieldCheckIcon className="size-4 text-sky-600" aria-hidden />
+                    {t("insurance.toggle")}
+                  </span>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </label>
+              )}
+            />
+            {insured && (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ins-insurer">{t("insurance.insurer")}</Label>
+                  <Input id="ins-insurer" className="h-11" maxLength={60} list="insurers" placeholder="Forte, Manulife, AIA…" {...register("insurer")} />
+                  <datalist id="insurers">
+                    {INSURERS.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ins-policy">{t("insurance.policyNo")}</Label>
+                  <Input id="ins-policy" className="h-11" maxLength={60} autoComplete="off" {...register("policyNo")} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ins-premium">{t("insurance.premium")}</Label>
+                  <div className="flex gap-2">
+                    <Input id="ins-premium" className="h-11 min-w-0 flex-1 tabular-nums" inputMode="decimal" placeholder="0" autoComplete="off" {...register("premium")} />
+                    <div className="w-28 shrink-0">
+                      <Controller
+                        control={control}
+                        name="premiumCurrency"
+                        render={({ field }) => (
+                          <Segmented
+                            aria-label={t("walletForm.currency")}
+                            value={field.value}
+                            onChange={field.onChange}
+                            options={[
+                              { value: "USD", label: "$" },
+                              { value: "KHR", label: "៛" },
+                            ]}
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                  {err("premium")}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ins-renewal">{t("insurance.renewal")}</Label>
+                  <Input id="ins-renewal" type="date" max="9999-12-31" className="h-11" {...register("renewal")} />
+                </div>
+              </>
             )}
           </div>
         )}

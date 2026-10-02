@@ -104,9 +104,15 @@ export function canWrite(workspace: Workspace | undefined) {
   return workspace?.role === "OWNER" || workspace?.role === "MEMBER"
 }
 
-/** Wallets the current user may move money with: shared ones and their own personal ones. */
-export function usableWallets(wallets: Wallet[], userId: string | undefined) {
-  return wallets.filter((w) => w.visibility !== "PERSONAL" || !w.owner_id || w.owner_id === userId)
+/**
+ * Wallets the current user may move money with: shared ones and their own
+ * personal ones. Savings goals only take transfers, so they are left out
+ * unless `goals` is set (the transfer form).
+ */
+export function usableWallets(wallets: Wallet[], userId: string | undefined, opts?: { goals?: boolean }) {
+  return wallets.filter(
+    (w) => (w.visibility !== "PERSONAL" || !w.owner_id || w.owner_id === userId) && (opts?.goals || w.goal_target == null),
+  )
 }
 
 export function useMembers(workspaceId: string | undefined) {

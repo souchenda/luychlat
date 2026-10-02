@@ -47,6 +47,10 @@ export type Wallet = {
   /** Last bank statement this wallet was reconciled with (signed-in only). */
   last_reconciled_on?: string | null
   last_reconciled_balance?: number | null
+  /** Savings goal: target amount (null for an ordinary wallet). Goals only take transfers. */
+  goal_target?: number | null
+  /** Savings goal: target date (yyyy-MM-dd). */
+  goal_date?: string | null
 }
 
 export type Transaction = {
@@ -106,7 +110,20 @@ export type Debt = {
   created_at: string
   /** Ledger row created when the debt was opened with "move money", if any. */
   disbursement_transaction_id: string | null
-} & Attribution
+} & Attribution &
+  DebtInsurance
+
+/** Optional loan insurance (e.g. credit life insurance the bank requires). */
+export type DebtInsurance = {
+  insured?: boolean
+  insurer?: string | null
+  insurance_policy_no?: string | null
+  /** Yearly premium. */
+  insurance_premium?: number | null
+  insurance_currency?: Currency | null
+  /** yyyy-MM-dd */
+  insurance_renewal_date?: string | null
+}
 
 /** Optional money movement when a debt is created (see public.disburse_debt). */
 export type DebtDisbursement = {
@@ -158,7 +175,7 @@ export type DebtInput = {
   start_date: string
   due_date: string | null
   note: string | null
-}
+} & DebtInsurance
 
 export type DebtRepayment = {
   id: string
@@ -307,7 +324,8 @@ export type TransactionFilter = {
 }
 
 /** Editable wallet fields; the balance only changes through ledger entries (or Reconcile). */
-export type WalletUpdate = Omit<WalletInput, "balance">
+/** Only the fields being changed (the balance moves through the ledger). */
+export type WalletUpdate = Partial<Omit<WalletInput, "balance">>
 
 export type WalletInput = {
   name: string
@@ -316,6 +334,9 @@ export type WalletInput = {
   visibility: WalletVisibility
   currency: Currency
   balance: number
+  /** Savings goals only (see lib/goals.ts). */
+  goal_target?: number | null
+  goal_date?: string | null
 }
 
 /** Transfer update payload (workspace is fixed). */

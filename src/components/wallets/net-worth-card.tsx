@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { convert, roundMoney } from "@/lib/money"
+import { isGoal } from "@/lib/goals"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 export function computeTotals(wallets: Wallet[], khrPerUsd: number) {
@@ -19,7 +20,8 @@ export function computeTotals(wallets: Wallet[], khrPerUsd: number) {
   const usd = sum("USD")
   const khr = sum("KHR")
   return {
-    count: active.length,
+    // Savings goals count in the totals (they are assets) but not as wallets.
+    count: active.filter((w) => !isGoal(w)).length,
     usdWallets: usd,
     khrWallets: khr,
     totalUsd: roundMoney(usd + convert(khr, "KHR", "USD", khrPerUsd), "USD"),

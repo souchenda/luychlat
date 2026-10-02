@@ -45,7 +45,11 @@ function unwrap<T>({ data, error }: { data: T | null; error: PostgrestError | nu
 }
 
 // PostgREST may return numeric columns as strings; normalise to numbers.
-const toWallet = (row: Wallet): Wallet => ({ ...row, balance: Number(row.balance) })
+const toWallet = (row: Wallet): Wallet => ({
+  ...row,
+  balance: Number(row.balance),
+  goal_target: row.goal_target == null ? null : Number(row.goal_target),
+})
 const toTransaction = (row: Transaction): Transaction => ({
   ...row,
   amount: Number(row.amount),
@@ -67,6 +71,7 @@ const toDebt = (row: Debt): Debt => ({
   total_amount: Number(row.total_amount),
   paid_amount: Number(row.paid_amount),
   interest_rate: Number(row.interest_rate),
+  insurance_premium: row.insurance_premium == null ? null : Number(row.insurance_premium),
 })
 const toRepayment = (row: DebtRepayment): DebtRepayment => ({ ...row, amount_paid: Number(row.amount_paid) })
 const toBudget = (row: Budget): Budget => ({ ...row, amount: Number(row.amount) })

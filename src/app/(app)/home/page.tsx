@@ -13,6 +13,8 @@ import { FamilyStrip } from "@/components/family/family-strip"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
+import { InsuranceRenewalCard } from "@/components/debts/insurance-card"
+import { GoalsHomeCard } from "@/components/goals/goals-home-card"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
 import { TransactionEditor } from "@/components/transactions/transaction-editor"
@@ -30,6 +32,7 @@ import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useT
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { islamicGreeting, toHijri } from "@/lib/islamic"
+import { isGoal } from "@/lib/goals"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
 import { homeGreeting } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
@@ -70,7 +73,8 @@ export default function HomePage() {
   const [debtFormOpen, setDebtFormOpen] = useState(false)
 
   const wallets = walletsQuery.data ?? []
-  const active = wallets.filter((w) => !w.archived_at)
+  // Wallets section lists ordinary wallets; savings goals show in their own card.
+  const active = wallets.filter((w) => !w.archived_at && !isGoal(w))
   const transactions = useMemo(() => txQuery.data ?? [], [txQuery.data])
   const thisMonth = monthKey()
   const monthTransactions = useMemo(
@@ -237,9 +241,13 @@ export default function HomePage() {
         )}
       </section>
 
+      <GoalsHomeCard wallets={walletsQuery.data} />
+
       <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} onAdd={editable ? () => setDebtFormOpen(true) : undefined} />
 
       <TontineDueCard workspaceId={ws} />
+
+      <InsuranceRenewalCard debts={debtsQuery.data} />
 
       <CashFlowCharts transactions={transactions} categories={categoriesQuery.data ?? []} months={months} />
 
