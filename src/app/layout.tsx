@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Amiri, Geist_Mono, Kantumruy_Pro } from "next/font/google"
+import { Amiri, Amiri_Quran, Geist_Mono, Kantumruy_Pro } from "next/font/google"
 
 import { Providers } from "@/components/providers"
 
@@ -21,6 +21,14 @@ const amiri = Amiri({
   variable: "--font-arabic",
   subsets: ["arabic"],
   weight: ["400", "700"],
+  preload: false,
+})
+
+// Quran text (Uthmani script with ayah-end ornaments). Only fetched on the Quran pages.
+const amiriQuran = Amiri_Quran({
+  variable: "--font-quran",
+  subsets: ["arabic"],
+  weight: "400",
   preload: false,
 })
 
@@ -53,7 +61,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="km" className={`${kantumruy.variable} ${geistMono.variable} ${amiri.variable}`} suppressHydrationWarning>
+    <html lang="km" className={`${kantumruy.variable} ${geistMono.variable} ${amiri.variable} ${amiriQuran.variable}`} suppressHydrationWarning>
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>

@@ -1814,6 +1814,20 @@ const km = {
   "places.tapMarker": "ចុចលើសញ្ញាណ ដើម្បីមើលព័ត៌មាន",
   "places.noPins": "មិនទាន់មានទីតាំងដែលមានម្ជុលលើផែនទីទេ",
   "places.communityNote": "ទីតាំងបន្ថែមដោយសហគមន៍ ហើយត្រូវបានពិនិត្យដោយអ្នកគ្រប់គ្រង មុនបង្ហាញជាសាធារណៈ។ ផែនទី © OpenStreetMap។",
+  "islamic.tab.quran": "គម្ពីរកួរអាន",
+  "quran.continue": "អានបន្ត",
+  "quran.verse": "អាយ៉ាត់ទី {n}",
+  "quran.verses": "{count} អាយ៉ាត់",
+  "quran.search": "ស្វែងរកស៊ូរ៉ោះ (ឈ្មោះ ឬលេខ)",
+  "quran.noMatch": "រកមិនឃើញស៊ូរ៉ោះ",
+  "quran.notFound": "រកមិនឃើញស៊ូរ៉ោះនេះទេ",
+  "quran.allSurahs": "ស៊ូរ៉ោះទាំងអស់",
+  "quran.smaller": "អក្សរតូចជាង",
+  "quran.bigger": "អក្សរធំជាង",
+  "quran.translation": "បង្ហាញការបកប្រែជាភាសាខ្មែរ",
+  "quran.loadError": "មិនអាចទាញយកស៊ូរ៉ោះនេះបានទេ។ ត្រូវការអ៊ីនធឺណិតនៅពេលអានលើកដំបូង — បន្ទាប់មកអាចអានបានដោយគ្មានអ៊ីនធឺណិត។",
+  "quran.credit": "អត្ថបទអារ៉ាប់ (អ៊ូស្មានី) និងការបកប្រែអត្ថន័យជាភាសាខ្មែរ ដោយ {publisher} — ប្រភព",
+  "quran.version": "កំណែ {v}",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3632,6 +3646,20 @@ const en: Record<MessageKey, string> = {
   "places.tapMarker": "Tap a marker to see the place",
   "places.noPins": "No places with a map pin yet",
   "places.communityNote": "Places are added by the community and checked by an admin before they're shown. Map © OpenStreetMap.",
+  "islamic.tab.quran": "Quran",
+  "quran.continue": "Continue reading",
+  "quran.verse": "verse {n}",
+  "quran.verses": "{count} verses",
+  "quran.search": "Search a surah (name or number)",
+  "quran.noMatch": "No surah found",
+  "quran.notFound": "This surah doesn't exist",
+  "quran.allSurahs": "All surahs",
+  "quran.smaller": "Smaller text",
+  "quran.bigger": "Bigger text",
+  "quran.translation": "Show the Khmer translation",
+  "quran.loadError": "Couldn't load this surah. The first read needs internet — after that it's available offline.",
+  "quran.credit": "Uthmani Arabic text and Khmer translation of the meanings by {publisher} — source",
+  "quran.version": "version {v}",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

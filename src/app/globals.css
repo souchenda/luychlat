@@ -10,6 +10,7 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-arabic: var(--font-arabic), serif;
+  --font-quran: var(--font-quran), var(--font-arabic), serif;
   --font-heading: var(--font-sans);
   --animate-shake: shake 0.35s ease-in-out;
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, BookHeartIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SettingsIcon, SunriseIcon, type LucideIcon } from "lucide-react"
+import { ArrowLeftIcon, BookHeartIcon, BookOpenTextIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SettingsIcon, SunriseIcon, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -13,11 +13,12 @@ import { useIslamicDefaults, useIslamicSettings } from "@/lib/islamic-settings"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 
-// Prayer, then Tasbih (dhikr right after the prayer), Duas, Qibla, places, Zakat.
+// Prayer, then Tasbih (dhikr right after the prayer), Duas, Quran, Qibla, places, Zakat.
 const TABS: { href: string; label: MessageKey; icon: LucideIcon }[] = [
   { href: "/islamic/prayer", label: "islamic.tab.prayer", icon: SunriseIcon },
   { href: "/islamic/tasbih", label: "islamic.tab.tasbih", icon: MoonStarIcon },
   { href: "/islamic/duas", label: "islamic.tab.duas", icon: BookHeartIcon },
+  { href: "/islamic/quran", label: "islamic.tab.quran", icon: BookOpenTextIcon },
   { href: "/islamic/qibla", label: "islamic.tab.qibla", icon: CompassIcon },
   { href: "/islamic/places", label: "islamic.tab.places", icon: MapPinIcon },
   { href: "/islamic", label: "islamic.tab.finance", icon: CoinsIcon },

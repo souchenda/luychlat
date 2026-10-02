@@ -41,6 +41,24 @@ self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
   if (request.method !== "GET" || url.origin !== self.location.origin) return
+  // Quran text (public, no personal data): served from the cache and refreshed
+  // in the background, so surahs read once stay readable offline.
+  if (url.pathname.startsWith("/api/quran/")) {
+    event.respondWith(
+      caches.open(CACHE).then((cache) =>
+        cache.match(request).then((hit) => {
+          const fresh = fetch(request)
+            .then((res) => {
+              if (res.ok) cache.put(request, res.clone())
+              return res
+            })
+            .catch(() => hit)
+          return hit || fresh
+        }),
+      ),
+    )
+    return
+  }
   if (url.pathname.startsWith("/auth/") || url.pathname.startsWith("/api/")) return
 
   // Adhan recordings: kept after the first play so prayer alerts sound offline.
