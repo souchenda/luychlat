@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ASSET_EMOJI, assetEquity, type PhysicalAsset } from "@/lib/assets"
 import { usePhysicalAssets } from "@/lib/assets-data"
 import { canWrite, useActiveWorkspace, useDebts } from "@/lib/data/hooks"
-import { formatWeight, GOLD_KINDS, HUN_PER_CHI, HUN_PER_DAMLUNG, holdingPnl, hunToGrams, portfolio } from "@/lib/gold"
+import { formatWeight, HUN_PER_CHI, HUN_PER_DAMLUNG, holdingPnl, hunToGrams, PLATINUM_GRADES, portfolio, rateFor, type GoldKind, type PlatinumGrade } from "@/lib/gold"
 import { useGoldHoldings, useGoldRates, type GoldHolding } from "@/lib/gold-data"
 import { useAssetsTotal } from "@/lib/assets-total"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
@@ -25,6 +25,13 @@ import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 type TabKey = "gold" | "invest" | "property"
+/** Rows of the daily-rates table: the gold kinds, then each platinum grade. */
+const RATE_ROWS: { kind: GoldKind; grade: PlatinumGrade | null }[] = [
+  { kind: "GOLD_BAR", grade: null },
+  { kind: "GOLD_24K", grade: null },
+  { kind: "GOLD_18K", grade: null },
+  ...PLATINUM_GRADES.map((grade) => ({ kind: "PLATINUM" as GoldKind, grade })),
+]
 const TABS: { key: TabKey; label: MessageKey; emoji: string }[] = [
   { key: "gold", label: "assets.tab.gold", emoji: "🪙" },
   { key: "invest", label: "assets.tab.invest", emoji: "📈" },
@@ -179,13 +186,16 @@ export default function AssetsPage() {
                 <span className="text-right">{t("gold.perDamlung")}</span>
                 <span className="text-right">{t("gold.perChi")}</span>
               </div>
-              {GOLD_KINDS.map((k) => (
-                <div key={k} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 border-b px-4 py-2 text-sm last:border-b-0">
-                  <span>{t(`gold.kind.${k}` as MessageKey)}</span>
-                  <span className="text-right font-semibold tabular-nums">{rates[k] ? formatMoney(rates[k]!, "USD") : "—"}</span>
-                  <span className="text-right text-muted-foreground tabular-nums">{rates[k] ? formatMoney((rates[k]! * HUN_PER_CHI) / HUN_PER_DAMLUNG, "USD") : "—"}</span>
-                </div>
-              ))}
+              {RATE_ROWS.map(({ kind, grade }) => {
+                const rate = rateFor(kind, grade, rates)
+                return (
+                  <div key={`${kind}-${grade ?? ""}`} className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 border-b px-4 py-2 text-sm last:border-b-0">
+                    <span>{grade ? `${t("gold.kind.PLATINUM")} ${t(`gold.grade.${grade}` as MessageKey)}` : t(`gold.kind.${kind}` as MessageKey)}</span>
+                    <span className="text-right font-semibold tabular-nums">{rate ? formatMoney(rate, "USD") : "—"}</span>
+                    <span className="text-right text-muted-foreground tabular-nums">{rate ? formatMoney((rate * HUN_PER_CHI) / HUN_PER_DAMLUNG, "USD") : "—"}</span>
+                  </div>
+                )
+              })}
             </Card>
             {!Object.keys(rates).length && <p className="px-1 text-xs text-muted-foreground">{t("gold.noRates")}</p>}
           </section>
@@ -221,7 +231,10 @@ export default function AssetsPage() {
                             <div className="min-w-0">
                               <p className="truncate font-semibold">{h.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {t(`gold.kind.${h.kind}` as MessageKey)} · {formatWeight(h.weight_hun, locale)} · {hunToGrams(h.weight_hun)} g
+                                {t(`gold.kind.${h.kind}` as MessageKey)}
+                                {h.grade && ` ${t(`gold.grade.${h.grade}` as MessageKey)}`}
+                                {h.jewelry_type && ` · ${t(`gold.jewelry.${h.jewelry_type}` as MessageKey)}`} · {formatWeight(h.weight_hun, locale)} ·{" "}
+                                {hunToGrams(h.weight_hun)} g
                               </p>
                             </div>
                             <span className="shrink-0 text-right">

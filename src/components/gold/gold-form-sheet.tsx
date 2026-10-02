@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { Currency } from "@/lib/data/types"
-import { GOLD_KINDS, HUN_PER_CHI, HUN_PER_DAMLUNG, hunToGrams, marketValue, splitHun, toHun, type GoldKind, type GoldRates } from "@/lib/gold"
+import { GOLD_KINDS, HUN_PER_CHI, HUN_PER_DAMLUNG, hunToGrams, JEWELRY_TYPES, marketValue, PLATINUM_GRADES, splitHun, toHun, type GoldKind, type GoldRates, type JewelryType, type PlatinumGrade } from "@/lib/gold"
 import { useGoldMutations, type GoldHolding } from "@/lib/gold-data"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -78,6 +78,8 @@ export function GoldFormSheet({
   const { add, update, remove } = useGoldMutations(workspaceId)
   const [name, setName] = useState("")
   const [kind, setKind] = useState<GoldKind>("GOLD_24K")
+  const [grade, setGrade] = useState<PlatinumGrade>("P75")
+  const [jewelryType, setJewelryType] = useState<JewelryType | null>(null)
   const [weight, setWeight] = useState({ damlung: "", chi: "", hun: "" })
   const [date, setDate] = useState("")
   const [price, setPrice] = useState("")
@@ -91,6 +93,8 @@ export function GoldFormSheet({
     const s = (n: number | undefined) => (n ? String(n) : "")
     setName(holding?.name ?? "")
     setKind(holding?.kind ?? "GOLD_24K")
+    setGrade(holding?.grade ?? "P75")
+    setJewelryType(holding?.jewelry_type ?? null)
     setWeight({ damlung: s(parts?.damlung), chi: s(parts?.chi), hun: s(parts?.hun) })
     setDate(holding?.purchase_date ?? new Date().toISOString().slice(0, 10))
     setPrice(holding?.purchase_price != null ? String(holding.purchase_price) : "")
@@ -99,7 +103,7 @@ export function GoldFormSheet({
   }, [open, holding])
 
   const hun = toHun({ damlung: num(weight.damlung), chi: num(weight.chi), hun: num(weight.hun) })
-  const estimate = marketValue(hun, kind, rates)
+  const estimate = marketValue(hun, kind, rates, kind === "PLATINUM" ? grade : null)
   const entered = price.trim() ? parseAmount(price) : null
   // Total cost from a per-unit price: price × weight in that unit.
   const unitHun = costMode === "PER_CHI" ? HUN_PER_CHI : costMode === "PER_DAMLUNG" ? HUN_PER_DAMLUNG : null
@@ -116,6 +120,9 @@ export function GoldFormSheet({
     const input = {
       name: name.trim(),
       kind,
+      // ទឹក 75 is the usual white gold in Cambodia; only platinum items carry a grade.
+      grade: kind === "PLATINUM" ? grade : null,
+      jewelry_type: jewelryType,
       weight_hun: hun,
       purchase_date: date || null,
       purchase_price: priceValue === null ? null : roundMoney(priceValue, currency),
@@ -163,6 +170,42 @@ export function GoldFormSheet({
               <span className="block text-[11px] text-muted-foreground">{t(`gold.kindHint.${k}` as MessageKey)}</span>
             </button>
           ))}
+        </div>
+
+        {kind === "PLATINUM" && (
+          <div className="space-y-1.5">
+            <Label>{t("gold.grade")}</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {PLATINUM_GRADES.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setGrade(g)}
+                  aria-pressed={grade === g}
+                  className={cn("rounded-full px-3 py-1 text-sm", grade === g ? "bg-slate-600 font-semibold text-white" : "bg-muted text-muted-foreground")}
+                >
+                  {t(`gold.grade.${g}` as MessageKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label>{t("gold.jewelryType")}</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {JEWELRY_TYPES.map((j) => (
+              <button
+                key={j}
+                type="button"
+                onClick={() => setJewelryType(jewelryType === j ? null : j)}
+                aria-pressed={jewelryType === j}
+                className={cn("rounded-full px-3 py-1 text-sm", jewelryType === j ? "bg-amber-500 font-semibold text-white" : "bg-muted text-muted-foreground")}
+              >
+                {t(`gold.jewelry.${j}` as MessageKey)}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-1.5">

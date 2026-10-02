@@ -4,7 +4,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 
 import { useRepo } from "@/lib/data/hooks"
 import type { Currency } from "@/lib/data/types"
-import { parseRates, type GoldKind, type GoldRates } from "@/lib/gold"
+import { parseRates, type GoldKind, type GoldRates, type JewelryType, type PlatinumGrade } from "@/lib/gold"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 /** A row of public.gold_holdings. */
@@ -13,6 +13,9 @@ export type GoldHolding = {
   workspace_id: string
   name: string
   kind: GoldKind
+  /** Platinum / white gold only. */
+  grade: PlatinumGrade | null
+  jewelry_type: JewelryType | null
   weight_hun: number
   purchase_date: string | null
   purchase_price: number | null
@@ -20,7 +23,7 @@ export type GoldHolding = {
   note: string | null
   created_at: string
 }
-export type GoldHoldingInput = Pick<GoldHolding, "name" | "kind" | "weight_hun" | "purchase_date" | "purchase_price" | "purchase_currency" | "note">
+export type GoldHoldingInput = Pick<GoldHolding, "name" | "kind" | "grade" | "jewelry_type" | "weight_hun" | "purchase_date" | "purchase_price" | "purchase_currency" | "note">
 
 const toHolding = (row: GoldHolding): GoldHolding => ({
   ...row,

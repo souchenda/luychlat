@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { GOLD_KINDS, rateFromSpot, type GoldKind } from "@/lib/gold"
+import { isWhiteGold, RATE_KEYS, rateFromSpot, type GoldKind, type PlatinumGrade, type RateKey } from "@/lib/gold"
 import { goldKeys, useGoldRates } from "@/lib/gold-data"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -20,33 +20,41 @@ export function GoldRatesAdmin() {
   const t = useT()
   const queryClient = useQueryClient()
   const { rates, updatedAt } = useGoldRates()
-  const [form, setForm] = useState<Record<GoldKind, string>>({ GOLD_BAR: "", GOLD_24K: "", GOLD_18K: "", PLATINUM: "" })
+  const [form, setForm] = useState<Record<string, string>>({})
   const [goldSpot, setGoldSpot] = useState("")
   const [platinumSpot, setPlatinumSpot] = useState("")
 
+  const ratesKey = JSON.stringify(rates)
   useEffect(() => {
-    setForm({
-      GOLD_BAR: rates.GOLD_BAR ? String(rates.GOLD_BAR) : "",
-      GOLD_24K: rates.GOLD_24K ? String(rates.GOLD_24K) : "",
-      GOLD_18K: rates.GOLD_18K ? String(rates.GOLD_18K) : "",
-      PLATINUM: rates.PLATINUM ? String(rates.PLATINUM) : "",
-    })
-  }, [rates.GOLD_BAR, rates.GOLD_24K, rates.GOLD_18K, rates.PLATINUM])
+    // An older single "PLATINUM" rate shows as Pt950 until saved again.
+    const withLegacy: Partial<Record<RateKey, number>> = { PLATINUM_PT950: rates.PLATINUM, ...rates }
+    setForm(Object.fromEntries(RATE_KEYS.map((k) => [k, withLegacy[k] ? String(withLegacy[k]) : ""])))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset when the saved rates change
+  }, [ratesKey])
+  const gradeOf = (k: RateKey) => (k.startsWith("PLATINUM_") ? (k.slice(9) as PlatinumGrade) : null)
+  const label = (k: RateKey) => {
+    const g = gradeOf(k)
+    return g ? `${t("gold.kind.PLATINUM")} ${t(`gold.grade.${g}` as MessageKey)}` : t(`gold.kind.${k as GoldKind}` as MessageKey)
+  }
 
   const fromSpot = () => {
     const gold = Number(goldSpot)
     const platinum = Number(platinumSpot)
-    setForm((f) => ({
-      GOLD_BAR: gold > 0 ? String(rateFromSpot(gold, "GOLD_BAR")) : f.GOLD_BAR,
-      GOLD_24K: gold > 0 ? String(rateFromSpot(gold, "GOLD_24K")) : f.GOLD_24K,
-      GOLD_18K: gold > 0 ? String(rateFromSpot(gold, "GOLD_18K")) : f.GOLD_18K,
-      PLATINUM: platinum > 0 ? String(rateFromSpot(platinum, "PLATINUM")) : f.PLATINUM,
-    }))
+    setForm((f) =>
+      Object.fromEntries(
+        RATE_KEYS.map((k) => {
+          const g = gradeOf(k)
+          // White gold (ទឹក 75 / 70 / 58.5) follows the gold price; Pt950 / Pt900 the platinum price.
+          const spot = g ? (isWhiteGold(g) ? gold : platinum) : gold
+          return [k, spot > 0 ? String(rateFromSpot(spot, g ? "PLATINUM" : (k as GoldKind), g ?? undefined)) : f[k]]
+        }),
+      ),
+    )
   }
 
   const save = useMutation({
     mutationFn: async () => {
-      const value = Object.fromEntries(GOLD_KINDS.map((k) => [k, form[k].trim() || null]))
+      const value = Object.fromEntries(RATE_KEYS.map((k) => [k, form[k]?.trim() || null]))
       const { error } = await getSupabaseBrowserClient()!.rpc("admin_set_gold_rates", { p_value: value })
       if (error) throw error
     },
@@ -73,12 +81,12 @@ export function GoldRatesAdmin() {
           }}
         >
           <div className="grid grid-cols-2 gap-2">
-            {GOLD_KINDS.map((k) => (
+            {RATE_KEYS.map((k) => (
               <div key={k} className="space-y-1">
                 <Label htmlFor={`rate-${k}`} className="text-xs">
-                  {t(`gold.kind.${k}` as MessageKey)}
+                  {label(k)}
                 </Label>
-                <Input id={`rate-${k}`} inputMode="decimal" placeholder="$ / តម្លឹង" value={form[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} />
+                <Input id={`rate-${k}`} inputMode="decimal" placeholder="$ / តម្លឹង" value={form[k] ?? ""} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} />
               </div>
             ))}
           </div>
