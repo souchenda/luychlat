@@ -31,8 +31,17 @@ export DATABASE_URL="$url"
 
 public_url="${PUBLIC_URL:-$(env_value PUBLIC_URL)}"
 if [ -z "$public_url" ]; then
-  host=$(grep -hoE '^[[:space:]]*server_name[[:space:]]+[^;]+' /etc/nginx/sites-enabled/* 2>/dev/null | awk '{print $2}' | grep -vE '^(_|localhost)$' | head -n 1 || true)
-  [ -n "$host" ] && public_url="https://$host"
+  # The Nginx site that serves this app (its config proxies to the luysmart_app upstream,
+  # see deploy/nginx/); other sites on the same Droplet are ignored.
+  site=$(grep -lE 'proxy_pass[[:space:]]+http://luysmart_app' /etc/nginx/sites-enabled/* 2>/dev/null | head -n 1 || true)
+  if [ -n "$site" ]; then
+    host=$(grep -hoE '^[[:space:]]*server_name[[:space:]]+[^;]+' "$site" | awk '{print $2}' | grep -vE '^(_|localhost|[0-9.]+)$' | head -n 1 || true)
+    [ -n "$host" ] && public_url="https://$host"
+  fi
+fi
+if [ -z "$public_url" ]; then
+  echo "! Couldn't tell this app's public address: set PUBLIC_URL=https://… in .env (bot not activated)"
+  exit 0
 fi
 
 # Derive the key hash and talk to Telegram from inside the container (the token is in its env).
