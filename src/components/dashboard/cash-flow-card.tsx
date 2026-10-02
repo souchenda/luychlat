@@ -38,14 +38,20 @@ function Stat({
 export function CashFlowCard({
   flow,
   loading,
+  action,
 }: {
   flow: { income: DualTotal; expense: DualTotal; net: DualTotal }
   loading?: boolean
+  /** A link shown at the right of the title row. */
+  action?: React.ReactNode
 }) {
   const t = useT()
   return (
     <section className="space-y-2">
-      <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("flow.title")}</h2>
+      <div className="flex items-center justify-between gap-2 px-1">
+        <h2 className="text-sm font-medium text-muted-foreground">{t("flow.title")}</h2>
+        {action}
+      </div>
       {loading ? (
         <Skeleton className="h-24 w-full rounded-xl" />
       ) : (

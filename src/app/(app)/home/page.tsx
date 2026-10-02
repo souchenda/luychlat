@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, TargetIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, TargetIcon, WalletIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -90,7 +90,8 @@ export default function HomePage() {
     [monthTransactions, khrPerUsd, categoriesQuery.data],
   )
   // The display name from Settings, once the user has set one.
-  const displayName = useProfile().data?.display_name?.trim()
+  // Cambodian names are family name first ("ស៊ូ ចិន្តា"): greet by the given name, the last word.
+  const givenName = useProfile().data?.display_name?.trim().split(/\s+/).pop()
   const locale = useLocaleStore((s) => s.locale)
   const greeting = homeGreeting()
   const today = useToday()
@@ -118,7 +119,7 @@ export default function HomePage() {
             </h1>
           ) : (
             <h1 className="min-w-0 truncate pt-0.5 text-lg font-bold">
-              {displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}
+              {givenName ? t("home.greetingName", { name: givenName }) : t("home.greeting")}
             </h1>
           )}
           <div className="min-w-0 max-w-[62%] text-right leading-tight">
@@ -171,18 +172,17 @@ export default function HomePage() {
         </Button>
       </div>
 
-      <CashFlowCard flow={flow} loading={txQuery.isLoading} />
-      <div className="-mt-2 flex items-center justify-end gap-4 px-1 text-sm">
-        <Link href="/budgets" className="flex items-center gap-1 text-primary">
-          <TargetIcon className="size-4" aria-hidden />
-          {t("budget.title")}
-        </Link>
-        <Link href="/reports" className="flex items-center gap-1 text-primary">
-          <ChartColumnIcon className="size-4" aria-hidden />
-          {t(workspace?.type === "BUSINESS" ? "pl.title" : "reports.title")}
-          <ChevronRightIcon className="size-4" />
-        </Link>
-      </div>
+      <CashFlowCard
+        flow={flow}
+        loading={txQuery.isLoading}
+        action={
+          <Link href="/budgets" className="flex items-center gap-1 text-sm text-primary">
+            <TargetIcon className="size-4" aria-hidden />
+            {t("budget.title")}
+            <ChevronRightIcon className="size-4" />
+          </Link>
+        }
+      />
 
       <BudgetHomeCard
         workspaceId={ws}
@@ -204,10 +204,12 @@ export default function HomePage() {
         {txQuery.isLoading ? (
           <Skeleton className="h-40 w-full rounded-xl" />
         ) : transactions.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-6 text-center">
-            <ReceiptTextIcon className="size-8 text-muted-foreground" />
-            <span className="font-medium">{t("recent.empty")}</span>
-            <span className="text-sm text-muted-foreground">{t("recent.emptyHint")}</span>
+          <div className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-2.5">
+            <ReceiptTextIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">{t("recent.empty")}</span>
+              <span className="block text-xs text-muted-foreground">{t("recent.emptyHint")}</span>
+            </span>
           </div>
         ) : (
           <TransactionList
