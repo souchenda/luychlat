@@ -24,6 +24,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
+import { BusinessTrialTag } from "@/components/billing/business-trial"
 import { BrandMark } from "@/components/brand-mark"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { BusinessProfileSheet, ProfileSheet } from "@/components/profile/profile-sheets"
@@ -81,7 +82,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
     : profile?.phone || user?.email || user?.phone || ""
   const [editOpen, setEditOpen] = useState(false)
   const { plan } = usePlan()
-  const pro = plan.tier === "PRO"
+  const pro = plan.tier !== "FREE"
   const islamic = useIslamicEnabled()
 
   const groups: { title: MessageKey; items: Item[] }[] = [
@@ -142,10 +143,11 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
           </span>
           <PencilIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </button>
+        <BusinessTrialTag workspace={business} />
         {pro ? (
           <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
             <CrownIcon className="size-3.5" aria-hidden />
-            LuyChlat PRO
+            LuyChlat {plan.tier}
           </p>
         ) : (
           <div className="flex items-center justify-between gap-2">

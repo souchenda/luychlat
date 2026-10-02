@@ -12,7 +12,7 @@ import { useSessionStore } from "@/stores/session-store"
  * prompts before hitting them and to gate client-side features (export,
  * credit score). Guest Mode is always Free.
  */
-export type Tier = "FREE" | "PRO"
+export type Tier = "FREE" | "PRO" | "ULTRA"
 
 export type MyPlan = {
   tier: Tier
@@ -29,6 +29,10 @@ export type MyPlan = {
   can_export: boolean
   can_credit_score: boolean
   is_admin: boolean
+  /** Business workspaces allowed (null = unlimited, Ultra). */
+  max_business_workspaces?: number | null
+  /** Free plan: when the Business workspace trial ends (ISO), else null. */
+  business_trial_ends_at?: string | null
 }
 
 export const FREE_PLAN: MyPlan = {
@@ -52,6 +56,8 @@ export type PlanOption = { code: string; tier: Tier; price_usd: number; price_kh
 export const DEFAULT_PRO_PLANS: PlanOption[] = [
   { code: "PRO_MONTHLY", tier: "PRO", price_usd: 2.99, price_khr: 12000, period_days: 30 },
   { code: "PRO_YEARLY", tier: "PRO", price_usd: 24.99, price_khr: 100000, period_days: 365 },
+  { code: "ULTRA_MONTHLY", tier: "ULTRA", price_usd: 6.99, price_khr: 28000, period_days: 30 },
+  { code: "ULTRA_YEARLY", tier: "ULTRA", price_usd: 59.99, price_khr: 240000, period_days: 365 },
 ]
 
 export const planKeys = {
@@ -74,7 +80,8 @@ export function usePlan() {
     },
   })
   const plan = userId ? (query.data ?? FREE_PLAN) : FREE_PLAN
-  return { plan, isPro: plan.tier === "PRO", loading: Boolean(userId) && query.isLoading }
+  // isPro = any paid plan (Pro or Ultra); isUltra = several business workspaces.
+  return { plan, isPro: plan.tier !== "FREE", isUltra: plan.tier === "ULTRA", loading: Boolean(userId) && query.isLoading }
 }
 
 export function usePlanOptions() {
@@ -89,7 +96,7 @@ export function usePlanOptions() {
       const { data, error } = await supabase
         .from("plans")
         .select("code, tier, price_usd, price_khr, period_days")
-        .eq("tier", "PRO")
+        .in("tier", ["PRO", "ULTRA"])
         .eq("active", true)
         .order("sort_order")
       if (error) throw error
@@ -112,7 +119,7 @@ export function useIsPro(feature: ProFeature): boolean {
 }
 
 /** Why the upgrade sheet was opened (shown as its first line). */
-export type UpgradeReason = "general" | "wallets" | "family" | "export" | "ai" | "credit_score" | "reconcile"
+export type UpgradeReason = "general" | "wallets" | "family" | "export" | "ai" | "credit_score" | "reconcile" | "business" | "trial"
 
 export const useUpgradeStore = create<{ open: boolean; reason: UpgradeReason; show: (reason?: UpgradeReason) => void; close: () => void }>()(
   (set) => ({

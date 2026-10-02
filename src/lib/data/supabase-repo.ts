@@ -89,10 +89,14 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
 
   const repo: DataRepo = {
     async listWorkspaces() {
-      const [workspaces, members] = await Promise.all([
+      const [workspaces, members, access] = await Promise.all([
         supabase.from("workspaces").select("*"),
         supabase.from("workspace_members").select("workspace_id, user_id, role"),
+        supabase.rpc("my_workspace_access"),
       ])
+      // Plan access (read-only after the business trial / over the business limit). Older databases lack the RPC: no lock.
+      const accessRows = (access.error ? [] : (access.data ?? [])) as { workspace_id: string; writable: boolean; reason: Workspace["locked"]; trial_ends_at: string | null }[]
+      const accessById = new Map(accessRows.map((a) => [a.workspace_id, a]))
       const memberRows = unwrap(members) as Pick<WorkspaceMember, "workspace_id" | "user_id" | "role">[]
       return (unwrap(workspaces) as WorkspaceRow[])
         .map((w) => {
@@ -102,6 +106,8 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
             khr_per_usd: w.khr_per_usd == null ? null : Number(w.khr_per_usd),
             role: of.find((m) => m.user_id === userId)?.role ?? "VIEWER",
             member_count: Math.max(1, of.length),
+            locked: accessById.get(w.id)?.writable === false ? (accessById.get(w.id)?.reason ?? "PLAN_LIMIT") : null,
+            trial_ends_at: accessById.get(w.id)?.trial_ends_at ?? null,
           }
         })
         .sort(

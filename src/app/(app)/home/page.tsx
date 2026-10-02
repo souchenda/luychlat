@@ -14,6 +14,7 @@ import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
 import { InsuranceRenewalCard } from "@/components/debts/insurance-card"
+import { BusinessTrialTag } from "@/components/billing/business-trial"
 import { GoalsHomeCard } from "@/components/goals/goals-home-card"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
@@ -129,11 +130,12 @@ export default function HomePage() {
           </div>
         </div>
         {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
+        <BusinessTrialTag workspace={workspace} className="mt-1.5" />
       </header>
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} />
 
-      {!editable && (
+      {workspace?.role === "VIEWER" && (
         <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
           <EyeIcon className="size-4 shrink-0" aria-hidden />
           {t("family.viewerNotice")}

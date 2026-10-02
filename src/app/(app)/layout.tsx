@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
 import { BillingSync } from "@/components/billing/billing-sync"
+import { WorkspaceLockedBanner } from "@/components/billing/business-trial"
 import { ExchangeRateSync } from "@/lib/exchange-rate"
 import { PendingReferralRedeemer } from "@/components/billing/referral"
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet"
@@ -80,6 +81,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             key={workspace?.id ?? activeWorkspace}
             className="mx-auto min-h-dvh w-full max-w-md px-4 pt-5 pb-24 md:min-h-0 print:max-w-none print:p-0 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
           >
+            <WorkspaceLockedBanner workspace={workspace} />
             {children}
           </main>
         </div>

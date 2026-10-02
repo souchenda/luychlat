@@ -64,7 +64,7 @@ type Subscriber = {
   display_name: string | null
   joined_at: string
   plan_code: string | null
-  tier: "PRO" | "FREE"
+  tier: "PRO" | "ULTRA" | "FREE"
   status: string | null
   period_end: string | null
   pending_payments: number
@@ -226,7 +226,9 @@ function PendingPayments() {
                 </div>
                 <div className="text-right">
                   <p className="font-semibold tabular-nums">{formatMoney(p.amount, p.currency)}</p>
-                  <p className="text-xs text-muted-foreground">{t(p.plan_code === "PRO_YEARLY" ? "upgrade.yearly" : "upgrade.monthly")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {p.plan_code.startsWith("ULTRA") ? "ULTRA" : "PRO"} · {t(p.plan_code.endsWith("YEARLY") ? "upgrade.yearly" : "upgrade.monthly")}
+                  </p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -255,6 +257,7 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
   const t = useT()
   const invalidate = useInvalidateAdmin()
   const [endDate, setEndDate] = useState("")
+  const [grantTier, setGrantTier] = useState<"PRO" | "ULTRA">("PRO")
   const events = useQuery({
     queryKey: ["admin", "events", user?.user_id],
     enabled: Boolean(user),
@@ -263,6 +266,7 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
 
   useEffect(() => {
     setEndDate(user?.period_end ? format(new Date(user.period_end), "yyyy-MM-dd") : "")
+    setGrantTier(user?.tier === "ULTRA" ? "ULTRA" : "PRO")
   }, [user])
 
   const act = useMutation({
@@ -288,17 +292,31 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
             label={t("admin.plan")}
             value={<span className="text-base">{user.tier}</span>}
             hint={user.period_end ? format(new Date(user.period_end), "dd/MM/yyyy") : undefined}
-            accent={user.tier === "PRO"}
+            accent={user.tier !== "FREE"}
           />
           <Stat label={t("admin.lastActive")} value={<span className="text-base">{ago(user.last_active_at)}</span>} hint={t("admin.joined", { date: format(new Date(user.joined_at), "dd/MM/yyyy") })} />
         </div>
 
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" role="radiogroup" aria-label={t("admin.plan")}>
+          {(["PRO", "ULTRA"] as const).map((tier) => (
+            <button
+              key={tier}
+              type="button"
+              role="radio"
+              aria-checked={grantTier === tier}
+              onClick={() => setGrantTier(tier)}
+              className={cn("rounded-lg py-1.5 text-sm font-semibold", grantTier === tier ? "bg-background shadow-sm" : "text-muted-foreground")}
+            >
+              {tier}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={() => extend(30, "PRO_MONTHLY")} disabled={act.isPending}>
-            +30 {t("admin.days")}
+          <Button variant="outline" onClick={() => extend(30, `${grantTier}_MONTHLY`)} disabled={act.isPending}>
+            +30 {t("admin.days")} {grantTier}
           </Button>
-          <Button variant="outline" onClick={() => extend(365, "PRO_YEARLY")} disabled={act.isPending}>
-            +365 {t("admin.days")}
+          <Button variant="outline" onClick={() => extend(365, `${grantTier}_YEARLY`)} disabled={act.isPending}>
+            +365 {t("admin.days")} {grantTier}
           </Button>
         </div>
 
@@ -322,7 +340,7 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
           </Button>
         </form>
 
-        {user.tier === "PRO" && (
+        {user.tier !== "FREE" && (
           <Button
             variant="ghost"
             className="w-full text-destructive"
@@ -418,7 +436,7 @@ function Subscribers() {
                 <span
                   className={cn(
                     "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                    u.tier === "PRO" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                    u.tier === "ULTRA" ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" : u.tier === "PRO" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                   )}
                 >
                   {u.tier}

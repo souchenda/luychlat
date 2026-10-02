@@ -36,14 +36,18 @@ export type PaymentInstructions = {
 }
 
 /** Free vs Pro rows; the Free column mirrors the FREE row in public.plans. */
-const COMPARE: { label: MessageKey; free: MessageKey | false; pro: MessageKey | true }[] = [
-  { label: "upgrade.row.wallets", free: "upgrade.free.wallets", pro: "upgrade.unlimited" },
-  { label: "upgrade.row.family", free: "upgrade.free.family", pro: "upgrade.unlimited" },
-  { label: "upgrade.row.ai", free: "upgrade.free.ai", pro: "upgrade.pro.ai" },
-  { label: "upgrade.row.reconcile", free: false, pro: true },
-  { label: "upgrade.row.export", free: false, pro: true },
-  { label: "upgrade.row.score", free: false, pro: true },
+type Cell = MessageKey | boolean
+const COMPARE: { label: MessageKey; free: Cell; pro: Cell; ultra: Cell }[] = [
+  { label: "upgrade.row.business", free: "upgrade.free.business", pro: "upgrade.pro.business", ultra: "upgrade.unlimited" },
+  { label: "upgrade.row.wallets", free: "upgrade.free.wallets", pro: "upgrade.unlimited", ultra: "upgrade.unlimited" },
+  { label: "upgrade.row.family", free: "upgrade.free.family", pro: "upgrade.unlimited", ultra: "upgrade.unlimited" },
+  { label: "upgrade.row.ai", free: "upgrade.free.ai", pro: "upgrade.pro.ai", ultra: "upgrade.pro.ai" },
+  { label: "upgrade.row.reconcile", free: false, pro: true, ultra: true },
+  { label: "upgrade.row.export", free: false, pro: true, ultra: true },
+  { label: "upgrade.row.score", free: false, pro: true, ultra: true },
 ]
+type PaidTier = "PRO" | "ULTRA"
+type Period = "MONTHLY" | "YEARLY"
 
 function usePayments(enabled: boolean) {
   return useQuery({
@@ -110,26 +114,29 @@ export function UpgradeSheet() {
   const { open, reason, close } = useUpgradeStore()
   const user = useSessionStore((s) => s.user)
   const signedIn = Boolean(user)
-  const { plan, isPro } = usePlan()
+  const { plan, isPro, isUltra } = usePlan()
   const options = usePlanOptions()
   const payments = usePayments(open && signedIn)
   const instructions = usePaymentInstructions(open && signedIn).data ?? {}
   const contacts = useSupportContacts().data
-  const [planCode, setPlanCode] = useState("PRO_YEARLY")
+  const [tier, setTier] = useState<PaidTier>("PRO")
+  const [period, setPeriod] = useState<Period>("YEARLY")
+  const planCode = `${tier}_${period}`
   const [currency, setCurrency] = useState<Currency>("USD")
   const [reference, setReference] = useState("")
   const [sent, setSent] = useState<PaymentRow | null>(null)
 
   useEffect(() => {
-    if (!open) setSent(null)
-  }, [open])
+    if (!open) return setSent(null)
+    // Several businesses (or already paying): suggest Ultra; otherwise Pro.
+    setTier(reason === "business" || isPro || isUltra ? "ULTRA" : "PRO")
+  }, [open, reason, isPro, isUltra])
 
   const chosen = options.find((o) => o.code === planCode) ?? options[0]
-  const monthly = options.find((o) => o.code === "PRO_MONTHLY")
-  const saving =
-    monthly && chosen?.period_days && chosen.period_days >= 365
-      ? Math.round((1 - chosen.price_usd / (monthly.price_usd * 12)) * 100)
-      : 0
+  const optionOf = (p: Period) => options.find((o) => o.code === `${tier}_${p}`)
+  const monthly = optionOf("MONTHLY")
+  const yearly = optionOf("YEARLY")
+  const saving = monthly && yearly ? Math.round((1 - yearly.price_usd / (monthly.price_usd * 12)) * 100) : 0
   const pending = payments.data?.filter((p) => p.status === "PENDING") ?? []
   const qrUrl = instructions.khqr_image_url
 
@@ -170,6 +177,14 @@ export function UpgradeSheet() {
     }
   }
 
+  const renderCell = (value: Cell, strong?: boolean) =>
+    value === false ? (
+      <MinusIcon className="mx-auto size-4 text-muted-foreground" aria-label="—" />
+    ) : value === true ? (
+      <CheckIcon className="mx-auto size-4 text-primary" aria-label="✓" />
+    ) : (
+      <span className={strong ? "font-medium" : "text-muted-foreground"}>{t(value)}</span>
+    )
   const price = (o: (typeof options)[number]) => (currency === "USD" ? formatMoney(o.price_usd, "USD") : formatMoney(o.price_khr, "KHR"))
   const note = locale === "km" ? instructions.note_km : instructions.note_en
 
@@ -192,7 +207,8 @@ export function UpgradeSheet() {
             <CopyIcon className="size-4 text-muted-foreground" aria-hidden />
           </button>
           <p className="text-xs text-muted-foreground">
-            {formatMoney(sent.amount, sent.currency)} · {t(sent.plan_code === "PRO_YEARLY" ? "upgrade.yearly" : "upgrade.monthly")}
+            {formatMoney(sent.amount, sent.currency)} · {sent.plan_code.startsWith("ULTRA") ? "ULTRA" : "PRO"} ·{" "}
+            {t(sent.plan_code.endsWith("YEARLY") ? "upgrade.yearly" : "upgrade.monthly")}
           </p>
           {contacts?.telegram_url ? (
             <Button asChild className="h-12 w-full bg-[#229ED9] text-base text-white hover:bg-[#229ED9]/90">
@@ -218,26 +234,24 @@ export function UpgradeSheet() {
         {isPro && plan.period_end && (
           <p className="flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
             <CrownIcon className="size-4 shrink-0" aria-hidden />
-            {t("upgrade.youArePro", { date: format(new Date(plan.period_end), "dd/MM/yyyy") })}
+            {t(isUltra ? "upgrade.youAreUltra" : "upgrade.youArePro", { date: format(new Date(plan.period_end), "dd/MM/yyyy") })}
           </p>
         )}
 
-        {/* Free vs Pro */}
+        {/* Free vs Pro vs Ultra */}
         <div className="overflow-hidden rounded-xl border text-sm">
-          <div className="grid grid-cols-[1fr_5.5rem_6.5rem] bg-muted/60 px-3 py-2 text-xs font-medium text-muted-foreground">
+          <div className="grid grid-cols-[1fr_4.25rem_4.25rem_4.75rem] bg-muted/60 px-3 py-2 text-[11px] font-semibold text-muted-foreground">
             <span />
             <span className="text-center">{t("plan.free")}</span>
             <span className="text-center text-primary">PRO</span>
+            <span className="text-center text-amber-600 dark:text-amber-400">ULTRA</span>
           </div>
           {COMPARE.map((row) => (
-            <div key={row.label} className="grid grid-cols-[1fr_5.5rem_6.5rem] items-center border-t px-3 py-2">
-              <span>{t(row.label)}</span>
-              <span className="text-center text-xs text-muted-foreground">
-                {row.free === false ? <MinusIcon className="mx-auto size-4" aria-label="—" /> : t(row.free)}
-              </span>
-              <span className="text-center text-xs font-medium">
-                {row.pro === true ? <CheckIcon className="mx-auto size-4 text-primary" aria-label="✓" /> : t(row.pro)}
-              </span>
+            <div key={row.label} className="grid grid-cols-[1fr_4.25rem_4.25rem_4.75rem] items-center border-t px-3 py-2">
+              <span className="text-[13px]">{t(row.label)}</span>
+              <span className="text-center text-[11px]">{renderCell(row.free)}</span>
+              <span className="text-center text-[11px]">{renderCell(row.pro, true)}</span>
+              <span className="text-center text-[11px]">{renderCell(row.ultra, true)}</span>
             </div>
           ))}
         </div>
@@ -273,29 +287,43 @@ export function UpgradeSheet() {
                   />
                 </div>
               </div>
+              <Segmented
+                aria-label={t("upgrade.choosePlan")}
+                value={tier}
+                onChange={setTier}
+                options={[
+                  { value: "PRO", label: <span className="font-semibold">PRO · {t("upgrade.tier.pro")}</span> },
+                  { value: "ULTRA", label: <span className="font-semibold">ULTRA · {t("upgrade.tier.ultra")}</span> },
+                ]}
+              />
               <div role="radiogroup" className="grid grid-cols-2 gap-2">
-                {options.map((o) => (
-                  <button
-                    key={o.code}
-                    type="button"
-                    role="radio"
-                    aria-checked={planCode === o.code}
-                    onClick={() => setPlanCode(o.code)}
-                    className={cn(
-                      "relative rounded-xl border p-3 text-left transition-colors",
-                      planCode === o.code ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted",
-                    )}
-                  >
-                    <p className="text-xs text-muted-foreground">{t(o.code === "PRO_YEARLY" ? "upgrade.yearly" : "upgrade.monthly")}</p>
-                    <p className="text-lg font-bold tabular-nums">{price(o)}</p>
-                    {o.code === "PRO_YEARLY" && saving > 0 && (
-                      <span className="absolute -top-2 right-2 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-                        {t("upgrade.save", { percent: saving })}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                {(["MONTHLY", "YEARLY"] as const).map((p) => {
+                  const o = optionOf(p)
+                  if (!o) return null
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      role="radio"
+                      aria-checked={period === p}
+                      onClick={() => setPeriod(p)}
+                      className={cn(
+                        "relative rounded-xl border p-3 text-left transition-colors",
+                        period === p ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted",
+                      )}
+                    >
+                      <p className="text-xs text-muted-foreground">{t(p === "YEARLY" ? "upgrade.yearly" : "upgrade.monthly")}</p>
+                      <p className="text-lg font-bold tabular-nums">{price(o)}</p>
+                      {p === "YEARLY" && saving > 0 && (
+                        <span className="absolute -top-2 right-2 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                          {t("upgrade.save", { percent: saving })}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
+              <p className="text-xs text-muted-foreground">{t(tier === "ULTRA" ? "upgrade.tierHint.ultra" : "upgrade.tierHint.pro")}</p>
             </div>
 
             {/* Static KHQR (or the bank account when no QR is set) */}

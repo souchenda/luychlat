@@ -31,7 +31,7 @@ export function PlanCard() {
             <CrownIcon className="size-5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">{isPro ? "LuyChlat PRO" : t("plan.free")}</p>
+            <p className="font-semibold">{isPro ? `LuyChlat ${plan.tier}` : t("plan.free")}</p>
             <p className={isPro ? "text-xs text-white/80" : "text-xs text-muted-foreground"}>
               {isPro && plan.period_end
                 ? t("plan.until", { date: format(new Date(plan.period_end), "dd/MM/yyyy"), days: daysLeft ?? 0 })

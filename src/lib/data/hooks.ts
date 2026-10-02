@@ -74,12 +74,16 @@ export function useWorkspaces() {
  * is the remembered family workspace (own or joined), else the first one.
  * Falls back to Personal when no family workspace is available any more.
  */
-export function pickWorkspace(workspaces: Workspace[] | undefined, type: Workspace["type"], familyId: string | null) {
+export function pickWorkspace(workspaces: Workspace[] | undefined, type: Workspace["type"], familyId: string | null, businessId: string | null = null) {
   if (!workspaces) return undefined
   const own = (t: Workspace["type"]) => workspaces.find((w) => w.type === t && w.role === "OWNER") ?? workspaces.find((w) => w.type === t)
   if (type === "FAMILY") {
     const families = workspaces.filter((w) => w.type === "FAMILY")
     return families.find((w) => w.id === familyId) ?? families[0] ?? own("PERSONAL")
+  }
+  if (type === "BUSINESS") {
+    // Ultra users can have several businesses; the first one is the default.
+    return workspaces.find((w) => w.type === "BUSINESS" && w.id === businessId) ?? own("BUSINESS")
   }
   return own(type)
 }
@@ -88,8 +92,9 @@ export function pickWorkspace(workspaces: Workspace[] | undefined, type: Workspa
 export function useActiveWorkspace() {
   const type = usePrefsStore((s) => s.activeWorkspace)
   const familyId = usePrefsStore((s) => s.activeFamilyId)
+  const businessId = usePrefsStore((s) => s.activeBusinessId)
   const query = useWorkspaces()
-  const workspace = useMemo(() => pickWorkspace(query.data, type, familyId), [query.data, type, familyId])
+  const workspace = useMemo(() => pickWorkspace(query.data, type, familyId, businessId), [query.data, type, familyId, businessId])
   return { ...query, workspace }
 }
 
@@ -101,7 +106,8 @@ export function useProfile() {
 
 /** Whether the current user may add or change records in the workspace (viewers can't). */
 export function canWrite(workspace: Workspace | undefined) {
-  return workspace?.role === "OWNER" || workspace?.role === "MEMBER"
+  // `locked`: the owner's plan doesn't allow changes (trial ended / over the business limit); enforced in the database too.
+  return (workspace?.role === "OWNER" || workspace?.role === "MEMBER") && !workspace.locked
 }
 
 /**
