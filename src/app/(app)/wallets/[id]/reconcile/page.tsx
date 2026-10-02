@@ -17,7 +17,8 @@ import { useActiveWorkspace, useWallets } from "@/lib/data/hooks"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
-import { showUpgrade, usePlan } from "@/lib/plan"
+import { showUpgrade } from "@/lib/plan"
+import { useImportAccess } from "@/lib/reconcile/access"
 import { deleteImport, isFileImported, listImports, type ImportResult } from "@/lib/reconcile/api"
 import { readStatementFile, StatementFileError, type StatementFile } from "@/lib/reconcile/file"
 import { loadMapping, saveMapping } from "@/lib/reconcile/memory"
@@ -79,11 +80,12 @@ function ImportHistory({ wallet }: { wallet: Wallet }) {
 
 export default function ReconcileStatementPage() {
   const t = useT()
+  const queryClient = useQueryClient()
   const { id } = useParams<{ id: string }>()
   const { workspace } = useActiveWorkspace()
   const wallets = useWallets(workspace?.id)
   const wallet = wallets.data?.find((w) => w.id === id)
-  const { isPro, loading } = usePlan()
+  const { freeLeft, freeUsed, allowed, loading } = useImportAccess()
   const [step, setStep] = useState<Step>({ kind: "upload" })
   const [reading, setReading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -139,13 +141,13 @@ export default function ReconcileStatementPage() {
         <HelpLink section="reconcile" />
       </div>
 
-      {!isPro ? (
+      {step.kind === "upload" && !allowed ? (
         <Card className="items-center gap-3 px-6 py-8 text-center">
           <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <ScaleIcon className="size-6" aria-hidden />
           </span>
           <p className="font-semibold">{t("recon.proTitle")}</p>
-          <p className="text-sm text-muted-foreground">{t("recon.intro")}</p>
+          <p className="text-sm text-muted-foreground">{t(freeUsed ? "stmt.freeUsed" : "recon.intro")}</p>
           <Button onClick={() => showUpgrade("reconcile")}>
             <CrownIcon />
             {t("upgrade.cta")}
@@ -153,6 +155,7 @@ export default function ReconcileStatementPage() {
         </Card>
       ) : step.kind === "upload" ? (
         <>
+          {freeLeft && <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">🎁 {t("stmt.freeFirst")}</p>}
           <Card className="gap-4 px-5 py-6">
             <p className="text-sm text-muted-foreground">{t("recon.intro")}</p>
             <ol className="list-decimal space-y-1 pl-5 text-sm">
@@ -199,7 +202,10 @@ export default function ReconcileStatementPage() {
           parsed={step.parsed}
           meta={step.meta}
           onBack={() => setStep({ kind: "map", file: step.file, mapping: step.mapping })}
-          onDone={(result) => setStep({ kind: "done", result })}
+          onDone={(result) => {
+            setStep({ kind: "done", result })
+            void queryClient.invalidateQueries({ queryKey: ["statement-import-credit"] })
+          }}
         />
       ) : (
         <Card className="items-center gap-3 px-6 py-8 text-center">

@@ -1717,6 +1717,13 @@ const km = {
   "prayerAlert.customHint": "MP3/M4A — រក្សាទុកតែលើឧបករណ៍នេះ",
   "prayerAlert.fajrAdhan": "អាហ្សានស៊ូពុហ៍ពេលស៊ូពុហ៍",
   "prayerAlert.fajrAdhanHint": "មាន «អាស់សឡាទុ ខៃរុម មីណាន់ណាវម៍» — ចាក់តែពេលស៊ូពុហ៍ប៉ុណ្ណោះ",
+  "stmt.freeFirst": "ការនាំចូលរបាយការណ៍លើកដំបូងរបស់អ្នក ឥតគិតថ្លៃ — សាកល្បងមើល!",
+  "stmt.freeUsed": "អ្នកបានប្រើការនាំចូលឥតគិតថ្លៃរួចហើយ។ ដំឡើងទៅ PRO ដើម្បីនាំចូលរបាយការណ៍បន្ថែម និងគណនីច្រើន។",
+  "stmt.seeDashboard": "មើលផ្ទាំងគ្រប់គ្រងរបស់ខ្ញុំ",
+  "stmt.upsellTitle": "នាំចូលរាល់ខែ ជាមួយ PRO",
+  "stmt.upsell1": "នាំចូលរបាយការណ៍ថ្មីរាល់ខែ — មិនស្ទួន",
+  "stmt.upsell2": "គណនី ABA, ACLEDA និងកាបូបច្រើន",
+  "stmt.upsell3": "ផ្ទៀងផ្ទាត់សមតុល្យជាមួយធនាគារ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3438,6 +3445,13 @@ const en: Record<MessageKey, string> = {
   "prayerAlert.customHint": "MP3/M4A — stays on this device",
   "prayerAlert.fajrAdhan": "Fajr Adhan at Fajr",
   "prayerAlert.fajrAdhanHint": "Includes “As-salatu khayrun minan-nawm” — played at Fajr only",
+  "stmt.freeFirst": "Your first statement import is free — give it a try!",
+  "stmt.freeUsed": "You've used your free import. Upgrade to PRO to import more statements and accounts.",
+  "stmt.seeDashboard": "See my dashboard",
+  "stmt.upsellTitle": "Import every month with PRO",
+  "stmt.upsell1": "Import each new statement — never duplicated",
+  "stmt.upsell2": "Several ABA, ACLEDA and other accounts",
+  "stmt.upsell3": "Balances checked against the bank",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

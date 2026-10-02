@@ -1,6 +1,7 @@
 "use client"
 
-import { ArrowLeftIcon, CircleCheckIcon, CrownIcon, FileUpIcon, Loader2Icon, LockIcon, ScanSearchIcon, SparklesIcon } from "lucide-react"
+import { ArrowLeftIcon, CircleCheckIcon, CrownIcon, FileUpIcon, GiftIcon, LayoutDashboardIcon, Loader2Icon, LockIcon, ScanSearchIcon, SparklesIcon } from "lucide-react"
+import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
@@ -17,7 +18,8 @@ import { canWrite, useActiveWorkspace, useWalletMutations, useWallets } from "@/
 import type { Currency, Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
-import { showUpgrade, usePlan } from "@/lib/plan"
+import { showUpgrade } from "@/lib/plan"
+import { useImportAccess } from "@/lib/reconcile/access"
 import { isFileImported, type ImportResult } from "@/lib/reconcile/api"
 import { readStatementFile, StatementFileError, type StatementFile } from "@/lib/reconcile/file"
 import { loadMapping, saveMapping } from "@/lib/reconcile/memory"
@@ -30,7 +32,7 @@ type Step =
   | { kind: "account"; file: StatementFile; mapping: Mapping; meta: StatementMeta; opening: number | null }
   | { kind: "map"; file: StatementFile; mapping: Mapping; meta: StatementMeta; wallet: Wallet }
   | { kind: "review"; file: StatementFile; mapping: Mapping; meta: StatementMeta; wallet: Wallet; parsed: ParseResult }
-  | { kind: "done"; wallet: Wallet; result: ImportResult }
+  | { kind: "done"; wallet: Wallet; result: ImportResult; free: boolean }
 
 const NEW = "__new"
 const BANK_ICON: Record<StatementMeta["bank"], string> = { ABA: "aba", ACLEDA: "acleda", GENERIC: "other" }
@@ -191,7 +193,8 @@ export default function ImportStatementPage() {
   const t = useT()
   const { workspace } = useActiveWorkspace()
   const wallets = useWallets(workspace?.id)
-  const { isPro, loading } = usePlan()
+  const queryClient = useQueryClient()
+  const { isPro, freeLeft, freeUsed, allowed, loading } = useImportAccess()
   const [step, setStep] = useState<Step>({ kind: "upload" })
   const [phase, setPhase] = useState<"reading" | "detecting" | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -228,14 +231,15 @@ export default function ImportStatementPage() {
 
   if (loading || wallets.isLoading) return <Loader2Icon className="mx-auto mt-10 size-6 animate-spin text-muted-foreground" />
 
-  if (!isPro || !canWrite(workspace)) {
+  // The gate applies before an import starts; an import in progress (the free one) runs to the end.
+  if ((step.kind === "upload" && !allowed) || !canWrite(workspace)) {
     return (
       <div className="space-y-5">
         {header}
         <Card className="items-center gap-3 px-6 py-8 text-center">
           <SparklesIcon className="size-8 text-primary" aria-hidden />
           <p className="font-semibold">{t("stmt.proTitle")}</p>
-          <p className="text-sm text-muted-foreground">{t("stmt.intro")}</p>
+          <p className="text-sm text-muted-foreground">{t(freeUsed ? "stmt.freeUsed" : "stmt.intro")}</p>
           {!isPro && (
             <Button onClick={() => showUpgrade("reconcile")}>
               <CrownIcon />
@@ -250,6 +254,13 @@ export default function ImportStatementPage() {
   return (
     <div className="space-y-5">
       {header}
+
+      {step.kind === "upload" && freeLeft && (
+        <p className="flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+          <GiftIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {t("stmt.freeFirst")}
+        </p>
+      )}
 
       {step.kind === "upload" && (
         <Card className="gap-4 px-5 py-6">
@@ -321,7 +332,10 @@ export default function ImportStatementPage() {
           parsed={step.parsed}
           meta={step.meta}
           onBack={() => setStep({ ...step, kind: "map" })}
-          onDone={(result) => setStep({ kind: "done", wallet: step.wallet, result })}
+          onDone={(result) => {
+            setStep({ kind: "done", wallet: step.wallet, result, free: !isPro })
+            void queryClient.invalidateQueries({ queryKey: ["statement-import-credit"] })
+          }}
         />
       )}
 
@@ -332,14 +346,43 @@ export default function ImportStatementPage() {
           <p className="text-sm text-muted-foreground">
             {t("recon.doneSummary", { matched: step.result.matched, created: step.result.created, skipped: step.result.skipped })}
           </p>
-          <div className="grid w-full grid-cols-2 gap-2 pt-2">
-            <Button variant="outline" onClick={() => setStep({ kind: "upload" })}>
-              {t("recon.another")}
-            </Button>
-            <Button asChild>
-              <Link href="/wallets">{t("recon.backToWallets")}</Link>
-            </Button>
-          </div>
+          {step.free ? (
+            <>
+              {/* The free import is done: show the result, then offer PRO for the next ones. */}
+              <Button asChild className="h-12 w-full text-base">
+                <Link href="/home">
+                  <LayoutDashboardIcon />
+                  {t("stmt.seeDashboard")}
+                </Link>
+              </Button>
+              <div className="w-full space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-4 text-left">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <CrownIcon className="size-4 text-amber-500" aria-hidden />
+                  {t("stmt.upsellTitle")}
+                </p>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  {(["stmt.upsell1", "stmt.upsell2", "stmt.upsell3"] as const).map((k) => (
+                    <li key={k} className="flex gap-2">
+                      <CircleCheckIcon className="mt-0.5 size-3.5 shrink-0 text-emerald-500" aria-hidden />
+                      {t(k)}
+                    </li>
+                  ))}
+                </ul>
+                <Button variant="outline" className="w-full" onClick={() => showUpgrade("reconcile")}>
+                  {t("upgrade.cta")}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="grid w-full grid-cols-2 gap-2 pt-2">
+              <Button variant="outline" onClick={() => setStep({ kind: "upload" })}>
+                {t("recon.another")}
+              </Button>
+              <Button asChild>
+                <Link href="/wallets">{t("recon.backToWallets")}</Link>
+              </Button>
+            </div>
+          )}
         </Card>
       )}
     </div>
