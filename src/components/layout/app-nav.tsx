@@ -6,12 +6,14 @@ import {
   CrownIcon,
   FileSpreadsheetIcon,
   GiftIcon,
+  HandCoinsIcon,
   HeadsetIcon,
   MenuIcon,
   MoonStarIcon,
   SettingsIcon,
   ShieldIcon,
   TargetIcon,
+  WalletIcon,
   type LucideIcon,
 } from "lucide-react"
 import Link from "next/link"
@@ -79,6 +81,13 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
   const islamic = useIslamicEnabled()
 
   const groups: { title: MessageKey; items: Item[] }[] = [
+    {
+      title: "nav.group.accounts",
+      items: [
+        { href: "/wallets", label: "nav.wallets", icon: WalletIcon },
+        { href: "/debts", label: "nav.debts", icon: HandCoinsIcon },
+      ],
+    },
     {
       title: "nav.group.tools",
       items: [

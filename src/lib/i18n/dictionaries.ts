@@ -1189,6 +1189,8 @@ const km = {
   "nav.group.perks": "អត្ថប្រយោជន៍ពិសេស",
   "nav.group.help": "ជំនួយ និងការកំណត់",
   "nav.referHint": "ទទួលបាន PRO ឥតគិតថ្លៃ ៧ ថ្ងៃ",
+  "nav.add": "កត់ត្រា",
+  "nav.group.accounts": "កាបូប និងបំណុល",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -2382,6 +2384,8 @@ const en: Record<MessageKey, string> = {
   "nav.group.perks": "Perks & features",
   "nav.group.help": "Help & preferences",
   "nav.referHint": "Get 7 days of PRO free",
+  "nav.add": "Add",
+  "nav.group.accounts": "Wallets & debts",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }
