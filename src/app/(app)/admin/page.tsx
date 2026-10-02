@@ -25,6 +25,7 @@ import { paymentCode, type PaymentInstructions } from "@/components/billing/upgr
 import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
 import { formatHijri, toHijri } from "@/lib/islamic"
 import { PlacesAdmin } from "@/components/islamic/places-admin"
+import { BotAdminCard } from "@/components/settings/bot-admin"
 import { AdminUserSecurity } from "@/components/security/admin-user-security"
 import { GoldRatesAdmin } from "@/components/gold/gold-rates-admin"
 import { MarketPricesAdmin } from "@/components/gold/market-prices-admin"
@@ -984,6 +985,7 @@ export default function AdminPage() {
       <MarketPricesAdmin />
       <IslamicDefaultsForm />
       <PlacesAdmin />
+      <BotAdminCard />
     </div>
   )
 }

@@ -16,6 +16,8 @@ module.exports = {
         // Only reachable through Nginx, not directly from the internet.
         HOSTNAME: "127.0.0.1",
         NEXT_TELEMETRY_DISABLED: "1",
+        // This server sends the official bot's reminders (TELEGRAM_BOT_TOKEN in .env.production.local).
+        BOT_DISPATCHER: "on",
       },
     },
   ],

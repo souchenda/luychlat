@@ -21,6 +21,7 @@ import { DangerZone } from "@/components/settings/danger-zone"
 import { DataManagement } from "@/components/settings/data-management"
 import { GuestImportRow } from "@/components/settings/guest-import"
 import { InstallAppCard } from "@/components/settings/install-app"
+import { OfficialBotCard } from "@/components/settings/official-bot"
 import { TelegramSettingsCard } from "@/components/settings/telegram-settings"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -315,7 +316,7 @@ export default function SettingsPage() {
 
       <InstallAppCard />
 
-      <TelegramSettingsCard />
+      <OfficialBotCard legacy={<TelegramSettingsCard />} />
 
       <AiSettingsCard />
 

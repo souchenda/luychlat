@@ -33,6 +33,10 @@ services:
       # Server-only (never NEXT_PUBLIC_): LuyChlat AI for PRO users. Read at runtime,
       # not baked into the image. Leave empty to turn LuyChlat AI off.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Server-only: the official @LuyChlat_bot (reminders, account linking). Never NEXT_PUBLIC_.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      # This server sends the bot's reminders (one instance only).
+      BOT_DISPATCHER: "on"
     mem_limit: ${APP_MEMORY:-512m}
     pids_limit: 256
     # The Node server needs no Linux capabilities and never escalates privileges.

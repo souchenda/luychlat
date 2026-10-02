@@ -1,0 +1,63 @@
+// Server only (node:crypto and the bot token): never import from a client component.
+import { createHmac } from "crypto"
+
+import { createClient } from "@supabase/supabase-js"
+
+import { dictionaries, type Locale, type MessageKey } from "@/lib/i18n/dictionaries"
+import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
+
+/**
+ * The official LuyChlat Telegram bot, server side. TELEGRAM_BOT_TOKEN lives
+ * only in the server environment. Two values are derived from it:
+ *   - the bot key, sent to the database's bot_* functions (the database keeps
+ *     only its SHA-256, set by an admin with "Activate bot");
+ *   - the webhook secret Telegram sends back on every update.
+ * The server needs no master database key.
+ */
+
+export const botToken = () => process.env.TELEGRAM_BOT_TOKEN?.trim() || null
+
+const derive = (label: string) => {
+  const token = botToken()
+  return token ? createHmac("sha256", token).update(label).digest("hex") : null
+}
+export const botKey = () => derive("luychlat-bot-rpc")
+export const webhookSecret = () => derive("luychlat-webhook")
+
+/** Telegram Bot API call; never logs the token. */
+export async function tg<T = unknown>(method: string, payload: Record<string, unknown>): Promise<{ ok: boolean; result?: T; description?: string }> {
+  const token = botToken()
+  if (!token) return { ok: false, description: "no token" }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    })
+    return (await res.json()) as { ok: boolean; result?: T; description?: string }
+  } catch {
+    return { ok: false, description: "network" }
+  }
+}
+
+/** Plain-text message (no HTML parsing, so nothing in a name can change the markup). */
+export function sendText(chatId: number | string, text: string, extra: Record<string, unknown> = {}) {
+  return tg("sendMessage", { chat_id: chatId, text: text.slice(0, 4000), disable_web_page_preview: true, ...extra })
+}
+
+/** Stored alert texts escape &, <, > for HTML; turn them back for plain text. */
+export const unescapeHtml = (s: string) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
+
+/** Database client without a user session: only the bot_* functions (with the key) work. */
+export function botDb() {
+  return createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } })
+}
+
+export function tr(locale: Locale, key: MessageKey, params?: Record<string, string | number>) {
+  let text: string = dictionaries[locale][key]
+  if (params) for (const [k, v] of Object.entries(params)) text = text.replaceAll(`{${k}}`, String(v))
+  return text
+}
+
+export const SIGNATURE = "\n\n— លុយឆ្លាត · LuyChlat"
