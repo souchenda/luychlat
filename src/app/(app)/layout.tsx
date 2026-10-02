@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
 import { BillingSync } from "@/components/billing/billing-sync"
+import { ExchangeRateSync } from "@/lib/exchange-rate"
 import { PendingReferralRedeemer } from "@/components/billing/referral"
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet"
 import { BottomNav } from "@/components/layout/bottom-nav"
@@ -58,6 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <PendingInviteRedirect />
       <GuestImportPrompt />
       <BillingSync />
+      <ExchangeRateSync />
       <PendingReferralRedeemer />
       <UpgradeSheet />
       <div hidden={isLocked} inert={isLocked}>

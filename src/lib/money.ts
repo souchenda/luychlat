@@ -1,6 +1,9 @@
 import type { Currency } from "@/lib/data/types"
 
-export const DEFAULT_KHR_PER_USD = 4100
+/** Used until the user saves their own rate (Settings › Exchange rate). */
+export const DEFAULT_KHR_PER_USD = 4000
+/** The default before 2026-10; a device still holding it never had a custom rate. */
+export const LEGACY_DEFAULT_KHR_PER_USD = 4100
 export const HIDDEN_AMOUNT = "*****"
 
 /** USD keeps cents; KHR has no minor unit in practice. */

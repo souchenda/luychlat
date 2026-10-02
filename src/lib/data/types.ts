@@ -20,6 +20,8 @@ export type Workspace = {
   role: WorkspaceRole
   /** Number of people with access (1 unless shared). */
   member_count: number
+  /** KHR per 1 USD saved for this workspace (null = not set yet: the default applies). */
+  khr_per_usd?: number | null
 }
 
 export type Wallet = {

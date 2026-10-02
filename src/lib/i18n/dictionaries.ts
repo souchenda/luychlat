@@ -1097,6 +1097,7 @@ const km = {
   "admin.aboutEmail": "អ៊ីមែល",
   "admin.aboutInvalid": "តំណត្រូវចាប់ផ្តើមដោយ https:// ហើយអ៊ីមែលត្រូវត្រឹមត្រូវ",
   "about.poweredBy": "ដំណើរការដោយ: {name}",
+  "settings.exchangeRateFamily": "កំណត់ដោយម្ចាស់គណនីគ្រួសារ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -2198,6 +2199,7 @@ const en: Record<MessageKey, string> = {
   "admin.aboutEmail": "Email",
   "admin.aboutInvalid": "Links must start with https:// and the email must be valid",
   "about.poweredBy": "Powered by: {name}",
+  "settings.exchangeRateFamily": "Set by the family owner",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

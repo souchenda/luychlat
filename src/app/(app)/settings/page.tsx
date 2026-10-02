@@ -40,6 +40,8 @@ import { parseAmount } from "@/lib/money"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
+import { useSaveExchangeRate } from "@/lib/exchange-rate"
+import { useActiveWorkspace } from "@/lib/data/hooks"
 
 function Row({ icon, title, hint, children }: { icon?: React.ReactNode; title: string; hint?: string; children?: React.ReactNode }) {
   return (
@@ -65,19 +67,28 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function ExchangeRateRow() {
   const t = useT()
-  const { khrPerUsd, setKhrPerUsd } = usePrefsStore()
+  const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
+  const { workspace } = useActiveWorkspace()
+  const saveRate = useSaveExchangeRate()
   const [value, setValue] = useState(String(khrPerUsd))
   const parsed = parseAmount(value)
   const valid = parsed >= 1000 && parsed <= 10000
+  // In someone else's family workspace the owner's saved rate applies.
+  const readOnly = workspace?.type === "FAMILY" && workspace.role !== "OWNER"
+
+  // Show the saved rate once it arrives from the database.
+  useEffect(() => setValue(String(khrPerUsd)), [khrPerUsd])
 
   const save = () => {
-    if (!valid) return
-    setKhrPerUsd(Math.round(parsed))
-    toast.success(t("settings.rateSaved"))
+    if (!valid || readOnly) return
+    saveRate.mutate(Math.round(parsed), {
+      onSuccess: () => toast.success(t("settings.rateSaved")),
+      onError: () => toast.error(t("common.error")),
+    })
   }
 
   return (
-    <Row icon={<CoinsIcon />} title={t("settings.exchangeRate")} hint={t("settings.exchangeRateHint")}>
+    <Row icon={<CoinsIcon />} title={t("settings.exchangeRate")} hint={t(readOnly ? "settings.exchangeRateFamily" : "settings.exchangeRateHint")}>
       <form
         className="flex items-center gap-1.5"
         onSubmit={(e) => {
@@ -93,10 +104,11 @@ function ExchangeRateRow() {
           className="h-8 w-20 text-right tabular-nums"
           aria-label={t("settings.exchangeRate")}
           aria-invalid={!valid}
+          disabled={readOnly}
         />
         <span className="text-xs text-muted-foreground">៛</span>
-        {valid && Math.round(parsed) !== khrPerUsd && (
-          <Button type="submit" size="sm">
+        {!readOnly && valid && Math.round(parsed) !== khrPerUsd && (
+          <Button type="submit" size="sm" disabled={saveRate.isPending}>
             {t("common.save")}
           </Button>
         )}

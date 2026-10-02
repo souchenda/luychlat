@@ -29,7 +29,7 @@ export const GUIDE: GuideSection[] = [
       {
         q: { km: "ប្រើទាំងដុល្លារ និងរៀលបានទេ?", en: "Can I use both dollars and riel?" },
         a: [
-          { km: "បាន។ កាបូបនីមួយៗមានរូបិយប័ណ្ណមួយ។ អត្រាប្តូរប្រាក់ (ឧ. $1 = 4,100៛) កំណត់នៅ «ការកំណត់» › «អត្រាប្តូរប្រាក់» ហើយប្រើសម្រាប់សរុបទ្រព្យ។", en: "Yes. Each wallet has one currency. Set the exchange rate (e.g. $1 = 4,100៛) in Settings › Exchange rate; it's used for your totals." },
+          { km: "បាន។ កាបូបនីមួយៗមានរូបិយប័ណ្ណមួយ។ អត្រាប្តូរប្រាក់ (ឧ. $1 = 4,000៛) កំណត់នៅ «ការកំណត់» › «អត្រាប្តូរប្រាក់» ហើយប្រើសម្រាប់សរុបទ្រព្យ។", en: "Yes. Each wallet has one currency. Set the exchange rate (e.g. $1 = 4,000៛) in Settings › Exchange rate; it's used for your totals." },
         ],
       },
       {

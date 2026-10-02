@@ -94,6 +94,7 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
           const of = memberRows.filter((m) => m.workspace_id === w.id)
           return {
             ...w,
+            khr_per_usd: w.khr_per_usd == null ? null : Number(w.khr_per_usd),
             role: of.find((m) => m.user_id === userId)?.role ?? "VIEWER",
             member_count: Math.max(1, of.length),
           }
