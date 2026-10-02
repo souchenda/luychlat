@@ -34,6 +34,10 @@ import type { CategoryType, Transaction } from "@/lib/data/types"
 import { longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { islamicGreeting, toHijri } from "@/lib/islamic"
 import { isGoal } from "@/lib/goals"
+import { portfolio } from "@/lib/gold"
+import { useGoldHoldings, useGoldRates } from "@/lib/gold-data"
+import { assetsTotalUsd } from "@/lib/assets"
+import { usePhysicalAssets } from "@/lib/assets-data"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
 import { homeGreeting } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
@@ -63,6 +67,12 @@ export default function HomePage() {
   const months = useMemo(() => recentMonths(TREND_MONTHS), [])
   const filter = useMemo(() => ({ from: monthRange(months[0]).from }), [months])
   const walletsQuery = useWallets(ws)
+  // Gold and platinum at today's market rate count in net worth.
+  const goldHoldings = useGoldHoldings(ws).data
+  const { rates: goldRates } = useGoldRates()
+  const physicalAssets = usePhysicalAssets(ws).data
+  const physicalValue = useMemo(() => assetsTotalUsd(physicalAssets ?? [], khrPerUsd), [physicalAssets, khrPerUsd])
+  const goldValue = useMemo(() => portfolio(goldHoldings ?? [], goldRates, khrPerUsd).value, [goldHoldings, goldRates, khrPerUsd])
   const categoriesQuery = useCategories(ws)
   const txQuery = useTransactions(ws, filter)
   const debtsQuery = useDebts(ws)
@@ -133,7 +143,7 @@ export default function HomePage() {
         <BusinessTrialTag workspace={workspace} className="mt-1.5" />
       </header>
 
-      <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} />
+      <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} assetsUsd={goldValue + physicalValue} />
 
       {workspace?.role === "VIEWER" && (
         <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">

@@ -118,3 +118,26 @@ export function useSaveBusinessProfile() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.workspaces(scope) }),
   })
 }
+
+/** Archive / restore / delete a business workspace (owner only; never the last active one). */
+export function useBusinessLifecycle() {
+  const queryClient = useQueryClient()
+  const { scope } = useRepo()
+  const done = () => void queryClient.invalidateQueries({ queryKey: queryKeys.workspaces(scope) })
+  return {
+    setArchived: useMutation({
+      mutationFn: async ({ id, archived }: { id: string; archived: boolean }) => {
+        const { error } = await getSupabaseBrowserClient()!.rpc("set_business_archived", { p_workspace_id: id, p_archived: archived })
+        if (error) throw error
+      },
+      onSuccess: done,
+    }),
+    remove: useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await getSupabaseBrowserClient()!.rpc("delete_business_workspace", { p_workspace_id: id })
+        if (error) throw error
+      },
+      onSuccess: done,
+    }),
+  }
+}

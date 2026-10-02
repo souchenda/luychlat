@@ -28,7 +28,9 @@ export type Workspace = {
   business_address?: string | null
   business_industry?: string | null
   /** Why the owner's plan makes this read-only: the Free business trial ended, or more businesses than the plan allows. */
-  locked?: "TRIAL_ENDED" | "PLAN_LIMIT" | null
+  locked?: "TRIAL_ENDED" | "PLAN_LIMIT" | "ARCHIVED" | null
+  /** A closed business that was archived (hidden, read-only, restorable). */
+  archived_at?: string | null
   /** Free plan: end of the business trial (ISO). */
   trial_ends_at?: string | null
   trial_started_at?: string

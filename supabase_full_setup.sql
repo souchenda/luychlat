@@ -5795,3 +5795,302 @@ begin
   );
 end;
 $$;
+
+
+-- ===========================================================================
+-- 20261008000000_assets_gold.sql
+-- ===========================================================================
+
+-- Assets: gold & platinum holdings (Cambodian weight units, daily market
+-- rates set by admins) and physical assets (land, house, vehicles…). Idempotent.
+--
+-- Weight is stored in ហ៊ុន (hun), the smallest everyday unit:
+--   1 តម្លឹង (damlung) = 10 ជី (chi) = 100 ហ៊ុន = 37.5 g;  1 ហ៊ុន = 0.375 g.
+
+create table if not exists public.gold_holdings (
+  id                uuid primary key default gen_random_uuid(),
+  workspace_id      uuid not null references public.workspaces (id) on delete cascade,
+  name              text not null check (char_length(btrim(name)) between 1 and 80),
+  -- GOLD_BAR = មាសគីឡូ (99.99%), GOLD_24K = មាសទឹក១០, GOLD_18K = មាសទឹក៨, PLATINUM = ប្លាទីន
+  kind              text not null check (kind in ('GOLD_BAR', 'GOLD_24K', 'GOLD_18K', 'PLATINUM')),
+  weight_hun        numeric(12, 2) not null check (weight_hun > 0 and weight_hun <= 1000000),
+  purchase_date     date,
+  purchase_price    numeric(18, 2) check (purchase_price is null or purchase_price >= 0),
+  purchase_currency public.currency_code,
+  note              text check (note is null or char_length(note) <= 300),
+  created_by        uuid default auth.uid() references auth.users (id) on delete set null,
+  created_at        timestamptz not null default now(),
+  check ((purchase_price is null) = (purchase_currency is null))
+);
+create index if not exists gold_holdings_workspace_idx on public.gold_holdings (workspace_id);
+alter table public.gold_holdings enable row level security;
+
+-- Same rules as the rest of a workspace: members read; owners/members write
+-- (which also respects the plan's read-only business workspaces).
+drop policy if exists gold_holdings_select on public.gold_holdings;
+create policy gold_holdings_select on public.gold_holdings
+  for select to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists gold_holdings_insert on public.gold_holdings;
+create policy gold_holdings_insert on public.gold_holdings
+  for insert to authenticated with check (public.can_write_workspace(workspace_id));
+drop policy if exists gold_holdings_update on public.gold_holdings;
+create policy gold_holdings_update on public.gold_holdings
+  for update to authenticated
+  using (public.can_write_workspace(workspace_id))
+  with check (public.can_write_workspace(workspace_id));
+drop policy if exists gold_holdings_delete on public.gold_holdings;
+create policy gold_holdings_delete on public.gold_holdings
+  for delete to authenticated using (public.can_write_workspace(workspace_id));
+
+grant select, insert, delete on public.gold_holdings to authenticated;
+grant update (name, kind, weight_hun, purchase_date, purchase_price, purchase_currency, note) on public.gold_holdings to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Market rates (app_settings "gold_rates"): USD per damlung for each kind,
+-- e.g. {"GOLD_BAR": "2850", "GOLD_24K": "2800", "GOLD_18K": "2050", "PLATINUM": "1150"}.
+-- Readable by every signed-in user (existing app_settings policy).
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_set_gold_rates(p_value jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v jsonb := coalesce(p_value, '{}'::jsonb);
+  k text;
+begin
+  perform public.require_admin();
+  if jsonb_typeof(v) <> 'object' or length(v::text) > 500 then
+    raise exception 'invalid rates' using errcode = '22023';
+  end if;
+  for k in select jsonb_object_keys(v) loop
+    if k not in ('GOLD_BAR', 'GOLD_24K', 'GOLD_18K', 'PLATINUM') then
+      raise exception 'unknown kind %', k using errcode = '22023';
+    end if;
+    if v ->> k is not null and not ((v ->> k) ~ '^[0-9]+(\.[0-9]+)?$' and (v ->> k)::numeric between 1 and 1000000) then
+      raise exception 'invalid rate for %', k using errcode = '22023';
+    end if;
+  end loop;
+  insert into public.app_settings (key, value, updated_at) values ('gold_rates', v, now())
+  on conflict (key) do update set value = excluded.value, updated_at = now();
+end;
+$$;
+revoke all on function public.admin_set_gold_rates(jsonb) from public, anon;
+grant execute on function public.admin_set_gold_rates(jsonb) to authenticated;
+
+-- "Reset all data" also removes gold holdings (in place, keeping the rest of
+-- the latest reset_my_data definition).
+do $$
+declare
+  def text;
+begin
+  def := pg_get_functiondef('public.reset_my_data()'::regprocedure);
+  if position('gold_holdings' in def) = 0 then
+    def := replace(
+      def,
+      'delete from public.wallets_accounts where workspace_id in (select id from reset_ws);',
+      'delete from public.gold_holdings where workspace_id in (select id from reset_ws);
+  delete from public.wallets_accounts where workspace_id in (select id from reset_ws);'
+    );
+    execute def;
+  end if;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Real estate, vehicles, machinery and other physical assets: an estimated
+-- market value, optionally linked to the bank loan that financed it (net
+-- equity = value − what is still owed on that loan).
+-- ---------------------------------------------------------------------------
+create table if not exists public.physical_assets (
+  id              uuid primary key default gen_random_uuid(),
+  workspace_id    uuid not null references public.workspaces (id) on delete cascade,
+  kind            text not null check (kind in ('LAND', 'HOUSE', 'VEHICLE', 'MACHINERY', 'OTHER')),
+  name            text not null check (char_length(btrim(name)) between 1 and 80),
+  estimated_value numeric(18, 2) not null check (estimated_value >= 0),
+  currency        public.currency_code not null,
+  purchase_date   date,
+  purchase_price  numeric(18, 2) check (purchase_price is null or purchase_price >= 0),
+  debt_id         uuid,
+  note            text check (note is null or char_length(note) <= 300),
+  created_by      uuid default auth.uid() references auth.users (id) on delete set null,
+  created_at      timestamptz not null default now(),
+  -- The loan must be in the same workspace; deleting it just removes the link.
+  foreign key (debt_id, workspace_id) references public.debts (id, workspace_id) on delete set null (debt_id)
+);
+create index if not exists physical_assets_workspace_idx on public.physical_assets (workspace_id);
+alter table public.physical_assets enable row level security;
+
+drop policy if exists physical_assets_select on public.physical_assets;
+create policy physical_assets_select on public.physical_assets
+  for select to authenticated using (public.is_workspace_member(workspace_id));
+drop policy if exists physical_assets_insert on public.physical_assets;
+create policy physical_assets_insert on public.physical_assets
+  for insert to authenticated with check (public.can_write_workspace(workspace_id));
+drop policy if exists physical_assets_update on public.physical_assets;
+create policy physical_assets_update on public.physical_assets
+  for update to authenticated
+  using (public.can_write_workspace(workspace_id))
+  with check (public.can_write_workspace(workspace_id));
+drop policy if exists physical_assets_delete on public.physical_assets;
+create policy physical_assets_delete on public.physical_assets
+  for delete to authenticated using (public.can_write_workspace(workspace_id));
+
+grant select, insert, delete on public.physical_assets to authenticated;
+grant update (kind, name, estimated_value, currency, purchase_date, purchase_price, debt_id, note) on public.physical_assets to authenticated;
+
+do $$
+declare
+  def text;
+begin
+  def := pg_get_functiondef('public.reset_my_data()'::regprocedure);
+  if position('physical_assets' in def) = 0 then
+    def := replace(
+      def,
+      'delete from public.gold_holdings where workspace_id in (select id from reset_ws);',
+      'delete from public.gold_holdings where workspace_id in (select id from reset_ws);
+  delete from public.physical_assets where workspace_id in (select id from reset_ws);'
+    );
+    execute def;
+  end if;
+end $$;
+
+
+-- ===========================================================================
+-- 20261009000000_business_archive.sql
+-- ===========================================================================
+
+-- Closed businesses: archive (hidden, read-only, restorable) or delete
+-- permanently. At least one active Business workspace always remains, and
+-- archived ones don't count toward the plan's business allowance. Idempotent.
+
+alter table public.workspaces add column if not exists archived_at timestamptz;
+
+create or replace function public.workspace_plan_access(p_workspace_id uuid, out writable boolean, out reason text, out trial_ends_at timestamptz)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  w public.workspaces;
+  p public.plans;
+  business_rank integer;
+begin
+  writable := true;
+  select * into w from public.workspaces where id = p_workspace_id;
+  if not found or w.type <> 'BUSINESS' then
+    return;
+  end if;
+  if w.archived_at is not null then
+    writable := false;
+    reason := 'ARCHIVED';
+    return;
+  end if;
+  p := public.plan_of(w.user_id);
+  -- 1 = the owner's first active business workspace.
+  select count(*) + 1 into business_rank
+  from public.workspaces o
+  where o.user_id = w.user_id and o.type = 'BUSINESS' and o.archived_at is null and (o.created_at, o.id) < (w.created_at, w.id);
+  if p.max_business_workspaces is not null and business_rank > p.max_business_workspaces then
+    writable := false;
+    reason := 'PLAN_LIMIT';
+    return;
+  end if;
+  if p.tier = 'FREE' then
+    trial_ends_at := w.trial_started_at + make_interval(days => p.business_trial_days);
+    if now() >= trial_ends_at then
+      writable := false;
+      reason := 'TRIAL_ENDED';
+    end if;
+  end if;
+end;
+$$;
+
+create or replace function public.create_business_workspace(p_name text)
+returns public.workspaces
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := (select auth.uid());
+  p public.plans;
+  owned integer;
+  result public.workspaces;
+begin
+  if uid is null then
+    raise exception 'not authenticated' using errcode = '42501';
+  end if;
+  p := public.plan_of(uid);
+  select count(*) into owned from public.workspaces where user_id = uid and type = 'BUSINESS' and archived_at is null;
+  if p.max_business_workspaces is not null and owned >= p.max_business_workspaces then
+    raise exception 'plan_limit:business' using errcode = 'P0001', hint = p.max_business_workspaces::text;
+  end if;
+  insert into public.workspaces (user_id, name, type)
+  values (uid, coalesce(nullif(left(btrim(p_name), 60), ''), 'អាជីវកម្ម'), 'BUSINESS')
+  returning * into result;
+  perform public.seed_default_categories(result.id, 'BUSINESS');
+  return result;
+end;
+$$;
+
+-- Owner only; never the last active business.
+create or replace function public.set_business_archived(p_workspace_id uuid, p_archived boolean)
+returns public.workspaces
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := (select auth.uid());
+  result public.workspaces;
+begin
+  if not exists (select 1 from public.workspaces where id = p_workspace_id and user_id = uid and type = 'BUSINESS') then
+    raise exception 'only the owner can archive this business' using errcode = '42501';
+  end if;
+  if p_archived and not exists (
+    select 1 from public.workspaces
+    where user_id = uid and type = 'BUSINESS' and archived_at is null and id <> p_workspace_id
+  ) then
+    raise exception 'last_business' using errcode = 'P0001';
+  end if;
+  update public.workspaces set archived_at = case when p_archived then coalesce(archived_at, now()) end
+  where id = p_workspace_id
+  returning * into result;
+  return result;
+end;
+$$;
+revoke all on function public.set_business_archived(uuid, boolean) from public, anon;
+grant execute on function public.set_business_archived(uuid, boolean) to authenticated;
+
+-- Deletes a business and everything in it. Owner only; never the last active business.
+create or replace function public.delete_business_workspace(p_workspace_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := (select auth.uid());
+begin
+  if not exists (select 1 from public.workspaces where id = p_workspace_id and user_id = uid and type = 'BUSINESS') then
+    raise exception 'only the owner can delete this business' using errcode = '42501';
+  end if;
+  if not exists (
+    select 1 from public.workspaces
+    where user_id = uid and type = 'BUSINESS' and archived_at is null and id <> p_workspace_id
+  ) then
+    raise exception 'last_business' using errcode = 'P0001';
+  end if;
+  perform set_config('luysmart.system', 'on', true);
+  -- Ledger first (cascades repayments), then debts: wallets are referenced
+  -- with NO ACTION, which a single cascading delete would trip over.
+  delete from public.transactions where workspace_id = p_workspace_id;
+  delete from public.debts where workspace_id = p_workspace_id;
+  delete from public.workspaces where id = p_workspace_id;
+  perform set_config('luysmart.system', '', true);
+end;
+$$;
+revoke all on function public.delete_business_workspace(uuid) from public, anon;
+grant execute on function public.delete_business_workspace(uuid) to authenticated;

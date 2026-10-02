@@ -1,6 +1,6 @@
 "use client"
 
-import { CameraIcon, Loader2Icon, Trash2Icon } from "lucide-react"
+import { ArchiveIcon, ArchiveRestoreIcon, CameraIcon, Loader2Icon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea"
 import type { Profile, Workspace } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
-import { INDUSTRIES, useSaveBusinessProfile, useSaveProfile } from "@/lib/profile"
+import { INDUSTRIES, useBusinessLifecycle, useSaveBusinessProfile, useSaveProfile } from "@/lib/profile"
+import { usePrefsStore } from "@/stores/prefs-store"
 
 import { ProfileAvatar } from "./profile-avatar"
 
@@ -159,6 +160,8 @@ export function ProfileSheet({ open, onOpenChange, profile, email }: { open: boo
 export function BusinessProfileSheet({ open, onOpenChange, workspace }: { open: boolean; onOpenChange: (open: boolean) => void; workspace: Workspace | undefined }) {
   const t = useT()
   const save = useSaveBusinessProfile()
+  const lifecycle = useBusinessLifecycle()
+  const setActive = usePrefsStore((s) => s.setActiveWorkspace)
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
   const [address, setAddress] = useState("")
@@ -248,6 +251,56 @@ export function BusinessProfileSheet({ open, onOpenChange, workspace }: { open: 
           </Button>
         ) : (
           <p className="text-xs text-muted-foreground">{t("business.ownerOnly")}</p>
+        )}
+        {owner && workspace && (
+          <div className="space-y-2 border-t pt-4">
+            <p className="text-xs text-muted-foreground">{t("business.closeHint")}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={lifecycle.setArchived.isPending}
+                onClick={() =>
+                  lifecycle.setArchived.mutate(
+                    { id: workspace.id, archived: !workspace.archived_at },
+                    {
+                      onSuccess: () => {
+                        toast.success(t(workspace.archived_at ? "business.restored" : "business.archived"))
+                        onOpenChange(false)
+                      },
+                      onError: (e) => toast.error(t(String(e.message).includes("last_business") ? "business.lastOne" : "common.error")),
+                    },
+                  )
+                }
+              >
+                {workspace.archived_at ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
+                {t(workspace.archived_at ? "business.restore" : "business.archive")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="text-destructive"
+                disabled={lifecycle.remove.isPending}
+                onClick={() => {
+                  // Permanent: ask for the business name, like deleting a repository.
+                  const typed = window.prompt(t("business.deleteConfirm", { name: workspace.name }))
+                  if (typed === null) return
+                  if (typed.trim() !== workspace.name.trim()) return void toast.error(t("business.deleteMismatch"))
+                  lifecycle.remove.mutate(workspace.id, {
+                    onSuccess: () => {
+                      toast.success(t("business.deleted", { name: workspace.name }))
+                      setActive("BUSINESS", null)
+                      onOpenChange(false)
+                    },
+                    onError: (e) => toast.error(t(String(e.message).includes("last_business") ? "business.lastOne" : "common.error")),
+                  })
+                }}
+              >
+                <Trash2Icon />
+                {t("business.delete")}
+              </Button>
+            </div>
+          </div>
         )}
       </form>
     </BottomSheet>

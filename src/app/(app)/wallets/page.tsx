@@ -23,7 +23,12 @@ import {
 } from "@/lib/data/hooks"
 import type { Transaction, TransactionFilter, Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
+import { usePrefsStore } from "@/stores/prefs-store"
 import { isGoal } from "@/lib/goals"
+import { portfolio } from "@/lib/gold"
+import { useGoldHoldings, useGoldRates } from "@/lib/gold-data"
+import { assetsTotalUsd } from "@/lib/assets"
+import { usePhysicalAssets } from "@/lib/assets-data"
 
 const RECENT_TRANSFERS: TransactionFilter = { type: "TRANSFER", limit: 10 }
 
@@ -32,6 +37,13 @@ export default function WalletsPage() {
   const { workspace } = useActiveWorkspace()
   const editable = canWrite(workspace)
   const walletsQuery = useWallets(workspace?.id)
+  // Net worth here matches Home: gold at today's market rate is included.
+  const khrRate = usePrefsStore((st) => st.khrPerUsd)
+  const goldHoldings = useGoldHoldings(workspace?.id).data
+  const { rates: goldRates } = useGoldRates()
+  const physicalAssets = usePhysicalAssets(workspace?.id).data
+  const physicalValue = useMemo(() => assetsTotalUsd(physicalAssets ?? [], khrRate), [physicalAssets, khrRate])
+  const goldValue = useMemo(() => portfolio(goldHoldings ?? [], goldRates, khrRate).value, [goldHoldings, goldRates, khrRate])
   const transfersQuery = useTransactions(workspace?.id, RECENT_TRANSFERS)
   const categories = useCategories(workspace?.id).data ?? []
   const { reorder } = useWalletMutations(workspace?.id)
@@ -68,7 +80,7 @@ export default function WalletsPage() {
     <div className="space-y-5">
       <h1 className="text-xl font-bold">{t("wallets.title")}</h1>
 
-      <NetWorthCard wallets={all} loading={walletsQuery.isLoading} />
+      <NetWorthCard wallets={all} loading={walletsQuery.isLoading} assetsUsd={goldValue + physicalValue} />
 
       <div className={editable ? "grid grid-cols-2 gap-2" : "hidden"}>
         <Button className="h-11" onClick={openCreate}>

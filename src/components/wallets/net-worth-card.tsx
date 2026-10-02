@@ -10,7 +10,8 @@ import { convert, roundMoney } from "@/lib/money"
 import { isGoal } from "@/lib/goals"
 import { usePrefsStore } from "@/stores/prefs-store"
 
-export function computeTotals(wallets: Wallet[], khrPerUsd: number) {
+/** Wallet totals, plus assets (gold at market rate + land, house, vehicles…) in USD when given. */
+export function computeTotals(wallets: Wallet[], khrPerUsd: number, assetsUsd = 0) {
   const active = wallets.filter((w) => !w.archived_at)
   const sum = (currency: "USD" | "KHR") =>
     roundMoney(
@@ -24,16 +25,17 @@ export function computeTotals(wallets: Wallet[], khrPerUsd: number) {
     count: active.filter((w) => !isGoal(w)).length,
     usdWallets: usd,
     khrWallets: khr,
-    totalUsd: roundMoney(usd + convert(khr, "KHR", "USD", khrPerUsd), "USD"),
-    totalKhr: roundMoney(khr + convert(usd, "USD", "KHR", khrPerUsd), "KHR"),
+    assets: assetsUsd,
+    totalUsd: roundMoney(usd + assetsUsd + convert(khr, "KHR", "USD", khrPerUsd), "USD"),
+    totalKhr: roundMoney(khr + convert(usd + assetsUsd, "USD", "KHR", khrPerUsd), "KHR"),
   }
 }
 
-/** Total balance of the active workspace, in USD and KHR at the configured rate. */
-export function NetWorthCard({ wallets, loading }: { wallets: Wallet[] | undefined; loading?: boolean }) {
+/** Total of the active workspace (wallets, savings goals and assets), in USD and KHR at the configured rate. */
+export function NetWorthCard({ wallets, loading, assetsUsd = 0 }: { wallets: Wallet[] | undefined; loading?: boolean; assetsUsd?: number }) {
   const t = useT()
   const { hideBalances, toggleHideBalances, khrPerUsd } = usePrefsStore()
-  const totals = computeTotals(wallets ?? [], khrPerUsd)
+  const totals = computeTotals(wallets ?? [], khrPerUsd, assetsUsd)
 
   return (
     <section className="relative isolate overflow-hidden rounded-3xl bg-linear-to-br from-emerald-600 via-emerald-500 to-teal-700 p-5 text-white shadow-lg shadow-emerald-900/25 ring-1 ring-white/15">
@@ -75,6 +77,11 @@ export function NetWorthCard({ wallets, loading }: { wallets: Wallet[] | undefin
         <span className="rounded-full bg-white/15 px-2.5 py-1 ring-1 ring-white/20 backdrop-blur-sm">
           <Amount value={totals.khrWallets} currency="KHR" />
         </span>
+        {totals.assets > 0 && (
+          <span className="rounded-full bg-amber-400/30 px-2.5 py-1 ring-1 ring-amber-200/40 backdrop-blur-sm" title={t("assets.pageTitle")}>
+            🏠 <Amount value={totals.assets} currency="USD" />
+          </span>
+        )}
         <span className="ml-auto text-white/75">
           {t("netWorth.walletCount", { count: totals.count })} · {t("netWorth.rate", { rate: khrPerUsd.toLocaleString("en-US") })}
         </span>

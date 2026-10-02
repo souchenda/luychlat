@@ -76,7 +76,9 @@ export function useWorkspaces() {
  */
 export function pickWorkspace(workspaces: Workspace[] | undefined, type: Workspace["type"], familyId: string | null, businessId: string | null = null) {
   if (!workspaces) return undefined
-  const own = (t: Workspace["type"]) => workspaces.find((w) => w.type === t && w.role === "OWNER") ?? workspaces.find((w) => w.type === t)
+  // Archived businesses are only opened when picked explicitly.
+  const own = (t: Workspace["type"]) =>
+    workspaces.find((w) => w.type === t && w.role === "OWNER" && !w.archived_at) ?? workspaces.find((w) => w.type === t)
   if (type === "FAMILY") {
     const families = workspaces.filter((w) => w.type === "FAMILY")
     return families.find((w) => w.id === familyId) ?? families[0] ?? own("PERSONAL")

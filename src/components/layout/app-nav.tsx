@@ -3,6 +3,7 @@
 import {
   ArrowLeftRightIcon,
   BookOpenIcon,
+  CoinsIcon,
   ChartColumnIcon,
   CrownIcon,
   FileSpreadsheetIcon,
@@ -96,6 +97,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
         { href: "/reports", label: "reports.title", icon: ChartColumnIcon },
         { href: "/budgets", label: "budget.title", icon: TargetIcon },
         { href: "/goals", label: "goals.pageTitle", icon: PiggyBankIcon },
+        { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
         { href: "/reports#export", label: "reports.export", icon: FileSpreadsheetIcon, pro: true },
       ],
     },

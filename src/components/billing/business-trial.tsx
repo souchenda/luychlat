@@ -1,11 +1,13 @@
 "use client"
 
-import { CrownIcon, LockIcon, TimerIcon } from "lucide-react"
+import { ArchiveIcon, ArchiveRestoreIcon, CrownIcon, LockIcon, TimerIcon } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import type { Workspace } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { showUpgrade } from "@/lib/plan"
+import { useBusinessLifecycle } from "@/lib/profile"
 import { cn } from "@/lib/utils"
 
 /** Whole days left until `iso` (at least 0). */
@@ -38,6 +40,7 @@ export function BusinessTrialTag({ workspace, className }: { workspace: Workspac
 export function WorkspaceLockedBanner({ workspace }: { workspace: Workspace | undefined }) {
   const t = useT()
   if (!workspace?.locked) return null
+  if (workspace.locked === "ARCHIVED") return <ArchivedBanner workspace={workspace} />
   const trial = workspace.locked === "TRIAL_ENDED"
   return (
     <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
@@ -47,6 +50,35 @@ export function WorkspaceLockedBanner({ workspace }: { workspace: Workspace | un
         <CrownIcon className="size-3.5" />
         {t("upgrade.cta")}
       </Button>
+    </div>
+  )
+}
+
+/** Archived business: read-only, with a one-tap restore for the owner. */
+function ArchivedBanner({ workspace }: { workspace: Workspace }) {
+  const t = useT()
+  const { setArchived } = useBusinessLifecycle()
+  return (
+    <div className="mb-4 flex items-center gap-2 rounded-xl border bg-muted px-3 py-2 text-sm text-muted-foreground">
+      <ArchiveIcon className="size-4 shrink-0" aria-hidden />
+      <span className="min-w-0 flex-1">{t("business.archivedNotice")}</span>
+      {workspace.role === "OWNER" && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 shrink-0 rounded-full px-3 text-xs"
+          disabled={setArchived.isPending}
+          onClick={() =>
+            setArchived.mutate(
+              { id: workspace.id, archived: false },
+              { onSuccess: () => toast.success(t("business.restored")), onError: () => toast.error(t("common.error")) },
+            )
+          }
+        >
+          <ArchiveRestoreIcon className="size-3.5" />
+          {t("business.restore")}
+        </Button>
+      )}
     </div>
   )
 }

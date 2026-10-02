@@ -24,6 +24,8 @@ import { useIslamicDefaults, useIslamicMutations, useIslamicSettings } from "@/l
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
+import { portfolio } from "@/lib/gold"
+import { useGoldHoldingsOf } from "@/lib/gold-data"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -58,8 +60,11 @@ function useIslamicData(includeBusiness: boolean) {
       queryFn: () => repo.listTransactions(c.workspace_id, { categoryId: c.id }),
     })),
   })
+  // Gold recorded on the Gold page counts too (pure gold content, platinum excluded).
+  const gold = useGoldHoldingsOf(workspaces.map((w) => w.id))
   return {
     workspaces,
+    goldGrams: portfolio(gold, {}, 1).pureGoldGrams,
     wallets: wallets.flatMap((q) => q.data ?? []).filter((w) => !w.archived_at),
     debts: debts.flatMap((q) => q.data ?? []),
     categories: allCategories,
@@ -219,7 +224,7 @@ export default function IslamicPage() {
     : 0
   const zakat = calculateZakat({
     cash,
-    goldGrams: settings.gold_grams,
+    goldGrams: settings.gold_grams + data.goldGrams,
     goldPrice: effectiveGold,
     silverPrice: effectiveSilver,
     basis: settings.nisab_basis,
@@ -269,7 +274,13 @@ export default function IslamicPage() {
         <Card className="gap-3 px-4 py-4">
           <div className="space-y-1.5">
             <Line label={t("islamic.cash")} value={money(cash)} />
-            {settings.gold_grams > 0 && <Line label={t("islamic.gold", { grams: settings.gold_grams })} value={effectiveGold ? money(zakat.goldValue) : "—"} />}
+            {settings.gold_grams + data.goldGrams > 0 && (
+              <Line
+                label={t("islamic.gold", { grams: Math.round((settings.gold_grams + data.goldGrams) * 100) / 100 })}
+                value={effectiveGold ? money(zakat.goldValue) : "—"}
+              />
+            )}
+            {data.goldGrams > 0 && <p className="-mt-1 text-[11px] text-muted-foreground">{t("islamic.goldFromAssets", { grams: Math.round(data.goldGrams * 100) / 100 })}</p>}
             {settings.include_receivables && <Line label={t("islamic.receivables")} value={money(receivables)} />}
             <Line label={t("islamic.shortDebts")} value={`−${money(shortTermDebts)}`} negative={shortTermDebts > 0} />
             <div className="border-t pt-1.5">

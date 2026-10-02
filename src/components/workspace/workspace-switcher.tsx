@@ -1,7 +1,7 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { Building2Icon, CheckIcon, ChevronDownIcon, CrownIcon, Loader2Icon, PlusIcon, UserIcon, UsersIcon, type LucideIcon } from "lucide-react"
+import { ArchiveIcon, Building2Icon, CheckIcon, ChevronDownIcon, CrownIcon, Loader2Icon, PlusIcon, UserIcon, UsersIcon, type LucideIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -11,6 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -84,7 +85,8 @@ export function WorkspaceSwitcher() {
   const { isUltra } = usePlan()
   const all = useWorkspaces().data ?? []
   const families = all.filter((w) => w.type === "FAMILY")
-  const businesses = all.filter((w) => w.type === "BUSINESS")
+  const businesses = all.filter((w) => w.type === "BUSINESS" && !w.archived_at)
+  const archived = all.filter((w) => w.type === "BUSINESS" && w.archived_at)
   const [addOpen, setAddOpen] = useState(false)
   const options: WorkspaceType[] = families.length ? ["PERSONAL", "BUSINESS", "FAMILY"] : ["PERSONAL", "BUSINESS"]
   // The resolved workspace (Family falls back to Personal when it no longer exists).
@@ -128,6 +130,19 @@ export function WorkspaceSwitcher() {
             {w.id === workspace?.id && <CheckIcon className="text-primary" />}
           </DropdownMenuItem>
         ))}
+        {type === "BUSINESS" && archived.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t("business.archivedList")}</DropdownMenuLabel>
+            {archived.map((w) => (
+              <DropdownMenuItem key={w.id} onSelect={() => setActive("BUSINESS", w.id)} className="text-muted-foreground">
+                <ArchiveIcon />
+                <span className="flex-1 truncate">{w.name}</span>
+                {w.id === workspace?.id && <CheckIcon className="text-primary" />}
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
         {type === "BUSINESS" && (
           <>
             <DropdownMenuSeparator />

@@ -25,6 +25,7 @@ import { paymentCode, type PaymentInstructions } from "@/components/billing/upgr
 import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
 import { formatHijri, toHijri } from "@/lib/islamic"
 import { PlacesAdmin } from "@/components/islamic/places-admin"
+import { GoldRatesAdmin } from "@/components/gold/gold-rates-admin"
 import type { IslamicDefaults } from "@/lib/islamic-settings"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
@@ -975,6 +976,7 @@ export default function AdminPage() {
       <PaymentInstructionsForm />
       <SupportContactsForm />
       <AboutInfoForm />
+      <GoldRatesAdmin />
       <IslamicDefaultsForm />
       <PlacesAdmin />
     </div>
