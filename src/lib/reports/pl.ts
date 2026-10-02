@@ -1,5 +1,5 @@
 import { dualTotal, type DualTotal } from "@/lib/analytics"
-import { ADJUSTMENT_CATEGORY_PRESETS, DEBT_CATEGORY_PRESETS, DISBURSEMENT_CATEGORY_PRESETS } from "@/lib/categories/presets"
+import { ADJUSTMENT_CATEGORY_PRESETS, DEBT_CATEGORY_PRESETS, DISBURSEMENT_CATEGORY_PRESETS, OWNER_CATEGORY_PRESETS } from "@/lib/categories/presets"
 import type { Category, Currency, Transaction } from "@/lib/data/types"
 import { roundMoney } from "@/lib/money"
 
@@ -11,7 +11,8 @@ import { roundMoney } from "@/lib/money"
  * - Operating expenses: every other expense category (incl. custom ones)
  * - Other income: "other_income"
  * - Excluded (not profit or loss): transfers, debt principal (borrowed/lent
- *   funds and repayments), owner capital ("investment") and balance adjustments.
+ *   funds and repayments), owner capital ("investment", owner draws and
+ *   contributions) and balance adjustments.
  */
 export type PlLine = { key: string; category: Category | null; total: DualTotal }
 
@@ -35,7 +36,7 @@ export type ProfitAndLoss = {
 
 const COGS_KEYS = new Set(["inventory"])
 const OTHER_INCOME_KEYS = new Set(["other_income"])
-const CAPITAL_KEYS = new Set(["investment"])
+const CAPITAL_KEYS = new Set(["investment", ...Object.values(OWNER_CATEGORY_PRESETS).map((p) => p.key)])
 const ADJUSTMENT_KEYS = new Set(Object.values(ADJUSTMENT_CATEGORY_PRESETS).map((p) => p.key))
 const DEBT_FLOW_KEYS = new Set([
   ...Object.values(DEBT_CATEGORY_PRESETS).map((p) => p.key),
@@ -77,7 +78,8 @@ export function profitAndLoss(transactions: Transaction[], categories: Category[
       continue
     }
     if (CAPITAL_KEYS.has(preset)) {
-      capital[tx.currency] += tx.amount
+      // Money in from the owner adds capital; an owner draw takes it out.
+      capital[tx.currency] += tx.type === "INCOME" ? tx.amount : -tx.amount
       continue
     }
     count++

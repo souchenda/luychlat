@@ -142,10 +142,38 @@ export const ISLAMIC_CATEGORY_PRESETS: Record<"zakat" | "sadaqah" | "waqf" | "ri
 export const ISLAMIC_KEYS = new Set(Object.keys(ISLAMIC_CATEGORY_PRESETS))
 
 /**
- * Kept out of income/spending totals: balance adjustments, and (Islamic
+ * Money the owner moves between the business (or this account) and their own
+ * pockets, e.g. found by the statement import. Not income or spending: kept out
+ * of totals and shown as owner capital in the P&L. Created on first use.
+ */
+export const OWNER_CATEGORY_PRESETS: Record<"DRAW" | "CONTRIBUTION", CategoryPreset> = {
+  DRAW: {
+    key: "owner_draw",
+    type: "EXPENSE",
+    icon: "hand-coins",
+    color: "#64748b",
+    name: { km: "ម្ចាស់ដកប្រើ / ផ្ទេរទៅខ្លួនឯង", en: "Owner draw / own transfer" },
+  },
+  CONTRIBUTION: {
+    key: "owner_contribution",
+    type: "INCOME",
+    icon: "hand-coins",
+    color: "#64748b",
+    name: { km: "ម្ចាស់ដាក់ចូល / ផ្ទេរពីខ្លួនឯង", en: "Owner contribution / own transfer" },
+  },
+}
+
+/**
+ * Kept out of income/spending totals: balance adjustments, owner draws and
+ * contributions, and (Islamic
  * tools) bank interest with its purification — Riba is set aside, not income.
  */
-const ADJUSTMENT_KEYS = new Set([...Object.values(ADJUSTMENT_CATEGORY_PRESETS).map((p) => p.key), "bank_interest", "riba_purification"])
+const ADJUSTMENT_KEYS = new Set([
+  ...Object.values(ADJUSTMENT_CATEGORY_PRESETS).map((p) => p.key),
+  ...Object.values(OWNER_CATEGORY_PRESETS).map((p) => p.key),
+  "bank_interest",
+  "riba_purification",
+])
 
 /** Ids of categories left out of cash flow and charts (balance adjustments, Riba and its purification). */
 export function adjustmentCategoryIds(categories: { id: string; preset_key: string | null }[]): Set<string> {
@@ -166,6 +194,7 @@ const PRESET_NAMES = new Map(
     ...Object.values(DISBURSEMENT_CATEGORY_PRESETS),
     ...Object.values(ADJUSTMENT_CATEGORY_PRESETS),
     ...Object.values(ISLAMIC_CATEGORY_PRESETS),
+    ...Object.values(OWNER_CATEGORY_PRESETS),
   ].map((p) => [p.key, p.name]),
 )
 

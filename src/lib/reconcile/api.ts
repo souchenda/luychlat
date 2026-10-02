@@ -1,8 +1,10 @@
+import { OWNER_CATEGORY_PRESETS } from "@/lib/categories/presets"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 export type LineDecision =
   | { action: "match"; txId: string; score: number }
-  | { action: "create"; categoryId: string | null; fee: boolean }
+  /** `preset`: a category created on first use (owner draw/contribution) when categoryId is still null. */
+  | { action: "create"; categoryId: string | null; fee: boolean; preset?: string }
   | { action: "ignore" }
   | { action: "none" }
 
@@ -23,7 +25,7 @@ export type ImportPayloadLine = {
 
 export type ImportMeta = {
   bank: string
-  source_format: "CSV" | "XLSX"
+  source_format: "CSV" | "XLSX" | "PDF"
   file_sha256: string
   period_start: string
   period_end: string
@@ -87,6 +89,22 @@ export async function importStatement(walletId: string, meta: ImportMeta, lines:
   })
   if (error) throw error
   return data as ImportResult
+}
+
+/** Creates (once) an owner draw/contribution category in the workspace; returns its id. */
+export async function ensureOwnerCategory(workspaceId: string, key: string): Promise<string> {
+  const preset = Object.values(OWNER_CATEGORY_PRESETS).find((p) => p.key === key)
+  if (!preset) throw new Error(`unknown preset ${key}`)
+  const { data, error } = await client().rpc("ensure_preset_category", {
+    p_workspace_id: workspaceId,
+    p_key: preset.key,
+    p_type: preset.type,
+    p_icon: preset.icon,
+    p_color: preset.color,
+    p_name: preset.name.km,
+  })
+  if (error) throw error
+  return data as string
 }
 
 export async function listImports(walletId: string): Promise<StatementImport[]> {

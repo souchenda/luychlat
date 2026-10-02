@@ -21,12 +21,13 @@ import { showUpgrade, usePlan } from "@/lib/plan"
 import { deleteImport, isFileImported, listImports, type ImportResult } from "@/lib/reconcile/api"
 import { readStatementFile, StatementFileError, type StatementFile } from "@/lib/reconcile/file"
 import { loadMapping, saveMapping } from "@/lib/reconcile/memory"
+import { extractMeta, withMetaBalances, type StatementMeta } from "@/lib/reconcile/meta"
 import { guessMapping, type Mapping, type ParseResult } from "@/lib/reconcile/parse"
 
 type Step =
   | { kind: "upload" }
   | { kind: "map"; file: StatementFile; mapping: Mapping }
-  | { kind: "review"; file: StatementFile; mapping: Mapping; parsed: ParseResult }
+  | { kind: "review"; file: StatementFile; mapping: Mapping; parsed: ParseResult; meta: StatementMeta }
   | { kind: "done"; result: ImportResult }
 
 const fmt = (ymd: string) => format(new Date(`${ymd}T00:00:00`), "dd/MM/yyyy")
@@ -187,7 +188,8 @@ export default function ReconcileStatementPage() {
           onBack={() => setStep({ kind: "upload" })}
           onContinue={(parsed) => {
             saveMapping(wallet.id, step.file.rows, step.mapping)
-            setStep({ kind: "review", file: step.file, mapping: step.mapping, parsed })
+            const meta = extractMeta(step.file.rows, step.mapping.headerRow, step.mapping.dateOrder, step.file.name)
+            setStep({ kind: "review", file: step.file, mapping: step.mapping, parsed: withMetaBalances(parsed, meta), meta })
           }}
         />
       ) : step.kind === "review" ? (
@@ -195,6 +197,7 @@ export default function ReconcileStatementPage() {
           wallet={wallet}
           file={step.file}
           parsed={step.parsed}
+          meta={step.meta}
           onBack={() => setStep({ kind: "map", file: step.file, mapping: step.mapping })}
           onDone={(result) => setStep({ kind: "done", result })}
         />

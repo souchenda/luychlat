@@ -13,9 +13,10 @@ import {
   Trash2Icon,
   Undo2Icon,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { BatchGroups } from "@/components/reconcile/batch-groups"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,12 +24,13 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { categoryLabel } from "@/lib/categories/presets"
-import { useCategories, useRepo, useTransactionMutations } from "@/lib/data/hooks"
+import { useActiveWorkspace, useCategories, useProfile, useRepo, useTransactionMutations } from "@/lib/data/hooks"
 import type { Category, Transaction, Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount } from "@/lib/money"
 import { showUpgrade } from "@/lib/plan"
 import {
+  ensureOwnerCategory,
   importErrorReason,
   importStatement,
   knownFingerprints,
@@ -40,6 +42,7 @@ import type { StatementFile } from "@/lib/reconcile/file"
 import { sha256Hex } from "@/lib/reconcile/file"
 import { addDays, phnomPenhDayStart, toLedgerRows, walletEffect } from "@/lib/reconcile/ledger"
 import { matchStatement, type MatchResult } from "@/lib/reconcile/match"
+import type { StatementMeta } from "@/lib/reconcile/meta"
 import { descriptionKey, loadCategoryMemory, rememberCategories } from "@/lib/reconcile/memory"
 import { FEE_PATTERN, fingerprintKeys, type ParseResult, type StatementLine } from "@/lib/reconcile/parse"
 import { cn } from "@/lib/utils"
@@ -78,12 +81,15 @@ export function ReviewStep({
   wallet,
   file,
   parsed,
+  meta,
   onBack,
   onDone,
 }: {
   wallet: Wallet
   file: StatementFile
   parsed: ParseResult
+  /** Bank, account holder… read from the statement (lib/reconcile/meta). */
+  meta?: StatementMeta | null
   onBack: () => void
   onDone: (result: ImportResult) => void
 }) {
@@ -96,6 +102,8 @@ export function ReviewStep({
   const { remove } = useTransactionMutations(ws)
   const categories = useCategories(ws).data
   const categoryMap = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories])
+  const business = useActiveWorkspace().workspace?.type === "BUSINESS"
+  const profileName = useProfile().data?.display_name ?? null
 
   // Everything on this wallet from 3 days before the statement until now
   // (rows after the statement end are needed for the balance "as of" its end).
@@ -150,6 +158,13 @@ export function ReviewStep({
   const ledger = useMemo(() => (ledgerQuery.data ?? []).filter((x) => !deleted.has(x.id)), [ledgerQuery.data, deleted])
   const txById = useMemo(() => new Map(ledger.map((x) => [x.id, x])), [ledger])
   const memory = useMemo(() => loadCategoryMemory(ws), [ws])
+  const rememberedCategory = useCallback(
+    (line: StatementLine) => {
+      const c = categoryMap.get(memory[descriptionKey(line.description)] ?? "")
+      return c && c.type === (line.amount > 0 ? "INCOME" : "EXPENSE") ? c.id : null
+    },
+    [memory, categoryMap],
+  )
 
   const defaultCreate = (line: StatementLine): LineDecision => {
     const remembered = memory[descriptionKey(line.description)]
@@ -180,7 +195,6 @@ export function ReviewStep({
     const day = toLedgerRows([x], wallet, categoryMap, locale)[0].date
     return effect !== 0 && day >= parsed.period_start && day <= parsed.period_end
   })
-  const pendingAdds = addLines.filter((l) => decisions[l.line_no].action === "none")
 
   // Balance on the statement's last day, after this save.
   const periodEndIso = phnomPenhDayStart(addDays(parsed.period_end, 1))
@@ -193,6 +207,11 @@ export function ReviewStep({
   const save = useMutation({
     mutationFn: async () => {
       const keys = fingerprints.data!.keys
+      // Owner draw/contribution categories are created the first time they're used.
+      const presetIds = new Map<string, string>()
+      for (const d of Object.values(decisions)) {
+        if (d.action === "create" && !d.categoryId && d.preset && !presetIds.has(d.preset)) presetIds.set(d.preset, await ensureOwnerCategory(ws, d.preset))
+      }
       const lines: ImportPayloadLine[] = parsed.lines.flatMap((l, i) => {
         if (known!.has(keys[i])) return []
         const d = decisions[l.line_no] ?? { action: "none" }
@@ -207,14 +226,14 @@ export function ReviewStep({
             fingerprint: keys[i],
             action: d.action,
             ...(d.action === "match" ? { transaction_id: d.txId, score: d.score } : {}),
-            ...(d.action === "create" ? { category_id: d.categoryId, fee: d.fee } : {}),
+            ...(d.action === "create" ? { category_id: d.categoryId ?? (d.preset ? presetIds.get(d.preset) : null) ?? null, fee: d.fee } : {}),
           },
         ]
       })
       return importStatement(
         wallet.id,
         {
-          bank: "GENERIC",
+          bank: meta?.bank ?? "GENERIC",
           source_format: file.format,
           file_sha256: file.sha256,
           period_start: parsed.period_start,
@@ -262,54 +281,7 @@ export function ReviewStep({
   const categoryOptions = (line: StatementLine): Category[] =>
     (categories ?? []).filter((c) => c.type === (line.amount > 0 ? "INCOME" : "EXPENSE"))
 
-  const tabs: { id: Tab; label: string; count: number; tone: string }[] = [
-    { id: "add", label: t("recon.tab.add"), count: addLines.length, tone: "text-[#F43F5E]" },
-    { id: "review", label: t("recon.tab.review"), count: reviewLines.length, tone: "text-amber-600" },
-    { id: "matched", label: t("recon.tab.matched"), count: matchedLines.length, tone: "text-[#10B981]" },
-    { id: "app", label: t("recon.tab.app"), count: appOnly.length, tone: "text-muted-foreground" },
-  ]
-
-  return (
-    <div className="space-y-4">
-      {alreadyImported > 0 && (
-        <p className="flex gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
-          <CopyIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t("recon.alreadyImported", { count: alreadyImported })}
-        </p>
-      )}
-
-      <div role="tablist" aria-label={t("recon.title")} className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1">
-        {tabs.map((x) => (
-          <button
-            key={x.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === x.id}
-            onClick={() => setTab(x.id)}
-            className={cn(
-              "flex flex-col items-center rounded-lg px-1 py-1.5 text-[11px] leading-tight transition-colors",
-              tab === x.id ? "bg-background shadow-sm" : "text-muted-foreground",
-            )}
-          >
-            <span className={cn("text-base font-bold tabular-nums", x.count > 0 && x.tone)}>{x.count}</span>
-            {x.label}
-          </button>
-        ))}
-      </div>
-
-      <Card className="gap-0 divide-y py-0" role="tabpanel">
-        {tab === "add" && (
-          <>
-            {pendingAdds.length > 1 && (
-              <div className="flex gap-2 px-4 py-3">
-                <Button size="sm" className="flex-1" onClick={() => pendingAdds.forEach((l) => decide(l.line_no, defaultCreate(l)))}>
-                  <PlusIcon />
-                  {t("recon.addAll", { count: pendingAdds.length })}
-                </Button>
-              </div>
-            )}
-            {addLines.length === 0 && <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("recon.nothingToAdd")}</p>}
-            {addLines.map((line) => {
+  const renderAddLine = (line: StatementLine) => {
               const d = decisions[line.line_no]
               return (
                 <div key={line.line_no} className={cn("space-y-2 px-4 py-3", d.action === "ignore" && "opacity-60")}>
@@ -363,9 +335,61 @@ export function ReviewStep({
                   )}
                 </div>
               )
-            })}
-          </>
-        )}
+  }
+
+  const tabs: { id: Tab; label: string; count: number; tone: string }[] = [
+    { id: "add", label: t("recon.tab.add"), count: addLines.length, tone: "text-[#F43F5E]" },
+    { id: "review", label: t("recon.tab.review"), count: reviewLines.length, tone: "text-amber-600" },
+    { id: "matched", label: t("recon.tab.matched"), count: matchedLines.length, tone: "text-[#10B981]" },
+    { id: "app", label: t("recon.tab.app"), count: appOnly.length, tone: "text-muted-foreground" },
+  ]
+
+  return (
+    <div className="space-y-4">
+      {alreadyImported > 0 && (
+        <p className="flex gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+          <CopyIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {t("recon.alreadyImported", { count: alreadyImported })}
+        </p>
+      )}
+
+      <div role="tablist" aria-label={t("recon.title")} className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1">
+        {tabs.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === x.id}
+            onClick={() => setTab(x.id)}
+            className={cn(
+              "flex flex-col items-center rounded-lg px-1 py-1.5 text-[11px] leading-tight transition-colors",
+              tab === x.id ? "bg-background shadow-sm" : "text-muted-foreground",
+            )}
+          >
+            <span className={cn("text-base font-bold tabular-nums", x.count > 0 && x.tone)}>{x.count}</span>
+            {x.label}
+          </button>
+        ))}
+      </div>
+
+      <Card className="gap-0 divide-y py-0" role="tabpanel">
+        {tab === "add" &&
+          (addLines.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("recon.nothingToAdd")}</p>
+          ) : (
+            <BatchGroups
+              lines={addLines}
+              decisions={decisions}
+              decide={decide}
+              wallet={wallet}
+              categories={categories ?? []}
+              business={business}
+              remembered={rememberedCategory}
+              accountName={meta?.accountName ?? null}
+              profileName={profileName}
+              renderReviewLine={renderAddLine}
+            />
+          ))}
 
         {tab === "review" && (
           <>

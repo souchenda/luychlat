@@ -1,6 +1,7 @@
 "use client"
 
-import { ArrowLeftRightIcon, ArrowUpDownIcon, CheckIcon, PlusIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ArrowUpDownIcon, CheckIcon, FileUpIcon, PlusIcon, WalletIcon } from "lucide-react"
+import Link from "next/link"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -69,7 +70,17 @@ export default function WalletsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold">{t("wallets.title")}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl font-bold">{t("wallets.title")}</h1>
+        {editable && (
+          <Button asChild size="sm" variant="outline">
+            <Link href="/wallets/import">
+              <FileUpIcon />
+              {t("stmt.short")}
+            </Link>
+          </Button>
+        )}
+      </div>
 
       <NetWorthCard wallets={all} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
 
