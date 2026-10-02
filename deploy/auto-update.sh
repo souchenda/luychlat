@@ -11,7 +11,8 @@ git fetch --quiet origin master
 deployed=$(cat deploy/.deployed 2>/dev/null || git rev-parse HEAD)
 # .env edited since the last deploy (e.g. TELEGRAM_BOT_TOKEN or DATABASE_URL added)?
 env_now=$(sha256sum .env 2>/dev/null | cut -d' ' -f1 || true)
-env_deployed=$(cat deploy/.deployed-env 2>/dev/null || echo "$env_now")
+# No record yet (first run after this check was added) counts as changed: one extra deploy.
+env_deployed=$(cat deploy/.deployed-env 2>/dev/null || echo "none")
 if [ "$deployed" = "$(git rev-parse origin/master)" ] && [ "$env_now" = "$env_deployed" ]; then
   exit 0
 fi
