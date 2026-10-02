@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowDownLeftIcon, ArrowUpRightIcon, ChevronRightIcon, FileSpreadsheetIcon } from "lucide-react"
+import { ArrowDownLeftIcon, ArrowUpRightIcon, ChevronRightIcon, FileSpreadsheetIcon, PlusIcon } from "lucide-react"
 import Link from "next/link"
 
 import { OutstandingAmount } from "@/components/debts/debt-summary"
@@ -14,8 +14,8 @@ import { useT } from "@/lib/i18n/use-t"
 
 const PREVIEW = 3
 
-/** Outstanding totals per side and the most urgent open debts. */
-export function DebtTrackerWidget({ debts, loading }: { debts: Debt[] | undefined; loading?: boolean }) {
+/** Outstanding totals per side and the most urgent open debts. `onAdd` shows a "+ Add debt" action (omitted for read-only viewers). */
+export function DebtTrackerWidget({ debts, loading, onAdd }: { debts: Debt[] | undefined; loading?: boolean; onAdd?: () => void }) {
   const t = useT()
   const all = debts ?? []
   const urgent = all.filter((d) => debtStatus(d) !== "SETTLED").sort(byUrgency).slice(0, PREVIEW)
@@ -27,10 +27,18 @@ export function DebtTrackerWidget({ debts, loading }: { debts: Debt[] | undefine
           <FileSpreadsheetIcon className="size-4" aria-hidden />
           {t("debtWidget.title")}
         </h2>
-        <Link href="/debts" className="flex items-center text-sm text-primary">
-          {t("wallets.seeAll")}
-          <ChevronRightIcon className="size-4" />
-        </Link>
+        <div className="flex items-center gap-4">
+          {onAdd && (
+            <button type="button" onClick={onAdd} className="flex items-center gap-0.5 text-sm text-primary">
+              <PlusIcon className="size-4" aria-hidden />
+              {t("debts.add")}
+            </button>
+          )}
+          <Link href="/debts" className="flex items-center text-sm text-primary">
+            {t("wallets.seeAll")}
+            <ChevronRightIcon className="size-4" />
+          </Link>
+        </div>
       </div>
       {loading ? (
         <Skeleton className="h-40 w-full rounded-xl" />

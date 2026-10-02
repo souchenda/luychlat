@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, HandshakeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, TargetIcon, WalletIcon, MoonStarIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, TargetIcon, WalletIcon, MoonStarIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -31,7 +31,7 @@ import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
-import { formatHijri, islamicGreeting, toHijri } from "@/lib/islamic"
+import { islamicGreeting, toHijri } from "@/lib/islamic"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
 import { homeGreeting } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
@@ -91,7 +91,7 @@ export default function HomePage() {
   const locale = useLocaleStore((s) => s.locale)
   const greeting = homeGreeting()
   const today = useToday()
-  // Islamic tools (optional): Hijri date, and Ramadan / Eid greetings in season.
+  // Islamic tools (optional): Ramadan / Eid greetings in season. The Hijri date itself is on /islamic.
   const islamic = useIslamicEnabled()
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
   const hijri = islamic ? toHijri(today, hijriOffset) : null
@@ -104,14 +104,13 @@ export default function HomePage() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-start justify-between gap-2">
+      <header>
         <div className="min-w-0">
           <h1 className="text-xl font-bold">{displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}</h1>
           {/* Today's date, so nobody has to leave the app to check it. */}
           <p className="text-xs text-muted-foreground">
             <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
               {longDate(today, locale)}
-              {hijri && ` · ${formatHijri(hijri, locale)}`}
             </time>
           </p>
           {/* One quiet line: the festival of the day (Kan Ben day, Pchum Ben, …) or an everyday wish. */}
@@ -120,12 +119,6 @@ export default function HomePage() {
           </p>
           {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
         </div>
-        {editable && (
-          <Button size="sm" variant="outline" onClick={() => setDebtFormOpen(true)}>
-            <HandshakeIcon />
-            {t("debts.add")}
-          </Button>
-        )}
       </header>
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} />
@@ -191,7 +184,7 @@ export default function HomePage() {
 
       <TontineDueCard workspaceId={ws} />
 
-      <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} />
+      <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} onAdd={editable ? () => setDebtFormOpen(true) : undefined} />
 
       <AdvisorHomeCard />
 

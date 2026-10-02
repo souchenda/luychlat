@@ -24,7 +24,6 @@ import { calculateZakat, formatHijri, hawlStatus, NISAB_GOLD_GRAMS, NISAB_SILVER
 import { useIslamicDefaults, useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
-import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -186,7 +185,6 @@ function LogSheet({
 
 export default function IslamicPage() {
   const t = useT()
-  const locale = useLocaleStore((s) => s.locale)
   const rate = usePrefsStore((s) => s.khrPerUsd)
   const { settings, loading: settingsLoading } = useIslamicSettings()
   const defaults = useIslamicDefaults()
@@ -241,6 +239,7 @@ export default function IslamicPage() {
 
   const hawl = settings.hawl_start ? hawlStatus(settings.hawl_start, today) : null
   const hijriDue = hawl ? toHijri(new Date(`${hawl.due}T12:00:00`), offset) : null
+  const hijriToday = toHijri(today, offset)
   const money = (n: number) => formatMoney(roundMoney(n, "USD"), "USD")
   const savePrices = () =>
     update.mutate(
@@ -279,7 +278,15 @@ export default function IslamicPage() {
             <ArrowLeftIcon />
           </Link>
         </Button>
-        <h1 className="text-xl font-bold">{t("islamic.title")}</h1>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold">{t("islamic.title")}</h1>
+          {/* Today's Hijri date lives here, not on Home. Latin digits keep the transliterated month readable. */}
+          {hijriToday && (
+            <p className="text-xs text-muted-foreground">
+              <time suppressHydrationWarning>{formatHijri(hijriToday, "en")}</time>
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Zakat calculator */}
@@ -389,7 +396,7 @@ export default function IslamicPage() {
                   {hawl.isDue ? t("islamic.hawlIsDue") : t("islamic.daysLeft", { days: hawl.daysLeft })}
                 </p>
               </div>
-              {hijriDue && <p className="-mt-2 text-xs text-muted-foreground">{formatHijri(hijriDue, locale)}</p>}
+              {hijriDue && <p className="-mt-2 text-xs text-muted-foreground">{formatHijri(hijriDue, "en")}</p>}
               <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={Math.round(hawl.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
                 <div className="h-full rounded-full bg-emerald-500" style={{ width: `${hawl.progress * 100}%` }} />
               </div>
