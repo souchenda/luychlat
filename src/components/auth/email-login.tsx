@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
-import { MIN_PASSWORD, MIN_STRENGTH, PasswordStrength, passwordStrength } from "./password-strength"
+import { MIN_PASSWORD, PasswordHint } from "./password-hint"
 
 export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -78,10 +78,6 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       return
     }
 
-    if (passwordStrength(password, address) < MIN_STRENGTH) {
-      setBusy(false)
-      return setError(t("pw.chooseStronger"))
-    }
     const { data, error } = await supabase.auth.signUp({
       email: address,
       password,
@@ -94,7 +90,9 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       if (code === "weak_password") return setError(t("pw.chooseStronger"))
       return setError(`${t("login.signupError")} (${code || error.status}: ${error.message})`)
     }
-    // With "Confirm email" on, Supabase sends a link and there is no session yet.
+    // Normally (Supabase "Confirm email" off) signUp returns a session: the
+    // AuthListener signs the user in and the login page goes to /home at once.
+    // If confirmation is still on in Supabase, there is no session yet.
     if (!data.session) {
       setNotice(t("login.checkEmail", { email: address }))
       setMode("signin")
@@ -165,7 +163,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
               {show ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
             </button>
           </div>
-          {mode === "signup" && <PasswordStrength password={password} email={email} />}
+          {mode === "signup" && <PasswordHint password={password} />}
         </div>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}

@@ -90,7 +90,20 @@ export default function LoginPage() {
           </Suspense>
           <GuestDataNote />
 
-          {/* Only methods enabled in Supabase are offered (NEXT_PUBLIC_AUTH_METHODS). */}
+          {/* Google first: one tap, no typing. Only methods enabled in Supabase are offered (NEXT_PUBLIC_AUTH_METHODS). */}
+          {(authMethods.has("google") || authMethods.has("apple")) && (
+            <>
+              <SocialLogin disabled={cloudDisabled} />
+              {(authMethods.has("email") || codeFirst || authMethods.has("phone")) && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <Separator className="flex-1" />
+                  {t("login.orEmail")}
+                  <Separator className="flex-1" />
+                </div>
+              )}
+            </>
+          )}
+
           {codeFirst && !usePassword && <EmailCodeLogin disabled={cloudDisabled} />}
           {showPassword && <EmailLogin disabled={cloudDisabled} />}
           {codeFirst && authMethods.has("email") && (
@@ -112,16 +125,6 @@ export default function LoginPage() {
             </>
           )}
 
-          {(authMethods.has("google") || authMethods.has("apple")) && (
-            <>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <Separator className="flex-1" />
-                {t("login.or")}
-                <Separator className="flex-1" />
-              </div>
-              <SocialLogin disabled={cloudDisabled} />
-            </>
-          )}
 
         </div>
       )}

@@ -6,7 +6,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { authErrorCode } from "@/components/auth/email-login"
-import { MIN_STRENGTH, PasswordStrength, passwordStrength } from "@/components/auth/password-strength"
+import { MIN_PASSWORD, PasswordHint } from "@/components/auth/password-hint"
 import { BrandMark } from "@/components/brand-mark"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -35,7 +35,7 @@ export default function ResetPasswordPage() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(undefined)
-    if (passwordStrength(password, user?.email ?? "") < MIN_STRENGTH) return setError(t("pw.chooseStronger"))
+    if (password.length < MIN_PASSWORD) return setError(t("login.passwordShort", { min: MIN_PASSWORD }))
     if (password !== confirm) return setError(t("pw.mismatch"))
     const supabase = getSupabaseBrowserClient()
     if (!supabase) return
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
                   {show ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
                 </button>
               </div>
-              <PasswordStrength password={password} email={user.email} />
+              <PasswordHint password={password} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">{t("pw.confirm")}</Label>

@@ -671,13 +671,8 @@ const km = {
   "login.codeSendFailed": "មិនអាចផ្ញើលេខកូដបានទេ",
   "login.usePassword": "ចូលដោយពាក្យសម្ងាត់វិញ",
   "login.useCode": "ចូលដោយលេខកូដអ៊ីមែលវិញ",
-  "pw.tooShort": "យ៉ាងហោចណាស់ {min} តួអក្សរ",
-  "pw.weak": "ខ្សោយ",
-  "pw.fair": "ល្មម",
-  "pw.good": "ល្អ",
-  "pw.strong": "ខ្លាំង",
-  "pw.tip": "បន្ថែមអក្សរធំ លេខ និងសញ្ញា ឬប្រើឃ្លាវែងជាង។",
-  "pw.chooseStronger": "ពាក្យសម្ងាត់ខ្សោយពេក។ សូមជ្រើសរើសមួយដែលខ្លាំងជាងនេះ។",
+  "pw.tooShort": "យ៉ាងតិច {min} តួអក្សរ (អក្សរ ឬលេខអ្វីក៏បាន)",
+  "pw.chooseStronger": "ពាក្យសម្ងាត់នេះងាយទាយពេក (ឧ. 123456)។ សូមសាកមួយផ្សេង។",
   "pw.title": "កំណត់ពាក្យសម្ងាត់ថ្មី",
   "pw.new": "ពាក្យសម្ងាត់ថ្មី",
   "pw.confirm": "បញ្ជាក់ពាក្យសម្ងាត់ថ្មី",
@@ -1086,6 +1081,7 @@ const km = {
   "admin.qrUrlBlocked": "តំណនេះមិនអាចបង្ហាញបានទេ (សុវត្ថិភាព)។ សូមផ្ទុករូបឡើងជំនួសវិញ។",
   "admin.qrUploaded": "បានផ្ទុករូប — ចុច «រក្សាទុក»",
   "admin.qrInvalid": "រូបមិនត្រឹមត្រូវ (PNG/JPG/WebP ≤ 2MB)",
+  "login.orEmail": "ឬប្រើអ៊ីមែល",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -1761,13 +1757,8 @@ const en: Record<MessageKey, string> = {
   "login.codeSendFailed": "Couldn't send the code",
   "login.usePassword": "Use a password instead",
   "login.useCode": "Use an email code instead",
-  "pw.tooShort": "At least {min} characters",
-  "pw.weak": "Weak",
-  "pw.fair": "Fair",
-  "pw.good": "Good",
-  "pw.strong": "Strong",
-  "pw.tip": "Mix upper and lower case, numbers and symbols, or use a longer phrase.",
-  "pw.chooseStronger": "That password is too weak. Please choose a stronger one.",
+  "pw.tooShort": "At least {min} characters (any kind)",
+  "pw.chooseStronger": "That password is too easy to guess (like 123456). Please try another one.",
   "pw.title": "Set a new password",
   "pw.new": "New password",
   "pw.confirm": "Confirm new password",
@@ -2176,6 +2167,7 @@ const en: Record<MessageKey, string> = {
   "admin.qrUrlBlocked": "This link can't be shown (security policy). Please upload the image instead.",
   "admin.qrUploaded": "Image uploaded — tap Save",
   "admin.qrInvalid": "Invalid image (PNG/JPG/WebP, max 2 MB)",
+  "login.orEmail": "or with email",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

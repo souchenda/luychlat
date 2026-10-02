@@ -11,7 +11,10 @@ import { authMethods } from "@/lib/supabase/config"
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.5 14.6 2.5 12 2.5 6.8 2.5 2.6 6.7 2.6 12s4.2 9.5 9.4 9.5c5.4 0 9-3.8 9-9.2 0-.6-.07-1.1-.16-1.6H12z" />
+      <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.87h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.23c1.9-1.75 2.99-4.32 2.99-7.34z" />
+      <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.61-2.43l-3.23-2.5c-.9.6-2.04.95-3.38.95-2.6 0-4.8-1.75-5.59-4.1H3.08v2.58A9.99 9.99 0 0 0 12 22z" />
+      <path fill="#FBBC05" d="M6.41 13.92A6 6 0 0 1 6.1 12c0-.67.11-1.31.31-1.92V7.5H3.08A9.99 9.99 0 0 0 2 12c0 1.61.39 3.14 1.08 4.5l3.33-2.58z" />
+      <path fill="#EA4335" d="M12 5.98c1.47 0 2.79.5 3.83 1.5l2.86-2.87C16.95 2.99 14.7 2 12 2a9.99 9.99 0 0 0-8.92 5.5l3.33 2.58C7.2 7.73 9.4 5.98 12 5.98z" />
     </svg>
   )
 }
@@ -40,7 +43,12 @@ export function SocialLogin({ disabled }: { disabled?: boolean }) {
   return (
     <div className="grid gap-2.5">
       {authMethods.has("google") && (
-        <Button variant="outline" className="h-12 text-base" onClick={() => signIn("google")} disabled={disabled}>
+        <Button
+          variant="outline"
+          className="h-13 border-2 bg-white text-base font-semibold text-neutral-800 shadow-sm hover:bg-neutral-50 dark:border-neutral-600 dark:bg-white dark:text-neutral-800 dark:hover:bg-neutral-100"
+          onClick={() => signIn("google")}
+          disabled={disabled}
+        >
           <GoogleIcon />
           {t("login.google")}
         </Button>
