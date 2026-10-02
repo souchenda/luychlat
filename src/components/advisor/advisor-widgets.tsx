@@ -4,8 +4,7 @@ import { ArrowUpNarrowWideIcon, CircleAlertIcon, CircleCheckIcon, InfoIcon, Octa
 
 import { Card } from "@/components/ui/card"
 import type { Insight, Severity } from "@/lib/advisor/engine"
-import { scoreFraction } from "@/lib/advisor/credit-score"
-import { scoreBand, type SnapshotLabels } from "@/lib/advisor/snapshot"
+import type { SnapshotLabels } from "@/lib/advisor/snapshot"
 import type { StrategyComparison } from "@/lib/advisor/strategy"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
@@ -18,33 +17,6 @@ const SEVERITY: Record<Severity, { icon: typeof InfoIcon; className: string }> =
   info: { icon: InfoIcon, className: "text-sky-600 dark:text-sky-400" },
   warn: { icon: CircleAlertIcon, className: "text-amber-600 dark:text-amber-400" },
   critical: { icon: OctagonAlertIcon, className: "text-red-600 dark:text-red-400" },
-}
-
-const RING_COLORS = { excellent: "#10b981", good: "#84cc16", fair: "#f59e0b", needs_work: "#ef4444" } as const
-
-/** Compact score badge for the dashboard (300–850). */
-export function ScoreRing({ score, className }: { score: number; className?: string }) {
-  const color = RING_COLORS[scoreBand(score)]
-  const circumference = 2 * Math.PI * 26
-  return (
-    <div className={cn("relative size-16 shrink-0", className)} role="img" aria-label={`${score}/850`}>
-      <svg viewBox="0 0 64 64" className="size-full -rotate-90">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="var(--muted)" strokeWidth="7" />
-        <circle
-          cx="32"
-          cy="32"
-          r="26"
-          fill="none"
-          stroke={color}
-          strokeWidth="7"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - scoreFraction(score))}
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-sm font-bold tabular-nums">{score}</span>
-    </div>
-  )
 }
 
 export function InsightList({ insights, limit }: { insights: Insight[]; limit?: number }) {

@@ -7,7 +7,6 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 
-import { AdvisorHomeCard } from "@/components/advisor/advisor-home-card"
 import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
 import { TontineDueCard } from "@/components/tontine/tontine-due-card"
 import { FamilyStrip } from "@/components/family/family-strip"
@@ -229,12 +228,9 @@ export default function HomePage() {
         )}
       </section>
 
-
       <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} onAdd={editable ? () => setDebtFormOpen(true) : undefined} />
 
       <TontineDueCard workspaceId={ws} />
-
-      <AdvisorHomeCard />
 
       <CashFlowCharts transactions={transactions} categories={categoriesQuery.data ?? []} months={months} />
 

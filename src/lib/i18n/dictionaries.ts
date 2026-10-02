@@ -335,7 +335,6 @@ const km = {
   "telegram.hideToken": "លាក់",
 
   "advisor.title": "ទីប្រឹក្សាឆ្លាតវៃ AI",
-  "advisor.open": "បើក",
   "advisor.configure": "កំណត់",
   "advisor.mode.simulated": "ការវិភាគក្រៅបណ្តាញ (Offline)",
   "advisor.mode.anthropic": "Claude AI (ផ្ទាល់)",
@@ -1519,7 +1518,6 @@ const en: Record<MessageKey, string> = {
   "telegram.hideToken": "Hide",
 
   "advisor.title": "AI Financial Advisor",
-  "advisor.open": "Open",
   "advisor.configure": "Configure",
   "advisor.mode.simulated": "Offline analysis",
   "advisor.mode.anthropic": "Claude AI (live)",
