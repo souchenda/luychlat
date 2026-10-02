@@ -6,8 +6,11 @@ import { formatMoney } from "@/lib/money"
 
 export type ReminderLanguage = "km" | "en"
 
-/** Polite reminder for a receivable; the user can still edit it before sending. */
-export function buildReminder(debt: Debt, language: ReminderLanguage): string {
+/**
+ * Polite, professional reminder for a receivable; the user can still edit it
+ * before sending. With `khqr`, it points the debtor to the attached KHQR.
+ */
+export function buildReminder(debt: Debt, language: ReminderLanguage, khqr = false): string {
   const amount = formatMoney(remaining(debt), debt.currency)
   const date = debt.due_date ? format(parseISO(debt.due_date), "dd/MM/yyyy") : null
   const days = daysLeft(debt)
@@ -22,10 +25,12 @@ export function buildReminder(debt: Debt, language: ReminderLanguage): string {
             ? ` ដែលដល់ថ្ងៃកំណត់នៅថ្ងៃនេះ (${date})`
             : ` ដែលបានហួសថ្ងៃកំណត់តាំងពីថ្ងៃទី ${date}`
     return [
-      `សួស្តី ${debt.party_name}! 🙏`,
-      `ខ្ញុំគ្រាន់តែសូមរំលឹកដោយក្តីរាប់អានពីប្រាក់នៅខ្វះចំនួន ${amount}${due}។`,
-      `ពេលណាងាយស្រួល សូមជួយផ្ញើមកផង។ សូមអរគុណច្រើន! 😊`,
-    ].join("\n")
+      `ជម្រាបសួរ ${debt.party_name}! នេះជាសាររំលឹកកាលវិភាគទូទាត់បំណុលចំនួន ${amount}${due}។`,
+      khqr ? "លោកអ្នកអាចស្កេនទូទាត់រហ័សតាម KHQR ខាងក្រោមបាន។" : "",
+      "សូមអរគុណច្រើន!",
+    ]
+      .filter(Boolean)
+      .join(" ")
   }
 
   const due =
@@ -37,10 +42,12 @@ export function buildReminder(debt: Debt, language: ReminderLanguage): string {
           ? `, due today (${date})`
           : `, which was due on ${date}`
   return [
-    `Hi ${debt.party_name}! 🙏`,
-    `Just a friendly reminder about the remaining ${amount}${due}.`,
-    `Whenever it's convenient for you. Thank you so much! 😊`,
-  ].join("\n")
+    `Hello ${debt.party_name}! This is a friendly reminder about the payment of ${amount}${due}.`,
+    khqr ? "You can pay quickly by scanning the KHQR below." : "",
+    "Thank you very much!",
+  ]
+    .filter(Boolean)
+    .join(" ")
 }
 
 /** Opens Telegram's share screen with the text pre-filled (the user picks the chat and sends). */

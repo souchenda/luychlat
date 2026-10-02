@@ -6,6 +6,7 @@ import {
   ArchiveRestoreIcon,
   ChevronRightIcon,
   ChevronUpIcon,
+  CreditCardIcon,
   CrownIcon,
   FileSpreadsheetIcon,
   LockIcon,
@@ -31,8 +32,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { stepUp } from "@/components/security/step-up"
-import { useActiveWorkspace, useMembers, useProfile, useWalletMutations } from "@/lib/data/hooks"
-import { PersonalWalletError, PlanLimitError, WalletInUseError, type Currency, type Wallet, type WalletVisibility } from "@/lib/data/types"
+import { useActiveWorkspace, useMembers, useProfile, useWalletMutations, useWallets } from "@/lib/data/hooks"
+import { isCard } from "@/lib/credit-card"
+import { PersonalWalletError, PlanLimitError, WalletInUseError, type Currency, type Wallet, type WalletKind, type WalletVisibility } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { parseAmount, roundMoney } from "@/lib/money"
@@ -41,6 +43,7 @@ import { cn } from "@/lib/utils"
 import { getProvider, POPULAR_PROVIDERS, searchProviders } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
 
+import { CardMeter, PayCardSheet } from "./credit-card"
 import { ReconcileSheet } from "./reconcile-sheet"
 import { WalletAvatar } from "./wallet-avatar"
 
@@ -50,6 +53,10 @@ const schema = z.object({
   currency: z.enum(["USD", "KHR"]),
   balance: z.string().refine((v) => !Number.isNaN(parseAmount(v)), "walletForm.amountInvalid"),
   visibility: z.enum(["SHARED", "PERSONAL"]),
+  kind: z.enum(["STANDARD", "CREDIT_CARD"]),
+  creditLimit: z.string(),
+  statementDay: z.string(),
+  dueDay: z.string(),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -185,12 +192,30 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           currency: wallet.currency,
           balance: String(wallet.balance),
           visibility: wallet.visibility,
+          kind: wallet.kind ?? "STANDARD",
+          creditLimit: wallet.credit_limit != null ? String(wallet.credit_limit) : "",
+          statementDay: wallet.statement_day != null ? String(wallet.statement_day) : "",
+          dueDay: wallet.due_day != null ? String(wallet.due_day) : "",
         }
-      : { icon: "cash", name: getProvider("cash").name[locale], currency: "USD", balance: "", visibility: "SHARED" }
+      : {
+          icon: "cash",
+          name: getProvider("cash").name[locale],
+          currency: "USD",
+          balance: "",
+          visibility: "SHARED",
+          kind: "STANDARD",
+          creditLimit: "",
+          statementDay: "",
+          dueDay: "",
+        }
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults() })
   const { register, control, handleSubmit, setValue, getValues, reset, setFocus, formState } = form
   const icon = useWatch({ control, name: "icon" })
+  const kind = useWatch({ control, name: "kind" }) as WalletKind
+  const card = kind === "CREDIT_CARD"
+  const [payOpen, setPayOpen] = useState(false)
+  const allWallets = useWallets(workspaceId).data ?? []
   const name = useWatch({ control, name: "name" })
 
   useEffect(() => {
@@ -213,20 +238,35 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   const onSubmit = handleSubmit(async (values) => {
     const currency = values.currency as Currency
     const visibility: WalletVisibility = family ? values.visibility : (wallet?.visibility ?? "SHARED")
+    const isCardForm = values.kind === "CREDIT_CARD"
+    const limit = parseAmount(values.creditLimit)
+    const statementDay = Number(values.statementDay)
+    const dueDay = Number(values.dueDay)
+    if (isCardForm) {
+      if (!(limit > 0)) return void toast.error(t("card.limitInvalid"))
+      const okDay = (d: number) => Number.isInteger(d) && d >= 1 && d <= 31
+      if (!okDay(statementDay) || !okDay(dueDay)) return void toast.error(t("card.dayInvalid"))
+    }
+    const cardFields = isCardForm
+      ? { kind: "CREDIT_CARD" as const, credit_limit: roundMoney(limit, currency), statement_day: statementDay, due_day: dueDay }
+      : {} // Ordinary wallets don't send the card columns (works before the card migration too).
+    const amount = roundMoney(parseAmount(values.balance || "0"), currency)
     const input = {
       name: values.name.trim(),
       icon: values.icon,
       color: null,
       visibility,
       currency,
-      balance: roundMoney(parseAmount(values.balance || "0"), currency),
+      // A new card starts at what you already owe on it.
+      balance: isCardForm ? -Math.abs(amount) : amount,
+      ...cardFields,
     }
     try {
       // Existing wallets: the balance only changes through the ledger or Reconcile.
       if (wallet) {
         await mutations.update.mutateAsync({
           id: wallet.id,
-          input: { name: input.name, icon: input.icon, color: input.color, visibility, currency },
+          input: { name: input.name, icon: input.icon, color: input.color, visibility, currency, ...(isCard(wallet) ? cardFields : {}) },
         })
       } else await mutations.create.mutateAsync(input)
       toast.success(t("walletForm.saved"))
@@ -278,6 +318,21 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           </p>
         )}
         <fieldset disabled={othersPersonal} className="space-y-5">
+        {wallet && isCard(wallet) && (
+          <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground">{t("card.owed")}</p>
+                <Amount value={Math.max(0, -wallet.balance)} currency={wallet.currency} className="text-lg font-semibold text-rose-600 dark:text-rose-400" />
+              </div>
+              <Button type="button" onClick={() => setPayOpen(true)} disabled={wallet.balance >= 0}>
+                <CreditCardIcon />
+                {t("card.pay")}
+              </Button>
+            </div>
+            <CardMeter wallet={wallet} />
+          </div>
+        )}
         <div className="space-y-2">
           <Label>{t("walletForm.provider")}</Label>
           <ProviderPicker
@@ -325,6 +380,55 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           />
           {hasHistory && <p className="text-xs text-muted-foreground">{t("walletForm.currencyLocked")}</p>}
         </div>
+
+        {!wallet && (
+          <div className="space-y-2">
+            <Label>{t("card.walletType")}</Label>
+            <Controller
+              control={control}
+              name="kind"
+              render={({ field }) => (
+                <Segmented
+                  aria-label={t("card.walletType")}
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={[
+                    { value: "STANDARD", label: t("card.standard") },
+                    {
+                      value: "CREDIT_CARD",
+                      label: (
+                        <span className="inline-flex items-center gap-1.5">
+                          <CreditCardIcon className="size-4" aria-hidden />
+                          {t("card.kind")}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
+              )}
+            />
+          </div>
+        )}
+
+        {card && (
+          <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="card-limit">{t("card.limit")}</Label>
+              <Input id="card-limit" className="h-11 bg-background tabular-nums" inputMode="decimal" placeholder="1000" autoComplete="off" {...register("creditLimit")} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="card-statement">{t("card.statementDay")}</Label>
+                <Input id="card-statement" className="h-11 bg-background tabular-nums" inputMode="numeric" placeholder="20" maxLength={2} {...register("statementDay")} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="card-due">{t("card.dueDay")}</Label>
+                <Input id="card-due" className="h-11 bg-background tabular-nums" inputMode="numeric" placeholder="5" maxLength={2} {...register("dueDay")} />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">{t("card.hint")}</p>
+          </div>
+        )}
 
         {family && (
           <div className="space-y-2">
@@ -394,7 +498,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
         )}
         {wallet ? null : (
         <div className="space-y-2">
-          <Label htmlFor="wallet-balance">{t("walletForm.openingBalance")}</Label>
+          <Label htmlFor="wallet-balance">{t(card ? "card.owedNow" : "walletForm.openingBalance")}</Label>
           <Input
             id="wallet-balance"
             className="h-11 text-base tabular-nums"
@@ -428,6 +532,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
         </fieldset>
       </form>
       {wallet && <ReconcileSheet open={reconcileOpen} onOpenChange={setReconcileOpen} wallet={wallet} />}
+      {wallet && isCard(wallet) && <PayCardSheet open={payOpen} onOpenChange={setPayOpen} card={wallet} wallets={allWallets} />}
     </BottomSheet>
   )
 }

@@ -15,6 +15,8 @@ export type IslamicSettings = {
   hawl_start: string | null
   include_receivables: boolean
   include_business: boolean
+  /** Subtract debts I owe before Zakat (Hanafi / AAOIFI). Off by default: in the Shafi'i school debts don't reduce Zakat. */
+  subtract_debts: boolean
 }
 
 /** Admin defaults (app_settings "islamic_defaults"). */
@@ -29,6 +31,7 @@ export const DEFAULT_ISLAMIC: IslamicSettings = {
   hawl_start: null,
   include_receivables: false,
   include_business: true,
+  subtract_debts: false,
 }
 
 const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v))

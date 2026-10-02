@@ -224,11 +224,15 @@ export default function IslamicPage() {
   const cash = data.wallets.reduce((s, w) => s + usd(w.balance, w.currency, rate), 0)
   const today = new Date()
   const yearAhead = format(new Date(today.getFullYear() + 1, today.getMonth(), today.getDate()), "yyyy-MM-dd")
-  const shortTermDebts = data.debts
-    .filter((d: Debt) => d.type === "PAYABLE" && (!d.due_date || d.due_date <= yearAhead))
-    .reduce((s, d) => s + usd(remaining(d), d.currency, rate), 0)
+  // Debts I owe reduce Zakat only when the user chooses the Hanafi / AAOIFI approach (Shafi'i: they don't).
+  const shortTermDebts = settings.subtract_debts
+    ? data.debts
+        .filter((d: Debt) => d.type === "PAYABLE" && (!d.due_date || d.due_date <= yearAhead))
+        .reduce((s, d) => s + usd(remaining(d), d.currency, rate), 0)
+    : 0
+  // Money owed to me that I don't expect back ("doubtful") isn't counted until it's repaid.
   const receivables = settings.include_receivables
-    ? data.debts.filter((d) => d.type === "RECEIVABLE").reduce((s, d) => s + usd(remaining(d), d.currency, rate), 0)
+    ? data.debts.filter((d) => d.type === "RECEIVABLE" && !d.doubtful).reduce((s, d) => s + usd(remaining(d), d.currency, rate), 0)
     : 0
   const zakat = calculateZakat({
     cash,
@@ -292,7 +296,7 @@ export default function IslamicPage() {
             {data.investmentsUsd > 0 && <Line label={t("islamic.investments")} value={money(data.investmentsUsd)} />}
             {data.goldGrams > 0 && <p className="-mt-1 text-[11px] text-muted-foreground">{t("islamic.goldFromAssets", { grams: Math.round(data.goldGrams * 100) / 100 })}</p>}
             {settings.include_receivables && <Line label={t("islamic.receivables")} value={money(receivables)} />}
-            <Line label={t("islamic.shortDebts")} value={`−${money(shortTermDebts)}`} negative={shortTermDebts > 0} />
+            {settings.subtract_debts && <Line label={t("islamic.shortDebts")} value={`−${money(shortTermDebts)}`} negative={shortTermDebts > 0} />}
             <div className="border-t pt-1.5">
               <Line label={t("islamic.netWealth")} value={money(zakat.netWealth)} strong />
             </div>
@@ -357,6 +361,13 @@ export default function IslamicPage() {
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span>{t("islamic.includeReceivables")}</span>
                 <Switch checked={settings.include_receivables} onCheckedChange={(v) => update.mutate({ include_receivables: v })} aria-label={t("islamic.includeReceivables")} />
+              </div>
+              <div className="flex items-start justify-between gap-3 text-sm">
+                <span>
+                  <span className="block">{t("islamic.subtractDebts")}</span>
+                  <span className="block text-xs text-muted-foreground">{t("islamic.subtractDebtsHint")}</span>
+                </span>
+                <Switch checked={settings.subtract_debts} onCheckedChange={(v) => update.mutate({ subtract_debts: v })} aria-label={t("islamic.subtractDebts")} />
               </div>
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span>{t("islamic.includeBusiness")}</span>

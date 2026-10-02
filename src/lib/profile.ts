@@ -141,3 +141,51 @@ export function useBusinessLifecycle() {
     }),
   }
 }
+
+/**
+ * The user's own KHQR (from their bank app), attached to payment reminders so
+ * the debtor can scan and pay. Kept as the original image, at most ~1600 px,
+ * so the code stays sharp enough to scan.
+ */
+export function useMyKhqr() {
+  const queryClient = useQueryClient()
+  const userId = useSessionStore((s) => s.user?.id ?? null)
+  const key = ["my-khqr", userId] as const
+  const query = useQuery({
+    queryKey: key,
+    enabled: Boolean(userId),
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) return null
+      // A separate query: if the column isn't there yet the profile still loads.
+      const { data, error } = await supabase.from("profiles").select("khqr_path").eq("id", userId!).maybeSingle()
+      if (error) return null
+      return (data?.khqr_path as string | null) ?? null
+    },
+  })
+  const path = query.data ?? null
+  const url = useImageUrl(path)
+
+  const save = useMutation({
+    mutationFn: async (file: File | null) => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase || !userId) throw new Error("offline")
+      let next: string | null = null
+      if (file) {
+        const small = file.size <= 1_500_000 && /^image\/(png|jpeg|webp)$/.test(file.type)
+        const blob = small ? file : await compressImage(file, 1600, 0.92)
+        const ext = small ? (file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg") : "jpg"
+        next = `user/${userId}/khqr-${Date.now()}.${ext}`
+        const { error } = await supabase.storage.from(BUCKET).upload(next, blob, { contentType: small ? file.type : "image/jpeg", upsert: false })
+        if (error) throw error
+      }
+      const { error } = await supabase.from("profiles").update({ khqr_path: next }).eq("id", userId)
+      if (error) throw error
+      if (path && path !== next) await supabase.storage.from(BUCKET).remove([path])
+      return next
+    },
+    onSuccess: (next) => queryClient.setQueryData(key, next),
+  })
+  return { path, url, loading: query.isLoading, save }
+}

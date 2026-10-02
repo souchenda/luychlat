@@ -49,6 +49,7 @@ const toWallet = (row: Wallet): Wallet => ({
   ...row,
   balance: Number(row.balance),
   goal_target: row.goal_target == null ? null : Number(row.goal_target),
+  credit_limit: row.credit_limit == null ? null : Number(row.credit_limit),
 })
 const toTransaction = (row: Transaction): Transaction => ({
   ...row,

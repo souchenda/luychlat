@@ -132,7 +132,7 @@ export interface DataRepo {
   /** With `disbursement`, also moves the money (deposit borrowed / pay out lent funds). */
   createDebt(workspaceId: string, input: DebtInput, disbursement?: DebtDisbursement): Promise<Debt>
   /** Currency is fixed once repaid; the total can't drop below what was paid. */
-  updateDebt(id: string, input: DebtInput): Promise<Debt>
+  updateDebt(id: string, input: Partial<DebtInput>): Promise<Debt>
   /** Removes the debt and its repayment records; the ledger rows stay (unlinked). */
   deleteDebt(id: string): Promise<void>
   listRepayments(debtId: string): Promise<DebtRepayment[]>

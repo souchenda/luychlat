@@ -21,6 +21,7 @@ import { fromDateInput } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { cn } from "@/lib/utils"
 import { INSURERS } from "@/lib/insurance"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { formatNationalNumber, isValidNationalNumber, KH_COUNTRY_CODE, toE164, toNationalNumber } from "@/lib/phone"
@@ -36,6 +37,8 @@ function buildSchema(paid: number) {
       currency: z.enum(["USD", "KHR"]),
       interest: z.string(),
       interestPeriod: z.enum(["YEAR", "MONTH"]),
+      /** Qard Hasan: an interest-free loan (interest fields hidden, saved as 0). */
+      qardHasan: z.boolean(),
       startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       dueDate: z.string(),
       note: z.string().max(500),
@@ -112,6 +115,7 @@ export function DebtFormSheet({
           currency: debt.currency,
           interest: debt.interest_rate ? String(debt.interest_rate) : "",
           interestPeriod: debt.interest_period,
+          qardHasan: debt.qard_hasan ?? false,
           startDate: debt.start_date,
           dueDate: debt.due_date ?? "",
           note: debt.note ?? "",
@@ -132,6 +136,7 @@ export function DebtFormSheet({
           currency: prefill?.currency ?? "USD",
           interest: prefill?.interest_rate ? String(prefill.interest_rate) : "",
           interestPeriod: prefill?.interest_period ?? "YEAR",
+          qardHasan: false,
           startDate: prefill?.start_date ?? todayDate(),
           dueDate: prefill?.due_date ?? "",
           note: prefill?.note ?? "",
@@ -150,9 +155,9 @@ export function DebtFormSheet({
     defaultValues: defaults(),
   })
 
-  const [selectedType, moveMoney, walletId, totalText, currency, insured] = useWatch({
+  const [selectedType, moveMoney, walletId, totalText, currency, insured, qardHasan] = useWatch({
     control,
-    name: ["type", "moveMoney", "walletId", "total", "currency", "insured"],
+    name: ["type", "moveMoney", "walletId", "total", "currency", "insured", "qardHasan"],
   })
   const moneyWallet = activeWallets.find((w) => w.id === walletId)
   const totalValue = disbursementAmount ?? parseAmount(totalText)
@@ -173,8 +178,10 @@ export function DebtFormSheet({
       contact_phone: v.phone ? toE164(v.phone) : null,
       total_amount: roundMoney(parseAmount(v.total), v.currency),
       currency: v.currency,
-      interest_rate: v.interest ? parseAmount(v.interest) : 0,
+      interest_rate: v.qardHasan || !v.interest ? 0 : parseAmount(v.interest),
       interest_period: v.interestPeriod,
+      // Only sent when used, so saving works before the Phase A migration is applied.
+      ...(v.qardHasan || debt?.qard_hasan ? { qard_hasan: v.qardHasan } : {}),
       start_date: v.startDate,
       due_date: v.dueDate || null,
       note: v.note.trim() || null,
@@ -318,7 +325,28 @@ export function DebtFormSheet({
           {paid > 0 && <p className="text-xs text-muted-foreground">{t("debtForm.currencyLocked")}</p>}
         </div>
 
-        <div className="space-y-2">
+        <label className="flex items-center gap-3 rounded-xl border px-3 py-2.5">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{t("debt.qardHasan")}</span>
+            <span className="block text-xs text-muted-foreground">{t("debt.qardHasanHint")}</span>
+          </span>
+          <Controller
+            control={control}
+            name="qardHasan"
+            render={({ field }) => (
+              <Switch
+                checked={field.value}
+                onCheckedChange={(on) => {
+                  field.onChange(on)
+                  if (on) setValue("interest", "")
+                }}
+                aria-label={t("debt.qardHasan")}
+              />
+            )}
+          />
+        </label>
+
+        <div className={cn("space-y-2", qardHasan && "hidden")}>
           <Label htmlFor="debt-interest">{t("debtForm.interest")}</Label>
           <div className="flex items-center gap-2">
             <Input

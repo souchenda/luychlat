@@ -16,7 +16,9 @@ import { usableWallets, useProfile, useTransactionMutations, useWalletMutations 
 import { InsufficientBalanceError, type Currency, type Transaction, type Wallet } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { isCard } from "@/lib/credit-card"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
+import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 import { WalletSelect } from "./wallet-select"
@@ -27,9 +29,12 @@ function convertWithRate(amount: number, from: Currency, to: Currency, khrPerUsd
   return roundMoney(from === "USD" ? amount * khrPerUsd : amount / khrPerUsd, to)
 }
 
-/** Balance available to send; when editing, the original transfer is given back first. */
+/**
+ * Balance available to send; when editing, the original transfer is given back
+ * first. A credit card can go down to minus its limit (cash advance).
+ */
 function available(wallet: Wallet, editing: Transaction | null | undefined) {
-  return wallet.balance + (editing?.wallet_id === wallet.id ? editing.amount : 0)
+  return wallet.balance + (isCard(wallet) ? (wallet.credit_limit ?? 0) : 0) + (editing?.wallet_id === wallet.id ? editing.amount : 0)
 }
 
 function buildSchema(wallets: Map<string, Wallet>, editing: Transaction | null | undefined) {
@@ -73,9 +78,11 @@ type TransferSheetProps = {
   initialFrom?: string
   initialTo?: string
   title?: string
+  /** Quick amounts shown under the amount field (e.g. a card's statement or full balance). */
+  amountChoices?: { label: string; amount: number }[]
 }
 
-export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transaction, initialFrom, initialTo, title }: TransferSheetProps) {
+export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transaction, initialFrom, initialTo, title, amountChoices }: TransferSheetProps) {
   const t = useT()
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { transfer } = useWalletMutations(workspaceId)
@@ -101,13 +108,17 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transa
         note: transaction.note ?? "",
       }
     }
-    // Ordinary wallets first; a savings goal is only pre-selected when asked for.
-    const plain = selectable.filter((w) => w.goal_target == null)
+    // Ordinary wallets first; a savings goal or card is only pre-selected when asked for.
+    const plain = selectable.filter((w) => w.goal_target == null && !isCard(w))
     const to = initialTo ?? plain.find((w) => w.id !== initialFrom)?.id ?? ""
-    const from = initialFrom ?? plain.find((w) => w.id !== to)?.id ?? ""
-    return { from, to, amount: "", rate: String(khrPerUsd), note: "" }
+    const target = selectable.find((w) => w.id === to)
+    // Paying a card: the same-currency wallet first.
+    const from =
+      initialFrom ?? (plain.find((w) => w.id !== to && w.currency === target?.currency) ?? plain.find((w) => w.id !== to))?.id ?? ""
+    const first = amountChoices?.find((c) => c.amount > 0)
+    return { from, to, amount: first ? String(first.amount) : "", rate: String(khrPerUsd), note: "" }
   }
-  const { control, register, handleSubmit, reset, formState } = useForm<FormValues>({
+  const { control, register, handleSubmit, reset, setValue, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: defaults(),
   })
@@ -212,6 +223,23 @@ export function TransferSheet({ open, onOpenChange, workspaceId, wallets, transa
               autoComplete="off"
               {...register("amount")}
             />
+            {amountChoices && amountChoices.length > 0 && !transaction && (
+              <div className="flex flex-wrap gap-1.5">
+                {amountChoices.map((c) => (
+                  <button
+                    key={c.label}
+                    type="button"
+                    onClick={() => setValue("amount", String(c.amount), { shouldValidate: true })}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs",
+                      parseAmount(amountText) === c.amount ? "border-primary bg-primary/10 font-medium text-primary" : "hover:bg-muted",
+                    )}
+                  >
+                    {c.label} · <span className="tabular-nums">{formatMoney(c.amount, to?.currency ?? "USD")}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {err(formState.errors.amount?.message)}
           </div>
 

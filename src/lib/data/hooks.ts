@@ -382,7 +382,7 @@ export function useDebtMutations(workspaceId: string | undefined) {
         disbursement ? moneyMoved() : invalidate("debts"),
     }),
     update: useMutation({
-      mutationFn: ({ id, input }: { id: string; input: DebtInput }) => repo.updateDebt(id, input),
+      mutationFn: ({ id, input }: { id: string; input: Partial<DebtInput> }) => repo.updateDebt(id, input),
       onSuccess: () => invalidate("debts"),
     }),
     remove: useMutation({

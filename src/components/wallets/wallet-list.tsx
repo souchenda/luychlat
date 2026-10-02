@@ -7,12 +7,14 @@ import { Card } from "@/components/ui/card"
 import { useActiveWorkspace, useMembers } from "@/lib/data/hooks"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
+import { isCard } from "@/lib/credit-card"
 import { convert } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { getProvider } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
+import { CardMeter } from "./credit-card"
 import { WalletAvatar } from "./wallet-avatar"
 
 type WalletListProps = {
@@ -57,7 +59,7 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: Wa
                   </span>
                 )}
                 <span className="truncate">
-                  {getProvider(wallet.icon).name[locale]} · {wallet.currency}
+                  {isCard(wallet) ? t("card.kind") : getProvider(wallet.icon).name[locale]} · {wallet.currency}
                 </span>
               </span>
             </span>
@@ -105,10 +107,18 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: Wa
             key={wallet.id}
             type="button"
             onClick={() => onSelect?.(wallet)}
-            className="flex w-full items-center gap-3 px-4 py-3 transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-muted/60"
+            className="block w-full px-4 py-3 text-left transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-muted/60"
           >
-            {content}
-            {onSelect && <ChevronRightIcon className="size-4 text-muted-foreground" />}
+            <span className="flex items-center gap-3">
+              {content}
+              {onSelect && <ChevronRightIcon className="size-4 text-muted-foreground" />}
+            </span>
+            {/* Credit card: available credit, usage and the next due date. */}
+            {isCard(wallet) && (
+              <span className="mt-2 block pl-[52px]">
+                <CardMeter wallet={wallet} compact />
+              </span>
+            )}
           </button>
         )
       })}

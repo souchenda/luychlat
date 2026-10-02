@@ -58,7 +58,21 @@ export type Wallet = {
   goal_target?: number | null
   /** Savings goal: target date (yyyy-MM-dd). */
   goal_date?: string | null
+} & CreditCardFields
+
+/**
+ * A credit card is a wallet whose balance is what you owe (negative). Spending
+ * on it is an ordinary expense; paying the bill is a transfer into it.
+ */
+export type CreditCardFields = {
+  kind?: WalletKind
+  credit_limit?: number | null
+  /** Day of the month the bill closes (1-31). */
+  statement_day?: number | null
+  /** Day of the month the payment is due (1-31; next month when not after statement_day). */
+  due_day?: number | null
 }
+export type WalletKind = "STANDARD" | "CREDIT_CARD"
 
 export type Transaction = {
   id: string
@@ -118,7 +132,17 @@ export type Debt = {
   /** Ledger row created when the debt was opened with "move money", if any. */
   disbursement_transaction_id: string | null
 } & Attribution &
-  DebtInsurance
+  DebtInsurance &
+  DebtExtras
+
+/** Qard Hasan (interest-free) loans, doubtful receivables, and contract/receipt photos (PRO). */
+export type DebtExtras = {
+  qard_hasan?: boolean
+  /** Owed to me but not expected back: left out of Zakat until repaid. */
+  doubtful?: boolean
+  /** Up to two photos in the receipts bucket (<uploader>/<file>). */
+  attachment_paths?: string[]
+}
 
 /** Optional loan insurance (e.g. credit life insurance the bank requires). */
 export type DebtInsurance = {
@@ -182,7 +206,8 @@ export type DebtInput = {
   start_date: string
   due_date: string | null
   note: string | null
-} & DebtInsurance
+} & DebtInsurance &
+  DebtExtras
 
 export type DebtRepayment = {
   id: string
@@ -344,7 +369,7 @@ export type WalletInput = {
   /** Savings goals only (see lib/goals.ts). */
   goal_target?: number | null
   goal_date?: string | null
-}
+} & CreditCardFields
 
 /** Transfer update payload (workspace is fixed). */
 export type TransferUpdate = Omit<TransferInput, "workspace_id"> & { type: "TRANSFER" }

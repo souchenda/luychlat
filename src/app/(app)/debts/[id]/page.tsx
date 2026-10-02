@@ -8,6 +8,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
+import { DebtPhotos } from "@/components/debts/debt-photos"
 import { DebtProgress } from "@/components/debts/debt-progress"
 import { ReminderSheet } from "@/components/debts/reminder-sheet"
 import { RepaymentSheet } from "@/components/debts/repayment-sheet"
@@ -17,10 +18,12 @@ import { InsuranceCard, InsuredBadge } from "@/components/debts/insurance-card"
 import { Amount } from "@/components/money/amount"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { WalletAvatar } from "@/components/wallets/wallet-avatar"
 import { stepUp } from "@/components/security/step-up"
 import { useActiveWorkspace, useDebtMutations, useDebts, useRepayments, useWallets } from "@/lib/data/hooks"
+import { useIslamicSettings } from "@/lib/islamic-settings"
 import { debtStatus, estimatedInterest, remaining } from "@/lib/debts"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
@@ -38,7 +41,8 @@ export default function DebtDetailPage() {
   const debtsQuery = useDebts(workspace?.id)
   const wallets = useWallets(workspace?.id).data ?? []
   const repaymentsQuery = useRepayments(workspace?.id, id)
-  const { remove, deleteRepayment } = useDebtMutations(workspace?.id)
+  const islamicOn = useIslamicSettings().settings.enabled
+  const { remove, deleteRepayment, update } = useDebtMutations(workspace?.id)
 
   const [payOpen, setPayOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -62,6 +66,16 @@ export default function DebtDetailPage() {
   const settled = debtStatus(debt) === "SETTLED"
   const interest = estimatedInterest(debt)
   const repayments = repaymentsQuery.data ?? []
+  // Remaining balance after each payment, oldest first ("Paid $30 · remaining $70").
+  const remainingAfter = new Map<string, number>()
+  {
+    let paidSoFar = 0
+    const factor = debt.currency === "KHR" ? 1 : 100
+    for (const r of [...repayments].sort((a, b) => a.payment_date.localeCompare(b.payment_date) || a.created_at.localeCompare(b.created_at))) {
+      paidSoFar += r.amount_paid
+      remainingAfter.set(r.id, Math.max(0, Math.round((debt.total_amount - paidSoFar) * factor) / factor))
+    }
+  }
 
   const deleteDebt = async () => {
     if (!(await stepUp(t("debtForm.deleteConfirm", { name: debt.party_name })))) return
@@ -112,6 +126,11 @@ export default function DebtDetailPage() {
           <div className="flex flex-wrap items-center gap-1.5">
             <UrgencyBadge debt={debt} />
             <InsuredBadge debt={debt} />
+            {debt.qard_hasan && (
+              <span className="inline-flex items-center rounded-full bg-emerald-500/12 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                {t("debt.qardHasanBadge")}
+              </span>
+            )}
           </div>
         </div>
 
@@ -183,7 +202,14 @@ export default function DebtDetailPage() {
                     </p>
                     <RecordedBy row={r} className="mt-0.5 flex" />
                   </div>
-                  <Amount value={r.amount_paid} currency={debt.currency} className="text-sm font-semibold" />
+                  <div className="text-right">
+                    <Amount value={r.amount_paid} currency={debt.currency} className="block text-sm font-semibold" />
+                    {remainingAfter.has(r.id) && (
+                      <span className="block text-[11px] text-muted-foreground">
+                        {t("debt.remainingAfter", { amount: formatMoney(remainingAfter.get(r.id)!, debt.currency, { hidden: hideBalances }) })}
+                      </span>
+                    )}
+                  </div>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -199,6 +225,23 @@ export default function DebtDetailPage() {
           </Card>
         )}
       </section>
+
+      {/* Zakat (Islamic tools): money owed to me that I don't expect back isn't counted. */}
+      {islamicOn && debt.type === "RECEIVABLE" && !settled && (
+        <label className="flex items-center gap-3 rounded-xl border px-4 py-3">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{t("debt.doubtful")}</span>
+            <span className="block text-xs text-muted-foreground">{t("debt.doubtfulHint")}</span>
+          </span>
+          <Switch
+            checked={debt.doubtful ?? false}
+            onCheckedChange={(on) => update.mutate({ id: debt.id, input: { doubtful: on } }, { onError: () => toast.error(t("common.error")) })}
+            aria-label={t("debt.doubtful")}
+          />
+        </label>
+      )}
+
+      <DebtPhotos debt={debt} />
 
       <RepaymentSheet open={payOpen} onOpenChange={setPayOpen} debt={debt} wallets={wallets} />
       <DebtFormSheet open={editOpen} onOpenChange={setEditOpen} workspaceId={workspace?.id} debt={debt} defaultType={debt.type} />
