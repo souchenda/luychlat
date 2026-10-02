@@ -7,7 +7,7 @@
 | Price | — | $2.99 / ៛12,000 | $24.99 / ៛100,000 |
 | Wallets | 2 | unlimited | unlimited |
 | Family members (besides owner) | 1 | unlimited | unlimited |
-| AI advisor | offline tips, or your own API key | LuySmart AI, 100 questions/month | same |
+| AI advisor | offline tips, or your own API key | LuyChlat AI, 100 questions/month | same |
 | Excel / PDF export | — | ✓ | ✓ |
 | Credit score | — | ✓ | ✓ |
 
@@ -19,7 +19,7 @@ Everything that matters is checked **in the database**. The app only shows the u
 
 - **Wallets:** the `guard_wallet_limit` trigger counts wallets per workspace owner. A PRO owner's family workspace is PRO too.
 - **Family members:** `create_workspace_invite` and `lookup_workspace_invite` check the limit. The join page says "family is full".
-- **LuySmart AI:** `/api/advisor` with provider `luysmart`:
+- **LuyChlat AI:** `/api/advisor` with provider `luysmart`:
   - verifies the user with `auth.getUser()`;
   - checks `use_ai_query(false)`;
   - calls Claude with the server-only `ANTHROPIC_API_KEY`;
@@ -84,6 +84,6 @@ After that, **Settings** shows an **Admin** button, which opens `/admin`. Every 
    ANTHROPIC_API_KEY=sk-ant-...
    ```
 
-   Then run `docker compose up -d`. Without it, LuySmart AI answers "not available" and users can still use offline tips or their own key.
+   Then run `docker compose up -d`. Without it, LuyChlat AI answers "not available" and users can still use offline tips or their own key.
 4. In `/admin`, fill in **Payment details**.
 5. Give yourself PRO: `/admin` › find yourself › **+365 days**.

@@ -61,5 +61,5 @@ export function alertText(debt: Debt, stage: AlertKey, language: "km" | "en", op
 /** Full Telegram message (HTML parse mode). */
 export function telegramAlertMessage(debt: Debt, stage: AlertKey, language: "km" | "en") {
   const { title, body } = alertText(debt, stage, language, { html: true, emoji: true })
-  return `<b>${title}</b>\n${body}\n\n— លុយឆ្លាត · LuySmart`
+  return `<b>${title}</b>\n${body}\n\n— លុយឆ្លាត · LuyChlat`
 }

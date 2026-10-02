@@ -1,4 +1,4 @@
-# លុយឆ្លាត · LuySmart
+# លុយឆ្លាត · LuyChlat
 
 Mobile-first PWA for personal and small-business money and debt management in Cambodia, in Khmer (primary) and English, with USD and KHR side by side.
 Architecture, schema and roadmap: [guideline.md](guideline.md).

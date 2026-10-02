@@ -4,7 +4,7 @@ import type { MetadataRoute } from "next"
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "លុយឆ្លាត · LuySmart",
+    name: "លុយឆ្លាត · LuyChlat",
     short_name: "លុយឆ្លាត",
     description: "គ្រប់គ្រងលុយ និងបំណុល ផ្ទាល់ខ្លួន និងអាជីវកម្ម",
     start_url: "/home",

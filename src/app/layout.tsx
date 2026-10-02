@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "លុយឆ្លាត · LuySmart",
+  title: "លុយឆ្លាត · LuyChlat",
   description: "គ្រប់គ្រងលុយ និងបំណុល ផ្ទាល់ខ្លួន និងអាជីវកម្ម",
-  applicationName: "LuySmart",
+  applicationName: "LuyChlat",
   appleWebApp: { capable: true, title: "លុយឆ្លាត", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   // Older iOS Safari only reads the apple-prefixed tag for standalone mode.

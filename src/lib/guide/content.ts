@@ -131,9 +131,9 @@ export const GUIDE: GuideSection[] = [
         ],
       },
       {
-        q: { km: "Offline, LuySmart AI និង key ផ្ទាល់ខ្លួន ខុសគ្នាយ៉ាងណា?", en: "Offline, LuySmart AI or my own key?" },
+        q: { km: "Offline, LuyChlat AI និង key ផ្ទាល់ខ្លួន ខុសគ្នាយ៉ាងណា?", en: "Offline, LuyChlat AI or my own key?" },
         a: [
-          { km: "Offline (ឥតគិតថ្លៃ)៖ គន្លឹះដែលគណនាលើទូរស័ព្ទ។ LuySmart AI (PRO)៖ AI ពេញលេញ មិនចាំបាច់ key រហូតដល់ ១០០ សំណួរ/ខែ។ Key ផ្ទាល់ខ្លួន៖ អ្នកអាចដាក់ Claude ឬ OpenAI key របស់អ្នក (រក្សាទុកលើទូរស័ព្ទនេះ)។", en: "Offline (free): tips calculated on your phone. LuySmart AI (PRO): the full AI with no key needed, up to 100 questions a month. Your own key: paste your Claude or OpenAI key (stored on this device)." },
+          { km: "Offline (ឥតគិតថ្លៃ)៖ គន្លឹះដែលគណនាលើទូរស័ព្ទ។ LuyChlat AI (PRO)៖ AI ពេញលេញ មិនចាំបាច់ key រហូតដល់ ១០០ សំណួរ/ខែ។ Key ផ្ទាល់ខ្លួន៖ អ្នកអាចដាក់ Claude ឬ OpenAI key របស់អ្នក (រក្សាទុកលើទូរស័ព្ទនេះ)។", en: "Offline (free): tips calculated on your phone. LuyChlat AI (PRO): the full AI with no key needed, up to 100 questions a month. Your own key: paste your Claude or OpenAI key (stored on this device)." },
           { km: "ប្តូរនៅ «ការកំណត់» › «AI»។", en: "Switch in Settings › AI." },
         ],
       },
@@ -163,7 +163,7 @@ export const GUIDE: GuideSection[] = [
         q: { km: "Free និង PRO ខុសគ្នាអ្វីខ្លះ?", en: "What's the difference between Free and PRO?" },
         a: [
           { km: "Free៖ កាបូប ២, សមាជិកគ្រួសារ ១, គន្លឹះ AI Offline។", en: "Free: 2 wallets, 1 family member, offline AI tips." },
-          { km: "PRO ($2.99/ខែ ឬ $24.99/ឆ្នាំ)៖ កាបូប និងសមាជិកគ្មានកំណត់, LuySmart AI ១០០ សំណួរ/ខែ, ផ្ទៀងផ្ទាត់ធនាគារ, នាំចេញ Excel/PDF, ពិន្ទុហិរញ្ញវត្ថុ។", en: "PRO ($2.99/month or $24.99/year): unlimited wallets and members, LuySmart AI with 100 questions a month, bank reconciliation, Excel/PDF export, and the financial health score." },
+          { km: "PRO ($2.99/ខែ ឬ $24.99/ឆ្នាំ)៖ កាបូប និងសមាជិកគ្មានកំណត់, LuyChlat AI ១០០ សំណួរ/ខែ, ផ្ទៀងផ្ទាត់ធនាគារ, នាំចេញ Excel/PDF, ពិន្ទុហិរញ្ញវត្ថុ។", en: "PRO ($2.99/month or $24.99/year): unlimited wallets and members, LuyChlat AI with 100 questions a month, bank reconciliation, Excel/PDF export, and the financial health score." },
         ],
       },
       {

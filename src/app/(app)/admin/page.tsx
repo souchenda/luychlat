@@ -772,7 +772,7 @@ function SupportContactsForm() {
 }
 
 
-/** Settings › About LuySmart and the Settings footer (empty fields use the defaults in src/lib/app-info.ts). */
+/** Settings › About LuyChlat and the Settings footer (empty fields use the defaults in src/lib/app-info.ts). */
 function AboutInfoForm() {
   const t = useT()
   const queryClient = useQueryClient()

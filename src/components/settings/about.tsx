@@ -1,10 +1,10 @@
 "use client"
 
-import { GlobeIcon, HeartIcon, MailIcon, SendIcon, UsersIcon } from "lucide-react"
+import { GlobeIcon, MailIcon, SendIcon, UsersIcon } from "lucide-react"
 
 import { BrandMark } from "@/components/brand-mark"
 import { BottomSheet } from "@/components/common/bottom-sheet"
-import { APP_VERSION, useAboutInfo } from "@/lib/app-info"
+import { APP_VERSION, copyrightYears, useAboutInfo } from "@/lib/app-info"
 import { useT } from "@/lib/i18n/use-t"
 import { useSupportContacts } from "@/lib/support"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -17,9 +17,7 @@ function FacebookGlyph({ className }: { className?: string }) {
   )
 }
 
-const year = () => new Date().getFullYear()
-
-/** Bottom of Settings: logo, version, credit, copyright. */
+/** Bottom of Settings: logo, version, "Powered by", copyright. */
 export function SettingsFooter() {
   const t = useT()
   const about = useAboutInfo()
@@ -29,15 +27,13 @@ export function SettingsFooter() {
       <p className="font-medium text-foreground">
         {t("app.name")} · v{APP_VERSION}
       </p>
-      <p className="flex items-center gap-1">
-        {t("about.madeWith")} <HeartIcon className="size-3 fill-[#F43F5E] text-[#F43F5E]" aria-label="love" /> {t("about.by", { name: about.developer })}
-      </p>
-      <p>{t("about.copyright", { year: year() })}</p>
+      <p>{t("about.poweredBy", { name: about.developer })}</p>
+      <p>{t("about.copyright", { year: copyrightYears() })}</p>
     </footer>
   )
 }
 
-/** Settings › About LuySmart: mission, credits and official links. */
+/** Settings › About LuyChlat: mission, credits and official links. */
 export function AboutSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
@@ -106,7 +102,11 @@ export function AboutSheet({ open, onOpenChange }: { open: boolean; onOpenChange
           </section>
         )}
 
-        <p className="text-center text-xs text-muted-foreground">{t("about.copyright", { year: year() })}</p>
+        <p className="text-center text-xs text-muted-foreground">
+          {t("about.poweredBy", { name: about.developer })}
+          <br />
+          {t("about.copyright", { year: copyrightYears() })}
+        </p>
       </div>
     </BottomSheet>
   )

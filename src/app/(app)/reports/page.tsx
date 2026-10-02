@@ -136,7 +136,7 @@ export default function ReportsPage() {
       {/* Statement (also the printable / PDF view) */}
       <Card className="gap-0 overflow-hidden py-0 print:border-0 print:shadow-none">
         <div className="space-y-0.5 border-b px-4 py-3">
-          <p className="hidden text-xs text-muted-foreground print:block">លុយឆ្លាត · LuySmart</p>
+          <p className="hidden text-xs text-muted-foreground print:block">លុយឆ្លាត · LuyChlat</p>
           <h2 className="font-semibold">{t(business ? "pl.title" : "pl.titlePersonal")}</h2>
           <p className="text-xs text-muted-foreground">
             {workspace ? t(`ws.${workspace.type}`) : ""} · {formatRange(range)}

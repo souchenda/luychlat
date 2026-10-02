@@ -21,7 +21,7 @@ const CLAUDE_MODEL = "claude-opus-5-5"
 function systemPrompt(req: AdvisorRequest) {
   const language = req.language === "km" ? "Khmer (ភាសាខ្មែរ)" : "English"
   return [
-    "You are LuySmart's financial advisor for people and small businesses in Cambodia.",
+    "You are LuyChlat's financial advisor for people and small businesses in Cambodia.",
     `Always answer in ${language}. Keep answers short and practical for a phone screen: a one-line summary, then at most 5 bullet points.`,
     "Base every number on the JSON data below; never invent figures. Amounts are USD equivalents; khrPerUsd converts to riel (៛).",
     "Debts are anonymous references (P1, P2 = money the user owes; R1 = money owed to the user). Refer to them by these references.",
@@ -88,12 +88,12 @@ async function askOpenAI(req: AdvisorRequest): Promise<string> {
 type Quota = { ok: boolean; reason?: "plan_required" | "quota_exceeded"; used: number; limit: number }
 
 /**
- * Pro AI: LuySmart's own Anthropic key (server-only ANTHROPIC_API_KEY). The
+ * Pro AI: LuyChlat's own Anthropic key (server-only ANTHROPIC_API_KEY). The
  * signed-in user is verified with auth.getUser(), the plan and monthly quota
  * are checked in the database before the call, and one query is counted
  * only after a successful answer.
  */
-async function askLuySmart(req: AdvisorRequest) {
+async function askLuyChlat(req: AdvisorRequest) {
   const serverKey = process.env.ANTHROPIC_API_KEY
   if (!serverKey) return NextResponse.json({ error: "ai_unavailable" }, { status: 503 })
   const supabase = await createSupabaseServerClient()
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "invalid_input" }, { status: 400 })
   const req = parsed.data
 
-  if (req.provider === "luysmart") return askLuySmart(req)
+  if (req.provider === "luysmart") return askLuyChlat(req)
 
   try {
     const text = req.provider === "anthropic" ? await askClaude(req, req.apiKey!) : await askOpenAI(req)

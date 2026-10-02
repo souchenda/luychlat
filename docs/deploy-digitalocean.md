@@ -1,4 +1,4 @@
-# Deploying LuySmart on DigitalOcean
+# Deploying LuyChlat on DigitalOcean
 
 Two routes:
 

@@ -10,9 +10,16 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
  * (stored in app_settings "about_info"), without a new release.
  */
 export const APP_VERSION = "1.0.0"
+/** First year of the copyright notice ("© 2026", later "© 2026–2027"). */
+export const COPYRIGHT_SINCE = 2026
+
+export function copyrightYears(now: Date = new Date()): string {
+  const year = now.getFullYear()
+  return year > COPYRIGHT_SINCE ? `${COPYRIGHT_SINCE}–${year}` : String(COPYRIGHT_SINCE)
+}
 
 export type AboutInfo = {
-  /** "Developed with ❤️ by …" */
+  /** "Powered by: …" */
   developer: string
   /** Founders & developers, one per line, e.g. "Sou Chenda — Founder". */
   credits: string
@@ -24,7 +31,7 @@ export type AboutInfo = {
 }
 
 export const DEFAULT_ABOUT: AboutInfo = {
-  developer: "LuySmart Team",
+  developer: "iBMS",
   credits: "",
   mission_km: "កម្មវិធីគ្រប់គ្រងហិរញ្ញវត្ថុ និងបំណុលឆ្លាតវៃ សម្រាប់ប្រជាជនកម្ពុជា។",
   mission_en: "A smart money and debt manager made for the people of Cambodia.",

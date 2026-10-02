@@ -76,7 +76,7 @@ export function AdvisorChat({
     setPending(true)
 
     const offline = () => answer(intent ?? detectIntent(text), snapshot, labels, lang)
-    // LuySmart AI is a Pro feature: without Pro, answer offline and offer the upgrade.
+    // LuyChlat AI is a Pro feature: without Pro, answer offline and offer the upgrade.
     if (provider === "luysmart" && !isPro) {
       setMessages((m) => [...m, { role: "assistant", content: `${t("advisor.proOnly")}\n\n${offline()}`, offline: true }])
       setPending(false)

@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
-/** "luysmart" = Pro AI provided by LuySmart (no key needed). */
+/** "luysmart" = Pro AI provided by LuyChlat (no key needed). */
 export type AiProvider = "simulated" | "anthropic" | "openai" | "luysmart"
 
 export const DEFAULT_OPENAI_MODEL = "gpt-4o-mini"

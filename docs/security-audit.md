@@ -1,4 +1,4 @@
-# LuySmart security audit — October 2026
+# LuyChlat security audit — October 2026
 
 Scope: secrets, database rules (RLS), API routes, infrastructure (Docker,
 Nginx, headers), and money-logic integrity. Database findings were proven
