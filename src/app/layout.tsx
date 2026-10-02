@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Geist_Mono, Kantumruy_Pro } from "next/font/google"
+import { Amiri, Geist_Mono, Kantumruy_Pro } from "next/font/google"
 
 import { Providers } from "@/components/providers"
 
@@ -14,6 +14,14 @@ const kantumruy = Kantumruy_Pro({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+})
+
+// Quran/Hadith/dua Arabic text (Islamic pages). Not preloaded: the file is only fetched where Arabic is shown.
+const amiri = Amiri({
+  variable: "--font-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  preload: false,
 })
 
 export const metadata: Metadata = {
@@ -45,7 +53,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="km" className={`${kantumruy.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="km" className={`${kantumruy.variable} ${geistMono.variable} ${amiri.variable}`} suppressHydrationWarning>
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>

@@ -70,3 +70,16 @@ self.addEventListener("fetch", (event) => {
     )
   }
 })
+
+// Prayer-time alerts (lib/prayer-alerts.ts): tapping one opens or focuses the prayer page.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close()
+  const url = (event.notification.data && event.notification.data.url) || "/home"
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      const open = list.find((c) => new URL(c.url).origin === self.location.origin)
+      if (open) return open.focus().then((c) => c && "navigate" in c ? c.navigate(url) : undefined)
+      return self.clients.openWindow(url)
+    }),
+  )
+})

@@ -24,6 +24,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
   "font-src 'self' data:",
+  // The Adhan sound the user picks is played from an on-device blob.
+  "media-src 'self' blob:",
   `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`.trim(),
   "worker-src 'self'",
   "manifest-src 'self'",
@@ -41,7 +43,9 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   // The camera is opened through the file picker (receipts), which needs no permission.
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()" },
+  // Geolocation is allowed for this site only (prayer times / Qibla "My location"); with
+  // geolocation=() the browser refused every request, even with GPS on.
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), interest-cohort=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 

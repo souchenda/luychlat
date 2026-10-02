@@ -154,3 +154,17 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
   const h = Math.sin(dφ / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dλ / 2) ** 2
   return 2 * 6371 * Math.asin(Math.sqrt(h))
 }
+
+/** Imsak (stop eating before the fast): 10 minutes before Fajr, the Southeast Asian custom. */
+export const IMSAK_MINUTES_BEFORE_FAJR = 10
+export const imsakTime = (times: PrayerTimes) => times.fajr - IMSAK_MINUTES_BEFORE_FAJR
+
+/** The next fasting moment: Imsak before dawn, Iftar (Maghrib) during the day, else tomorrow's Imsak. */
+export function nextFastingEvent(today: PrayerTimes, tomorrow: PrayerTimes, minutes: number, seconds = 0): { kind: "imsak" | "iftar"; at: number; inSeconds: number } {
+  const nowSec = minutes * 60 + seconds
+  const imsak = imsakTime(today)
+  if (imsak * 60 > nowSec) return { kind: "imsak", at: imsak, inSeconds: imsak * 60 - nowSec }
+  if (today.maghrib * 60 > nowSec) return { kind: "iftar", at: today.maghrib, inSeconds: today.maghrib * 60 - nowSec }
+  const next = imsakTime(tomorrow)
+  return { kind: "imsak", at: next, inSeconds: 24 * 3600 - nowSec + next * 60 }
+}

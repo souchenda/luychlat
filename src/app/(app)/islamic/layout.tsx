@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SettingsIcon, SunriseIcon, type LucideIcon } from "lucide-react"
+import { ArrowLeftIcon, BookHeartIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SettingsIcon, SunriseIcon, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -18,6 +18,7 @@ const TABS: { href: string; label: MessageKey; icon: LucideIcon }[] = [
   { href: "/islamic/qibla", label: "islamic.tab.qibla", icon: CompassIcon },
   { href: "/islamic", label: "islamic.tab.finance", icon: CoinsIcon },
   { href: "/islamic/places", label: "islamic.tab.places", icon: MapPinIcon },
+  { href: "/islamic/duas", label: "islamic.tab.duas", icon: BookHeartIcon },
   { href: "/islamic/tasbih", label: "islamic.tab.tasbih", icon: MoonStarIcon },
 ]
 

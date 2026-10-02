@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
+import { ScriptureRefs } from "@/components/islamic/scripture-refs"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -370,6 +371,7 @@ export default function IslamicPage() {
             {t("islamic.disclaimer")}
           </p>
         </Card>
+        <ScriptureRefs topics={["zakat"]} />
       </section>
 
       {/* Hawl */}
@@ -432,6 +434,7 @@ export default function IslamicPage() {
           )}
           <p className="text-xs text-muted-foreground">{t("islamic.ribaHint")}</p>
         </Card>
+        <ScriptureRefs topics={["riba"]} />
       </section>
 
       {/* Charity this year */}

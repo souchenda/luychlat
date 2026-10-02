@@ -12,6 +12,7 @@ import { UpgradeSheet } from "@/components/billing/upgrade-sheet"
 import { DesktopSidebar, MobileNavTrigger } from "@/components/layout/app-nav"
 import { BottomNav } from "@/components/layout/bottom-nav"
 import { HashScroller } from "@/components/layout/hash-scroller"
+import { PrayerAlertScheduler } from "@/components/islamic/prayer-alerts"
 import { AppLock } from "@/components/lock/app-lock"
 import { MfaGate } from "@/components/security/mfa-gate"
 import { StepUpDialog } from "@/components/security/step-up"
@@ -58,6 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <MfaGate>
       <AppLock />
       <StepUpDialog />
+      <PrayerAlertScheduler />
       <RealtimeSync />
       <PendingInviteRedirect />
       <GuestImportPrompt />
