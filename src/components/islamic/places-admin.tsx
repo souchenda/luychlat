@@ -7,9 +7,21 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useT } from "@/lib/i18n/use-t"
-import { usePlaceMutations, usePlaces, type IslamicPlace } from "@/lib/places"
+import { usePlaceMutations, usePlacePhotoUrl, usePlaces, type IslamicPlace } from "@/lib/places"
 
 import { PlaceFormSheet } from "./place-form-sheet"
+
+function Thumb({ path }: { path: string }) {
+  const url = usePlacePhotoUrl(path)
+  return url ? (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+      {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL */}
+      <img src={url} alt="" className="size-11 rounded-lg object-cover" />
+    </a>
+  ) : (
+    <span className="size-11 shrink-0 rounded-lg bg-muted" />
+  )
+}
 
 /** /admin: review suggested places (approve / edit / delete) and add places directly. */
 export function PlacesAdmin() {
@@ -31,6 +43,7 @@ export function PlacesAdmin() {
   }
   const row = (p: IslamicPlace) => (
     <li key={p.id} className="flex items-center gap-2 px-3 py-2.5">
+      {p.photo_path && <Thumb path={p.photo_path} />}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{p.name}</p>
         <p className="truncate text-xs text-muted-foreground">

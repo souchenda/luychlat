@@ -1,7 +1,7 @@
 "use client"
 
-import { Loader2Icon, LocateFixedIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { CameraIcon, Loader2Icon, LocateFixedIcon, XIcon } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
@@ -12,10 +12,13 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { locateDevice, useIslamicLocation } from "@/components/islamic/location-picker"
+import { OsmMap } from "@/components/islamic/osm-map"
 import { useT } from "@/lib/i18n/use-t"
-import { parseLatLng, PLACE_KINDS, usePlaceMutations, type IslamicPlace, type PlaceKind } from "@/lib/places"
+import { parseLatLng, PLACE_KINDS, uploadPlacePhoto, usePlaceMutations, usePlacePhotoUrl, type IslamicPlace, type PlaceKind } from "@/lib/places"
 import { PROVINCES } from "@/lib/prayer"
 import { useLocaleStore } from "@/stores/locale-store"
+import { useSessionStore } from "@/stores/session-store"
 
 /**
  * Suggest a place (users: waits for an admin) or add / edit one (admins:
@@ -45,6 +48,14 @@ export function PlaceFormSheet({
   const [note, setNote] = useState("")
   const [certified, setCertified] = useState(false)
   const [locating, setLocating] = useState(false)
+  const [photoPath, setPhotoPath] = useState<string | null>(null)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const userId = useSessionStore((s) => s.user?.id ?? null)
+  const savedPhotoUrl = usePlacePhotoUrl(photoFile ? null : photoPath)
+  const around = useIslamicLocation()
 
   useEffect(() => {
     if (!open) return
@@ -56,30 +67,45 @@ export function PlaceFormSheet({
     setPhone(place?.phone ?? "")
     setNote(place?.note ?? "")
     setCertified(place?.halal_certified ?? false)
+    setPhotoPath(place?.photo_path ?? null)
+    setPhotoFile(null)
+    setPhotoPreview(null)
   }, [open, place])
 
-  const here = () => {
-    if (!("geolocation" in navigator)) return void toast.error(t("prayer.gpsUnavailable"))
-    setLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`)
-        setLocating(false)
-      },
-      () => {
-        setLocating(false)
-        toast.error(t("prayer.gpsDenied"))
-      },
-      { enableHighAccuracy: true, timeout: 15_000 },
-    )
+  useEffect(() => () => void (photoPreview && URL.revokeObjectURL(photoPreview)), [photoPreview])
+  const point = parseLatLng(coords)
+  const pick = (p: { lat: number; lng: number }) => setCoords(`${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`)
+  const choosePhoto = (file: File | undefined) => {
+    if (!file) return
+    if (!file.type.startsWith("image/")) return void toast.error(t("debtPhotos.notImage"))
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
   }
 
-  const busy = add.isPending || update.isPending
-  const submit = (e: React.FormEvent) => {
+  const here = async () => {
+    setLocating(true)
+    const result = await locateDevice()
+    setLocating(false)
+    if (result.ok) pick(result)
+    else toast.error(t(result.reason === "denied" ? "prayer.gpsDenied" : result.reason === "unavailable" ? "prayer.gpsTimeout" : "prayer.gpsUnavailable"))
+  }
+
+  const busy = add.isPending || update.isPending || uploading
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return void toast.error(t("places.nameRequired"))
-    const point = coords.trim() ? parseLatLng(coords) : null
     if (coords.trim() && !point) return void toast.error(t("places.coordsInvalid"))
+    let photo = photoPath
+    if (photoFile && userId) {
+      setUploading(true)
+      try {
+        photo = await uploadPlacePhoto(photoFile, userId)
+      } catch {
+        setUploading(false)
+        return void toast.error(t("common.error"))
+      }
+      setUploading(false)
+    }
     const input = {
       kind,
       name: name.trim(),
@@ -89,6 +115,8 @@ export function PlaceFormSheet({
       lng: point?.lng ?? null,
       phone: phone.trim() || null,
       note: note.trim() || null,
+      // Only sent when there is (or was) a photo, so saving works before the photo migration.
+      ...(photo || place?.photo_path ? { photo_path: photo } : {}),
       ...(admin ? { halal_certified: kind === "HALAL" && certified, approved: true } : {}),
     }
     const onSuccess = () => {
@@ -102,7 +130,7 @@ export function PlaceFormSheet({
 
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={t(place ? "places.edit" : admin ? "places.add" : "places.suggest")} description={admin ? undefined : t("places.suggestHint")}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={(e) => void submit(e)} className="space-y-4">
         <Segmented
           aria-label={t("places.kind")}
           value={kind}
@@ -133,14 +161,58 @@ export function PlaceFormSheet({
           <Textarea id="place-address" rows={2} maxLength={300} value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="place-coords">{t("places.coords")}</Label>
-          <div className="flex gap-2">
-            <Input id="place-coords" className="h-11 min-w-0 flex-1" placeholder="11.5564, 104.9282" value={coords} onChange={(e) => setCoords(e.target.value)} />
-            <Button type="button" variant="outline" className="h-11 shrink-0" onClick={here} disabled={locating} aria-label={t("places.useHere")}>
+          <div className="flex items-center justify-between gap-2">
+            <Label>{t("places.pin")}</Label>
+            <Button type="button" size="sm" variant="outline" onClick={() => void here()} disabled={locating}>
               {locating ? <Loader2Icon className="animate-spin" /> : <LocateFixedIcon />}
+              {t("places.useHere")}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">{t("places.coordsHint")}</p>
+          <div className="h-56 overflow-hidden rounded-xl border">
+            <OsmMap
+              className="h-full w-full"
+              center={point ?? { lat: around.lat, lng: around.lng }}
+              zoom={point ? 16 : 13}
+              markers={point ? [{ id: "pin", lat: point.lat, lng: point.lng, tone: "PIN", title: name || t("places.pin") }] : []}
+              onPick={pick}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">{t(point ? "places.pinSet" : "places.pinHint")}</p>
+          <details className="text-xs">
+            <summary className="cursor-pointer text-muted-foreground">{t("places.pasteCoords")}</summary>
+            <Input id="place-coords" className="mt-1.5 h-10" placeholder="11.5564, 104.9282" value={coords} onChange={(e) => setCoords(e.target.value)} aria-label={t("places.coords")} />
+            <p className="mt-1 text-muted-foreground">{t("places.coordsHint")}</p>
+          </details>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>{t("places.photo")}</Label>
+          {photoPreview || savedPhotoUrl ? (
+            <div className="relative aspect-video overflow-hidden rounded-xl border bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element -- local preview or short-lived signed URL */}
+              <img src={photoPreview ?? savedPhotoUrl!} alt="" className="size-full object-cover" />
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="absolute top-2 right-2 size-8 rounded-full"
+                onClick={() => {
+                  setPhotoFile(null)
+                  setPhotoPreview(null)
+                  setPhotoPath(null)
+                }}
+                aria-label={t("debtPhotos.remove")}
+              >
+                <XIcon />
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" variant="outline" className="h-11 w-full" onClick={() => fileRef.current?.click()}>
+              <CameraIcon />
+              {t("places.addPhoto")}
+            </Button>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={(e) => choosePhoto(e.target.files?.[0])} aria-label={t("places.addPhoto")} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="place-phone">{t("places.phone")}</Label>

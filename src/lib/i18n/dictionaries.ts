@@ -1801,6 +1801,19 @@ const km = {
   "schedule.status.DUE": "ជិតដល់",
   "schedule.status.OVERDUE": "ហួសកំណត់",
   "schedule.status.PENDING": "រង់ចាំ",
+  "places.addSpot": "+ បន្ថែមវិហារ / កន្លែងហាឡាល់",
+  "places.pin": "ទីតាំងលើផែនទី",
+  "places.pinHint": "ចុចលើផែនទីដើម្បីដាក់ម្ជុល ឬចុច «ប្រើទីតាំងបច្ចុប្បន្ន»",
+  "places.pinSet": "អាចអូសម្ជុល ឬចុចកន្លែងផ្សេង ដើម្បីកែទីតាំង",
+  "places.pasteCoords": "ឬបិទភ្ជាប់កូអរដោនេ / តំណ Google Maps",
+  "places.photo": "រូបថត (មិនចាំបាច់)",
+  "places.addPhoto": "ថតរូប ឬជ្រើសរូប",
+  "places.view": "បង្ហាញ",
+  "places.list": "បញ្ជី",
+  "places.map": "ផែនទី",
+  "places.tapMarker": "ចុចលើសញ្ញាណ ដើម្បីមើលព័ត៌មាន",
+  "places.noPins": "មិនទាន់មានទីតាំងដែលមានម្ជុលលើផែនទីទេ",
+  "places.communityNote": "ទីតាំងបន្ថែមដោយសហគមន៍ ហើយត្រូវបានពិនិត្យដោយអ្នកគ្រប់គ្រង មុនបង្ហាញជាសាធារណៈ។ ផែនទី © OpenStreetMap។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3606,6 +3619,19 @@ const en: Record<MessageKey, string> = {
   "schedule.status.DUE": "Due",
   "schedule.status.OVERDUE": "Overdue",
   "schedule.status.PENDING": "Pending",
+  "places.addSpot": "+ Add a mosque / halal spot",
+  "places.pin": "Location on the map",
+  "places.pinHint": "Tap the map to drop the pin, or use your current location",
+  "places.pinSet": "Drag the pin or tap elsewhere to adjust it",
+  "places.pasteCoords": "Or paste coordinates / a Google Maps link",
+  "places.photo": "Photo (optional)",
+  "places.addPhoto": "Take or choose a photo",
+  "places.view": "View",
+  "places.list": "List",
+  "places.map": "Map",
+  "places.tapMarker": "Tap a marker to see the place",
+  "places.noPins": "No places with a map pin yet",
+  "places.communityNote": "Places are added by the community and checked by an admin before they're shown. Map © OpenStreetMap.",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

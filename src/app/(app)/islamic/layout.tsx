@@ -13,13 +13,14 @@ import { useIslamicDefaults, useIslamicSettings } from "@/lib/islamic-settings"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 
+// Prayer, then Tasbih (dhikr right after the prayer), Duas, Qibla, places, Zakat.
 const TABS: { href: string; label: MessageKey; icon: LucideIcon }[] = [
   { href: "/islamic/prayer", label: "islamic.tab.prayer", icon: SunriseIcon },
-  { href: "/islamic/qibla", label: "islamic.tab.qibla", icon: CompassIcon },
-  { href: "/islamic", label: "islamic.tab.finance", icon: CoinsIcon },
-  { href: "/islamic/places", label: "islamic.tab.places", icon: MapPinIcon },
-  { href: "/islamic/duas", label: "islamic.tab.duas", icon: BookHeartIcon },
   { href: "/islamic/tasbih", label: "islamic.tab.tasbih", icon: MoonStarIcon },
+  { href: "/islamic/duas", label: "islamic.tab.duas", icon: BookHeartIcon },
+  { href: "/islamic/qibla", label: "islamic.tab.qibla", icon: CompassIcon },
+  { href: "/islamic/places", label: "islamic.tab.places", icon: MapPinIcon },
+  { href: "/islamic", label: "islamic.tab.finance", icon: CoinsIcon },
 ]
 
 /** Islamic suite: header with today's Hijri date, tabs, and the "turned off" notice for every page. */

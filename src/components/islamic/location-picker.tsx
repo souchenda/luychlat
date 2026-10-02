@@ -22,7 +22,7 @@ export function useIslamicLocation(): { lat: number; lng: number; label: string;
   return { lat: p.lat, lng: p.lng, label: p[locale], gps: false }
 }
 
-type LocateResult = { ok: true; lat: number; lng: number } | { ok: false; reason: "denied" | "unavailable" | "insecure" | "unsupported" }
+export type LocateResult = { ok: true; lat: number; lng: number } | { ok: false; reason: "denied" | "unavailable" | "insecure" | "unsupported" }
 
 const position = (options: PositionOptions) =>
   new Promise<GeolocationPosition>((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, options))
@@ -32,7 +32,7 @@ const position = (options: PositionOptions) =>
  * old is fine for prayer times), then one GPS attempt if that times out or
  * finds nothing. Permission denied is reported straight away.
  */
-async function locateDevice(): Promise<LocateResult> {
+export async function locateDevice(): Promise<LocateResult> {
   if (typeof window === "undefined" || !("geolocation" in navigator)) return { ok: false, reason: "unsupported" }
   // Browsers only give the location to https pages (and localhost).
   if (!window.isSecureContext) return { ok: false, reason: "insecure" }

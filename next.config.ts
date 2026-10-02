@@ -22,7 +22,8 @@ const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
+  // OpenStreetMap tiles for the mosques & halal map (images only; no data is sent to it).
+  `img-src 'self' data: blob: ${supabaseOrigin} https://tile.openstreetmap.org`.trim(),
   "font-src 'self' data:",
   // The Adhan sound the user picks is played from an on-device blob.
   "media-src 'self' blob:",

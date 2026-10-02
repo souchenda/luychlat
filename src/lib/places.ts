@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import { compressImage } from "@/lib/image"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -25,11 +26,13 @@ export type IslamicPlace = {
   note: string | null
   halal_certified: boolean
   approved: boolean
+  /** Photo in the private place-photos bucket (<uploader>/<file>). */
+  photo_path?: string | null
   created_by: string | null
   created_at: string
 }
 
-export type PlaceInput = Pick<IslamicPlace, "kind" | "name" | "province" | "address" | "lat" | "lng" | "phone" | "note"> & {
+export type PlaceInput = Pick<IslamicPlace, "kind" | "name" | "province" | "address" | "lat" | "lng" | "phone" | "note" | "photo_path"> & {
   halal_certified?: boolean
   approved?: boolean
 }
@@ -103,4 +106,33 @@ export function parseLatLng(text: string): { lat: number; lng: number } | null {
 export function mapsUrl(p: Pick<IslamicPlace, "name" | "address" | "province" | "lat" | "lng">): string {
   const query = p.lat != null && p.lng != null ? `${p.lat},${p.lng}` : [p.name, p.address, p.province, "Cambodia"].filter(Boolean).join(", ")
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
+}
+
+const PHOTO_BUCKET = "place-photos"
+
+/** Uploads a (compressed) place photo into the user's folder; returns its path. */
+export async function uploadPlacePhoto(file: File, userId: string): Promise<string> {
+  const supabase = getSupabaseBrowserClient()
+  if (!supabase) throw new Error("offline")
+  const blob = await compressImage(file, 1280, 0.8)
+  const path = `${userId}/${Date.now()}.jpg`
+  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: "image/jpeg", upsert: false })
+  if (error) throw error
+  return path
+}
+
+/** Short-lived URL for a place photo (visible to everyone once the place is approved). */
+export function usePlacePhotoUrl(path: string | null | undefined): string | null {
+  const { data } = useQuery({
+    queryKey: ["place-photo", path],
+    enabled: Boolean(path),
+    staleTime: 50 * 60_000,
+    queryFn: async () => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase || !path) return null
+      const { data } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrl(path, 60 * 60)
+      return data?.signedUrl ?? null
+    },
+  })
+  return data ?? null
 }

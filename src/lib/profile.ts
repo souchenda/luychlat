@@ -173,7 +173,8 @@ export function useMyKhqr() {
       if (!supabase || !userId) throw new Error("offline")
       let next: string | null = null
       if (file) {
-        const small = file.size <= 1_500_000 && /^image\/(png|jpeg|webp)$/.test(file.type)
+        // The profile-images bucket takes files up to 1 MB.
+        const small = file.size <= 900_000 && /^image\/(png|jpeg|webp)$/.test(file.type)
         const blob = small ? file : await compressImage(file, 1600, 0.92)
         const ext = small ? (file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg") : "jpg"
         next = `user/${userId}/khqr-${Date.now()}.${ext}`

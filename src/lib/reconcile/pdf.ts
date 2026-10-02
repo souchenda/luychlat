@@ -178,9 +178,10 @@ export async function readPdfPages(data: ArrayBuffer): Promise<PdfPage[]> {
     // Served from this site (CSP worker-src 'self').
     pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.min.mjs", import.meta.url).toString()
   }
+  const task = pdfjs.getDocument({ data: new Uint8Array(data), verbosity: 0 })
   let doc
   try {
-    doc = await pdfjs.getDocument({ data: new Uint8Array(data), verbosity: 0 }).promise
+    doc = await task.promise
   } catch {
     throw new PdfStatementError("unreadable")
   }
@@ -193,6 +194,6 @@ export async function readPdfPages(data: ArrayBuffer): Promise<PdfPage[]> {
       ),
     )
   }
-  await doc.destroy()
+  await task.destroy()
   return pages
 }
