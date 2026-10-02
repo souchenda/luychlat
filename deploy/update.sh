@@ -20,7 +20,11 @@ for i in $(seq 1 30); do
   status=$(docker inspect --format '{{.State.Health.Status}}' luysmart 2>/dev/null || echo "starting")
   if [ "$status" = "healthy" ]; then
     echo "✓ luysmart is healthy"
+    # Official Telegram bot: activate with the token from .env (skipped without it).
+    bash ./deploy/bot-activate.sh || echo "! Bot activation failed (the app is deployed; activate it in /admin)"
     git rev-parse HEAD > deploy/.deployed
+    # Lets auto-update.sh redeploy when .env changes (e.g. a new token).
+    sha256sum .env 2>/dev/null | cut -d' ' -f1 > deploy/.deployed-env || true
     docker image prune -f >/dev/null
     exit 0
   fi

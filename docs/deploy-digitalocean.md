@@ -352,6 +352,19 @@ How it works:
 - psql runs from the `postgres:17-alpine` Docker image, so nothing extra is installed on the Droplet.
 - Without `DATABASE_URL`, migrations are skipped and deploys work as before. `supabase_full_setup.sql` stays available as a manual fallback.
 
+### C10. Official Telegram bot (@LuyChlat_bot)
+
+1. On the Droplet, add the token from @BotFather to `.env` (server-only: not in git, not `NEXT_PUBLIC_`):
+   ```bash
+   cd /opt/luysmart
+   nano .env      # add one line:  TELEGRAM_BOT_TOKEN=123456:ABC...
+   chmod 600 .env
+   ```
+2. That's all. Within 5 minutes auto-update notices that `.env` changed and redeploys: the container gets the token, and `deploy/bot-activate.sh` stores the bot key's hash in the database (needs `DATABASE_URL`, see C9), points Telegram's webhook at the site (from `PUBLIC_URL` in `.env`, or Nginx's `server_name`) and sets the command menu. Log: `tail -f /var/log/luysmart-deploy.log` (look for "Bot @… activated").
+3. Without `DATABASE_URL`, sign in as an admin and press **Activate bot** in /admin instead.
+
+The token never leaves the server: the database only keeps the SHA-256 of a key derived from it, and only the deployed server sends reminders (`BOT_DISPATCHER=on` in docker-compose.yml).
+
 ### PM2 instead of Docker
 
 ```bash

@@ -45,6 +45,7 @@ next-env.d.ts
 
 # Last commit the Droplet deployed successfully (deploy/update.sh)
 deploy/.deployed
+deploy/.deployed-env
 
 # Real bank statements used to build parsers: never commit
 /samples/
