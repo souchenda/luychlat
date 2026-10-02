@@ -6,7 +6,7 @@
 set -euo pipefail
 
 dir="$(cd "$(dirname "$0")/.." && pwd)"
-chmod +x "$dir/deploy/auto-update.sh" "$dir/deploy/update.sh"
+chmod +x "$dir/deploy/auto-update.sh" "$dir/deploy/update.sh" "$dir/deploy/migrate.sh"
 
 job="*/5 * * * * flock -n /tmp/luysmart-deploy.lock $dir/deploy/auto-update.sh >> /var/log/luysmart-deploy.log 2>&1 # luysmart-auto-update"
 # Replace any earlier version of the job, keep everything else in the crontab.

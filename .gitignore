@@ -42,3 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Last commit the Droplet deployed successfully (deploy/update.sh)
+deploy/.deployed

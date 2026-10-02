@@ -24,7 +24,8 @@ Files used here (all in the repo):
 | `ecosystem.config.cjs` | PM2 config, for running without Docker |
 | `deploy/nginx/luysmart.conf` | Nginx reverse proxy for a new Droplet (Certbot adds SSL) |
 | `deploy/nginx/luy.yourdomain.com.conf` | Complete HTTPS server block for a subdomain on a shared Droplet |
-| `deploy/update.sh` | Pull, rebuild, then wait for the health check |
+| `deploy/update.sh` | Pull, apply new database migrations, rebuild, then wait for the health check |
+| `deploy/migrate.sh` | Applies new `supabase/migrations/*.sql` files to Supabase (see C9) |
 | `src/app/api/health/route.ts` | `GET /api/health` returns `{"status":"ok"}`; used by every health check |
 
 ## 0. Before you start
@@ -318,7 +319,7 @@ Open `https://luy.yourdomain.com` on your phone. It works over 4G/5G anywhere. T
 cd /opt/luysmart && chmod +x deploy/update.sh && ./deploy/update.sh
 ```
 
-The script runs `git pull`, rebuilds, waits for the health check, and prints logs if it fails. With the `scp` method, copy and extract a new archive first, then run `docker compose up -d --build`.
+The script runs `git pull`, applies new database migrations (C9), rebuilds, waits for the health check, and prints logs if it fails. With the `scp` method, copy and extract a new archive first, then run `docker compose up -d --build`.
 
 ### C8. Removing it again (leaves your other system untouched)
 
@@ -328,6 +329,28 @@ sudo rm /etc/nginx/sites-enabled/luy.yourdomain.com /etc/nginx/sites-available/l
 sudo nginx -t && sudo systemctl reload nginx
 sudo certbot delete --cert-name luy.yourdomain.com
 ```
+
+### C9. Automatic database migrations
+
+With this set up, every deploy also updates the Supabase database. You no longer paste `supabase_full_setup.sql` into the SQL Editor.
+
+1. In Supabase, open **Connect** (top bar) and copy the **Session pooler** connection string (port 5432). The Droplet usually has no IPv6, and the "Direct connection" needs it.
+2. Put the database password in place of `[YOUR-PASSWORD]`. If you forgot it, use **Project Settings › Database › Reset database password**. If the password contains `@ : / ? # %`, URL-encode those characters, or reset to a password made of letters and digits.
+3. On the Droplet, add it to `.env`. It stays on the server: it is not in git, not `NEXT_PUBLIC_`, and not passed to the app container.
+   ```bash
+   cd /opt/luysmart
+   nano .env      # add one line:  DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+   chmod 600 .env
+   ./deploy/migrate.sh
+   ```
+   The first run applies every migration once. They are all safe to re-run, so an up-to-date database is fine. It then prints `✓ Applied 20 migration(s)`. Later runs print `✓ Database is up to date`.
+
+How it works:
+- `deploy/update.sh` (and so the 5-minute auto-update) runs `deploy/migrate.sh` **before** rebuilding the app.
+- Each new file in `supabase/migrations/` runs once, in its own transaction, and is recorded in `supabase_migrations.schema_migrations`. This is the same table the Supabase CLI uses.
+- If a migration fails, it is rolled back, the old app keeps running, and the auto-update retries every 5 minutes. Check the error with `tail -f /var/log/luysmart-deploy.log`.
+- psql runs from the `postgres:17-alpine` Docker image, so nothing extra is installed on the Droplet.
+- Without `DATABASE_URL`, migrations are skipped and deploys work as before. `supabase_full_setup.sql` stays available as a manual fallback.
 
 ### PM2 instead of Docker
 

@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# Pull the latest code, rebuild the container and wait until it is healthy.
-# Run from the repository folder on the Droplet:  ./deploy/update.sh
+# Pull the latest code, apply new database migrations, rebuild the container
+# and wait until it is healthy. Run from the repository folder on the Droplet:
+#   ./deploy/update.sh
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 echo "→ Pulling latest code"
 git pull --ff-only
+
+echo "→ Updating the database"
+./deploy/migrate.sh
 
 echo "→ Building and restarting the container"
 docker compose up -d --build
@@ -16,6 +20,7 @@ for i in $(seq 1 30); do
   status=$(docker inspect --format '{{.State.Health.Status}}' luysmart 2>/dev/null || echo "starting")
   if [ "$status" = "healthy" ]; then
     echo "✓ luysmart is healthy"
+    git rev-parse HEAD > deploy/.deployed
     docker image prune -f >/dev/null
     exit 0
   fi
