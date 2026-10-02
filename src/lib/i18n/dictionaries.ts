@@ -26,7 +26,7 @@ const km = {
   "login.google": "បន្តជាមួយ Google",
   "login.apple": "បន្តជាមួយ Apple",
   "login.telegram": "Telegram OTP",
-  "login.supabaseMissing": "មិនទាន់ភ្ជាប់ Supabase ទេ។ អាចប្រើបានតែ Guest Mode ប៉ុណ្ណោះ។",
+  "login.supabaseMissing": "មិនទាន់ភ្ជាប់ Supabase ទេ។ មិនអាចចូលគណនីបានទេ។",
   "login.oauthError": "ការចូលគណនីមិនបានសម្រេច។ សូមព្យាយាមម្តងទៀត។",
 
   "lock.title": "អេបត្រូវបានចាក់សោ",
@@ -1179,6 +1179,11 @@ const km = {
   "reports.otherPeriods": "រយៈពេលផ្សេងទៀត",
   "reports.summaryNote": "ផ្ទេរប្រាក់រវាងកាបូបរបស់អ្នក និងការកែតម្រូវសមតុល្យ មិនត្រូវបានរាប់ទេ។",
   "reports.summaryNoteWallet": "ផ្ទេរប្រាក់ចូល/ចេញពីកាបូបនេះ ត្រូវបានរាប់។ ការកែតម្រូវសមតុល្យមិនរាប់ទេ។",
+  "login.trustSecure": "🔒 សុវត្ថិភាពទិន្នន័យកម្រិតខ្ពស់",
+  "login.trustLocal": "🇰🇭 បង្កើតសម្រាប់ប្រជាជនកម្ពុជា",
+  "login.support": "ជំនួយ",
+  "legal.link": "លក្ខខណ្ឌ និងឯកជនភាព",
+  "legal.updated": "ធ្វើបច្ចុប្បន្នភាព៖ {date}",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -1209,7 +1214,7 @@ const en: Record<MessageKey, string> = {
   "login.google": "Continue with Google",
   "login.apple": "Continue with Apple",
   "login.telegram": "Telegram OTP",
-  "login.supabaseMissing": "Supabase is not configured. Only Guest Mode is available.",
+  "login.supabaseMissing": "Supabase is not configured, so sign-in is unavailable.",
   "login.oauthError": "Sign-in failed. Please try again.",
 
   "lock.title": "App locked",
@@ -2362,6 +2367,11 @@ const en: Record<MessageKey, string> = {
   "reports.otherPeriods": "Other periods",
   "reports.summaryNote": "Transfers between your own wallets and balance adjustments are not counted.",
   "reports.summaryNoteWallet": "Transfers into and out of this wallet are counted. Balance adjustments are not.",
+  "login.trustSecure": "🔒 Secure & Encrypted",
+  "login.trustLocal": "🇰🇭 Built for Cambodia",
+  "login.support": "Support",
+  "legal.link": "Terms & Privacy",
+  "legal.updated": "Last updated: {date}",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

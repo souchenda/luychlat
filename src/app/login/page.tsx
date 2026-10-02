@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 
 import { EmailCodeLogin } from "@/components/auth/email-code-login"
+import { LoginFooter } from "@/components/auth/login-footer"
 import { EmailLogin } from "@/components/auth/email-login"
 import { PhoneLogin } from "@/components/auth/phone-login"
 import { SocialLogin } from "@/components/auth/social-login"
@@ -124,10 +125,10 @@ export default function LoginPage() {
               <PhoneLogin disabled={cloudDisabled} />
             </>
           )}
-
-
         </div>
       )}
+
+      {hydrated && <LoginFooter />}
     </main>
   )
 }
