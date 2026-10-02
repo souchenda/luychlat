@@ -22,7 +22,9 @@ export function AdvisorHomeCard() {
   const top = useMemo(() => {
     if (!snapshot || !labels) return []
     const rank = { critical: 0, warn: 1, info: 2, good: 3 }
-    return insights(snapshot, labels, lang).sort((a, b) => rank[a.severity] - rank[b.severity])
+    return insights(snapshot, labels, lang)
+      .filter((i) => i.id !== "start") // onboarding tip: kept on /advisor, not on Home
+      .sort((a, b) => rank[a.severity] - rank[b.severity])
   }, [snapshot, labels, lang])
 
   if (loading || !snapshot) return <Skeleton className="h-40 w-full rounded-xl" />

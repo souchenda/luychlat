@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2Icon, SettingsIcon } from "lucide-react"
+import { Loader2Icon, MoonStarIcon, SettingsIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -19,6 +19,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell"
 import { Button } from "@/components/ui/button"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
 import { useActiveWorkspace } from "@/lib/data/hooks"
+import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { useT } from "@/lib/i18n/use-t"
 import { useLockStore } from "@/stores/lock-store"
 import { usePrefsStore } from "@/stores/prefs-store"
@@ -36,6 +37,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isLocked = useLockStore((s) => s.isLocked && Boolean(s.pinHash))
   const activeWorkspace = usePrefsStore((s) => s.activeWorkspace)
   const { workspace } = useActiveWorkspace()
+  const islamic = useIslamicEnabled()
   // An account is required for every screen (Guest Mode was retired).
   const allowed = Boolean(user)
 
@@ -70,6 +72,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="min-w-0 flex-1">
                 <WorkspaceSwitcher />
               </div>
+              {islamic && (
+                <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label={t("islamic.title")}>
+                  <Link href="/islamic">
+                    <MoonStarIcon className="size-5" />
+                  </Link>
+                </Button>
+              )}
               <NotificationBell />
               <Button asChild variant="ghost" size="icon" className="shrink-0" aria-label={t("nav.settings")}>
                 <Link href="/settings">

@@ -37,18 +37,8 @@ export function BudgetHomeCard({
   )
   if (budgets.isLoading) return null
 
-  if (!summary.lines.length) {
-    return (
-      <Link href="/budgets" className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-3 hover:bg-muted/50">
-        <TargetIcon className="size-5 text-primary" aria-hidden />
-        <span className="flex-1 text-sm">
-          <span className="block font-medium">{t("budget.homeCta")}</span>
-          <span className="block text-xs text-muted-foreground">{t("budget.homeCtaHint")}</span>
-        </span>
-        <ChevronRightIcon className="size-4 text-muted-foreground" />
-      </Link>
-    )
-  }
+  // No budget yet: show nothing (Home stays data-only; the "Budget" link above opens the planner).
+  if (!summary.lines.length) return null
 
   const { status, ratio } = summary
   return (

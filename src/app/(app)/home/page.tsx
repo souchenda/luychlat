@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, TargetIcon, WalletIcon, MoonStarIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, TargetIcon, WalletIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -14,13 +14,11 @@ import { FamilyStrip } from "@/components/family/family-strip"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
-import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
 import { TransactionEditor } from "@/components/transactions/transaction-editor"
 import { TransactionList } from "@/components/transactions/transaction-list"
 import { Button } from "@/components/ui/button"
 import { useToday } from "@/hooks/use-today"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { NetWorthCard } from "@/components/wallets/net-worth-card"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
@@ -36,7 +34,6 @@ import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
 import { homeGreeting } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
-import { useLockStore } from "@/stores/lock-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 // Recharts is heavy; load the chart card after the rest of the dashboard.
@@ -52,7 +49,6 @@ const TREND_MONTHS = 6
 export default function HomePage() {
   const t = useT()
   const router = useRouter()
-  const hasPin = useLockStore((s) => Boolean(s.pinHash))
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id
@@ -67,7 +63,6 @@ export default function HomePage() {
   const txQuery = useTransactions(ws, filter)
   const debtsQuery = useDebts(ws)
 
-  const [pinOpen, setPinOpen] = useState(false)
   const [walletFormOpen, setWalletFormOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [entryType, setEntryType] = useState<CategoryType | null>(null)
@@ -158,12 +153,6 @@ export default function HomePage() {
 
       <CashFlowCard flow={flow} loading={txQuery.isLoading} />
       <div className="-mt-2 flex items-center justify-end gap-4 px-1 text-sm">
-        {islamic && (
-          <Link href="/islamic" className="mr-auto flex items-center gap-1 text-primary">
-            <MoonStarIcon className="size-4" aria-hidden />
-            {t("islamic.short")}
-          </Link>
-        )}
         <Link href="/budgets" className="flex items-center gap-1 text-primary">
           <TargetIcon className="size-4" aria-hidden />
           {t("budget.title")}
@@ -181,14 +170,6 @@ export default function HomePage() {
         categories={categoriesQuery.data ?? []}
         monthTransactions={monthTransactions}
       />
-
-      <TontineDueCard workspaceId={ws} />
-
-      <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} onAdd={editable ? () => setDebtFormOpen(true) : undefined} />
-
-      <AdvisorHomeCard />
-
-      <CashFlowCharts transactions={transactions} categories={categoriesQuery.data ?? []} months={months} />
 
       <section className="space-y-2">
         <div className="flex items-center justify-between px-1">
@@ -245,24 +226,15 @@ export default function HomePage() {
         )}
       </section>
 
-      {!hasPin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ShieldCheckIcon className="size-5 text-primary" />
-              {t("home.secureTitle")}
-            </CardTitle>
-            <CardDescription>{t("home.secureHint")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button size="sm" onClick={() => setPinOpen(true)}>
-              {t("home.setPin")}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
-      <PinSetupDialog open={pinOpen} onOpenChange={setPinOpen} />
+      <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} onAdd={editable ? () => setDebtFormOpen(true) : undefined} />
+
+      <TontineDueCard workspaceId={ws} />
+
+      <AdvisorHomeCard />
+
+      <CashFlowCharts transactions={transactions} categories={categoriesQuery.data ?? []} months={months} />
+
       <WalletFormSheet open={walletFormOpen} onOpenChange={setWalletFormOpen} workspaceId={ws} />
       <TransferSheet open={transferOpen} onOpenChange={setTransferOpen} workspaceId={ws} wallets={wallets} />
       <EntryFormSheet
