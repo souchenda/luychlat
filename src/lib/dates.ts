@@ -41,3 +41,14 @@ export function fromDateInput(value: string, previousIso?: string): string {
   if (now.getFullYear() === y && now.getMonth() === m - 1 && now.getDate() === d) return now.toISOString()
   return new Date(y, m - 1, d, 12).toISOString()
 }
+
+const KM_WEEKDAYS = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"]
+const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
+const khmerDigits = (value: string) => value.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
+
+/** "ថ្ងៃសុក្រ ទី០២ ខែតុលា ឆ្នាំ២០២៦" / "Friday, 02 October 2026" (device-local date). */
+export function longDate(date: Date, locale: "km" | "en"): string {
+  if (locale === "en") return format(date, "EEEE, dd MMMM yyyy")
+  const day = khmerDigits(String(date.getDate()).padStart(2, "0"))
+  return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${khmerDigits(String(date.getFullYear()))}`
+}

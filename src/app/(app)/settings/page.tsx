@@ -1,6 +1,6 @@
 "use client"
 
-import { BookOpenIcon, ChartColumnIcon, LifeBuoyIcon, ChevronRightIcon, CoinsIcon, TargetIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import { BookOpenIcon, ChartColumnIcon, InfoIcon, LifeBuoyIcon, ChevronRightIcon, CoinsIcon, TargetIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -13,6 +13,7 @@ import { FamilySettings } from "@/components/family/family-settings"
 import { BiometricIcon } from "@/components/lock/biometric-icon"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { AiSettingsCard } from "@/components/settings/ai-settings"
+import { AboutSheet, SettingsFooter } from "@/components/settings/about"
 import { DangerZone } from "@/components/settings/danger-zone"
 import { DataManagement } from "@/components/settings/data-management"
 import { GuestImportRow } from "@/components/settings/guest-import"
@@ -124,6 +125,7 @@ export default function SettingsPage() {
   const [bioKind, setBioKind] = useState<BiometricKind>("any")
   useEffect(() => setBioKind(biometricKind(biometricPreference)), [biometricPreference])
   const [pinOpen, setPinOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const [biometricSupported, setBiometricSupported] = useState(false)
 
   useEffect(() => {
@@ -305,13 +307,21 @@ export default function SettingsPage() {
             <ChevronRightIcon className="size-4 text-muted-foreground" />
           </Row>
         </Link>
+        <button type="button" className="block w-full text-left hover:bg-muted/60" onClick={() => setAboutOpen(true)}>
+          <Row icon={<InfoIcon />} title={t("about.title")} hint={t("about.settingsHint")}>
+            <ChevronRightIcon className="size-4 text-muted-foreground" />
+          </Row>
+        </button>
       </Section>
 
       <DataManagement />
 
       <DangerZone />
 
+      <SettingsFooter />
+
       <PinSetupDialog open={pinOpen} onOpenChange={setPinOpen} />
+      <AboutSheet open={aboutOpen} onOpenChange={setAboutOpen} />
     </div>
   )
 }

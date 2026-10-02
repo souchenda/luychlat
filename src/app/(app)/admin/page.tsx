@@ -7,6 +7,7 @@ import {
   CheckIcon,
   CrownIcon,
   GiftIcon,
+  InfoIcon,
   LifeBuoyIcon,
   QrCodeIcon,
   Loader2Icon,
@@ -20,6 +21,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { paymentCode, type PaymentInstructions } from "@/components/billing/upgrade-sheet"
+import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -770,6 +772,84 @@ function SupportContactsForm() {
 }
 
 
+/** Settings › About LuySmart and the Settings footer (empty fields use the defaults in src/lib/app-info.ts). */
+function AboutInfoForm() {
+  const t = useT()
+  const queryClient = useQueryClient()
+  const { data } = useQuery({
+    queryKey: ["about-info-admin"],
+    queryFn: async () => {
+      const { data } = await getSupabaseBrowserClient()!.from("app_settings").select("value").eq("key", "about_info").maybeSingle()
+      return (data?.value ?? {}) as Partial<AboutInfo>
+    },
+  })
+  const [form, setForm] = useState<Partial<AboutInfo>>({})
+  useEffect(() => {
+    if (data) setForm(data)
+  }, [data])
+  const save = useMutation({
+    mutationFn: () => rpc("admin_set_about_info", { p_value: form }),
+    onSuccess: () => {
+      toast.success(t("admin.saved"))
+      void queryClient.invalidateQueries({ queryKey: ["about-info"] })
+      void queryClient.invalidateQueries({ queryKey: ["about-info-admin"] })
+    },
+    onError: (error) => toast.error(/https|email/.test(String((error as Error).message)) ? t("admin.aboutInvalid") : t("common.error")),
+  })
+  const field = (key: keyof AboutInfo) => ({
+    value: form[key] ?? "",
+    placeholder: DEFAULT_ABOUT[key] || undefined,
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [key]: e.target.value })),
+  })
+  return (
+    <Section title={t("about.title")} icon={<InfoIcon />}>
+      <Card className="px-4 py-4">
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            save.mutate()
+          }}
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="ab-dev">{t("admin.aboutDeveloper")}</Label>
+            <Input id="ab-dev" maxLength={80} {...field("developer")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ab-credits">{t("admin.aboutCredits")}</Label>
+            <Textarea id="ab-credits" rows={3} maxLength={1000} {...field("credits")} placeholder={t("admin.aboutCreditsHint")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ab-mkm">{t("admin.aboutMissionKm")}</Label>
+            <Textarea id="ab-mkm" rows={2} maxLength={500} {...field("mission_km")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ab-men">{t("admin.aboutMissionEn")}</Label>
+            <Textarea id="ab-men" rows={2} maxLength={500} {...field("mission_en")} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="ab-web">{t("admin.aboutWebsite")}</Label>
+              <Input id="ab-web" inputMode="url" maxLength={200} {...field("website")} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ab-email">{t("admin.aboutEmail")}</Label>
+              <Input id="ab-email" inputMode="email" maxLength={120} {...field("email")} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ab-fb">Facebook</Label>
+            <Input id="ab-fb" inputMode="url" maxLength={200} {...field("facebook")} placeholder="https://facebook.com/…" />
+          </div>
+          <Button type="submit" className="w-full" disabled={save.isPending}>
+            {t("common.save")}
+          </Button>
+        </form>
+      </Card>
+    </Section>
+  )
+}
+
 export default function AdminPage() {
   const t = useT()
   const { plan, loading } = usePlan()
@@ -794,6 +874,7 @@ export default function AdminPage() {
       <ReferralStatsCard />
       <PaymentInstructionsForm />
       <SupportContactsForm />
+      <AboutInfoForm />
     </div>
   )
 }

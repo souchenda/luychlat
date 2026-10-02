@@ -1,5 +1,6 @@
 "use client"
 
+import { format } from "date-fns"
 import { ArrowLeftRightIcon, ChartColumnIcon, ChevronRightIcon, EyeIcon, HandshakeIcon, MinusIcon, PlusIcon, ReceiptTextIcon, ShieldCheckIcon, TargetIcon, WalletIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
@@ -18,6 +19,7 @@ import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
 import { TransactionEditor } from "@/components/transactions/transaction-editor"
 import { TransactionList } from "@/components/transactions/transaction-list"
 import { Button } from "@/components/ui/button"
+import { useToday } from "@/hooks/use-today"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { NetWorthCard } from "@/components/wallets/net-worth-card"
@@ -28,7 +30,7 @@ import { cashFlow } from "@/lib/analytics"
 import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
-import { monthKey, monthRange, recentMonths } from "@/lib/dates"
+import { longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { homeGreeting } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -86,6 +88,7 @@ export default function HomePage() {
   const displayName = useProfile().data?.display_name?.trim()
   const locale = useLocaleStore((s) => s.locale)
   const greeting = homeGreeting()
+  const today = useToday()
   const festive = greeting.key !== "holiday.everyday"
   // Khmer numerals for the Ben day in Khmer (បិណ្ឌទី ៥).
   const greetingParams = Object.fromEntries(
@@ -97,6 +100,12 @@ export default function HomePage() {
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h1 className="text-xl font-bold">{displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}</h1>
+          {/* Today's date, so nobody has to leave the app to check it. */}
+          <p className="text-xs text-muted-foreground">
+            <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
+              {longDate(today, locale)}
+            </time>
+          </p>
           {/* One quiet line: the festival of the day (Kan Ben day, Pchum Ben, …) or an everyday wish. */}
           <p className={festive ? "truncate text-sm font-medium text-primary" : "truncate text-sm text-muted-foreground"}>
             {t(greeting.key, greetingParams)} ✨
