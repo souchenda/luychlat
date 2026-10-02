@@ -5,6 +5,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { stepUp } from "@/components/security/step-up"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,7 +25,7 @@ export function DangerZone() {
   const confirmed = typed.trim().toUpperCase() === CONFIRM_WORD
 
   const reset = async () => {
-    if (!confirmed) return
+    if (!confirmed || !(await stepUp(t("danger.reset")))) return
     setBusy(true)
     try {
       await resetAllData()

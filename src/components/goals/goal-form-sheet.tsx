@@ -9,6 +9,7 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { stepUp } from "@/components/security/step-up"
 import { useWalletMutations } from "@/lib/data/hooks"
 import { WalletInUseError, type Currency, type Wallet } from "@/lib/data/types"
 import { GOAL_PRESETS } from "@/lib/goals"
@@ -97,7 +98,7 @@ export function GoalFormSheet({
     }
   }
   const remove = async () => {
-    if (!goal || !window.confirm(t("goals.deleteConfirm", { name: goal.name }))) return
+    if (!goal || !(await stepUp(t("goals.deleteConfirm", { name: goal.name })))) return
     try {
       await mutations.remove.mutateAsync(goal.id)
       toast.success(t("walletForm.deleted"))

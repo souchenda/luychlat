@@ -9,6 +9,7 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { stepUp } from "@/components/security/step-up"
 import type { Currency } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -94,8 +95,8 @@ export function InvestmentFormSheet({
     else add.mutate(input, opts)
   }
 
-  const del = () => {
-    if (!holding || !window.confirm(t("gold.deleteConfirm", { name: holding.symbol }))) return
+  const del = async () => {
+    if (!holding || !(await stepUp(t("gold.deleteConfirm", { name: holding.symbol })))) return
     remove.mutate(holding.id, {
       onSuccess: () => {
         toast.success(t("walletForm.deleted"))

@@ -9,6 +9,7 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { stepUp } from "@/components/security/step-up"
 import type { Currency } from "@/lib/data/types"
 import { GOLD_KINDS, HUN_PER_CHI, HUN_PER_DAMLUNG, hunToGrams, JEWELRY_TYPES, marketValue, PLATINUM_GRADES, splitHun, toHun, type GoldKind, type GoldRates, type JewelryType, type PlatinumGrade } from "@/lib/gold"
 import { useGoldMutations, type GoldHolding } from "@/lib/gold-data"
@@ -140,8 +141,8 @@ export function GoldFormSheet({
     else add.mutate(input, opts)
   }
 
-  const del = () => {
-    if (!holding || !window.confirm(t("gold.deleteConfirm", { name: holding.name }))) return
+  const del = async () => {
+    if (!holding || !(await stepUp(t("gold.deleteConfirm", { name: holding.name })))) return
     remove.mutate(holding.id, {
       onSuccess: () => {
         toast.success(t("walletForm.deleted"))

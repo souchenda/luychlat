@@ -9,6 +9,7 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { stepUp } from "@/components/security/step-up"
 import { useTransactionMutations, useTransactions, useWallets } from "@/lib/data/hooks"
 import { walletDeltas } from "@/lib/data/ledger"
 import { todayDate } from "@/lib/debts"
@@ -65,7 +66,7 @@ export function BulkDeleteSheet({
   const debtLinked = rows.filter((tx) => tx.debt_id).length
 
   const remove = async () => {
-    if (!rows.length || !window.confirm(t("bulk.confirm", { count: rows.length, range: formatRange(range) }))) return
+    if (!rows.length || !(await stepUp(t("bulk.confirm", { count: rows.length, range: formatRange(range) })))) return
     try {
       const count = await removeRange.mutateAsync(filter)
       toast.success(t("bulk.done", { count }))

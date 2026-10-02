@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { stepUp } from "@/components/security/step-up"
 import { useT } from "@/lib/i18n/use-t"
 import { describeDevice, isActiveNow, useActiveSessions, useSessionMutations, type ActiveSession } from "@/lib/sessions"
 import { cn } from "@/lib/utils"
@@ -66,16 +67,16 @@ export function ActiveDevices() {
   const current = sessions.find((s) => s.is_current)
   const others = sessions.filter((s) => !s.is_current)
 
-  const revokeOne = (s: ActiveSession) => {
+  const revokeOne = async (s: ActiveSession) => {
     const device = describeDevice(s.user_agent)
-    if (!window.confirm(t("devices.revokeConfirm", { device: `${device.os} ${device.browser}`.trim() }))) return
+    if (!(await stepUp(t("devices.revokeConfirm", { device: `${device.os} ${device.browser}`.trim() })))) return
     revoke.mutate(s.id, {
       onSuccess: () => toast.success(t("devices.revoked")),
       onError: () => toast.error(t("common.error")),
     })
   }
-  const revokeAll = () => {
-    if (!window.confirm(t("devices.revokeAllConfirm", { count: others.length }))) return
+  const revokeAll = async () => {
+    if (!(await stepUp(t("devices.revokeAllConfirm", { count: others.length })))) return
     revokeOthers.mutate(undefined, {
       onSuccess: () => toast.success(t("devices.revokedAll")),
       onError: () => toast.error(t("common.error")),

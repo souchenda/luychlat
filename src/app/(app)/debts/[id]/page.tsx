@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { WalletAvatar } from "@/components/wallets/wallet-avatar"
+import { stepUp } from "@/components/security/step-up"
 import { useActiveWorkspace, useDebtMutations, useDebts, useRepayments, useWallets } from "@/lib/data/hooks"
 import { debtStatus, estimatedInterest, remaining } from "@/lib/debts"
 import { useT } from "@/lib/i18n/use-t"
@@ -63,7 +64,7 @@ export default function DebtDetailPage() {
   const repayments = repaymentsQuery.data ?? []
 
   const deleteDebt = async () => {
-    if (!window.confirm(t("debtForm.deleteConfirm", { name: debt.party_name }))) return
+    if (!(await stepUp(t("debtForm.deleteConfirm", { name: debt.party_name })))) return
     await remove.mutateAsync(debt.id)
     toast.success(t("debtForm.deleted"))
     router.replace(`/debts?tab=${debt.type}`)

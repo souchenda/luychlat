@@ -13,6 +13,8 @@ import { DesktopSidebar, MobileNavTrigger } from "@/components/layout/app-nav"
 import { BottomNav } from "@/components/layout/bottom-nav"
 import { HashScroller } from "@/components/layout/hash-scroller"
 import { AppLock } from "@/components/lock/app-lock"
+import { MfaGate } from "@/components/security/mfa-gate"
+import { StepUpDialog } from "@/components/security/step-up"
 import { useHydrated } from "@/hooks/use-hydrated"
 import { PendingInviteRedirect } from "@/components/family/pending-invite"
 import { RealtimeSync } from "@/components/family/realtime-sync"
@@ -51,9 +53,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   // While locked, keep pages mounted (drafts survive) but out of view and the accessibility tree.
+  // 2FA accounts enter their code before anything (including data) loads.
   return (
-    <>
+    <MfaGate>
       <AppLock />
+      <StepUpDialog />
       <RealtimeSync />
       <PendingInviteRedirect />
       <GuestImportPrompt />
@@ -87,6 +91,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         <BottomNav />
       </div>
-    </>
+    </MfaGate>
   )
 }

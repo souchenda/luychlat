@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { stepUp } from "@/components/security/step-up"
 import { ASSET_EMOJI, ASSET_KINDS, type AssetKind, type PhysicalAsset } from "@/lib/assets"
 import { usePhysicalAssetMutations } from "@/lib/assets-data"
 import type { Currency, Debt } from "@/lib/data/types"
@@ -87,8 +88,8 @@ export function AssetFormSheet({
     else add.mutate(input, opts)
   }
 
-  const del = () => {
-    if (!asset || !window.confirm(t("gold.deleteConfirm", { name: asset.name }))) return
+  const del = async () => {
+    if (!asset || !(await stepUp(t("gold.deleteConfirm", { name: asset.name })))) return
     remove.mutate(asset.id, {
       onSuccess: () => {
         toast.success(t("walletForm.deleted"))

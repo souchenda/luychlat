@@ -10,6 +10,8 @@ import { toast } from "sonner"
 import { PlanCard } from "@/components/billing/plan-card"
 import { ReferralCard } from "@/components/billing/referral"
 import { ActiveDevices } from "@/components/settings/active-devices"
+import { TwoFactorRow } from "@/components/security/two-factor"
+import { stepUp } from "@/components/security/step-up"
 import { FamilySettings } from "@/components/family/family-settings"
 import { BiometricIcon } from "@/components/lock/biometric-icon"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
@@ -178,14 +180,19 @@ export default function SettingsPage() {
   }, [])
 
   const toggleBiometric = async (enabled: boolean) => {
-    if (!enabled) return setBiometricCredential(null)
+    // Turning a security feature off needs the PIN (or Face ID) first.
+    if (!enabled) {
+      if (await stepUp(t("stepUp.biometricOff"))) setBiometricCredential(null)
+      return
+    }
     const id = await registerBiometric()
     if (!id) return toast.error(t("lock.biometricFailed"))
     setBiometricCredential(id)
     toast.success(t("settings.biometricEnabled"))
   }
 
-  const removePin = () => {
+  const removePin = async () => {
+    if (!(await stepUp(t("stepUp.pinOff")))) return
     clearSecurity()
     toast.success(t("settings.pinRemoved"))
   }
@@ -216,7 +223,15 @@ export default function SettingsPage() {
           title={t("settings.pin")}
           hint={pinHash ? t("settings.pinOn") : t("settings.pinOff")}
         >
-          <Button size="sm" variant="outline" onClick={() => setPinOpen(true)}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              // Changing an existing PIN needs the current one (or Face ID) first.
+              if (pinHash && !(await stepUp(t("stepUp.pinChange")))) return
+              setPinOpen(true)
+            }}
+          >
             {pinHash ? t("settings.changePin") : t("settings.setPin")}
           </Button>
         </Row>
@@ -273,6 +288,7 @@ export default function SettingsPage() {
             </Button>
           </div>
         )}
+        <TwoFactorRow />
         <ActiveDevices />
       </Section>
 

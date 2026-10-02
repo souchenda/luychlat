@@ -24,6 +24,7 @@ import { TontineFormSheet } from "@/components/tontine/tontine-form-sheet"
 import { TontineRoundSheet } from "@/components/tontine/tontine-round-sheet"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { stepUp } from "@/components/security/step-up"
 import { canWrite, useActiveWorkspace, useTontineMutations, useTontinePayments, useTontines, useWallets } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
@@ -87,8 +88,8 @@ export default function TontineDetailPage() {
     if (!window.confirm(t(tontine.won_transaction_id ? "tontine.undoWinLinked" : "tontine.undoWin"))) return
     mutations.undoWin.mutate(tontine.id, { onError: () => toast.error(t("common.error")) })
   }
-  const remove = () => {
-    if (!window.confirm(t("tontine.deleteConfirm", { name: tontine.name }))) return
+  const remove = async () => {
+    if (!(await stepUp(t("tontine.deleteConfirm", { name: tontine.name })))) return
     mutations.remove.mutate(tontine.id, {
       onSuccess: () => router.replace("/debts?view=tontine"),
       onError: () => toast.error(t("common.error")),

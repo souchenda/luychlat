@@ -25,6 +25,7 @@ import { paymentCode, type PaymentInstructions } from "@/components/billing/upgr
 import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
 import { formatHijri, toHijri } from "@/lib/islamic"
 import { PlacesAdmin } from "@/components/islamic/places-admin"
+import { AdminUserSecurity } from "@/components/security/admin-user-security"
 import { GoldRatesAdmin } from "@/components/gold/gold-rates-admin"
 import { MarketPricesAdmin } from "@/components/gold/market-prices-admin"
 import type { IslamicDefaults } from "@/lib/islamic-settings"
@@ -298,6 +299,8 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
           />
           <Stat label={t("admin.lastActive")} value={<span className="text-base">{ago(user.last_active_at)}</span>} hint={t("admin.joined", { date: format(new Date(user.joined_at), "dd/MM/yyyy") })} />
         </div>
+
+        <AdminUserSecurity userId={user.user_id} label={who(user)} />
 
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" role="radiogroup" aria-label={t("admin.plan")}>
           {(["PRO", "ULTRA"] as const).map((tier) => (

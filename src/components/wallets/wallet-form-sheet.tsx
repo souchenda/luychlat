@@ -30,6 +30,7 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { stepUp } from "@/components/security/step-up"
 import { useActiveWorkspace, useMembers, useProfile, useWalletMutations } from "@/lib/data/hooks"
 import { PersonalWalletError, PlanLimitError, WalletInUseError, type Currency, type Wallet, type WalletVisibility } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
@@ -250,7 +251,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   }
 
   const remove = async () => {
-    if (!wallet || !window.confirm(t("walletForm.deleteConfirm", { name: wallet.name }))) return
+    if (!wallet || !(await stepUp(t("walletForm.deleteConfirm", { name: wallet.name })))) return
     try {
       await mutations.remove.mutateAsync(wallet.id)
       toast.success(t("walletForm.deleted"))

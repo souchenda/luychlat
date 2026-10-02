@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { stepUp } from "@/components/security/step-up"
 import type { Currency } from "@/lib/data/types"
 import {
   CERT_TYPES,
@@ -130,8 +131,8 @@ export function DiamondFormSheet({
     else add.mutate(input, opts)
   }
 
-  const del = () => {
-    if (!diamond || !window.confirm(t("gold.deleteConfirm", { name: diamond.name }))) return
+  const del = async () => {
+    if (!diamond || !(await stepUp(t("gold.deleteConfirm", { name: diamond.name })))) return
     remove.mutate(diamond.id, {
       onSuccess: () => {
         toast.success(t("walletForm.deleted"))

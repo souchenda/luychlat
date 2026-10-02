@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { stepUp } from "@/components/security/step-up"
 import type { Profile, Workspace } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
@@ -260,7 +261,8 @@ export function BusinessProfileSheet({ open, onOpenChange, workspace }: { open: 
                 type="button"
                 variant="outline"
                 disabled={lifecycle.setArchived.isPending}
-                onClick={() =>
+                onClick={async () => {
+                  if (!workspace.archived_at && !(await stepUp(t("business.archiveConfirm", { name: workspace.name })))) return
                   lifecycle.setArchived.mutate(
                     { id: workspace.id, archived: !workspace.archived_at },
                     {
@@ -271,7 +273,7 @@ export function BusinessProfileSheet({ open, onOpenChange, workspace }: { open: 
                       onError: (e) => toast.error(t(String(e.message).includes("last_business") ? "business.lastOne" : "common.error")),
                     },
                   )
-                }
+                }}
               >
                 {workspace.archived_at ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
                 {t(workspace.archived_at ? "business.restore" : "business.archive")}
@@ -281,11 +283,12 @@ export function BusinessProfileSheet({ open, onOpenChange, workspace }: { open: 
                 variant="outline"
                 className="text-destructive"
                 disabled={lifecycle.remove.isPending}
-                onClick={() => {
+                onClick={async () => {
                   // Permanent: ask for the business name, like deleting a repository.
                   const typed = window.prompt(t("business.deleteConfirm", { name: workspace.name }))
                   if (typed === null) return
                   if (typed.trim() !== workspace.name.trim()) return void toast.error(t("business.deleteMismatch"))
+                  if (!(await stepUp(t("business.delete")))) return
                   lifecycle.remove.mutate(workspace.id, {
                     onSuccess: () => {
                       toast.success(t("business.deleted", { name: workspace.name }))

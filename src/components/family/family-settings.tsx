@@ -27,6 +27,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { stepUp } from "@/components/security/step-up"
 import { useFamilyMutations, useInvites, useMembers, useProfile, useWorkspaces } from "@/lib/data/hooks"
 import { PlanLimitError, type Workspace, type WorkspaceInvite, type WorkspaceMember, type WorkspaceRole } from "@/lib/data/types"
 import { showUpgrade } from "@/lib/plan"
@@ -247,7 +248,7 @@ function FamilyCard({ workspace }: { workspace: Workspace }) {
   const [inviteOpen, setInviteOpen] = useState(false)
 
   const remove = async () => {
-    if (!window.confirm(t("family.deleteConfirm", { name: workspace.name }))) return
+    if (!(await stepUp(t("family.deleteConfirm", { name: workspace.name })))) return
     await deleteFamily.mutateAsync(workspace.id)
     setActive("PERSONAL")
     toast.success(t("family.deleted"))
