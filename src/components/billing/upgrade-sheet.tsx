@@ -2,33 +2,38 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { CheckIcon, ChevronDownIcon, CopyIcon, CrownIcon, LifeBuoyIcon, QrCodeIcon, Loader2Icon, MinusIcon, XIcon } from "lucide-react"
+import { CheckIcon, CircleCheckBigIcon, CopyIcon, CrownIcon, DownloadIcon, LifeBuoyIcon, Loader2Icon, MinusIcon, SendIcon, XIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { KhqrCheckout } from "@/components/billing/khqr-checkout"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Currency } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { usePlan, usePlanOptions, useUpgradeStore, type UpgradeReason } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { useSupportContacts } from "@/lib/support"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
 
 type PaymentRow = { id: string; plan_code: string; amount: number; currency: Currency; method: string; reference: string | null; status: string; created_at: string; note: string | null }
-type Instructions = { bank?: string; account_name?: string; account_number?: string; note_km?: string; note_en?: string }
-
-const METHODS = ["BANK_TRANSFER", "KHQR", "CASH", "OTHER"] as const
+/** Set in /admin › Payment details. khqr_image_url: the shop's static KHQR (e.g. from the ABA app). */
+export type PaymentInstructions = {
+  bank?: string
+  account_name?: string
+  account_number?: string
+  khqr_image_url?: string
+  note_km?: string
+  note_en?: string
+}
 
 /** Free vs Pro rows; the Free column mirrors the FREE row in public.plans. */
 const COMPARE: { label: MessageKey; free: MessageKey | false; pro: MessageKey | true }[] = [
@@ -53,7 +58,7 @@ function usePayments(enabled: boolean) {
   })
 }
 
-function useInstructions(enabled: boolean) {
+export function usePaymentInstructions(enabled: boolean) {
   return useQuery({
     queryKey: ["payment-instructions"],
     enabled,
@@ -61,23 +66,39 @@ function useInstructions(enabled: boolean) {
     queryFn: async () => {
       const supabase = getSupabaseBrowserClient()!
       const { data } = await supabase.from("app_settings").select("value").eq("key", "payment_instructions").maybeSingle()
-      return (data?.value ?? {}) as Instructions
+      return (data?.value ?? {}) as PaymentInstructions
     },
   })
 }
 
-/** KHQR checkout availability (server config: off / sandbox / production). */
-function useKhqrMode(enabled: boolean) {
-  return useQuery({
-    queryKey: ["khqr-mode"],
-    enabled,
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const res = await fetch("/api/billing/khqr", { cache: "no-store" })
-      if (!res.ok) return "off" as const
-      return ((await res.json()) as { mode: "off" | "sandbox" | "production" }).mode
-    },
-  }).data ?? "off"
+/** Short code the admin can match with the slip on Telegram. */
+export const paymentCode = (id: string) => id.replace(/-/g, "").slice(0, 6).toUpperCase()
+
+/** Saves the KHQR image to the phone (share sheet → "Save image"), or downloads it. */
+async function saveQrImage(url: string) {
+  try {
+    const res = await fetch(url, { cache: "force-cache" })
+    const blob = await res.blob()
+    const ext = blob.type === "image/jpeg" ? "jpg" : blob.type === "image/webp" ? "webp" : "png"
+    const file = new File([blob], `luysmart-khqr.${ext}`, { type: blob.type || "image/png" })
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "KHQR" })
+        return
+      } catch {
+        // cancelled: fall back to a download
+      }
+    }
+    const href = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = href
+    a.download = file.name
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(href), 1000)
+  } catch {
+    // Last resort: open it so the user can long-press → Save image.
+    window.open(url, "_blank", "noopener")
+  }
 }
 
 /** Global upgrade sheet; open it anywhere with showUpgrade(reason). */
@@ -92,17 +113,15 @@ export function UpgradeSheet() {
   const { plan, isPro } = usePlan()
   const options = usePlanOptions()
   const payments = usePayments(open && signedIn)
-  const instructions = useInstructions(open && signedIn).data ?? {}
+  const instructions = usePaymentInstructions(open && signedIn).data ?? {}
+  const contacts = useSupportContacts().data
   const [planCode, setPlanCode] = useState("PRO_YEARLY")
   const [currency, setCurrency] = useState<Currency>("USD")
-  const [method, setMethod] = useState<(typeof METHODS)[number]>("BANK_TRANSFER")
   const [reference, setReference] = useState("")
-  const [checkout, setCheckout] = useState(false)
-  const khqrMode = useKhqrMode(open && signedIn)
-  const khqr = khqrMode !== "off"
+  const [sent, setSent] = useState<PaymentRow | null>(null)
 
   useEffect(() => {
-    if (!open) setCheckout(false)
+    if (!open) setSent(null)
   }, [open])
 
   const chosen = options.find((o) => o.code === planCode) ?? options[0]
@@ -111,23 +130,24 @@ export function UpgradeSheet() {
     monthly && chosen?.period_days && chosen.period_days >= 365
       ? Math.round((1 - chosen.price_usd / (monthly.price_usd * 12)) * 100)
       : 0
-  // Open QRs resolve themselves; only manual requests wait for a review.
-  const pending = payments.data?.filter((p) => p.status === "PENDING" && p.method !== "KHQR") ?? []
+  const pending = payments.data?.filter((p) => p.status === "PENDING") ?? []
+  const qrUrl = instructions.khqr_image_url
 
   const request = useMutation({
     mutationFn: async () => {
       const supabase = getSupabaseBrowserClient()!
-      const { error } = await supabase.rpc("request_upgrade", {
+      const { data, error } = await supabase.rpc("request_upgrade", {
         p_plan_code: planCode,
-        p_method: method,
+        p_method: qrUrl ? "KHQR" : "BANK_TRANSFER",
         p_reference: reference,
         p_currency: currency,
       })
       if (error) throw error
+      return data as PaymentRow
     },
-    onSuccess: () => {
+    onSuccess: (row) => {
       setReference("")
-      toast.success(t("upgrade.sent"))
+      setSent({ ...row, amount: Number(row.amount) })
       void queryClient.invalidateQueries({ queryKey: ["payments-mine"] })
     },
     onError: (error) => toast.error(/too_many_pending/.test(String((error as Error).message)) ? t("upgrade.tooMany") : t("common.error")),
@@ -153,19 +173,47 @@ export function UpgradeSheet() {
   const price = (o: (typeof options)[number]) => (currency === "USD" ? formatMoney(o.price_usd, "USD") : formatMoney(o.price_khr, "KHR"))
   const note = locale === "km" ? instructions.note_km : instructions.note_en
 
+  // --- after "I have paid" ---------------------------------------------------------
+  if (sent) {
+    const code = paymentCode(sent.id)
+    return (
+      <BottomSheet open={open} onOpenChange={(v) => !v && close()} title={t("upgrade.title")}>
+        <div className="flex flex-col items-center gap-3 py-2 text-center">
+          <CircleCheckBigIcon className="size-14 text-[#10B981]" aria-hidden />
+          <p className="text-lg font-semibold">{t("upgrade.sentTitle")}</p>
+          <p className="text-sm text-muted-foreground">{t("upgrade.sentSlip")}</p>
+          <button
+            type="button"
+            onClick={() => copy(code)}
+            className="flex items-center gap-2 rounded-xl border border-dashed px-4 py-2 font-mono text-lg font-bold tracking-widest"
+            aria-label={t("family.copyCode")}
+          >
+            #{code}
+            <CopyIcon className="size-4 text-muted-foreground" aria-hidden />
+          </button>
+          <p className="text-xs text-muted-foreground">
+            {formatMoney(sent.amount, sent.currency)} · {t(sent.plan_code === "PRO_YEARLY" ? "upgrade.yearly" : "upgrade.monthly")}
+          </p>
+          {contacts?.telegram_url ? (
+            <Button asChild className="h-12 w-full bg-[#229ED9] text-base text-white hover:bg-[#229ED9]/90">
+              <a href={contacts.telegram_url} target="_blank" rel="noopener noreferrer" onClick={() => void navigator.clipboard?.writeText(`#${code}`).catch(() => {})}>
+                <SendIcon />
+                {t("upgrade.sendSlip")}
+              </a>
+            </Button>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t("upgrade.reviewHint")}</p>
+          )}
+          <Button variant="ghost" className="w-full" onClick={close}>
+            {t("upgrade.done")}
+          </Button>
+        </div>
+      </BottomSheet>
+    )
+  }
+
   return (
     <BottomSheet open={open} onOpenChange={(v) => !v && close()} title={t("upgrade.title")} description={t(`upgrade.reason.${reason satisfies UpgradeReason}`)}>
-      {checkout && signedIn ? (
-        <KhqrCheckout
-          planCode={planCode}
-          currency={currency}
-          onBack={() => setCheckout(false)}
-          onDone={() => {
-            setCheckout(false)
-            close()
-          }}
-        />
-      ) : (
       <div className="space-y-5">
         {isPro && plan.period_end && (
           <p className="flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
@@ -251,103 +299,46 @@ export function UpgradeSheet() {
               </div>
             </div>
 
-            {khqr && (
-              <div className="space-y-2">
-                <Button className="h-14 w-full text-base" onClick={() => setCheckout(true)}>
-                  <QrCodeIcon />
-                  {t("khqr.payWith", { amount: chosen ? price(chosen) : "" })}
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">{t("khqr.payHint")}</p>
-              </div>
-            )}
-
-            {khqr ? (
-              <details className="group space-y-3 rounded-xl border px-3 py-2">
-                <summary className="flex cursor-pointer list-none items-center justify-between text-sm text-muted-foreground [&::-webkit-details-marker]:hidden">
-                  {t("khqr.manual")}
-                  <ChevronDownIcon className="size-4 transition-transform group-open:rotate-180" aria-hidden />
-                </summary>
-                <div className="space-y-3 pb-2">
-              {/* How to pay (set by the admin) */}
-              <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm">
-                <p className="font-medium">{t("upgrade.howToPay", { amount: chosen ? price(chosen) : "" })}</p>
-                {instructions.account_number ? (
-                  <div className="space-y-0.5">
-                    {instructions.bank && <p>{instructions.bank}</p>}
-                    {instructions.account_name && <p className="text-muted-foreground">{instructions.account_name}</p>}
-                    <button
-                      type="button"
-                      onClick={() => copy(instructions.account_number!)}
-                      className="flex items-center gap-1.5 font-mono font-semibold tracking-wider"
-                    >
-                      {instructions.account_number}
-                      <CopyIcon className="size-3.5 text-muted-foreground" aria-label={t("family.copyCode")} />
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">{t("upgrade.noInstructions")}</p>
-                )}
-                {note && <p className="text-xs whitespace-pre-line text-muted-foreground">{note}</p>}
-              </div>
-
-              <form
-                className="space-y-3"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  request.mutate()
-                }}
-              >
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1.5">
-                    <Label>{t("upgrade.method")}</Label>
-                    <Select value={method} onValueChange={(v) => setMethod(v as typeof method)}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {METHODS.map((m) => (
-                          <SelectItem key={m} value={m}>
-                            {t(`upgrade.method.${m}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pay-ref">{t("upgrade.reference")}</Label>
-                    <Input id="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} placeholder="TRX..." />
-                  </div>
+            {/* Static KHQR (or the bank account when no QR is set) */}
+            <div className="space-y-3 rounded-2xl border p-4">
+              {qrUrl && (
+                <div className="mx-auto w-full max-w-60 overflow-hidden rounded-xl border bg-white p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- admin-uploaded image on Supabase Storage */}
+                  <img src={qrUrl} alt="KHQR" className="aspect-square w-full object-contain" />
                 </div>
-                <Button type="submit" className="h-12 w-full text-base" disabled={request.isPending}>
-                  {request.isPending ? <Loader2Icon className="animate-spin" /> : <CrownIcon />}
-                  {t("upgrade.paid")}
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">{t("upgrade.reviewHint")}</p>
-              </form>
-                </div>
-              </details>
-            ) : (
-              <>
-            {/* How to pay (set by the admin) */}
-            <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm">
-              <p className="font-medium">{t("upgrade.howToPay", { amount: chosen ? price(chosen) : "" })}</p>
-              {instructions.account_number ? (
-                <div className="space-y-0.5">
-                  {instructions.bank && <p>{instructions.bank}</p>}
-                  {instructions.account_name && <p className="text-muted-foreground">{instructions.account_name}</p>}
-                  <button
-                    type="button"
-                    onClick={() => copy(instructions.account_number!)}
-                    className="flex items-center gap-1.5 font-mono font-semibold tracking-wider"
-                  >
-                    {instructions.account_number}
-                    <CopyIcon className="size-3.5 text-muted-foreground" aria-label={t("family.copyCode")} />
-                  </button>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">{t("upgrade.noInstructions")}</p>
               )}
-              {note && <p className="text-xs whitespace-pre-line text-muted-foreground">{note}</p>}
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">{t("upgrade.payExactly")}</p>
+                <p className="text-3xl font-bold tabular-nums">{chosen ? price(chosen) : "—"}</p>
+              </div>
+              {(instructions.account_name || instructions.account_number) && (
+                <div className="space-y-1 rounded-xl bg-muted/60 px-3 py-2 text-sm">
+                  {instructions.account_name && (
+                    <p className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">{t("upgrade.accountName")}</span>
+                      <span className="font-semibold">{instructions.account_name}</span>
+                    </p>
+                  )}
+                  {instructions.account_number && (
+                    <p className="flex justify-between gap-2">
+                      <span className="text-muted-foreground">{instructions.bank || t("upgrade.accountNumber")}</span>
+                      <button type="button" onClick={() => copy(instructions.account_number!)} className="flex items-center gap-1.5 font-mono font-semibold tracking-wider">
+                        {instructions.account_number}
+                        <CopyIcon className="size-3.5 text-muted-foreground" aria-label={t("family.copyCode")} />
+                      </button>
+                    </p>
+                  )}
+                </div>
+              )}
+              {!qrUrl && !instructions.account_number && <p className="text-center text-sm text-muted-foreground">{t("upgrade.noInstructions")}</p>}
+              {qrUrl && (
+                <Button variant="outline" className="h-11 w-full" onClick={() => void saveQrImage(qrUrl)}>
+                  <DownloadIcon />
+                  {t("upgrade.saveQr")}
+                </Button>
+              )}
+              <p className="text-center text-sm font-medium">{t(qrUrl ? "upgrade.scanThenTap" : "upgrade.transferThenTap")}</p>
+              {note && <p className="text-center text-xs whitespace-pre-line text-muted-foreground">{note}</p>}
             </div>
 
             <form
@@ -357,35 +348,15 @@ export function UpgradeSheet() {
                 request.mutate()
               }}
             >
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <Label>{t("upgrade.method")}</Label>
-                  <Select value={method} onValueChange={(v) => setMethod(v as typeof method)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {METHODS.map((m) => (
-                        <SelectItem key={m} value={m}>
-                          {t(`upgrade.method.${m}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="pay-ref">{t("upgrade.reference")}</Label>
-                  <Input id="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} placeholder="TRX..." />
-                </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pay-ref">{t("upgrade.referenceOptional")}</Label>
+                <Input id="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} placeholder="TRX…" />
               </div>
               <Button type="submit" className="h-12 w-full text-base" disabled={request.isPending}>
                 {request.isPending ? <Loader2Icon className="animate-spin" /> : <CrownIcon />}
-                {t("upgrade.paid")}
+                {t("upgrade.iHavePaid")}
               </Button>
-              <p className="text-center text-xs text-muted-foreground">{t("upgrade.reviewHint")}</p>
             </form>
-              </>
-            )}
             <Link
               href="/support?category=PAYMENT&from=upgrade"
               onClick={close}
@@ -402,6 +373,7 @@ export function UpgradeSheet() {
                     <Loader2Icon className="size-4 shrink-0 animate-spin text-amber-600" aria-hidden />
                     <span className="flex-1">
                       {t("upgrade.pending", { amount: formatMoney(p.amount, p.currency), date: format(new Date(p.created_at), "dd/MM HH:mm") })}
+                      <span className="ml-1 font-mono text-xs text-muted-foreground">#{paymentCode(p.id)}</span>
                     </span>
                     <Button size="icon" variant="ghost" className="size-7" onClick={() => cancel.mutate(p.id)} aria-label={t("upgrade.cancelRequest")}>
                       <XIcon className="size-4" />
@@ -413,7 +385,6 @@ export function UpgradeSheet() {
           </>
         )}
       </div>
-      )}
     </BottomSheet>
   )
 }

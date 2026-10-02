@@ -29,10 +29,8 @@ export function BillingSync() {
         void queryClient.invalidateQueries({ queryKey: ["plan"] })
       })
       .on("postgres_changes", { schema: "public", table: "payments", event: "UPDATE", filter }, (payload) => {
-        const row = payload.new as { status?: string; method?: string }
-        const status = row.status
-        // KHQR checkouts celebrate on their own screen.
-        if (status === "PAID" && row.method !== "KHQR") toast.success(t("upgrade.approved"))
+        const status = (payload.new as { status?: string }).status
+        if (status === "PAID") toast.success(t("upgrade.approved"))
         if (status === "REJECTED") toast.error(t("upgrade.rejected"))
         void queryClient.invalidateQueries({ queryKey: ["payments-mine"] })
         void queryClient.invalidateQueries({ queryKey: ["plan"] })

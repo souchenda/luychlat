@@ -12,12 +12,14 @@ import {
   Loader2Icon,
   SearchIcon,
   ShieldAlertIcon,
+  UploadIcon,
   UsersIcon,
   XIcon,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
+import { paymentCode, type PaymentInstructions } from "@/components/billing/upgrade-sheet"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -222,7 +224,7 @@ function PendingPayments() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                {t(`upgrade.method.${p.method}` as MessageKey)}
+                <span className="font-mono font-semibold text-foreground">#{paymentCode(p.id)}</span> · {t(`upgrade.method.${p.method}` as MessageKey)}
                 {p.reference && <span className="font-mono"> · {p.reference}</span>} · {ago(p.created_at)}
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -464,7 +466,28 @@ function ReferralStatsCard() {
   )
 }
 
-type Instructions = { bank?: string; account_name?: string; account_number?: string; note_km?: string; note_en?: string }
+type Instructions = PaymentInstructions
+
+const QR_BUCKET = "payment-qr"
+const MAX_QR_BYTES = 2 * 1024 * 1024
+
+/** Big screenshots are scaled down (PNG keeps the QR sharp); small ones upload as they are. */
+async function prepareQrImage(file: File): Promise<Blob> {
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error("type")
+  const bitmap = await createImageBitmap(file)
+  const longest = Math.max(bitmap.width, bitmap.height)
+  if (longest <= 1600 && file.size <= MAX_QR_BYTES) return file
+  const scale = Math.min(1, 1600 / longest)
+  const canvas = document.createElement("canvas")
+  canvas.width = Math.round(bitmap.width * scale)
+  canvas.height = Math.round(bitmap.height * scale)
+  const ctx = canvas.getContext("2d")!
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))
+  if (!blob || blob.size > MAX_QR_BYTES) throw new Error("size")
+  return blob
+}
 
 function PaymentInstructionsForm() {
   const t = useT()
@@ -494,6 +517,34 @@ function PaymentInstructionsForm() {
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [key]: e.target.value })),
   })
 
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : ""
+  const qr = form.khqr_image_url?.trim() ?? ""
+  // The app's security policy only shows images from this site or our Supabase.
+  const qrAllowed = !qr || (qr.startsWith("https://") && (qr.startsWith(`${supabaseOrigin}/`) || (typeof window !== "undefined" && qr.startsWith(`${window.location.origin}/`))))
+
+  const upload = async (file: File | undefined) => {
+    if (!file) return
+    setUploading(true)
+    try {
+      const blob = await prepareQrImage(file)
+      const ext = blob.type === "image/jpeg" ? "jpg" : blob.type === "image/webp" ? "webp" : "png"
+      const path = `khqr-${Date.now()}.${ext}`
+      const supabase = getSupabaseBrowserClient()!
+      const { error } = await supabase.storage.from(QR_BUCKET).upload(path, blob, { contentType: blob.type || "image/png", cacheControl: "31536000", upsert: false })
+      if (error) throw error
+      const url = supabase.storage.from(QR_BUCKET).getPublicUrl(path).data.publicUrl
+      setForm((f) => ({ ...f, khqr_image_url: url }))
+      toast.success(t("admin.qrUploaded"))
+    } catch (error) {
+      toast.error(/type|size/.test(String((error as Error).message)) ? t("admin.qrInvalid") : t("common.error"))
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ""
+    }
+  }
+
   return (
     <Section title={t("admin.paymentInstructions")} icon={<CrownIcon />}>
       <Card className="px-4 py-4">
@@ -504,6 +555,35 @@ function PaymentInstructionsForm() {
             save.mutate()
           }}
         >
+          {/* Static KHQR image */}
+          <div className="space-y-2">
+            <Label>{t("admin.qrImage")}</Label>
+            <div className="flex items-start gap-3">
+              <div className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-white">
+                {qr && qrAllowed ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- admin-uploaded image on Supabase Storage
+                  <img src={qr} alt="KHQR" className="size-full object-contain" />
+                ) : (
+                  <QrCodeIcon className="size-8 text-neutral-300" aria-hidden />
+                )}
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => void upload(e.target.files?.[0])} aria-label={t("admin.qrUpload")} />
+                <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                  {uploading ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
+                  {t("admin.qrUpload")}
+                </Button>
+                {qr && (
+                  <Button type="button" variant="ghost" size="sm" className="w-full text-destructive" onClick={() => setForm((f) => ({ ...f, khqr_image_url: "" }))}>
+                    {t("admin.qrRemove")}
+                  </Button>
+                )}
+                <p className="text-[11px] text-muted-foreground">{t("admin.qrHint")}</p>
+              </div>
+            </div>
+            <Input placeholder="https://…/payment-qr/khqr.png" inputMode="url" maxLength={500} aria-label={t("admin.qrUrl")} {...field("khqr_image_url")} />
+            {!qrAllowed && <p className="text-xs text-[#F43F5E]">{t("admin.qrUrlBlocked")}</p>}
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="pi-bank">{t("admin.bank")}</Label>
             <Input id="pi-bank" placeholder="ABA Bank" maxLength={80} {...field("bank")} />
@@ -526,7 +606,7 @@ function PaymentInstructionsForm() {
             <Label htmlFor="pi-en">{t("admin.noteEn")}</Label>
             <Textarea id="pi-en" rows={2} maxLength={500} {...field("note_en")} />
           </div>
-          <Button type="submit" className="w-full" disabled={save.isPending}>
+          <Button type="submit" className="w-full" disabled={save.isPending || uploading || !qrAllowed}>
             {t("common.save")}
           </Button>
         </form>
@@ -690,64 +770,6 @@ function SupportContactsForm() {
 }
 
 
-type KhqrHealth = {
-  requested_mode: string
-  mode: "off" | "sandbox" | "production"
-  problems: string[]
-  account: string | null
-  merchant_name: string
-  api_url: string
-  has_token: boolean
-  bakong: { kind: string; ok?: boolean; message: string; ms?: number }
-}
-
-/** KHQR checkout: mode, missing settings, and a live Bakong connection test. */
-function KhqrStatusCard() {
-  const t = useT()
-  const [result, setResult] = useState<KhqrHealth | null>(null)
-  const test = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/billing/khqr/health", { cache: "no-store" })
-      if (!res.ok) throw new Error(String(res.status))
-      return (await res.json()) as KhqrHealth
-    },
-    onSuccess: setResult,
-    onError: () => toast.error(t("common.error")),
-  })
-  const mode = result?.mode
-  return (
-    <Section title="KHQR · Bakong" icon={<QrCodeIcon />}>
-      <Card className="gap-3 px-4 py-4 text-sm">
-        <p className="text-xs text-muted-foreground">{t("admin.khqrHint")}</p>
-        <Button variant="outline" onClick={() => test.mutate()} disabled={test.isPending}>
-          {test.isPending ? <Loader2Icon className="animate-spin" /> : <ActivityIcon />}
-          {t("admin.khqrTest")}
-        </Button>
-        {result && (
-          <div className="space-y-1.5 rounded-lg bg-muted/60 p-3 text-xs">
-            <p>
-              <span className="text-muted-foreground">{t("admin.khqrMode")}: </span>
-              <span className={cn("font-semibold", mode === "production" ? "text-[#10B981]" : mode === "sandbox" ? "text-amber-600" : "text-muted-foreground")}>
-                {mode}
-              </span>
-              {result.requested_mode !== mode && <span className="text-[#F43F5E]"> ({t("admin.khqrRequested", { mode: result.requested_mode })})</span>}
-            </p>
-            {result.problems.map((p) => (
-              <p key={p} className="text-[#F43F5E]">• {p}</p>
-            ))}
-            <p className="font-mono break-all">{result.account ?? "—"} · {result.merchant_name}</p>
-            <p className="font-mono break-all text-muted-foreground">{result.api_url}</p>
-            <p className={result.bakong.ok ? "text-[#10B981]" : result.bakong.kind === "skipped" ? "text-muted-foreground" : "text-[#F43F5E]"}>
-              Bakong: {result.bakong.message}
-              {result.bakong.ms !== undefined && ` (${result.bakong.ms} ms)`}
-            </p>
-          </div>
-        )}
-      </Card>
-    </Section>
-  )
-}
-
 export default function AdminPage() {
   const t = useT()
   const { plan, loading } = usePlan()
@@ -770,7 +792,6 @@ export default function AdminPage() {
       <SupportTickets />
       <Subscribers />
       <ReferralStatsCard />
-      <KhqrStatusCard />
       <PaymentInstructionsForm />
       <SupportContactsForm />
     </div>
