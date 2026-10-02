@@ -98,22 +98,25 @@ export default function HomePage() {
   )
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* One row: greeting on the left, today's date and the festival / wish on the right. */}
       <header>
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold">{displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}</h1>
-          {/* Today's date, so nobody has to leave the app to check it. */}
-          <p className="text-xs text-muted-foreground">
-            <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
-              {longDate(today, locale)}
-            </time>
-          </p>
-          {/* One quiet line: the festival of the day (Kan Ben day, Pchum Ben, …) or an everyday wish. */}
-          <p className={festive ? "truncate text-sm font-medium text-primary" : "truncate text-sm text-muted-foreground"}>
-            {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)} ✨
-          </p>
-          {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="min-w-0 truncate pt-0.5 text-lg font-bold">
+            {displayName ? t("home.greetingName", { name: displayName }) : t("home.greeting")}
+          </h1>
+          <div className="min-w-0 max-w-[62%] text-right leading-tight">
+            <p className="truncate text-xs text-muted-foreground">
+              <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
+                {longDate(today, locale)}
+              </time>
+            </p>
+            <p className={festive ? "truncate text-xs font-medium text-primary" : "truncate text-xs text-muted-foreground"}>
+              {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)} ✨
+            </p>
+          </div>
         </div>
+        {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
       </header>
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} />
@@ -127,14 +130,14 @@ export default function HomePage() {
 
       <div className={editable ? "grid grid-cols-3 gap-2" : "hidden"}>
         <Button
-          className="h-12 flex-col gap-0.5 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+          className="h-11 flex-col gap-0.5 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
           onClick={() => setEntryType("INCOME")}
         >
           <PlusIcon className="size-4" />
           <span className="text-xs">{t("tx.INCOME")}</span>
         </Button>
         <Button
-          className="h-12 flex-col gap-0.5 bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500"
+          className="h-11 flex-col gap-0.5 bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500"
           onClick={() => setEntryType("EXPENSE")}
         >
           <MinusIcon className="size-4" />
@@ -142,7 +145,7 @@ export default function HomePage() {
         </Button>
         <Button
           variant="secondary"
-          className="h-12 flex-col gap-0.5"
+          className="h-11 flex-col gap-0.5"
           onClick={() => setTransferOpen(true)}
           disabled={active.length < 2}
         >
