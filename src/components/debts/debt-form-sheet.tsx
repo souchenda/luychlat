@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ArrowDownLeftIcon, ArrowUpRightIcon, Loader2Icon, ShieldCheckIcon } from "lucide-react"
+import { ArrowDownLeftIcon, CrownIcon, ArrowUpRightIcon, Loader2Icon, ShieldCheckIcon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { computeSchedule, MAX_MONTHS } from "@/lib/loans/amortization"
+import { scheduleToSave } from "@/lib/loans/installments"
+import { showUpgrade, usePlan } from "@/lib/plan"
 import { WalletSelect } from "@/components/wallets/wallet-select"
 import { usableWallets, useDebtMutations, useProfile, useWallets } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
@@ -52,12 +55,19 @@ function buildSchema(paid: number) {
       premium: z.string(),
       premiumCurrency: z.enum(["USD", "KHR"]),
       renewal: z.string(),
+      /** Installment schedule (PRO): equal payments every month or week. */
+      schedOn: z.boolean(),
+      schedFrequency: z.enum(["MONTHLY", "WEEKLY"]),
+      schedCount: z.string(),
+      schedMethod: z.enum(["REDUCING", "FLAT"]),
+      schedFirst: z.string(),
     })
     .superRefine((v, ctx) => {
       if (v.moveMoney && !v.walletId) ctx.addIssue({ code: "custom", path: ["walletId"], message: "transfer.select" })
       const total = parseAmount(v.total)
       if (!(total > 0)) ctx.addIssue({ code: "custom", path: ["total"], message: "walletForm.amountInvalid" })
-      else if (total < paid) ctx.addIssue({ code: "custom", path: ["total"], message: "debtForm.totalBelowPaid" })
+      // With a schedule the total to repay includes interest (checked when saving).
+      else if (total < paid && !v.schedOn) ctx.addIssue({ code: "custom", path: ["total"], message: "debtForm.totalBelowPaid" })
       if (v.interest && !(parseAmount(v.interest) >= 0)) {
         ctx.addIssue({ code: "custom", path: ["interest"], message: "walletForm.amountInvalid" })
       }
@@ -111,7 +121,7 @@ export function DebtFormSheet({
           type: debt.type,
           party: debt.party_name,
           phone: debt.contact_phone ? toNationalNumber(debt.contact_phone) : "",
-          total: String(debt.total_amount),
+          total: String(debt.schedule_principal ?? debt.total_amount),
           currency: debt.currency,
           interest: debt.interest_rate ? String(debt.interest_rate) : "",
           interestPeriod: debt.interest_period,
@@ -127,6 +137,11 @@ export function DebtFormSheet({
           premium: debt.insurance_premium != null ? String(debt.insurance_premium) : "",
           premiumCurrency: debt.insurance_currency ?? debt.currency,
           renewal: debt.insurance_renewal_date ?? "",
+          schedOn: Boolean(debt.schedule_frequency),
+          schedFrequency: debt.schedule_frequency ?? "MONTHLY",
+          schedCount: debt.schedule_count ? String(debt.schedule_count) : "12",
+          schedMethod: debt.schedule_method ?? "REDUCING",
+          schedFirst: debt.schedule_first_due ?? "",
         }
       : {
           type: prefill?.type ?? defaultType,
@@ -148,6 +163,11 @@ export function DebtFormSheet({
           premium: "",
           premiumCurrency: prefill?.currency ?? "USD",
           renewal: "",
+          schedOn: false,
+          schedFrequency: "MONTHLY",
+          schedCount: "12",
+          schedMethod: "REDUCING",
+          schedFirst: "",
         }
 
   const { control, register, handleSubmit, reset, setValue, formState } = useForm<FormValues>({
@@ -159,6 +179,27 @@ export function DebtFormSheet({
     control,
     name: ["type", "moveMoney", "walletId", "total", "currency", "insured", "qardHasan"],
   })
+  const [schedOn, schedFrequency, schedCountText, schedMethod, schedFirst, interestText, interestPeriod, startDate] = useWatch({
+    control,
+    name: ["schedOn", "schedFrequency", "schedCount", "schedMethod", "schedFirst", "interest", "interestPeriod", "startDate"],
+  })
+  const { isPro } = usePlan()
+  // Live preview of the installments (also what gets saved).
+  const schedulePreview = useMemo(() => {
+    const principal = parseAmount(totalText)
+    const count = Number(schedCountText)
+    if (!schedOn || !(principal > 0) || !Number.isInteger(count) || count < 1 || count > MAX_MONTHS) return null
+    return computeSchedule({
+      principal: roundMoney(principal, currency),
+      currency,
+      rate: qardHasan ? 0 : parseAmount(interestText || "0") || 0,
+      ratePeriod: interestPeriod,
+      months: count,
+      method: schedMethod,
+      frequency: schedFrequency,
+      firstPaymentDate: schedFirst || startDate,
+    })
+  }, [schedOn, totalText, schedCountText, currency, qardHasan, interestText, interestPeriod, schedMethod, schedFrequency, schedFirst, startDate])
   const moneyWallet = activeWallets.find((w) => w.id === walletId)
   const totalValue = disbursementAmount ?? parseAmount(totalText)
   const moneyConverted =
@@ -172,6 +213,23 @@ export function DebtFormSheet({
   }, [open, debt?.id])
 
   const onSubmit = handleSubmit(async (v) => {
+    if (v.schedOn && !schedulePreview) return void toast.error(t("schedule.invalid"))
+    if (v.schedOn && schedulePreview && schedulePreview.totalPayment < paid) {
+      return void toast.error(t("debtForm.totalBelowPaid", { amount: formatMoney(paid, v.currency) }))
+    }
+    const scheduleFields =
+      v.schedOn && schedulePreview
+        ? scheduleToSave(schedulePreview, {
+            frequency: v.schedFrequency,
+            count: Number(v.schedCount),
+            method: v.schedMethod,
+            firstDue: v.schedFirst || v.startDate,
+            principal: roundMoney(parseAmount(v.total), v.currency),
+          })
+        : debt?.schedule_frequency
+          ? // Schedule removed: back to a plain debt of the amount entered.
+            { schedule_frequency: null, schedule_count: null, schedule_method: null, schedule_first_due: null, schedule_payment: null, schedule_principal: null }
+          : {}
     const input: DebtInput = {
       type: v.type,
       party_name: v.party.trim(),
@@ -196,6 +254,8 @@ export function DebtFormSheet({
             insurance_renewal_date: v.renewal || null,
           }
         : { insured: false, insurer: null, insurance_policy_no: null, insurance_premium: null, insurance_currency: null, insurance_renewal_date: null }),
+      // With a schedule: total = everything to repay, due date = last installment.
+      ...scheduleFields,
     }
     const target = activeWallets.find((w) => w.id === v.walletId)
     const disbursement: DebtDisbursement | undefined =
@@ -215,8 +275,9 @@ export function DebtFormSheet({
       toast.success(t("debtForm.saved"))
       onOpenChange(false)
       onSaved?.(saved)
-    } catch {
-      toast.error(t("common.error"))
+    } catch (error) {
+      if (/plan_required/.test(String((error as Error)?.message))) showUpgrade("general")
+      else toast.error(t("common.error"))
     }
   })
 
@@ -292,7 +353,7 @@ export function DebtFormSheet({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="debt-total">{t("debtForm.total")}</Label>
+          <Label htmlFor="debt-total">{t(schedOn ? "schedule.principal" : "debtForm.total")}</Label>
           <div className="flex items-center gap-2">
             <Input
               id="debt-total"
@@ -382,12 +443,99 @@ export function DebtFormSheet({
             <Label htmlFor="debt-start">{t("debtForm.startDate")}</Label>
             <Input id="debt-start" type="date" className="h-11" max="9999-12-31" {...register("startDate")} />
           </div>
-          <div className="space-y-2">
+          <div className={cn("space-y-2", schedOn && "hidden")}>
             <Label htmlFor="debt-due">{t("debtForm.dueDate")}</Label>
             <Input id="debt-due" type="date" className="h-11" max="9999-12-31" {...register("dueDate")} />
           </div>
         </div>
         {err("dueDate")}
+
+        {/* Installment schedule (PRO): monthly / weekly payments with the interest split out. */}
+        <div className={cn("space-y-3 rounded-xl border p-3", schedOn && "border-primary/30 bg-primary/5")}>
+          <label className="flex items-center gap-3">
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                {t("schedule.title")}
+                {!isPro && <CrownIcon className="size-3.5 text-amber-500" aria-label="PRO" />}
+              </span>
+              <span className="block text-xs text-muted-foreground">{t("schedule.hint")}</span>
+            </span>
+            <Controller
+              control={control}
+              name="schedOn"
+              render={({ field }) => (
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={(on) => {
+                    if (on && !isPro && !debt?.schedule_frequency) return showUpgrade("general")
+                    field.onChange(on)
+                  }}
+                  aria-label={t("schedule.title")}
+                />
+              )}
+            />
+          </label>
+          {schedOn && (
+            <>
+              <Controller
+                control={control}
+                name="schedFrequency"
+                render={({ field }) => (
+                  <Segmented
+                    aria-label={t("schedule.frequency")}
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={[
+                      { value: "MONTHLY", label: t("schedule.MONTHLY") },
+                      { value: "WEEKLY", label: t("schedule.WEEKLY") },
+                    ]}
+                  />
+                )}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="sched-count">{t(schedFrequency === "WEEKLY" ? "schedule.countWeeks" : "schedule.countMonths")}</Label>
+                  <Input id="sched-count" className="h-11 bg-background tabular-nums" inputMode="numeric" maxLength={3} {...register("schedCount")} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="sched-first">{t("schedule.firstDue")}</Label>
+                  <Input id="sched-first" type="date" className="h-11 bg-background" max="9999-12-31" {...register("schedFirst")} />
+                </div>
+              </div>
+              {!qardHasan && (
+                <Controller
+                  control={control}
+                  name="schedMethod"
+                  render={({ field }) => (
+                    <Segmented
+                      aria-label={t("schedule.method")}
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={[
+                        { value: "REDUCING", label: t("loan.reducing") },
+                        { value: "FLAT", label: t("loan.flat") },
+                      ]}
+                    />
+                  )}
+                />
+              )}
+              {schedulePreview ? (
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1 rounded-lg bg-background p-3 text-sm">
+                  <dt className="text-muted-foreground">{t(schedFrequency === "WEEKLY" ? "schedule.perWeek" : "schedule.perMonth")}</dt>
+                  <dd className="text-right font-semibold tabular-nums">{formatMoney(schedulePreview.monthlyPayment, currency)}</dd>
+                  <dt className="text-muted-foreground">{t("schedule.totalInterest")}</dt>
+                  <dd className="text-right tabular-nums">{formatMoney(schedulePreview.totalInterest, currency)}</dd>
+                  <dt className="text-muted-foreground">{t("schedule.totalToRepay")}</dt>
+                  <dd className="text-right font-semibold tabular-nums">{formatMoney(schedulePreview.totalPayment, currency)}</dd>
+                  <dt className="text-muted-foreground">{t("schedule.lastPayment")}</dt>
+                  <dd className="text-right tabular-nums">{schedulePreview.lastPaymentDate.split("-").reverse().join("/")}</dd>
+                </dl>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t("schedule.invalid")}</p>
+              )}
+            </>
+          )}
+        </div>
 
         {!debt && (
           <div className="space-y-3 rounded-xl border p-3">

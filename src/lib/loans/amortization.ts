@@ -1,9 +1,10 @@
-import { addMonths, format, parseISO } from "date-fns"
+import { addMonths, addWeeks, format, parseISO } from "date-fns"
 
 import type { Currency, InterestPeriod } from "@/lib/data/types"
 import { roundMoney } from "@/lib/money"
 
 export type LoanMethod = "FLAT" | "REDUCING"
+export type LoanFrequency = "MONTHLY" | "WEEKLY"
 
 export type LoanInput = {
   principal: number
@@ -11,8 +12,10 @@ export type LoanInput = {
   /** Percent per `ratePeriod`. */
   rate: number
   ratePeriod: InterestPeriod
+  /** Number of installments (months, or weeks when `frequency` is WEEKLY). */
   months: number
   method: LoanMethod
+  frequency?: LoanFrequency
   /** yyyy-MM-dd of the first installment. */
   firstPaymentDate: string
 }
@@ -42,6 +45,12 @@ export function monthlyRate(rate: number, period: InterestPeriod): number {
   return period === "MONTH" ? rate / 100 : rate / 100 / 12
 }
 
+/** Rate per installment period as a fraction (weekly = yearly ÷ 52). */
+export function periodRate(rate: number, period: InterestPeriod, frequency: LoanFrequency = "MONTHLY"): number {
+  const yearly = period === "MONTH" ? (rate / 100) * 12 : rate / 100
+  return frequency === "WEEKLY" ? yearly / 52 : yearly / 12
+}
+
 /**
  * - FLAT: interest on the original principal every month (common for MFI and
  *   informal loans in Cambodia): payment = P/n + P·r.
@@ -52,7 +61,9 @@ export function monthlyRate(rate: number, period: InterestPeriod): number {
  */
 export function computeSchedule(input: LoanInput): LoanSchedule {
   const { principal: P, currency, months: n, method } = input
-  const r = monthlyRate(input.rate, input.ratePeriod)
+  const frequency = input.frequency ?? "MONTHLY"
+  const r = periodRate(input.rate, input.ratePeriod, frequency)
+  const step = frequency === "WEEKLY" ? addWeeks : addMonths
   const round = (x: number) => roundMoney(x, currency)
 
   const regular =
@@ -67,7 +78,7 @@ export function computeSchedule(input: LoanInput): LoanSchedule {
     balance = round(balance - principalPart)
     rows.push({
       n: i,
-      date: format(addMonths(parseISO(input.firstPaymentDate), i - 1), "yyyy-MM-dd"),
+      date: format(step(parseISO(input.firstPaymentDate), i - 1), "yyyy-MM-dd"),
       payment: round(principalPart + interest),
       principal: principalPart,
       interest,

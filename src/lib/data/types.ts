@@ -142,6 +142,13 @@ export type DebtExtras = {
   doubtful?: boolean
   /** Up to two photos in the receipts bucket (<uploader>/<file>). */
   attachment_paths?: string[]
+  /** Installment schedule (PRO), see lib/loans/installments.ts. With one, total_amount includes the interest. */
+  schedule_frequency?: "MONTHLY" | "WEEKLY" | null
+  schedule_count?: number | null
+  schedule_method?: "FLAT" | "REDUCING" | null
+  schedule_first_due?: string | null
+  schedule_payment?: number | null
+  schedule_principal?: number | null
 }
 
 /** Optional loan insurance (e.g. credit life insurance the bank requires). */

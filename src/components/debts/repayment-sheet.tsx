@@ -44,12 +44,15 @@ export function RepaymentSheet({
   onOpenChange,
   debt,
   wallets,
+  initialAmount,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   debt: Debt
   /** All wallets of the workspace; archived ones are hidden. */
   wallets: Wallet[]
+  /** Pre-filled amount (e.g. the next installment); defaults to everything left. */
+  initialAmount?: number
 }) {
   const t = useT()
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
@@ -61,7 +64,7 @@ export function RepaymentSheet({
   const byId = useMemo(() => new Map(active.map((w) => [w.id, w])), [active])
 
   const defaults = (): FormValues => ({
-    amount: String(left),
+    amount: String(initialAmount !== undefined && initialAmount > 0 ? Math.min(initialAmount, left) : left),
     // Prefer a wallet in the debt's currency.
     walletId: (active.find((w) => w.currency === debt.currency) ?? active[0])?.id ?? "",
     date: toDateInput(new Date().toISOString()),

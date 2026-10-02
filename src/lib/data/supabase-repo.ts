@@ -73,6 +73,8 @@ const toDebt = (row: Debt): Debt => ({
   paid_amount: Number(row.paid_amount),
   interest_rate: Number(row.interest_rate),
   insurance_premium: row.insurance_premium == null ? null : Number(row.insurance_premium),
+  schedule_payment: row.schedule_payment == null ? null : Number(row.schedule_payment),
+  schedule_principal: row.schedule_principal == null ? null : Number(row.schedule_principal),
 })
 const toRepayment = (row: DebtRepayment): DebtRepayment => ({ ...row, amount_paid: Number(row.amount_paid) })
 const toBudget = (row: Budget): Budget => ({ ...row, amount: Number(row.amount) })

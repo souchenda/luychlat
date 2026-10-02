@@ -12,6 +12,7 @@ import { DebtPhotos } from "@/components/debts/debt-photos"
 import { DebtProgress } from "@/components/debts/debt-progress"
 import { ReminderSheet } from "@/components/debts/reminder-sheet"
 import { RepaymentSheet } from "@/components/debts/repayment-sheet"
+import { nextInstallmentAmount, ScheduleCard } from "@/components/debts/schedule-card"
 import { RecordedBy } from "@/components/family/member-avatar"
 import { UrgencyBadge } from "@/components/debts/urgency-badge"
 import { InsuranceCard, InsuredBadge } from "@/components/debts/insurance-card"
@@ -184,6 +185,8 @@ export default function DebtDetailPage() {
         )}
       </Card>
 
+      <ScheduleCard debt={debt} />
+
       <section className="space-y-2">
         <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("debt.history")}</h2>
         {repayments.length === 0 ? (
@@ -243,7 +246,7 @@ export default function DebtDetailPage() {
 
       <DebtPhotos debt={debt} />
 
-      <RepaymentSheet open={payOpen} onOpenChange={setPayOpen} debt={debt} wallets={wallets} />
+      <RepaymentSheet open={payOpen} onOpenChange={setPayOpen} debt={debt} wallets={wallets} initialAmount={nextInstallmentAmount(debt)} />
       <DebtFormSheet open={editOpen} onOpenChange={setEditOpen} workspaceId={workspace?.id} debt={debt} defaultType={debt.type} />
       {debt.type === "RECEIVABLE" && <ReminderSheet open={reminderOpen} onOpenChange={setReminderOpen} debt={debt} />}
     </div>
