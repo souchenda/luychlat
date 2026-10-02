@@ -27,7 +27,7 @@ Everything that matters is checked **in the database**. The app only shows the u
 - **Export / credit score:** client-side gating. The data is the user's own, so there is nothing to protect server-side.
 - **Expiry:** a plan is PRO while `subscriptions.status = 'ACTIVE'` and `current_period_end > now()`. No cron is needed. When PRO ends, existing wallets and members stay; only new ones are blocked.
 
-## Manual payments (until KHQR / Bakong, Step B)
+## Payments (static KHQR + manual approval, see docs/khqr.md)
 
 1. The user opens **Settings › My plan › Get PRO**, transfers money using the details you set in `/admin`, and taps **"I've paid — send for review"**. This creates a `payments` row with status `PENDING` (at most 3 pending per user).
 2. You open **`/admin` › Payments to review** and tap **Approve** or **Reject**.
