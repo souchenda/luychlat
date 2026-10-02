@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
+import type { BiometricPreference } from "@/lib/security/biometric"
 import { PIN_LENGTH } from "@/lib/security/pin"
 
 export const AUTO_LOCK_OPTIONS = [0, 1, 5, 15] as const
@@ -15,6 +16,8 @@ type PersistedLockState = {
   /** Digits in the saved PIN: 6, or 4 for a PIN made before 6-digit PINs. */
   pinLength: number
   biometricCredentialId: string | null
+  /** Icon/wording on the lock screen; "auto" guesses from the device. */
+  biometricPreference: BiometricPreference
   autoLockMinutes: AutoLockMinutes
   /** Failed attempts since the last successful unlock / lockout. */
   failedAttempts: number
@@ -28,6 +31,7 @@ type LockState = PersistedLockState & {
   setPin: (hash: string, salt: string) => void
   clearSecurity: () => void
   setBiometricCredential: (id: string | null) => void
+  setBiometricPreference: (preference: BiometricPreference) => void
   setAutoLock: (minutes: AutoLockMinutes) => void
   lock: () => void
   unlock: () => void
@@ -41,6 +45,7 @@ export const useLockStore = create<LockState>()(
       pinSalt: null,
       pinLength: PIN_LENGTH,
       biometricCredentialId: null,
+      biometricPreference: "auto",
       autoLockMinutes: 1,
       failedAttempts: 0,
       lockoutCount: 0,
@@ -60,6 +65,7 @@ export const useLockStore = create<LockState>()(
           isLocked: false,
         }),
       setBiometricCredential: (biometricCredentialId) => set({ biometricCredentialId }),
+      setBiometricPreference: (biometricPreference) => set({ biometricPreference }),
       setAutoLock: (autoLockMinutes) => set({ autoLockMinutes }),
       lock: () => {
         if (get().pinHash) set({ isLocked: true })
@@ -83,6 +89,7 @@ export const useLockStore = create<LockState>()(
         pinSalt: s.pinSalt,
         pinLength: s.pinLength,
         biometricCredentialId: s.biometricCredentialId,
+        biometricPreference: s.biometricPreference,
         autoLockMinutes: s.autoLockMinutes,
         failedAttempts: s.failedAttempts,
         lockoutCount: s.lockoutCount,

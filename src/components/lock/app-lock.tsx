@@ -1,16 +1,17 @@
 "use client"
 
-import { LockKeyholeIcon } from "lucide-react"
+import { Loader2Icon, LockKeyholeIcon, RotateCcwIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
 import { useT } from "@/lib/i18n/use-t"
-import { verifyBiometric } from "@/lib/security/biometric"
+import { biometricKind, verifyBiometric, type BiometricKind } from "@/lib/security/biometric"
 import { PIN_LENGTH, verifyPin } from "@/lib/security/pin"
 import { MAX_PIN_ATTEMPTS, useLockStore } from "@/stores/lock-store"
 
+import { BiometricIcon } from "./biometric-icon"
 import { PinPad } from "./pin-pad"
 import { PinSetupDialog } from "./pin-setup-dialog"
 
@@ -66,7 +67,7 @@ export function AppLock() {
   useAutoLock()
   const t = useT()
   const router = useRouter()
-  const { isLocked, pinHash, pinSalt, pinLength, biometricCredentialId, failedAttempts, lockoutUntil, unlock, registerFailure } =
+  const { isLocked, pinHash, pinSalt, pinLength, biometricCredentialId, biometricPreference, failedAttempts, lockoutUntil, unlock, registerFailure } =
     useLockStore()
   const [message, setMessage] = useState<string>()
   const [error, setError] = useState(false)
@@ -74,25 +75,59 @@ export function AppLock() {
   const secondsLeft = useCountdown(lockoutUntil)
   const lockedOut = secondsLeft > 0
   const autoPrompted = useRef(false)
+  // Face ID / fingerprint: icon and wording only; the device decides which scan it shows.
+  const [kind, setKind] = useState<BiometricKind>("any")
+  const [scanning, setScanning] = useState(false)
+  const [scanTries, setScanTries] = useState(0)
+  const scanAttempt = useRef(0)
 
-  const tryBiometric = useCallback(async () => {
-    if (!biometricCredentialId) return
-    if (await verifyBiometric(biometricCredentialId)) unlock()
-    else {
-      setError(true)
-      setMessage(t("lock.biometricFailed"))
-    }
-  }, [biometricCredentialId, unlock, t])
+  useEffect(() => setKind(biometricKind(biometricPreference)), [biometricPreference])
+
+  /**
+   * auto: the prompt shown when the lock screen opens. Browsers (iOS Safari
+   * especially) may refuse it without a tap, so its failure stays silent and
+   * the scan button simply waits for the user.
+   */
+  const tryBiometric = useCallback(
+    async (auto = false) => {
+      if (!biometricCredentialId) return
+      // A tap while scanning restarts the scan; only the latest attempt reports back.
+      const attempt = ++scanAttempt.current
+      setScanning(true)
+      setMessage(undefined)
+      setError(false)
+      const result = await verifyBiometric(biometricCredentialId)
+      if (attempt !== scanAttempt.current) return
+      setScanning(false)
+      if (result === "ok") {
+        setError(false)
+        setMessage(undefined)
+        setScanTries(0)
+        unlock()
+        return
+      }
+      if (auto) return
+      setScanTries((n) => n + 1)
+      setError(result === "failed")
+      setMessage(
+        t(result === "cancelled" ? "lock.biometricCancelled" : kind === "face" ? "lock.faceFailed" : "lock.biometricFailed"),
+      )
+    },
+    [biometricCredentialId, unlock, t, kind],
+  )
 
   // Offer biometrics once each time the lock screen appears.
   useEffect(() => {
     if (!isLocked) {
       autoPrompted.current = false
+      setScanTries(0)
+      setMessage(undefined)
+      setError(false)
       return
     }
     if (biometricCredentialId && !autoPrompted.current && !lockedOut) {
       autoPrompted.current = true
-      void tryBiometric()
+      void tryBiometric(true)
     }
   }, [isLocked, biometricCredentialId, lockedOut, tryBiometric])
 
@@ -133,6 +168,17 @@ export function AppLock() {
           <LockKeyholeIcon className="size-7" />
         </div>
         <p className="text-sm text-muted-foreground">{t("lock.title")}</p>
+        {biometricCredentialId && (
+          <Button
+            variant="secondary"
+            className="mt-2 h-11 rounded-full px-5"
+            onClick={() => void tryBiometric()}
+            disabled={lockedOut}
+          >
+            {scanning ? <Loader2Icon className="animate-spin" /> : scanTries > 0 ? <RotateCcwIcon /> : <BiometricIcon kind={kind} className="size-5" />}
+            {scanTries > 0 ? t("lock.retryBiometric") : t(`lock.unlock.${kind}`)}
+          </Button>
+        )}
       </div>
       <PinPad
         title={pinLength < PIN_LENGTH ? t("lock.enterOldPin") : t("lock.enterPin")}
@@ -141,8 +187,9 @@ export function AppLock() {
         error={error || lockedOut}
         disabled={lockedOut || checking}
         onComplete={onPin}
-        onBiometric={biometricCredentialId ? tryBiometric : undefined}
-        biometricLabel={t("lock.useBiometric")}
+        onBiometric={biometricCredentialId ? () => void tryBiometric() : undefined}
+        biometricLabel={t(`lock.unlock.${kind}`)}
+        biometricKind={kind}
       />
       <Button variant="link" className="text-muted-foreground" onClick={onForgot}>
         {t("lock.forgotPin")}

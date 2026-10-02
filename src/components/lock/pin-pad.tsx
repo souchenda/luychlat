@@ -1,10 +1,13 @@
 "use client"
 
-import { DeleteIcon, FingerprintIcon } from "lucide-react"
+import { DeleteIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
+import type { BiometricKind } from "@/lib/security/biometric"
 import { PIN_LENGTH } from "@/lib/security/pin"
 import { cn } from "@/lib/utils"
+
+import { BiometricIcon } from "./biometric-icon"
 
 type PinPadProps = {
   title: string
@@ -15,12 +18,24 @@ type PinPadProps = {
   /** Shows a biometric key in the bottom-left slot. */
   onBiometric?: () => void
   biometricLabel?: string
+  /** Which icon the biometric key shows. */
+  biometricKind?: BiometricKind
   /** Digits to collect: 6, or 4 to unlock with a not-yet-upgraded PIN. */
   length?: number
 }
 
 /** Numeric keypad with one dot per digit. Clears itself after each completed entry. */
-export function PinPad({ title, message, error, disabled, onComplete, onBiometric, biometricLabel, length = PIN_LENGTH }: PinPadProps) {
+export function PinPad({
+  title,
+  message,
+  error,
+  disabled,
+  onComplete,
+  onBiometric,
+  biometricLabel,
+  biometricKind = "any",
+  length = PIN_LENGTH,
+}: PinPadProps) {
   const [pin, setPinState] = useState("")
   const pinRef = useRef("")
 
@@ -97,7 +112,7 @@ export function PinPad({ title, message, error, disabled, onComplete, onBiometri
             disabled={disabled}
             aria-label={biometricLabel}
           >
-            <FingerprintIcon className="size-7 text-primary" />
+            <BiometricIcon kind={biometricKind} className="size-7 text-primary" />
           </button>
         ) : (
           <span />

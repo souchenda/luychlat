@@ -1,6 +1,6 @@
 "use client"
 
-import { BookOpenIcon, ChartColumnIcon, LifeBuoyIcon, ChevronRightIcon, CloudUploadIcon, CoinsIcon, TargetIcon, FingerprintIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import { BookOpenIcon, ChartColumnIcon, LifeBuoyIcon, ChevronRightIcon, CloudUploadIcon, CoinsIcon, TargetIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { PlanCard } from "@/components/billing/plan-card"
 import { ReferralCard } from "@/components/billing/referral"
 import { FamilySettings } from "@/components/family/family-settings"
+import { BiometricIcon } from "@/components/lock/biometric-icon"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { AiSettingsCard } from "@/components/settings/ai-settings"
 import { DangerZone } from "@/components/settings/danger-zone"
@@ -25,7 +26,14 @@ import { Switch } from "@/components/ui/switch"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { BIOMETRIC_MOCK, isBiometricAvailable, registerBiometric } from "@/lib/security/biometric"
+import {
+  BIOMETRIC_MOCK,
+  biometricKind,
+  isBiometricAvailable,
+  registerBiometric,
+  type BiometricKind,
+  type BiometricPreference,
+} from "@/lib/security/biometric"
 import { AUTO_LOCK_OPTIONS, type AutoLockMinutes, useLockStore } from "@/stores/lock-store"
 import { parseAmount } from "@/lib/money"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -102,8 +110,19 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const { locale, setLocale } = useLocaleStore()
   const { user, isGuest } = useSessionStore()
-  const { pinHash, biometricCredentialId, autoLockMinutes, setBiometricCredential, setAutoLock, clearSecurity, lock } =
-    useLockStore()
+  const {
+    pinHash,
+    biometricCredentialId,
+    biometricPreference,
+    autoLockMinutes,
+    setBiometricCredential,
+    setBiometricPreference,
+    setAutoLock,
+    clearSecurity,
+    lock,
+  } = useLockStore()
+  const [bioKind, setBioKind] = useState<BiometricKind>("any")
+  useEffect(() => setBioKind(biometricKind(biometricPreference)), [biometricPreference])
   const [pinOpen, setPinOpen] = useState(false)
   const [biometricSupported, setBiometricSupported] = useState(false)
 
@@ -160,14 +179,30 @@ export default function SettingsPage() {
             {pinHash ? t("settings.changePin") : t("settings.setPin")}
           </Button>
         </Row>
-        <Row icon={<FingerprintIcon />} title={t("settings.biometric")} hint={biometricHint}>
+        <Row icon={<BiometricIcon kind={bioKind} className="size-5" />} title={t(`settings.biometric.${bioKind}`)} hint={biometricHint}>
           <Switch
             checked={Boolean(biometricCredentialId)}
             onCheckedChange={toggleBiometric}
             disabled={!pinHash || !biometricSupported}
-            aria-label={t("settings.biometric")}
+            aria-label={t(`settings.biometric.${bioKind}`)}
           />
         </Row>
+        {biometricCredentialId && (
+          <Row title={t("settings.biometricShowAs")} hint={t("settings.biometricShowAsHint")}>
+            <Select value={biometricPreference} onValueChange={(v) => setBiometricPreference(v as BiometricPreference)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(["auto", "face", "fingerprint"] as const).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {t(`settings.biometricPref.${p}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Row>
+        )}
         <Row icon={<TimerIcon />} title={t("settings.autoLock")} hint={t("settings.autoLockHint")}>
           <Select
             value={String(autoLockMinutes)}
