@@ -52,3 +52,10 @@ export function longDate(date: Date, locale: "km" | "en"): string {
   const day = khmerDigits(String(date.getDate()).padStart(2, "0"))
   return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${khmerDigits(String(date.getFullYear()))}`
 }
+
+/** "ខែតុលា ២០២៦" / "October 2026". */
+export function monthLabel(key: MonthKey, locale: "km" | "en"): string {
+  const start = monthStart(key)
+  if (locale === "en") return format(start, "MMMM yyyy")
+  return `ខែ${KM_MONTHS[start.getMonth()]} ${khmerDigits(String(start.getFullYear()))}`
+}
