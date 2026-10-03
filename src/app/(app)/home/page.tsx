@@ -37,7 +37,7 @@ import { islamicGreeting, toHijri } from "@/lib/islamic"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
-import { homeGreeting } from "@/lib/holidays"
+import { homeGreeting, isMeritDay } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
@@ -130,7 +130,7 @@ export default function HomePage() {
               </time>
             </p>
             <p className={festive ? "truncate text-xs font-medium text-primary" : "truncate text-xs text-muted-foreground"}>
-              {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)} ✨
+              {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)} {!islamicKey && isMeritDay(greeting.key) ? "🙏" : "✨"}
             </p>
           </div>
         </div>

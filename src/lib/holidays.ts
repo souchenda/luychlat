@@ -16,10 +16,34 @@ const PCHUM_BEN: Record<number, string> = {
   2027: "2027-09-30", // holiday 29 Sep – 1 Oct 2027
 }
 
-/** Other festivals, by exact date range (inclusive, YYYY-MM-DD or every year MM-DD). */
+/**
+ * Other festivals, by exact date range (inclusive, YYYY-MM-DD or every year
+ * MM-DD); the first match wins, so a religious day listed first takes the date
+ * it shares with a civil one (Visak Bochea and Labor Day on 1 May 2026).
+ *
+ * Wording (checked with the product owner, 2026-10-03): Buddhist and
+ * merit-making days use "សូមអនុមោទនា…", never "រីករាយ"; national days use
+ * "សួស្តី…" / "អបអរសាទរ…".
+ *
+ * Lunar dates come from the official public-holiday sub-decree for each year
+ * (2026: Sub-Decree No. 167 of 5 Sep 2025). 2027 entries are from published
+ * calendars; check them against the 2027 sub-decree. Meak Bochea, Vassa,
+ * Pavarana and Kathina are not public holidays: their greetings exist
+ * (holiday.meak_bochea, vassa_start, vassa_end, kathina) but are shown only
+ * once verified dates are added here.
+ */
 const FESTIVALS: [MessageKey, string, string][] = [
   ["holiday.new_year", "01-01", "01-01"],
+  ["holiday.victory_day", "01-07", "01-07"],
+  ["holiday.womens_day", "03-08", "03-08"],
   ["holiday.khmer_new_year", "04-14", "04-16"],
+  ["holiday.visak_bochea", "2026-05-01", "2026-05-01"],
+  ["holiday.visak_bochea", "2027-05-20", "2027-05-20"],
+  ["holiday.labor_day", "05-01", "05-01"],
+  ["holiday.royal_ploughing", "2026-05-05", "2026-05-05"],
+  ["holiday.royal_ploughing", "2027-05-24", "2027-05-24"],
+  ["holiday.coronation", "10-29", "10-29"],
+  ["holiday.independence", "11-09", "11-09"],
   ["holiday.water_festival", "2026-11-23", "2026-11-25"],
   ["holiday.water_festival", "2027-11-12", "2027-11-14"],
   ["holiday.chinese_new_year", "2027-02-06", "2027-02-06"],
@@ -52,3 +76,8 @@ export function homeGreeting(date = new Date()): Greeting {
   }
   return { key: "holiday.everyday" }
 }
+
+const MERIT_DAYS = new Set<MessageKey>(["holiday.kan_ben", "holiday.pchum_ben", "holiday.visak_bochea", "holiday.meak_bochea", "holiday.vassa_start", "holiday.vassa_end", "holiday.kathina"])
+
+/** Buddhist merit-making days: shown with 🙏, not a festive ✨. */
+export const isMeritDay = (key: MessageKey) => MERIT_DAYS.has(key)
