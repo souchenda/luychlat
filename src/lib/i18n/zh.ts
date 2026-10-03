@@ -789,7 +789,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "recon.privacy": "文件仅在本设备上读取，绝不会上传。",
   "recon.walletMissing": "所选账户中没有此钱包",
   "recon.lastReconciled": "上次对账 {date}",
-  "recon.file.too_large": "文件过大（最大 5 MB）",
+  "recon.file.too_large": "文件过大（最大 10 MB）",
   "recon.file.pdf": "暂不支持 PDF，请下载 CSV 或 Excel。",
   "recon.file.unreadable": "无法读取此文件",
   "recon.file.empty": "此文件没有数据行",
@@ -2073,4 +2073,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "sys.tabFeeds": "数据源",
   "sys.tabBot": "机器人",
   "sys.tabLogs": "日志",
+  "recon.file.unsafe": "⚠️ 安全警告：文件格式不安全，已被拒绝。请勿打开此文件。请只上传直接从银行应用下载的官方银行对账单。",
+  "recon.file.blocked": "由于多次上传不安全的文件，对账单导入已暂停 24 小时。",
+  "recon.file.unsupported": "不支持此文件类型。请使用 PDF、Excel（.xlsx/.xls）或 CSV。",
+  "bot.fileUseApp": "📄 机器人不接收文件。要导入银行对账单，请打开 LuyChlat 应用 › 钱包 › “导入银行对账单”——文件只在您的手机上读取，不会发送到任何地方。",
 }

@@ -1,20 +1,25 @@
 /**
- * Reads a statement file into rows of text, on the device. CSV and Excel
- * (xlsx/xls) go through SheetJS; text PDFs (ABA, ACLEDA…) through pdf.js (pdf.ts).
+ * Reads a statement file into rows of text, on the device — the file is never
+ * uploaded. It is first checked by its bytes (file-safety.ts); then CSV and
+ * Excel (xlsx/xls) go through SheetJS and text PDFs (ABA, ACLEDA…) through
+ * pdf.js (pdf.ts). Only cell values and text are read: formulas, macros,
+ * scripts and embedded objects are never run.
  */
+import { inspectStatementBytes, MAX_STATEMENT_BYTES, type UnsafeReason } from "./file-safety"
 import { pdfPagesToRows, PdfStatementError, readPdfPages } from "./pdf"
 
 export type StatementFile = { rows: string[][]; format: "CSV" | "XLSX" | "PDF"; sha256: string; name: string }
 
 export class StatementFileError extends Error {
-  constructor(readonly code: "too_large" | "pdf" | "pdf_scanned" | "pdf_no_table" | "unreadable" | "empty") {
+  constructor(
+    readonly code: "too_large" | "pdf" | "pdf_scanned" | "pdf_no_table" | "unreadable" | "empty" | "unsupported" | "unsafe" | "blocked",
+    /** For "unsafe": what was found. */
+    readonly reason?: UnsafeReason,
+  ) {
     super(code)
   }
 }
 
-const MAX_BYTES = 5 * 1024 * 1024
-// Bank PDFs carry logos and QR images: a month of ABA activity is ~3.5 MB.
-const MAX_PDF_BYTES = 15 * 1024 * 1024
 const MAX_ROWS = 20_000
 
 export async function sha256Hex(data: ArrayBuffer | string): Promise<string> {
@@ -35,11 +40,11 @@ function cellText(value: unknown): string {
 }
 
 export async function readStatementFile(file: File): Promise<StatementFile> {
-  if (file.size > MAX_PDF_BYTES) throw new StatementFileError("too_large")
+  if (file.size > MAX_STATEMENT_BYTES) throw new StatementFileError("too_large")
   const buffer = await file.arrayBuffer()
-  const head = new Uint8Array(buffer.slice(0, 8))
-  const isPdf = head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46 // %PDF
-  if (isPdf) {
+  const check = inspectStatementBytes(new Uint8Array(buffer), file.name)
+  if (!check.ok) throw check.unsafe ? new StatementFileError("unsafe", check.unsafe) : new StatementFileError(check.error)
+  if (check.kind === "pdf") {
     // Hash first: pdf.js may take over (detach) the buffer it reads.
     const sha256 = await sha256Hex(buffer)
     try {
@@ -50,19 +55,20 @@ export async function readStatementFile(file: File): Promise<StatementFile> {
       throw new StatementFileError("unreadable")
     }
   }
-  if (file.size > MAX_BYTES) throw new StatementFileError("too_large")
-  const isZip = head[0] === 0x50 && head[1] === 0x4b // xlsx
-  const isOle = head[0] === 0xd0 && head[1] === 0xcf // legacy xls
+  const isZip = check.kind === "zip" // xlsx
+  const isOle = check.kind === "ole" // legacy xls
+  // Values only: no formulas, styles, HTML or VBA kept; rows capped.
+  const safe = { cellFormula: false, cellHTML: false, cellStyles: false, bookVBA: false, sheetRows: MAX_ROWS } as const
 
   const XLSX = await import("xlsx")
   let workbook
   try {
     if (isZip || isOle) {
-      workbook = XLSX.read(buffer, { type: "array", cellDates: true })
+      workbook = XLSX.read(buffer, { ...safe, type: "array", cellDates: true })
     } else {
       const text = new TextDecoder("utf-8").decode(buffer).replace(/^﻿/, "")
       // raw: keep "1,234.50" and "30/09/2026" as typed; parse.ts reads them.
-      workbook = XLSX.read(text, { type: "string", raw: true })
+      workbook = XLSX.read(text, { ...safe, type: "string", raw: true })
     }
   } catch {
     throw new StatementFileError("unreadable")

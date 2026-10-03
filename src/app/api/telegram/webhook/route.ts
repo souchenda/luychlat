@@ -9,6 +9,7 @@ import { setManualGold, currentMarket } from "@/lib/server/market-sync"
 import { transcriptionProvider } from "@/lib/server/transcribe"
 import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
+import { unsafeByName } from "@/lib/reconcile/file-safety"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -19,6 +20,9 @@ import { logEvent } from "@/lib/server/events"
  *   anything else  from a linked chat: an expense / income / debt payment to
  *                  confirm with ✅ / ❌ (PRO, opt-in; see bot-commands.ts)
  *   voice note     the same, after speech-to-text
+ *   file           never downloaded: statements are imported in the app (read
+ *                  on the phone). Programs / macro files get a security
+ *                  warning and a security event; repeat senders are ignored.
  * Only private chats are handled. Always answers 200 so Telegram doesn't retry.
  */
 export const runtime = "nodejs"
@@ -28,6 +32,7 @@ type Update = {
   message?: {
     text?: string
     voice?: { file_id: string; duration?: number; file_size?: number }
+    document?: { file_name?: string; mime_type?: string; file_size?: number }
     chat: { id: number; type: string }
     from?: { username?: string; language_code?: string }
   }
@@ -58,6 +63,29 @@ async function setGoldReply(text: string) {
   if (input === "clear") return "✅ ត្រឡប់ទៅតម្លៃ CSNJ ស្វ័យប្រវត្តិ (Oknha News)។"
   const j = saved.local_gold?.jewelry
   return `✅ បានកំណត់តម្លៃមាសថ្ងៃនេះ៖\n• មាសគីឡូ: លក់ចេញ ${usd(input.kilo.sell)} | ទិញចូល ${usd(input.kilo.buy)}${j ? `\n• មាសគ្រឿង: លក់ចេញ ${usd(j.sell)} | ទិញចូល ${usd(j.buy)}` : ""}\nបង្ហាញក្នុងកម្មវិធី និង bulletin ថ្ងៃនេះ។`
+}
+
+// Unsafe files per chat in the last 24 hours (this server's memory); from the 3rd on, the chat is ignored.
+const unsafeFiles = new Map<number, number[]>()
+
+/** A file sent to the bot. It is never downloaded or opened. */
+async function handleDocument(chatId: number, doc: NonNullable<NonNullable<Update["message"]>["document"]>, languageCode?: string) {
+  const ctx = await botContext(chatId)
+  const lang: Locale = ctx?.linked ? contextLocale(ctx) : telegramLocale(languageCode)
+  const reason = unsafeByName(doc.file_name ?? "", doc.mime_type)
+  if (!reason) {
+    await sendText(chatId, tr(lang, "bot.fileUseApp") + SIGNATURE)
+    return
+  }
+  const now = Date.now()
+  const recent = (unsafeFiles.get(chatId) ?? []).filter((t) => now - t < 86_400_000)
+  recent.push(now)
+  unsafeFiles.set(chatId, recent)
+  if (unsafeFiles.size > 10_000) unsafeFiles.delete(unsafeFiles.keys().next().value!)
+  if (recent.length > 3) return
+  const ext = (doc.file_name ?? "").toLowerCase().match(/\.([a-z0-9]{1,8})$/)?.[1] ?? "?"
+  logEvent("security", "upload-bot", `Unsafe file sent to the bot (${reason}, .${ext})${ctx?.linked ? "" : " · unlinked chat"}${recent.length === 3 ? " — chat ignored 24 h" : ""}`, { fold: true })
+  await sendText(chatId, tr(lang, "recon.file.unsafe"))
 }
 
 /** Telegram's interface language → ours (Chinese variants → zh). */
@@ -100,6 +128,10 @@ export async function POST(request: Request) {
       if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
       else await handleVoiceMessage(chatId, voice, ctx)
     })
+    return NextResponse.json({ ok: true })
+  }
+  if (message.document) {
+    await handleDocument(message.chat.id, message.document, message.from?.language_code)
     return NextResponse.json({ ok: true })
   }
   if (!message.text) return NextResponse.json({ ok: true })

@@ -178,7 +178,8 @@ export async function readPdfPages(data: ArrayBuffer): Promise<PdfPage[]> {
     // Served from this site (CSP worker-src 'self').
     pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/legacy/build/pdf.worker.min.mjs", import.meta.url).toString()
   }
-  const task = pdfjs.getDocument({ data: new Uint8Array(data), verbosity: 0 })
+  // Text only: no XFA forms, no font loading, no image decoding (pdf.js never runs PDF scripts here).
+  const task = pdfjs.getDocument({ data: new Uint8Array(data), verbosity: 0, enableXfa: false, disableFontFace: true, maxImageSize: 0 })
   let doc
   try {
     doc = await task.promise

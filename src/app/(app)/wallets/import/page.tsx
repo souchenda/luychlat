@@ -21,7 +21,8 @@ import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { showUpgrade } from "@/lib/plan"
 import { useImportAccess } from "@/lib/reconcile/access"
 import { isFileImported, type ImportResult } from "@/lib/reconcile/api"
-import { readStatementFile, StatementFileError, type StatementFile } from "@/lib/reconcile/file"
+import type { StatementFile } from "@/lib/reconcile/file"
+import { openStatementFile, statementFileErrorToast } from "@/lib/reconcile/guard"
 import { loadMapping, saveMapping } from "@/lib/reconcile/memory"
 import { extractMeta, maskAccount, withMetaBalances, type StatementMeta } from "@/lib/reconcile/meta"
 import { buildStatement, guessMapping, type Mapping, type ParseResult } from "@/lib/reconcile/parse"
@@ -203,7 +204,7 @@ export default function ImportStatementPage() {
     if (!picked) return
     setPhase("reading")
     try {
-      const file = await readStatementFile(picked)
+      const file = await openStatementFile(picked)
       setPhase("detecting")
       const mapping = guessMapping(file.rows) ?? { headerRow: 0, roles: [], dateOrder: "DMY" as const }
       const meta = extractMeta(file.rows, mapping.headerRow, mapping.dateOrder, file.name)
@@ -211,7 +212,7 @@ export default function ImportStatementPage() {
       const opening = meta.openingBalance ?? (guessMapping(file.rows) ? buildStatement(file.rows, mapping, meta.currency === "KHR" ? 0 : 2).opening_balance : null)
       setStep({ kind: "account", file, mapping, meta, opening })
     } catch (error) {
-      toast.error(error instanceof StatementFileError ? t(`recon.file.${error.code}`) : t("common.error"))
+      statementFileErrorToast(error, t)
     } finally {
       setPhase(null)
       if (inputRef.current) inputRef.current.value = ""

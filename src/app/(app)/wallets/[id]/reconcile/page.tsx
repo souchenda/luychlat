@@ -20,7 +20,8 @@ import { formatMoney } from "@/lib/money"
 import { showUpgrade } from "@/lib/plan"
 import { useImportAccess } from "@/lib/reconcile/access"
 import { deleteImport, isFileImported, listImports, type ImportResult } from "@/lib/reconcile/api"
-import { readStatementFile, StatementFileError, type StatementFile } from "@/lib/reconcile/file"
+import type { StatementFile } from "@/lib/reconcile/file"
+import { openStatementFile, statementFileErrorToast } from "@/lib/reconcile/guard"
 import { loadMapping, saveMapping } from "@/lib/reconcile/memory"
 import { extractMeta, withMetaBalances, type StatementMeta } from "@/lib/reconcile/meta"
 import { guessMapping, type Mapping, type ParseResult } from "@/lib/reconcile/parse"
@@ -94,7 +95,7 @@ export default function ReconcileStatementPage() {
     if (!picked || !wallet) return
     setReading(true)
     try {
-      const file = await readStatementFile(picked)
+      const file = await openStatementFile(picked)
       // Early, friendly duplicate check; the database refuses duplicates anyway.
       const imported = await isFileImported(wallet.id, file.sha256).catch(() => false)
       if (imported) {
@@ -104,7 +105,7 @@ export default function ReconcileStatementPage() {
       const mapping = loadMapping(wallet.id, file.rows) ?? guessMapping(file.rows) ?? { headerRow: 0, roles: [], dateOrder: "DMY" as const }
       setStep({ kind: "map", file, mapping })
     } catch (error) {
-      toast.error(error instanceof StatementFileError ? t(`recon.file.${error.code}`) : t("common.error"))
+      statementFileErrorToast(error, t)
     } finally {
       setReading(false)
       if (inputRef.current) inputRef.current.value = ""

@@ -836,7 +836,7 @@ const km = {
   "recon.privacy": "ឯកសាររបស់អ្នកត្រូវបានអាននៅលើទូរស័ព្ទនេះប៉ុណ្ណោះ — មិនត្រូវបានផ្ញើទៅម៉ាស៊ីនមេទេ។",
   "recon.walletMissing": "រកមិនឃើញកាបូបនេះក្នុងគណនីដែលបានជ្រើស",
   "recon.lastReconciled": "ផ្ទៀងផ្ទាត់ចុងក្រោយ {date}",
-  "recon.file.too_large": "ឯកសារធំពេក (អតិបរមា 5MB)",
+  "recon.file.too_large": "ឯកសារធំពេក (អតិបរមា 10MB)",
   "recon.file.pdf": "PDF មិនទាន់គាំទ្រ។ សូមទាញយកជា CSV ឬ Excel។",
   "recon.file.unreadable": "មិនអាចអានឯកសារនេះបានទេ",
   "recon.file.empty": "ឯកសារនេះគ្មានទិន្នន័យ",
@@ -2122,6 +2122,10 @@ const km = {
   "sys.tabLogs": "សន្តិសុខ",
   "bot.langSet": "✅ ភាសារបស់ bot ឥឡូវជាភាសាខ្មែរ។",
   "bot.langUsage": "🌐 ជ្រើសភាសា bot៖\n/lang km — ភាសាខ្មែរ\n/lang en — English\n/lang zh — 中文（简体）",
+  "recon.file.unsafe": "⚠️ ការព្រមានសុវត្ថិភាព៖ ឯកសារត្រូវបានបដិសេធ ដោយសារទម្រង់មិនមានសុវត្ថិភាព។ កុំបើកឯកសារនេះ។ សូមផ្ទុកតែរបាយការណ៍ធនាគារផ្លូវការ ដែលទាញយកដោយផ្ទាល់ពីកម្មវិធីធនាគាររបស់អ្នក។",
+  "recon.file.blocked": "ការនាំចូលរបាយការណ៍ត្រូវបានផ្អាក ២៤ ម៉ោង ដោយសារមានឯកសារមិនមានសុវត្ថិភាពច្រើនដង។",
+  "recon.file.unsupported": "មិនគាំទ្រប្រភេទឯកសារនេះទេ។ សូមប្រើ PDF, Excel (.xlsx/.xls) ឬ CSV។",
+  "bot.fileUseApp": "📄 Bot មិនទទួលឯកសារទេ។ ដើម្បីនាំចូលរបាយការណ៍ធនាគារ សូមបើកកម្មវិធី LuyChlat › កាបូប › «នាំចូលរបាយការណ៍ធនាគារ» — ឯកសារត្រូវបានអាននៅលើទូរស័ព្ទរបស់អ្នក មិនបញ្ជូនទៅណាទេ។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -2947,7 +2951,7 @@ const en: Record<MessageKey, string> = {
   "recon.privacy": "Your file is read on this device only — it is never uploaded.",
   "recon.walletMissing": "This wallet isn't in the selected account",
   "recon.lastReconciled": "Last reconciled {date}",
-  "recon.file.too_large": "File is too large (max 5 MB)",
+  "recon.file.too_large": "File is too large (max 10 MB)",
   "recon.file.pdf": "PDF isn't supported yet. Please download CSV or Excel.",
   "recon.file.unreadable": "This file can't be read",
   "recon.file.empty": "This file has no rows",
@@ -4233,6 +4237,10 @@ const en: Record<MessageKey, string> = {
   "sys.tabLogs": "Logs",
   "bot.langSet": "✅ The bot now speaks English.",
   "bot.langUsage": "🌐 Choose the bot's language:\n/lang km — ភាសាខ្មែរ\n/lang en — English\n/lang zh — 中文（简体）",
+  "recon.file.unsafe": "⚠️ Security Warning: File rejected due to unsafe format. Do not open this file. Please only upload official bank statements downloaded directly from your banking app.",
+  "recon.file.blocked": "Statement import is paused for 24 hours after several unsafe files.",
+  "recon.file.unsupported": "This file type isn't supported. Please use PDF, Excel (.xlsx/.xls) or CSV.",
+  "bot.fileUseApp": "📄 The bot doesn't take files. To import a bank statement, open the LuyChlat app › Wallets › “Import a bank statement” — the file is read on your phone and never sent anywhere.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
