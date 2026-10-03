@@ -4,6 +4,7 @@ import { cambodiaNow, formatMinutes, prayerTimes, PROVINCES } from "@/lib/prayer
 import { duePrayer } from "@/lib/prayer-alerts"
 
 import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "./telegram-bot"
+import { syncMarket } from "@/lib/server/market-sync"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
@@ -62,5 +63,8 @@ export function startBotDispatcher() {
   if (!botToken()) return
   setInterval(() => void dispatchOnce(), 60_000)
   setTimeout(() => void dispatchOnce(), 15_000)
-  console.log("[bot] reminder dispatcher started")
+  // Live market rates (NBC + gold spot) for every user: at start, then every 30 minutes.
+  setTimeout(() => void syncMarket(true), 20_000)
+  setInterval(() => void syncMarket(true), 30 * 60_000)
+  console.log("[bot] reminder dispatcher and market sync started")
 }

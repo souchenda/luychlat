@@ -5,6 +5,8 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import { useRepo } from "@/lib/data/hooks"
 import type { Currency } from "@/lib/data/types"
 import { parseRates, type GoldKind, type GoldRates, type JewelryType, type PlatinumGrade } from "@/lib/gold"
+import { useMarket } from "@/lib/market"
+import { effectiveRates } from "@/lib/market-calc"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 /** A row of public.gold_holdings. */
@@ -41,8 +43,14 @@ async function listHoldings(workspaceId: string): Promise<GoldHolding[]> {
 
 export const goldKeys = { holdings: (scope: string, ws: string) => ["gold", scope, ws] as const, rates: ["gold-rates"] as const }
 
-/** Market rates (USD per damlung) set by admins, and when they were last updated. */
-export function useGoldRates(): { rates: GoldRates; updatedAt: string | null } {
+/**
+ * Rates (USD per damlung) for valuing holdings: the live market reference
+ * (spot × 1.20565 × purity, refreshed by the server), with any rate an admin
+ * entered (local shop price) taking precedence for that kind. `adminRates` are
+ * only the admin-entered ones (for the admin form).
+ */
+export function useGoldRates(): { rates: GoldRates; adminRates: GoldRates; updatedAt: string | null } {
+  const live = useMarket().data
   const { data } = useQuery({
     queryKey: goldKeys.rates,
     staleTime: 10 * 60_000,
@@ -53,7 +61,8 @@ export function useGoldRates(): { rates: GoldRates; updatedAt: string | null } {
       return (data ?? { value: {}, updated_at: null }) as { value: Record<string, unknown>; updated_at: string | null }
     },
   })
-  return { rates: parseRates(data?.value), updatedAt: data?.updated_at ?? null }
+  const adminRates = parseRates(data?.value)
+  return { rates: effectiveRates(adminRates, live), adminRates, updatedAt: data?.updated_at ?? live?.fetched_at ?? null }
 }
 
 export function useGoldHoldings(workspaceId: string | undefined) {

@@ -43,6 +43,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
 import { parseAmount } from "@/lib/money"
 import { usePlan } from "@/lib/plan"
+import { useMarket } from "@/lib/market"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
@@ -77,6 +78,7 @@ function ExchangeRateRow() {
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { workspace } = useActiveWorkspace()
   const saveRate = useSaveExchangeRate()
+  const nbc = useMarket().data?.nbc?.usd_khr
   const [value, setValue] = useState(String(khrPerUsd))
   const parsed = parseAmount(value)
   const valid = parsed >= 1000 && parsed <= 10000
@@ -95,7 +97,31 @@ function ExchangeRateRow() {
   }
 
   return (
-    <SettingsRow icon={<CoinsIcon />} tile="amber" title={t("settings.exchangeRate")} hint={readOnly ? t("settings.exchangeRateFamily") : undefined}>
+    <SettingsRow
+      icon={<CoinsIcon />}
+      tile="amber"
+      title={t("settings.exchangeRate")}
+      hint={
+        readOnly ? (
+          t("settings.exchangeRateFamily")
+        ) : nbc && Math.round(nbc) !== khrPerUsd ? (
+          // One tap to the National Bank of Cambodia's official rate of the day.
+          <button
+            type="button"
+            className="font-medium text-primary underline-offset-2 hover:underline disabled:opacity-60"
+            disabled={saveRate.isPending}
+            onClick={() =>
+              saveRate.mutate(Math.round(nbc), {
+                onSuccess: () => toast.success(t("settings.useNbcDone")),
+                onError: () => toast.error(t("common.error")),
+              })
+            }
+          >
+            {t("settings.useNbc", { rate: new Intl.NumberFormat("en-US").format(Math.round(nbc)) })}
+          </button>
+        ) : undefined
+      }
+    >
       <form
         className="flex shrink-0 items-center gap-1"
         onSubmit={(e) => {

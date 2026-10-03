@@ -12,6 +12,7 @@ import { TontineDueCard } from "@/components/tontine/tontine-due-card"
 import { FamilyStrip } from "@/components/family/family-strip"
 import { ExperienceSelector } from "@/components/islamic/islamic-mode"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
+import { MarketRatesCard } from "@/components/dashboard/market-rates-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
 import { InsuranceRenewalCard } from "@/components/debts/insurance-card"
@@ -141,6 +142,9 @@ export default function HomePage() {
       <ExperienceSelector />
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
+
+      {/* NBC $1 = …៛ · gold 24K per damlung — opens /market. */}
+      <MarketRatesCard />
 
       {workspace?.role === "VIEWER" && (
         <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">

@@ -19,7 +19,8 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 export function GoldRatesAdmin() {
   const t = useT()
   const queryClient = useQueryClient()
-  const { rates, updatedAt } = useGoldRates()
+  // Only the admin's own (manual override) rates; the live reference fills the rest.
+  const { adminRates: rates, updatedAt } = useGoldRates()
   const [form, setForm] = useState<Record<string, string>>({})
   const [goldSpot, setGoldSpot] = useState("")
   const [platinumSpot, setPlatinumSpot] = useState("")
