@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState } from "react"
 
 import { EmailCodeLogin } from "@/components/auth/email-code-login"
 import { LoginFooter } from "@/components/auth/login-footer"
+import { IslamicDiscoveryLink } from "@/components/islamic/islamic-mode"
 import { EmailLogin } from "@/components/auth/email-login"
 import { PhoneLogin } from "@/components/auth/phone-login"
 import { SocialLogin } from "@/components/auth/social-login"
@@ -125,6 +126,9 @@ export default function LoginPage() {
               <PhoneLogin disabled={cloudDisabled} />
             </>
           )}
+
+          {/* Islamic Mode is off by default; this lets Muslim users discover it. */}
+          <IslamicDiscoveryLink />
         </div>
       )}
 

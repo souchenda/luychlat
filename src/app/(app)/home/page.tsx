@@ -10,7 +10,7 @@ import { useMemo, useState } from "react"
 import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
 import { TontineDueCard } from "@/components/tontine/tontine-due-card"
 import { FamilyStrip } from "@/components/family/family-strip"
-import { IslamicModePrompt } from "@/components/islamic/islamic-mode"
+import { ExperienceSelector } from "@/components/islamic/islamic-mode"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
@@ -138,7 +138,7 @@ export default function HomePage() {
         <BusinessTrialTag workspace={workspace} className="mt-1.5" />
       </header>
 
-      <IslamicModePrompt />
+      <ExperienceSelector />
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
 
