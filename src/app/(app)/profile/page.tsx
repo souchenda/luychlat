@@ -1,6 +1,6 @@
 "use client"
 
-import { BadgeCheckIcon, CalendarDaysIcon, CameraIcon, CoinsIcon, LogOutIcon, MailIcon, PencilIcon, PhoneIcon } from "lucide-react"
+import { BadgeCheckIcon, CalendarClockIcon, CalendarDaysIcon, CameraIcon, ChevronRightIcon, CoinsIcon, CrownIcon, LogOutIcon, MailIcon, PencilIcon, PhoneIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -14,12 +14,27 @@ import { dayDate } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatPhoneDisplay } from "@/lib/phone"
+import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
 
-/** One read-only line: a small muted label over a bold value. */
-function InfoRow({ icon, tile, label, value, placeholder }: { icon: React.ReactNode; tile: keyof typeof TILE; label: string; value?: string | null; placeholder: string }) {
+/** One read-only line: a small muted label over a bold value, optionally with something on the right. */
+function InfoRow({
+  icon,
+  tile,
+  label,
+  value,
+  placeholder,
+  trailing,
+}: {
+  icon: React.ReactNode
+  tile: keyof typeof TILE
+  label: string
+  value?: React.ReactNode
+  placeholder: string
+  trailing?: React.ReactNode
+}) {
   return (
     <div className="flex min-h-14 items-center gap-3 px-4 py-2.5">
       <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl [&_svg]:size-[18px]", TILE[tile])}>{icon}</span>
@@ -31,9 +46,16 @@ function InfoRow({ icon, tile, label, value, placeholder }: { icon: React.ReactN
           <p className="text-sm text-muted-foreground">{placeholder}</p>
         )}
       </div>
+      {trailing}
     </div>
   )
 }
+
+const TIER_BADGE = {
+  FREE: { label: "🆓 FREE", className: "bg-muted text-muted-foreground" },
+  PRO: { label: "💎 PRO", className: "bg-sky-500/15 text-sky-700 dark:text-sky-300" },
+  ULTRA: { label: "👑 ULTRA", className: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
+} as const
 
 /** My profile, read first: photo, name, contact and account details; "Edit profile" opens the form. */
 export default function ProfilePage() {
@@ -43,6 +65,10 @@ export default function ProfilePage() {
   const user = useSessionStore((s) => s.user)
   const profile = useProfile().data
   const { workspace } = useActiveWorkspace()
+  const { plan, isPro } = usePlan()
+  const badge = TIER_BADGE[plan.tier] ?? TIER_BADGE.FREE
+  const periodEnd = isPro && plan.period_end ? new Date(plan.period_end) : null
+  const daysLeft = periodEnd ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / 86_400_000)) : 0
   const [editOpen, setEditOpen] = useState(false)
 
   const name = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
@@ -85,6 +111,50 @@ export default function ProfilePage() {
       </SettingsGroup>
 
       <SettingsGroup title={t("profile.accountCard")}>
+        <InfoRow
+          icon={<CrownIcon />}
+          tile="amber"
+          label={t("profile.membership")}
+          value={<span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide", badge.className)}>{badge.label}</span>}
+          placeholder=""
+        />
+        {periodEnd ? (
+          <InfoRow
+            icon={<CalendarClockIcon />}
+            tile={daysLeft <= 7 ? "rose" : "sky"}
+            label={t("profile.validity")}
+            value={
+              <>
+                {t("profile.expiresOn", { date: dayDate(periodEnd, locale) })}
+                <span className={cn("block text-xs font-normal", daysLeft <= 7 ? "text-destructive" : "text-muted-foreground")}>
+                  {t("profile.daysLeft", { days: daysLeft })}
+                </span>
+              </>
+            }
+            placeholder=""
+            trailing={
+              <Button size="sm" variant="outline" className="h-8 shrink-0 rounded-full" onClick={() => showUpgrade("general")}>
+                {t(plan.tier === "ULTRA" ? "plan.renew" : "profile.renewOrUpgrade")}
+              </Button>
+            }
+          />
+        ) : (
+          <button type="button" onClick={() => showUpgrade("general")} className="block w-full text-left transition-colors hover:bg-muted/60">
+            <InfoRow
+              icon={<CalendarClockIcon />}
+              tile="slate"
+              label={t("profile.validity")}
+              value={t("profile.freePlan")}
+              placeholder=""
+              trailing={
+                <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  {t("profile.upgradePlan")}
+                  <ChevronRightIcon className="size-3.5" aria-hidden />
+                </span>
+              }
+            />
+          </button>
+        )}
         <InfoRow icon={<CalendarDaysIcon />} tile="violet" label={t("profile.joined")} value={joined} placeholder={t("profile.notSet")} />
         {workspace && (
           <>

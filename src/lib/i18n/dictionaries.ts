@@ -1965,6 +1965,13 @@ const km = {
   "family.roleShort.MEMBER": "កត់បាន",
   "family.roleShort.VIEWER": "មើល",
   "bot.routeAllShort": "ទាំងអស់",
+  "profile.membership": "កម្រិតសមាជិកភាព",
+  "profile.validity": "សុពលភាព / ថ្ងៃផុតកំណត់",
+  "profile.expiresOn": "ផុតកំណត់៖ {date}",
+  "profile.daysLeft": "នៅសល់ {days} ថ្ងៃ",
+  "profile.freePlan": "គម្រោងឥតគិតថ្លៃ",
+  "profile.upgradePlan": "ដំឡើងគម្រោង",
+  "profile.renewOrUpgrade": "បន្ត / ដំឡើង",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3934,6 +3941,13 @@ const en: Record<MessageKey, string> = {
   "family.roleShort.MEMBER": "Can edit",
   "family.roleShort.VIEWER": "View",
   "bot.routeAllShort": "All",
+  "profile.membership": "Membership",
+  "profile.validity": "Valid until",
+  "profile.expiresOn": "Expires {date}",
+  "profile.daysLeft": "{days} days left",
+  "profile.freePlan": "Free plan",
+  "profile.upgradePlan": "Upgrade",
+  "profile.renewOrUpgrade": "Renew / upgrade",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }
