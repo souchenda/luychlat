@@ -1,10 +1,11 @@
 import { timingSafeEqual } from "crypto"
 
-import { NextResponse } from "next/server"
+import { after, NextResponse } from "next/server"
 
 import type { Locale } from "@/lib/i18n/dictionaries"
-import { botContext, contextLocale, handleCallback, handleEntryMessage } from "@/lib/server/bot-commands"
+import { botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage } from "@/lib/server/bot-commands"
 import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/server/telegram-bot"
+import { transcriptionProvider } from "@/lib/server/transcribe"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -14,6 +15,7 @@ import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/ser
  *   /stop          unlink
  *   anything else  from a linked chat: an expense / income / debt payment to
  *                  confirm with ✅ / ❌ (PRO, opt-in; see bot-commands.ts)
+ *   voice note     the same, after speech-to-text
  * Only private chats are handled. Always answers 200 so Telegram doesn't retry.
  */
 export const runtime = "nodejs"
@@ -22,6 +24,7 @@ type Update = {
   callback_query?: Parameters<typeof handleCallback>[0]
   message?: {
     text?: string
+    voice?: { file_id: string; duration?: number; file_size?: number }
     chat: { id: number; type: string }
     from?: { username?: string; language_code?: string }
   }
@@ -47,7 +50,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
   const message = update.message
-  if (!message?.text || message.chat.type !== "private") return NextResponse.json({ ok: true })
+  if (!message || message.chat.type !== "private") return NextResponse.json({ ok: true })
+
+  if (message.voice) {
+    const chatId = message.chat.id
+    const voice = message.voice
+    // Downloading and transcribing can take a while: answer Telegram now so it doesn't resend the update.
+    after(async () => {
+      const ctx = await botContext(chatId)
+      if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
+      else await handleVoiceMessage(chatId, voice, ctx)
+    })
+    return NextResponse.json({ ok: true })
+  }
+  if (!message.text) return NextResponse.json({ ok: true })
 
   const chatId = message.chat.id
   // Replies are in Khmer (the bot's audience); reminders use each user's chosen language.
@@ -74,7 +90,10 @@ export async function POST(request: Request) {
     // Linked chats: /help shows the logging examples, other text is an entry to confirm.
     const ctx = await botContext(chatId)
     if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE)
-    else if (command.startsWith("/")) await sendText(chatId, tr(contextLocale(ctx), "bot.cmdHelp"))
+    else if (command.startsWith("/")) {
+      const locale = contextLocale(ctx)
+      await sendText(chatId, tr(locale, "bot.cmdHelp") + (transcriptionProvider() ? `\n\n${tr(locale, "bot.cmdHelpVoice")}` : ""))
+    }
     else await handleEntryMessage(chatId, message.text.trim().slice(0, 300), ctx)
   }
   return NextResponse.json({ ok: true })

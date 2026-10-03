@@ -365,6 +365,8 @@ How it works:
 
 The token never leaves the server: the database only keeps the SHA-256 of a key derived from it, and only the deployed server sends reminders (`BOT_DISPATCHER=on` in docker-compose.yml).
 
+**Voice notes (optional).** PRO users who turn on "Log by chat" can also send voice notes; the server transcribes them with Whisper. Add one key to `.env` — `GROQ_API_KEY` (Groq, `whisper-large-v3`, used first) or `OPENAI_API_KEY` (OpenAI, `whisper-1`) — and auto-update redeploys within 5 minutes. Without a key the bot replies that voice isn't on and asks users to type. Each chat is limited to 30 voice notes an hour, 60 seconds each; the audio is sent to the provider only to transcribe it and is not stored.
+
 ### PM2 instead of Docker
 
 ```bash

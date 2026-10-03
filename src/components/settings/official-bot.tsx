@@ -237,6 +237,7 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                     </Select>
                   </div>
                 )}
+                <p className="text-xs text-muted-foreground">{t("bot.commandsVoice")}</p>
                 <p className="text-xs text-muted-foreground">{t("bot.commandsWarn")}</p>
               </div>
             )}

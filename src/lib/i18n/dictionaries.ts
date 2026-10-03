@@ -1915,6 +1915,13 @@ const km = {
   "profile.role": "តួនាទី",
   "profile.currency": "រូបិយប័ណ្ណលំនាំដើម",
   "profile.edit": "កែសម្រួលប្រវត្តិរូប",
+  "bot.voiceHeard": "🎙️ បានស្ដាប់ឮ៖ «{text}»",
+  "bot.voiceOff": "🎙️ ការកត់ត្រាដោយសំឡេងមិនទាន់បើកនៅឡើយទេ — សូមវាយអក្សរជំនួស ឧ. «កាហ្វេ 2$»។",
+  "bot.voiceTooLong": "🎙️ សារសំឡេងវែងពេក — សូមនិយាយខ្លីៗ (មិនលើស ៦០ វិនាទី)។",
+  "bot.voiceLimit": "🎙️ អ្នកបានផ្ញើសារសំឡេងច្រើនពេកក្នុងមួយម៉ោងនេះ។ សូមវាយអក្សរ ឬសាកម្ដងទៀតបន្តិចទៀត។",
+  "bot.voiceFailed": "🎙️ ស្ដាប់មិនបានច្បាស់ទេ។ សូមនិយាយម្ដងទៀតឱ្យច្បាស់ ឬវាយអក្សរ។",
+  "bot.commandsVoice": "🎙️ អាចផ្ញើសារសំឡេងបាន ឧ. «កាហ្វេ ពីរដុល្លារ»។ សំឡេងត្រូវបានបំប្លែងជាអក្សរដោយសេវា Whisper (Groq ឬ OpenAI) ហើយ LuyChlat មិនរក្សាទុកសំឡេងទេ។",
+  "bot.cmdHelpVoice": "🎙️ ឬផ្ញើសារសំឡេងខ្លីៗ ឧ. «សាំង ពីរម៉ឺនរៀល»។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3834,6 +3841,13 @@ const en: Record<MessageKey, string> = {
   "profile.role": "Role",
   "profile.currency": "Default currency",
   "profile.edit": "Edit profile",
+  "bot.voiceHeard": "🎙️ I heard: “{text}”",
+  "bot.voiceOff": "🎙️ Voice logging isn't switched on yet — please type instead, e.g. “coffee 2$”.",
+  "bot.voiceTooLong": "🎙️ That voice note is too long — keep it short (60 seconds at most).",
+  "bot.voiceLimit": "🎙️ You've sent a lot of voice notes this hour. Type instead, or try again a bit later.",
+  "bot.voiceFailed": "🎙️ I couldn't make that out. Please say it again clearly, or type it.",
+  "bot.commandsVoice": "🎙️ You can also send a voice note, e.g. “coffee two dollars”. The audio is turned into text by a Whisper service (Groq or OpenAI); LuyChlat doesn't keep the recording.",
+  "bot.cmdHelpVoice": "🎙️ Or send a short voice note, e.g. “fuel twenty thousand riel”.",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }
