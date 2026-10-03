@@ -2099,6 +2099,12 @@ const km = {
   "testPlan.started": "កំពុងសាកល្បងជា {tier} (២ ម៉ោង)",
   "testPlan.ended": "ត្រឡប់ទៅគម្រោងពិតវិញ",
   "testPlan.failed": "មិនអាចប្ដូរបានទេ (តម្រូវ 2FA?)",
+  "sys.expand": "ពន្លា",
+  "sys.collapse": "បង្រួម",
+  "sys.tabSystem": "ប្រព័ន្ធ",
+  "sys.tabFeeds": "ទិន្នន័យ",
+  "sys.tabBot": "បត",
+  "sys.tabLogs": "សន្តិសុខ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4202,6 +4208,12 @@ const en: Record<MessageKey, string> = {
   "testPlan.started": "Testing as {tier} (2 hours)",
   "testPlan.ended": "Back to your real plan",
   "testPlan.failed": "Couldn't switch (2FA required?)",
+  "sys.expand": "Expand",
+  "sys.collapse": "Collapse",
+  "sys.tabSystem": "System",
+  "sys.tabFeeds": "Feeds",
+  "sys.tabBot": "Bot",
+  "sys.tabLogs": "Logs",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

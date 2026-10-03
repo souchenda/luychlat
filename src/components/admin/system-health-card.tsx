@@ -1,9 +1,11 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { ActivityIcon, Loader2Icon, RefreshCwIcon } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ActivityIcon, ChevronDownIcon, Loader2Icon, RefreshCwIcon } from "lucide-react"
 
 import { adminPost } from "@/components/admin/admin-api"
+import { Segmented } from "@/components/common/segmented"
 import { ReactivateBotButton } from "@/components/settings/bot-admin"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -30,6 +32,12 @@ type Status = {
 }
 
 type Tone = "ok" | "warn" | "bad" | "off"
+const RANK: Record<Tone, number> = { off: 0, ok: 1, warn: 2, bad: 3 }
+/** The worst status in a group ("off" only when everything is off). */
+const worst = (...tones: Tone[]) => tones.reduce((a, b) => (RANK[b] > RANK[a] ? b : a), "off" as Tone)
+
+type Tab = "system" | "feeds" | "bot" | "logs"
+const OPEN_KEY = "luychlat-admin-health-open"
 const DOT: Record<Tone, string> = { ok: "bg-emerald-500", warn: "bg-amber-500", bad: "bg-red-500", off: "bg-muted-foreground/40" }
 
 const ago = (iso: string | null | undefined, now: number) => {
@@ -96,39 +104,118 @@ export function SystemHealthCard() {
   const sentToday = lastBulletin?.day === today
   const webhookErrRecent = s?.telegram.last_error_at ? now - Date.parse(s.telegram.last_error_at) < 3_600_000 : false
 
+  const tone = {
+    server: "ok" as Tone,
+    db: (!s ? "off" : s.database.ok ? (s.database.ms > 1500 ? "warn" : "ok") : "bad") as Tone,
+    uptime: (!s || s.uptime_7d == null ? "off" : s.uptime_7d >= 99 ? "ok" : s.uptime_7d >= 95 ? "warn" : "bad") as Tone,
+    resources: (!sample ? "off" : sample.ok ? "ok" : "warn") as Tone,
+    nbc: (!s?.feeds.nbc ? "bad" : (nbcAgeDays ?? 9) <= 3.5 ? "ok" : "warn") as Tone,
+    csnj: (!local ? "bad" : local.date === today ? "ok" : hourPP < 11 ? "warn" : "bad") as Tone,
+    spot: (s?.feeds.gold_spot && s.feeds.fetched_at && now - Date.parse(s.feeds.fetched_at) < 2 * 3_600_000 ? "ok" : "warn") as Tone,
+    bot: (!s?.telegram.ok ? "bad" : webhookErrRecent || (s.telegram.pending ?? 0) > 20 ? "warn" : "ok") as Tone,
+    scheduler: (s?.server.dispatcher ? "ok" : "bad") as Tone,
+    // Missed after 11:00 = red; before the first scheduled run ever, only yellow.
+    bulletin: (!s?.telegram.community_chat ? "off" : sentToday ? "ok" : hourPP >= 11 && lastBulletin ? "bad" : "warn") as Tone,
+    logs: (!s ? "off" : s.errors_24h > 0 ? "bad" : s.security_24h > 0 ? "warn" : "ok") as Tone,
+  }
+  const groups: { key: Tab; label: string; tone: Tone }[] = [
+    { key: "system", label: "Server", tone: worst(tone.server, tone.resources) },
+    { key: "system", label: "DB", tone: tone.db },
+    { key: "bot", label: "Bot", tone: worst(tone.bot, tone.scheduler, tone.bulletin) },
+    { key: "feeds", label: "Feeds", tone: worst(tone.nbc, tone.csnj, tone.spot) },
+  ]
+
+  // Collapsed by default to one status line; the choice is remembered on this device.
+  const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<Tab>("system")
+  useEffect(() => {
+    try {
+      setOpen(localStorage.getItem(OPEN_KEY) === "1")
+    } catch {}
+  }, [])
+  const toggle = () => {
+    setOpen((v) => {
+      try {
+        localStorage.setItem(OPEN_KEY, v ? "0" : "1")
+      } catch {}
+      return !v
+    })
+  }
+
   return (
     <section className="space-y-2">
-      <div className="flex items-center justify-between px-1">
-        <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-          <ActivityIcon className="size-4" aria-hidden />
-          {t("sys.title")}
-        </h2>
-        <Button size="sm" variant="ghost" className="h-7" onClick={() => void q.refetch()} disabled={q.isFetching} aria-label={t("market.refresh")}>
-          {q.isFetching ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
-        </Button>
-      </div>
-      <Card className="gap-4 px-4 py-4">
-        {q.isLoading && <Loader2Icon className="mx-auto size-5 animate-spin text-muted-foreground" />}
-        {q.isError && <p className="text-sm text-destructive">{t("sys.unavailable")}</p>}
-        {s && (
-          <>
+      <Card className="gap-0 overflow-hidden p-0">
+        <div className="flex items-center gap-2 px-4 py-3">
+          <button type="button" onClick={toggle} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+            <ActivityIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">{t("sys.title")}</span>
+              <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
+                {q.isLoading ? (
+                  <Loader2Icon className="size-3 animate-spin" />
+                ) : q.isError ? (
+                  <span className="text-destructive">{t("sys.unavailable")}</span>
+                ) : (
+                  groups.map((g) => (
+                    <span key={g.label} className="inline-flex items-center gap-1">
+                      <span className={cn("size-2 rounded-full", DOT[g.tone])} aria-hidden />
+                      {g.label}
+                      <span className="sr-only">{g.tone}</span>
+                    </span>
+                  ))
+                )}
+              </span>
+            </span>
+            <span className="inline-flex shrink-0 items-center gap-0.5 text-xs font-medium text-primary">
+              {t(open ? "sys.collapse" : "sys.expand")}
+              <ChevronDownIcon className={cn("size-4 transition-transform", open && "rotate-180")} aria-hidden />
+            </span>
+          </button>
+          <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2" onClick={() => void q.refetch()} disabled={q.isFetching} aria-label={t("market.refresh")}>
+            {q.isFetching ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
+          </Button>
+        </div>
+        {open && s && (
+          <div className="space-y-3 border-t px-4 py-3">
+            <Segmented<Tab>
+              aria-label={t("sys.title")}
+              value={tab}
+              onChange={setTab}
+              options={(
+                [
+                  ["system", "sys.tabSystem", worst(tone.server, tone.db, tone.uptime, tone.resources)],
+                  ["feeds", "sys.tabFeeds", worst(tone.nbc, tone.csnj, tone.spot)],
+                  ["bot", "sys.tabBot", worst(tone.bot, tone.scheduler, tone.bulletin)],
+                  ["logs", "sys.tabLogs", tone.logs],
+                ] as const
+              ).map(([value, key, tn]) => ({
+                value,
+                label: (
+                  <span className="inline-flex items-center justify-center gap-1 text-xs">
+                    <span className={cn("size-1.5 rounded-full", DOT[tn])} aria-hidden />
+                    {t(key)}
+                  </span>
+                ),
+              }))}
+            />
+            {tab === "system" && (
             <Group title={t("sys.appDb")}>
-              <Row tone="ok" label={t("sys.webServer")} value={`Online · ${duration(s.server.uptime_s)}`} hint={`${t("sys.since")} ${phnomPenh(s.server.started_at).toISOString().slice(0, 16).replace("T", " ")} · ${s.server.rss_mb} MB · Node ${s.server.node}`} />
+              <Row tone={tone.server} label={t("sys.webServer")} value={`Online · ${duration(s.server.uptime_s)}`} hint={`${t("sys.since")} ${phnomPenh(s.server.started_at).toISOString().slice(0, 16).replace("T", " ")} · ${s.server.rss_mb} MB · Node ${s.server.node}`} />
               <Row
-                tone={s.database.ok ? (s.database.ms > 1500 ? "warn" : "ok") : "bad"}
+                tone={tone.db}
                 label="Supabase"
                 value={s.database.ok ? `Connected · ${s.database.ms} ms` : "Down"}
                 hint={s.database.error ?? undefined}
               />
               <Row
-                tone={s.uptime_7d == null ? "off" : s.uptime_7d >= 99 ? "ok" : s.uptime_7d >= 95 ? "warn" : "bad"}
+                tone={tone.uptime}
                 label={t("sys.uptime7d")}
                 value={s.uptime_7d != null ? `${s.uptime_7d}%` : "—"}
                 hint={t("sys.samples", { n: s.samples_7d })}
               />
               {sample && (
                 <Row
-                  tone={sample.ok ? "ok" : "warn"}
+                  tone={tone.resources}
                   label={t("sys.resources")}
                   value={`RAM ${sample.ram_pct ?? "–"}% · CPU ${sample.cpu_pct ?? "–"}% · Disk ${sample.disk_pct ?? "–"}%`}
                   hint={`${t("sys.appMemory")} ${sample.app_mem_pct ?? "–"}% · ${ago(sample.at, now)} ${t("sys.ago")}${sample.issues.length ? ` · ${sample.issues.join(", ")}` : ""}`}
@@ -136,15 +223,18 @@ export function SystemHealthCard() {
               )}
             </Group>
 
+            )}
+
+            {tab === "feeds" && (
             <Group title={t("sys.feeds")}>
               <Row
-                tone={!s.feeds.nbc ? "bad" : (nbcAgeDays ?? 9) <= 3.5 ? "ok" : "warn"}
+                tone={tone.nbc}
                 label={t("sys.nbc")}
                 value={s.feeds.nbc ? `$1 = ${s.feeds.nbc.usd_khr.toLocaleString("en-US")}៛` : "—"}
                 hint={s.feeds.nbc ? `${t("sys.published")} ${s.feeds.nbc.date} · ${t("sys.checked")} ${ago(s.feeds.fetched_at, now)} ${t("sys.ago")}` : undefined}
               />
               <Row
-                tone={!local ? "bad" : local.date === today ? "ok" : hourPP < 11 ? "warn" : "bad"}
+                tone={tone.csnj}
                 label={t("sys.csnj")}
                 value={local ? `${local.kilo.sell.toLocaleString("en-US")} / ${local.kilo.buy.toLocaleString("en-US")}` : "—"}
                 hint={
@@ -154,23 +244,26 @@ export function SystemHealthCard() {
                 }
               />
               <Row
-                tone={s.feeds.gold_spot && s.feeds.fetched_at && now - Date.parse(s.feeds.fetched_at) < 2 * 3_600_000 ? "ok" : "warn"}
+                tone={tone.spot}
                 label={t("sys.goldSpot")}
                 value={s.feeds.gold_spot ? `$${s.feeds.gold_spot.spot.toLocaleString("en-US")}/oz` : "—"}
                 hint={s.feeds.gold_spot ? `${ago(s.feeds.gold_spot.updated_at, now)} ${t("sys.ago")}` : undefined}
               />
             </Group>
 
+            )}
+
+            {tab === "bot" && (
             <Group title={t("sys.bot")}>
               <Row
-                tone={!s.telegram.ok ? "bad" : webhookErrRecent || (s.telegram.pending ?? 0) > 20 ? "warn" : "ok"}
+                tone={tone.bot}
                 label={s.telegram.username ? `@${s.telegram.username}` : "Telegram bot"}
                 value={s.telegram.ok ? `Active · ${s.telegram.ms} ms` : "Offline"}
                 hint={`Webhook ${s.telegram.webhook_url ? new URL(s.telegram.webhook_url).host : "—"} · ${t("sys.pending", { n: s.telegram.pending ?? 0 })}${s.telegram.last_error ? ` · ${t("sys.lastError")} ${ago(s.telegram.last_error_at, now)} ${t("sys.ago")}: ${s.telegram.last_error}` : ""}`}
               />
-              <Row tone={s.server.dispatcher ? "ok" : "bad"} label={t("sys.scheduler")} value={s.server.dispatcher ? t("sys.running") : t("sys.stopped")} hint={t("sys.schedulerHint")} />
+              <Row tone={tone.scheduler} label={t("sys.scheduler")} value={s.server.dispatcher ? t("sys.running") : t("sys.stopped")} hint={t("sys.schedulerHint")} />
               <Row
-                tone={!s.telegram.community_chat ? "off" : sentToday ? "ok" : hourPP >= 11 ? "bad" : "warn"}
+                tone={tone.bulletin}
                 label={t("sys.bulletin")}
                 value={sentToday ? `${t("sys.sentAt")} ${phnomPenh(lastBulletin!.ran_at).toISOString().slice(11, 16)}` : s.telegram.community_chat ? t("sys.notYet") : t("sys.off")}
                 hint={`${s.telegram.community_chat ?? "—"} · ${t(sentToday || hourPP >= 11 ? "sys.nextTomorrow" : "sys.nextToday")}${lastBulletin && !sentToday ? ` · ${t("sys.lastSent")} ${lastBulletin.day}` : ""}`}
@@ -182,6 +275,9 @@ export function SystemHealthCard() {
               </div>
             </Group>
 
+            )}
+
+            {tab === "logs" && (
             <Group title={t("sys.security")}>
               <div className="mb-1 flex gap-2 text-xs">
                 <span className={cn("rounded-full px-2 py-0.5", s.security_24h ? "bg-violet-500/15 text-violet-700 dark:text-violet-300" : "bg-muted text-muted-foreground")}>
@@ -208,7 +304,8 @@ export function SystemHealthCard() {
                 </ul>
               )}
             </Group>
-          </>
+            )}
+          </div>
         )}
       </Card>
     </section>
