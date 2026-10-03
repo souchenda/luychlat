@@ -5,6 +5,7 @@ import { Loader2Icon, RefreshCwIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { CurrencyConverter } from "@/components/market/currency-converter"
 import { SettingsGroup, SettingsSubHeader } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -149,6 +150,9 @@ export default function MarketPage() {
           </div>
         </SettingsGroup>
       )}
+
+      {/* Any pair, converted through riel on today's NBC rates. */}
+      {market?.nbc && <CurrencyConverter khrPer={market.nbc.khr_per} locale={locale} />}
 
       {market?.nbc && (
         <SettingsGroup title={t("market.nbc")}>

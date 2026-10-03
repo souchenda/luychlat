@@ -2022,6 +2022,13 @@ const km = {
   "tips.count": "{n} គន្លឹះ",
   "tips.disclaimer": "ព័ត៌មានអប់រំទូទៅ មិនមែនជាការណែនាំហិរញ្ញវត្ថុផ្ទាល់ខ្លួនទេ។",
   "tips.settingsHint": "ការសន្សំ បំណុល ប័ណ្ណឥណទាន និងអាជីវកម្ម",
+  "market.converter": "បម្លែងរូបិយប័ណ្ណរហ័ស",
+  "market.nbcRate": "អត្រា NBC",
+  "market.amount": "ចំនួនដើម",
+  "market.youGet": "ទទួលបាន",
+  "market.from": "ពីរូបិយប័ណ្ណ",
+  "market.to": "ទៅរូបិយប័ណ្ណ",
+  "market.swap": "ប្ដូរទិស",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4048,6 +4055,13 @@ const en: Record<MessageKey, string> = {
   "tips.count": "{n} tips",
   "tips.disclaimer": "General education, not personal financial advice.",
   "tips.settingsHint": "Saving, debt, credit cards and business",
+  "market.converter": "Quick currency converter",
+  "market.nbcRate": "NBC rate",
+  "market.amount": "Amount",
+  "market.youGet": "You get",
+  "market.from": "From currency",
+  "market.to": "To currency",
+  "market.swap": "Swap",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }
