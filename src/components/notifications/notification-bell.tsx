@@ -4,12 +4,13 @@ import { formatDistanceToNow } from "date-fns"
 import { enUS, km } from "date-fns/locale"
 import { AlarmClockIcon, BellIcon, BellOffIcon, TriangleAlertIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { MemberAvatar } from "@/components/family/member-avatar"
 import { Button } from "@/components/ui/button"
 import { alertText } from "@/lib/alerts"
+import { clearShownNotifications, syncAppBadge } from "@/lib/app-badge"
 import { useActiveWorkspace, useDebts, useNotificationMutations, useNotifications } from "@/lib/data/hooks"
 import type { AppNotification } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
@@ -31,9 +32,26 @@ export function NotificationBell() {
 
   const unread = notifications.filter((n) => !n.is_read).length
 
+  // The home-screen icon badge follows the real unread count (never a stale "1").
+  useEffect(() => {
+    void syncAppBadge(unread)
+  }, [unread])
+
+  // Opening the app (or coming back to it) clears our alerts from the phone's
+  // notification shade — Android counts those on the icon too.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void clearShownNotifications()
+    }
+    onVisible()
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
+  }, [])
+
   const onOpenChange = (next: boolean) => {
     setOpen(next)
     if (next) {
+      void clearShownNotifications()
       setUnreadAtOpen(new Set(notifications.filter((n) => !n.is_read).map((n) => n.id)))
       if (unread > 0) markRead.mutate()
     }
