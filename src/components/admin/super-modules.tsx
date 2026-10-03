@@ -112,11 +112,12 @@ type Plan = {
   max_wallets: number | null
   max_family_members: number | null
   max_business_workspaces: number | null
+  max_statement_imports: number | null
   ai_queries_per_month: number
   business_trial_days: number
   active: boolean
 }
-const LIMITS = ["max_wallets", "max_family_members", "max_business_workspaces"] as const
+const LIMITS = ["max_wallets", "max_family_members", "max_business_workspaces", "max_statement_imports"] as const
 type Draft = Record<"price_usd" | "price_khr" | "ai_queries_per_month" | "business_trial_days" | (typeof LIMITS)[number], string> & { active: boolean }
 
 const toDraft = (p: Plan): Draft => ({
@@ -127,6 +128,7 @@ const toDraft = (p: Plan): Draft => ({
   max_wallets: p.max_wallets === null ? "" : String(p.max_wallets),
   max_family_members: p.max_family_members === null ? "" : String(p.max_family_members),
   max_business_workspaces: p.max_business_workspaces === null ? "" : String(p.max_business_workspaces),
+  max_statement_imports: p.max_statement_imports === null ? "" : String(p.max_statement_imports),
   active: p.active,
 })
 
@@ -183,6 +185,7 @@ function PlanEditor({ plan, onClose }: { plan: Plan; onClose: () => void }) {
           {field("max_wallets", t("super.limitWallets"), t("super.unlimited"))}
           {field("max_family_members", t("super.limitFamily"), t("super.unlimited"))}
           {field("max_business_workspaces", t("super.limitBusiness"), t("super.unlimited"))}
+          {field("max_statement_imports", t("super.limitImports"), t("super.unlimited"))}
           {field("ai_queries_per_month", t("super.limitAi"))}
           {plan.code === "FREE" && field("business_trial_days", t("super.trialDays"))}
         </div>
@@ -217,7 +220,7 @@ export function PricingEngine() {
               <p className={cn("text-sm font-semibold", !p.active && "text-muted-foreground line-through")}>{p.code}</p>
               <p className="truncate text-xs text-muted-foreground">
                 {t("super.limitWallets")} {limitText(p.max_wallets)} · {t("super.limitFamily")} {limitText(p.max_family_members)} · {t("super.limitBusiness")}{" "}
-                {limitText(p.max_business_workspaces)} · AI {p.ai_queries_per_month}
+                {limitText(p.max_business_workspaces)} · {t("super.limitImports")} {limitText(p.max_statement_imports)} · AI {p.ai_queries_per_month}
               </p>
             </div>
             <div className="shrink-0 text-right text-sm font-semibold tabular-nums">

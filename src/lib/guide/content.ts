@@ -176,7 +176,7 @@ export const GUIDE: GuideSection[] = [
       {
         q: { km: "ការណែនាំមិត្តភក្តិ ដំណើរការយ៉ាងណា?", en: "How does Refer a Friend work?" },
         a: [
-          { km: "«ការកំណត់» › «ណែនាំមិត្តភក្តិ» › ចែករំលែកលេខកូដ ឬតំណរបស់អ្នក។ ពេលមិត្តចុះឈ្មោះ ហើយប្រើលេខកូដក្នុង ៧ ថ្ងៃដំបូង អ្នកទាំងពីរទទួលបាន PRO ៧ ថ្ងៃ (បន្ថែមលើ PRO ដែលមានស្រាប់)។", en: "Settings › Refer a Friend › share your code or link. When a friend signs up and uses it within their first 7 days, you both get 7 days of PRO, added on top of any PRO you already have." },
+          { km: "«ការកំណត់» › «ណែនាំមិត្តភក្តិ» › ចែករំលែកលេខកូដ ឬតំណរបស់អ្នក។ ពេលមិត្តចុះឈ្មោះ ហើយប្រើលេខកូដក្នុងថ្ងៃដំបូងៗ អ្នកទាំងពីរទទួលបានថ្ងៃ PRO ឥតគិតថ្លៃ (បន្ថែមលើ PRO ដែលមានស្រាប់) — ចំនួនថ្ងៃបង្ហាញក្នុងកាត «ណែនាំមិត្តភក្តិ»។", en: "Settings › Refer a Friend › share your code or link. When a friend signs up and uses it in their first days, you both get free days of PRO, added on top of any PRO you already have — the Refer a Friend card shows how many." },
           { km: "គណនីនីមួយៗប្រើលេខកូដបានតែម្តង ហើយប្រើលេខកូដខ្លួនឯងមិនបានទេ។", en: "Each account can use one code once, and you can't use your own." },
         ],
       },

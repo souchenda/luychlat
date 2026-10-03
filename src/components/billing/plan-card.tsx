@@ -4,6 +4,7 @@ import { format } from "date-fns"
 import { CrownIcon, ShieldCheckIcon } from "lucide-react"
 import Link from "next/link"
 
+import { PromoCodeRow } from "@/components/billing/promo-code"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useT } from "@/lib/i18n/use-t"
@@ -61,7 +62,8 @@ export function PlanCard() {
           </div>
         )}
       </Card>
-      {plan.is_admin && (
+      <PromoCodeRow />
+      {(plan.is_admin || plan.staff_role) && (
         <Button asChild variant="outline" className="w-full">
           <Link href="/admin">
             <ShieldCheckIcon />

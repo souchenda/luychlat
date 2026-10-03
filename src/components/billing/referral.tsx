@@ -19,8 +19,19 @@ import { useSessionStore } from "@/stores/session-store"
 const PENDING_REF_KEY = "luysmart-pending-ref"
 const CODE_RE = /^[A-HJ-NP-Z2-9]{8}$/
 
-type MyReferral = { code: string; invited: number; days_earned: number; referred_by: string | null; can_redeem: boolean }
-type RedeemStatus = "ok" | "invalid" | "own_code" | "already_redeemed" | "too_late" | "rate_limited"
+type MyReferral = {
+  code: string
+  invited: number
+  days_earned: number
+  referred_by: string | null
+  can_redeem: boolean
+  /** The campaign in force (set in /admin/super). */
+  active?: boolean
+  referee_days?: number
+  referrer_days?: number
+  max_account_age_days?: number
+}
+type RedeemStatus = "ok" | "invalid" | "own_code" | "already_redeemed" | "too_late" | "rate_limited" | "inactive"
 
 const normalize = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "")
 
@@ -49,15 +60,16 @@ function useRedeem() {
     mutationFn: async (code: string) => {
       const { data, error } = await getSupabaseBrowserClient()!.rpc("redeem_referral", { p_code: normalize(code) })
       if (error) throw error
-      return (data as { status: RedeemStatus }).status
+      return data as { status: RedeemStatus; days?: number }
     },
-    onSuccess: (status) => {
+    onSuccess: ({ status, days }) => {
       if (status === "ok") {
-        toast.success(t("referral.redeemed"))
+        toast.success(t("referral.redeemed", { days: days ?? 7 }))
         void refreshPlan()
         void queryClient.invalidateQueries({ queryKey: ["referral"] })
       } else {
-        toast.error(t(`referral.error.${status}` as MessageKey))
+        const mine = queryClient.getQueriesData<MyReferral>({ queryKey: ["referral"] })[0]?.[1]
+        toast.error(t(`referral.error.${status}` as MessageKey, { days: mine?.max_account_age_days ?? 7 }))
       }
     },
     onError: () => toast.error(t("common.error")),
@@ -133,7 +145,7 @@ export function ReferralCard() {
   }
 
   const share = async () => {
-    const text = t("referral.shareText", { code: data.code })
+    const text = t("referral.shareText", { code: data.code, referee: data.referee_days ?? 7 })
     if (navigator.share) {
       try {
         await navigator.share({ title: t("app.name"), text, url: link })
@@ -149,7 +161,9 @@ export function ReferralCard() {
     <section id="referral" className="scroll-mt-20 space-y-2">
       <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("referral.title")}</h2>
       <Card className="gap-3 px-4 py-4">
-        <p className="text-sm text-muted-foreground">{t("referral.hint")}</p>
+        <p className="text-sm text-muted-foreground">
+          {data.active === false ? t("referral.paused") : t("referral.hint", { referee: data.referee_days ?? 7, referrer: data.referrer_days ?? 7 })}
+        </p>
         <div className="flex items-center gap-2">
           <button
             type="button"

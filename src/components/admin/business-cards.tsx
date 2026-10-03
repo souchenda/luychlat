@@ -1,11 +1,11 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CrownIcon, GiftIcon, Loader2Icon, QrCodeIcon, UploadIcon } from "lucide-react"
+import { CrownIcon, Loader2Icon, QrCodeIcon, UploadIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
-import { rpc, Section, Stat, who } from "@/components/admin/ui"
+import { rpc, Section } from "@/components/admin/ui"
 import type { PaymentInstructions } from "@/components/billing/upgrade-sheet"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -15,46 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
-// Super Admin: referral results and the payment details shown in the upgrade sheet (moved from /admin).
-
-type ReferralStats = {
-  total: number
-  last_30d: number
-  days_granted: number
-  top: { user_id: string; email: string | null; display_name: string | null; invited: number; days_earned: number }[]
-}
-
-export function ReferralStatsCard() {
-  const t = useT()
-  const { data } = useQuery({ queryKey: ["admin", "referrals"], queryFn: () => rpc<ReferralStats>("admin_referral_stats") })
-  if (!data) return null
-  return (
-    <Section title={t("referral.title")} icon={<GiftIcon />}>
-      <Card className="gap-3 px-4 py-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Stat label={t("admin.refTotal")} value={data.total} />
-          <Stat label={t("admin.last30d")} value={data.last_30d} />
-          <Stat label={t("admin.refDays")} value={data.days_granted} />
-        </div>
-        {data.top.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-sm font-medium">{t("admin.topReferrers")}</p>
-            <ol className="divide-y text-sm">
-              {data.top.map((r, i) => (
-                <li key={r.user_id} className="flex items-center gap-2 py-1.5">
-                  <span className="w-5 text-muted-foreground tabular-nums">{i + 1}</span>
-                  <span className="min-w-0 flex-1 truncate">{who(r)}</span>
-                  <span className="tabular-nums font-medium">{r.invited}</span>
-                  <span className="w-14 text-right text-xs text-muted-foreground tabular-nums">+{r.days_earned}d</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-      </Card>
-    </Section>
-  )
-}
+// Super Admin: the payment details shown in the upgrade sheet (moved from /admin).
 
 type Instructions = PaymentInstructions
 

@@ -4,7 +4,8 @@ import { ArrowLeftIcon, Loader2Icon, ShieldAlertIcon } from "lucide-react"
 import Link from "next/link"
 
 import { AuditLogCard } from "@/components/admin/audit-log"
-import { PaymentInstructionsForm, ReferralStatsCard } from "@/components/admin/business-cards"
+import { PaymentInstructionsForm } from "@/components/admin/business-cards"
+import { PromoManager, ReferralManager } from "@/components/admin/growth"
 import { BusinessMetrics, PartnerHub, PricingEngine, PrivacyNotice, StaffManager } from "@/components/admin/super-modules"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -44,7 +45,8 @@ export default function SuperAdminPage() {
       <BusinessMetrics />
       <PricingEngine />
       <PaymentInstructionsForm />
-      <ReferralStatsCard />
+      <ReferralManager />
+      <PromoManager />
       <PartnerHub />
       <StaffManager />
       <AuditLogCard />
