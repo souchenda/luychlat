@@ -2038,6 +2038,8 @@ const km = {
   "market.localDate": "ថ្ងៃទី {date}",
   "market.localSourceCsnj": "ប្រភព៖ ហាងមាសពេជ្រ CSNJ តាមរយៈ Oknha News",
   "market.localSourceManual": "តម្លៃហាងក្នុងស្រុក (បញ្ចូលដោយ admin)",
+  "market.showMore": "មើលបន្ថែម",
+  "market.showLess": "បង្រួមវិញ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4080,6 +4082,8 @@ const en: Record<MessageKey, string> = {
   "market.localDate": "{date}",
   "market.localSourceCsnj": "Source: CSNJ Diamond & Gold via Oknha News",
   "market.localSourceManual": "Local shop price (entered by admin)",
+  "market.showMore": "Show more",
+  "market.showLess": "Show less",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

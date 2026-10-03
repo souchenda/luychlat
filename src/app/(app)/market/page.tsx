@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { Loader2Icon, RefreshCwIcon } from "lucide-react"
+import { ChevronDownIcon, Loader2Icon, RefreshCwIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -18,6 +18,9 @@ import { NBC_CURRENCIES } from "@/lib/market-calc"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 
+/** Shown before "Show more": the currencies most used in Cambodia. */
+const POPULAR = 5
+
 const KINDS = ["GOLD_BAR", "GOLD_24K", "GOLD_18K", "GOLD_14K", "PLATINUM"] as const
 type Kind = (typeof KINDS)[number]
 
@@ -33,6 +36,7 @@ export default function MarketPage() {
   const { adminRates } = useGoldRates()
   const [kind, setKind] = useState<Kind>("GOLD_24K")
   const [weight, setWeight] = useState({ damlung: "1", chi: "", hun: "" })
+  const [allCurrencies, setAllCurrencies] = useState(false)
 
   const usdKhr = market?.nbc?.usd_khr ?? 0
   const reference = market?.gold?.reference ?? {}
@@ -77,12 +81,25 @@ export default function MarketPage() {
             <span className="flex-1">{t("market.currency")}</span>
             <span>{t("market.khrPerUnit")}</span>
           </div>
-          {NBC_CURRENCIES.filter((c) => market.nbc!.khr_per[c]).map((c) => (
+          {NBC_CURRENCIES.filter((c) => market.nbc!.khr_per[c])
+            .filter((_, i) => allCurrencies || i < POPULAR)
+            .map((c) => (
             <div key={c} className={cn("flex items-center px-4 py-2.5 text-sm", c === "USD" && "bg-primary/5")}>
               <span className={cn("flex-1", c === "USD" && "font-semibold")}>1 {c}</span>
               <span className="font-semibold tabular-nums">{money(market.nbc!.khr_per[c], market.nbc!.khr_per[c] >= 100 ? 0 : market.nbc!.khr_per[c] >= 1 ? 2 : 3)}៛</span>
             </div>
           ))}
+          {NBC_CURRENCIES.filter((c) => market.nbc!.khr_per[c]).length > POPULAR && (
+            <button
+              type="button"
+              onClick={() => setAllCurrencies((v) => !v)}
+              aria-expanded={allCurrencies}
+              className="flex w-full items-center justify-center gap-1 px-4 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-muted/60"
+            >
+              {t(allCurrencies ? "market.showLess" : "market.showMore")}
+              <ChevronDownIcon className={cn("size-4 transition-transform", allCurrencies && "rotate-180")} aria-hidden />
+            </button>
+          )}
         </SettingsGroup>
       )}
 
