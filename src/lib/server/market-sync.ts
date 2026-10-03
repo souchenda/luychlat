@@ -1,4 +1,7 @@
 // Server only: fetches live market rates and stores them for every user.
+import dns, { type LookupAddress, type LookupOptions } from "dns"
+import https from "https"
+
 import { khrPerUnit, NBC_CURRENCIES, referenceRates, type MarketLive } from "@/lib/market-calc"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 
@@ -15,13 +18,43 @@ const FRANKFURTER = "https://api.frankfurter.dev/v2/rates"
 const GOLD_API = "https://api.gold-api.com/price"
 const MIN_INTERVAL_MS = 5 * 60_000
 
-async function getJson<T>(url: string): Promise<T | null> {
-  try {
-    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(15_000), headers: { Accept: "application/json" } })
-    return res.ok ? ((await res.json()) as T) : null
-  } catch {
-    return null
-  }
+/**
+ * Host lookup that asks DNS directly first: in the Alpine (musl) container the
+ * system lookup fails for some hosts with large DNS answers (gold-api.com),
+ * while a plain A-record query works. Falls back to the normal lookup.
+ */
+function lookup(hostname: string, options: LookupOptions, callback: (err: NodeJS.ErrnoException | null, address: string | LookupAddress[], family?: number) => void) {
+  dns.resolve4(hostname, (err, addresses) => {
+    if (err || !addresses.length) return dns.lookup(hostname, options, callback as never)
+    if (options.all) return callback(null, addresses.map((address) => ({ address, family: 4 })))
+    callback(null, addresses[0], 4)
+  })
+}
+
+function getJson<T>(url: string): Promise<T | null> {
+  return new Promise((resolve) => {
+    const req = https.get(url, { headers: { Accept: "application/json", "User-Agent": "LuyChlat/1.0" }, lookup, timeout: 15_000 }, (res) => {
+      if (!res.statusCode || res.statusCode >= 300) {
+        res.resume()
+        return resolve(null)
+      }
+      let body = ""
+      res.setEncoding("utf8")
+      res.on("data", (chunk: string) => {
+        body += chunk
+        if (body.length > 1_000_000) req.destroy()
+      })
+      res.on("end", () => {
+        try {
+          resolve(JSON.parse(body) as T)
+        } catch {
+          resolve(null)
+        }
+      })
+    })
+    req.on("timeout", () => req.destroy())
+    req.on("error", () => resolve(null))
+  })
 }
 
 async function fetchNbc(): Promise<MarketLive["nbc"] | undefined> {
