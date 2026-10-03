@@ -1,15 +1,18 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { differenceInCalendarDays, format } from "date-fns"
 import { Loader2Icon, SearchIcon, SendIcon, UsersRoundIcon } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
-import { ago, rpc, Section } from "@/components/admin/ui"
+import { ago, confirmChange, rpc, Section } from "@/components/admin/ui"
+import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
@@ -20,6 +23,8 @@ type Customer = {
   email: string | null
   display_name: string | null
   telegram_username: string | null
+  /** Sign-up method: "email", "google", … */
+  provider: string
   joined_at: string
   last_active_at: string | null
   plan_code: string | null
@@ -32,9 +37,12 @@ type Customer = {
   last_payment_amount: number | null
   last_payment_currency: "USD" | "KHR" | null
   paid_count: number
+  /** Internal / test account: left out of business metrics. */
+  is_test: boolean
+  suspended: boolean
   total: number
 }
-type Filter = "all" | "paying" | "free"
+type Filter = "all" | "paying" | "free" | "test"
 const PAGE = 30
 
 const STATUS_TONE: Record<Customer["status"], string> = {
@@ -43,13 +51,27 @@ const STATUS_TONE: Record<Customer["status"], string> = {
   FREE: "bg-muted text-muted-foreground",
 }
 
-function CustomerRow({ c }: { c: Customer }) {
+const joined = (iso: string) => format(new Date(iso), "dd-MMM-yyyy")
+
+function Badges({ c }: { c: Customer }) {
+  const t = useT()
+  return (
+    <span className="flex flex-wrap items-center gap-1 text-[11px]">
+      <span className="rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground">{t("customers.joined", { date: joined(c.joined_at) })}</span>
+      <span className="rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground">{t(c.provider === "google" ? "customers.provider.google" : "customers.provider.email")}</span>
+      {c.is_test && <span className="rounded-full bg-violet-500/15 px-1.5 py-0.5 font-semibold text-violet-700 dark:text-violet-300">🧪 {t("customers.test")}</span>}
+      {c.suspended && <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 font-semibold text-destructive">🔴 {t("admin.badge.suspended")}</span>}
+    </span>
+  )
+}
+
+function CustomerRow({ c, onOpen }: { c: Customer; onOpen: () => void }) {
   const t = useT()
   const daysLeft = c.status === "ACTIVE" && c.period_end ? differenceInCalendarDays(new Date(c.period_end), new Date()) : null
   // How the plan was obtained: paid (KHQR / entered by an admin) or free (trial, referral, promo).
   const how = c.status === "ACTIVE" && c.source ? t(`customers.source.${c.source}`) : null
   return (
-    <div className="space-y-1 px-4 py-3">
+    <button type="button" onClick={onOpen} className={cn("w-full space-y-1 px-4 py-3 text-left hover:bg-muted/60", c.is_test && "opacity-75")}>
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{c.display_name || c.email || "—"}</p>
@@ -90,7 +112,107 @@ function CustomerRow({ c }: { c: Customer }) {
           .filter(Boolean)
           .join(" · ")}
       </p>
-    </div>
+      <Badges c={c} />
+    </button>
+  )
+}
+
+type Tier = "FREE" | "PRO" | "ULTRA"
+
+/**
+ * Quick actions for one customer: change plan, suspend / reactivate, mark as a
+ * test account. Each asks for a reason and the admin's 2FA, and is audited.
+ */
+function CustomerSheet({ c, onClose }: { c: Customer; onClose: () => void }) {
+  const t = useT()
+  const queryClient = useQueryClient()
+  const [tier, setTier] = useState<Tier>(c.status === "ACTIVE" ? c.tier : "PRO")
+  const name = c.display_name || c.email || c.user_id
+  const act = useMutation({
+    mutationFn: ({ fn, args }: { fn: string; args: Record<string, unknown> }) => rpc(fn, args),
+    onSuccess: () => {
+      toast.success(t("admin.saved"))
+      void queryClient.invalidateQueries({ queryKey: ["admin"] })
+      onClose()
+    },
+    onError: (e) => toast.error(/admins cannot/.test((e as Error).message) ? t("admin.cannotSuspendAdmin") : t("common.error")),
+  })
+  const run = async (prompt: string, fn: string, args: Record<string, unknown>) => {
+    const note = await confirmChange(prompt, t)
+    if (note) act.mutate({ fn, args: { ...args, p_user_id: c.user_id, p_note: note } })
+  }
+  const grant = (days: 30 | 365) =>
+    void run(t("customers.grantPrompt", { name, tier, days }), "admin_extend_subscription", { p_plan_code: `${tier}_${days === 30 ? "MONTHLY" : "YEARLY"}`, p_days: days })
+
+  return (
+    <BottomSheet open onOpenChange={(v) => !v && onClose()} title={name} description={c.email ?? undefined}>
+      <div className="space-y-4">
+        <Badges c={c} />
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-xl bg-muted/60 px-3 py-2">
+            <p className="text-xs text-muted-foreground">{t("admin.plan")}</p>
+            <p className="font-semibold">
+              {c.status === "ACTIVE" ? c.tier : t("plan.free")}
+              {c.status === "ACTIVE" && c.period_end && <span className="text-xs font-normal text-muted-foreground"> · {format(new Date(c.period_end), "dd/MM/yy")}</span>}
+            </p>
+          </div>
+          <div className="rounded-xl bg-muted/60 px-3 py-2">
+            <p className="text-xs text-muted-foreground">{t("admin.lastActive")}</p>
+            <p className="font-semibold">{ago(c.last_active_at)}</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium">{t("customers.changePlan")}</p>
+          <Segmented value={tier} onChange={setTier} options={(["FREE", "PRO", "ULTRA"] as const).map((v) => ({ value: v, label: v }))} />
+          {tier === "FREE" ? (
+            <Button
+              variant="outline"
+              className="w-full text-destructive"
+              disabled={act.isPending || c.status !== "ACTIVE"}
+              onClick={() => void run(t("admin.cancelConfirm", { name }), "admin_cancel_subscription", {})}
+            >
+              {t("customers.toFree")}
+            </Button>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" disabled={act.isPending} onClick={() => grant(30)}>
+                +30 {t("admin.days")} {tier}
+              </Button>
+              <Button variant="outline" disabled={act.isPending} onClick={() => grant(365)}>
+                +365 {t("admin.days")} {tier}
+              </Button>
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">{t("customers.planNote")}</p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium">{t("admin.accountStatus")}</p>
+          <Button
+            variant="outline"
+            className={cn("w-full", !c.suspended && "text-destructive")}
+            disabled={act.isPending}
+            onClick={() =>
+              void run(t(c.suspended ? "admin.reactivatePrompt" : "admin.suspendPrompt", { name }), "admin_set_account_status", { p_suspend: !c.suspended })
+            }
+          >
+            {t(c.suspended ? "admin.reactivate" : "admin.suspend")}
+          </Button>
+          <label className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-sm">
+            <span>
+              <span className="block font-medium">🧪 {t("customers.markTest")}</span>
+              <span className="block text-xs text-muted-foreground">{t("customers.markTestHint")}</span>
+            </span>
+            <Switch
+              checked={c.is_test}
+              disabled={act.isPending}
+              onCheckedChange={(on) => void run(t(on ? "customers.testPrompt" : "customers.untestPrompt", { name }), "admin_set_test_account", { p_on: on })}
+            />
+          </label>
+        </div>
+      </div>
+    </BottomSheet>
   )
 }
 
@@ -101,6 +223,7 @@ export function CustomerDirectory() {
   const [search, setSearch] = useState("")
   const [debounced, setDebounced] = useState("")
   const [limit, setLimit] = useState(PAGE)
+  const [open, setOpen] = useState<Customer | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => setDebounced(search.trim()), 300)
@@ -126,6 +249,7 @@ export function CustomerDirectory() {
           { value: "all", label: t("customers.filter.all") },
           { value: "paying", label: t("customers.filter.paying") },
           { value: "free", label: t("customers.filter.free") },
+          { value: "test", label: "🧪" },
         ]}
       />
       <div className="relative">
@@ -133,7 +257,7 @@ export function CustomerDirectory() {
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("customers.search")} className="pl-8" aria-label={t("customers.search")} />
       </div>
       <Card className="gap-0 divide-y py-0">
-        {!data?.length ? <p className="px-4 py-4 text-sm text-muted-foreground">{t("admin.noUsers")}</p> : data.map((c) => <CustomerRow key={c.user_id} c={c} />)}
+        {!data?.length ? <p className="px-4 py-4 text-sm text-muted-foreground">{t("admin.noUsers")}</p> : data.map((c) => <CustomerRow key={c.user_id} c={c} onOpen={() => setOpen(c)} />)}
       </Card>
       {data && total > data.length && (
         <Button variant="ghost" className="w-full" onClick={() => setLimit((l) => l + PAGE)}>
@@ -141,6 +265,7 @@ export function CustomerDirectory() {
         </Button>
       )}
       <p className="text-[11px] text-muted-foreground">{t("customers.note")}</p>
+      {open && <CustomerSheet c={open} onClose={() => setOpen(null)} />}
     </Section>
   )
 }

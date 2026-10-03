@@ -6,9 +6,8 @@ import { GiftIcon, Loader2Icon, PlusIcon, TicketIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { rpc, Section, Stat, who } from "@/components/admin/ui"
+import { confirmChange, rpc, Section, Stat, who } from "@/components/admin/ui"
 import { BottomSheet } from "@/components/common/bottom-sheet"
-import { stepUp } from "@/components/security/step-up"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,16 +18,6 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { cn } from "@/lib/utils"
 
-/** The reason (kept in the audit log) and the admin's own 2FA; null when cancelled. */
-async function confirmChange(prompt: string, t: (k: MessageKey) => string): Promise<string | null> {
-  const note = window.prompt(prompt)
-  if (note === null) return null
-  if (note.trim().length < 3) {
-    toast.error(t("mfa.adminResetNoteRequired"))
-    return null
-  }
-  return (await stepUp(prompt)) ? note.trim() : null
-}
 
 // ---------------------------------------------------------------------------
 // Referral campaign: rules, results, and anti-fraud flags

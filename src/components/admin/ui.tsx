@@ -2,7 +2,10 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { formatDistanceToNowStrict } from "date-fns"
+import { toast } from "sonner"
 
+import { stepUp } from "@/components/security/step-up"
+import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
@@ -45,3 +48,13 @@ export function Stat({ label, value, hint, accent }: { label: string; value: Rea
   )
 }
 
+/** Asks for the reason (kept in the audit log) and the admin's own 2FA; null when cancelled. */
+export async function confirmChange(prompt: string, t: (k: MessageKey) => string): Promise<string | null> {
+  const note = window.prompt(prompt)
+  if (note === null) return null
+  if (note.trim().length < 3) {
+    toast.error(t("mfa.adminResetNoteRequired"))
+    return null
+  }
+  return (await stepUp(prompt)) ? note.trim() : null
+}

@@ -5,10 +5,9 @@ import { CrownIcon, HandshakeIcon, LockIcon, Loader2Icon, PlusIcon, ShieldCheckI
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { rpc, Section, Stat } from "@/components/admin/ui"
+import { confirmChange, rpc, Section, Stat } from "@/components/admin/ui"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Segmented } from "@/components/common/segmented"
-import { stepUp } from "@/components/security/step-up"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,16 +22,6 @@ import { planKeys, type StaffRole } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
 
-/** Asks for the reason (kept in the audit log) and the admin's own 2FA; null when cancelled. */
-async function confirmChange(prompt: string, t: (k: MessageKey) => string): Promise<string | null> {
-  const note = window.prompt(prompt)
-  if (note === null) return null
-  if (note.trim().length < 3) {
-    toast.error(t("mfa.adminResetNoteRequired"))
-    return null
-  }
-  return (await stepUp(prompt)) ? note.trim() : null
-}
 
 // ---------------------------------------------------------------------------
 // G: privacy notice
@@ -68,6 +57,8 @@ type Metrics = {
   pending_payments: number
   /** Staff accounts left out of every figure. */
   staff_excluded?: number
+  /** Accounts marked as test, also left out. */
+  test_excluded?: number
 }
 
 const revenue = (r: Metrics["revenue_total"]) =>
@@ -99,6 +90,7 @@ export function BusinessMetrics() {
         </div>
         <p className="text-[11px] text-muted-foreground">
           {t("super.metricsNote")} {t("super.staffExcluded", { count: m.staff_excluded ?? 0 })}
+          {m.test_excluded ? ` ${t("super.testExcluded", { count: m.test_excluded })}` : ""}
         </p>
       </Card>
     </Section>
