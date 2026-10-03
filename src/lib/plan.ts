@@ -29,6 +29,8 @@ export type MyPlan = {
   can_export: boolean
   can_credit_score: boolean
   is_admin: boolean
+  /** Staff role (support / admin / super_admin), or null for customers. */
+  staff_role?: StaffRole | null
   /** Admin test mode: the plan the admin is trying their own account as, until it ends. */
   test_plan?: { tier: Tier; expires_at: string } | null
   /** Business workspaces allowed (null = unlimited, Ultra). */
@@ -36,6 +38,8 @@ export type MyPlan = {
   /** Free plan: when the Business workspace trial ends (ISO), else null. */
   business_trial_ends_at?: string | null
 }
+
+export type StaffRole = "support" | "admin" | "super_admin"
 
 export const FREE_PLAN: MyPlan = {
   tier: "FREE",

@@ -120,8 +120,8 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
         { href: "/guide", label: "guide.title", icon: BookOpenIcon },
         { href: "/support", label: "support.title", icon: HeadsetIcon },
         { href: "/settings", label: "nav.settings", icon: SettingsIcon },
-        // Cosmetic only: the admin page and its RPCs check is_admin() in the database.
-        ...(plan.is_admin ? [{ href: "/admin", label: "admin.title", icon: ShieldIcon } as Item] : []),
+        // Cosmetic only: the admin pages and their RPCs check the staff role in the database.
+        ...(plan.is_admin || plan.staff_role ? [{ href: "/admin", label: "admin.title", icon: ShieldIcon } as Item] : []),
       ],
     },
   ]

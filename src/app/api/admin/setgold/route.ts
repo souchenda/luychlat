@@ -23,7 +23,7 @@ const pair = (v: unknown): BuySell | null => {
 export async function POST(request: Request) {
   const blocked = guardRequest(request, { name: "admin-setgold", limit: 10, windowMs: 60_000, maxBytes: 2_000 })
   if (blocked) return blocked
-  const caller = await isAdminCaller(request)
+  const caller = await isAdminCaller(request, { minRole: "admin" })
   if (!caller) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   let body: { clear?: boolean; kilo?: unknown; jewelry?: unknown }

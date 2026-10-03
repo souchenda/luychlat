@@ -1,30 +1,28 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { format, formatDistanceToNowStrict } from "date-fns"
+import { format } from "date-fns"
 import {
-  ActivityIcon,
   CheckIcon,
+  ChevronRightIcon,
   CrownIcon,
-  GiftIcon,
   InfoIcon,
   LifeBuoyIcon,
-  QrCodeIcon,
   Loader2Icon,
   SearchIcon,
   ShieldAlertIcon,
-  UploadIcon,
   UsersIcon,
   XIcon,
 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { paymentCode, type PaymentInstructions } from "@/components/billing/upgrade-sheet"
+import { paymentCode } from "@/components/billing/upgrade-sheet"
 import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
 import { AdminUserSecurity } from "@/components/security/admin-user-security"
 import { AccountControls, UserBadges, type DirectoryUser } from "@/components/admin/account-controls"
-import { AuditLogCard } from "@/components/admin/audit-log"
+import { ago, rpc, Section, Stat, useInvalidateAdmin, who } from "@/components/admin/ui"
 import { LocalGoldAdmin } from "@/components/admin/local-gold-admin"
 import { SystemHealthCard } from "@/components/admin/system-health-card"
 import { BottomSheet } from "@/components/common/bottom-sheet"
@@ -47,18 +45,6 @@ import { cn } from "@/lib/utils"
  * public.is_admin() in the database, so hiding this page is only cosmetic.
  */
 
-type Overview = {
-  users: number
-  dau: number
-  mau: number
-  new_7d: number
-  pro_active: number
-  free_users: number
-  expiring_7d: number
-  pending_payments: number
-  paid_30d_usd: number
-  paid_30d_khr: number
-}
 type Subscriber = DirectoryUser
 type AdminPayment = {
   id: string
@@ -75,100 +61,8 @@ type AdminPayment = {
   created_at: string
 }
 type SubEvent = { id: number; kind: string; plan_code: string | null; period_end: string | null; note: string | null; created_at: string }
-type ReferralStats = {
-  total: number
-  last_30d: number
-  days_granted: number
-  top: { user_id: string; email: string | null; display_name: string | null; invited: number; days_earned: number }[]
-}
-
 const FILTERS = ["all", "pro", "free", "expiring", "expired", "pending", "suspended"] as const
 type Filter = (typeof FILTERS)[number]
-
-const rpc = async <T,>(name: string, args?: Record<string, unknown>) => {
-  const { data, error } = await getSupabaseBrowserClient()!.rpc(name, args)
-  if (error) throw error
-  return data as T
-}
-
-const who = (u: { display_name: string | null; email: string | null }) => u.display_name || u.email || "—"
-const ago = (iso: string | null) => (iso ? formatDistanceToNowStrict(new Date(iso), { addSuffix: true }) : "—")
-
-function useInvalidateAdmin() {
-  const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: ["admin"] })
-}
-
-function Section({ title, icon, children, action }: { title: string; icon: React.ReactNode; children: React.ReactNode; action?: React.ReactNode }) {
-  return (
-    <section className="space-y-2">
-      <div className="flex items-center gap-2 px-1">
-        <span className="text-muted-foreground [&_svg]:size-4">{icon}</span>
-        <h2 className="flex-1 text-sm font-medium text-muted-foreground">{title}</h2>
-        {action}
-      </div>
-      {children}
-    </section>
-  )
-}
-
-function Stat({ label, value, hint, accent }: { label: string; value: React.ReactNode; hint?: string; accent?: boolean }) {
-  return (
-    <div className={cn("rounded-xl px-3 py-2.5", accent ? "bg-primary/10" : "bg-muted/60")}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("text-xl font-bold tabular-nums", accent && "text-primary")}>{value}</p>
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-    </div>
-  )
-}
-
-function AnalyticsCard() {
-  const t = useT()
-  const { data: o } = useQuery({ queryKey: ["admin", "overview"], queryFn: () => rpc<Overview>("admin_overview"), refetchInterval: 60_000 })
-  if (!o) return <Card className="h-56 animate-pulse" />
-  const proShare = o.users ? Math.round((o.pro_active / o.users) * 100) : 0
-
-  return (
-    <Section title={t("admin.analytics")} icon={<ActivityIcon />}>
-      <Card className="gap-3 px-4 py-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Stat label={t("admin.users")} value={o.users} hint={t("admin.new7d", { count: o.new_7d })} />
-          <Stat label="DAU" value={o.dau} hint={t("admin.last24h")} />
-          <Stat label="MAU" value={o.mau} hint={t("admin.last30d")} />
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-sm">
-            <span className="flex items-center gap-1.5 font-medium">
-              <CrownIcon className="size-4 text-primary" aria-hidden />
-              PRO {o.pro_active}
-            </span>
-            <span className="text-muted-foreground">
-              {t("plan.free")} {o.free_users}
-            </span>
-          </div>
-          <div
-            className="flex h-2 gap-0.5 overflow-hidden rounded-full"
-            role="img"
-            aria-label={`PRO ${o.pro_active} / ${t("plan.free")} ${o.free_users}`}
-          >
-            <div className="rounded-full bg-primary" style={{ width: `${proShare}%` }} />
-            <div className="flex-1 rounded-full bg-muted" />
-          </div>
-          <p className="text-xs text-muted-foreground">{t("admin.proShare", { percent: proShare })}</p>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Stat label={t("admin.pending")} value={o.pending_payments} accent={o.pending_payments > 0} />
-          <Stat label={t("admin.expiring")} value={o.expiring_7d} hint={t("admin.next7d")} />
-          <Stat
-            label={t("admin.revenue30d")}
-            value={<span className="text-base">{formatMoney(Number(o.paid_30d_usd), "USD")}</span>}
-            hint={Number(o.paid_30d_khr) ? `+ ${formatMoney(Number(o.paid_30d_khr), "KHR")}` : undefined}
-          />
-        </div>
-      </Card>
-    </Section>
-  )
-}
 
 function PendingPayments() {
   const t = useT()
@@ -458,187 +352,6 @@ function Subscribers() {
   )
 }
 
-function ReferralStatsCard() {
-  const t = useT()
-  const { data } = useQuery({ queryKey: ["admin", "referrals"], queryFn: () => rpc<ReferralStats>("admin_referral_stats") })
-  if (!data) return null
-  return (
-    <Section title={t("referral.title")} icon={<GiftIcon />}>
-      <Card className="gap-3 px-4 py-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Stat label={t("admin.refTotal")} value={data.total} />
-          <Stat label={t("admin.last30d")} value={data.last_30d} />
-          <Stat label={t("admin.refDays")} value={data.days_granted} />
-        </div>
-        {data.top.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-sm font-medium">{t("admin.topReferrers")}</p>
-            <ol className="divide-y text-sm">
-              {data.top.map((r, i) => (
-                <li key={r.user_id} className="flex items-center gap-2 py-1.5">
-                  <span className="w-5 text-muted-foreground tabular-nums">{i + 1}</span>
-                  <span className="min-w-0 flex-1 truncate">{who(r)}</span>
-                  <span className="tabular-nums font-medium">{r.invited}</span>
-                  <span className="w-14 text-right text-xs text-muted-foreground tabular-nums">+{r.days_earned}d</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-      </Card>
-    </Section>
-  )
-}
-
-type Instructions = PaymentInstructions
-
-const QR_BUCKET = "payment-qr"
-const MAX_QR_BYTES = 2 * 1024 * 1024
-
-/** Big screenshots are scaled down (PNG keeps the QR sharp); small ones upload as they are. */
-async function prepareQrImage(file: File): Promise<Blob> {
-  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error("type")
-  const bitmap = await createImageBitmap(file)
-  const longest = Math.max(bitmap.width, bitmap.height)
-  if (longest <= 1600 && file.size <= MAX_QR_BYTES) return file
-  const scale = Math.min(1, 1600 / longest)
-  const canvas = document.createElement("canvas")
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  const ctx = canvas.getContext("2d")!
-  ctx.imageSmoothingEnabled = false
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))
-  if (!blob || blob.size > MAX_QR_BYTES) throw new Error("size")
-  return blob
-}
-
-function PaymentInstructionsForm() {
-  const t = useT()
-  const queryClient = useQueryClient()
-  const { data } = useQuery({
-    queryKey: ["payment-instructions"],
-    queryFn: async () => {
-      const { data } = await getSupabaseBrowserClient()!.from("app_settings").select("value").eq("key", "payment_instructions").maybeSingle()
-      return (data?.value ?? {}) as Instructions
-    },
-  })
-  const [form, setForm] = useState<Instructions>({})
-  useEffect(() => {
-    if (data) setForm(data)
-  }, [data])
-
-  const save = useMutation({
-    mutationFn: () => rpc("admin_set_payment_instructions", { p_value: form }),
-    onSuccess: () => {
-      toast.success(t("admin.saved"))
-      void queryClient.invalidateQueries({ queryKey: ["payment-instructions"] })
-    },
-    onError: () => toast.error(t("common.error")),
-  })
-  const field = (key: keyof Instructions) => ({
-    value: form[key] ?? "",
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((f) => ({ ...f, [key]: e.target.value })),
-  })
-
-  const [uploading, setUploading] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : ""
-  const qr = form.khqr_image_url?.trim() ?? ""
-  // The app's security policy only shows images from this site or our Supabase.
-  const qrAllowed = !qr || (qr.startsWith("https://") && (qr.startsWith(`${supabaseOrigin}/`) || (typeof window !== "undefined" && qr.startsWith(`${window.location.origin}/`))))
-
-  const upload = async (file: File | undefined) => {
-    if (!file) return
-    setUploading(true)
-    try {
-      const blob = await prepareQrImage(file)
-      const ext = blob.type === "image/jpeg" ? "jpg" : blob.type === "image/webp" ? "webp" : "png"
-      const path = `khqr-${Date.now()}.${ext}`
-      const supabase = getSupabaseBrowserClient()!
-      const { error } = await supabase.storage.from(QR_BUCKET).upload(path, blob, { contentType: blob.type || "image/png", cacheControl: "31536000", upsert: false })
-      if (error) throw error
-      const url = supabase.storage.from(QR_BUCKET).getPublicUrl(path).data.publicUrl
-      setForm((f) => ({ ...f, khqr_image_url: url }))
-      toast.success(t("admin.qrUploaded"))
-    } catch (error) {
-      toast.error(/type|size/.test(String((error as Error).message)) ? t("admin.qrInvalid") : t("common.error"))
-    } finally {
-      setUploading(false)
-      if (fileRef.current) fileRef.current.value = ""
-    }
-  }
-
-  return (
-    <Section title={t("admin.paymentInstructions")} icon={<CrownIcon />}>
-      <Card className="px-4 py-4">
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault()
-            save.mutate()
-          }}
-        >
-          {/* Static KHQR image */}
-          <div className="space-y-2">
-            <Label>{t("admin.qrImage")}</Label>
-            <div className="flex items-start gap-3">
-              <div className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-white">
-                {qr && qrAllowed ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- admin-uploaded image on Supabase Storage
-                  <img src={qr} alt="KHQR" className="size-full object-contain" />
-                ) : (
-                  <QrCodeIcon className="size-8 text-neutral-300" aria-hidden />
-                )}
-              </div>
-              <div className="min-w-0 flex-1 space-y-2">
-                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => void upload(e.target.files?.[0])} aria-label={t("admin.qrUpload")} />
-                <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                  {uploading ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
-                  {t("admin.qrUpload")}
-                </Button>
-                {qr && (
-                  <Button type="button" variant="ghost" size="sm" className="w-full text-destructive" onClick={() => setForm((f) => ({ ...f, khqr_image_url: "" }))}>
-                    {t("admin.qrRemove")}
-                  </Button>
-                )}
-                <p className="text-[11px] text-muted-foreground">{t("admin.qrHint")}</p>
-              </div>
-            </div>
-            <Input placeholder="https://…/payment-qr/khqr.png" inputMode="url" maxLength={500} aria-label={t("admin.qrUrl")} {...field("khqr_image_url")} />
-            {!qrAllowed && <p className="text-xs text-[#F43F5E]">{t("admin.qrUrlBlocked")}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pi-bank">{t("admin.bank")}</Label>
-            <Input id="pi-bank" placeholder="ABA Bank" maxLength={80} {...field("bank")} />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="pi-name">{t("admin.accountName")}</Label>
-              <Input id="pi-name" maxLength={80} {...field("account_name")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="pi-number">{t("admin.accountNumber")}</Label>
-              <Input id="pi-number" inputMode="numeric" maxLength={40} className="font-mono" {...field("account_number")} />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pi-km">{t("admin.noteKm")}</Label>
-            <Textarea id="pi-km" rows={2} maxLength={500} {...field("note_km")} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pi-en">{t("admin.noteEn")}</Label>
-            <Textarea id="pi-en" rows={2} maxLength={500} {...field("note_en")} />
-          </div>
-          <Button type="submit" className="w-full" disabled={save.isPending || uploading || !qrAllowed}>
-            {t("common.save")}
-          </Button>
-        </form>
-      </Card>
-    </Section>
-  )
-}
-
 type AdminTicket = {
   id: string
   user_id: string
@@ -875,9 +588,10 @@ function AboutInfoForm() {
 export default function AdminPage() {
   const t = useT()
   const { plan, loading } = usePlan()
+  const role = plan.staff_role ?? (plan.is_admin ? "admin" : null)
 
   if (loading) return <Loader2Icon className="mx-auto mt-10 size-6 animate-spin text-muted-foreground" />
-  if (!plan.is_admin) {
+  if (!role) {
     return (
       <Card className="items-center gap-2 px-6 py-10 text-center">
         <ShieldAlertIcon className="size-8 text-muted-foreground" aria-hidden />
@@ -885,21 +599,37 @@ export default function AdminPage() {
       </Card>
     )
   }
+  // Cosmetic only: each card's database functions check the role themselves.
+  const admin = role === "admin" || role === "super_admin"
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t("admin.title")}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold">{t("admin.title")}</h1>
+        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{t(`admin.role.${role}`)}</span>
+      </div>
+      {role === "super_admin" && (
+        <Button asChild variant="outline" className="w-full justify-between">
+          <Link href="/admin/super">
+            <span className="flex items-center gap-2">
+              <CrownIcon className="text-primary" />
+              {t("super.title")}
+            </span>
+            <ChevronRightIcon />
+          </Link>
+        </Button>
+      )}
       <SystemHealthCard />
-      <AnalyticsCard />
-      <PendingPayments />
+      {admin && <PendingPayments />}
       <SupportTickets />
-      <Subscribers />
-      <AuditLogCard />
-      <ReferralStatsCard />
-      <PaymentInstructionsForm />
-      <SupportContactsForm />
-      <AboutInfoForm />
-      <LocalGoldAdmin />
+      {admin && (
+        <>
+          <Subscribers />
+          <SupportContactsForm />
+          <AboutInfoForm />
+          <LocalGoldAdmin />
+        </>
+      )}
     </div>
   )
 }
