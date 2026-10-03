@@ -5,7 +5,7 @@ import { CheckIcon, LanguagesIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useHydrated } from "@/hooks/use-hydrated"
-import type { Locale } from "@/lib/i18n/dictionaries"
+import { LOCALES, type Locale } from "@/lib/i18n/dictionaries"
 import { useLocaleStore } from "@/stores/locale-store"
 
 /** Each language named in itself, as the switchers show it. */
@@ -16,21 +16,41 @@ export const LANGUAGE_NAMES: Record<Locale, { flag: string; name: string; short:
 }
 
 /**
- * 文A language menu: Khmer, English or Simplified Chinese. `compact` (app
- * header) shows the short name; the login screen shows the full name. The
- * choice is saved on this device at once (locale store).
+ * 文A language switch. In the app header (`compact`) one tap cycles
+ * ខ្មែរ → EN → 中文 → ខ្មែរ (the app's 1-tap standard); the login screen opens a
+ * menu with the full names. The choice is saved on this device at once.
  */
 export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   const hydrated = useHydrated()
   const { locale, setLocale } = useLocaleStore()
-  const current = LANGUAGE_NAMES[hydrated ? locale : "km"]
+  const active = hydrated ? locale : "km"
+  const current = LANGUAGE_NAMES[active]
+
+  if (compact) {
+    const next = LOCALES[(LOCALES.indexOf(active) + 1) % LOCALES.length]
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-9 gap-1 px-2 text-xs"
+        onClick={() => setLocale(next)}
+        aria-label={`Language · ភាសា · 语言: ${current.name} → ${LANGUAGE_NAMES[next].name}`}
+        title={LANGUAGE_NAMES[next].name}
+      >
+        <LanguagesIcon />
+        <span key={active} className="animate-in fade-in-0 duration-200">
+          {current.flag} {current.short}
+        </span>
+      </Button>
+    )
+  }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className={compact ? "h-9 gap-1 px-2 text-xs" : undefined} aria-label="Language · ភាសា · 语言">
+        <Button variant="ghost" size="sm" aria-label="Language · ភាសា · 语言">
           <LanguagesIcon />
-          {compact ? current.short : current.name}
+          {current.name}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-44">
