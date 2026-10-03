@@ -1895,8 +1895,8 @@ const km = {
   "bot.cardAsk": "បញ្ជាក់ដើម្បីកត់ត្រា? (ផុតកំណត់ក្នុង ១៥ នាទី)",
   "bot.confirm": "✅ បញ្ជាក់",
   "bot.cancel": "❌ បោះបង់",
-  "bot.saved": "✅ បានកត់ត្រា! {wallet}៖ {balance}",
-  "bot.savedRepay": "✅ បានកត់ត្រា! {party} នៅសល់ {remaining} · {wallet}៖ {balance}",
+  "bot.saved": "✅ បានកត់ត្រាក្នុង {wallet}!",
+  "bot.savedRepay": "✅ បានកត់ត្រា! {party} នៅសល់ {remaining} · {wallet}",
   "bot.cancelled": "❌ បានបោះបង់ — មិនបានកត់ត្រាទេ។",
   "bot.expired": "⌛ កាតនេះផុតកំណត់ ឬត្រូវបានជំនួសហើយ។ សូមផ្ញើសារម្ដងទៀត។",
   "bot.saveFailed": "⚠️ មិនអាចកត់ត្រាបានទេ។ សូមពិនិត្យក្នុងកម្មវិធី ហើយសាកម្ដងទៀត។",
@@ -2126,6 +2126,8 @@ const km = {
   "recon.file.blocked": "ការនាំចូលរបាយការណ៍ត្រូវបានផ្អាក ២៤ ម៉ោង ដោយសារមានឯកសារមិនមានសុវត្ថិភាពច្រើនដង។",
   "recon.file.unsupported": "មិនគាំទ្រប្រភេទឯកសារនេះទេ។ សូមប្រើ PDF, Excel (.xlsx/.xls) ឬ CSV។",
   "bot.fileUseApp": "📄 Bot មិនទទួលឯកសារទេ។ ដើម្បីនាំចូលរបាយការណ៍ធនាគារ សូមបើកកម្មវិធី LuyChlat › កាបូប › «នាំចូលរបាយការណ៍ធនាគារ» — ឯកសារត្រូវបានអាននៅលើទូរស័ព្ទរបស់អ្នក មិនបញ្ជូនទៅណាទេ។",
+  "bot.balanceLocked": "🔒 ដើម្បីសុវត្ថិភាពហិរញ្ញវត្ថុរបស់អ្នក សមតុល្យ និងទ្រព្យសម្បត្តិសរុប អាចមើលបានតែនៅក្នុងកម្មវិធីប៉ុណ្ណោះ (ការពារដោយការចូលគណនី និង PIN ៦ ខ្ទង់ ឬ Face ID ពេលបើក «ចាក់សោកម្មវិធី»)។ Bot នេះសម្រាប់កត់ត្រា និងរំលឹកតែប៉ុណ្ណោះ។",
+  "bot.openApp": "📱 បើកកម្មវិធី LuyChlat",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4010,8 +4012,8 @@ const en: Record<MessageKey, string> = {
   "bot.cardAsk": "Confirm to save? (expires in 15 minutes)",
   "bot.confirm": "✅ Confirm",
   "bot.cancel": "❌ Cancel",
-  "bot.saved": "✅ Saved! {wallet}: {balance}",
-  "bot.savedRepay": "✅ Saved! {remaining} left with {party} · {wallet}: {balance}",
+  "bot.saved": "✅ Saved to {wallet}!",
+  "bot.savedRepay": "✅ Saved! {remaining} left with {party} · {wallet}",
   "bot.cancelled": "❌ Cancelled — nothing was saved.",
   "bot.expired": "⌛ This card expired or was replaced. Send the message again.",
   "bot.saveFailed": "⚠️ Couldn't save it. Check in the app and try again.",
@@ -4241,6 +4243,8 @@ const en: Record<MessageKey, string> = {
   "recon.file.blocked": "Statement import is paused for 24 hours after several unsafe files.",
   "recon.file.unsupported": "This file type isn't supported. Please use PDF, Excel (.xlsx/.xls) or CSV.",
   "bot.fileUseApp": "📄 The bot doesn't take files. To import a bank statement, open the LuyChlat app › Wallets › “Import a bank statement” — the file is read on your phone and never sent anywhere.",
+  "bot.balanceLocked": "🔒 For your financial security, balance and net worth details can only be viewed inside the app (protected by your login, plus your 6-digit PIN or Face ID when App Lock is on). This bot is for logging entries and reminders only.",
+  "bot.openApp": "📱 Open LuyChlat App",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

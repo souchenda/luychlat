@@ -3,7 +3,7 @@ import { timingSafeEqual } from "crypto"
 import { after, NextResponse } from "next/server"
 
 import type { Locale } from "@/lib/i18n/dictionaries"
-import { botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting } from "@/lib/server/bot-commands"
+import { asksForBalance, botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting } from "@/lib/server/bot-commands"
 import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/server/telegram-bot"
 import { setManualGold, currentMarket } from "@/lib/server/market-sync"
 import { transcriptionProvider } from "@/lib/server/transcribe"
@@ -174,6 +174,7 @@ export async function POST(request: Request) {
     // Linked chats: /help shows the logging examples, other text is an entry to confirm.
     const ctx = await botContext(chatId)
     if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE)
+    else if (asksForBalance(command)) await handleEntryMessage(chatId, command, ctx) // /balance → the in-app pointer
     else if (command.startsWith("/")) {
       const locale = contextLocale(ctx)
       const extras = [transcriptionProvider() && tr(locale, "bot.cmdHelpVoice"), isRouting(ctx) && tr(locale, "bot.cmdHelpRoute")].filter(Boolean)

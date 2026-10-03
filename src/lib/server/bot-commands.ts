@@ -3,8 +3,9 @@ import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
 import { parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
 import type { Locale } from "@/lib/i18n/dictionaries"
+import { DEFAULT_ABOUT } from "@/lib/app-info"
 import { convert, formatMoney } from "@/lib/money"
-import { botDb, botKey, botToken, sendText, tg, tr } from "@/lib/server/telegram-bot"
+import { botDb, botKey, botToken, maskNumbers, sendText, tg, tr } from "@/lib/server/telegram-bot"
 import { transcribe, transcriptionProvider } from "@/lib/server/transcribe"
 
 /**
@@ -88,7 +89,8 @@ function failureText(parsed: Extract<ParsedEntry, { ok: false }>, ws: Workspace,
   if (parsed.reason === "too_much" && parsed.debt) {
     return tr(lang, "bot.cmdTooMuch", { party: parsed.debt.party_name, remaining: formatMoney(parsed.debt.remaining, parsed.debt.currency) })
   }
-  const list = ws.debts.map((d) => `${d.party_name} (${formatMoney(d.remaining, d.currency)})`).join(", ")
+  // Names only: amounts owed are shown in the app, not listed in chat.
+  const list = ws.debts.map((d) => d.party_name).join(", ")
   return list ? tr(lang, "bot.cmdNoDebt", { list }) : tr(lang, "bot.cmdNoDebts")
 }
 
@@ -155,6 +157,7 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
  */
 export async function handleEntryMessage(chatId: number, text: string, ctx: Context, heard?: string) {
   const lang = contextLocale(ctx)
+  if (asksForBalance(heard ?? text)) return sendBalanceLock(chatId, lang)
   const stop = blocked(ctx, lang)
   if (stop) return sendText(chatId, stop)
   const said = heard ? `${tr(lang, "bot.voiceHeard", { text: heard })}\n` : ""
@@ -170,6 +173,26 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
   if (!pendingId) return reply(tr(lang, "bot.saveFailed"))
   const { text: body, reply_markup } = card(lang, parsed, ws, pendingId, { heard, switcher: route ? all : undefined })
   return sendText(chatId, body, { reply_markup })
+}
+
+/*
+ * No-data-leak rule: the bot takes entries and sends reminders; it never tells
+ * balances, net worth or totals in chat — whoever holds the Telegram account
+ * (a lost phone, a hijacked session) would see them. Questions about them get
+ * a pointer to the app, which is behind the login (and the App Lock PIN / Face ID).
+ */
+const BALANCE_QUESTION =
+  /^\/(balance|networth|net_worth|summary|total|wallets?)\b|\b(balances?|net ?worth|total (money|assets|savings)|how much (money|do i have|have i got|is (in|left))|my (money|savings|assets))\b|សមតុល្យ|ទ្រព្យសម្បត្តិ|លុយសល់ប៉ុន្មាន|នៅសល់ប៉ុន្មាន|មានលុយប៉ុន្មាន|លុយសរុប|余额|净资产|总资产|多少钱|还剩多少|我的存款|总共有/i
+
+/** A question about balances / net worth, with no amount in it (so not an entry like "balance fix 5"). */
+export function asksForBalance(text: string) {
+  return BALANCE_QUESTION.test(text.trim()) && !/[\d០-៩]/.test(text)
+}
+
+function sendBalanceLock(chatId: number, lang: Locale) {
+  return sendText(chatId, tr(lang, "bot.balanceLocked"), {
+    reply_markup: { inline_keyboard: [[{ text: tr(lang, "bot.openApp"), url: `${DEFAULT_ABOUT.website}/wallets` }]] },
+  })
 }
 
 // Voice notes: at most a minute, and a few per chat per hour (each one is a paid transcription).
@@ -245,7 +268,7 @@ async function switchWorkspace(cb: Callback, chatId: number, pendingId: string, 
   if (!newId) return answer(tr(lang, "bot.saveFailed"), true)
   const { text, reply_markup } = card(lang, parsed, target, newId, { heard, switcher: all })
   await answer(tr(lang, "bot.switched", { name: target.name }))
-  await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text, reply_markup })
+  await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(text), reply_markup })
 }
 
 type Confirmed = {
@@ -295,11 +318,11 @@ export async function handleCallback(cb: Callback) {
     } else if (!r?.ok) {
       outcome = tr(lang, "bot.expired")
     } else {
-      const balance = formatMoney(Number(r.balance), r.wallet_currency ?? "USD")
+      // The wallet's balance is not shown (no-data-leak rule, see BALANCE_QUESTION).
       outcome =
         r.kind === "REPAY"
-          ? tr(lang, "bot.savedRepay", { party: r.party ?? "", remaining: formatMoney(Number(r.remaining), r.debt_currency ?? "USD"), wallet: r.wallet ?? "", balance })
-          : tr(lang, "bot.saved", { wallet: r.wallet ?? "", balance })
+          ? tr(lang, "bot.savedRepay", { party: r.party ?? "", remaining: formatMoney(Number(r.remaining), r.debt_currency ?? "USD"), wallet: r.wallet ?? "" })
+          : tr(lang, "bot.saved", { wallet: r.wallet ?? "" })
       // With several workspaces, say which one it went to.
       if (isRouting(ctx) && r.workspace) outcome += ` · 🏢 ${r.workspace}`
     }
@@ -307,5 +330,5 @@ export async function handleCallback(cb: Callback) {
   await tg("answerCallbackQuery", { callback_query_id: cb.id })
   // Keep the card's details, drop the question and buttons, add the outcome.
   const details = (cb.message?.text ?? "").split("\n\n")[0]
-  await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: `${details}\n\n${outcome}`.slice(0, 4000) })
+  await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(`${details}\n\n${outcome}`).slice(0, 4000) })
 }

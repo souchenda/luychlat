@@ -1848,8 +1848,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.cardAsk": "确认保存？（15 分钟后过期）",
   "bot.confirm": "✅ 确认",
   "bot.cancel": "❌ 取消",
-  "bot.saved": "✅ 已保存！{wallet}：{balance}",
-  "bot.savedRepay": "✅ 已保存！与 {party} 剩余 {remaining} · {wallet}：{balance}",
+  "bot.saved": "✅ 已保存到 {wallet}！",
+  "bot.savedRepay": "✅ 已保存！与 {party} 剩余 {remaining} · {wallet}",
   "bot.cancelled": "❌ 已取消 — 未保存任何内容。",
   "bot.expired": "⌛ 此卡片已过期或已被替换。请重新发送消息。",
   "bot.saveFailed": "⚠️ 保存失败。请在应用中检查后重试。",
@@ -2077,4 +2077,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "recon.file.blocked": "由于多次上传不安全的文件，对账单导入已暂停 24 小时。",
   "recon.file.unsupported": "不支持此文件类型。请使用 PDF、Excel（.xlsx/.xls）或 CSV。",
   "bot.fileUseApp": "📄 机器人不接收文件。要导入银行对账单，请打开 LuyChlat 应用 › 钱包 › “导入银行对账单”——文件只在您的手机上读取，不会发送到任何地方。",
+  "bot.balanceLocked": "🔒 为了您的财务安全，余额和净资产只能在应用内查看（受登录保护；开启应用锁后还需 6 位 PIN 或面容 ID）。此机器人仅用于记账和提醒。",
+  "bot.openApp": "📱 打开 LuyChlat 应用",
 }

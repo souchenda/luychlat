@@ -41,9 +41,21 @@ export async function tg<T = unknown>(method: string, payload: Record<string, un
   }
 }
 
-/** Plain-text message (no HTML parsing, so nothing in a name can change the markup). */
+/**
+ * Account, card and phone numbers in a chat message: 8+ digits (spaces or
+ * dashes between groups allowed) → "•••• 4222". Amounts are formatted with
+ * commas and dates with slashes, so they are never matched.
+ */
+export const maskNumbers = (text: string) =>
+  text.replace(/(?<![\d,.])\d(?:[ -]?\d){7,}(?![\d,.])/g, (run) => `•••• ${run.replace(/\D/g, "").slice(-4)}`)
+
+/**
+ * Plain-text message (no HTML parsing, so nothing in a name can change the
+ * markup). Private chats get account-like numbers masked (maskNumbers).
+ */
 export function sendText(chatId: number | string, text: string, extra: Record<string, unknown> = {}) {
-  return tg("sendMessage", { chat_id: chatId, text: text.slice(0, 4000), disable_web_page_preview: true, ...extra })
+  const body = typeof chatId === "number" && chatId > 0 ? maskNumbers(text) : text
+  return tg("sendMessage", { chat_id: chatId, text: body.slice(0, 4000), disable_web_page_preview: true, ...extra })
 }
 
 /** Stored alert texts escape &, <, > for HTML; turn them back for plain text. */
