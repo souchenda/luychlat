@@ -1961,6 +1961,7 @@ const km = {
   "islamic.choiceIslamicHint": "បូករួមម៉ោងសឡាត គម្ពីរគួរអាន ហ្សាកាត់ និងកន្លែងហាឡាល់",
   "islamic.choiceNote": "ប្ដូរពេលណាក៏បាន នៅ ការកំណត់ › ចំណូលចិត្ត",
   "islamic.choiceLater": "សម្រេចពេលក្រោយ",
+  "islamic.loginBadge": "គាំទ្រមុខងារហិរញ្ញវត្ថុ និងរបៀបរស់នៅឥស្លាម (ម៉ោងសឡាត, គម្ពីរគួរអាន, ហ្សាកាត់)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3926,6 +3927,7 @@ const en: Record<MessageKey, string> = {
   "islamic.choiceIslamicHint": "Adds prayer times, the Quran, Zakat and a halal finder",
   "islamic.choiceNote": "Change any time in Settings › Preferences",
   "islamic.choiceLater": "Decide later",
+  "islamic.loginBadge": "Supports Islamic finance & lifestyle features (prayer times, Quran, Zakat)",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

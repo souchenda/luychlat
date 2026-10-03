@@ -1,6 +1,6 @@
 "use client"
 
-import { BellRingIcon, BookOpenTextIcon, BriefcaseIcon, CheckIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SunriseIcon } from "lucide-react"
+import { BellRingIcon, BookOpenTextIcon, BriefcaseIcon, CheckIcon, ChevronRightIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SunriseIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -66,7 +66,7 @@ export function IslamicModeOff() {
   )
 }
 
-/** Login screen: "🕌 សាសនិកឥស្លាម? មើលមុខងារពិសេស" and a sheet with the highlights. Nothing is turned on here. */
+/** Login screen: a muted "🕌 Supports Islamic finance & lifestyle features" pill; tapping it shows the highlights. Nothing is turned on here. */
 export function IslamicDiscoveryLink() {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -75,11 +75,12 @@ export function IslamicDiscoveryLink() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-500/5 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-teal-500/10"
+        aria-label={`${t("islamic.loginBadge")} — ${t("islamic.discoverLink")}`}
+        className="mx-auto inline-flex max-w-full items-start gap-1.5 rounded-2xl border border-border/70 bg-muted/40 px-3 py-1.5 text-left text-[11px] leading-relaxed text-muted-foreground transition-colors hover:border-teal-500/40 hover:bg-teal-500/5"
       >
         <span aria-hidden>🕌</span>
-        {t("islamic.discoverAsk")}
-        <span className="font-semibold text-teal-700 dark:text-teal-400">{t("islamic.discoverLink")}</span>
+        <span className="min-w-0">{t("islamic.loginBadge")}</span>
+        <ChevronRightIcon className="mt-0.5 size-3.5 shrink-0 opacity-60" aria-hidden />
       </button>
       <BottomSheet open={open} onOpenChange={setOpen} title={t("islamic.mode")} description={t("islamic.discoverIntro")}>
         <ul className="space-y-3">
