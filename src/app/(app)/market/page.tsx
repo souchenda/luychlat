@@ -160,7 +160,7 @@ export default function MarketPage() {
           {NBC_CURRENCIES.filter((c) => market.nbc!.khr_per[c]).map((c) => (
             <div key={c} className={cn("flex items-center px-4 py-2.5 text-sm", c === "USD" && "bg-primary/5")}>
               <span className={cn("flex-1", c === "USD" && "font-semibold")}>1 {c}</span>
-              <span className="font-semibold tabular-nums">{money(market.nbc!.khr_per[c], market.nbc!.khr_per[c] >= 100 ? 0 : 2)}៛</span>
+              <span className="font-semibold tabular-nums">{money(market.nbc!.khr_per[c], market.nbc!.khr_per[c] >= 100 ? 0 : market.nbc!.khr_per[c] >= 1 ? 2 : 3)}៛</span>
             </div>
           ))}
         </SettingsGroup>

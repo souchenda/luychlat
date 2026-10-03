@@ -10,6 +10,7 @@ import {
   EyeOffIcon,
   InfoIcon,
   LanguagesIcon,
+  LightbulbIcon,
   LifeBuoyIcon,
   LogOutIcon,
   MoonIcon,
@@ -238,6 +239,7 @@ export default function SettingsPage() {
 
       <SettingsGroup title={t("settings.group.general")}>
         <SettingsRow href="/categories" icon={<TagsIcon />} tile="rose" title={t("settings.categories")} />
+        <SettingsRow href="/learn" icon={<LightbulbIcon />} tile="amber" title={t("tips.hubTitle")} hint={t("tips.settingsHint")} />
         <SettingsRow href="/budgets" icon={<TargetIcon />} tile="emerald" title={t("budget.title")} hint={t("budget.settingsHint")} />
         <SettingsRow href="/reports" icon={<ChartColumnIcon />} tile="sky" title={t("reports.title")} hint={t("reports.settingsHint")} />
         <ExchangeRateRow />

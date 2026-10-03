@@ -2013,6 +2013,15 @@ const km = {
   "market.source": "ប្រភព៖ NBC (តាម Frankfurter) និង gold-api.com",
   "settings.useNbc": "ប្រើ NBC {rate}",
   "settings.useNbcDone": "បានប្រើអត្រា NBC",
+  "tips.today": "គន្លឹះឆ្លាតវៃថ្ងៃនេះ",
+  "tips.another": "គន្លឹះផ្សេងទៀត",
+  "tips.all": "មើលទាំងអស់",
+  "tips.hide": "លាក់រហូតដល់ថ្ងៃស្អែក",
+  "tips.hubTitle": "គន្លឹះហិរញ្ញវត្ថុ",
+  "tips.hubIntro": "គន្លឹះខ្លីៗ អនុវត្តបាន ក្នុងរយៈពេល ៣០ វិនាទី — ការសន្សំ បំណុល ប័ណ្ណឥណទាន និងអាជីវកម្ម។",
+  "tips.count": "{n} គន្លឹះ",
+  "tips.disclaimer": "ព័ត៌មានអប់រំទូទៅ មិនមែនជាការណែនាំហិរញ្ញវត្ថុផ្ទាល់ខ្លួនទេ។",
+  "tips.settingsHint": "ការសន្សំ បំណុល ប័ណ្ណឥណទាន និងអាជីវកម្ម",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4030,6 +4039,15 @@ const en: Record<MessageKey, string> = {
   "market.source": "Sources: NBC (via Frankfurter) and gold-api.com",
   "settings.useNbc": "Use NBC {rate}",
   "settings.useNbcDone": "Now using the NBC rate",
+  "tips.today": "Today's smart tip",
+  "tips.another": "Another tip",
+  "tips.all": "See all",
+  "tips.hide": "Hide until tomorrow",
+  "tips.hubTitle": "Money tips",
+  "tips.hubIntro": "Short, practical tips you can use in 30 seconds — saving, debt, credit cards and business.",
+  "tips.count": "{n} tips",
+  "tips.disclaimer": "General education, not personal financial advice.",
+  "tips.settingsHint": "Saving, debt, credit cards and business",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

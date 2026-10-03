@@ -10,7 +10,9 @@ import {
   GiftIcon,
   HandCoinsIcon,
   HeadsetIcon,
+  LandmarkIcon,
   LayoutDashboardIcon,
+  LightbulbIcon,
   MenuIcon,
   MoonStarIcon,
   ChevronRightIcon,
@@ -113,6 +115,8 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
     {
       title: "nav.group.help",
       items: [
+        { href: "/market", label: "market.title", icon: LandmarkIcon },
+        { href: "/learn", label: "tips.hubTitle", icon: LightbulbIcon },
         { href: "/guide", label: "guide.title", icon: BookOpenIcon },
         { href: "/support", label: "support.title", icon: HeadsetIcon },
         { href: "/settings", label: "nav.settings", icon: SettingsIcon },

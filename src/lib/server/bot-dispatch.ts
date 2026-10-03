@@ -4,6 +4,7 @@ import { cambodiaNow, formatMinutes, prayerTimes, PROVINCES } from "@/lib/prayer
 import { duePrayer } from "@/lib/prayer-alerts"
 
 import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "./telegram-bot"
+import { sendCommunityBulletin } from "@/lib/server/community-bulletin"
 import { syncMarket } from "@/lib/server/market-sync"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string }
@@ -51,6 +52,7 @@ export async function dispatchOnce() {
   try {
     await sendDueNotifications()
     await sendPrayerTimes()
+    await sendCommunityBulletin()
   } catch (error) {
     console.error("[bot] dispatch failed:", (error as Error).message)
   } finally {
