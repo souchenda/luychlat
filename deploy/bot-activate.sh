@@ -63,6 +63,7 @@ const api = (m, b) => fetch("https://api.telegram.org/bot" + t + "/" + m, { meth
   await api("setMyCommands", { commands: [
     { command: "start", description: "ភ្ជាប់គណនី LuyChlat · Connect your account" },
     { command: "help", description: "ជំនួយ · Help" },
+    { command: "lang", description: "ភាសា · Language · 语言 (km / en / zh)" },
     { command: "stop", description: "ផ្ដាច់ · Disconnect" },
   ] })
   console.log("OK " + hash + " " + me.result.username + " " + hook)

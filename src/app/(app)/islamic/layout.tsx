@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { IslamicModeOff } from "@/components/islamic/islamic-mode"
-import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { type MessageKey, contentLocale } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatHijri, toHijri } from "@/lib/islamic"
 import { useIslamicDefaults, useIslamicSettings } from "@/lib/islamic-settings"
@@ -45,7 +45,7 @@ export default function IslamicLayout({ children }: { children: React.ReactNode 
           <h1 className="text-xl font-bold">{t("islamic.title")}</h1>
           {hijri && (
             <p className="text-xs text-muted-foreground">
-              <time suppressHydrationWarning>{formatHijri(hijri, locale)}</time>
+              <time suppressHydrationWarning>{formatHijri(hijri, contentLocale(locale))}</time>
             </p>
           )}
         </div>

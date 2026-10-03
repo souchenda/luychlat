@@ -9,6 +9,7 @@ import { useHydrated } from "@/hooks/use-hydrated"
 import { useAboutInfo } from "@/lib/app-info"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
+import { contentLocale } from "@/lib/i18n/dictionaries"
 
 /** Last change to the text below; shown on the page. */
 const UPDATED = "2026-10-02"
@@ -142,7 +143,7 @@ export default function LegalPage() {
       </div>
 
       <div className="space-y-5">
-        {SECTIONS[lang].map((section) => (
+        {SECTIONS[contentLocale(lang)].map((section) => (
           <section key={section.title} className="space-y-1.5">
             <h2 className="font-semibold">{section.title}</h2>
             <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">

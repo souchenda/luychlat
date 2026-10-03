@@ -16,6 +16,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { BOT_TOKEN_PATTERN, CHAT_ID_PATTERN, findTelegramChats, sendTelegram } from "@/lib/telegram"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
+import { contentLocale } from "@/lib/i18n/dictionaries"
 
 function HelpDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const t = useT()
@@ -54,7 +55,7 @@ export function TelegramSettingsCard() {
   const [token, setToken] = useState("")
   const [chatId, setChatId] = useState("")
   const [enabled, setEnabled] = useState(true)
-  const [language, setLanguage] = useState<"km" | "en">(uiLocale)
+  const [language, setLanguage] = useState<"km" | "en">(contentLocale(uiLocale))
   const [showToken, setShowToken] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [busy, setBusy] = useState<"test" | "find" | null>(null)

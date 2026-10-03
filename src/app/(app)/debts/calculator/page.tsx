@@ -21,13 +21,14 @@ import { exportAmortizationXlsx } from "@/lib/reports/export"
 import { showUpgrade, useIsPro } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
+import { contentLocale } from "@/lib/i18n/dictionaries"
 
 const fmtDate = (ymd: string) => format(parseISO(ymd), "dd/MM/yyyy")
 
 /** ម៉ាស៊ីនគណនាតារាងរំលស់កម្ចី: flat vs reducing balance, full schedule, save as a payable. */
 export default function LoanCalculatorPage() {
   const t = useT()
-  const lang = useLocaleStore((s) => s.locale)
+  const lang = contentLocale(useLocaleStore((s) => s.locale))
   const { workspace } = useActiveWorkspace()
 
   const [amountText, setAmountText] = useState("1000")

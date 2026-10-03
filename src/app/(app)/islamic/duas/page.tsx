@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { DUAS } from "@/lib/duas"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
+import { pick } from "@/lib/i18n/dictionaries"
 
 /** Daily duas: Arabic, a Khmer reading aid, the meaning, and the source. */
 export default function DuasPage() {
@@ -31,7 +32,7 @@ export default function DuasPage() {
       {DUAS.map((d) => (
         <Card key={d.id} className="gap-2 px-4 py-3">
           <div className="flex items-center gap-2">
-            <h2 className="flex-1 text-sm font-semibold">{d.title[locale]}</h2>
+            <h2 className="flex-1 text-sm font-semibold">{pick(d.title, locale)}</h2>
             <Button size="icon" variant="ghost" className="size-8 text-muted-foreground" onClick={() => void copy(d.id, d.arabic)} aria-label={t("duas.copy")}>
               {copied === d.id ? <CheckIcon className="text-emerald-600" /> : <CopyIcon />}
             </Button>
@@ -43,7 +44,7 @@ export default function DuasPage() {
             <p className="text-sm leading-relaxed text-primary">{locale === "km" ? d.phonetic : d.latin}</p>
             {locale === "km" && <p className="text-[11px] text-muted-foreground italic">{d.latin}</p>}
           </div>
-          <p className="text-sm leading-relaxed">{d[locale]}</p>
+          <p className="text-sm leading-relaxed">{pick(d, locale)}</p>
           <p className="text-[11px] text-muted-foreground">📖 {d.source}</p>
         </Card>
       ))}

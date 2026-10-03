@@ -1,4 +1,5 @@
 // Server only: speech-to-text for the bot's voice notes. Keys live only in the server environment.
+import type { Locale } from "@/lib/i18n/dictionaries"
 
 /**
  * Whisper via Groq (GROQ_API_KEY, whisper-large-v3) or OpenAI (OPENAI_API_KEY,
@@ -18,9 +19,10 @@ export function transcriptionProvider(): Provider | null {
 }
 
 const HINT_KM = "ចំណាយ ចំណូល សងបំណុល ដុល្លារ រៀល ពាន់ ម៉ឺន កាហ្វេ បាយ សាំង ប្រាក់ខែ ABA ACLEDA Wing"
+const HINT_ZH = "支出 收入 还款 美元 瑞尔 咖啡 午饭 汽油 工资 ABA ACLEDA Wing"
 const HINT_EN = "expense income repay dollars riel coffee lunch fuel salary ABA ACLEDA Wing"
 
-export async function transcribe(audio: Blob, language: "km" | "en"): Promise<string | null> {
+export async function transcribe(audio: Blob, language: Locale): Promise<string | null> {
   const provider = transcriptionProvider()
   if (!provider) return null
   const form = new FormData()
@@ -29,7 +31,7 @@ export async function transcribe(audio: Blob, language: "km" | "en"): Promise<st
   form.append("language", language)
   form.append("temperature", "0")
   form.append("response_format", "json")
-  form.append("prompt", language === "km" ? HINT_KM : HINT_EN)
+  form.append("prompt", language === "km" ? HINT_KM : language === "zh" ? HINT_ZH : HINT_EN)
   try {
     const res = await fetch(provider.url, {
       method: "POST",

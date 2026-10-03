@@ -1,5 +1,5 @@
 // Server only: sends the official bot's reminders. Started once from instrumentation.ts.
-import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
+import { pick, type Locale, type MessageKey } from "@/lib/i18n/dictionaries"
 import { cambodiaNow, formatMinutes, prayerTimes, PROVINCES } from "@/lib/prayer"
 import { duePrayer } from "@/lib/prayer-alerts"
 
@@ -41,7 +41,7 @@ async function sendPrayerTimes() {
     const { data: claimed } = await db.rpc("bot_claim_prayer", { p_key: botKey(), p_user_id: s.user_id, p_day: day, p_prayer: prayer })
     if (!claimed) continue
     const name = tr(s.language, `prayer.${prayer}` as MessageKey)
-    await sendText(s.chat_id, `🕌 ${tr(s.language, "prayerAlert.title", { name })}\n${formatMinutes(times[prayer])} · ${place[s.language]}${SIGNATURE}`)
+    await sendText(s.chat_id, `🕌 ${tr(s.language, "prayerAlert.title", { name })}\n${formatMinutes(times[prayer])} · ${pick(place, s.language)}${SIGNATURE}`)
   }
 }
 

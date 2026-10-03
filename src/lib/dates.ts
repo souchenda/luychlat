@@ -1,4 +1,7 @@
 import { addMonths, format, startOfMonth } from "date-fns"
+import { zhCN } from "date-fns/locale"
+
+import type { Locale } from "@/lib/i18n/dictionaries"
 
 /** "YYYY-MM" for a local month. */
 export type MonthKey = string
@@ -47,22 +50,25 @@ const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេ
 const khmerDigits = (value: string) => value.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
 /** "ថ្ងៃសុក្រ ទី០២ ខែតុលា ឆ្នាំ២០២៦" / "Friday, 02 October 2026" (device-local date). */
-export function longDate(date: Date, locale: "km" | "en"): string {
+export function longDate(date: Date, locale: Locale): string {
+  if (locale === "zh") return format(date, "yyyy年M月d日 EEEE", { locale: zhCN })
   if (locale === "en") return format(date, "EEEE, dd MMMM yyyy")
   const day = khmerDigits(String(date.getDate()).padStart(2, "0"))
   return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${khmerDigits(String(date.getFullYear()))}`
 }
 
 /** "ទី០១ ខែកញ្ញា ឆ្នាំ២០២៦" / "01 September 2026" (no weekday). */
-export function dayDate(date: Date, locale: "km" | "en"): string {
+export function dayDate(date: Date, locale: Locale): string {
+  if (locale === "zh") return format(date, "yyyy年M月d日")
   if (locale === "en") return format(date, "dd MMMM yyyy")
   const day = khmerDigits(String(date.getDate()).padStart(2, "0"))
   return `ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${khmerDigits(String(date.getFullYear()))}`
 }
 
 /** "ខែតុលា ២០២៦" / "October 2026". */
-export function monthLabel(key: MonthKey, locale: "km" | "en"): string {
+export function monthLabel(key: MonthKey, locale: Locale): string {
   const start = monthStart(key)
+  if (locale === "zh") return format(start, "yyyy年M月")
   if (locale === "en") return format(start, "MMMM yyyy")
   return `ខែ${KM_MONTHS[start.getMonth()]} ${khmerDigits(String(start.getFullYear()))}`
 }

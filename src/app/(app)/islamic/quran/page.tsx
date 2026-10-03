@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { QURAN_TRANSLATION, SURAHS, surahByNumber } from "@/lib/quran"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 import { useLocaleStore } from "@/stores/locale-store"
+import { pick } from "@/lib/i18n/dictionaries"
 
 const simplify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "")
 
@@ -69,7 +70,7 @@ export default function QuranIndexPage() {
       </Card>
 
       <p className="px-1 text-[11px] text-muted-foreground">
-        {t("quran.credit", { publisher: QURAN_TRANSLATION.publisher[locale] })}{" "}
+        {t("quran.credit", { publisher: pick(QURAN_TRANSLATION.publisher, locale) })}{" "}
         <a href={QURAN_TRANSLATION.url} target="_blank" rel="noopener noreferrer" className="underline">
           {QURAN_TRANSLATION.source}
         </a>

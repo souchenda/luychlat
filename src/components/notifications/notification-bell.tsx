@@ -16,6 +16,7 @@ import type { AppNotification } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
+import { contentLocale } from "@/lib/i18n/dictionaries"
 
 /** Header bell: unread badge + notification list for the active workspace. */
 export function NotificationBell() {
@@ -60,7 +61,7 @@ export function NotificationBell() {
   // Due-date alerts are re-rendered in the current UI language from live debt data.
   const content = (n: AppNotification) => {
     const debt = n.debt_id ? debts.find((d) => d.id === n.debt_id) : undefined
-    if (debt && n.alert_key) return alertText(debt, n.alert_key, locale)
+    if (debt && n.alert_key) return alertText(debt, n.alert_key, contentLocale(locale))
     return { title: n.title, body: n.message }
   }
 

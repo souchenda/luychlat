@@ -14,6 +14,7 @@ import { parseSurah, QURAN_TRANSLATION, showsBasmala, surahByNumber, type QuranS
 import { cn } from "@/lib/utils"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 import { useLocaleStore } from "@/stores/locale-store"
+import { pick } from "@/lib/i18n/dictionaries"
 
 const toArabicDigits = (n: number) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)])
 const BASMALA = "بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ"
@@ -198,7 +199,7 @@ export default function SurahPage() {
       </div>
 
       <p className="px-1 pb-4 text-[11px] text-muted-foreground">
-        {t("quran.credit", { publisher: QURAN_TRANSLATION.publisher[locale] })}{" "}
+        {t("quran.credit", { publisher: pick(QURAN_TRANSLATION.publisher, locale) })}{" "}
         <a href={QURAN_TRANSLATION.url} target="_blank" rel="noopener noreferrer" className="underline">
           {QURAN_TRANSLATION.source}
         </a>

@@ -18,11 +18,12 @@ import { PROVINCES } from "@/lib/prayer"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
+import { pick } from "@/lib/i18n/dictionaries"
 
 type Link = {
   chat_id: number
   username: string | null
-  language: "km" | "en"
+  language: "km" | "en" | "zh"
   debt_alerts: boolean
   prayer_alerts: boolean
   prayer_province: string | null
@@ -210,7 +211,7 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                 <SelectContent>
                   {PROVINCES.map((p) => (
                     <SelectItem key={p.key} value={p.key}>
-                      {p[locale]}
+                      {pick(p, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -288,10 +289,11 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                 <Segmented
                   aria-label={t("telegram.language")}
                   value={linked.language}
-                  onChange={(v) => update.mutate({ language: v as "km" | "en" })}
+                  onChange={(v) => update.mutate({ language: v as "km" | "en" | "zh" })}
                   options={[
                     { value: "km", label: "ខ្មែរ" },
-                    { value: "en", label: "English" },
+                    { value: "en", label: "EN" },
+                    { value: "zh", label: "中文" },
                   ]}
                 />
               </div>

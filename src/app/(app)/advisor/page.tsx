@@ -17,10 +17,11 @@ import { useAdvisorSnapshot } from "@/lib/advisor/use-snapshot"
 import { useT } from "@/lib/i18n/use-t"
 import { effectiveProvider, useAiStore } from "@/stores/ai-store"
 import { useLocaleStore } from "@/stores/locale-store"
+import { contentLocale } from "@/lib/i18n/dictionaries"
 
 export default function AdvisorPage() {
   const t = useT()
-  const lang = useLocaleStore((s) => s.locale)
+  const lang = contentLocale(useLocaleStore((s) => s.locale))
   const provider = useAiStore((s) => effectiveProvider(s))
   const { snapshot, labels, loading } = useAdvisorSnapshot()
   const list = useMemo(() => (snapshot && labels ? insights(snapshot, labels, lang) : []), [snapshot, labels, lang])

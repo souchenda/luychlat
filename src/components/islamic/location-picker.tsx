@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { PROVINCES } from "@/lib/prayer"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 import { useLocaleStore } from "@/stores/locale-store"
+import { pick } from "@/lib/i18n/dictionaries"
 
 /** The place used for prayer times and the Qibla: a saved GPS fix or a province (default Phnom Penh). */
 export function useIslamicLocation(): { lat: number; lng: number; label: string; gps: boolean } {
@@ -19,7 +20,7 @@ export function useIslamicLocation(): { lat: number; lng: number; label: string;
   const { place, gps } = useIslamicLocalStore()
   if (place === "gps" && gps) return { ...gps, label: t("prayer.myLocation"), gps: true }
   const p = PROVINCES.find((x) => x.key === place) ?? PROVINCES[0]
-  return { lat: p.lat, lng: p.lng, label: p[locale], gps: false }
+  return { lat: p.lat, lng: p.lng, label: pick(p, locale), gps: false }
 }
 
 export type LocateResult = { ok: true; lat: number; lng: number } | { ok: false; reason: "denied" | "unavailable" | "insecure" | "unsupported" }
@@ -82,7 +83,7 @@ export function LocationPicker() {
           {gps && <SelectItem value="gps">{t("prayer.myLocation")}</SelectItem>}
           {PROVINCES.map((p) => (
             <SelectItem key={p.key} value={p.key}>
-              {p[locale]}
+              {pick(p, locale)}
             </SelectItem>
           ))}
         </SelectContent>

@@ -30,7 +30,8 @@ function AuthListener() {
 function HtmlLang() {
   const locale = useLocaleStore((s) => s.locale)
   useEffect(() => {
-    document.documentElement.lang = locale
+    // zh-Hans lets the phone pick a Simplified Chinese font.
+    document.documentElement.lang = locale === "zh" ? "zh-Hans" : locale
   }, [locale])
   return null
 }

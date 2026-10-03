@@ -60,6 +60,13 @@ async function setGoldReply(text: string) {
   return `✅ បានកំណត់តម្លៃមាសថ្ងៃនេះ៖\n• មាសគីឡូ: លក់ចេញ ${usd(input.kilo.sell)} | ទិញចូល ${usd(input.kilo.buy)}${j ? `\n• មាសគ្រឿង: លក់ចេញ ${usd(j.sell)} | ទិញចូល ${usd(j.buy)}` : ""}\nបង្ហាញក្នុងកម្មវិធី និង bulletin ថ្ងៃនេះ។`
 }
 
+/** Telegram's interface language → ours (Chinese variants → zh). */
+function telegramLocale(code: string | undefined): Locale {
+  if (code?.startsWith("zh")) return "zh"
+  if (code?.startsWith("en")) return "en"
+  return "km"
+}
+
 function sameSecret(a: string | null, b: string | null) {
   if (!a || !b || a.length !== b.length) return false
   return timingSafeEqual(Buffer.from(a), Buffer.from(b))
@@ -98,8 +105,9 @@ export async function POST(request: Request) {
   if (!message.text) return NextResponse.json({ ok: true })
 
   const chatId = message.chat.id
-  // Replies are in Khmer (the bot's audience); reminders use each user's chosen language.
-  const lang: Locale = "km"
+  // Before linking, replies follow the Telegram app's language (Khmer by default);
+  // linked chats use the language chosen in the app or with /lang.
+  const lang: Locale = telegramLocale(message.from?.language_code)
   const [command, payload] = message.text.trim().split(/\s+/, 2)
   const key = botKey()!
   const db = botDb()
@@ -110,7 +118,7 @@ export async function POST(request: Request) {
       p_code: payload,
       p_chat_id: chatId,
       p_username: message.from?.username ?? null,
-      p_language: message.from?.language_code?.startsWith("en") ? "en" : "km",
+      p_language: telegramLocale(message.from?.language_code),
     })
     const result = data as { ok: boolean; name?: string } | null
     if (error || !result?.ok) await sendText(chatId, tr(lang, "bot.linkFailed") + SIGNATURE)
@@ -118,6 +126,15 @@ export async function POST(request: Request) {
   } else if (/^\/setgold(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: today's Phnom Penh gold counter prices (others get the normal help).
     await sendText(chatId, await setGoldReply(message.text))
+  } else if (/^\/lang(@\w+)?$/i.test(command)) {
+    // /lang km | en | zh — the bot's language for this chat.
+    const choice = payload?.toLowerCase()
+    if (choice === "km" || choice === "en" || choice === "zh") {
+      const { data } = await db.rpc("bot_set_language", { p_key: key, p_chat_id: chatId, p_language: choice })
+      await sendText(chatId, data ? tr(choice, "bot.langSet") : tr(choice, "bot.notLinked"))
+    } else {
+      await sendText(chatId, tr(lang, "bot.langUsage"))
+    }
   } else if (command === "/stop") {
     const { data } = await db.rpc("bot_unlink_chat", { p_key: key, p_chat_id: chatId })
     await sendText(chatId, tr(lang, data ? "bot.unlinked" : "bot.notLinked") + SIGNATURE)

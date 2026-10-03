@@ -31,6 +31,7 @@ import { investmentTotals } from "@/lib/investments"
 import { useInvestmentsOf, useMarketPrices } from "@/lib/investments-data"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
+import { contentLocale } from "@/lib/i18n/dictionaries"
 
 type LogKind = "zakat" | "sadaqah" | "waqf" | "riba_purification"
 
@@ -400,7 +401,7 @@ export default function IslamicPage() {
                   {hawl.isDue ? t("islamic.hawlIsDue") : t("islamic.daysLeft", { days: hawl.daysLeft })}
                 </p>
               </div>
-              {hijriDue && <p className="-mt-2 text-xs text-muted-foreground">{formatHijri(hijriDue, locale, { short: true })}</p>}
+              {hijriDue && <p className="-mt-2 text-xs text-muted-foreground">{formatHijri(hijriDue, contentLocale(locale), { short: true })}</p>}
               <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={Math.round(hawl.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
                 <div className="h-full rounded-full bg-emerald-500" style={{ width: `${hawl.progress * 100}%` }} />
               </div>

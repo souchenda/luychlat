@@ -52,7 +52,7 @@ export async function botContext(chatId: number): Promise<Context | null> {
   return error ? null : (data as Context)
 }
 
-export const contextLocale = (ctx: Context | null): Locale => (ctx?.language === "en" ? "en" : "km")
+export const contextLocale = (ctx: Context | null): Locale => (ctx?.language === "en" || ctx?.language === "zh" ? ctx.language : "km")
 
 /** ULTRA with "log into all workspaces" on, and more than one to choose from. */
 export const isRouting = (ctx: Context | null) => Boolean(ctx?.route_all && (ctx.workspaces?.length ?? 0) > 1)

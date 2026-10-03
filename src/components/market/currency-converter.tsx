@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useT } from "@/lib/i18n/use-t"
 import { cn } from "@/lib/utils"
+import { type Locale } from "@/lib/i18n/dictionaries"
 
 const PAIRS: [string, string][] = [
   ["USD", "KHR"],
@@ -19,7 +20,7 @@ const PAIRS: [string, string][] = [
  * Quick currency converter on today's NBC official rates (KHR per 1 unit of
  * each currency, from the market sync). Any pair converts through riel.
  */
-export function CurrencyConverter({ khrPer, locale }: { khrPer: Record<string, number>; locale: "km" | "en" }) {
+export function CurrencyConverter({ khrPer, locale }: { khrPer: Record<string, number>; locale: Locale }) {
   const t = useT()
   const rates: Record<string, number> = { ...khrPer, KHR: 1 }
   const codes = Object.keys(rates)

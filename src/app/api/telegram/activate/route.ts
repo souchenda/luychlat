@@ -46,6 +46,7 @@ export async function POST(request: Request) {
     commands: [
       { command: "start", description: "ភ្ជាប់គណនី LuyChlat · Connect your account" },
       { command: "help", description: "ជំនួយ · Help" },
+      { command: "lang", description: "ភាសា · Language · 语言 (km / en / zh)" },
       { command: "stop", description: "ផ្ដាច់ · Disconnect" },
     ],
   })

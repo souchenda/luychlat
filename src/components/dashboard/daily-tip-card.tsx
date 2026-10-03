@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { tipOfTheDay, TOPIC_META } from "@/lib/tips"
 import { useLocaleStore } from "@/stores/locale-store"
+import { pick } from "@/lib/i18n/dictionaries"
 
 const DISMISS_KEY = "luychlat-tip-dismissed"
 
@@ -67,9 +68,9 @@ export function DailyTipCard({ wallets, debts, workspace }: { wallets?: Wallet[]
       </div>
       <div key={tip.id} className="mt-2 animate-in fade-in-0 duration-300">
         <p className="text-sm font-semibold">
-          <span aria-hidden>{topic.emoji}</span> {tip.title[locale]}
+          <span aria-hidden>{topic.emoji}</span> {pick(tip.title, locale)}
         </p>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{tip.body[locale]}</p>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{pick(tip.body, locale)}</p>
       </div>
       <div className="mt-2.5 flex items-center justify-between">
         <button type="button" className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground" onClick={() => setOffset((n) => n + 1)}>

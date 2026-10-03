@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { diamondSpec, diamondTotals, FORM_EMOJI, resaleValue, type Diamond } from "@/lib/diamonds"
 import { useDiamonds } from "@/lib/diamonds-data"
-import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { type MessageKey, contentLocale } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -67,7 +67,7 @@ export function DiamondsSection({ workspaceId, editable }: { workspaceId: string
             {diamonds.map((d) => {
               const r = resaleValue(d)
               const money = (n: number) => formatMoney(n, d.currency, { hidden: hideBalances })
-              const spec = diamondSpec(d, locale)
+              const spec = diamondSpec(d, contentLocale(locale))
               return (
                 <li key={d.id}>
                   <button type="button" onClick={() => editable && edit(d)} disabled={!editable} className="block w-full text-left">

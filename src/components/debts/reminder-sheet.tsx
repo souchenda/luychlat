@@ -14,6 +14,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { useMyKhqr } from "@/lib/profile"
 import { buildReminder, smsUrl, telegramShareUrl, type ReminderLanguage } from "@/lib/reminder"
 import { useLocaleStore } from "@/stores/locale-store"
+import { contentLocale } from "@/lib/i18n/dictionaries"
 
 /** The KHQR as a file for the share sheet (Telegram, Messenger…), or null if it can't be fetched. */
 async function khqrFile(url: string): Promise<File | null> {
@@ -34,7 +35,7 @@ async function khqrFile(url: string): Promise<File | null> {
 export function ReminderSheet({ open, onOpenChange, debt }: { open: boolean; onOpenChange: (open: boolean) => void; debt: Debt }) {
   const t = useT()
   const uiLocale = useLocaleStore((s) => s.locale)
-  const [language, setLanguage] = useState<ReminderLanguage>(uiLocale)
+  const [language, setLanguage] = useState<ReminderLanguage>(contentLocale(uiLocale))
   const [text, setText] = useState("")
   const khqr = useMyKhqr()
   const [attach, setAttach] = useState(true)

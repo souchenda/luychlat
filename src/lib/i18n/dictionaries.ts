@@ -1,4 +1,19 @@
-export type Locale = "km" | "en"
+import { zh } from "./zh"
+
+export type Locale = "km" | "en" | "zh"
+
+/** Languages offered in the app, in switcher order. */
+export const LOCALES: Locale[] = ["km", "en", "zh"]
+
+/** Text written for each language; Chinese is optional (English is used when it's missing). */
+export type LocalizedText = { km: string; en: string; zh?: string }
+export const pick = (text: LocalizedText, locale: Locale): string => (locale === "zh" ? (text.zh ?? text.en) : text[locale])
+
+/**
+ * For content that exists only in Khmer and English (guides, duas, legal
+ * text, reminders sent to Cambodian debtors…): Chinese readers get English.
+ */
+export const contentLocale = (locale: Locale): "km" | "en" => (locale === "km" ? "km" : "en")
 
 const km = {
   "app.name": "លុយឆ្លាត",
@@ -2105,6 +2120,8 @@ const km = {
   "sys.tabFeeds": "ទិន្នន័យ",
   "sys.tabBot": "បត",
   "sys.tabLogs": "សន្តិសុខ",
+  "bot.langSet": "✅ ភាសារបស់ bot ឥឡូវជាភាសាខ្មែរ។",
+  "bot.langUsage": "🌐 ជ្រើសភាសា bot៖\n/lang km — ភាសាខ្មែរ\n/lang en — English\n/lang zh — 中文（简体）",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4214,6 +4231,9 @@ const en: Record<MessageKey, string> = {
   "sys.tabFeeds": "Feeds",
   "sys.tabBot": "Bot",
   "sys.tabLogs": "Logs",
+  "bot.langSet": "✅ The bot now speaks English.",
+  "bot.langUsage": "🌐 Choose the bot's language:\n/lang km — ភាសាខ្មែរ\n/lang en — English\n/lang zh — 中文（简体）",
 }
 
-export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }
+// Chinese (Simplified): keys without a translation yet fall back to English.
+export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en, zh: { ...en, ...zh } }

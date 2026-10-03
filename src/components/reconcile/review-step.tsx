@@ -47,6 +47,7 @@ import { descriptionKey, loadCategoryMemory, rememberCategories } from "@/lib/re
 import { FEE_PATTERN, fingerprintKeys, type ParseResult, type StatementLine } from "@/lib/reconcile/parse"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
+import { contentLocale } from "@/lib/i18n/dictionaries"
 
 type Tab = "add" | "review" | "matched" | "app"
 const FEE = "__fee"
@@ -136,7 +137,7 @@ export function ReviewStep({
 
   useEffect(() => {
     if (analysis || !ledgerQuery.data || !fingerprints.data || !categories) return
-    const rows = toLedgerRows(ledgerQuery.data, wallet, categoryMap, locale)
+    const rows = toLedgerRows(ledgerQuery.data, wallet, categoryMap, contentLocale(locale))
     const result = matchStatement(freshLines, rows, { start: parsed.period_start, end: parsed.period_end })
     const initial: Record<number, LineDecision> = {}
     const pending: Record<number, { txId: string; score: number }> = {}
@@ -192,7 +193,7 @@ export function ReviewStep({
   const appOnly = ledger.filter((x) => {
     if (linked.has(x.id) || x.reconciled_at) return false
     const effect = walletEffect(x, wallet)
-    const day = toLedgerRows([x], wallet, categoryMap, locale)[0].date
+    const day = toLedgerRows([x], wallet, categoryMap, contentLocale(locale))[0].date
     return effect !== 0 && day >= parsed.period_start && day <= parsed.period_end
   })
 
@@ -402,7 +403,7 @@ export function ReviewStep({
                   <LineHead line={line} currency={wallet.currency} />
                   {x && (
                     <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-                      {t("recon.sameAs", { date: shortDate(toLedgerRows([x], wallet, categoryMap, locale)[0].date), name: txLabel(x) })}
+                      {t("recon.sameAs", { date: shortDate(toLedgerRows([x], wallet, categoryMap, contentLocale(locale))[0].date), name: txLabel(x) })}
                     </p>
                   )}
                   <div className="grid grid-cols-2 gap-2">
@@ -453,7 +454,7 @@ export function ReviewStep({
             <p className="px-4 py-3 text-xs text-muted-foreground">{t("recon.appOnlyHint")}</p>
             {appOnly.map((x) => {
               const dup = duplicateOf.get(x.id)
-              const row = toLedgerRows([x], wallet, categoryMap, locale)[0]
+              const row = toLedgerRows([x], wallet, categoryMap, contentLocale(locale))[0]
               return (
                 <div key={x.id} className="flex items-start gap-2 px-4 py-3">
                   <span className="w-11 shrink-0 pt-0.5 text-xs text-muted-foreground tabular-nums">{shortDate(row.date)}</span>

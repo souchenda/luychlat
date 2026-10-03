@@ -1,5 +1,6 @@
 import type { Currency } from "@/lib/data/types"
 import { convert, roundMoney } from "@/lib/money"
+import { type Locale } from "@/lib/i18n/dictionaries"
 
 /**
  * Cambodian gold weights and market value.
@@ -72,9 +73,9 @@ export function splitHun(totalHun: number): Weight {
 export const hunToGrams = (hun: number) => Math.round(hun * HUN_GRAMS * 1000) / 1000
 
 /** "1 តម្លឹង 5 ជី 2.5 ហ៊ុន" (zero parts left out; "0 ហ៊ុន" for nothing). */
-export function formatWeight(totalHun: number, locale: "km" | "en"): string {
+export function formatWeight(totalHun: number, locale: Locale): string {
   const { damlung, chi, hun } = splitHun(totalHun)
-  const units = locale === "km" ? ["តម្លឹង", "ជី", "ហ៊ុន"] : ["damlung", "chi", "hun"]
+  const units = locale === "km" ? ["តម្លឹង", "ជី", "ហ៊ុន"] : locale === "zh" ? ["两", "钱", "分"] : ["damlung", "chi", "hun"]
   const parts = [damlung, chi, hun].map((v, i) => (v ? `${v} ${units[i]}` : "")).filter(Boolean)
   return parts.length ? parts.join(" ") : `0 ${units[2]}`
 }

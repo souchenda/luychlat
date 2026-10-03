@@ -40,6 +40,7 @@ import { showUpgrade, useIsPro } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
+import { contentLocale } from "@/lib/i18n/dictionaries"
 
 // Longer periods sit behind the calendar button; the header steps month by month.
 type OtherPeriod = Exclude<RangePreset, "thisMonth" | "lastMonth">
@@ -151,7 +152,7 @@ export default function ReportsPage() {
         wallets,
         categories,
         debts,
-        lang,
+        lang: contentLocale(lang),
         fileName: exportFileName("transactions", workspace.type, suffix),
       })
       toast.success(t("reports.exported"))
@@ -167,7 +168,7 @@ export default function ReportsPage() {
     setBusy("debts")
     try {
       const repayments = (await Promise.all(debts.map((d) => repo.listRepayments(d.id)))).flat()
-      await exportDebtsXlsx({ debts, repayments, wallets, lang, fileName: exportFileName("debts", workspace.type, "all") })
+      await exportDebtsXlsx({ debts, repayments, wallets, lang: contentLocale(lang), fileName: exportFileName("debts", workspace.type, "all") })
       toast.success(t("reports.exported"))
     } catch {
       toast.error(t("common.error"))

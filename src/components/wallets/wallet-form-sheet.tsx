@@ -35,7 +35,7 @@ import { stepUp } from "@/components/security/step-up"
 import { useActiveWorkspace, useMembers, useProfile, useWalletMutations, useWallets } from "@/lib/data/hooks"
 import { isCard } from "@/lib/credit-card"
 import { PersonalWalletError, PlanLimitError, WalletInUseError, type Currency, type Wallet, type WalletKind, type WalletVisibility } from "@/lib/data/types"
-import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { type MessageKey, pick as pickText, type Locale } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { parseAmount, roundMoney } from "@/lib/money"
 import { showUpgrade, usePlan } from "@/lib/plan"
@@ -70,7 +70,6 @@ type WalletFormSheetProps = {
   hasHistory?: boolean
 }
 
-type Locale = "km" | "en"
 
 function ProviderTile({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -121,7 +120,7 @@ function ProviderPicker({ value, name, locale, onPick }: { value: string; name: 
           {results.map((p) => (
             <ProviderTile key={p.key} active={value === p.key} onClick={() => pick(p.key)}>
               <WalletAvatar icon={p.key} className="size-9" />
-              <span className="line-clamp-2 text-center">{p.name[locale]}</span>
+              <span className="line-clamp-2 text-center">{pickText(p.name, locale)}</span>
             </ProviderTile>
           ))}
           <ProviderTile active={value === "other"} onClick={() => pick("other")}>
@@ -151,7 +150,7 @@ function ProviderPicker({ value, name, locale, onPick }: { value: string; name: 
           return (
             <ProviderTile key={key} active={value === key} onClick={() => pick(key)}>
               <WalletAvatar icon={key} name={custom ? name : undefined} className="size-9" />
-              <span className="line-clamp-1">{custom ? name.trim() || t("walletForm.custom") : p.name[locale]}</span>
+              <span className="line-clamp-1">{custom ? name.trim() || t("walletForm.custom") : pickText(p.name, locale)}</span>
             </ProviderTile>
           )
         })}
@@ -199,7 +198,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
         }
       : {
           icon: "cash",
-          name: getProvider("cash").name[locale],
+          name: pickText(getProvider("cash").name, locale),
           currency: "USD",
           balance: "",
           visibility: "SHARED",
@@ -230,7 +229,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
     // Replace the name only if it is still the previous preset's (untouched) name.
     const name = getValues("name").trim()
     if (!name || name === previous.name.km || name === previous.name.en) {
-      setValue("name", key === "other" ? "" : next.name[locale], { shouldValidate: key !== "other" })
+      setValue("name", key === "other" ? "" : pickText(next.name, locale), { shouldValidate: key !== "other" })
     }
     if (!editing) setValue("currency", next.defaultCurrency)
   }

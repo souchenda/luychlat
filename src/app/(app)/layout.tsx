@@ -22,6 +22,7 @@ import { RealtimeSync } from "@/components/family/realtime-sync"
 import { GuestImportPrompt } from "@/components/settings/guest-import"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { TestPlanBanner } from "@/components/admin/test-plan"
+import { LanguageToggle } from "@/components/layout/language-toggle"
 import { WorkspaceFlip } from "@/components/workspace/workspace-switcher"
 import { useActiveWorkspace } from "@/lib/data/hooks"
 import { cn } from "@/lib/utils"
@@ -87,6 +88,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <WorkspaceFlip />
               </div>
               {/* Settings, Islamic tools and the rest live in the ☰ menu / sidebar. */}
+              <LanguageToggle compact />
               <NotificationBell />
             </div>
           </header>

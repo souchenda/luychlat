@@ -1,4 +1,5 @@
 import type { TransactionType, WorkspaceType } from "@/lib/data/types"
+import { pick, type Locale, type LocalizedText } from "@/lib/i18n/dictionaries"
 
 export type CategoryKind = Exclude<TransactionType, "TRANSFER">
 
@@ -7,7 +8,7 @@ export type CategoryPreset = {
   type: CategoryKind
   icon: string
   color: string
-  name: { km: string; en: string }
+  name: LocalizedText
 }
 
 /** តុងទីន: seeded in every workspace (also used by pay_tontine_round / collect_tontine). */
@@ -199,9 +200,9 @@ const PRESET_NAMES = new Map(
 )
 
 /** Preset categories show in the UI language; custom ones keep the user's name. */
-export function categoryLabel(category: { name: string; preset_key: string | null }, locale: "km" | "en"): string {
+export function categoryLabel(category: { name: string; preset_key: string | null }, locale: Locale): string {
   const preset = category.preset_key ? PRESET_NAMES.get(category.preset_key) : undefined
-  return preset ? preset[locale] : category.name
+  return preset ? pick(preset, locale) : category.name
 }
 
 export const CATEGORY_COLORS = [

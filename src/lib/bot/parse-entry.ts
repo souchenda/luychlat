@@ -33,42 +33,44 @@ const KHMER_DIGITS = "០១២៣៤៥៦៧៨៩"
 const toLatinDigits = (s: string) => s.replace(/[០-៩]/g, (d) => String(KHMER_DIGITS.indexOf(d)))
 
 // Latin words need word edges; Khmer is written without spaces, so it's matched as a substring.
-const edge = (word: string) => new RegExp(`(^|[^\\p{L}\\p{N}])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}\\p{N}])`, "iu")
+// A Latin word ends at anything that isn't a Latin letter or digit (so "给Dara" and "សងDara" find "Dara").
+const edge = (word: string) => new RegExp(`(^|[^a-z0-9])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^a-z0-9])`, "iu")
 const isLatin = (w: string) => /^[\x20-\x7e]+$/.test(w)
 const has = (text: string, word: string) => (isLatin(word) ? edge(word).test(text) : text.includes(word.toLowerCase()))
 const hasAny = (text: string, words: string[]) => words.some((w) => has(text, w))
 
 // "សង" (repay) but not inside words like សង្គម (the coeng ្ follows).
-const REPAY = /សង(?!្)|(^|[^\p{L}])(repay|repaid|pay\s*back|paid\s*back|payback)($|[^\p{L}])/iu
-const INCOME_WORDS = ["ចំណូល", "ទទួល", "ប្រាក់ខែ", "លក់បាន", "រកបាន", "income", "salary", "received", "receive", "earned", "sold"]
-const CASH_WORDS = ["cash", "សាច់ប្រាក់", "លុយសុទ្ធ", "ក្នុងហោប៉ៅ"]
+// Chinese: 还款 / 还钱 / 还债, or a message that starts with 还 ("还 Dara 20$").
+const REPAY = /សង(?!្)|(^|[^\p{L}])(repay|repaid|pay\s*back|paid\s*back|payback)($|[^\p{L}])|还款|还钱|还债|^\s*还(?=\s|[a-z])/iu
+const INCOME_WORDS = ["ចំណូល", "ទទួល", "ប្រាក់ខែ", "លក់បាន", "រកបាន", "income", "salary", "received", "receive", "earned", "sold", "收入", "工资", "薪水", "收到", "进账", "营业额", "奖金"]
+const CASH_WORDS = ["cash", "សាច់ប្រាក់", "លុយសុទ្ធ", "ក្នុងហោប៉ៅ", "现金"]
 const CASH_WALLET = /cash|សាច់ប្រាក់|លុយ|កាបូប/i
 // Too common to identify a wallet on their own ("ABA Bank" → "aba").
 const GENERIC = new Set(["bank", "account", "wallet", "card", "usd", "khr", "the", "my", "ធនាគារ", "គណនី", "កាបូប", "ប័ណ្ណ"])
 
 /** Category keywords → preset key; only used when the workspace has that preset. */
 const KEYWORDS: { preset: string; words: string[] }[] = [
-  { preset: "salary", words: ["ប្រាក់ខែ", "salary"] },
+  { preset: "salary", words: ["ប្រាក់ខែ", "salary", "工资", "薪水"] },
   { preset: "bonus", words: ["រង្វាន់", "bonus"] },
-  { preset: "sales", words: ["លក់", "sale", "sales", "sold"] },
+  { preset: "sales", words: ["លក់", "sale", "sales", "sold", "营业额", "卖了", "销售"] },
   { preset: "services", words: ["សេវា", "service"] },
   { preset: "gift_received", words: ["អំណោយ", "gift"] },
   { preset: "side_income", words: ["ចំណូលបន្ថែម", "freelance"] },
-  { preset: "food", words: ["កាហ្វេ", "បាយ", "ញ៉ាំ", "ម្ហូប", "អាហារ", "ភេសជ្ជៈ", "នំ", "ទឹកក្រូច", "គុយទាវ", "coffee", "lunch", "dinner", "breakfast", "food", "eat", "drink", "meal", "restaurant", "snack"] },
-  { preset: "transport", words: ["សាំង", "ប្រេង", "តុកតុក", "ម៉ូតូ", "ឡាន", "ធ្វើដំណើរ", "ចតឡាន", "grab", "passapp", "tuk", "taxi", "fuel", "gas", "petrol", "bus", "parking"] },
-  { preset: "phone", words: ["កាតទូរស័ព្ទ", "ទូរស័ព្ទ", "អ៊ីនធឺណិត", "smart", "cellcard", "metfone", "internet", "phone", "topup", "top up"] },
-  { preset: "utilities", words: ["ទឹកភ្លើង", "អគ្គិសនី", "electric", "electricity", "edc", "water"] },
-  { preset: "housing", words: ["ទឹកភ្លើង", "អគ្គិសនី", "ជួលផ្ទះ", "ផ្ទះ", "rent", "electric", "electricity", "edc", "water"] },
-  { preset: "rent", words: ["ជួល", "rent"] },
-  { preset: "health", words: ["ពេទ្យ", "ថ្នាំ", "សុខភាព", "doctor", "hospital", "medicine", "pharmacy", "clinic"] },
-  { preset: "education", words: ["សាលា", "រៀន", "សៀវភៅ", "school", "tuition", "book", "course"] },
+  { preset: "food", words: ["កាហ្វេ", "បាយ", "ញ៉ាំ", "ម្ហូប", "អាហារ", "ភេសជ្ជៈ", "នំ", "ទឹកក្រូច", "គុយទាវ", "coffee", "lunch", "dinner", "breakfast", "food", "eat", "drink", "meal", "restaurant", "snack", "咖啡", "早餐", "早饭", "午餐", "午饭", "晚餐", "晚饭", "吃饭", "饭", "餐", "奶茶", "饮料", "外卖", "水果"] },
+  { preset: "transport", words: ["សាំង", "ប្រេង", "តុកតុក", "ម៉ូតូ", "ឡាន", "ធ្វើដំណើរ", "ចតឡាន", "grab", "passapp", "tuk", "taxi", "fuel", "gas", "petrol", "bus", "parking", "油费", "汽油", "加油", "打车", "出租车", "停车", "车费", "嘟嘟车"] },
+  { preset: "phone", words: ["កាតទូរស័ព្ទ", "ទូរស័ព្ទ", "អ៊ីនធឺណិត", "smart", "cellcard", "metfone", "internet", "phone", "topup", "top up", "话费", "手机", "网费", "流量", "充值"] },
+  { preset: "utilities", words: ["ទឹកភ្លើង", "អគ្គិសនី", "electric", "electricity", "edc", "water", "电费", "水费", "水电"] },
+  { preset: "housing", words: ["ទឹកភ្លើង", "អគ្គិសនី", "ជួលផ្ទះ", "ផ្ទះ", "rent", "electric", "electricity", "edc", "water", "房租", "电费", "水费", "水电"] },
+  { preset: "rent", words: ["ជួល", "rent", "租金", "店租"] },
+  { preset: "health", words: ["ពេទ្យ", "ថ្នាំ", "សុខភាព", "doctor", "hospital", "medicine", "pharmacy", "clinic", "医院", "看病", "药", "诊所"] },
+  { preset: "education", words: ["សាលា", "រៀន", "សៀវភៅ", "school", "tuition", "book", "course", "学费", "学校", "书", "课程"] },
   { preset: "family", words: ["អំណោយ", "កាដូ", "gift", "family"] },
-  { preset: "entertainment", words: ["កុន", "ភាពយន្ត", "កម្សាន្ត", "ហ្គេម", "movie", "cinema", "game", "netflix", "karaoke"] },
-  { preset: "shopping", words: ["ទិញឥវ៉ាន់", "ខោអាវ", "ផ្សារ", "shopping", "clothes", "market", "mall"] },
-  { preset: "inventory", words: ["ស្តុក", "ទំនិញ", "stock", "inventory"] },
-  { preset: "payroll", words: ["បៀវត្ស", "payroll", "staff"] },
+  { preset: "entertainment", words: ["កុន", "ភាពយន្ត", "កម្សាន្ត", "ហ្គេម", "movie", "cinema", "game", "netflix", "karaoke", "电影", "游戏", "唱歌", "娱乐"] },
+  { preset: "shopping", words: ["ទិញឥវ៉ាន់", "ខោអាវ", "ផ្សារ", "shopping", "clothes", "market", "mall", "购物", "衣服", "超市", "市场"] },
+  { preset: "inventory", words: ["ស្តុក", "ទំនិញ", "stock", "inventory", "进货", "库存", "货款"] },
+  { preset: "payroll", words: ["បៀវត្ស", "payroll", "staff", "员工工资", "人工"] },
   { preset: "marketing", words: ["ផ្សព្វផ្សាយ", "ads", "boost", "marketing"] },
-  { preset: "delivery", words: ["ដឹក", "delivery", "shipping"] },
+  { preset: "delivery", words: ["ដឹក", "delivery", "shipping", "运费", "快递", "送货"] },
   { preset: "tax", words: ["ពន្ធ", "tax"] },
 ]
 
@@ -76,7 +78,7 @@ type Amount = { value: number; currency: Currency | null; start: number; end: nu
 
 export function parseAmountText(raw: string): Amount | null {
   const text = toLatinDigits(raw)
-  const re = /(\$\s*)?(\d[\d,]*(?:\.\d+)?)\s*(k(?![a-z])|ពាន់|ម៉ឺន|លាន|រៀល|៛|\$|usd(?![a-z])|dollars?(?![a-z])|ដុល្លារ|riels?(?![a-z]))?/giu
+  const re = /(\$\s*)?(\d[\d,]*(?:\.\d+)?)\s*(k(?![a-z])|ពាន់|ម៉ឺន|លាន|រៀល|៛|\$|usd(?![a-z])|dollars?(?![a-z])|ដុល្លារ|riels?(?![a-z])|美元|美金|瑞尔|千|万)?/giu
   for (const m of text.matchAll(re)) {
     let digits = m[2]
     // "20,000" is twenty thousand; a lone "2,5" is a decimal comma.
@@ -85,12 +87,12 @@ export function parseAmountText(raw: string): Amount | null {
     if (!Number.isFinite(value) || value <= 0) continue
     const unit = (m[3] ?? "").toLowerCase()
     let currency: Currency | null = m[1] ? "USD" : null
-    const multiplier = unit === "k" || unit === "ពាន់" ? 1000 : unit === "ម៉ឺន" ? 10_000 : unit === "លាន" ? 1_000_000 : 1
+    const multiplier = unit === "k" || unit === "ពាន់" || unit === "千" ? 1000 : unit === "ម៉ឺន" || unit === "万" ? 10_000 : unit === "លាន" ? 1_000_000 : 1
     if (multiplier > 1) {
       value *= multiplier
       currency ??= "KHR"
-    } else if (unit === "រៀល" || unit === "៛" || unit.startsWith("riel")) currency = "KHR"
-    else if (unit === "$" || unit === "usd" || unit.startsWith("dollar") || unit === "ដុល្លារ") currency = "USD"
+    } else if (unit === "រៀល" || unit === "៛" || unit === "瑞尔" || unit.startsWith("riel")) currency = "KHR"
+    else if (unit === "$" || unit === "usd" || unit.startsWith("dollar") || unit === "ដុល្លារ" || unit === "美元" || unit === "美金") currency = "USD"
     return { value, currency, start: m.index!, end: m.index! + m[0].length }
   }
   return null

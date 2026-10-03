@@ -16,6 +16,7 @@ import { usePrefsStore } from "@/stores/prefs-store"
 
 import { CardMeter } from "./credit-card"
 import { WalletAvatar } from "./wallet-avatar"
+import { pick } from "@/lib/i18n/dictionaries"
 
 type WalletListProps = {
   wallets: Wallet[]
@@ -59,7 +60,7 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: Wa
                   </span>
                 )}
                 <span className="truncate">
-                  {isCard(wallet) ? t("card.kind") : getProvider(wallet.icon).name[locale]} · {wallet.currency}
+                  {isCard(wallet) ? t("card.kind") : pick(getProvider(wallet.icon).name, locale)} · {wallet.currency}
                 </span>
               </span>
             </span>

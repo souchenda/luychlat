@@ -2,7 +2,7 @@
 
 import { BookOpenIcon, ChevronDownIcon } from "lucide-react"
 
-import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { SCRIPTURE, type ScriptureTopic } from "@/lib/scripture"
 import { cn } from "@/lib/utils"
@@ -40,7 +40,7 @@ export function ScriptureRefs({ topics, className }: { topics: ScriptureTopic[];
                       {c.arabic}
                     </p>
                   )}
-                  <p className="text-sm leading-relaxed">{c[locale]}</p>
+                  <p className="text-sm leading-relaxed">{pick(c, locale)}</p>
                 </li>
               ))}
             </ul>

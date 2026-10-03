@@ -212,14 +212,15 @@ export default function SettingsPage() {
           <Switch checked={hideBalances} onCheckedChange={toggleHideBalances} aria-label={t("settings.hideBalances")} />
         </SettingsRow>
         <SettingsRow icon={<LanguagesIcon />} tile="violet" title={t("settings.language")}>
-          <div className="w-44 shrink-0">
+          <div className="w-52 shrink-0">
             <Segmented
               aria-label={t("settings.language")}
               value={locale}
               onChange={(v) => setLocale(v)}
               options={[
                 { value: "km", label: "🇰🇭 ខ្មែរ" },
-                { value: "en", label: "🇬🇧 English" },
+                { value: "en", label: "🇬🇧 EN" },
+                { value: "zh", label: "🇨🇳 中文" },
               ]}
             />
           </div>

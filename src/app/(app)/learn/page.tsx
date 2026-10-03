@@ -9,6 +9,7 @@ import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { HUB_TOPICS, TIPS, TOPIC_META, type TipTopic } from "@/lib/tips"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
+import { pick } from "@/lib/i18n/dictionaries"
 
 /** Financial knowledge hub: rounded topic cards, each opening short, practical tips. */
 export default function LearnPage() {
@@ -40,7 +41,7 @@ export default function LearnPage() {
                   {meta.emoji}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-semibold">{meta.title[locale]}</span>
+                  <span className="block font-semibold">{pick(meta.title, locale)}</span>
                   <span className="block text-xs text-muted-foreground">{t("tips.count", { n: tips.length })}</span>
                 </span>
                 <ChevronDownIcon className={cn("size-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")} aria-hidden />
@@ -49,8 +50,8 @@ export default function LearnPage() {
                 <ul className="divide-y border-t">
                   {tips.map((tip) => (
                     <li key={tip.id} className="px-4 py-3">
-                      <p className="text-sm font-semibold">{tip.title[locale]}</p>
-                      <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{tip.body[locale]}</p>
+                      <p className="text-sm font-semibold">{pick(tip.title, locale)}</p>
+                      <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{pick(tip.body, locale)}</p>
                     </li>
                   ))}
                 </ul>

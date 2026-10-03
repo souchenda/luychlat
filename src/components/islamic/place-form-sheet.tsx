@@ -19,6 +19,7 @@ import { parseLatLng, PLACE_KINDS, uploadPlacePhoto, usePlaceMutations, usePlace
 import { PROVINCES } from "@/lib/prayer"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
+import { pick as pickText } from "@/lib/i18n/dictionaries"
 
 /**
  * Suggest a place (users: waits for an admin) or add / edit one (admins:
@@ -150,7 +151,7 @@ export function PlaceFormSheet({
             <SelectContent>
               {PROVINCES.map((p) => (
                 <SelectItem key={p.key} value={p.km}>
-                  {p[locale]}
+                  {pickText(p, locale)}
                 </SelectItem>
               ))}
             </SelectContent>

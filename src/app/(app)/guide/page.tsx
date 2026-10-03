@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { GUIDE, type GuideSection } from "@/lib/guide/content"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
+import { pick } from "@/lib/i18n/dictionaries"
 
 const ICONS: Record<GuideSection["id"], React.ComponentType<{ className?: string }>> = {
   start: WalletIcon,
@@ -37,7 +38,7 @@ export default function GuidePage() {
   const matches = (text: string) => !q || text.toLowerCase().includes(q)
   const sections = GUIDE.map((s) => ({
     ...s,
-    items: s.items.filter((i) => matches(i.q[locale]) || i.a.some((p) => matches(p[locale])) || matches(s.title[locale])),
+    items: s.items.filter((i) => matches(pick(i.q, locale)) || i.a.some((p) => matches(pick(p, locale))) || matches(pick(s.title, locale))),
   })).filter((s) => s.items.length > 0)
 
   return (
@@ -64,7 +65,7 @@ export default function GuidePage() {
           <section key={section.id} id={section.id} className="scroll-mt-20 space-y-2">
             <h2 className="flex items-center gap-2 px-1 text-sm font-semibold">
               <Icon className="size-4 text-primary" aria-hidden />
-              {section.title[locale]}
+              {pick(section.title, locale)}
             </h2>
             <Card className="gap-0 divide-y py-0">
               {section.items.map((item, i) => (
@@ -74,12 +75,12 @@ export default function GuidePage() {
                   open={Boolean(q) || (openSection === section.id && i === 0) || undefined}
                 >
                   <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3.5 text-sm font-medium [&::-webkit-details-marker]:hidden">
-                    <span className="flex-1">{item.q[locale]}</span>
+                    <span className="flex-1">{pick(item.q, locale)}</span>
                     <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
                   </summary>
                   <div className="space-y-2 px-4 pb-4 text-sm leading-relaxed text-muted-foreground">
                     {item.a.map((p) => (
-                      <p key={p.en}>{p[locale]}</p>
+                      <p key={p.en}>{pick(p, locale)}</p>
                     ))}
                   </div>
                 </details>

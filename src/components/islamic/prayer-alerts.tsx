@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { availablePresets, CUSTOM_ADHAN, FAJR_ADHAN, presetById } from "@/lib/adhan-presets"
-import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { cambodiaNow, formatMinutes, prayerTimes, type PrayerKey } from "@/lib/prayer"
 import {
@@ -202,7 +202,7 @@ export function PrayerAlertSettings() {
                   <button type="button" role="radio" aria-checked={selected === p.id} onClick={() => choose(p.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                     <span className={cn("size-4 shrink-0 rounded-full border-2", selected === p.id ? "border-primary bg-primary shadow-[inset_0_0_0_3px_var(--background)]" : "border-muted-foreground/40")} aria-hidden />
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">{p.name[locale]}</span>
+                      <span className="block truncate text-sm font-medium">{pick(p.name, locale)}</span>
                       {p.credit && <span className="block truncate text-[11px] text-muted-foreground">{p.credit}</span>}
                     </span>
                   </button>
