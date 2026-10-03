@@ -8,12 +8,15 @@ export function BottomSheet({
   onOpenChange,
   title,
   description,
+  headerAction,
   children,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
   description?: string
+  /** Icon button shown at the top right, next to the close button. */
+  headerAction?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
@@ -23,6 +26,7 @@ export function BottomSheet({
         className="mx-auto max-h-[92dvh] w-full max-w-md gap-0 overflow-y-auto rounded-t-3xl pb-[env(safe-area-inset-bottom)]"
       >
         <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-muted" aria-hidden />
+        {headerAction && <div className="absolute top-3 right-12 z-10 flex items-center gap-1">{headerAction}</div>}
         <SheetHeader>
           <SheetTitle className="text-lg">{title}</SheetTitle>
           <SheetDescription className={description ? undefined : "sr-only"}>{description ?? title}</SheetDescription>

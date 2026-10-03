@@ -1,6 +1,7 @@
 "use client"
 
-import { ArchiveIcon, ArchiveRestoreIcon, CameraIcon, Loader2Icon, Trash2Icon } from "lucide-react"
+import { ArchiveIcon, ArchiveRestoreIcon, CameraIcon, Loader2Icon, LogOutIcon, Trash2Icon } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { stepUp } from "@/components/security/step-up"
+import { signOutEverywhere } from "@/lib/auth/sign-out"
 import type { Profile, Workspace } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
@@ -19,7 +21,7 @@ import { usePrefsStore } from "@/stores/prefs-store"
 
 import { ProfileAvatar } from "./profile-avatar"
 
-/** Photo with "change" / "remove" buttons; keeps the picked file until Save. */
+/** Photo with a camera badge (add / change) and a trash button (remove); keeps the picked file until Save. */
 function PhotoPicker({
   path,
   name,
@@ -51,9 +53,19 @@ function PhotoPicker({
   const hasPhoto = Boolean(file || (path && !removed))
 
   return (
-    <div className="flex items-center gap-4">
-      <ProfileAvatar path={removed ? null : path} preview={preview} name={name} business={business} className="size-20 text-2xl" />
-      <div className="flex flex-col gap-2">
+    <div className="flex items-end justify-center gap-2">
+      <div className="relative">
+        <ProfileAvatar path={removed ? null : path} preview={preview} name={name} business={business} className="size-24 text-3xl" />
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => input.current?.click()}
+          aria-label={t(hasPhoto ? "profile.changePhoto" : "profile.addPhoto")}
+          title={t(hasPhoto ? "profile.changePhoto" : "profile.addPhoto")}
+          className="absolute -right-1 -bottom-1 flex size-9 items-center justify-center rounded-full border-2 border-popover bg-primary text-primary-foreground shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:opacity-50"
+        >
+          <CameraIcon className="size-4" aria-hidden />
+        </button>
         <input
           ref={input}
           type="file"
@@ -67,17 +79,21 @@ function PhotoPicker({
             onFile(picked)
           }}
         />
-        <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={() => input.current?.click()}>
-          <CameraIcon />
-          {t(hasPhoto ? "profile.changePhoto" : "profile.addPhoto")}
-        </Button>
-        {hasPhoto && (
-          <Button type="button" size="sm" variant="ghost" className="text-destructive" disabled={disabled} onClick={onRemove}>
-            <Trash2Icon />
-            {t("profile.removePhoto")}
-          </Button>
-        )}
       </div>
+      {hasPhoto && (
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="ghost"
+          className="mb-0.5 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          disabled={disabled}
+          onClick={onRemove}
+          aria-label={t("profile.removePhoto")}
+          title={t("profile.removePhoto")}
+        >
+          <Trash2Icon />
+        </Button>
+      )}
     </div>
   )
 }
@@ -85,6 +101,7 @@ function PhotoPicker({
 /** Edit my photo, name, phone and bio. */
 export function ProfileSheet({ open, onOpenChange, profile, email }: { open: boolean; onOpenChange: (open: boolean) => void; profile: Profile | undefined; email?: string }) {
   const t = useT()
+  const router = useRouter()
   const save = useSaveProfile()
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
@@ -117,7 +134,29 @@ export function ProfileSheet({ open, onOpenChange, profile, email }: { open: boo
   }
 
   return (
-    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("profile.title")}>
+    <BottomSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("profile.title")}
+      headerAction={
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          aria-label={t("settings.signOut")}
+          title={t("settings.signOut")}
+          onClick={async () => {
+            if (!window.confirm(t("settings.signOutConfirm"))) return
+            onOpenChange(false)
+            await signOutEverywhere()
+            router.replace("/login")
+          }}
+        >
+          <LogOutIcon />
+        </Button>
+      }
+    >
       <form onSubmit={submit} className="space-y-4">
         <PhotoPicker
           path={profile?.avatar_path}
