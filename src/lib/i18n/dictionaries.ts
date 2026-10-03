@@ -1983,6 +1983,8 @@ const km = {
   "holiday.vassa_start": "សូមអនុមោទនាពិធីបុណ្យចូលព្រះវស្សា",
   "holiday.vassa_end": "សូមអនុមោទនាពិធីបុណ្យចេញព្រះវស្សា",
   "holiday.kathina": "សូមអនុមោទនាពិធីបុណ្យកឋិនទាន",
+  "ws.flipTo": "ប្ដូរទៅ {name}",
+  "ws.switch": "ប្ដូរ workspace",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3970,6 +3972,8 @@ const en: Record<MessageKey, string> = {
   "holiday.vassa_start": "Entering the Rains Retreat (Vassa)",
   "holiday.vassa_end": "End of the Rains Retreat (Pavarana)",
   "holiday.kathina": "Kathina merit-making",
+  "ws.flipTo": "Switch to {name}",
+  "ws.switch": "Switch workspace",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

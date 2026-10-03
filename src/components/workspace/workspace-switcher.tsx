@@ -1,7 +1,7 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { ArchiveIcon, Building2Icon, CheckIcon, ChevronDownIcon, CrownIcon, Loader2Icon, PlusIcon, UserIcon, UsersIcon, type LucideIcon } from "lucide-react"
+import { ArchiveIcon, ArrowLeftRightIcon, Building2Icon, CheckIcon, ChevronDownIcon, CrownIcon, Loader2Icon, PlusIcon, UserIcon, UsersIcon, type LucideIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -190,6 +190,102 @@ export function WorkspaceSwitcher() {
           ),
         )}
       </div>
+      <AddBusinessSheet open={addOpen} onOpenChange={setAddOpen} />
+    </>
+  )
+}
+
+/**
+ * Header: only the current workspace, as one compact pill — "👤 ផ្ទាល់ខ្លួន ⇄".
+ * With two workspaces a tap flips to the other one (like the language switch);
+ * with three or more (several businesses, a family) a tap opens a quick
+ * switcher sheet, which also has "Add business". The full switcher stays in
+ * the menu / sidebar.
+ */
+export function WorkspaceFlip() {
+  const t = useT()
+  const setActive = usePrefsStore((s) => s.setActiveWorkspace)
+  const { workspace } = useActiveWorkspace()
+  const { isUltra } = usePlan()
+  const all = useWorkspaces().data ?? []
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [spin, setSpin] = useState(0)
+
+  // Personal first, then businesses and families; archived businesses only in the sheet.
+  const personal = all.find((w) => w.type === "PERSONAL" && w.role === "OWNER") ?? all.find((w) => w.type === "PERSONAL")
+  const spaces = [personal, ...all.filter((w) => w.type === "BUSINESS" && !w.archived_at), ...all.filter((w) => w.type === "FAMILY")].filter(
+    (w): w is Workspace => Boolean(w),
+  )
+  const archived = all.filter((w) => w.type === "BUSINESS" && w.archived_at)
+  const current = workspace ?? personal
+  const label = (w: Workspace) => (w.type === "PERSONAL" ? t("ws.PERSONAL") : w.name)
+  const go = (w: Workspace) => setActive(w.type, w.type === "PERSONAL" ? null : w.id)
+
+  const tap = () => {
+    if (spaces.length === 2 && current) {
+      setSpin((n) => n + 1)
+      go(spaces.find((w) => w.id !== current.id) ?? spaces[0])
+    } else {
+      setSheetOpen(true)
+    }
+  }
+  if (!current) return null
+  const Icon = ICONS[current.type]
+  const other = spaces.length === 2 ? spaces.find((w) => w.id !== current.id) : undefined
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={tap}
+        aria-label={other ? t("ws.flipTo", { name: label(other) }) : t("ws.switch")}
+        className="inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border bg-muted/50 py-1 pr-2 pl-3 text-sm font-medium transition-colors hover:bg-muted active:scale-[0.98]"
+      >
+        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span key={current.id} className="truncate animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
+          {label(current)}
+        </span>
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-background shadow-xs">
+          <ArrowLeftRightIcon className="size-3.5 text-primary transition-transform duration-300" style={{ transform: `rotate(${spin * 180}deg)` }} aria-hidden />
+        </span>
+      </button>
+
+      <BottomSheet open={sheetOpen} onOpenChange={setSheetOpen} title={t("ws.switch")}>
+        <div className="divide-y overflow-hidden rounded-2xl border">
+          {[...spaces, ...archived].map((w) => {
+            const WIcon = w.archived_at ? ArchiveIcon : ICONS[w.type]
+            return (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() => {
+                  go(w)
+                  setSheetOpen(false)
+                }}
+                className={cn("flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60", w.archived_at && "text-muted-foreground")}
+              >
+                <WIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{label(w)}</span>
+                {w.id === current.id && <CheckIcon className="size-4 text-primary" aria-hidden />}
+              </button>
+            )
+          })}
+        </div>
+        <Button
+          variant="outline"
+          className="mt-3 h-11 w-full"
+          onClick={() => {
+            setSheetOpen(false)
+            if (isUltra) setAddOpen(true)
+            else showUpgrade("business")
+          }}
+        >
+          <PlusIcon />
+          {t("business.add")}
+          {!isUltra && <CrownIcon className="text-amber-500" aria-label="ULTRA" />}
+        </Button>
+      </BottomSheet>
       <AddBusinessSheet open={addOpen} onOpenChange={setAddOpen} />
     </>
   )

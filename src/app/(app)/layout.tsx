@@ -21,7 +21,7 @@ import { PendingInviteRedirect } from "@/components/family/pending-invite"
 import { RealtimeSync } from "@/components/family/realtime-sync"
 import { GuestImportPrompt } from "@/components/settings/guest-import"
 import { NotificationBell } from "@/components/notifications/notification-bell"
-import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
+import { WorkspaceFlip } from "@/components/workspace/workspace-switcher"
 import { useActiveWorkspace } from "@/lib/data/hooks"
 import { cn } from "@/lib/utils"
 import { useLockStore } from "@/stores/lock-store"
@@ -79,8 +79,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <header className={cn("sticky top-0 z-30 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur", bare && "hidden")}>
             <div className="mx-auto flex w-full max-w-md items-center gap-1 px-4 py-2.5">
               <MobileNavTrigger />
-              <div className="min-w-0 flex-1">
-                <WorkspaceSwitcher />
+              {/* Only the current workspace; one tap flips (or opens the switcher with 3+). */}
+              <div className="flex min-w-0 flex-1 justify-center">
+                <WorkspaceFlip />
               </div>
               {/* Settings, Islamic tools and the rest live in the ☰ menu / sidebar. */}
               <NotificationBell />
