@@ -1,10 +1,12 @@
 // Server only: chat logging for the official bot (Phase C part 2).
 import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
+import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
 import { parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { DEFAULT_ABOUT } from "@/lib/app-info"
 import { convert, formatMoney } from "@/lib/money"
+import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, botToken, maskNumbers, sendText, tg, tr } from "@/lib/server/telegram-bot"
 import { transcribe, transcriptionProvider } from "@/lib/server/transcribe"
 
@@ -158,6 +160,9 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
 export async function handleEntryMessage(chatId: number, text: string, ctx: Context, heard?: string) {
   const lang = contextLocale(ctx)
   if (asksForBalance(heard ?? text)) return sendBalanceLock(chatId, lang)
+  // Calculators work for everyone (public rates), before the plan checks.
+  const answer = await marketAnswer(text, lang)
+  if (answer) return sendText(chatId, (heard ? `${tr(lang, "bot.voiceHeard", { text: heard })}\n` : "") + answer)
   const stop = blocked(ctx, lang)
   if (stop) return sendText(chatId, stop)
   const said = heard ? `${tr(lang, "bot.voiceHeard", { text: heard })}\n` : ""
@@ -187,6 +192,13 @@ const BALANCE_QUESTION =
 /** A question about balances / net worth, with no amount in it (so not an entry like "balance fix 5"). */
 export function asksForBalance(text: string) {
   return BALANCE_QUESTION.test(text.trim()) && !/[\d០-៩]/.test(text)
+}
+
+/** /rate, /gold and plain calculator questions ("100$ to khr", "មាស ២ ជី"): the reply, or null. */
+export async function marketAnswer(text: string, lang: Locale): Promise<string | null> {
+  const query = parseMarketQuery(text)
+  if (!query) return null
+  return marketQueryReply(query, await currentMarket(), lang, phnomPenhToday().day, (key, params) => tr(lang, key, params))
 }
 
 function sendBalanceLock(chatId: number, lang: Locale) {

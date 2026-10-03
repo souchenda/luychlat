@@ -3,7 +3,7 @@ import { timingSafeEqual } from "crypto"
 import { after, NextResponse } from "next/server"
 
 import type { Locale } from "@/lib/i18n/dictionaries"
-import { asksForBalance, botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting } from "@/lib/server/bot-commands"
+import { asksForBalance, botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting, marketAnswer } from "@/lib/server/bot-commands"
 import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/server/telegram-bot"
 import { setManualGold, currentMarket } from "@/lib/server/market-sync"
 import { transcriptionProvider } from "@/lib/server/transcribe"
@@ -167,13 +167,18 @@ export async function POST(request: Request) {
     } else {
       await sendText(chatId, tr(lang, "bot.langUsage"))
     }
+  } else if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
+    // Calculators: for every chat, linked or not.
+    const ctx = await botContext(chatId)
+    const answer = await marketAnswer(message.text, ctx?.linked ? contextLocale(ctx) : lang)
+    if (answer) await sendText(chatId, answer)
   } else if (command === "/stop") {
     const { data } = await db.rpc("bot_unlink_chat", { p_key: key, p_chat_id: chatId })
     await sendText(chatId, tr(lang, data ? "bot.unlinked" : "bot.notLinked") + SIGNATURE)
   } else {
     // Linked chats: /help shows the logging examples, other text is an entry to confirm.
     const ctx = await botContext(chatId)
-    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE)
+    if (!ctx?.linked) await sendText(chatId, (await marketAnswer(message.text, lang)) ?? tr(lang, "bot.help") + SIGNATURE)
     else if (asksForBalance(command)) await handleEntryMessage(chatId, command, ctx) // /balance → the in-app pointer
     else if (command.startsWith("/")) {
       const locale = contextLocale(ctx)

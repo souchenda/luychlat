@@ -63,6 +63,8 @@ const api = (m, b) => fetch("https://api.telegram.org/bot" + t + "/" + m, { meth
   await api("setMyCommands", { commands: [
     { command: "start", description: "ភ្ជាប់គណនី LuyChlat · Connect your account" },
     { command: "help", description: "ជំនួយ · Help" },
+    { command: "rate", description: "អត្រាប្ដូរប្រាក់ · Exchange rate · 汇率 (/rate 100 usd to khr)" },
+    { command: "gold", description: "តម្លៃមាស · Gold price · 金价 (/gold 2 ជី)" },
     { command: "lang", description: "ភាសា · Language · 语言 (km / en / zh)" },
     { command: "stop", description: "ផ្ដាច់ · Disconnect" },
   ] })
