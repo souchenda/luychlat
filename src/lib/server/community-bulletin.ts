@@ -8,17 +8,17 @@ import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { tipOfTheDay } from "@/lib/tips"
 
 /**
- * Every morning at 08:00 Cambodia time (UTC+7) @luychlat_bot posts one Khmer
+ * Every morning at 07:00 Cambodia time (UTC+7) @luychlat_bot posts one Khmer
  * bulletin to TELEGRAM_COMMUNITY_CHAT_ID (e.g. "@luychlat_community" or
  * "-100…"; the bot must be an admin of a channel): date and festival, NBC
  * official rates, gold reference prices per damlung, the tip of the day and a
  * button to open the app. Skipped when the chat id isn't set. bot_claim_daily
- * makes it once a day, also across restarts; if the server is down at 08:00 it
- * still posts before 09:00, never later that day.
+ * makes it once a day, also across restarts; if the server is down at 07:00 it
+ * still posts before 08:00, never later that day.
  */
 
 const JOB = "community-bulletin"
-const HOUR = 8
+const HOUR = 7
 const km = dictionaries.km
 
 /** Now in Cambodia (no daylight saving): a Date whose local fields are Phnom Penh's. */
@@ -72,7 +72,7 @@ async function appUrl(): Promise<string | null> {
   }
 }
 
-/** Called every minute by the dispatcher; posts once, between 08:00 and 08:59. */
+/** Called every minute by the dispatcher; posts once, between 07:00 and 07:59. */
 export async function sendCommunityBulletin(): Promise<boolean> {
   const chat = process.env.TELEGRAM_COMMUNITY_CHAT_ID?.trim()
   if (!chat) return false

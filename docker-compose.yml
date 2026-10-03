@@ -38,7 +38,7 @@ services:
       # Server-only, optional: Whisper speech-to-text for the bot's voice notes (Groq first, else OpenAI).
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      # Optional: daily 08:00 market bulletin to the community channel / group (bot must be its admin).
+      # Optional: daily 07:00 market bulletin to the community channel / group (bot must be its admin).
       TELEGRAM_COMMUNITY_CHAT_ID: ${TELEGRAM_COMMUNITY_CHAT_ID:-}
       # This server sends the bot's reminders (one instance only).
       BOT_DISPATCHER: "on"
