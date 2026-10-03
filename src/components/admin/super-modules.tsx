@@ -66,6 +66,8 @@ type Metrics = {
   churn_30d_pct: number | null
   churn_base: number
   pending_payments: number
+  /** Staff accounts left out of every figure. */
+  staff_excluded?: number
 }
 
 const revenue = (r: Metrics["revenue_total"]) =>
@@ -95,7 +97,9 @@ export function BusinessMetrics() {
           <Stat label="DAU / MAU" value={`${m.dau} / ${m.mau}`} hint={m.mau ? `${Math.round((m.dau / m.mau) * 100)}%` : undefined} />
           <Stat label={t("super.trialReferral")} value={m.trial_or_referral} hint={t("super.notPaying")} />
         </div>
-        <p className="text-[11px] text-muted-foreground">{t("super.metricsNote")}</p>
+        <p className="text-[11px] text-muted-foreground">
+          {t("super.metricsNote")} {t("super.staffExcluded", { count: m.staff_excluded ?? 0 })}
+        </p>
       </Card>
     </Section>
   )
