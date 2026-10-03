@@ -4,6 +4,7 @@ import { BadgeCheckIcon, CalendarClockIcon, CalendarDaysIcon, CameraIcon, Chevro
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import { TestPlanSwitch } from "@/components/admin/test-plan"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { ProfileSheet } from "@/components/profile/profile-sheets"
 import { SettingsGroup, SettingsSubHeader, TILE } from "@/components/settings/settings-ui"
@@ -118,6 +119,7 @@ export default function ProfilePage() {
           value={<span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide", badge.className)}>{badge.label}</span>}
           placeholder=""
         />
+        <TestPlanSwitch />
         {periodEnd ? (
           <InfoRow
             icon={<CalendarClockIcon />}

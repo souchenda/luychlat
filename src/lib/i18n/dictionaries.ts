@@ -2091,6 +2091,14 @@ const km = {
   "goldAdmin.cleared": "ត្រឡប់ទៅតម្លៃ CSNJ វិញ",
   "goldAdmin.implausible": "តម្លៃមិនសមហេតុផល — ទិញ ≤ លក់ ហើយជិតតម្លៃទីផ្សារ",
   "goldAdmin.hint": "ក្នុង ១ តម្លឹង (USD)។ ការកំណត់នៅទីនេះ ដូចគ្នានឹង /setgold ក្នុង Telegram — មានសុពលភាពសម្រាប់ថ្ងៃនេះ ហើយស្អែកត្រឡប់ទៅ CSNJ វិញ។",
+  "testPlan.title": "សាកល្បងគណនីខ្ញុំជា (admin)",
+  "testPlan.real": "ពិត",
+  "testPlan.hint": "រយៈពេល ២ ម៉ោង — កម្រិត និងមុខងារទាំងអស់ (កម្មវិធី មូលដ្ឋានទិន្នន័យ bot) ធ្វើតាមគម្រោងនេះ។ គម្រោងពិតរបស់អ្នកមិនប្រែប្រួលទេ ហើយត្រឡប់មកវិញដោយស្វ័យប្រវត្តិ។",
+  "testPlan.banner": "កំពុងសាកល្បងជា {tier} · ដល់ម៉ោង {time}",
+  "testPlan.return": "ត្រឡប់",
+  "testPlan.started": "កំពុងសាកល្បងជា {tier} (២ ម៉ោង)",
+  "testPlan.ended": "ត្រឡប់ទៅគម្រោងពិតវិញ",
+  "testPlan.failed": "មិនអាចប្ដូរបានទេ (តម្រូវ 2FA?)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4186,6 +4194,14 @@ const en: Record<MessageKey, string> = {
   "goldAdmin.cleared": "Back to CSNJ prices",
   "goldAdmin.implausible": "Prices look wrong — buy ≤ sell and close to the market",
   "goldAdmin.hint": "Per damlung (USD). Same as /setgold in Telegram — valid for today; tomorrow it's CSNJ again.",
+  "testPlan.title": "Test my account as (admin)",
+  "testPlan.real": "Real",
+  "testPlan.hint": "For 2 hours — every limit and feature (app, database, bot) follows this plan. Your real plan isn't changed and comes back by itself.",
+  "testPlan.banner": "Testing as {tier} · until {time}",
+  "testPlan.return": "Return",
+  "testPlan.started": "Testing as {tier} (2 hours)",
+  "testPlan.ended": "Back to your real plan",
+  "testPlan.failed": "Couldn't switch (2FA required?)",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

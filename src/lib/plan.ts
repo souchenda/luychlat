@@ -1,6 +1,6 @@
 "use client"
 
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { create } from "zustand"
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -29,6 +29,8 @@ export type MyPlan = {
   can_export: boolean
   can_credit_score: boolean
   is_admin: boolean
+  /** Admin test mode: the plan the admin is trying their own account as, until it ends. */
+  test_plan?: { tier: Tier; expires_at: string } | null
   /** Business workspaces allowed (null = unlimited, Ultra). */
   max_business_workspaces?: number | null
   /** Free plan: when the Business workspace trial ends (ISO), else null. */
@@ -109,6 +111,24 @@ export function usePlanOptions() {
 export function useRefreshPlan() {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: ["plan"] })
+}
+
+/**
+ * Admins: try your own account as FREE / PRO / ULTRA for a few hours (or null
+ * to end it). The database applies it everywhere plans matter, then every
+ * cached query is refreshed so the whole app follows.
+ */
+export function useAdminTestPlan() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ tier, hours = 2 }: { tier: Tier | null; hours?: number }) => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) throw new Error("offline")
+      const { error } = await supabase.rpc("admin_set_test_plan", { p_tier: tier, p_hours: hours })
+      if (error) throw error
+    },
+    onSuccess: () => void queryClient.invalidateQueries(),
+  })
 }
 
 export type ProFeature = "credit_score" | "export"

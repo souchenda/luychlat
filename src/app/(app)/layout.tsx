@@ -21,6 +21,7 @@ import { PendingInviteRedirect } from "@/components/family/pending-invite"
 import { RealtimeSync } from "@/components/family/realtime-sync"
 import { GuestImportPrompt } from "@/components/settings/guest-import"
 import { NotificationBell } from "@/components/notifications/notification-bell"
+import { TestPlanBanner } from "@/components/admin/test-plan"
 import { WorkspaceFlip } from "@/components/workspace/workspace-switcher"
 import { useActiveWorkspace } from "@/lib/data/hooks"
 import { cn } from "@/lib/utils"
@@ -72,6 +73,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <PendingReferralRedeemer />
       <UpgradeSheet />
       <div hidden={isLocked} inert={isLocked} className="md:pl-68 print:pl-0">
+        {/* Admins testing their account as another plan can't miss it. */}
+        <TestPlanBanner />
         <DesktopSidebar />
         <HashScroller />
         {/* Phones: full screen. Tablets and up: a centered card (see .app-frame). */}
