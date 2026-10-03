@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BellIcon, CheckCircle2Icon, Loader2Icon, MoonStarIcon, SendIcon, UnlinkIcon } from "lucide-react"
+import { BellIcon, CheckCircle2Icon, CrownIcon, Loader2Icon, MessageSquarePlusIcon, MoonStarIcon, SendIcon, UnlinkIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -10,13 +10,24 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { useWorkspaces } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
+import { showUpgrade, usePlan } from "@/lib/plan"
 import { PROVINCES } from "@/lib/prayer"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
 
-type Link = { chat_id: number; username: string | null; language: "km" | "en"; debt_alerts: boolean; prayer_alerts: boolean; prayer_province: string | null }
+type Link = {
+  chat_id: number
+  username: string | null
+  language: "km" | "en"
+  debt_alerts: boolean
+  prayer_alerts: boolean
+  prayer_province: string | null
+  commands_enabled: boolean
+  workspace_id: string | null
+}
 
 const client = () => {
   const supabase = getSupabaseBrowserClient()
@@ -43,7 +54,7 @@ function useTelegramLink() {
     enabled: Boolean(userId),
     queryFn: async () => {
       // Before the bot migration the table is missing: treat as "not linked".
-      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, prayer_alerts, prayer_province").maybeSingle()
+      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, prayer_alerts, prayer_province, commands_enabled, workspace_id").maybeSingle()
       return error ? null : (data as Link | null)
     },
   })
@@ -62,6 +73,11 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
   const link = useTelegramLink()
   const [waiting, setWaiting] = useState(false)
   const linked = link.data ?? null
+  const { isPro } = usePlan()
+  const workspaces = useWorkspaces()
+  // Workspaces the bot may write to (owner or member, not archived).
+  const writable = (workspaces.data ?? []).filter((w) => w.role !== "VIEWER" && !w.archived_at)
+  const personalId = writable.find((w) => w.type === "PERSONAL" && w.role === "OWNER")?.id ?? ""
 
   // After opening Telegram, check every few seconds until the chat is linked.
   useEffect(() => {
@@ -181,6 +197,48 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                   ))}
                 </SelectContent>
               </Select>
+            )}
+            <label className="flex items-center gap-3 text-sm">
+              <MessageSquarePlusIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5 font-medium">
+                  {t("bot.commands")}
+                  {!isPro && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                      <CrownIcon className="size-3" aria-hidden />
+                      PRO
+                    </span>
+                  )}
+                </span>
+                <span className="block text-xs text-muted-foreground">{t("bot.commandsHint")}</span>
+              </span>
+              <Switch
+                checked={isPro && linked.commands_enabled}
+                onCheckedChange={(v) => (isPro ? update.mutate({ commands_enabled: v }) : showUpgrade("general"))}
+                aria-label={t("bot.commands")}
+              />
+            </label>
+            {isPro && linked.commands_enabled && (
+              <div className="space-y-2 rounded-lg bg-muted/50 p-3">
+                {writable.length > 1 && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="flex-1">{t("bot.commandsWorkspace")}</span>
+                    <Select value={linked.workspace_id ?? personalId} onValueChange={(v) => update.mutate({ workspace_id: v })}>
+                      <SelectTrigger className="h-9 w-44" aria-label={t("bot.commandsWorkspace")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {writable.map((w) => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {w.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">{t("bot.commandsWarn")}</p>
+              </div>
             )}
             <div className="flex items-center gap-3 text-sm">
               <span className="flex-1">{t("telegram.language")}</span>

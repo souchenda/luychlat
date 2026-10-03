@@ -3,6 +3,7 @@ import { timingSafeEqual } from "crypto"
 import { NextResponse } from "next/server"
 
 import type { Locale } from "@/lib/i18n/dictionaries"
+import { botContext, contextLocale, handleCallback, handleEntryMessage } from "@/lib/server/bot-commands"
 import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/server/telegram-bot"
 
 /**
@@ -11,11 +12,14 @@ import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/ser
  *   /start <code>  link this chat to the LuyChlat account that made the code
  *   /start, /help  how to connect
  *   /stop          unlink
+ *   anything else  from a linked chat: an expense / income / debt payment to
+ *                  confirm with ✅ / ❌ (PRO, opt-in; see bot-commands.ts)
  * Only private chats are handled. Always answers 200 so Telegram doesn't retry.
  */
 export const runtime = "nodejs"
 
 type Update = {
+  callback_query?: Parameters<typeof handleCallback>[0]
   message?: {
     text?: string
     chat: { id: number; type: string }
@@ -36,6 +40,10 @@ export async function POST(request: Request) {
   try {
     update = (await request.json()) as Update
   } catch {
+    return NextResponse.json({ ok: true })
+  }
+  if (update.callback_query) {
+    await handleCallback(update.callback_query)
     return NextResponse.json({ ok: true })
   }
   const message = update.message
@@ -63,7 +71,11 @@ export async function POST(request: Request) {
     const { data } = await db.rpc("bot_unlink_chat", { p_key: key, p_chat_id: chatId })
     await sendText(chatId, tr(lang, data ? "bot.unlinked" : "bot.notLinked") + SIGNATURE)
   } else {
-    await sendText(chatId, tr(lang, "bot.help") + SIGNATURE)
+    // Linked chats: /help shows the logging examples, other text is an entry to confirm.
+    const ctx = await botContext(chatId)
+    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE)
+    else if (command.startsWith("/")) await sendText(chatId, tr(contextLocale(ctx), "bot.cmdHelp"))
+    else await handleEntryMessage(chatId, message.text.trim().slice(0, 300), ctx)
   }
   return NextResponse.json({ ok: true })
 }
