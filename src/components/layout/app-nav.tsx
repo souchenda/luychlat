@@ -13,6 +13,7 @@ import {
   LayoutDashboardIcon,
   MenuIcon,
   MoonStarIcon,
+  ChevronRightIcon,
   PencilIcon,
   PiggyBankIcon,
   SettingsIcon,
@@ -22,13 +23,13 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { BusinessTrialTag } from "@/components/billing/business-trial"
 import { BrandMark } from "@/components/brand-mark"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
-import { BusinessProfileSheet, ProfileSheet } from "@/components/profile/profile-sheets"
+import { BusinessProfileSheet } from "@/components/profile/profile-sheets"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
@@ -82,6 +83,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
       t("business.addDetails")
     : profile?.phone || user?.email || user?.phone || ""
   const [editOpen, setEditOpen] = useState(false)
+  const router = useRouter()
   const { plan } = usePlan()
   const pro = plan.tier !== "FREE"
   const islamic = useIslamicEnabled()
@@ -104,7 +106,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
     {
       title: "nav.group.perks",
       items: [
-        { href: "/settings#referral", label: "referral.title", icon: GiftIcon, hint: "nav.referHint" },
+        { href: "/settings/plan#referral", label: "referral.title", icon: GiftIcon, hint: "nav.referHint" },
         ...(islamic ? [{ href: "/islamic/prayer", label: "islamic.title", icon: MoonStarIcon } as Item] : []),
       ],
     },
@@ -134,7 +136,12 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
       <div className={cn("space-y-3 border-b px-4 pt-5 pb-4", inDrawer && "pr-12")}>
         <button
           type="button"
-          onClick={() => setEditOpen(true)}
+          onClick={() => {
+            // A business is edited in place; a person opens the profile page.
+            if (business) return setEditOpen(true)
+            onNavigate?.()
+            router.push("/profile")
+          }}
           className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-2xl px-2 py-1.5 text-left transition-colors hover:bg-muted"
           aria-label={t(business ? "business.title" : "profile.title")}
         >
@@ -143,7 +150,11 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
             <span className="block truncate font-semibold">{name}</span>
             {subtitle && <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>}
           </span>
-          <PencilIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          {business ? (
+            <PencilIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          ) : (
+            <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          )}
         </button>
         <BusinessTrialTag workspace={business} />
         {pro ? (
@@ -192,11 +203,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
         ))}
       </nav>
 
-      {business ? (
-        <BusinessProfileSheet open={editOpen} onOpenChange={setEditOpen} workspace={business} />
-      ) : (
-        <ProfileSheet open={editOpen} onOpenChange={setEditOpen} profile={profile} email={user?.email} />
-      )}
+      {business && <BusinessProfileSheet open={editOpen} onOpenChange={setEditOpen} workspace={business} />}
 
       <div className="flex items-center gap-2 border-t px-5 py-3 text-[11px] text-muted-foreground">
         <BrandMark className="size-5 rounded-md text-[11px] shadow-none" />

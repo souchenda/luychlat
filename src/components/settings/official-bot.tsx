@@ -47,7 +47,7 @@ export function useOfficialBot() {
   })
 }
 
-function useTelegramLink() {
+export function useTelegramLink() {
   const userId = useSessionStore((s) => s.user?.id ?? null)
   return useQuery({
     queryKey: ["telegram-link", userId],

@@ -43,7 +43,7 @@ export default function AdvisorPage() {
         <div className="flex items-center">
         <HelpLink section="ai" />
         <Button asChild size="sm" variant="ghost">
-          <Link href="/settings#ai">
+          <Link href="/settings/ai">
             <SettingsIcon />
             {t("advisor.configure")}
           </Link>

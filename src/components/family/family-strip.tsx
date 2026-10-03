@@ -14,7 +14,7 @@ export function FamilyStrip({ workspace }: { workspace: Workspace }) {
   const t = useT()
   const members = useMembers(workspace.id).data ?? []
   return (
-    <Link href="/settings#family" className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+    <Link href="/settings/family" className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
       <span className="flex -space-x-1.5">
         {members.slice(0, 4).map((m) => (
           <MemberAvatar key={m.id} id={m.user_id} name={m.display_name} className="size-6 ring-2 ring-background" />

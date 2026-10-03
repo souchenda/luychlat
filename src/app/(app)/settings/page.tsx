@@ -1,83 +1,60 @@
 "use client"
 
-import { BookOpenIcon, ChartColumnIcon, InfoIcon, LifeBuoyIcon, MoonStarIcon, ChevronRightIcon, CoinsIcon, TargetIcon, KeyRoundIcon, LockIcon, LogOutIcon, TagsIcon, TimerIcon } from "lucide-react"
+import {
+  BookOpenIcon,
+  ChartColumnIcon,
+  CheckCircle2Icon,
+  CoinsIcon,
+  CrownIcon,
+  DatabaseIcon,
+  EyeOffIcon,
+  InfoIcon,
+  LanguagesIcon,
+  LifeBuoyIcon,
+  LogOutIcon,
+  MoonIcon,
+  MoonStarIcon,
+  SendIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  TagsIcon,
+  TargetIcon,
+  UsersIcon,
+} from "lucide-react"
 import { useTheme } from "next-themes"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { PlanCard } from "@/components/billing/plan-card"
-import { ReferralCard } from "@/components/billing/referral"
-import { ActiveDevices } from "@/components/settings/active-devices"
-import { TwoFactorRow } from "@/components/security/two-factor"
-import { stepUp } from "@/components/security/step-up"
-import { FamilySettings } from "@/components/family/family-settings"
-import { BiometricIcon } from "@/components/lock/biometric-icon"
-import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
-import { AiSettingsCard } from "@/components/settings/ai-settings"
+import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { AboutSheet, SettingsFooter } from "@/components/settings/about"
-import { DangerZone } from "@/components/settings/danger-zone"
-import { DataManagement } from "@/components/settings/data-management"
 import { GuestImportRow } from "@/components/settings/guest-import"
-import { InstallAppCard } from "@/components/settings/install-app"
-import { OfficialBotCard } from "@/components/settings/official-bot"
-import { TelegramSettingsCard } from "@/components/settings/telegram-settings"
+import { useOfficialBot, useTelegramLink } from "@/components/settings/official-bot"
+import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { APP_VERSION } from "@/lib/app-info"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
-import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
+import { useSaveExchangeRate } from "@/lib/exchange-rate"
 import { useT } from "@/lib/i18n/use-t"
-import {
-  BIOMETRIC_MOCK,
-  biometricKind,
-  isBiometricAvailable,
-  registerBiometric,
-  type BiometricKind,
-  type BiometricPreference,
-} from "@/lib/security/biometric"
-import { AUTO_LOCK_OPTIONS, type AutoLockMinutes, useLockStore } from "@/stores/lock-store"
+import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
 import { parseAmount } from "@/lib/money"
+import { usePlan } from "@/lib/plan"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
-import { useSaveExchangeRate } from "@/lib/exchange-rate"
-import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
-import { useActiveWorkspace } from "@/lib/data/hooks"
 
-function Row({ icon, title, hint, children }: { icon?: React.ReactNode; title: string; hint?: string; children?: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      {icon && <span className="text-muted-foreground [&_svg]:size-5">{icon}</span>}
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{title}</p>
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-2">
-      <h2 className="px-1 text-sm font-medium text-muted-foreground">{title}</h2>
-      <Card className="gap-0 divide-y py-0">{children}</Card>
-    </section>
-  )
-}
-
-/** Optional Islamic Finance tools; the setting is private to the user (synced, never shown to family). */
+/** Optional Islamic tools (100% free); the setting is private to the user (synced, never shown to family). */
 function IslamicToolsRow() {
   const t = useT()
   const { settings, loading } = useIslamicSettings()
   const { setEnabled } = useIslamicMutations()
   return (
     <>
-      <Row icon={<MoonStarIcon />} title={t("islamic.toggle")} hint={t("islamic.toggleHint")}>
+      <SettingsRow icon={<MoonStarIcon />} tile="teal" title={t("settings.islamicRow")} hint={t("islamic.toggleHint")}>
         <Switch
           checked={settings.enabled}
           disabled={loading || setEnabled.isPending}
@@ -89,14 +66,8 @@ function IslamicToolsRow() {
           }
           aria-label={t("islamic.toggle")}
         />
-      </Row>
-      {settings.enabled && (
-        <Link href="/islamic" className="block hover:bg-muted/60">
-          <Row title={t("islamic.open")} hint={t("islamic.openHint")}>
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          </Row>
-        </Link>
-      )}
+      </SettingsRow>
+      {settings.enabled && <SettingsRow href="/islamic" className="pl-16" title={t("islamic.open")} hint={t("islamic.openHint")} />}
     </>
   )
 }
@@ -124,9 +95,9 @@ function ExchangeRateRow() {
   }
 
   return (
-    <Row icon={<CoinsIcon />} title={t("settings.exchangeRate")} hint={t(readOnly ? "settings.exchangeRateFamily" : "settings.exchangeRateHint")}>
+    <SettingsRow icon={<CoinsIcon />} tile="amber" title={t("settings.exchangeRate")} hint={readOnly ? t("settings.exchangeRateFamily") : undefined}>
       <form
-        className="flex items-center gap-1.5"
+        className="flex shrink-0 items-center gap-1"
         onSubmit={(e) => {
           e.preventDefault()
           save()
@@ -137,7 +108,7 @@ function ExchangeRateRow() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           inputMode="numeric"
-          className="h-8 w-20 text-right tabular-nums"
+          className="h-8 w-16 px-2 text-right tabular-nums"
           aria-label={t("settings.exchangeRate")}
           aria-invalid={!valid}
           disabled={readOnly}
@@ -149,54 +120,29 @@ function ExchangeRateRow() {
           </Button>
         )}
       </form>
-    </Row>
+    </SettingsRow>
   )
 }
 
 export default function SettingsPage() {
   const t = useT()
   const router = useRouter()
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const { locale, setLocale } = useLocaleStore()
   const user = useSessionStore((s) => s.user)
-  const {
-    pinHash,
-    biometricCredentialId,
-    biometricPreference,
-    autoLockMinutes,
-    setBiometricCredential,
-    setBiometricPreference,
-    setAutoLock,
-    clearSecurity,
-    lock,
-  } = useLockStore()
-  const [bioKind, setBioKind] = useState<BiometricKind>("any")
-  useEffect(() => setBioKind(biometricKind(biometricPreference)), [biometricPreference])
-  const [pinOpen, setPinOpen] = useState(false)
+  const profile = useProfile().data
+  const { plan, isPro } = usePlan()
+  const hideBalances = usePrefsStore((s) => s.hideBalances)
+  const toggleHideBalances = usePrefsStore((s) => s.toggleHideBalances)
+  const bot = useOfficialBot()
+  const telegram = useTelegramLink()
   const [aboutOpen, setAboutOpen] = useState(false)
-  const [biometricSupported, setBiometricSupported] = useState(false)
+  // next-themes only knows the theme after mounting.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
-  useEffect(() => {
-    void isBiometricAvailable().then(setBiometricSupported)
-  }, [])
-
-  const toggleBiometric = async (enabled: boolean) => {
-    // Turning a security feature off needs the PIN (or Face ID) first.
-    if (!enabled) {
-      if (await stepUp(t("stepUp.biometricOff"))) setBiometricCredential(null)
-      return
-    }
-    const id = await registerBiometric()
-    if (!id) return toast.error(t("lock.biometricFailed"))
-    setBiometricCredential(id)
-    toast.success(t("settings.biometricEnabled"))
-  }
-
-  const removePin = async () => {
-    if (!(await stepUp(t("stepUp.pinOff")))) return
-    clearSecurity()
-    toast.success(t("settings.pinRemoved"))
-  }
+  const name = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
+  const contact = user?.email || (user?.phone ? `+${user.phone}` : "")
 
   const signOut = async () => {
     if (!window.confirm(t("settings.signOutConfirm"))) return
@@ -204,187 +150,104 @@ export default function SettingsPage() {
     router.replace("/login")
   }
 
-  const biometricHint = !biometricSupported
-    ? t("settings.biometricUnsupported")
-    : BIOMETRIC_MOCK
-      ? t("settings.biometricMock")
-      : t("settings.biometricHint")
-
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
 
-      <PlanCard />
-
-      <ReferralCard />
-
-      <Section title={t("settings.security")}>
-        <Row
-          icon={<KeyRoundIcon />}
-          title={t("settings.pin")}
-          hint={pinHash ? t("settings.pinOn") : t("settings.pinOff")}
+      <SettingsGroup title={t("settings.account")}>
+        <SettingsRow
+          href="/profile"
+          className="py-3"
+          icon={undefined}
+          title={<span className="block truncate text-base font-semibold">{name}</span>}
+          hint={<span className="block truncate">{contact}</span>}
         >
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={async () => {
-              // Changing an existing PIN needs the current one (or Face ID) first.
-              if (pinHash && !(await stepUp(t("stepUp.pinChange")))) return
-              setPinOpen(true)
-            }}
-          >
-            {pinHash ? t("settings.changePin") : t("settings.setPin")}
-          </Button>
-        </Row>
-        <Row icon={<BiometricIcon kind={bioKind} className="size-5" />} title={t(`settings.biometric.${bioKind}`)} hint={biometricHint}>
+          <ProfileAvatar path={profile?.avatar_path} name={name} className="order-first size-12" />
+        </SettingsRow>
+        <SettingsRow href="/settings/security" icon={<ShieldCheckIcon />} tile="emerald" title={t("settings.security")} hint={t("settings.securityHint")} />
+        <GuestImportRow />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings.group.prefs")}>
+        <SettingsRow
+          icon={<MoonIcon />}
+          tile="indigo"
+          title={t("settings.darkMode")}
+          hint={mounted && theme === "system" ? t("settings.darkModeSystem") : undefined}
+        >
           <Switch
-            checked={Boolean(biometricCredentialId)}
-            onCheckedChange={toggleBiometric}
-            disabled={!pinHash || !biometricSupported}
-            aria-label={t(`settings.biometric.${bioKind}`)}
+            checked={mounted && resolvedTheme === "dark"}
+            onCheckedChange={(dark) => setTheme(dark ? "dark" : "light")}
+            aria-label={t("settings.darkMode")}
           />
-        </Row>
-        {biometricCredentialId && (
-          <Row title={t("settings.biometricShowAs")} hint={t("settings.biometricShowAsHint")}>
-            <Select value={biometricPreference} onValueChange={(v) => setBiometricPreference(v as BiometricPreference)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(["auto", "face", "fingerprint"] as const).map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {t(`settings.biometricPref.${p}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Row>
-        )}
-        <Row icon={<TimerIcon />} title={t("settings.autoLock")} hint={t("settings.autoLockHint")}>
-          <Select
-            value={String(autoLockMinutes)}
-            onValueChange={(v) => setAutoLock(Number(v) as AutoLockMinutes)}
-            disabled={!pinHash}
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AUTO_LOCK_OPTIONS.map((m) => (
-                <SelectItem key={m} value={String(m)}>
-                  {t(`settings.autoLock.${m}` as MessageKey)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Row>
-        {pinHash && (
-          <div className="flex gap-2 px-4 py-3">
-            <Button size="sm" variant="secondary" onClick={lock}>
-              <LockIcon />
-              {t("settings.lockNow")}
-            </Button>
-            <Button size="sm" variant="ghost" className="text-destructive" onClick={removePin}>
-              {t("settings.removePin")}
-            </Button>
-          </div>
-        )}
-        <TwoFactorRow />
-        <ActiveDevices />
-      </Section>
-
-      <Section title={t("settings.money")}>
-        <ExchangeRateRow />
-        <Link href="/categories" className="block hover:bg-muted/60">
-          <Row icon={<TagsIcon />} title={t("settings.categories")} hint={t("settings.categoriesHint")}>
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          </Row>
-        </Link>
-        <Link href="/budgets" className="block hover:bg-muted/60">
-          <Row icon={<TargetIcon />} title={t("budget.title")} hint={t("budget.settingsHint")}>
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          </Row>
-        </Link>
-        <Link href="/reports" className="block hover:bg-muted/60">
-          <Row icon={<ChartColumnIcon />} title={t("reports.title")} hint={t("reports.settingsHint")}>
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          </Row>
-        </Link>
-      </Section>
-
-      <FamilySettings />
-
-      <InstallAppCard />
-
-      <OfficialBotCard legacy={<TelegramSettingsCard />} />
-
-      <AiSettingsCard />
-
-      <Section title={t("settings.appearance")}>
-        <Row title={t("settings.language")}>
+        </SettingsRow>
+        <SettingsRow icon={<EyeOffIcon />} tile="slate" title={t("settings.hideBalances")} hint={t("settings.hideBalancesHint")}>
+          <Switch checked={hideBalances} onCheckedChange={toggleHideBalances} aria-label={t("settings.hideBalances")} />
+        </SettingsRow>
+        <SettingsRow icon={<LanguagesIcon />} tile="violet" title={t("settings.language")}>
           <Select value={locale} onValueChange={(v) => setLocale(v as "km" | "en")}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
+            <SelectTrigger size="sm" className="h-7 rounded-full border-0 bg-violet-500/15 px-3 text-xs font-medium text-violet-700 shadow-none hover:bg-violet-500/25 dark:bg-violet-500/20 dark:text-violet-300 dark:hover:bg-violet-500/30" aria-label={t("settings.language")}>
+              {locale === "km" ? "ភាសាខ្មែរ" : "English"}
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="km">ខ្មែរ</SelectItem>
+            <SelectContent position="popper" align="end">
+              <SelectItem value="km">ភាសាខ្មែរ</SelectItem>
               <SelectItem value="en">English</SelectItem>
             </SelectContent>
           </Select>
-        </Row>
-        <Row title={t("settings.theme")}>
-          <Select value={theme ?? "system"} onValueChange={setTheme}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(["light", "dark", "system"] as const).map((v) => (
-                <SelectItem key={v} value={v}>
-                  {t(`settings.theme.${v}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Row>
+        </SettingsRow>
+        <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
+          {bot.data && telegram.data ? (
+            <StatusBadge tone="success">
+              <CheckCircle2Icon aria-hidden />
+              {t("settings.telegramConnected")}
+            </StatusBadge>
+          ) : (
+            <StatusBadge tone="info">{t("settings.telegramConnect")}</StatusBadge>
+          )}
+        </SettingsRow>
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings.group.general")}>
+        <SettingsRow href="/categories" icon={<TagsIcon />} tile="rose" title={t("settings.categories")} />
+        <SettingsRow href="/budgets" icon={<TargetIcon />} tile="emerald" title={t("budget.title")} hint={t("budget.settingsHint")} />
+        <SettingsRow href="/reports" icon={<ChartColumnIcon />} tile="sky" title={t("reports.title")} hint={t("reports.settingsHint")} />
+        <ExchangeRateRow />
         <IslamicToolsRow />
-      </Section>
+        <SettingsRow href="/settings/family" icon={<UsersIcon />} tile="violet" title={t("family.section")} hint={t("settings.familyHint")} />
+        <SettingsRow href="/settings/ai" icon={<SparklesIcon />} tile="indigo" title={t("aiSettings.title")} hint={t("settings.aiHint")} />
+        <SettingsRow href="/settings/plan" icon={<CrownIcon />} tile="amber" title={t("settings.planRow")} hint={t("settings.planRowHint")}>
+          {isPro ? (
+            <StatusBadge tone="pro">
+              <CrownIcon aria-hidden />
+              {plan.tier}
+            </StatusBadge>
+          ) : (
+            <StatusBadge>{t("plan.free")}</StatusBadge>
+          )}
+        </SettingsRow>
+        <SettingsRow href="/settings/data" icon={<DatabaseIcon />} tile="slate" title={t("settings.dataRow")} hint={t("settings.dataRowHint")} />
+      </SettingsGroup>
 
-      <Section title={t("settings.account")}>
-        <Row title={user?.phone ? `+${user.phone}` : (user?.email ?? "")} />
-        <GuestImportRow />
-        <div className="space-y-2 px-4 py-3">
-          <Button variant="outline" className="w-full text-destructive" onClick={signOut}>
-            <LogOutIcon />
-            {t("settings.signOut")}
-          </Button>
-        </div>
-      </Section>
+      <SettingsGroup title={t("settings.group.about")}>
+        <SettingsRow href="/guide" icon={<BookOpenIcon />} tile="teal" title={t("guide.title")} hint={t("guide.settingsHint")} />
+        <SettingsRow href="/support" icon={<LifeBuoyIcon />} tile="sky" title={t("support.title")} hint={t("support.settingsHint")} />
+        <SettingsRow onClick={() => setAboutOpen(true)} icon={<InfoIcon />} tile="emerald" title={t("about.title")}>
+          <StatusBadge>v{APP_VERSION}</StatusBadge>
+        </SettingsRow>
+      </SettingsGroup>
 
-      <Section title={t("settings.help")}>
-        <Link href="/guide" className="block hover:bg-muted/60">
-          <Row icon={<BookOpenIcon />} title={t("guide.title")} hint={t("guide.settingsHint")}>
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          </Row>
-        </Link>
-        <Link href="/support" className="block hover:bg-muted/60">
-          <Row icon={<LifeBuoyIcon />} title={t("support.title")} hint={t("support.settingsHint")}>
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          </Row>
-        </Link>
-        <button type="button" className="block w-full text-left hover:bg-muted/60" onClick={() => setAboutOpen(true)}>
-          <Row icon={<InfoIcon />} title={t("about.title")} hint={t("about.settingsHint")}>
-            <ChevronRightIcon className="size-4 text-muted-foreground" />
-          </Row>
-        </button>
-      </Section>
-
-      <DataManagement />
-
-      <DangerZone />
+      <SettingsGroup>
+        <SettingsRow
+          onClick={signOut}
+          chevron={false}
+          icon={<LogOutIcon />}
+          tile="rose"
+          title={<span className="text-destructive">{t("settings.signOut")}</span>}
+        />
+      </SettingsGroup>
 
       <SettingsFooter />
 
-      <PinSetupDialog open={pinOpen} onOpenChange={setPinOpen} />
       <AboutSheet open={aboutOpen} onOpenChange={setAboutOpen} />
     </div>
   )
