@@ -4,7 +4,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 
 import { useRepo } from "@/lib/data/hooks"
 import type { Currency } from "@/lib/data/types"
-import { parseRates, type GoldKind, type GoldRates, type JewelryType, type PlatinumGrade } from "@/lib/gold"
+import type { GoldKind, GoldRates, JewelryType, PlatinumGrade } from "@/lib/gold"
 import { useMarket } from "@/lib/market"
 import { effectiveRates } from "@/lib/market-calc"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -44,25 +44,14 @@ async function listHoldings(workspaceId: string): Promise<GoldHolding[]> {
 export const goldKeys = { holdings: (scope: string, ws: string) => ["gold", scope, ws] as const, rates: ["gold-rates"] as const }
 
 /**
- * Rates (USD per damlung) for valuing holdings: the live market reference
- * (spot × 1.20565 × purity, refreshed by the server), with any rate an admin
- * entered (local shop price) taking precedence for that kind. `adminRates` are
- * only the admin-entered ones (for the admin form).
+ * Rates (USD per damlung) for valuing holdings: the local Phnom Penh buy price
+ * (CSNJ or the admin's daily override) for kilo gold and 24K, and the world
+ * reference (spot × 1.20565 × purity) for the other purities. The old
+ * per-purity admin rates (app_settings "gold_rates") are no longer used.
  */
-export function useGoldRates(): { rates: GoldRates; adminRates: GoldRates; updatedAt: string | null } {
+export function useGoldRates(): { rates: GoldRates; updatedAt: string | null } {
   const live = useMarket().data
-  const { data } = useQuery({
-    queryKey: goldKeys.rates,
-    staleTime: 10 * 60_000,
-    queryFn: async () => {
-      const supabase = getSupabaseBrowserClient()
-      if (!supabase) return { value: {}, updated_at: null }
-      const { data } = await supabase.from("app_settings").select("value, updated_at").eq("key", "gold_rates").maybeSingle()
-      return (data ?? { value: {}, updated_at: null }) as { value: Record<string, unknown>; updated_at: string | null }
-    },
-  })
-  const adminRates = parseRates(data?.value)
-  return { rates: effectiveRates(adminRates, live), adminRates, updatedAt: data?.updated_at ?? live?.fetched_at ?? null }
+  return { rates: effectiveRates({}, live), updatedAt: live?.fetched_at ?? null }
 }
 
 export function useGoldHoldings(workspaceId: string | undefined) {

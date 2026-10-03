@@ -2,6 +2,7 @@
 import fs from "fs"
 
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
+import { logEvent } from "@/lib/server/events"
 
 /**
  * Runs every minute from the dispatcher (production only):
@@ -204,13 +205,17 @@ export async function watchdogTick() {
     if (Date.now() - last >= LIMITS.cooldownMs) {
       lastAlert.set(issue, Date.now())
       await sendToAdmins(alertText(issue, sample))
+      logEvent("warn", "watchdog", `Alert: ${issue} (RAM ${sample.ram_pct}%, CPU ${sample.cpu_pct}%, disk ${sample.disk_pct}%, DB ${sample.db_ms ?? "–"} ms)`)
     }
     active.add(issue)
   }
   for (const issue of [...active]) {
     if (!issues.includes(issue)) {
       active.delete(issue)
-      if (lastAlert.has(issue)) await sendToAdmins(`✅ LuyChlat: ${RECOVERED[issue]}.`)
+      if (lastAlert.has(issue)) {
+        await sendToAdmins(`✅ LuyChlat: ${RECOVERED[issue]}.`)
+        logEvent("info", "watchdog", `Recovered: ${issue}`)
+      }
     }
   }
 

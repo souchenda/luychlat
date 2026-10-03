@@ -5,6 +5,7 @@ import https from "https"
 import { findCsnjItem, parseCsnjArticle, plausible, type LocalGold } from "@/lib/local-gold"
 import { khrPerUnit, NBC_CURRENCIES, referenceRates, type MarketLive } from "@/lib/market-calc"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
+import { logEvent } from "@/lib/server/events"
 
 /**
  * Sources (no API keys):
@@ -118,6 +119,7 @@ async function store(next: MarketLive): Promise<boolean> {
   const { error } = await botDb().rpc("bot_set_market", { p_key: botKey(), p_value: next })
   if (error) {
     console.error("[market] store failed:", error.message)
+    logEvent("error", "market", `Storing market data failed: ${error.message}`, { fold: true })
     return false
   }
   last = next
@@ -170,6 +172,8 @@ export function syncMarket(force = false): Promise<MarketLive | null> {
     try {
       const [nbc, gold, previous] = await Promise.all([fetchNbc(), fetchGold(), currentMarket()])
       const local = await fetchLocalGold((gold ?? previous?.gold)?.reference.GOLD_24K)
+      if (!nbc) logEvent("warn", "nbc", "NBC rates unavailable (Frankfurter) — keeping the last ones", { fold: true })
+      if (!gold) logEvent("warn", "gold-spot", "World gold price unavailable (gold-api.com) — keeping the last one", { fold: true })
       if (!nbc && !gold && !local) return previous
       const next: MarketLive = {
         fetched_at: new Date().toISOString(),
@@ -180,6 +184,7 @@ export function syncMarket(force = false): Promise<MarketLive | null> {
       return (await store(next)) ? next : previous
     } catch (error) {
       console.error("[market] sync failed:", (error as Error).message)
+      logEvent("error", "market", `Market sync failed: ${(error as Error).message}`, { fold: true })
       return last
     } finally {
       running = null

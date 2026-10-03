@@ -6,6 +6,7 @@ import type { MarketLive } from "@/lib/market-calc"
 import { currentMarket, hasLocalToday, syncMarket } from "@/lib/server/market-sync"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { tipOfTheDay } from "@/lib/tips"
+import { logEvent } from "@/lib/server/events"
 
 /**
  * Every morning @luychlat_bot posts one Khmer bulletin to
@@ -110,5 +111,6 @@ export async function sendCommunityBulletin(): Promise<boolean> {
     ...(url ? { reply_markup: { inline_keyboard: [[{ text: "📱 បើកកម្មវិធីលុយឆ្លាត", url }]] } } : {}),
   })
   if (!res.ok) console.error("[bulletin] send failed:", res.description)
+  logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Daily bulletin sent to ${chat}${hasLocalToday(market) ? "" : " (no local gold prices yet)"}` : `Daily bulletin failed: ${res.description ?? "unknown"}`)
   return res.ok
 }

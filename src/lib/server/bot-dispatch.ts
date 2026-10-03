@@ -7,6 +7,7 @@ import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "
 import { sendCommunityBulletin } from "@/lib/server/community-bulletin"
 import { watchdogTick } from "@/lib/server/health-watchdog"
 import { maybeRefreshLocalGold, syncMarket } from "@/lib/server/market-sync"
+import { logEvent } from "@/lib/server/events"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
@@ -58,6 +59,7 @@ export async function dispatchOnce() {
     await watchdogTick()
   } catch (error) {
     console.error("[bot] dispatch failed:", (error as Error).message)
+    logEvent("error", "dispatcher", `Scheduler pass failed: ${(error as Error).message}`, { fold: true })
   } finally {
     running = false
   }

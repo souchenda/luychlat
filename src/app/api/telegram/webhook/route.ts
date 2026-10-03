@@ -8,6 +8,7 @@ import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/ser
 import { setManualGold, currentMarket } from "@/lib/server/market-sync"
 import { transcriptionProvider } from "@/lib/server/transcribe"
 import { parseSetGold, plausible } from "@/lib/local-gold"
+import { logEvent } from "@/lib/server/events"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -53,6 +54,7 @@ async function setGoldReply(text: string) {
   }
   const saved = await setManualGold(input)
   if (!saved) return "⚠️ មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។"
+  logEvent("info", "setgold", input === "clear" ? "Gold prices back to CSNJ (Telegram /setgold clear)" : `Gold prices set via Telegram: kilo ${input.kilo.sell}/${input.kilo.buy}${input.jewelry ? `, jewelry ${input.jewelry.sell}/${input.jewelry.buy}` : ""}`)
   if (input === "clear") return "✅ ត្រឡប់ទៅតម្លៃ CSNJ ស្វ័យប្រវត្តិ (Oknha News)។"
   const j = saved.local_gold?.jewelry
   return `✅ បានកំណត់តម្លៃមាសថ្ងៃនេះ៖\n• មាសគីឡូ: លក់ចេញ ${usd(input.kilo.sell)} | ទិញចូល ${usd(input.kilo.buy)}${j ? `\n• មាសគ្រឿង: លក់ចេញ ${usd(j.sell)} | ទិញចូល ${usd(j.buy)}` : ""}\nបង្ហាញក្នុងកម្មវិធី និង bulletin ថ្ងៃនេះ។`
@@ -65,6 +67,8 @@ function sameSecret(a: string | null, b: string | null) {
 
 export async function POST(request: Request) {
   if (!sameSecret(request.headers.get("x-telegram-bot-api-secret-token"), webhookSecret())) {
+    // Someone other than Telegram (or an old secret) calling the webhook.
+    logEvent("security", "webhook", "Rejected webhook call: wrong or missing secret", { fold: true })
     return NextResponse.json({ ok: false }, { status: 401 })
   }
   let update: Update

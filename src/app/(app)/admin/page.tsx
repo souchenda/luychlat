@@ -27,7 +27,8 @@ import { formatHijri, toHijri } from "@/lib/islamic"
 import { PlacesAdmin } from "@/components/islamic/places-admin"
 import { BotAdminCard } from "@/components/settings/bot-admin"
 import { AdminUserSecurity } from "@/components/security/admin-user-security"
-import { GoldRatesAdmin } from "@/components/gold/gold-rates-admin"
+import { LocalGoldAdmin } from "@/components/admin/local-gold-admin"
+import { SystemHealthCard } from "@/components/admin/system-health-card"
 import { MarketPricesAdmin } from "@/components/gold/market-prices-admin"
 import type { IslamicDefaults } from "@/lib/islamic-settings"
 import { BottomSheet } from "@/components/common/bottom-sheet"
@@ -973,6 +974,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{t("admin.title")}</h1>
+      <SystemHealthCard />
       <AnalyticsCard />
       <PendingPayments />
       <SupportTickets />
@@ -981,7 +983,7 @@ export default function AdminPage() {
       <PaymentInstructionsForm />
       <SupportContactsForm />
       <AboutInfoForm />
-      <GoldRatesAdmin />
+      <LocalGoldAdmin />
       <MarketPricesAdmin />
       <IslamicDefaultsForm />
       <PlacesAdmin />

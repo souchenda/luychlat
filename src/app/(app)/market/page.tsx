@@ -10,7 +10,6 @@ import { SettingsGroup, SettingsSubHeader } from "@/components/settings/settings
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { HUN_PER_CHI, HUN_PER_DAMLUNG } from "@/lib/gold"
-import { useGoldRates } from "@/lib/gold-data"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { useMarket, useRefreshMarket } from "@/lib/market"
@@ -33,7 +32,6 @@ export default function MarketPage() {
   const locale = useLocaleStore((s) => s.locale)
   const { data: market, isLoading } = useMarket()
   const refresh = useRefreshMarket()
-  const { adminRates } = useGoldRates()
   const [kind, setKind] = useState<Kind>("GOLD_24K")
   const [weight, setWeight] = useState({ damlung: "1", chi: "", hun: "" })
   const [allCurrencies, setAllCurrencies] = useState(false)
@@ -49,7 +47,6 @@ export default function MarketPage() {
   const hun = num(weight.damlung) * HUN_PER_DAMLUNG + num(weight.chi) * HUN_PER_CHI + num(weight.hun)
   const rate = reference[kind] ?? 0
   const value = (hun / HUN_PER_DAMLUNG) * rate
-  const hasAdmin = Object.keys(adminRates).length > 0
 
   return (
     <div className="space-y-6 pb-10">
@@ -216,7 +213,6 @@ export default function MarketPage() {
           })}
           <p className="px-4 py-2.5 text-xs text-muted-foreground">
             {t("market.referenceHint")}
-            {hasAdmin && <span className="mt-1 block">{t("market.adminOverride")}</span>}
           </p>
         </SettingsGroup>
       )}
