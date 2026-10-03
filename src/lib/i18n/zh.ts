@@ -2262,4 +2262,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "growth.promoPrompt": "保存优惠码 {code}？原因：",
   "growth.promoInvalid": "信息无效（优惠码 4–20 位，天数 1–366）",
   "growth.until": "至 {date}",
+  "super.ownerLocked": "所有者 — 无法移除或降级",
+  "super.selfLocked": "您的账户 — 不能更改自己的角色",
+  "super.staffError.owner": "所有者账户无法移除或降级",
 }

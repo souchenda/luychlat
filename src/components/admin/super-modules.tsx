@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { HandshakeIcon, Loader2Icon, PlusIcon, ShieldCheckIcon, SlidersHorizontalIcon, TrendingUpIcon, UserCogIcon } from "lucide-react"
+import { CrownIcon, HandshakeIcon, LockIcon, Loader2Icon, PlusIcon, ShieldCheckIcon, SlidersHorizontalIcon, TrendingUpIcon, UserCogIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -21,6 +21,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { planKeys, type StaffRole } from "@/lib/plan"
 import { cn } from "@/lib/utils"
+import { useSessionStore } from "@/stores/session-store"
 
 /** Asks for the reason (kept in the audit log) and the admin's own 2FA; null when cancelled. */
 async function confirmChange(prompt: string, t: (k: MessageKey) => string): Promise<string | null> {
@@ -388,7 +389,17 @@ export function PartnerHub() {
 // ---------------------------------------------------------------------------
 // E: staff
 // ---------------------------------------------------------------------------
-type StaffMember = { user_id: string; email: string; display_name: string | null; role: StaffRole; added_at: string; mfa_enabled: boolean; last_active_at: string | null }
+type StaffMember = {
+  user_id: string
+  email: string
+  display_name: string | null
+  role: StaffRole
+  /** The founder account: can't be removed or demoted by anyone. */
+  is_owner: boolean
+  added_at: string
+  mfa_enabled: boolean
+  last_active_at: string | null
+}
 const ROLES: StaffRole[] = ["support", "admin", "super_admin"]
 
 export function StaffManager() {
@@ -396,6 +407,7 @@ export function StaffManager() {
   const queryClient = useQueryClient()
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<StaffRole>("support")
+  const myId = useSessionStore((s) => s.user?.id)
   const { data } = useQuery({ queryKey: ["admin", "staff"], queryFn: () => rpc<StaffMember[]>("admin_staff_list") })
   const act = useMutation({
     mutationFn: ({ name, args }: { name: string; args: Record<string, unknown> }) => rpc<{ ok: boolean; reason?: string }>(name, args),
@@ -437,18 +449,28 @@ export function StaffManager() {
                 {m.mfa_enabled ? "2FA" : t("super.no2fa")}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <Segmented
-                  value={m.role}
-                  onChange={(r) => r !== m.role && void grant(m.email, r)}
-                  options={ROLES.map((r) => ({ value: r, label: t(`admin.role.${r}`) }))}
-                />
+            {m.is_owner || m.user_id === myId ? (
+              // The owner and your own account are locked (the database refuses these changes too).
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground [&_svg]:size-3.5">
+                {m.is_owner ? <CrownIcon className="text-amber-500" /> : <LockIcon />}
+                <span className="font-medium text-foreground">{t(`admin.role.${m.role}`)}</span>
+                {" · "}
+                {t(m.is_owner ? "super.ownerLocked" : "super.selfLocked")}
+              </p>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Segmented
+                    value={m.role}
+                    onChange={(r) => r !== m.role && void grant(m.email, r)}
+                    options={ROLES.map((r) => ({ value: r, label: t(`admin.role.${r}`) }))}
+                  />
+                </div>
+                <Button size="sm" variant="ghost" className="text-destructive" disabled={act.isPending} onClick={() => void remove(m)}>
+                  {t("super.staffRemove")}
+                </Button>
               </div>
-              <Button size="sm" variant="ghost" className="text-destructive" disabled={act.isPending} onClick={() => void remove(m)}>
-                {t("super.staffRemove")}
-              </Button>
-            </div>
+            )}
           </div>
         ))}
       </Card>

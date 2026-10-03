@@ -2311,6 +2311,9 @@ const km = {
   "growth.promoPrompt": "រក្សាទុកលេខកូដ {code}? មូលហេតុ៖",
   "growth.promoInvalid": "ព័ត៌មានមិនត្រឹមត្រូវ (លេខកូដ ៤–២០ តួ ថ្ងៃ ១–៣៦៦)",
   "growth.until": "ដល់ {date}",
+  "super.ownerLocked": "ម្ចាស់ — មិនអាចដកចេញ ឬប្ដូរតួនាទីបានទេ",
+  "super.selfLocked": "គណនីរបស់អ្នក — មិនអាចប្ដូរតួនាទីខ្លួនឯងបានទេ",
+  "super.staffError.owner": "គណនីម្ចាស់មិនអាចដកចេញ ឬប្ដូរតួនាទីបានទេ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4611,6 +4614,9 @@ const en: Record<MessageKey, string> = {
   "growth.promoPrompt": "Save code {code}? Reason:",
   "growth.promoInvalid": "Invalid details (code 4–20 characters, 1–366 days)",
   "growth.until": "until {date}",
+  "super.ownerLocked": "Owner — can't be removed or demoted",
+  "super.selfLocked": "Your account — you can't change your own role",
+  "super.staffError.owner": "The owner account can't be removed or demoted",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
