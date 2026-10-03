@@ -67,6 +67,25 @@ export default function MarketPage() {
 
       {isLoading && <Loader2Icon className="mx-auto size-6 animate-spin text-muted-foreground" />}
 
+      {/* Any pair, converted through riel on today's NBC rates. */}
+      {market?.nbc && <CurrencyConverter khrPer={market.nbc.khr_per} locale={locale} />}
+
+      {market?.nbc && (
+        <SettingsGroup title={t("market.nbc")}>
+          <p className="px-4 pt-3 text-xs text-muted-foreground">{t("market.nbcHint", { date: locale === "km" ? kmDigits(market.nbc.date) : market.nbc.date })}</p>
+          <div className="flex items-center px-4 py-2 text-xs text-muted-foreground">
+            <span className="flex-1">{t("market.currency")}</span>
+            <span>{t("market.khrPerUnit")}</span>
+          </div>
+          {NBC_CURRENCIES.filter((c) => market.nbc!.khr_per[c]).map((c) => (
+            <div key={c} className={cn("flex items-center px-4 py-2.5 text-sm", c === "USD" && "bg-primary/5")}>
+              <span className={cn("flex-1", c === "USD" && "font-semibold")}>1 {c}</span>
+              <span className="font-semibold tabular-nums">{money(market.nbc!.khr_per[c], market.nbc!.khr_per[c] >= 100 ? 0 : market.nbc!.khr_per[c] >= 1 ? 2 : 3)}៛</span>
+            </div>
+          ))}
+        </SettingsGroup>
+      )}
+
       {market?.local_gold && (
         <SettingsGroup title={t("market.localTitle")}>
           <div className="flex items-center px-4 py-2 text-xs text-muted-foreground">
@@ -97,45 +116,6 @@ export default function MarketPage() {
             ) : (
               t("market.localSourceManual")
             )}
-          </p>
-        </SettingsGroup>
-      )}
-
-      {market?.gold && (
-        <SettingsGroup title={t("market.reference")}>
-          <div className="grid grid-cols-2 gap-3 px-4 py-3">
-            <div>
-              <p className="text-xs text-muted-foreground">
-                {t("market.gold")} · {t("market.spot")}
-              </p>
-              <p className="text-base font-bold tabular-nums">${money(market.gold.gold_spot)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">
-                {t("market.platinum")} · {t("market.spot")}
-              </p>
-              <p className="text-base font-bold tabular-nums">${money(market.gold.platinum_spot)}</p>
-            </div>
-          </div>
-          {KINDS.map((k) => {
-            const usd = reference[k]
-            if (!usd) return null
-            return (
-              <div key={k} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="min-w-0 flex-1 text-sm">{t(`market.kind.${k}` as MessageKey)}</span>
-                <span className="text-right">
-                  <span className="block text-sm font-semibold tabular-nums">
-                    ${money(usd)}
-                    <span className="text-xs font-normal text-muted-foreground">{t("market.perDamlung")}</span>
-                  </span>
-                  {usdKhr > 0 && <span className="block text-xs text-muted-foreground tabular-nums">≈ {money(usd * usdKhr, 0)}៛</span>}
-                </span>
-              </div>
-            )
-          })}
-          <p className="px-4 py-2.5 text-xs text-muted-foreground">
-            {t("market.referenceHint")}
-            {hasAdmin && <span className="mt-1 block">{t("market.adminOverride")}</span>}
           </p>
         </SettingsGroup>
       )}
@@ -185,22 +165,42 @@ export default function MarketPage() {
         </SettingsGroup>
       )}
 
-      {/* Any pair, converted through riel on today's NBC rates. */}
-      {market?.nbc && <CurrencyConverter khrPer={market.nbc.khr_per} locale={locale} />}
-
-      {market?.nbc && (
-        <SettingsGroup title={t("market.nbc")}>
-          <p className="px-4 pt-3 text-xs text-muted-foreground">{t("market.nbcHint", { date: locale === "km" ? kmDigits(market.nbc.date) : market.nbc.date })}</p>
-          <div className="flex items-center px-4 py-2 text-xs text-muted-foreground">
-            <span className="flex-1">{t("market.currency")}</span>
-            <span>{t("market.khrPerUnit")}</span>
-          </div>
-          {NBC_CURRENCIES.filter((c) => market.nbc!.khr_per[c]).map((c) => (
-            <div key={c} className={cn("flex items-center px-4 py-2.5 text-sm", c === "USD" && "bg-primary/5")}>
-              <span className={cn("flex-1", c === "USD" && "font-semibold")}>1 {c}</span>
-              <span className="font-semibold tabular-nums">{money(market.nbc!.khr_per[c], market.nbc!.khr_per[c] >= 100 ? 0 : market.nbc!.khr_per[c] >= 1 ? 2 : 3)}៛</span>
+      {market?.gold && (
+        <SettingsGroup title={t("market.reference")}>
+          <div className="grid grid-cols-2 gap-3 px-4 py-3">
+            <div>
+              <p className="text-xs text-muted-foreground">
+                {t("market.gold")} · {t("market.spot")}
+              </p>
+              <p className="text-base font-bold tabular-nums">${money(market.gold.gold_spot)}</p>
             </div>
-          ))}
+            <div>
+              <p className="text-xs text-muted-foreground">
+                {t("market.platinum")} · {t("market.spot")}
+              </p>
+              <p className="text-base font-bold tabular-nums">${money(market.gold.platinum_spot)}</p>
+            </div>
+          </div>
+          {KINDS.map((k) => {
+            const usd = reference[k]
+            if (!usd) return null
+            return (
+              <div key={k} className="flex items-center gap-3 px-4 py-2.5">
+                <span className="min-w-0 flex-1 text-sm">{t(`market.kind.${k}` as MessageKey)}</span>
+                <span className="text-right">
+                  <span className="block text-sm font-semibold tabular-nums">
+                    ${money(usd)}
+                    <span className="text-xs font-normal text-muted-foreground">{t("market.perDamlung")}</span>
+                  </span>
+                  {usdKhr > 0 && <span className="block text-xs text-muted-foreground tabular-nums">≈ {money(usd * usdKhr, 0)}៛</span>}
+                </span>
+              </div>
+            )
+          })}
+          <p className="px-4 py-2.5 text-xs text-muted-foreground">
+            {t("market.referenceHint")}
+            {hasAdmin && <span className="mt-1 block">{t("market.adminOverride")}</span>}
+          </p>
         </SettingsGroup>
       )}
 
