@@ -27,6 +27,8 @@ type Link = {
   prayer_province: string | null
   commands_enabled: boolean
   workspace_id: string | null
+  /** ULTRA: log into every workspace, routed per message. */
+  route_all: boolean
 }
 
 const client = () => {
@@ -47,6 +49,9 @@ export function useOfficialBot() {
   })
 }
 
+/** Select value for ULTRA's "all workspaces" routing. */
+const ALL = "__all__"
+
 export function useTelegramLink() {
   const userId = useSessionStore((s) => s.user?.id ?? null)
   return useQuery({
@@ -54,7 +59,7 @@ export function useTelegramLink() {
     enabled: Boolean(userId),
     queryFn: async () => {
       // Before the bot migration the table is missing: treat as "not linked".
-      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, prayer_alerts, prayer_province, commands_enabled, workspace_id").maybeSingle()
+      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
       return error ? null : (data as Link | null)
     },
   })
@@ -73,7 +78,7 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
   const link = useTelegramLink()
   const [waiting, setWaiting] = useState(false)
   const linked = link.data ?? null
-  const { isPro } = usePlan()
+  const { isPro, isUltra } = usePlan()
   const workspaces = useWorkspaces()
   // Workspaces the bot may write to (owner or member, not archived).
   const writable = (workspaces.data ?? []).filter((w) => w.role !== "VIEWER" && !w.archived_at)
@@ -223,7 +228,14 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                 {writable.length > 1 && (
                   <div className="flex items-center gap-3 text-sm">
                     <span className="flex-1">{t("bot.commandsWorkspace")}</span>
-                    <Select value={linked.workspace_id ?? personalId} onValueChange={(v) => update.mutate({ workspace_id: v })}>
+                    <Select
+                      value={isUltra && linked.route_all ? ALL : (linked.workspace_id ?? personalId)}
+                      onValueChange={(v) => {
+                        // "All workspaces" is ULTRA; the database ignores it on other plans anyway.
+                        if (v === ALL) return isUltra ? update.mutate({ route_all: true }) : showUpgrade("business")
+                        update.mutate({ workspace_id: v, route_all: false })
+                      }}
+                    >
                       <SelectTrigger className="h-9 w-44" aria-label={t("bot.commandsWorkspace")}>
                         <SelectValue />
                       </SelectTrigger>
@@ -233,10 +245,17 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                             {w.name}
                           </SelectItem>
                         ))}
+                        <SelectItem value={ALL}>
+                          <span className="flex items-center gap-1.5">
+                            {t("bot.routeAll")}
+                            <span className="rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:text-violet-300">ULTRA</span>
+                          </span>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 )}
+                {writable.length > 1 && isUltra && linked.route_all && <p className="text-xs text-muted-foreground">{t("bot.routeAllHint")}</p>}
                 <p className="text-xs text-muted-foreground">{t("bot.commandsVoice")}</p>
                 <p className="text-xs text-muted-foreground">{t("bot.commandsWarn")}</p>
               </div>

@@ -1922,6 +1922,13 @@ const km = {
   "bot.voiceFailed": "🎙️ ស្ដាប់មិនបានច្បាស់ទេ។ សូមនិយាយម្ដងទៀតឱ្យច្បាស់ ឬវាយអក្សរ។",
   "bot.commandsVoice": "🎙️ អាចផ្ញើសារសំឡេងបាន ឧ. «កាហ្វេ ពីរដុល្លារ»។ សំឡេងត្រូវបានបំប្លែងជាអក្សរដោយសេវា Whisper (Groq ឬ OpenAI) ហើយ LuyChlat មិនរក្សាទុកសំឡេងទេ។",
   "bot.cmdHelpVoice": "🎙️ ឬផ្ញើសារសំឡេងខ្លីៗ ឧ. «សាំង ពីរម៉ឺនរៀល»។",
+  "bot.cardWorkspace": "🏢 ទៅកាន់៖ {name}",
+  "bot.switched": "→ {name}",
+  "bot.ultraOnly": "ការប្ដូរ workspace លើកាតនេះ មានសម្រាប់គម្រោង ULTRA ដែលបើក «កត់ត្រាបានទាំងអស់»។",
+  "bot.cmdHelpRoute": "🏢 ULTRA៖ ចាប់ផ្ដើមសារដោយឈ្មោះ ឬអក្សរកាត់របស់ workspace ឧ. «DL សាំង 20$» — បើគ្មាន វាទៅ «ផ្ទាល់ខ្លួន»។ អាចប្ដូរលើកាតមុនចុច ✅។",
+  "bot.routeAll": "ទាំងអស់ / បែងចែកស្វ័យប្រវត្តិ",
+  "bot.routeAllHint": "ចាប់ផ្ដើមសារដោយឈ្មោះ ឬអក្សរកាត់ workspace (ឧ. «DL សាំង 20$») — បើគ្មាន វាទៅ «ផ្ទាល់ខ្លួន»។ អាចប្ដូរលើកាតបញ្ជាក់។",
+  "bot.routeAllUltra": "«ទាំងអស់» មានសម្រាប់គម្រោង ULTRA",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3848,6 +3855,13 @@ const en: Record<MessageKey, string> = {
   "bot.voiceFailed": "🎙️ I couldn't make that out. Please say it again clearly, or type it.",
   "bot.commandsVoice": "🎙️ You can also send a voice note, e.g. “coffee two dollars”. The audio is turned into text by a Whisper service (Groq or OpenAI); LuyChlat doesn't keep the recording.",
   "bot.cmdHelpVoice": "🎙️ Or send a short voice note, e.g. “fuel twenty thousand riel”.",
+  "bot.cardWorkspace": "🏢 To: {name}",
+  "bot.switched": "→ {name}",
+  "bot.ultraOnly": "Switching workspace on the card is for ULTRA with “All workspaces” turned on.",
+  "bot.cmdHelpRoute": "🏢 ULTRA: start with a workspace name or tag, e.g. “DL fuel 20$” — otherwise it goes to Personal. You can switch on the card before ✅.",
+  "bot.routeAll": "All workspaces / smart routing",
+  "bot.routeAllHint": "Start a message with a workspace name or tag (e.g. “DL fuel 20$”) — otherwise it goes to Personal. Switch on the confirmation card.",
+  "bot.routeAllUltra": "“All workspaces” is part of ULTRA",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

@@ -3,7 +3,7 @@ import { timingSafeEqual } from "crypto"
 import { after, NextResponse } from "next/server"
 
 import type { Locale } from "@/lib/i18n/dictionaries"
-import { botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage } from "@/lib/server/bot-commands"
+import { botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting } from "@/lib/server/bot-commands"
 import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/server/telegram-bot"
 import { transcriptionProvider } from "@/lib/server/transcribe"
 
@@ -92,7 +92,8 @@ export async function POST(request: Request) {
     if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE)
     else if (command.startsWith("/")) {
       const locale = contextLocale(ctx)
-      await sendText(chatId, tr(locale, "bot.cmdHelp") + (transcriptionProvider() ? `\n\n${tr(locale, "bot.cmdHelpVoice")}` : ""))
+      const extras = [transcriptionProvider() && tr(locale, "bot.cmdHelpVoice"), isRouting(ctx) && tr(locale, "bot.cmdHelpRoute")].filter(Boolean)
+      await sendText(chatId, [tr(locale, "bot.cmdHelp"), ...extras].join("\n\n"))
     }
     else await handleEntryMessage(chatId, message.text.trim().slice(0, 300), ctx)
   }
