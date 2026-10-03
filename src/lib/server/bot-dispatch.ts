@@ -8,6 +8,7 @@ import { sendCommunityBulletin } from "@/lib/server/community-bulletin"
 import { watchdogTick } from "@/lib/server/health-watchdog"
 import { maybeRefreshLocalGold, syncMarket } from "@/lib/server/market-sync"
 import { logEvent } from "@/lib/server/events"
+import { weeklyDigestTick } from "@/lib/server/weekly-digest"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
@@ -56,6 +57,7 @@ export async function dispatchOnce() {
     await sendPrayerTimes()
     await maybeRefreshLocalGold()
     await sendCommunityBulletin()
+    await weeklyDigestTick()
     await watchdogTick()
   } catch (error) {
     console.error("[bot] dispatch failed:", (error as Error).message)

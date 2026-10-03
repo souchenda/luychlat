@@ -2179,6 +2179,18 @@ const km = {
   "admin.audit.exportCsv": "📥 នាំចេញ CSV",
   "admin.audit.empty": "មិនទាន់មានសកម្មភាព",
   "admin.audit.more": "បង្ហាញបន្ថែម",
+  "bot.weeklyDigest": "សេចក្ដីសង្ខេបចំណាយប្រចាំសប្ដាហ៍",
+  "bot.weeklyDigestHint": "រៀងរាល់ថ្ងៃអាទិត្យ ម៉ោង ១៩:៣០ — ចំណាយសរុប ប្រភេទធំៗ និងប្រៀបធៀបនឹងសប្ដាហ៍មុន (PRO / ULTRA)",
+  "bot.weeklyDigestWarn": "⚠️ អ្នកណាដែលអាចបើក Telegram របស់អ្នក នឹងឃើញចំនួនទឹកប្រាក់ទាំងនេះ។",
+  "bot.digestTitle": "📊 សង្ខេបប្រចាំសប្ដាហ៍ · {workspace} ({range})",
+  "bot.digestSpent": "💸 ចំណាយសប្ដាហ៍នេះ៖ {amount}",
+  "bot.digestTop": "ប្រភេទចំណាយធំៗ៖",
+  "bot.digestLess": "👏 អ្នកចំណាយតិចជាងសប្ដាហ៍មុន {amount}!",
+  "bot.digestMore": "📈 អ្នកចំណាយច្រើនជាងសប្ដាហ៍មុន {amount}។",
+  "bot.digestSame": "➖ ប្រហាក់ប្រហែលនឹងសប្ដាហ៍មុន។",
+  "bot.digestTip": "💡 {tip}",
+  "bot.digestButton": "📱 បើកផ្ទាំងរបាយការណ៍",
+  "bot.digestTeaser": "📊 របាយការណ៍ប្រចាំសប្ដាហ៍របស់អ្នករួចរាល់ — {count} ប្រតិបត្តិការសប្ដាហ៍នេះ ក្នុង {workspace}។\nមើលចំណាយសរុប និងប្រភេទធំៗក្នុងកម្មវិធី។ សេចក្ដីសង្ខេបពេញលេញក្នុង Telegram មានសម្រាប់ PRO។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4347,6 +4359,18 @@ const en: Record<MessageKey, string> = {
   "admin.audit.exportCsv": "📥 Export CSV",
   "admin.audit.empty": "No admin actions yet",
   "admin.audit.more": "Show more",
+  "bot.weeklyDigest": "Weekly spending digest",
+  "bot.weeklyDigestHint": "Sundays at 19:30 — total spent, top categories and a comparison with last week (PRO / ULTRA)",
+  "bot.weeklyDigestWarn": "⚠️ Anyone who can open your Telegram will see these amounts.",
+  "bot.digestTitle": "📊 Weekly summary · {workspace} ({range})",
+  "bot.digestSpent": "💸 Spent this week: {amount}",
+  "bot.digestTop": "Top categories:",
+  "bot.digestLess": "👏 You spent {amount} less than last week!",
+  "bot.digestMore": "📈 You spent {amount} more than last week.",
+  "bot.digestSame": "➖ About the same as last week.",
+  "bot.digestTip": "💡 {tip}",
+  "bot.digestButton": "📱 Open Dashboard",
+  "bot.digestTeaser": "📊 Your weekly report is ready — {count} entries this week in {workspace}.\nSee your totals and top categories in the app. The full digest in Telegram comes with PRO.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BellIcon, CheckCircle2Icon, CrownIcon, Loader2Icon, MessageSquarePlusIcon, MoonStarIcon, SendIcon, UnlinkIcon } from "lucide-react"
+import { BellIcon, ChartColumnIcon, CheckCircle2Icon, CrownIcon, Loader2Icon, MessageSquarePlusIcon, MoonStarIcon, SendIcon, UnlinkIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -25,6 +25,8 @@ type Link = {
   username: string | null
   language: "km" | "en" | "zh"
   debt_alerts: boolean
+  /** Sunday-evening spending digest (opt-in: it puts weekly totals in the chat). */
+  weekly_digest: boolean
   prayer_alerts: boolean
   prayer_province: string | null
   commands_enabled: boolean
@@ -62,7 +64,7 @@ export function useTelegramLink() {
     enabled: Boolean(userId),
     queryFn: async () => {
       // Before the bot migration the table is missing: treat as "not linked".
-      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
+      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, weekly_digest, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
       return error ? null : (data as Link | null)
     },
   })
@@ -188,6 +190,15 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                 <span className="block text-xs text-muted-foreground">{t("bot.dueAlertsHint")}</span>
               </span>
               <Switch checked={linked.debt_alerts} onCheckedChange={(v) => update.mutate({ debt_alerts: v })} aria-label={t("bot.dueAlerts")} />
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <ChartColumnIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">{t("bot.weeklyDigest")}</span>
+                <span className="block text-xs text-muted-foreground">{t("bot.weeklyDigestHint")}</span>
+                {linked.weekly_digest && <span className="mt-0.5 block text-xs text-amber-600 dark:text-amber-400">{t("bot.weeklyDigestWarn")}</span>}
+              </span>
+              <Switch checked={linked.weekly_digest} onCheckedChange={(v) => update.mutate({ weekly_digest: v })} aria-label={t("bot.weeklyDigest")} />
             </label>
             {(islamic || linked.prayer_alerts) && (
               <label className="flex items-center gap-3 text-sm">
