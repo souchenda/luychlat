@@ -166,7 +166,8 @@ export function rateReply(q: RateQuery, market: MarketLive | null, today: string
   if (!per(q.from) || !per(q.to)) return t("bot.rateUnknown", { list: Object.keys(khrPer).concat("KHR").join(", ") })
   const result = (q.amount * per(q.from)) / per(q.to)
   const rates = [q.from, q.to].filter((c) => c !== "KHR").map((c) => rateText(c, per(c)))
-  const date = market.nbc!.date && market.nbc!.date < today ? ` · ${dayMonth(market.nbc!.date)}` : ""
+  // Always the "As of" day: NBC's rate is for a working day, often tomorrow's or Monday's.
+  const date = market.nbc!.date ? ` · ${dayMonth(market.nbc!.date)}` : ""
   return t("bot.rateReply", { from: amountText(q.amount, q.from), to: amountText(result, q.to), rates: rates.join(" · ") + date })
 }
 
@@ -175,7 +176,7 @@ function rateTable(market: MarketLive | null, today: string, t: T): string {
   const khrPer = market?.nbc?.khr_per
   if (!khrPer) return t("bot.rateNone")
   const lines = NBC_CURRENCIES.filter((c) => khrPer[c]).map((c) => `• ${rateText(c, khrPer[c])}`)
-  const date = market.nbc!.date < today ? ` · ${dayMonth(market.nbc!.date)}` : ""
+  const date = ` · ${dayMonth(market.nbc!.date)}`
   return `${t("bot.rateTable")}${date}\n${lines.join("\n")}\n\n${t("bot.rateUsage")}`
 }
 

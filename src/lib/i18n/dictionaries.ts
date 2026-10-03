@@ -2334,6 +2334,20 @@ const km = {
   "customers.method.CASH": "សាច់ប្រាក់",
   "customers.method.OTHER": "ផ្សេងៗ",
   "customers.note": "«អ្នកបង់ប្រាក់» = គម្រោងសកម្មដែលបង់ដោយប្រាក់។ ការសាកល្បង ការណែនាំ និងលេខកូដប្រូម៉ូសិន បង្ហាញក្នុង «ទាំងអស់»។ បុគ្គលិកមិនរាប់បញ្ចូលទេ។ ការគ្រប់គ្រងគណនី (ផ្អាក 2FA គម្រោង) នៅក្នុង /admin › អ្នកប្រើ។",
+  "market.asOf": "អត្រាផ្លូវការ គិតត្រឹម {date}",
+  "market.rateUpdated": "ធ្វើបច្ចុប្បន្នភាព {time}",
+  "market.rateManual": "បញ្ចូលដោយ LuyChlat ពី nbc.gov.kh",
+  "market.othersAsOf": "រូបិយប័ណ្ណផ្សេងទៀត គិតត្រឹម {date}",
+  "market.nbcSchedule": "ធនាគារជាតិ ចេញអត្រាសម្រាប់ថ្ងៃធ្វើការបន្ទាប់ ប្រហែលម៉ោង ៤:៣០ ល្ងាច។",
+  "nbcAdmin.title": "អត្រា NBC",
+  "nbcAdmin.current": "ឥឡូវ៖ $1 = {rate}៛ · As of {date} ({source})",
+  "nbcAdmin.rate": "រៀល ក្នុង $1",
+  "nbcAdmin.asOf": "ថ្ងៃ «As of» របស់ NBC",
+  "nbcAdmin.useAuto": "ប្រើស្វ័យប្រវត្តិ",
+  "nbcAdmin.saved": "បានកំណត់អត្រា NBC",
+  "nbcAdmin.cleared": "ត្រឡប់ទៅអត្រាស្វ័យប្រវត្តិ",
+  "nbcAdmin.invalid": "អត្រា ឬថ្ងៃមិនត្រឹមត្រូវ",
+  "nbcAdmin.hint": "ប្រភពស្វ័យប្រវត្តិ (Frankfurter) ពេលខ្លះយឺតមួយថ្ងៃ ក្រោយ NBC ចេញអត្រាម៉ោង ៤:៣០ ល្ងាច។ បញ្ចូលអត្រា និងថ្ងៃ «As of» ពី nbc.gov.kh — វាប្រើរហូតដល់ប្រភពស្វ័យប្រវត្តិមានថ្ងៃដដែល។ Telegram៖ /setrate 4057 05-10-2026",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4657,6 +4671,20 @@ const en: Record<MessageKey, string> = {
   "customers.method.CASH": "cash",
   "customers.method.OTHER": "other",
   "customers.note": "“Paying” = an active plan bought with money; trials, referral rewards and promo codes show under “All”. Staff are left out. Account actions (suspend, 2FA, plan) are in /admin › Users.",
+  "market.asOf": "Official rate as of {date}",
+  "market.rateUpdated": "Updated {time}",
+  "market.rateManual": "entered by LuyChlat from nbc.gov.kh",
+  "market.othersAsOf": "Other currencies as of {date}",
+  "market.nbcSchedule": "NBC publishes the next working day's rate at about 4:30 PM.",
+  "nbcAdmin.title": "NBC exchange rate",
+  "nbcAdmin.current": "Now: $1 = {rate}៛ · as of {date} ({source})",
+  "nbcAdmin.rate": "Riel per $1",
+  "nbcAdmin.asOf": "NBC's “As of” day",
+  "nbcAdmin.useAuto": "Use automatic",
+  "nbcAdmin.saved": "NBC rate set",
+  "nbcAdmin.cleared": "Back to the automatic rate",
+  "nbcAdmin.invalid": "Invalid rate or date",
+  "nbcAdmin.hint": "The automatic source (Frankfurter) sometimes lags a day after NBC posts at 4:30 PM. Enter the rate and its “As of” day from nbc.gov.kh — it's used until the automatic source has that day. Telegram: /setrate 4057 05-10-2026",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

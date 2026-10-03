@@ -6,6 +6,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { CurrencyConverter } from "@/components/market/currency-converter"
+import { nbcShortDate, NbcStamp } from "@/components/market/nbc-stamp"
 import { SettingsGroup, SettingsSubHeader } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -69,11 +70,13 @@ export default function MarketPage() {
       {isLoading && <Loader2Icon className="mx-auto size-6 animate-spin text-muted-foreground" />}
 
       {/* Any pair, converted through riel on today's NBC rates. */}
-      {market?.nbc && <CurrencyConverter khrPer={market.nbc.khr_per} locale={locale} />}
+      {market?.nbc && <CurrencyConverter khrPer={market.nbc.khr_per} locale={locale} asOf={nbcShortDate(market.nbc, locale)} />}
 
       {market?.nbc && (
         <SettingsGroup title={t("market.nbc")}>
-          <p className="px-4 pt-3 text-xs text-muted-foreground">{t("market.nbcHint", { date: locale === "km" ? kmDigits(market.nbc.date) : market.nbc.date })}</p>
+          <div className="px-4 pt-3">
+            <NbcStamp nbc={market.nbc} fetchedAt={market.fetched_at} locale={locale} />
+          </div>
           <div className="flex items-center px-4 py-2 text-xs text-muted-foreground">
             <span className="flex-1">{t("market.currency")}</span>
             <span>{t("market.khrPerUnit")}</span>

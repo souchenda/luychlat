@@ -3,8 +3,10 @@
 import { ChevronRightIcon } from "lucide-react"
 import Link from "next/link"
 
+import { nbcShortDate } from "@/components/market/nbc-stamp"
 import { useT } from "@/lib/i18n/use-t"
 import { useMarket } from "@/lib/market"
+import { useLocaleStore } from "@/stores/locale-store"
 
 const khr = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
 const usd = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
@@ -13,6 +15,7 @@ const usd = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
 export function MarketRatesCard() {
   const t = useT()
   const market = useMarket().data
+  const locale = useLocaleStore((s) => s.locale)
   const usdKhr = market?.nbc?.usd_khr
   // Local Phnom Penh kilo gold (sell) when recent, else the world reference for 24K.
   const local = market?.local_gold && Date.now() - Date.parse(`${market.local_gold.date}T00:00:00+07:00`) < 4 * 86_400_000 ? market.local_gold : null
@@ -28,6 +31,7 @@ export function MarketRatesCard() {
         {usdKhr && (
           <span className="whitespace-nowrap">
             <span aria-hidden>💵</span> <span className="text-muted-foreground">NBC</span> <span className="font-semibold tabular-nums">$1 = {khr.format(usdKhr)}៛</span>
+            {market?.nbc && <span className="text-[11px] text-muted-foreground tabular-nums"> · {nbcShortDate(market.nbc, locale)}</span>}
           </span>
         )}
         {gold24 && (

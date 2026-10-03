@@ -24,6 +24,7 @@ import { AdminUserSecurity } from "@/components/security/admin-user-security"
 import { AccountControls, UserBadges, type DirectoryUser } from "@/components/admin/account-controls"
 import { ago, rpc, Section, Stat, useInvalidateAdmin, who } from "@/components/admin/ui"
 import { LocalGoldAdmin } from "@/components/admin/local-gold-admin"
+import { NbcRateAdmin } from "@/components/admin/nbc-rate-admin"
 import { SystemHealthCard } from "@/components/admin/system-health-card"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
@@ -628,6 +629,7 @@ export default function AdminPage() {
           <SupportContactsForm />
           <AboutInfoForm />
           <LocalGoldAdmin />
+          <NbcRateAdmin />
         </>
       )}
     </div>

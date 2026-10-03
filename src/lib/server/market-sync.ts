@@ -3,7 +3,7 @@ import dns, { type LookupAddress, type LookupOptions } from "dns"
 import https from "https"
 
 import { findCsnjItem, parseCsnjArticle, plausible, type LocalGold } from "@/lib/local-gold"
-import { khrPerUnit, NBC_CURRENCIES, referenceRates, type MarketLive } from "@/lib/market-calc"
+import { khrPerUnit, NBC_CURRENCIES, pickNbc, referenceRates, type MarketLive, type NbcRates } from "@/lib/market-calc"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 import { logEvent } from "@/lib/server/events"
 
@@ -87,7 +87,7 @@ async function fetchNbc(): Promise<MarketLive["nbc"] | undefined> {
   const khr = rows?.find((r) => r.quote === "KHR")
   if (!rows || !khr || !(khr.rate > 1000 && khr.rate < 10000)) return undefined
   const perUsd = Object.fromEntries(rows.map((r) => [r.quote, r.rate]))
-  return { date: khr.date, usd_khr: khr.rate, khr_per: khrPerUnit(khr.rate, perUsd) }
+  return { date: khr.date, usd_khr: khr.rate, khr_per: khrPerUnit(khr.rate, perUsd), source: "frankfurter", fetched_at: new Date().toISOString() }
 }
 
 async function fetchGold(): Promise<MarketLive["gold"] | undefined> {
@@ -150,6 +150,43 @@ export async function setManualGold(input: Pick<LocalGold, "kilo" | "jewelry"> |
   return (await store(next)) ? next : null
 }
 
+/** /setrate: NBC's newer official USD rate entered by an admin, or "clear" to go back to the automatic source. */
+export async function setManualRate(input: { usd_khr: number; date: string } | "clear"): Promise<MarketLive | null> {
+  const previous = await currentMarket()
+  let nbc: NbcRates | undefined
+  if (input === "clear") {
+    nbc = (await fetchNbc()) ?? (previous?.nbc?.source === "manual" ? undefined : previous?.nbc)
+  } else {
+    const base = previous?.nbc
+    nbc = {
+      date: input.date,
+      usd_khr: input.usd_khr,
+      khr_per: { ...(base?.khr_per ?? {}), USD: input.usd_khr },
+      source: "manual",
+      fetched_at: new Date().toISOString(),
+      others_date: base?.source === "manual" ? base.others_date : base?.date,
+    }
+  }
+  const next: MarketLive = { ...(previous ?? { fetched_at: new Date().toISOString() }), nbc }
+  return (await store(next)) ? next : null
+}
+
+let lastNbcTry = 0
+/**
+ * Working days 16:30–19:00 Cambodia time: NBC publishes the next working day's
+ * rate around 16:30, so look every 5 minutes until a rate dated after today is in.
+ */
+export async function maybeRefreshNbc() {
+  const { day, hour, minute } = phnomPenhToday()
+  const weekday = new Date(`${day}T12:00:00Z`).getUTCDay()
+  if (weekday === 0 || weekday === 6 || hour < 16 || (hour === 16 && minute < 30) || hour >= 19) return
+  if (Date.now() - lastNbcTry < 5 * 60_000) return
+  const nbc = (await currentMarket())?.nbc
+  if (nbc && nbc.date > day) return
+  lastNbcTry = Date.now()
+  await syncMarket(true)
+}
+
 /** True once today's local prices are in (from CSNJ or /setgold). */
 export const hasLocalToday = (m: MarketLive | null | undefined) => m?.local_gold?.date === phnomPenhToday().day
 
@@ -177,7 +214,7 @@ export function syncMarket(force = false): Promise<MarketLive | null> {
       if (!nbc && !gold && !local) return previous
       const next: MarketLive = {
         fetched_at: new Date().toISOString(),
-        nbc: nbc ?? previous?.nbc,
+        nbc: pickNbc(previous?.nbc, nbc),
         gold: gold ?? previous?.gold,
         local_gold: pickLocal(previous?.local_gold, local),
       }

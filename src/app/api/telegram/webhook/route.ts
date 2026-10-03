@@ -5,7 +5,8 @@ import { after, NextResponse } from "next/server"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { asksForBalance, botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting, marketAnswer } from "@/lib/server/bot-commands"
 import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/server/telegram-bot"
-import { setManualGold, currentMarket } from "@/lib/server/market-sync"
+import { currentMarket, phnomPenhToday, setManualGold, setManualRate } from "@/lib/server/market-sync"
+import { parseSetRate } from "@/lib/market-calc"
 import { transcriptionProvider } from "@/lib/server/transcribe"
 import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
@@ -44,6 +45,29 @@ async function isAdminChat(chatId: number) {
 }
 
 const usd = (n: number) => `$${n.toLocaleString("en-US")}`
+
+const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}-${iso.slice(5, 7)}-${iso.slice(0, 4)}`
+
+/** /setrate <KHR per USD> [<as-of date>] · /setrate clear — NBC's newer official rate when the automatic feed lags. */
+async function setRateReply(text: string, chatId: number) {
+  const input = parseSetRate(text, phnomPenhToday().day)
+  if (!input) {
+    const nbc = (await currentMarket())?.nbc
+    const now = nbc ? `\nឥឡូវ៖ $1 = ${nbc.usd_khr.toLocaleString("en-US")}៛ · As of ${ddmmyyyy(nbc.date)} (${nbc.source === "manual" ? "admin" : "Frankfurter"})` : ""
+    return `💵 /setrate <អត្រា> [<ថ្ងៃ As of>]\nឧ. /setrate 4057 05-10-2026 (ថ្ងៃលំនាំដើម = ថ្ងៃធ្វើការបន្ទាប់)\n/setrate clear — ត្រឡប់ទៅប្រភពស្វ័យប្រវត្តិ${now}`
+  }
+  const saved = await setManualRate(input)
+  if (!saved) return "⚠️ មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។"
+  logEvent("info", "setrate", input === "clear" ? "NBC rate back to the automatic source (Telegram /setrate clear)" : `NBC rate set via Telegram: $1 = ${input.usd_khr} KHR as of ${input.date}`)
+  await botDb().rpc("bot_admin_audit", {
+    p_key: botKey(),
+    p_chat_id: chatId,
+    p_action: input === "clear" ? "CLEAR_RATE_OVERRIDE" : "SET_RATE_OVERRIDE",
+    p_note: input === "clear" ? null : `$1 = ${input.usd_khr} KHR · as of ${input.date}`,
+  })
+  if (input === "clear") return "✅ ត្រឡប់ទៅអត្រា NBC ស្វ័យប្រវត្តិ។"
+  return `✅ បានកំណត់អត្រា NBC៖ $1 = ${input.usd_khr.toLocaleString("en-US")}៛ · As of ${ddmmyyyy(input.date)}\nប្រើរហូតដល់ប្រភពស្វ័យប្រវត្តិមានអត្រាថ្ងៃនោះ។`
+}
 
 /** /setgold <kilo sell> <kilo buy> [<jewelry sell> <jewelry buy>] · /setgold clear */
 async function setGoldReply(text: string, chatId: number) {
@@ -165,6 +189,9 @@ export async function POST(request: Request) {
   } else if (/^\/setgold(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: today's Phnom Penh gold counter prices (others get the normal help).
     await sendText(chatId, await setGoldReply(message.text, chatId))
+  } else if (/^\/setrate(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
+    // Admins only: NBC's newer official USD rate (others get the normal help).
+    await sendText(chatId, await setRateReply(message.text, chatId))
   } else if (/^\/lang(@\w+)?$/i.test(command)) {
     // /lang km | en | zh — the bot's language for this chat.
     const choice = payload?.toLowerCase()
