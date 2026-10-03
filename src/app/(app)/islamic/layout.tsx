@@ -1,11 +1,11 @@
 "use client"
 
-import { ArrowLeftIcon, BookHeartIcon, BookOpenTextIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SettingsIcon, SunriseIcon, type LucideIcon } from "lucide-react"
+import { ArrowLeftIcon, BookHeartIcon, BookOpenTextIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SunriseIcon, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { IslamicModeOff } from "@/components/islamic/islamic-mode"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatHijri, toHijri } from "@/lib/islamic"
@@ -54,15 +54,7 @@ export default function IslamicLayout({ children }: { children: React.ReactNode 
       {loading ? (
         <Loader2Icon className="mx-auto mt-10 size-6 animate-spin text-muted-foreground" />
       ) : !settings.enabled ? (
-        <Card className="items-center gap-3 px-6 py-10 text-center">
-          <p className="text-sm text-muted-foreground">{t("islamic.off")}</p>
-          <Button asChild variant="outline">
-            <Link href="/settings">
-              <SettingsIcon />
-              {t("nav.settings")}
-            </Link>
-          </Button>
-        </Card>
+        <IslamicModeOff />
       ) : (
         <>
           <nav aria-label={t("islamic.title")} className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1">

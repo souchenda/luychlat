@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { useWorkspaces } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
+import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { showUpgrade, usePlan } from "@/lib/plan"
 import { PROVINCES } from "@/lib/prayer"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -79,6 +80,8 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
   const [waiting, setWaiting] = useState(false)
   const linked = link.data ?? null
   const { isPro, isUltra } = usePlan()
+  // Prayer-time messages belong to Islamic Mode; still shown while on, so they can be turned off.
+  const islamic = useIslamicEnabled()
   const workspaces = useWorkspaces()
   // Workspaces the bot may write to (owner or member, not archived).
   const writable = (workspaces.data ?? []).filter((w) => w.role !== "VIEWER" && !w.archived_at)
@@ -177,18 +180,20 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
               </span>
               <Switch checked={linked.debt_alerts} onCheckedChange={(v) => update.mutate({ debt_alerts: v })} aria-label={t("bot.dueAlerts")} />
             </label>
-            <label className="flex items-center gap-3 text-sm">
-              <MoonStarIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium">{t("bot.prayerAlerts")}</span>
-                <span className="block text-xs text-muted-foreground">{t("bot.prayerAlertsHint")}</span>
-              </span>
-              <Switch
-                checked={linked.prayer_alerts}
-                onCheckedChange={(v) => update.mutate({ prayer_alerts: v, prayer_province: linked.prayer_province ?? "phnom_penh" })}
-                aria-label={t("bot.prayerAlerts")}
-              />
-            </label>
+            {(islamic || linked.prayer_alerts) && (
+              <label className="flex items-center gap-3 text-sm">
+                <MoonStarIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{t("bot.prayerAlerts")}</span>
+                  <span className="block text-xs text-muted-foreground">{t("bot.prayerAlertsHint")}</span>
+                </span>
+                <Switch
+                  checked={linked.prayer_alerts}
+                  onCheckedChange={(v) => update.mutate({ prayer_alerts: v, prayer_province: linked.prayer_province ?? "phnom_penh" })}
+                  aria-label={t("bot.prayerAlerts")}
+                />
+              </label>
+            )}
             {linked.prayer_alerts && (
               <Select value={linked.prayer_province ?? "phnom_penh"} onValueChange={(v) => update.mutate({ prayer_province: v })}>
                 <SelectTrigger className="h-10 w-full" aria-label={t("prayer.location")}>

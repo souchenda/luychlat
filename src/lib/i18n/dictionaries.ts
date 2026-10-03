@@ -1929,6 +1929,13 @@ const km = {
   "bot.routeAll": "ទាំងអស់ / បែងចែកស្វ័យប្រវត្តិ",
   "bot.routeAllHint": "ចាប់ផ្ដើមសារដោយឈ្មោះ ឬអក្សរកាត់ workspace (ឧ. «DL សាំង 20$») — បើគ្មាន វាទៅ «ផ្ទាល់ខ្លួន»។ អាចប្ដូរលើកាតបញ្ជាក់។",
   "bot.routeAllUltra": "«ទាំងអស់» មានសម្រាប់គម្រោង ULTRA",
+  "islamic.mode": "របៀបហិរញ្ញវត្ថុ និងរបៀបរស់នៅបែបឥស្លាម",
+  "islamic.modeHint": "បើកបង្ហាញម៉ោងសឡាត, គម្ពីរគួរអាន, ទិសកិបឡាត និងការគណនាហ្សាកាត់",
+  "islamic.offBody": "បើកដើម្បីប្រើម៉ោងសឡាត តាសប៊ីហ៍ ឌូអា គម្ពីរគួរអាន ទិសកិបឡាត វិហារ & ហាឡាល់ និងហ្សាកាត់ — ឥតគិតថ្លៃ។ ការកំណត់នេះជាឯកជន ហើយអាចបិទវិញពេលណាក៏បាន។",
+  "islamic.enable": "បើក",
+  "islamic.skip": "រំលង",
+  "islamic.promptTitle": "បើកមុខងាររបៀបរស់នៅបែបឥស្លាម?",
+  "islamic.promptBody": "ម៉ោងសឡាត គម្ពីរគួរអាន ទិសកិបឡាត និងហ្សាកាត់ — ឥតគិតថ្លៃ។ អាចប្ដូរពេលក្រោយនៅ ការកំណត់ › ចំណូលចិត្ត។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3862,6 +3869,13 @@ const en: Record<MessageKey, string> = {
   "bot.routeAll": "All workspaces / smart routing",
   "bot.routeAllHint": "Start a message with a workspace name or tag (e.g. “DL fuel 20$”) — otherwise it goes to Personal. Switch on the confirmation card.",
   "bot.routeAllUltra": "“All workspaces” is part of ULTRA",
+  "islamic.mode": "Islamic Lifestyle & Finance Mode",
+  "islamic.modeHint": "Shows prayer times, the Quran, Qibla direction and Zakat calculation",
+  "islamic.offBody": "Turn it on for prayer times, Tasbih, Duas, the Quran, Qibla, mosques & halal places and Zakat — free. This setting is private, and you can turn it off any time.",
+  "islamic.enable": "Enable",
+  "islamic.skip": "Skip",
+  "islamic.promptTitle": "Enable Islamic lifestyle features?",
+  "islamic.promptBody": "Prayer times, the Quran, Qibla and Zakat — free. You can change this later in Settings › Preferences.",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

@@ -47,14 +47,14 @@ import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
-/** Optional Islamic tools (100% free); the setting is private to the user (synced, never shown to family). */
+/** Islamic Lifestyle & Finance Mode (off by default, 100% free); private to the user (synced, never shown to family). */
 function IslamicToolsRow() {
   const t = useT()
   const { settings, loading } = useIslamicSettings()
   const { setEnabled } = useIslamicMutations()
   return (
     <>
-      <SettingsRow icon={<MoonStarIcon />} tile="teal" title={t("settings.islamicRow")} hint={t("islamic.toggleHint")}>
+      <SettingsRow icon={<MoonStarIcon />} tile="teal" title={t("islamic.mode")} hint={t("islamic.modeHint")}>
         <Switch
           checked={settings.enabled}
           disabled={loading || setEnabled.isPending}
@@ -64,7 +64,7 @@ function IslamicToolsRow() {
               onError: () => toast.error(t("common.error")),
             })
           }
-          aria-label={t("islamic.toggle")}
+          aria-label={t("islamic.mode")}
         />
       </SettingsRow>
       {settings.enabled && <SettingsRow href="/islamic" className="pl-16" title={t("islamic.open")} hint={t("islamic.openHint")} />}
@@ -195,6 +195,7 @@ export default function SettingsPage() {
             </SelectContent>
           </Select>
         </SettingsRow>
+        <IslamicToolsRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
           {bot.data && telegram.data ? (
             <StatusBadge tone="success">
@@ -212,7 +213,6 @@ export default function SettingsPage() {
         <SettingsRow href="/budgets" icon={<TargetIcon />} tile="emerald" title={t("budget.title")} hint={t("budget.settingsHint")} />
         <SettingsRow href="/reports" icon={<ChartColumnIcon />} tile="sky" title={t("reports.title")} hint={t("reports.settingsHint")} />
         <ExchangeRateRow />
-        <IslamicToolsRow />
         <SettingsRow href="/settings/family" icon={<UsersIcon />} tile="violet" title={t("family.section")} hint={t("settings.familyHint")} />
         <SettingsRow href="/settings/ai" icon={<SparklesIcon />} tile="indigo" title={t("aiSettings.title")} hint={t("settings.aiHint")} />
         <SettingsRow href="/settings/plan" icon={<CrownIcon />} tile="amber" title={t("settings.planRow")} hint={t("settings.planRowHint")}>

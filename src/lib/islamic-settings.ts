@@ -17,6 +17,8 @@ export type IslamicSettings = {
   include_business: boolean
   /** Subtract debts I owe before Zakat (Hanafi / AAOIFI). Off by default: in the Shafi'i school debts don't reduce Zakat. */
   subtract_debts: boolean
+  /** The user has chosen on or off at least once (a saved row exists); never sent back to the database. */
+  decided?: boolean
 }
 
 /** Admin defaults (app_settings "islamic_defaults"). */
@@ -52,10 +54,11 @@ export function useIslamicSettings() {
         gold_price: num(data.gold_price),
         silver_price: num(data.silver_price),
         gold_grams: Number(data.gold_grams ?? 0),
+        decided: true,
       } as IslamicSettings
     },
   })
-  return { settings: query.data ?? DEFAULT_ISLAMIC, loading: query.isLoading }
+  return { settings: query.data ?? DEFAULT_ISLAMIC, loading: query.isLoading, loaded: query.isSuccess }
 }
 
 /** True when the signed-in user turned the tools on. */
