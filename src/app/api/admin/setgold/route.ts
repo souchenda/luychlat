@@ -23,7 +23,8 @@ const pair = (v: unknown): BuySell | null => {
 export async function POST(request: Request) {
   const blocked = guardRequest(request, { name: "admin-setgold", limit: 10, windowMs: 60_000, maxBytes: 2_000 })
   if (blocked) return blocked
-  if (!(await isAdminCaller(request))) return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  const caller = await isAdminCaller(request)
+  if (!caller) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   let body: { clear?: boolean; kilo?: unknown; jewelry?: unknown }
   try {
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
     const saved = await setManualGold("clear")
     if (!saved) return NextResponse.json({ error: "save_failed" }, { status: 500 })
     logEvent("info", "setgold", "Gold prices back to CSNJ (/admin)")
+    await caller.db.rpc("admin_log_action", { p_action: "CLEAR_GOLD_OVERRIDE", p_note: null })
     return NextResponse.json(saved.local_gold ?? null)
   }
 
@@ -48,5 +50,6 @@ export async function POST(request: Request) {
   const saved = await setManualGold({ kilo, jewelry })
   if (!saved) return NextResponse.json({ error: "save_failed" }, { status: 500 })
   logEvent("info", "setgold", `Gold prices set in /admin: kilo ${kilo.sell}/${kilo.buy}${jewelry ? `, jewelry ${jewelry.sell}/${jewelry.buy}` : ""}`)
+  await caller.db.rpc("admin_log_action", { p_action: "SET_GOLD_OVERRIDE", p_note: `kilo ${kilo.sell}/${kilo.buy}${jewelry ? ` · jewelry ${jewelry.sell}/${jewelry.buy}` : ""}` })
   return NextResponse.json(saved.local_gold ?? null)
 }

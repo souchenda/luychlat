@@ -1,7 +1,7 @@
 "use client"
 
-import { useQueryClient } from "@tanstack/react-query"
-import { Loader2Icon, LogOutIcon, ShieldCheckIcon } from "lucide-react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { BanIcon, Loader2Icon, LogOutIcon, ShieldCheckIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { BrandMark } from "@/components/brand-mark"
@@ -14,6 +14,7 @@ import { useSupportContacts } from "@/lib/support"
 import { useSessionStore } from "@/stores/session-store"
 
 import { CodeInput } from "./code-input"
+import { TwoFactorRow } from "./two-factor"
 
 /** Once per session: record the sign-in (Telegram "new sign-in" alert, once per device session). */
 function useNoteLogin(ready: boolean) {
@@ -53,7 +54,7 @@ export function MfaGate({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-  if (!needsCode) return <>{children}</>
+  if (!needsCode) return <AccountGate hasFactor={Boolean(data?.factorId)}>{children}</AccountGate>
 
   const submit = async (value: string) => {
     if (!data?.factorId || busy) return
@@ -98,6 +99,79 @@ export function MfaGate({ children }: { children: React.ReactNode }) {
         <LogOutIcon />
         {t("mfa.signOut")}
       </Button>
+    </main>
+  )
+}
+
+type AccountStatus = { suspended: boolean; require_2fa: boolean }
+
+/**
+ * Admin account controls (see public.account_ok): a suspended account sees
+ * only a notice; an account required to use 2FA sees only the 2FA set-up
+ * until it is done. The database refuses their data either way.
+ */
+function AccountGate({ hasFactor, children }: { hasFactor: boolean; children: React.ReactNode }) {
+  const t = useT()
+  const queryClient = useQueryClient()
+  const userId = useSessionStore((s) => s.user?.id)
+  const { data, isLoading } = useQuery({
+    queryKey: ["account-status", userId],
+    enabled: Boolean(userId),
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await getSupabaseBrowserClient()!.rpc("my_account_status")
+      if (error) throw error
+      return data as AccountStatus
+    },
+  })
+  const blockedFor2fa = Boolean(data?.require_2fa && !hasFactor)
+
+  // 2FA just set up: everything fetched before was refused, so load again.
+  useEffect(() => {
+    if (data?.require_2fa && hasFactor) void queryClient.invalidateQueries()
+  }, [data?.require_2fa, hasFactor, queryClient])
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+  if (!data?.suspended && !blockedFor2fa) return <>{children}</>
+
+  const signOut = (
+    <Button variant="ghost" size="sm" onClick={() => void signOutEverywhere().then(() => window.location.assign("/login"))}>
+      <LogOutIcon />
+      {t("mfa.signOut")}
+    </Button>
+  )
+  return (
+    <main className="app-frame flex min-h-dvh flex-col items-center justify-center gap-5 px-6 py-10 text-center">
+      <BrandMark className="size-14 text-2xl" />
+      {data?.suspended ? (
+        <div className="space-y-2">
+          <h1 className="flex items-center justify-center gap-2 text-xl font-bold">
+            <BanIcon className="size-5 text-destructive" aria-hidden />
+            {t("account.suspendedTitle")}
+          </h1>
+          <p className="max-w-xs text-sm text-muted-foreground">{t("account.suspendedHint")}</p>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <h1 className="flex items-center justify-center gap-2 text-xl font-bold">
+              <ShieldCheckIcon className="size-5 text-primary" aria-hidden />
+              {t("account.require2faTitle")}
+            </h1>
+            <p className="max-w-xs text-sm text-muted-foreground">{t("account.require2faHint")}</p>
+          </div>
+          <div className="w-full max-w-sm rounded-xl border text-left">
+            <TwoFactorRow />
+          </div>
+        </>
+      )}
+      {signOut}
     </main>
   )
 }

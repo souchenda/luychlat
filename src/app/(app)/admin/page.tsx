@@ -23,6 +23,8 @@ import { toast } from "sonner"
 import { paymentCode, type PaymentInstructions } from "@/components/billing/upgrade-sheet"
 import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
 import { AdminUserSecurity } from "@/components/security/admin-user-security"
+import { AccountControls, UserBadges, type DirectoryUser } from "@/components/admin/account-controls"
+import { AuditLogCard } from "@/components/admin/audit-log"
 import { LocalGoldAdmin } from "@/components/admin/local-gold-admin"
 import { SystemHealthCard } from "@/components/admin/system-health-card"
 import { BottomSheet } from "@/components/common/bottom-sheet"
@@ -57,20 +59,7 @@ type Overview = {
   paid_30d_usd: number
   paid_30d_khr: number
 }
-type Subscriber = {
-  user_id: string
-  email: string | null
-  display_name: string | null
-  joined_at: string
-  plan_code: string | null
-  tier: "PRO" | "ULTRA" | "FREE"
-  status: string | null
-  period_end: string | null
-  pending_payments: number
-  last_paid_at: string | null
-  last_active_at: string | null
-  total: number
-}
+type Subscriber = DirectoryUser
 type AdminPayment = {
   id: string
   user_id: string
@@ -93,7 +82,7 @@ type ReferralStats = {
   top: { user_id: string; email: string | null; display_name: string | null; invited: number; days_earned: number }[]
 }
 
-const FILTERS = ["all", "pro", "free", "expiring", "expired", "pending"] as const
+const FILTERS = ["all", "pro", "free", "expiring", "expired", "pending", "suspended"] as const
 type Filter = (typeof FILTERS)[number]
 
 const rpc = async <T,>(name: string, args?: Record<string, unknown>) => {
@@ -294,7 +283,11 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
             accent={user.tier !== "FREE"}
           />
           <Stat label={t("admin.lastActive")} value={<span className="text-base">{ago(user.last_active_at)}</span>} hint={t("admin.joined", { date: format(new Date(user.joined_at), "dd/MM/yyyy") })} />
+          <Stat label={t("admin.workspaces")} value={<span className="text-base">{user.workspace_count}</span>} />
+          <Stat label={t("admin.registered")} value={<span className="text-base">{format(new Date(user.joined_at), "dd/MM/yyyy")}</span>} />
         </div>
+
+        <AccountControls user={user} onDone={onClose} />
 
         <AdminUserSecurity userId={user.user_id} label={who(user)} />
 
@@ -396,13 +389,16 @@ function Subscribers() {
 
   const { data, isFetching } = useQuery({
     queryKey: ["admin", "subscribers", debounced, filter, limit],
-    queryFn: () => rpc<Subscriber[]>("admin_list_subscribers", { p_search: debounced, p_filter: filter, p_limit: limit, p_offset: 0 }),
+    queryFn: () => rpc<Subscriber[]>("admin_list_users", { p_search: debounced, p_filter: filter, p_limit: limit, p_offset: 0 }),
     placeholderData: (prev) => prev,
   })
   const total = data?.[0]?.total ?? 0
 
   return (
     <Section title={t("admin.subscribers")} icon={<UsersIcon />} action={isFetching ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" /> : null}>
+      <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+        <span className="font-semibold text-foreground">🛡️ {t("admin.privacyTitle")}</span> {t("admin.privacyBody")}
+      </p>
       <div className="flex gap-2">
         <div className="relative flex-1">
           <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -430,8 +426,11 @@ function Subscribers() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{who(u)}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {t("admin.lastActive")}: {ago(u.last_active_at)}
+                  {t("admin.lastActive")}: {ago(u.last_active_at)} · {t("admin.workspacesCount", { count: u.workspace_count })}
                 </p>
+                <div className="mt-1">
+                  <UserBadges user={u} compact />
+                </div>
               </div>
               <div className="shrink-0 text-right">
                 <span
@@ -895,6 +894,7 @@ export default function AdminPage() {
       <PendingPayments />
       <SupportTickets />
       <Subscribers />
+      <AuditLogCard />
       <ReferralStatsCard />
       <PaymentInstructionsForm />
       <SupportContactsForm />

@@ -46,7 +46,7 @@ async function isAdminChat(chatId: number) {
 const usd = (n: number) => `$${n.toLocaleString("en-US")}`
 
 /** /setgold <kilo sell> <kilo buy> [<jewelry sell> <jewelry buy>] · /setgold clear */
-async function setGoldReply(text: string) {
+async function setGoldReply(text: string, chatId: number) {
   const input = parseSetGold(text)
   if (!input) {
     const local = (await currentMarket())?.local_gold
@@ -60,6 +60,13 @@ async function setGoldReply(text: string) {
   const saved = await setManualGold(input)
   if (!saved) return "⚠️ មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។"
   logEvent("info", "setgold", input === "clear" ? "Gold prices back to CSNJ (Telegram /setgold clear)" : `Gold prices set via Telegram: kilo ${input.kilo.sell}/${input.kilo.buy}${input.jewelry ? `, jewelry ${input.jewelry.sell}/${input.jewelry.buy}` : ""}`)
+  // Admin audit log (as the admin linked to this chat).
+  await botDb().rpc("bot_admin_audit", {
+    p_key: botKey(),
+    p_chat_id: chatId,
+    p_action: input === "clear" ? "CLEAR_GOLD_OVERRIDE" : "SET_GOLD_OVERRIDE",
+    p_note: input === "clear" ? null : `kilo ${input.kilo.sell}/${input.kilo.buy}${input.jewelry ? ` · jewelry ${input.jewelry.sell}/${input.jewelry.buy}` : ""}`,
+  })
   if (input === "clear") return "✅ ត្រឡប់ទៅតម្លៃ CSNJ ស្វ័យប្រវត្តិ (Oknha News)។"
   const j = saved.local_gold?.jewelry
   return `✅ បានកំណត់តម្លៃមាសថ្ងៃនេះ៖\n• មាសគីឡូ: លក់ចេញ ${usd(input.kilo.sell)} | ទិញចូល ${usd(input.kilo.buy)}${j ? `\n• មាសគ្រឿង: លក់ចេញ ${usd(j.sell)} | ទិញចូល ${usd(j.buy)}` : ""}\nបង្ហាញក្នុងកម្មវិធី និង bulletin ថ្ងៃនេះ។`
@@ -157,7 +164,7 @@ export async function POST(request: Request) {
     else await sendText(chatId, tr(lang, "bot.linked", { name: result.name || "" }) + SIGNATURE)
   } else if (/^\/setgold(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: today's Phnom Penh gold counter prices (others get the normal help).
-    await sendText(chatId, await setGoldReply(message.text))
+    await sendText(chatId, await setGoldReply(message.text, chatId))
   } else if (/^\/lang(@\w+)?$/i.test(command)) {
     // /lang km | en | zh — the bot's language for this chat.
     const choice = payload?.toLowerCase()
