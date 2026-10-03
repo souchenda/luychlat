@@ -61,7 +61,7 @@ export default function LoginPage() {
   const showPassword = authMethods.has("email") && (!codeFirst || usePassword)
 
   return (
-    <main className="app-frame flex min-h-dvh w-full max-w-md flex-col px-6 py-8">
+    <main className="app-frame flex min-h-dvh w-full max-w-md flex-col px-6 pt-8">
       <div className="flex justify-end">
         <LanguageToggle />
       </div>
