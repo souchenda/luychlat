@@ -1,19 +1,39 @@
 "use client"
 
-import { BadgeCheckIcon, CalendarDaysIcon, CoinsIcon, LogOutIcon, MailIcon, PencilIcon, PhoneIcon } from "lucide-react"
+import { BadgeCheckIcon, CalendarDaysIcon, CameraIcon, CoinsIcon, LogOutIcon, MailIcon, PencilIcon, PhoneIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { ProfileSheet } from "@/components/profile/profile-sheets"
-import { SettingsGroup, SettingsRow, SettingsSubHeader } from "@/components/settings/settings-ui"
+import { SettingsGroup, SettingsSubHeader, TILE } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
 import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
+import { dayDate } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { formatPhoneDisplay } from "@/lib/phone"
+import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
+
+/** One read-only line: a small muted label over a bold value. */
+function InfoRow({ icon, tile, label, value, placeholder }: { icon: React.ReactNode; tile: keyof typeof TILE; label: string; value?: string | null; placeholder: string }) {
+  return (
+    <div className="flex min-h-14 items-center gap-3 px-4 py-2.5">
+      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl [&_svg]:size-[18px]", TILE[tile])}>{icon}</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+        {value ? (
+          <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{value}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">{placeholder}</p>
+        )}
+      </div>
+    </div>
+  )
+}
 
 /** My profile, read first: photo, name, contact and account details; "Edit profile" opens the form. */
 export default function ProfilePage() {
@@ -26,11 +46,9 @@ export default function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false)
 
   const name = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
-  const phone = profile?.phone || (user?.phone ? `+${user.phone}` : "")
-  const joined = user?.created_at
-    ? new Intl.DateTimeFormat(locale === "km" ? "km-KH" : "en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date(user.created_at))
-    : null
-  const notSet = <span className="text-muted-foreground">{t("profile.notSet")}</span>
+  const rawPhone = profile?.phone || (user?.phone ? `+${user.phone}` : "")
+  const phone = rawPhone ? formatPhoneDisplay(rawPhone) : ""
+  const joined = user?.created_at ? dayDate(new Date(user.created_at), locale) : null
 
   const signOut = async () => {
     if (!window.confirm(t("settings.signOutConfirm"))) return
@@ -39,11 +57,22 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
+    // Extra bottom room so Sign out sits well clear of the bottom bar and its + button.
+    <div className="space-y-6 pb-10">
       <SettingsSubHeader title={t("profile.title")} />
 
-      <div className="flex flex-col items-center gap-3 pt-2 text-center">
-        <ProfileAvatar path={profile?.avatar_path} name={name} className="size-28 text-4xl ring-4 ring-background" />
+      <div className="flex flex-col items-center gap-3 text-center">
+        <button
+          type="button"
+          onClick={() => setEditOpen(true)}
+          className="relative rounded-full transition-transform active:scale-95"
+          aria-label={t(profile?.avatar_path ? "profile.changePhoto" : "profile.addPhoto")}
+        >
+          <ProfileAvatar path={profile?.avatar_path} name={name} className="size-28 text-4xl" />
+          <span className="absolute right-0.5 bottom-0.5 flex size-9 items-center justify-center rounded-full border-[3px] border-background bg-primary text-primary-foreground shadow-sm">
+            <CameraIcon className="size-4" aria-hidden />
+          </span>
+        </button>
         <div className="min-w-0 space-y-1 px-4">
           <h2 className="text-2xl font-bold break-words">{name}</h2>
           {profile?.bio?.trim() && <p className="text-sm whitespace-pre-line text-muted-foreground">{profile.bio.trim()}</p>}
@@ -51,34 +80,27 @@ export default function ProfilePage() {
       </div>
 
       <SettingsGroup title={t("profile.contact")}>
-        <SettingsRow icon={<PhoneIcon />} tile="emerald" title={t("profile.phone")} hint={phone ? <span className="text-sm text-foreground">{phone}</span> : notSet} />
-        <SettingsRow
-          icon={<MailIcon />}
-          tile="sky"
-          title={t("profile.email")}
-          hint={user?.email ? <span className="block truncate text-sm text-foreground">{user.email}</span> : notSet}
-        />
+        <InfoRow icon={<PhoneIcon />} tile="emerald" label={t("profile.phone")} value={phone} placeholder={t("profile.notSet")} />
+        <InfoRow icon={<MailIcon />} tile="sky" label={t("profile.email")} value={user?.email} placeholder={t("profile.notSet")} />
       </SettingsGroup>
 
       <SettingsGroup title={t("profile.accountCard")}>
-        <SettingsRow icon={<CalendarDaysIcon />} tile="violet" title={t("profile.joined")} hint={joined ? <span className="text-sm text-foreground">{joined}</span> : notSet} />
+        <InfoRow icon={<CalendarDaysIcon />} tile="violet" label={t("profile.joined")} value={joined} placeholder={t("profile.notSet")} />
         {workspace && (
           <>
-            <SettingsRow
+            <InfoRow
               icon={<BadgeCheckIcon />}
               tile="amber"
-              title={t("profile.role")}
-              hint={
-                <span className="text-sm text-foreground">
-                  {t(`family.role.${workspace.role}` as MessageKey)} · {workspace.type === "PERSONAL" ? t("ws.PERSONAL") : workspace.name}
-                </span>
-              }
+              label={t("profile.role")}
+              value={`${t(`family.role.${workspace.role}` as MessageKey)} · ${workspace.type === "PERSONAL" ? t("ws.PERSONAL") : workspace.name}`}
+              placeholder=""
             />
-            <SettingsRow
+            <InfoRow
               icon={<CoinsIcon />}
               tile="teal"
-              title={t("profile.currency")}
-              hint={<span className="text-sm text-foreground">{workspace.currency_default === "USD" ? "USD ($)" : "KHR (៛)"}</span>}
+              label={t("profile.currency")}
+              value={workspace.currency_default === "USD" ? "USD ($)" : "KHR (៛)"}
+              placeholder=""
             />
           </>
         )}
@@ -95,8 +117,7 @@ export default function ProfilePage() {
         </Button>
       </div>
 
-      <p className="px-4 text-center text-xs text-muted-foreground">{t("profile.visibility")}</p>
-
+      {/* The privacy note ("who can see this") lives in the edit sheet, next to the fields it's about. */}
       <ProfileSheet open={editOpen} onOpenChange={setEditOpen} profile={profile} email={user?.email} />
     </div>
   )

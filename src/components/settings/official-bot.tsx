@@ -52,6 +52,7 @@ export function useOfficialBot() {
 
 /** Select value for ULTRA's "all workspaces" routing. */
 const ALL = "__all__"
+const WS_ICON = { PERSONAL: "👤", BUSINESS: "🏪", FAMILY: "👨‍👩‍👧" } as const
 
 export function useTelegramLink() {
   const userId = useSessionStore((s) => s.user?.id ?? null)
@@ -86,6 +87,13 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
   // Workspaces the bot may write to (owner or member, not archived).
   const writable = (workspaces.data ?? []).filter((w) => w.role !== "VIEWER" && !w.archived_at)
   const personalId = writable.find((w) => w.type === "PERSONAL" && w.role === "OWNER")?.id ?? ""
+  const targetValue = isUltra && linked?.route_all ? ALL : (linked?.workspace_id ?? personalId)
+  const pickTarget = (v: string) => {
+    if (v === targetValue) return
+    // "All workspaces" is ULTRA; the database ignores it on other plans anyway.
+    if (v === ALL) return isUltra ? update.mutate({ route_all: true }) : showUpgrade("business")
+    update.mutate({ workspace_id: v, route_all: false })
+  }
 
   // After opening Telegram, check every few seconds until the chat is linked.
   useEffect(() => {
@@ -233,14 +241,22 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                 {writable.length > 1 && (
                   <div className="flex items-center gap-3 text-sm">
                     <span className="flex-1">{t("bot.commandsWorkspace")}</span>
-                    <Select
-                      value={isUltra && linked.route_all ? ALL : (linked.workspace_id ?? personalId)}
-                      onValueChange={(v) => {
-                        // "All workspaces" is ULTRA; the database ignores it on other plans anyway.
-                        if (v === ALL) return isUltra ? update.mutate({ route_all: true }) : showUpgrade("business")
-                        update.mutate({ workspace_id: v, route_all: false })
-                      }}
-                    >
+                    {writable.length <= 2 ? (
+                      <Segmented
+                        aria-label={t("bot.commandsWorkspace")}
+                        value={targetValue}
+                        onChange={pickTarget}
+                        disabled={update.isPending}
+                        options={[
+                          ...writable.map((w) => ({
+                            value: w.id,
+                            label: <span className="block truncate px-1">{`${WS_ICON[w.type]} ${w.name}`}</span>,
+                          })),
+                          { value: ALL, label: <span className="block truncate px-1">👑 {t("bot.routeAllShort")}</span> },
+                        ]}
+                      />
+                    ) : (
+                    <Select value={targetValue} onValueChange={pickTarget}>
                       <SelectTrigger className="h-9 w-44" aria-label={t("bot.commandsWorkspace")}>
                         <SelectValue />
                       </SelectTrigger>
@@ -258,6 +274,7 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    )}
                   </div>
                 )}
                 {writable.length > 1 && isUltra && linked.route_all && <p className="text-xs text-muted-foreground">{t("bot.routeAllHint")}</p>}

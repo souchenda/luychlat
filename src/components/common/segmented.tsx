@@ -27,7 +27,7 @@ export function Segmented<T extends string>({
           disabled={disabled}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-lg py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+            "min-w-0 rounded-lg py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
             value === o.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
           )}
         >

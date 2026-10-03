@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2Icon } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect } from "react"
 
 import { BillingSync } from "@/components/billing/billing-sync"
@@ -23,6 +23,7 @@ import { GuestImportPrompt } from "@/components/settings/guest-import"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { WorkspaceSwitcher } from "@/components/workspace/workspace-switcher"
 import { useActiveWorkspace } from "@/lib/data/hooks"
+import { cn } from "@/lib/utils"
 import { useLockStore } from "@/stores/lock-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
@@ -40,6 +41,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { workspace } = useActiveWorkspace()
   // An account is required for every screen (Guest Mode was retired).
   const allowed = Boolean(user)
+  // Sub-pages with their own "←" header don't need the workspace bar on top.
+  const pathname = usePathname()
+  const bare = pathname === "/profile"
 
   useEffect(() => {
     if (hydrated && authReady && !allowed) router.replace("/login")
@@ -72,7 +76,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <HashScroller />
         {/* Phones: full screen. Tablets and up: a centered card (see .app-frame). */}
         <div className="app-frame">
-          <header className="sticky top-0 z-30 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+          <header className={cn("sticky top-0 z-30 border-b print:hidden bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur", bare && "hidden")}>
             <div className="mx-auto flex w-full max-w-md items-center gap-1 px-4 py-2.5">
               <MobileNavTrigger />
               <div className="min-w-0 flex-1">
@@ -85,7 +89,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {/* Re-keyed on switch so the new workspace's content fades in. */}
           <main
             key={workspace?.id ?? activeWorkspace}
-            className="mx-auto min-h-dvh w-full max-w-md px-4 pt-5 pb-24 md:min-h-0 print:max-w-none print:p-0 animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+            className={cn(
+              "mx-auto min-h-dvh w-full max-w-md px-4 pt-5 pb-24 md:min-h-0 print:max-w-none print:p-0 animate-in fade-in-0 slide-in-from-bottom-1 duration-300",
+              bare && "pt-[calc(env(safe-area-inset-top)+0.75rem)]",
+            )}
           >
             <WorkspaceLockedBanner workspace={workspace} />
             {children}

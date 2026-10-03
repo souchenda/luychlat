@@ -1962,6 +1962,9 @@ const km = {
   "islamic.choiceNote": "ប្ដូរពេលណាក៏បាន នៅ ការកំណត់ › ចំណូលចិត្ត",
   "islamic.choiceLater": "សម្រេចពេលក្រោយ",
   "islamic.loginBadge": "គាំទ្រមុខងារហិរញ្ញវត្ថុ និងរបៀបរស់នៅឥស្លាម (ម៉ោងសឡាត, គម្ពីរគួរអាន, ហ្សាកាត់)",
+  "family.roleShort.MEMBER": "កត់បាន",
+  "family.roleShort.VIEWER": "មើល",
+  "bot.routeAllShort": "ទាំងអស់",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3928,6 +3931,9 @@ const en: Record<MessageKey, string> = {
   "islamic.choiceNote": "Change any time in Settings › Preferences",
   "islamic.choiceLater": "Decide later",
   "islamic.loginBadge": "Supports Islamic finance & lifestyle features (prayer times, Quran, Zakat)",
+  "family.roleShort.MEMBER": "Can edit",
+  "family.roleShort.VIEWER": "View",
+  "bot.routeAllShort": "All",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

@@ -372,8 +372,8 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
                 onChange={field.onChange}
                 disabled={hasHistory}
                 options={[
-                  { value: "USD", label: "$ USD" },
-                  { value: "KHR", label: "៛ KHR" },
+                  { value: "USD", label: "$" },
+                  { value: "KHR", label: "៛" },
                 ]}
               />
             )}

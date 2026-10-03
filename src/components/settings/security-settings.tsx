@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { Segmented } from "@/components/common/segmented"
 import { BiometricIcon } from "@/components/lock/biometric-icon"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { stepUp } from "@/components/security/step-up"
@@ -101,20 +102,18 @@ export function SecuritySettings() {
           />
         </SettingsRow>
         {biometricCredentialId && (
-          <SettingsRow title={t("settings.biometricShowAs")} hint={t("settings.biometricShowAsHint")}>
-            <Select value={biometricPreference} onValueChange={(v) => setBiometricPreference(v as BiometricPreference)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(["auto", "face", "fingerprint"] as const).map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {t(`settings.biometricPref.${p}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </SettingsRow>
+          <div className="space-y-2 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">{t("settings.biometricShowAs")}</p>
+              <p className="text-xs text-muted-foreground">{t("settings.biometricShowAsHint")}</p>
+            </div>
+            <Segmented<BiometricPreference>
+              aria-label={t("settings.biometricShowAs")}
+              value={biometricPreference}
+              onChange={setBiometricPreference}
+              options={(["auto", "face", "fingerprint"] as const).map((p) => ({ value: p, label: t(`settings.biometricPref.${p}`) }))}
+            />
+          </div>
         )}
         <SettingsRow icon={<TimerIcon />} tile="amber" title={t("settings.autoLock")} hint={t("settings.autoLockHint")}>
           <Select value={String(autoLockMinutes)} onValueChange={(v) => setAutoLock(Number(v) as AutoLockMinutes)} disabled={!pinHash}>

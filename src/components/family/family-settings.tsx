@@ -26,7 +26,6 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { stepUp } from "@/components/security/step-up"
 import { useFamilyMutations, useInvites, useMembers, useProfile, useWorkspaces } from "@/lib/data/hooks"
 import { PlanLimitError, type Workspace, type WorkspaceInvite, type WorkspaceMember, type WorkspaceRole } from "@/lib/data/types"
@@ -211,15 +210,18 @@ function MemberRow({ member, workspace, me }: { member: WorkspaceMember; workspa
         <p className="text-xs text-muted-foreground">{t(`family.role.${member.role}`)}</p>
       </div>
       {owner && member.role !== "OWNER" && (
-        <Select value={member.role} onValueChange={(role) => setRole.mutate({ memberId: member.id, role: role as InviteRole })}>
-          <SelectTrigger className="h-8 w-28 text-xs" aria-label={t("family.inviteRole")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="MEMBER">{t("family.role.MEMBER")}</SelectItem>
-            <SelectItem value="VIEWER">{t("family.role.VIEWER")}</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="w-36 shrink-0 text-xs">
+          <Segmented<InviteRole>
+            aria-label={t("family.inviteRole")}
+            value={member.role as InviteRole}
+            onChange={(role) => role !== member.role && setRole.mutate({ memberId: member.id, role })}
+            disabled={setRole.isPending}
+            options={[
+              { value: "MEMBER", label: t("family.roleShort.MEMBER") },
+              { value: "VIEWER", label: t("family.roleShort.VIEWER") },
+            ]}
+          />
+        </div>
       )}
       {member.role !== "OWNER" && (owner || isMe) && (
         <Button

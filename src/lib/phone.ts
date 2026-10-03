@@ -26,3 +26,18 @@ export function isValidNationalNumber(national: string): boolean {
 export function toE164(national: string): string {
   return `${KH_COUNTRY_CODE}${national}`
 }
+
+/**
+ * For display: any Cambodian number as the local form with spaces.
+ * "078824222" / "+85578824222" -> "078 824 222", "0123456789" -> "012 345 6789".
+ * Anything that isn't a Cambodian mobile/landline number is returned as typed.
+ */
+export function formatPhoneDisplay(raw: string): string {
+  const trimmed = raw.trim()
+  // Another country's code: leave it as the user wrote it.
+  if (trimmed.startsWith("+") && !trimmed.replace(/[\s-]/g, "").startsWith("+855")) return trimmed
+  const national = toNationalNumber(trimmed)
+  if (!isValidNationalNumber(national)) return trimmed
+  const local = `0${national}`
+  return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`
+}

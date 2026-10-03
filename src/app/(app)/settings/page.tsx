@@ -26,6 +26,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { Segmented } from "@/components/common/segmented"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { AboutSheet, SettingsFooter } from "@/components/settings/about"
 import { GuestImportRow } from "@/components/settings/guest-import"
@@ -33,7 +34,6 @@ import { useOfficialBot, useTelegramLink } from "@/components/settings/official-
 import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { APP_VERSION } from "@/lib/app-info"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
@@ -185,15 +185,17 @@ export default function SettingsPage() {
           <Switch checked={hideBalances} onCheckedChange={toggleHideBalances} aria-label={t("settings.hideBalances")} />
         </SettingsRow>
         <SettingsRow icon={<LanguagesIcon />} tile="violet" title={t("settings.language")}>
-          <Select value={locale} onValueChange={(v) => setLocale(v as "km" | "en")}>
-            <SelectTrigger size="sm" className="h-7 rounded-full border-0 bg-violet-500/15 px-3 text-xs font-medium text-violet-700 shadow-none hover:bg-violet-500/25 dark:bg-violet-500/20 dark:text-violet-300 dark:hover:bg-violet-500/30" aria-label={t("settings.language")}>
-              {locale === "km" ? "ភាសាខ្មែរ" : "English"}
-            </SelectTrigger>
-            <SelectContent position="popper" align="end">
-              <SelectItem value="km">ភាសាខ្មែរ</SelectItem>
-              <SelectItem value="en">English</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="w-44 shrink-0">
+            <Segmented
+              aria-label={t("settings.language")}
+              value={locale}
+              onChange={(v) => setLocale(v)}
+              options={[
+                { value: "km", label: "🇰🇭 ខ្មែរ" },
+                { value: "en", label: "🇬🇧 English" },
+              ]}
+            />
+          </div>
         </SettingsRow>
         <IslamicToolsRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
