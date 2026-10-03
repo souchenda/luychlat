@@ -9,7 +9,6 @@ import {
   GiftIcon,
   InfoIcon,
   LifeBuoyIcon,
-  MoonStarIcon,
   QrCodeIcon,
   Loader2Icon,
   SearchIcon,
@@ -23,14 +22,9 @@ import { toast } from "sonner"
 
 import { paymentCode, type PaymentInstructions } from "@/components/billing/upgrade-sheet"
 import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
-import { formatHijri, toHijri } from "@/lib/islamic"
-import { PlacesAdmin } from "@/components/islamic/places-admin"
-import { BotAdminCard } from "@/components/settings/bot-admin"
 import { AdminUserSecurity } from "@/components/security/admin-user-security"
 import { LocalGoldAdmin } from "@/components/admin/local-gold-admin"
 import { SystemHealthCard } from "@/components/admin/system-health-card"
-import { MarketPricesAdmin } from "@/components/gold/market-prices-admin"
-import type { IslamicDefaults } from "@/lib/islamic-settings"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -778,7 +772,7 @@ function SupportContactsForm() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="sc-community">{t("admin.supportCommunity")}</Label>
-            <Input id="sc-community" placeholder="https://t.me/+xxxxxxxx" inputMode="url" {...field("community_url")} />
+            <Input id="sc-community" placeholder="https://t.me/LuyChlatCommunity" inputMode="url" {...field("community_url")} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
@@ -879,84 +873,6 @@ function AboutInfoForm() {
   )
 }
 
-/** Islamic tools defaults: metal prices (users may override) and the Hijri ± days for local moon sighting. */
-function IslamicDefaultsForm() {
-  const t = useT()
-  const queryClient = useQueryClient()
-  const { data } = useQuery({
-    queryKey: ["islamic-defaults-admin"],
-    queryFn: async () => {
-      const { data } = await getSupabaseBrowserClient()!.from("app_settings").select("value").eq("key", "islamic_defaults").maybeSingle()
-      return (data?.value ?? {}) as IslamicDefaults
-    },
-  })
-  const [form, setForm] = useState<IslamicDefaults>({})
-  useEffect(() => {
-    if (data) setForm(data)
-  }, [data])
-  const save = useMutation({
-    mutationFn: () =>
-      rpc("admin_set_islamic_defaults", {
-        p_value: {
-          gold_price: form.gold_price?.trim() || null,
-          silver_price: form.silver_price?.trim() || null,
-          hijri_offset: form.hijri_offset ?? "0",
-        },
-      }),
-    onSuccess: () => {
-      toast.success(t("admin.saved"))
-      void queryClient.invalidateQueries({ queryKey: ["islamic-defaults"] })
-      void queryClient.invalidateQueries({ queryKey: ["islamic-defaults-admin"] })
-    },
-    onError: () => toast.error(t("admin.islamicInvalid")),
-  })
-  const hijri = toHijri(new Date(), Number(form.hijri_offset ?? 0) || 0)
-  return (
-    <Section title={t("islamic.title")} icon={<MoonStarIcon />}>
-      <Card className="px-4 py-4">
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault()
-            save.mutate()
-          }}
-        >
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="isd-gold">{t("islamic.goldPrice")}</Label>
-              <Input id="isd-gold" inputMode="decimal" value={form.gold_price ?? ""} onChange={(e) => setForm((f) => ({ ...f, gold_price: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="isd-silver">{t("islamic.silverPrice")}</Label>
-              <Input id="isd-silver" inputMode="decimal" value={form.silver_price ?? ""} onChange={(e) => setForm((f) => ({ ...f, silver_price: e.target.value }))} />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label>{t("admin.hijriOffset")}</Label>
-            <Select value={form.hijri_offset ?? "0"} onValueChange={(v) => setForm((f) => ({ ...f, hijri_offset: v }))}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {["-2", "-1", "0", "1", "2"].map((v) => (
-                  <SelectItem key={v} value={v}>
-                    {v === "0" ? t("admin.hijriNoChange") : t("admin.hijriDays", { days: v.startsWith("-") ? v : `+${v}` })}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {hijri && <p className="text-xs text-muted-foreground">{t("admin.hijriToday", { date: formatHijri(hijri, "en") })}</p>}
-          </div>
-          <p className="text-xs text-muted-foreground">{t("admin.islamicHint")}</p>
-          <Button type="submit" className="w-full" disabled={save.isPending}>
-            {t("common.save")}
-          </Button>
-        </form>
-      </Card>
-    </Section>
-  )
-}
-
 export default function AdminPage() {
   const t = useT()
   const { plan, loading } = usePlan()
@@ -984,10 +900,6 @@ export default function AdminPage() {
       <SupportContactsForm />
       <AboutInfoForm />
       <LocalGoldAdmin />
-      <MarketPricesAdmin />
-      <IslamicDefaultsForm />
-      <PlacesAdmin />
-      <BotAdminCard />
     </div>
   )
 }

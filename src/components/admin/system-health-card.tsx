@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { ActivityIcon, Loader2Icon, RefreshCwIcon } from "lucide-react"
 
 import { adminPost } from "@/components/admin/admin-api"
+import { ReactivateBotButton } from "@/components/settings/bot-admin"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useT } from "@/lib/i18n/use-t"
@@ -176,6 +177,9 @@ export function SystemHealthCard() {
               />
               <Row tone="ok" label={t("sys.links")} value={`${s.linked_chats}`} hint={t("sys.linksHint", { admins: s.admins_linked })} />
               <Row tone={s.telegram.voice ? "ok" : "off"} label={t("sys.voice")} value={s.telegram.voice ? t("sys.on") : t("sys.off")} />
+              <div className="pt-1.5">
+                <ReactivateBotButton onDone={() => void q.refetch()} />
+              </div>
             </Group>
 
             <Group title={t("sys.security")}>

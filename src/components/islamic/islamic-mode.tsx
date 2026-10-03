@@ -1,14 +1,12 @@
 "use client"
 
-import { BellRingIcon, BookOpenTextIcon, BriefcaseIcon, CheckIcon, ChevronRightIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SunriseIcon } from "lucide-react"
+import { BriefcaseIcon, CheckIcon, Loader2Icon, MoonStarIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
 import { cn } from "@/lib/utils"
@@ -17,21 +15,12 @@ import { useSessionStore } from "@/stores/session-store"
 /**
  * Islamic Lifestyle & Finance Mode (off by default; private to each user; free
  * on every plan). Off, the app shows no Islamic tabs, greetings or categories.
- * Discovery: a link on the login screen, a one-time experience choice on first
- * login, and the toggle in Settings › Preferences.
+ * Discovery: a one-time experience choice on first login, and the toggle in
+ * Settings › Preferences.
  */
 
 /** New accounts are asked once, within this many days of signing up. */
 const PROMPT_DAYS = 14
-
-const FEATURES: { icon: typeof SunriseIcon; title: MessageKey; hint: MessageKey }[] = [
-  { icon: SunriseIcon, title: "islamic.featPrayer", hint: "islamic.featPrayerHint" },
-  { icon: BellRingIcon, title: "islamic.featAdhan", hint: "islamic.featAdhanHint" },
-  { icon: BookOpenTextIcon, title: "islamic.featQuran", hint: "islamic.featQuranHint" },
-  { icon: CoinsIcon, title: "islamic.featZakat", hint: "islamic.featZakatHint" },
-  { icon: CompassIcon, title: "islamic.featQibla", hint: "islamic.featQiblaHint" },
-  { icon: MapPinIcon, title: "islamic.featHalal", hint: "islamic.featHalalHint" },
-]
 
 function useChoose() {
   const t = useT()
@@ -63,45 +52,6 @@ export function IslamicModeOff() {
         {t("islamic.enable")}
       </Button>
     </Card>
-  )
-}
-
-/** Login screen: a muted "🕌 Supports Islamic finance & lifestyle features" pill; tapping it shows the highlights. Nothing is turned on here. */
-export function IslamicDiscoveryLink() {
-  const t = useT()
-  const [open, setOpen] = useState(false)
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={`${t("islamic.loginBadge")} — ${t("islamic.discoverLink")}`}
-        className="mx-auto inline-flex max-w-full items-start gap-1.5 rounded-2xl border border-border/70 bg-muted/40 px-3 py-1.5 text-left text-[11px] leading-relaxed text-muted-foreground transition-colors hover:border-teal-500/40 hover:bg-teal-500/5"
-      >
-        <span aria-hidden>🕌</span>
-        <span className="min-w-0">{t("islamic.loginBadge")}</span>
-        <ChevronRightIcon className="mt-0.5 size-3.5 shrink-0 opacity-60" aria-hidden />
-      </button>
-      <BottomSheet open={open} onOpenChange={setOpen} title={t("islamic.mode")} description={t("islamic.discoverIntro")}>
-        <ul className="space-y-3">
-          {FEATURES.map(({ icon: Icon, title, hint }) => (
-            <li key={title} className="flex items-start gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400">
-                <Icon className="size-[18px]" aria-hidden />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-medium">{t(title)}</span>
-                <span className="block text-xs text-muted-foreground">{t(hint)}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-4 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">{t("islamic.discoverNote")}</p>
-        <Button className="mt-4 h-11 w-full" onClick={() => setOpen(false)}>
-          {t("islamic.discoverOk")}
-        </Button>
-      </BottomSheet>
-    </>
   )
 }
 
