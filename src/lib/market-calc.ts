@@ -9,6 +9,7 @@
  */
 
 import { GRADE_PURITY, OUNCES_PER_DAMLUNG, PURITY, isWhiteGold, type GoldRates, type PlatinumGrade, type RateKey } from "@/lib/gold"
+import type { LocalGold } from "@/lib/local-gold"
 
 export type MarketLive = {
   /** When the server last fetched (ISO). */
@@ -22,6 +23,8 @@ export type MarketLive = {
     /** USD per damlung, by rate key (plus GOLD_14K for display). */
     reference: Partial<Record<RateKey | "GOLD_14K", number>>
   }
+  /** Phnom Penh counter prices (CSNJ via Oknha News, or an admin's /setgold). */
+  local_gold?: LocalGold
   nbc?: {
     /** NBC publication date (YYYY-MM-DD). */
     date: string
@@ -65,13 +68,22 @@ export function khrPerUnit(usdKhr: number, perUsd: Record<string, number>): Reco
   return out
 }
 
+/** Local prices no older than this still value holdings (weekends, holidays). */
+const LOCAL_MAX_AGE_DAYS = 4
+
 /**
- * Rates used to value holdings: the live reference, with any admin-entered
- * rate (local shop price) taking precedence for that kind.
+ * Rates used to value holdings: the world reference; then the local buy price
+ * (what an owner would get selling today) for kilo gold and 24K jewelry when
+ * recent; then any admin-entered rate for that kind.
  */
-export function effectiveRates(admin: GoldRates, live: MarketLive | null | undefined): GoldRates {
+export function effectiveRates(admin: GoldRates, live: MarketLive | null | undefined, now = Date.now()): GoldRates {
   const reference = (live?.gold?.reference ?? {}) as GoldRates
   const out: GoldRates = { ...reference }
+  const local = live?.local_gold
+  if (local && now - Date.parse(`${local.date}T00:00:00+07:00`) < LOCAL_MAX_AGE_DAYS * 86_400_000) {
+    out.GOLD_BAR = local.kilo.buy
+    out.GOLD_24K = local.jewelry?.buy ?? local.kilo.buy
+  }
   for (const [k, v] of Object.entries(admin) as [RateKey, number | undefined][]) if (v && v > 0) out[k] = v
   return out
 }

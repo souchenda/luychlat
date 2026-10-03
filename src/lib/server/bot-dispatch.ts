@@ -6,7 +6,7 @@ import { duePrayer } from "@/lib/prayer-alerts"
 import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "./telegram-bot"
 import { sendCommunityBulletin } from "@/lib/server/community-bulletin"
 import { watchdogTick } from "@/lib/server/health-watchdog"
-import { syncMarket } from "@/lib/server/market-sync"
+import { maybeRefreshLocalGold, syncMarket } from "@/lib/server/market-sync"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
@@ -53,6 +53,7 @@ export async function dispatchOnce() {
   try {
     await sendDueNotifications()
     await sendPrayerTimes()
+    await maybeRefreshLocalGold()
     await sendCommunityBulletin()
     await watchdogTick()
   } catch (error) {

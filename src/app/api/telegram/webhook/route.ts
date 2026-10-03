@@ -5,7 +5,9 @@ import { after, NextResponse } from "next/server"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting } from "@/lib/server/bot-commands"
 import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/server/telegram-bot"
+import { setManualGold, currentMarket } from "@/lib/server/market-sync"
 import { transcriptionProvider } from "@/lib/server/transcribe"
+import { parseSetGold, plausible } from "@/lib/local-gold"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -28,6 +30,32 @@ type Update = {
     chat: { id: number; type: string }
     from?: { username?: string; language_code?: string }
   }
+}
+
+async function isAdminChat(chatId: number) {
+  const { data } = await botDb().rpc("bot_admin_chats", { p_key: botKey() })
+  return ((data as { chat_id: number }[] | null) ?? []).some((r) => Number(r.chat_id) === chatId)
+}
+
+const usd = (n: number) => `$${n.toLocaleString("en-US")}`
+
+/** /setgold <kilo sell> <kilo buy> [<jewelry sell> <jewelry buy>] · /setgold clear */
+async function setGoldReply(text: string) {
+  const input = parseSetGold(text)
+  if (!input) {
+    const local = (await currentMarket())?.local_gold
+    const now = local ? `\nឥឡូវ (${local.date}, ${local.source === "manual" ? "admin" : "CSNJ"})៖ មាសគីឡូ ${usd(local.kilo.sell)} / ${usd(local.kilo.buy)}${local.jewelry ? ` · មាសគ្រឿង ${usd(local.jewelry.sell)} / ${usd(local.jewelry.buy)}` : ""}` : ""
+    return `🪙 /setgold <គីឡូលក់> <គីឡូទិញ> [<គ្រឿងលក់> <គ្រឿងទិញ>]\nឧ. /setgold 5010 4960 5010 4935\n/setgold clear — ត្រឡប់ទៅតម្លៃ CSNJ ស្វ័យប្រវត្តិ${now}`
+  }
+  if (input !== "clear") {
+    const reference = (await currentMarket())?.gold?.reference.GOLD_24K
+    if (!plausible(input, reference)) return "⚠️ តម្លៃមិនសមហេតុផល (ទិញ ≤ លក់ ហើយជិតតម្លៃទីផ្សារ)។ សូមពិនិត្យលេខម្ដងទៀត។"
+  }
+  const saved = await setManualGold(input)
+  if (!saved) return "⚠️ មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។"
+  if (input === "clear") return "✅ ត្រឡប់ទៅតម្លៃ CSNJ ស្វ័យប្រវត្តិ (Oknha News)។"
+  const j = saved.local_gold?.jewelry
+  return `✅ បានកំណត់តម្លៃមាសថ្ងៃនេះ៖\n• មាសគីឡូ: លក់ចេញ ${usd(input.kilo.sell)} | ទិញចូល ${usd(input.kilo.buy)}${j ? `\n• មាសគ្រឿង: លក់ចេញ ${usd(j.sell)} | ទិញចូល ${usd(j.buy)}` : ""}\nបង្ហាញក្នុងកម្មវិធី និង bulletin ថ្ងៃនេះ។`
 }
 
 function sameSecret(a: string | null, b: string | null) {
@@ -83,6 +111,9 @@ export async function POST(request: Request) {
     const result = data as { ok: boolean; name?: string } | null
     if (error || !result?.ok) await sendText(chatId, tr(lang, "bot.linkFailed") + SIGNATURE)
     else await sendText(chatId, tr(lang, "bot.linked", { name: result.name || "" }) + SIGNATURE)
+  } else if (/^\/setgold(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
+    // Admins only: today's Phnom Penh gold counter prices (others get the normal help).
+    await sendText(chatId, await setGoldReply(message.text))
   } else if (command === "/stop") {
     const { data } = await db.rpc("bot_unlink_chat", { p_key: key, p_chat_id: chatId })
     await sendText(chatId, tr(lang, data ? "bot.unlinked" : "bot.notLinked") + SIGNATURE)

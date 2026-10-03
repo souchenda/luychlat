@@ -1991,7 +1991,7 @@ const km = {
   "market.updated": "ធ្វើបច្ចុប្បន្នភាព៖ {time}",
   "market.refresh": "ធ្វើឱ្យថ្មី",
   "market.refreshed": "បានធ្វើឱ្យថ្មី",
-  "market.reference": "តម្លៃយោងទីផ្សារ",
+  "market.reference": "តម្លៃយោងទីផ្សារពិភពលោក",
   "market.referenceHint": "គណនាពីតម្លៃមាសពិភពលោក (spot) × ១.២០៥៦៥ × ភាពបរិសុទ្ធ — ហាងមាសក្នុងស្រុកអាចខុសពីនេះបន្តិច។",
   "market.spot": "Spot ពិភពលោក ($/អោន)",
   "market.gold": "មាស",
@@ -2029,6 +2029,15 @@ const km = {
   "market.from": "ពីរូបិយប័ណ្ណ",
   "market.to": "ទៅរូបិយប័ណ្ណ",
   "market.swap": "ប្ដូរទិស",
+  "market.kiloGold": "មាសគីឡូ",
+  "market.jewelryGold": "មាសគ្រឿង",
+  "market.localTitle": "តម្លៃមាសហាងក្នុងស្រុក",
+  "market.perDamlungHeader": "ក្នុង ១ តម្លឹង",
+  "market.sell": "លក់ចេញ",
+  "market.buy": "ទិញចូល",
+  "market.localDate": "ថ្ងៃទី {date}",
+  "market.localSourceCsnj": "ប្រភព៖ ហាងមាសពេជ្រ CSNJ តាមរយៈ Oknha News",
+  "market.localSourceManual": "តម្លៃហាងក្នុងស្រុក (បញ្ចូលដោយ admin)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4024,7 +4033,7 @@ const en: Record<MessageKey, string> = {
   "market.updated": "Updated {time}",
   "market.refresh": "Refresh",
   "market.refreshed": "Rates refreshed",
-  "market.reference": "Market reference price",
+  "market.reference": "World market reference",
   "market.referenceHint": "From the world spot price × 1.20565 × purity — local gold shops may differ slightly.",
   "market.spot": "World spot ($/oz)",
   "market.gold": "Gold",
@@ -4062,6 +4071,15 @@ const en: Record<MessageKey, string> = {
   "market.from": "From currency",
   "market.to": "To currency",
   "market.swap": "Swap",
+  "market.kiloGold": "Kilo gold",
+  "market.jewelryGold": "Jewelry gold",
+  "market.localTitle": "Local gold shop prices",
+  "market.perDamlungHeader": "Per damlung",
+  "market.sell": "Sell",
+  "market.buy": "Buy",
+  "market.localDate": "{date}",
+  "market.localSourceCsnj": "Source: CSNJ Diamond & Gold via Oknha News",
+  "market.localSourceManual": "Local shop price (entered by admin)",
 }
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { km, en }

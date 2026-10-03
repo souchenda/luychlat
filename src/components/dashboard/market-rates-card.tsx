@@ -14,7 +14,9 @@ export function MarketRatesCard() {
   const t = useT()
   const market = useMarket().data
   const usdKhr = market?.nbc?.usd_khr
-  const gold24 = market?.gold?.reference.GOLD_24K
+  // Local Phnom Penh kilo gold (sell) when recent, else the world reference for 24K.
+  const local = market?.local_gold && Date.now() - Date.parse(`${market.local_gold.date}T00:00:00+07:00`) < 4 * 86_400_000 ? market.local_gold : null
+  const gold24 = local?.kilo.sell ?? market?.gold?.reference.GOLD_24K
   if (!usdKhr && !gold24) return null
   return (
     <Link
@@ -30,7 +32,7 @@ export function MarketRatesCard() {
         )}
         {gold24 && (
           <span className="whitespace-nowrap">
-            <span aria-hidden>🪙</span> <span className="text-muted-foreground">{t("market.goldPerDamlung")}</span>{" "}
+            <span aria-hidden>🪙</span> <span className="text-muted-foreground">{t(local ? "market.kiloGold" : "market.goldPerDamlung")}</span>{" "}
             <span className="font-semibold tabular-nums">${usd.format(gold24)}</span>
             <span className="text-xs text-muted-foreground">{t("market.perDamlung")}</span>
           </span>

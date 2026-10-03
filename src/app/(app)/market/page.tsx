@@ -67,6 +67,40 @@ export default function MarketPage() {
 
       {isLoading && <Loader2Icon className="mx-auto size-6 animate-spin text-muted-foreground" />}
 
+      {market?.local_gold && (
+        <SettingsGroup title={t("market.localTitle")}>
+          <div className="flex items-center px-4 py-2 text-xs text-muted-foreground">
+            <span className="flex-1">{t("market.perDamlungHeader")}</span>
+            <span className="w-24 text-right">{t("market.sell")}</span>
+            <span className="w-24 text-right">{t("market.buy")}</span>
+          </div>
+          {(
+            [
+              ["market.kiloGold", market.local_gold.kilo],
+              ["market.jewelryGold", market.local_gold.jewelry],
+            ] as const
+          ).map(([label, p]) =>
+            p ? (
+              <div key={label} className="flex items-center px-4 py-2.5 text-sm">
+                <span className="flex-1 font-medium">{t(label)}</span>
+                <span className="w-24 text-right font-semibold tabular-nums">${money(p.sell, 0)}</span>
+                <span className="w-24 text-right font-semibold tabular-nums">${money(p.buy, 0)}</span>
+              </div>
+            ) : null,
+          )}
+          <p className="px-4 py-2.5 text-xs text-muted-foreground">
+            {t("market.localDate", { date: locale === "km" ? kmDigits(market.local_gold.date.split("-").reverse().join("/")) : market.local_gold.date })} ·{" "}
+            {market.local_gold.source === "csnj" && market.local_gold.url ? (
+              <a href={market.local_gold.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+                {t("market.localSourceCsnj")}
+              </a>
+            ) : (
+              t("market.localSourceManual")
+            )}
+          </p>
+        </SettingsGroup>
+      )}
+
       {market?.gold && (
         <SettingsGroup title={t("market.reference")}>
           <div className="grid grid-cols-2 gap-3 px-4 py-3">

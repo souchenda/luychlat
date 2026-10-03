@@ -2,6 +2,7 @@
 import dns, { type LookupAddress, type LookupOptions } from "dns"
 import https from "https"
 
+import { findCsnjItem, parseCsnjArticle, plausible, type LocalGold } from "@/lib/local-gold"
 import { khrPerUnit, NBC_CURRENCIES, referenceRates, type MarketLive } from "@/lib/market-calc"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 
@@ -10,12 +11,15 @@ import { botDb, botKey } from "@/lib/server/telegram-bot"
  *   - NBC official rates: Frankfurter's "NBC" provider (National Bank of
  *     Cambodia, published daily) — https://frankfurter.dev/providers/nbc/
  *   - Gold / platinum spot ($/oz): gold-api.com
+ *   - Phnom Penh counter prices: CSNJ's daily report on Oknha News (RSS feed,
+ *     category "តម្លៃមាសប្រចាំថ្ងៃ", published ~09:00), or an admin's /setgold
  * A source that fails keeps its last stored values. Stored in app_settings
  * "market_live" through bot_set_market (needs the bot key).
  */
 
 const FRANKFURTER = "https://api.frankfurter.dev/v2/rates"
 const GOLD_API = "https://api.gold-api.com/price"
+const OKNHA_FEED = "https://www.oknha.news/feed"
 const MIN_INTERVAL_MS = 5 * 60_000
 
 /**
@@ -31,9 +35,9 @@ function lookup(hostname: string, options: LookupOptions, callback: (err: NodeJS
   })
 }
 
-function getJson<T>(url: string): Promise<T | null> {
+function getText(url: string, accept = "application/json"): Promise<string | null> {
   return new Promise((resolve) => {
-    const req = https.get(url, { headers: { Accept: "application/json", "User-Agent": "LuyChlat/1.0" }, lookup, timeout: 15_000 }, (res) => {
+    const req = https.get(url, { headers: { Accept: accept, "User-Agent": "LuyChlat/1.0 (+market rates)" }, lookup, timeout: 15_000 }, (res) => {
       if (!res.statusCode || res.statusCode >= 300) {
         res.resume()
         return resolve(null)
@@ -44,17 +48,36 @@ function getJson<T>(url: string): Promise<T | null> {
         body += chunk
         if (body.length > 1_000_000) req.destroy()
       })
-      res.on("end", () => {
-        try {
-          resolve(JSON.parse(body) as T)
-        } catch {
-          resolve(null)
-        }
-      })
+      res.on("end", () => resolve(body))
     })
     req.on("timeout", () => req.destroy())
     req.on("error", () => resolve(null))
   })
+}
+
+async function getJson<T>(url: string): Promise<T | null> {
+  const body = await getText(url)
+  try {
+    return body ? (JSON.parse(body) as T) : null
+  } catch {
+    return null
+  }
+}
+
+/** Today in Cambodia (YYYY-MM-DD) and the hour there. */
+export function phnomPenhToday() {
+  const t = new Date(Date.now() + 7 * 3_600_000)
+  return { day: t.toISOString().slice(0, 10), hour: t.getUTCHours(), minute: t.getUTCMinutes() }
+}
+
+/** Today's CSNJ prices from the Oknha News feed, if published and plausible. */
+async function fetchLocalGold(reference24k: number | null | undefined): Promise<LocalGold | undefined> {
+  const xml = await getText(OKNHA_FEED, "application/rss+xml, application/xml, text/xml")
+  if (!xml) return undefined
+  const item = findCsnjItem(xml, phnomPenhToday().day)
+  const parsed = item ? parseCsnjArticle(item.text) : null
+  if (!item || !parsed || !plausible(parsed, reference24k)) return undefined
+  return { ...parsed, source: "csnj", url: item.url, fetched_at: new Date().toISOString() }
 }
 
 async function fetchNbc(): Promise<MarketLive["nbc"] | undefined> {
@@ -86,9 +109,56 @@ let running: Promise<MarketLive | null> | null = null
 /** The last stored data (read once from the database after a restart). */
 export async function currentMarket(): Promise<MarketLive | null> {
   if (last) return last
-  const { data } = await botDb().from("app_settings").select("value").eq("key", "market_live").maybeSingle()
-  last = (data?.value as MarketLive | undefined) ?? null
+  const { data } = await botDb().rpc("bot_get_market", { p_key: botKey() })
+  last = (data as MarketLive | null) ?? null
   return last
+}
+
+async function store(next: MarketLive): Promise<boolean> {
+  const { error } = await botDb().rpc("bot_set_market", { p_key: botKey(), p_value: next })
+  if (error) {
+    console.error("[market] store failed:", error.message)
+    return false
+  }
+  last = next
+  return true
+}
+
+/**
+ * Local prices to keep: an admin's /setgold wins for its day; else today's
+ * CSNJ report; else the previous ones (shown with their date).
+ */
+function pickLocal(previous: LocalGold | undefined, fetched: LocalGold | undefined): LocalGold | undefined {
+  const today = phnomPenhToday().day
+  if (previous?.source === "manual" && previous.date === today) return previous
+  return fetched ?? previous
+}
+
+/** /setgold: today's local prices from an admin, or "clear" to go back to the automatic source. */
+export async function setManualGold(input: Pick<LocalGold, "kilo" | "jewelry"> | "clear"): Promise<MarketLive | null> {
+  const previous = await currentMarket()
+  const today = phnomPenhToday().day
+  let local: LocalGold | undefined
+  if (input === "clear") {
+    local = (await fetchLocalGold(previous?.gold?.reference.GOLD_24K)) ?? (previous?.local_gold?.source === "manual" ? undefined : previous?.local_gold)
+  } else {
+    local = { date: today, kilo: input.kilo, jewelry: input.jewelry ?? previous?.local_gold?.jewelry ?? null, source: "manual", fetched_at: new Date().toISOString() }
+  }
+  const next: MarketLive = { ...(previous ?? { fetched_at: new Date().toISOString() }), local_gold: local }
+  return (await store(next)) ? next : null
+}
+
+/** True once today's local prices are in (from CSNJ or /setgold). */
+export const hasLocalToday = (m: MarketLive | null | undefined) => m?.local_gold?.date === phnomPenhToday().day
+
+let lastLocalTry = 0
+/** 09:00–11:00 Cambodia time: look for today's CSNJ report every 5 minutes until it's in. */
+export async function maybeRefreshLocalGold() {
+  const { hour } = phnomPenhToday()
+  if (hour < 9 || hour >= 11 || Date.now() - lastLocalTry < 5 * 60_000) return
+  if (hasLocalToday(await currentMarket())) return
+  lastLocalTry = Date.now()
+  await syncMarket(true)
 }
 
 /** Fetch and store; at most once every 5 minutes (also for the Refresh button). */
@@ -99,15 +169,15 @@ export function syncMarket(force = false): Promise<MarketLive | null> {
     lastRun = Date.now()
     try {
       const [nbc, gold, previous] = await Promise.all([fetchNbc(), fetchGold(), currentMarket()])
-      if (!nbc && !gold) return previous
-      const next: MarketLive = { fetched_at: new Date().toISOString(), nbc: nbc ?? previous?.nbc, gold: gold ?? previous?.gold }
-      const { error } = await botDb().rpc("bot_set_market", { p_key: botKey(), p_value: next })
-      if (error) {
-        console.error("[market] store failed:", error.message)
-        return previous
+      const local = await fetchLocalGold((gold ?? previous?.gold)?.reference.GOLD_24K)
+      if (!nbc && !gold && !local) return previous
+      const next: MarketLive = {
+        fetched_at: new Date().toISOString(),
+        nbc: nbc ?? previous?.nbc,
+        gold: gold ?? previous?.gold,
+        local_gold: pickLocal(previous?.local_gold, local),
       }
-      last = next
-      return next
+      return (await store(next)) ? next : previous
     } catch (error) {
       console.error("[market] sync failed:", (error as Error).message)
       return last
