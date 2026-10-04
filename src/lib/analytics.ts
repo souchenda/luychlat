@@ -3,7 +3,12 @@ import { monthKey, type MonthKey } from "@/lib/dates"
 import { roundMoney } from "@/lib/money"
 
 /** A money total expressed in both currencies at the configured rate. */
-export type DualTotal = { usd: number; khr: number }
+export type DualTotal = {
+  usd: number
+  khr: number
+  /** What was actually entered in each currency, before converting (income and expense only). */
+  native?: { usd: number; khr: number }
+}
 
 /** USD-native and KHR-native sums combined into both currencies at the given rate. */
 export function dualTotal(usdNative: number, khrNative: number, khrPerUsd: number): DualTotal {
@@ -24,8 +29,8 @@ export function cashFlow(transactions: Transaction[], khrPerUsd: number, exclude
     if (tx.type === "TRANSFER" || !counts(tx, exclude)) continue
     sums[tx.type][tx.currency] += tx.amount
   }
-  const income = dualTotal(sums.INCOME.USD, sums.INCOME.KHR, khrPerUsd)
-  const expense = dualTotal(sums.EXPENSE.USD, sums.EXPENSE.KHR, khrPerUsd)
+  const income = { ...dualTotal(sums.INCOME.USD, sums.INCOME.KHR, khrPerUsd), native: { usd: roundMoney(sums.INCOME.USD, "USD"), khr: roundMoney(sums.INCOME.KHR, "KHR") } }
+  const expense = { ...dualTotal(sums.EXPENSE.USD, sums.EXPENSE.KHR, khrPerUsd), native: { usd: roundMoney(sums.EXPENSE.USD, "USD"), khr: roundMoney(sums.EXPENSE.KHR, "KHR") } }
   return {
     income,
     expense,
