@@ -259,3 +259,47 @@ export function useNssfMutations() {
     },
   }
 }
+
+// ---------------------------------------------------------------------------
+// EV home charging (public.ev_charge_logs): kWh only, never a wallet expense —
+// the cost is in the electricity bill. Public charging is a normal expense.
+// ---------------------------------------------------------------------------
+export type EvChargeLog = { id: string; kwh: number | null; note: string | null; charged_at: string }
+
+export function useEvLogs(workspaceId: string | undefined) {
+  const { scope } = useRepo()
+  return useQuery({
+    queryKey: ["ev-logs", scope, workspaceId ?? ""],
+    enabled: Boolean(workspaceId),
+    queryFn: async (): Promise<EvChargeLog[]> => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) return []
+      const since = new Date(Date.now() - 62 * 86_400_000).toISOString()
+      const { data, error } = await supabase.from("ev_charge_logs").select("id, kwh, note, charged_at").eq("workspace_id", workspaceId!).gte("charged_at", since).order("charged_at", { ascending: false })
+      if (error) throw error
+      return ((data ?? []) as EvChargeLog[]).map((r) => ({ ...r, kwh: r.kwh === null ? null : Number(r.kwh) }))
+    },
+  })
+}
+
+export function useEvMutations(workspaceId: string | undefined) {
+  const queryClient = useQueryClient()
+  const { scope } = useRepo()
+  const done = () => void queryClient.invalidateQueries({ queryKey: ["ev-logs", scope] })
+  return {
+    add: useMutation({
+      mutationFn: async (kwh: number | null) => {
+        const { error } = await getSupabaseBrowserClient()!.from("ev_charge_logs").insert({ workspace_id: workspaceId, kwh })
+        if (error) throw error
+      },
+      onSuccess: done,
+    }),
+    remove: useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await getSupabaseBrowserClient()!.from("ev_charge_logs").delete().eq("id", id)
+        if (error) throw error
+      },
+      onSuccess: done,
+    }),
+  }
+}

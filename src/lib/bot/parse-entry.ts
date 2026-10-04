@@ -48,6 +48,27 @@ const CASH_WALLET = /cash|សាច់ប្រាក់|លុយ|កាបូ�
 // Too common to identify a wallet on their own ("ABA Bank" → "aba").
 const GENERIC = new Set(["bank", "account", "wallet", "card", "usd", "khr", "the", "my", "ធនាគារ", "គណនី", "កាបូប", "ប័ណ្ណ"])
 
+// EV charging. At home it is a usage log (the cost is in the electricity bill);
+// at a public station it is a transport expense tagged "⚡ សាកភ្លើង EV".
+const EV_WORDS = ["សាកឡាន", "សាកភ្លើង", "សាកថ្ម", "សាកនៅផ្ទះ", "ev", "charging", "充电"]
+const HOME_WORDS = ["នៅផ្ទះ", "ផ្ទះ", "home", "在家", "家里", "家充"]
+/** kWh figures ("30kwh", "30 គីឡូវ៉ាត់", "30度") — never read as money. */
+const KWH = /(\d+(?:[.,]\d+)?)\s*(kwh|kw\/h|គីឡូវ៉ាត់(?:ម៉ោង)?|度)/i
+export const EV_TAG = "⚡ សាកភ្លើង EV"
+
+export const isEvCharge = (message: string) => hasAny(toLatinDigits(message).toLowerCase(), EV_WORDS)
+/** Charging at home: an EV word with a home word ("សាកឡាននៅផ្ទះ 30kwh", "ev home", "在家充电"). */
+export const isEvHome = (message: string) => {
+  const text = toLatinDigits(message).toLowerCase()
+  return hasAny(text, EV_WORDS) && (text.includes("សាកនៅផ្ទះ") || hasAny(text, HOME_WORDS))
+}
+/** The kWh in a message, if any. */
+export function kwhOf(message: string): number | null {
+  const m = toLatinDigits(message).match(KWH)
+  const n = m ? Number(m[1].replace(",", ".")) : NaN
+  return n > 0 && n <= 500 ? n : null
+}
+
 /** Category keywords → preset key; only used when the workspace has that preset. */
 const KEYWORDS: { preset: string; words: string[] }[] = [
   { preset: "salary", words: ["ប្រាក់ខែ", "salary", "工资", "薪水"] },
@@ -57,7 +78,7 @@ const KEYWORDS: { preset: string; words: string[] }[] = [
   { preset: "gift_received", words: ["អំណោយ", "gift"] },
   { preset: "side_income", words: ["ចំណូលបន្ថែម", "freelance"] },
   { preset: "food", words: ["កាហ្វេ", "បាយ", "ញ៉ាំ", "ម្ហូប", "អាហារ", "ភេសជ្ជៈ", "នំ", "ទឹកក្រូច", "គុយទាវ", "coffee", "lunch", "dinner", "breakfast", "food", "eat", "drink", "meal", "restaurant", "snack", "咖啡", "早餐", "早饭", "午餐", "午饭", "晚餐", "晚饭", "吃饭", "饭", "餐", "奶茶", "饮料", "外卖", "水果"] },
-  { preset: "transport", words: ["សាំង", "ប្រេង", "តុកតុក", "ម៉ូតូ", "ឡាន", "ធ្វើដំណើរ", "ចតឡាន", "grab", "passapp", "tuk", "taxi", "fuel", "gas", "petrol", "bus", "parking", "油费", "汽油", "加油", "打车", "出租车", "停车", "车费", "嘟嘟车"] },
+  { preset: "transport", words: ["សាកឡាន", "សាកភ្លើង", "សាកថ្ម", "ev", "charging", "充电", "សាំង", "ប្រេង", "តុកតុក", "ម៉ូតូ", "ឡាន", "ធ្វើដំណើរ", "ចតឡាន", "grab", "passapp", "tuk", "taxi", "fuel", "gas", "petrol", "bus", "parking", "油费", "汽油", "加油", "打车", "出租车", "停车", "车费", "嘟嘟车"] },
   { preset: "phone", words: ["កាតទូរស័ព្ទ", "ទូរស័ព្ទ", "អ៊ីនធឺណិត", "smart", "cellcard", "metfone", "internet", "phone", "topup", "top up", "话费", "手机", "网费", "流量", "充值"] },
   { preset: "utilities", words: ["ទឹកភ្លើង", "អគ្គិសនី", "electric", "electricity", "edc", "water", "电费", "水费", "水电"] },
   { preset: "housing", words: ["ទឹកភ្លើង", "អគ្គិសនី", "ជួលផ្ទះ", "ផ្ទះ", "rent", "electric", "electricity", "edc", "water", "房租", "电费", "水费", "水电"] },
@@ -142,10 +163,13 @@ function findDebt(text: string, debts: BotDebt[]): BotDebt | null {
 
 export function parseEntry(message: string, ctx: BotContext): ParsedEntry {
   const text = toLatinDigits(message).toLowerCase().trim()
-  const amount = parseAmountText(message)
+  // "ev 8$ 20kwh": the kWh is not the amount.
+  const amount = parseAmountText(toLatinDigits(message).replace(new RegExp(KWH.source, "gi"), " "))
   if (!amount) return { ok: false, reason: "no_amount" }
   if (!ctx.wallets.length) return { ok: false, reason: "no_wallet" }
-  const note = message.replace(/\s+/g, " ").trim().slice(0, 200)
+  const typed = message.replace(/\s+/g, " ").trim()
+  // Public EV charging is tagged so it stands out under Transport.
+  const note = (isEvCharge(message) && !typed.includes(EV_TAG) ? `${EV_TAG} · ${typed}` : typed).slice(0, 200)
   const named = findWallet(text, ctx.wallets)
 
   if (REPAY.test(text)) {

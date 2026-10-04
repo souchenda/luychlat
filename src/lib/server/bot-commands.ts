@@ -1,7 +1,7 @@
 // Server only: chat logging for the official bot (Phase C part 2).
 import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
 import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
-import { parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
+import { isEvHome, kwhOf, parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { DEFAULT_ABOUT } from "@/lib/app-info"
@@ -168,6 +168,9 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
   const said = heard ? `${tr(lang, "bot.voiceHeard", { text: heard })}\n` : ""
   const reply = (message: string) => sendText(chatId, said + message)
 
+  // EV charging at home: a usage log, never an expense (it's paid in the electricity bill).
+  if (isEvHome(text)) return reply(await logEvHome(chatId, text, lang))
+
   const all = workspacesOf(ctx)
   const route = isRouting(ctx)
   const { workspace: ws, text: input } = route ? routeWorkspace(text, all, ctx.workspace_id ?? all[0].id) : { workspace: all[0], text }
@@ -192,6 +195,58 @@ const BALANCE_QUESTION =
 /** A question about balances / net worth, with no amount in it (so not an entry like "balance fix 5"). */
 export function asksForBalance(text: string) {
   return BALANCE_QUESTION.test(text.trim()) && !/[\d០-៩]/.test(text)
+}
+
+/** "សាកឡាននៅផ្ទះ 30kwh": logs the charge (kWh), not money, and says this month's total. */
+async function logEvHome(chatId: number, text: string, lang: Locale): Promise<string> {
+  const kwh = kwhOf(text)
+  const { data, error } = await botDb().rpc("bot_log_ev_home", { p_key: botKey(), p_chat_id: chatId, p_kwh: kwh, p_note: text.slice(0, 200) })
+  if (error) {
+    const msg = error.message ?? ""
+    return /plan_required/.test(msg) ? tr(lang, "bot.cmdPro") : /commands_off/.test(msg) ? tr(lang, "bot.cmdOff") : /not_writable/.test(msg) ? tr(lang, "bot.cmdReadonly") : tr(lang, "bot.saveFailed")
+  }
+  const r = data as { status: string; month_kwh: number; month_count: number }
+  if (r.status !== "ok") return tr(lang, "bot.help")
+  return tr(lang, "bot.evHomeLogged", {
+    kwh: kwh ? ` · ${kwh} kWh` : "",
+    count: r.month_count,
+    total: Number(r.month_kwh) > 0 ? ` · ${Number(r.month_kwh)} kWh` : "",
+  })
+}
+
+type BillAction = { status: "paid" | "snoozed" | "already" | "gone" | "not_linked" | "not_writable"; title?: string; logged?: boolean; wallet?: string | null; amount?: number; currency?: "USD" | "KHR"; next_due?: string; plan_free?: boolean }
+
+/** ✅ / ⏰ under a bill reminder: mark paid (logging the expense on paid plans) or remind tomorrow. */
+async function billAction(cb: Callback, chatId: number, verb: "bp" | "bs", billId: string, due: string | undefined) {
+  const ctx = await botContext(chatId)
+  const lang = contextLocale(ctx)
+  const { data, error } = await botDb().rpc("bot_bill_action", {
+    p_key: botKey(),
+    p_chat_id: chatId,
+    p_bill_id: billId,
+    p_action: verb === "bp" ? "paid" : "snooze",
+    p_due: verb === "bp" && due && /^\d{4}-\d{2}-\d{2}$/.test(due) ? due : null,
+  })
+  const r = data as BillAction | null
+  const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
+  const outcome =
+    error || !r
+      ? tr(lang, "bot.saveFailed")
+      : r.status === "paid"
+        ? [
+            tr(lang, "bot.billPaid", { next: r.next_due ? ddmmyyyy(r.next_due) : "—" }),
+            r.logged ? tr(lang, "bot.billLogged", { amount: formatMoney(Number(r.amount), r.currency ?? "USD"), wallet: r.wallet ?? "" }) : r.plan_free ? tr(lang, "bot.billNotLoggedFree") : tr(lang, "bot.billNoWallet"),
+          ].join("\n")
+        : r.status === "snoozed"
+          ? tr(lang, "bot.billSnoozed")
+          : r.status === "already"
+            ? tr(lang, "bot.billAlready", { next: r.next_due ? ddmmyyyy(r.next_due) : "—" })
+            : r.status === "not_writable"
+              ? tr(lang, "bot.cmdReadonly")
+              : tr(lang, "bot.billGone")
+  await tg("answerCallbackQuery", { callback_query_id: cb.id })
+  // Keep the reminder, drop its buttons, add what happened.
+  await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(`${cb.message?.text ?? ""}\n\n${outcome}`).slice(0, 4000) })
 }
 
 /** /rate, /gold and plain calculator questions ("100$ to khr", "មាស ២ ជី"): the reply, or null. */
@@ -300,6 +355,10 @@ type Confirmed = {
 export async function handleCallback(cb: Callback) {
   const chatId = cb.message?.chat.id
   const [verb, id, prefix] = (cb.data ?? "").split(":", 3)
+  if (chatId && cb.message?.chat.type === "private" && (verb === "bp" || verb === "bs") && UUID.test(id ?? "")) {
+    await billAction(cb, chatId, verb, id, prefix)
+    return
+  }
   if (chatId && cb.message?.chat.type === "private" && verb === "w" && UUID.test(id ?? "") && /^[0-9a-f]{8}$/.test(prefix ?? "")) {
     await switchWorkspace(cb, chatId, id, prefix)
     return

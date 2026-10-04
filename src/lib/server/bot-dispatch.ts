@@ -11,7 +11,7 @@ import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
 import { holyDayTick } from "@/lib/server/holy-days"
 
-type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string }
+type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string; bill_id: string | null; due: string | null }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
 
 /** Debt, installment and card reminders the database created, to each linked member, once. */
@@ -20,7 +20,20 @@ async function sendDueNotifications() {
   const { data, error } = await db.rpc("bot_due_notifications", { p_key: botKey(), p_limit: 100 })
   if (error || !data) return
   for (const n of data as Due[]) {
-    const sent = await sendText(n.chat_id, `${unescapeHtml(n.title)}\n${unescapeHtml(n.message)}${SIGNATURE}`)
+    // Bill reminders get ✅ paid / ⏰ remind tomorrow (handled in bot-commands › billAction).
+    const buttons = n.bill_id
+      ? {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: tr(n.language, "bot.billPaidButton"), callback_data: `bp:${n.bill_id}:${n.due ?? ""}` },
+                { text: tr(n.language, "bot.billSnoozeButton"), callback_data: `bs:${n.bill_id}` },
+              ],
+            ],
+          },
+        }
+      : {}
+    const sent = await sendText(n.chat_id, `${unescapeHtml(n.title)}\n${unescapeHtml(n.message)}${SIGNATURE}`, buttons)
     // Blocked or deleted chats are marked too, so they aren't retried forever.
     if (sent.ok || /blocked|chat not found|deactivated/i.test(sent.description ?? "")) {
       await db.rpc("bot_mark_delivered", { p_key: botKey(), p_notification_id: n.notification_id, p_user_id: n.user_id })

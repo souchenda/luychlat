@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { BillSheet } from "@/components/bills/bill-sheet"
+import { EvHomeCard } from "@/components/bills/ev-home-card"
 import { NssfVault } from "@/components/bills/nssf-vault"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
@@ -229,6 +230,8 @@ export default function BillsPage() {
           })}
         </Card>
       )}
+
+      {ws && <EvHomeCard workspaceId={ws} editable={editable} />}
 
       <NssfVault />
 

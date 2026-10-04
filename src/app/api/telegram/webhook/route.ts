@@ -11,6 +11,7 @@ import { transcriptionProvider } from "@/lib/server/transcribe"
 import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
 import { sendDigestNow } from "@/lib/server/weekly-digest"
+import { sendNssfInfo } from "@/lib/server/nssf-bot"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 
 /**
@@ -202,6 +203,10 @@ export async function POST(request: Request) {
     } else {
       await sendText(chatId, tr(lang, "bot.langUsage"))
     }
+  } else if (/^\/nssf(@\w+)?$/i.test(command)) {
+    // NSSF basics, and the account's own cards with copy buttons.
+    const ctx = await botContext(chatId)
+    await sendNssfInfo(chatId, ctx?.linked ? contextLocale(ctx) : lang)
   } else if (/^\/(digest|weekly)(@\w+)?$/i.test(command)) {
     // This week's digest now — only for chats that switched the digest on (it shows money totals).
     await sendDigestNow(chatId, lang)
