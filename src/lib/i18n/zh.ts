@@ -2376,4 +2376,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bills.soonTitle": "即将到期的账单",
   "bills.all": "全部",
   "bills.dayBefore": "提前 1 天",
+  "holiday.sil": "今天是佛教持戒日（{lunar}）",
+  "bot.silTomorrow": "🙏 明天是佛教持戒日（{lunar}）。",
+  "bot.holyDayAlerts": "持戒日提醒（ថ្ងៃសីល）",
+  "bot.holyDayAlertsHint": "每个持戒日前一天晚上 6 点（上弦 8、15 日，下弦 8、14/15 日），按农历计算",
 }

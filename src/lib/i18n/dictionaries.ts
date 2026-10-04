@@ -2425,6 +2425,10 @@ const km = {
   "bills.soonTitle": "វិក្កយបត្រជិតដល់ថ្ងៃកំណត់",
   "bills.all": "ទាំងអស់",
   "bills.dayBefore": "{count} ថ្ងៃមុន",
+  "holiday.sil": "ថ្ងៃនេះជាថ្ងៃសីល ({lunar}) — សូមអនុមោទនាបុណ្យ",
+  "bot.silTomorrow": "🙏 ស្អែកជាថ្ងៃសីល ({lunar})។ សូមអនុមោទនាបុណ្យ។",
+  "bot.holyDayAlerts": "រំលឹកថ្ងៃសីល",
+  "bot.holyDayAlertsHint": "ល្ងាចម៉ោង ៦ មុនថ្ងៃសីល (៨ និង ១៥ កើត ៨ និង ១៤/១៥ រោច) តាមប្រតិទិនចន្ទគតិ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4839,6 +4843,10 @@ const en: Record<MessageKey, string> = {
   "bills.soonTitle": "Bills due soon",
   "bills.all": "All",
   "bills.dayBefore": "1 day before",
+  "holiday.sil": "Today is a Buddhist holy day ({lunar})",
+  "bot.silTomorrow": "🙏 Tomorrow is a Buddhist holy day ({lunar}).",
+  "bot.holyDayAlerts": "Holy-day reminders (ថ្ងៃសីល)",
+  "bot.holyDayAlertsHint": "6 PM the evening before each holy day (8 and 15 waxing, 8 and 14/15 waning), from the lunar calendar",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

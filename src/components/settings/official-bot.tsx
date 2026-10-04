@@ -27,6 +27,8 @@ type Link = {
   debt_alerts: boolean
   /** Sunday-evening spending digest (opt-in: it puts weekly totals in the chat). */
   weekly_digest: boolean
+  /** Buddhist holy days (ថ្ងៃសីល), the evening before. */
+  holy_day_alerts: boolean
   prayer_alerts: boolean
   prayer_province: string | null
   commands_enabled: boolean
@@ -64,7 +66,7 @@ export function useTelegramLink() {
     enabled: Boolean(userId),
     queryFn: async () => {
       // Before the bot migration the table is missing: treat as "not linked".
-      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, weekly_digest, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
+      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, weekly_digest, holy_day_alerts, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
       return error ? null : (data as Link | null)
     },
   })
@@ -199,6 +201,16 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                 {linked.weekly_digest && <span className="mt-0.5 block text-xs text-amber-600 dark:text-amber-400">{t("bot.weeklyDigestWarn")}</span>}
               </span>
               <Switch checked={linked.weekly_digest} onCheckedChange={(v) => update.mutate({ weekly_digest: v })} aria-label={t("bot.weeklyDigest")} />
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <span className="w-4 shrink-0 text-center text-sm" aria-hidden>
+                🙏
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">{t("bot.holyDayAlerts")}</span>
+                <span className="block text-xs text-muted-foreground">{t("bot.holyDayAlertsHint")}</span>
+              </span>
+              <Switch checked={Boolean(linked.holy_day_alerts)} onCheckedChange={(v) => update.mutate({ holy_day_alerts: v })} aria-label={t("bot.holyDayAlerts")} />
             </label>
             {(islamic || linked.prayer_alerts) && (
               <label className="flex items-center gap-3 text-sm">

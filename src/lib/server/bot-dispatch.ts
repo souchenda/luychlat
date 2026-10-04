@@ -9,6 +9,7 @@ import { watchdogTick } from "@/lib/server/health-watchdog"
 import { maybeRefreshLocalGold, maybeRefreshNbc, syncMarket } from "@/lib/server/market-sync"
 import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
+import { holyDayTick } from "@/lib/server/holy-days"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
@@ -59,6 +60,7 @@ export async function dispatchOnce() {
     await maybeRefreshNbc()
     await sendCommunityBulletin()
     await weeklyDigestTick()
+    await holyDayTick()
     await watchdogTick()
   } catch (error) {
     console.error("[bot] dispatch failed:", (error as Error).message)

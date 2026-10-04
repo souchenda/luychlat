@@ -97,7 +97,7 @@ export default function HomePage() {
   // Cambodian names are family name first ("ស៊ូ ចិន្តា"): greet by the given name, the last word.
   const givenName = useProfile().data?.display_name?.trim().split(/\s+/).pop()
   const locale = useLocaleStore((s) => s.locale)
-  const greeting = homeGreeting()
+  const greeting = homeGreeting(new Date(), locale)
   const today = useToday()
   // Islamic tools (optional): Ramadan / Eid greetings in season. The Hijri date itself is on /islamic.
   const islamic = useIslamicEnabled()

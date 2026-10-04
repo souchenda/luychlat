@@ -1,4 +1,5 @@
 import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { formatLunar, isSilDay, khmerLunarDate } from "@/lib/khmer-lunar"
 
 /**
  * One-line greeting on Home, from the real festival dates.
@@ -58,7 +59,7 @@ const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.ge
 const daysBetween = (a: Date, b: Date) =>
   Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 864e5)
 
-export function homeGreeting(date = new Date()): Greeting {
+export function homeGreeting(date = new Date(), locale: "km" | "en" | "zh" = "km"): Greeting {
   const pchum = PCHUM_BEN[date.getFullYear()]
   if (pchum) {
     const [y, m, d] = pchum.split("-").map(Number)
@@ -74,10 +75,13 @@ export function homeGreeting(date = new Date()): Greeting {
     const value = from.length === 5 ? monthDay : full
     if (value >= from && value <= to) return { key }
   }
+  // Buddhist holy day (ថ្ងៃសីល), from the lunar calendar (see khmer-lunar.ts).
+  const lunar = khmerLunarDate(full)
+  if (isSilDay(lunar)) return { key: "holiday.sil", params: { lunar: formatLunar(lunar, locale) } }
   return { key: "holiday.everyday" }
 }
 
-const MERIT_DAYS = new Set<MessageKey>(["holiday.kan_ben", "holiday.pchum_ben", "holiday.visak_bochea", "holiday.meak_bochea", "holiday.vassa_start", "holiday.vassa_end", "holiday.kathina"])
+const MERIT_DAYS = new Set<MessageKey>(["holiday.sil", "holiday.kan_ben", "holiday.pchum_ben", "holiday.visak_bochea", "holiday.meak_bochea", "holiday.vassa_start", "holiday.vassa_end", "holiday.kathina"])
 
 /** Buddhist merit-making days: shown with 🙏, not a festive ✨. */
 export const isMeritDay = (key: MessageKey) => MERIT_DAYS.has(key)
