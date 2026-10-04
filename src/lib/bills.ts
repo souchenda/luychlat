@@ -167,3 +167,95 @@ export function useBillMutations(workspaceId: string | undefined) {
     }),
   }
 }
+
+// ---------------------------------------------------------------------------
+// NSSF card vault (public.nssf_members): private to the account
+// ---------------------------------------------------------------------------
+export type NssfRelationship = "self" | "spouse" | "child"
+export type NssfMember = {
+  id: string
+  name: string
+  relationship: NssfRelationship
+  nssf_id: string | null
+  front_path: string | null
+  back_path: string | null
+  is_active: boolean
+  created_at: string
+}
+export type NssfMemberInput = Pick<NssfMember, "name" | "relationship" | "nssf_id" | "front_path" | "back_path" | "is_active">
+
+/** Default self-employed contribution per member (editable on the bill). */
+export const NSSF_MONTHLY_PER_MEMBER = 15600
+const NSSF_BUCKET = "nssf-cards"
+
+/** The NSSF bill amount for this many members: 15,600៛ each a month, × 12 a year. */
+export const nssfAmountFor = (members: number, frequency: BillFrequency) => NSSF_MONTHLY_PER_MEMBER * members * (frequency === "YEARLY" ? 12 : 1)
+
+export function useNssfMembers() {
+  const { scope } = useRepo()
+  return useQuery({
+    queryKey: ["nssf-members", scope],
+    queryFn: async (): Promise<NssfMember[]> => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) return []
+      const { data, error } = await supabase.from("nssf_members").select("*").order("created_at")
+      if (error) throw error
+      return (data ?? []) as NssfMember[]
+    },
+  })
+}
+
+/** A short-lived link to a card photo (private bucket). */
+export function useNssfPhotoUrl(path: string | null) {
+  return useQuery({
+    queryKey: ["nssf-photo", path],
+    enabled: Boolean(path),
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data } = await getSupabaseBrowserClient()!.storage.from(NSSF_BUCKET).createSignedUrl(path!, 15 * 60)
+      return data?.signedUrl ?? null
+    },
+  })
+}
+
+export function useNssfMutations() {
+  const queryClient = useQueryClient()
+  const { scope } = useRepo()
+  const done = () => void queryClient.invalidateQueries({ queryKey: ["nssf-members", scope] })
+  const client = () => {
+    const supabase = getSupabaseBrowserClient()
+    if (!supabase) throw new Error("offline")
+    return supabase
+  }
+  return {
+    save: useMutation({
+      mutationFn: async ({ id, input }: { id?: string; input: NssfMemberInput }) => {
+        const { error } = id ? await client().from("nssf_members").update(input).eq("id", id) : await client().from("nssf_members").insert(input)
+        if (error) throw error
+      },
+      onSuccess: done,
+    }),
+    remove: useMutation({
+      mutationFn: async (m: NssfMember) => {
+        const paths = [m.front_path, m.back_path].filter((p): p is string => Boolean(p))
+        if (paths.length) await client().storage.from(NSSF_BUCKET).remove(paths)
+        const { error } = await client().from("nssf_members").delete().eq("id", m.id)
+        if (error) throw error
+      },
+      onSuccess: done,
+    }),
+    /** Uploads a card photo into the account's own folder; returns its path. */
+    uploadPhoto: async (image: Blob) => {
+      const supabase = client()
+      const { data: auth } = await supabase.auth.getUser()
+      if (!auth.user) throw new Error("not signed in")
+      const path = `${auth.user.id}/${crypto.randomUUID()}.jpg`
+      const { error } = await supabase.storage.from(NSSF_BUCKET).upload(path, image, { contentType: image.type || "image/jpeg" })
+      if (error) throw error
+      return path
+    },
+    removePhoto: async (path: string) => {
+      await client().storage.from(NSSF_BUCKET).remove([path])
+    },
+  }
+}

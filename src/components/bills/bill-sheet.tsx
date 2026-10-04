@@ -12,12 +12,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { BILL_EMOJI, BILL_PRESETS, NSSF_URL, useBillMutations, type Bill, type BillFrequency, type BillInput, type BillKind, type NssfType } from "@/lib/bills"
+import { BILL_EMOJI, BILL_PRESETS, NSSF_URL, nssfAmountFor, useBillMutations, useNssfMembers, type Bill, type BillFrequency, type BillInput, type BillKind, type NssfType } from "@/lib/bills"
 import { categoryLabel } from "@/lib/categories/presets"
 import type { Category, Currency } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { parseAmount, roundMoney } from "@/lib/money"
+import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 
@@ -74,6 +74,8 @@ export function BillSheet({
   const locale = useLocaleStore((s) => s.locale)
   const { save, remove } = useBillMutations(workspaceId)
   const [form, setForm] = useState<Form>(EMPTY)
+  // NSSF: one contribution per active member of the card vault (at least one: the account holder).
+  const nssfMembers = (useNssfMembers().data ?? []).filter((m) => m.is_active).length
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }))
 
   useEffect(() => {
@@ -90,7 +92,7 @@ export function BillSheet({
       preset: id,
       kind: p.kind,
       title: t(`bills.preset.${id}` as MessageKey),
-      amount: p.input.amount ? String(p.input.amount) : "",
+      amount: p.kind === "NSSF" ? String(nssfAmountFor(Math.max(1, nssfMembers), p.input.frequency ?? "MONTHLY")) : p.input.amount ? String(p.input.amount) : "",
       currency: p.input.currency ?? "USD",
       frequency: p.input.frequency ?? "MONTHLY",
       dueDay: p.input.due_day ? String(p.input.due_day) : "1",
@@ -158,6 +160,16 @@ export function BillSheet({
               </button>
             ))}
           </div>
+        )}
+
+        {form.kind === "NSSF" && nssfMembers > 0 && String(nssfAmountFor(nssfMembers, form.frequency)) !== form.amount && (
+          <button
+            type="button"
+            onClick={() => set({ amount: String(nssfAmountFor(nssfMembers, form.frequency)), currency: "KHR" })}
+            className="w-full rounded-xl border border-primary/40 bg-primary/5 px-3 py-2 text-left text-xs text-primary"
+          >
+            {t("nssf.useAmount", { count: nssfMembers, amount: formatMoney(nssfAmountFor(nssfMembers, form.frequency), "KHR") })}
+          </button>
         )}
 
         {form.kind === "NSSF" && (

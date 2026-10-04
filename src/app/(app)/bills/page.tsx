@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { BillSheet } from "@/components/bills/bill-sheet"
+import { NssfVault } from "@/components/bills/nssf-vault"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -12,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { BILL_EMOJI, NSSF_URL, daysUntil, nextDue, useBillMutations, useBills, type Bill } from "@/lib/bills"
+import { BILL_EMOJI, NSSF_URL, daysUntil, nextDue, nssfAmountFor, useBillMutations, useBills, useNssfMembers, type Bill } from "@/lib/bills"
 import { canWrite, useActiveWorkspace, useCategories, useWallets } from "@/lib/data/hooks"
 import { dayDate } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
@@ -116,6 +117,11 @@ export default function BillsPage() {
   const categories = useCategories(ws).data ?? []
   const [sheet, setSheet] = useState<{ open: boolean; bill: Bill | null }>({ open: false, bill: null })
   const [paying, setPaying] = useState<{ bill: Bill; due: string } | null>(null)
+  const nssfMembers = (useNssfMembers().data ?? []).filter((m) => m.is_active).length
+  const { save } = useBillMutations(ws)
+  /** The NSSF bill's amount no longer matches the active members: offer to update it. */
+  const nssfSuggestion = (bill: Bill) =>
+    bill.kind === "NSSF" && bill.currency === "KHR" && nssfMembers > 0 && nssfAmountFor(nssfMembers, bill.frequency) !== bill.amount ? nssfAmountFor(nssfMembers, bill.frequency) : null
 
   const rows = useMemo(
     () =>
@@ -186,6 +192,32 @@ export default function BillsPage() {
                     </span>
                   </span>
                 </button>
+                {editable && bill.is_active && nssfSuggestion(bill) !== null && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-auto max-w-28 px-2 py-1 text-[11px] leading-tight whitespace-normal text-primary"
+                    disabled={save.isPending}
+                    onClick={() => {
+                      const input = {
+                        title: bill.title,
+                        kind: bill.kind,
+                        amount: nssfSuggestion(bill)!,
+                        currency: bill.currency,
+                        frequency: bill.frequency,
+                        due_day: bill.due_day,
+                        due_date: bill.due_date,
+                        nssf_type: bill.nssf_type,
+                        remind_days: bill.remind_days,
+                        category_id: bill.category_id,
+                        is_active: bill.is_active,
+                      }
+                      void save.mutateAsync({ id: bill.id, input }).then(() => toast.success(t("bills.saved")))
+                    }}
+                  >
+                    {t("nssf.updateBill", { count: nssfMembers, amount: formatMoney(nssfSuggestion(bill)!, "KHR") })}
+                  </Button>
+                )}
                 {editable && bill.is_active && (
                   <Button size="sm" variant={status === "later" ? "outline" : "default"} onClick={() => setPaying({ bill, due })}>
                     <CheckIcon />
@@ -197,6 +229,8 @@ export default function BillsPage() {
           })}
         </Card>
       )}
+
+      <NssfVault />
 
       <NssfGuide />
 
