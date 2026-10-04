@@ -31,6 +31,29 @@ const TELCO_PATTERN = /\b(EZECOM|METFONE|CELLCARD|SMART|SEATEL|OPENNET|SINET|TEL
 const EXPENSE_PATTERN =
   /\bTRANSFERRED\s+TO\b|\bFUNDS\s+TRANSFERRED\b|\bTRANSFER\s+TO\b|\bPURCHASE\b|\bPOS\b|\bPAYMENT\s+TO\b|\bPAID\s+TO\b|\bATM\b|\bWITHDRAW(AL)?\b/i
 
+/**
+ * Well-known Cambodian merchants → a spending category (preset key), checked
+ * on money going out before the generic "transfer / purchase" rule. Personal
+ * presets; a business workspace without the preset just leaves it to pick.
+ * Grab is food (GrabFood is the common card charge) unless it says ride / car / bike.
+ */
+const MERCHANTS: { pattern: RegExp; preset: string }[] = [
+  { pattern: /\bGRAB\s*(RIDE|CAR|BIKE|TAXI|TUKTUK|REMORK)\b|\bPASSAPP\b|\bPASS\s*APP\b|\bTADA\b|\bWEGO\b|\bPARKING\b/i, preset: "transport" },
+  { pattern: /\b(CALTEX|PTT|TOTAL(ENERGIES)?|TELA|SOKIMEX|CHEVRON|SHELL|PETRONAS|GAS\s*STATION|FUEL|PETROL)\b/i, preset: "transport" },
+  {
+    pattern:
+      /\b(BROWN\s*COFFEE|BROWN|CAFE\s*AMAZON|AMAZON|STARBUCKS|FOODPANDA|FOOD\s*PANDA|GRAB\s*FOOD|GRAB|E-?GETS|NHAM\s*24|TUBE\s*COFFEE|COFFEE|CAFE|KFC|BURGER\s*KING|PIZZA|MCDONALD'?S?|CHATIME|KOI\s*TH[EÉ]|TOUS\s*LES\s*JOURS|RESTAURANT|BAKERY|LUCKY\s*SUPERMARKET|7-?ELEVEN|SUPERMARKET)\b/i,
+    preset: "food",
+  },
+  { pattern: /\b(AEON|CHIP\s*MONG|SHOPEE|LAZADA|LITTLE\s*FASHION|ZANDO|MALL)\b/i, preset: "shopping" },
+  { pattern: /\b(PHARMACY|PHARMACIE|U-?CARE|HOSPITAL|CLINIC|ROYAL\s*PHNOM\s*PENH\s*HOSPITAL|SUNRISE\s*JAPAN)\b/i, preset: "health" },
+]
+
+/** The spending category of a known merchant in the line, or null. */
+export function merchantPreset(description: string): string | null {
+  return MERCHANTS.find((m) => m.pattern.test(description))?.preset ?? null
+}
+
 /** The other party: the name after "Paid from", "Transferred to", "Purchase at"…, up to the account/phone/date. */
 const PARTY =
   /(?:FUNDS\s+RECEIVED\s+FROM|FUNDS\s+TRANSFERRED\s+TO|PAYMENT\s+FROM|PAYMENT\s+TO|PAID\s+FROM|PAID\s+TO|TRANSFERRED\s+(?:TO|FROM)|TRANSFER\s+(?:TO|FROM)|RECEIVED\s+FROM|PURCHASE\s+AT|SENT\s+TO)\s+(.+?)(?=\s*\(|\s+\d|\s*\*|\s+ON\s+[A-Za-z]{3}\b|\s+ORIGINAL\b|\s+BANK\b|\s*\||\s+KHR\b|\s+USD\b|$)/i
@@ -93,6 +116,8 @@ export function classifyLine(
     const telco = TELCO_PATTERN.test(d)
     return { group: "BILLS", preset: ctx.business ? "utilities" : telco ? "phone" : "housing" }
   }
+  const merchant = merchantPreset(counterparty(d) ?? d)
+  if (merchant) return { group: "EXPENSE", preset: ctx.business ? "other_expense" : merchant }
   if (EXPENSE_PATTERN.test(d)) return { group: "EXPENSE", preset: "other_expense" }
   return { group: "REVIEW", preset: null }
 }

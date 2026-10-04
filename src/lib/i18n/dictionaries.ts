@@ -2598,6 +2598,19 @@ const km = {
   "bot.aiNumbers": "ឱ្យ AI មើលលេខរបស់ខ្ញុំ",
   "bot.aiNumbersHint": "ទីប្រឹក្សា AI ក្នុង Telegram (/ai) អាចឆ្លើយពីចំណូល ចំណាយ សមតុល្យកាបូប និងបំណុលរបស់អ្នក។ AI ឃើញតែលេខសរុប មិនឃើញឈ្មោះមនុស្សទេ។",
   "bot.aiNumbersWarn": "⚠️ អ្នកណាដែលកាន់គណនី Telegram របស់អ្នក (ទូរស័ព្ទបាត់ ឬគណនីត្រូវគេលួច) នឹងអាចសួរ និងឃើញលេខទាំងនេះ។",
+  "recon.statementAddsUp": "✓ របាយការណ៍ធនាគារត្រឹមត្រូវ៖ សមតុល្យដើមគ្រា {opening} + ចូល {in} − ចេញ {out} = សមតុល្យចុងគ្រា {closing}",
+  "recon.statementGap": "⚠️ របាយការណ៍មិនត្រូវគ្នា {amount} ទេ (សមតុល្យដើមគ្រា + ចូល − ចេញ ≠ ចុងគ្រា)។ ប្រហែលជាខ្វះជួរខ្លះ ឬជួរឈររៀបមិនត្រូវ — ចុច «ត្រឡប់» ដើម្បីពិនិត្យ។",
+  "recon.confirmTitle": "បញ្ជាក់ការនាំចូល",
+  "recon.confirmOpening": "សមតុល្យដើមគ្រា ({date})",
+  "recon.confirmIncome": "ចំណូលថ្មី ({count})",
+  "recon.confirmExpense": "ចំណាយថ្មី ({count})",
+  "recon.confirmMatched": "ផ្គូផ្គងនឹងប្រតិបត្តិការដែលមានស្រាប់",
+  "recon.confirmAdjust": "កែតម្រូវសមតុល្យ",
+  "recon.confirmBalanceAt": "សមតុល្យនៅ {date}",
+  "recon.confirmBalanceNow": "សមតុល្យកាបូបបន្ទាប់ពីនាំចូល",
+  "recon.confirmMatchesBank": "ត្រូវគ្នានឹងរបាយការណ៍ធនាគារ",
+  "recon.confirmNotMatching": "មិនទាន់ត្រូវនឹងសមតុល្យធនាគារ {amount} ទេ — បើក «តម្រឹមសមតុល្យ» ឬពិនិត្យជួរដែលបានរំលង។",
+  "recon.confirmImport": "✅ បញ្ជាក់ការនាំចូល (Confirm Import)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5185,6 +5198,19 @@ const en: Record<MessageKey, string> = {
   "bot.aiNumbers": "Let LuyChlat AI see my numbers",
   "bot.aiNumbersHint": "The AI advisor in Telegram (/ai) can answer about your income, spending, wallet balances and debts. The AI sees totals only, never people's names.",
   "bot.aiNumbersWarn": "⚠️ Anyone holding your Telegram account (a lost phone, a hijacked session) could ask for and see these numbers.",
+  "recon.statementAddsUp": "✓ The statement adds up: opening {opening} + in {in} − out {out} = closing {closing}",
+  "recon.statementGap": "⚠️ The statement is off by {amount} (opening + in − out ≠ closing). A row may be missing or a column mapped wrongly — tap Back to check.",
+  "recon.confirmTitle": "Confirm import",
+  "recon.confirmOpening": "Opening balance ({date})",
+  "recon.confirmIncome": "New income ({count})",
+  "recon.confirmExpense": "New expenses ({count})",
+  "recon.confirmMatched": "Matched to existing entries",
+  "recon.confirmAdjust": "Balance adjustment",
+  "recon.confirmBalanceAt": "Balance on {date}",
+  "recon.confirmBalanceNow": "Wallet balance after import",
+  "recon.confirmMatchesBank": "Matches the bank statement",
+  "recon.confirmNotMatching": "Doesn't match the bank's {amount} yet — turn on balance alignment or check skipped rows.",
+  "recon.confirmImport": "✅ Confirm import",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

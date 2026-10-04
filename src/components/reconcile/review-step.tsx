@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { BottomSheet } from "@/components/common/bottom-sheet"
 import { BatchGroups } from "@/components/reconcile/batch-groups"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -128,6 +129,7 @@ export function ReviewStep({
   const [tab, setTab] = useState<Tab>("add")
   const [closingText, setClosingText] = useState(parsed.closing_balance === null ? "" : String(parsed.closing_balance))
   const [align, setAlign] = useState(true)
+  const [confirming, setConfirming] = useState(false)
 
   const known = fingerprints.data?.known
   const freshLines = useMemo(
@@ -204,6 +206,17 @@ export function ReviewStep({
   const appAsOf = round(wallet.balance - after + createdSum, scale)
   const closing = parsed.closing_balance ?? (closingText.trim() ? parseAmount(closingText) : null)
   const diff = closing === null ? null : round(closing - appAsOf, scale)
+  // The statement's own arithmetic: opening + money in − money out = closing (0 = it adds up).
+  const moneyIn = round(parsed.lines.reduce((sum, l) => sum + (l.amount > 0 ? l.amount : 0), 0), scale)
+  const moneyOut = round(parsed.lines.reduce((sum, l) => sum + (l.amount < 0 ? -l.amount : 0), 0), scale)
+  const statementGap = parsed.opening_balance !== null && closing !== null ? round(closing - (parsed.opening_balance + moneyIn - moneyOut), scale) : null
+  // What this save adds, and the balances after it.
+  const toAdd = freshLines.filter((l) => decisions[l.line_no]?.action === "create")
+  const addIncome = toAdd.filter((l) => l.amount > 0)
+  const addExpense = toAdd.filter((l) => l.amount < 0)
+  const adjustment = align && diff !== null && diff !== 0 ? diff : 0
+  const balanceAtEnd = round(appAsOf + adjustment, scale)
+  const balanceNow = round(wallet.balance + createdSum + adjustment, scale)
 
   const save = useMutation({
     mutationFn: async () => {
@@ -510,6 +523,21 @@ export function ReviewStep({
             />
           )}
         </div>
+        {statementGap !== null &&
+          (statementGap === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {t("recon.statementAddsUp", {
+                opening: formatMoney(parsed.opening_balance!, wallet.currency),
+                in: formatMoney(moneyIn, wallet.currency),
+                out: formatMoney(moneyOut, wallet.currency),
+                closing: formatMoney(closing!, wallet.currency),
+              })}
+            </p>
+          ) : (
+            <p className="rounded-xl bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+              {t("recon.statementGap", { amount: formatMoney(Math.abs(statementGap), wallet.currency) })}
+            </p>
+          ))}
         {diff !== null &&
           (diff === 0 ? (
             <p className="flex items-center gap-2 text-sm font-medium text-[#10B981]">
@@ -533,13 +561,62 @@ export function ReviewStep({
           <Button variant="outline" className="h-12" onClick={onBack} disabled={save.isPending}>
             {t("common.back")}
           </Button>
-          <Button className="h-12 text-base" onClick={() => save.mutate()} disabled={save.isPending || freshLines.length === 0}>
+          <Button className="h-12 text-base" onClick={() => setConfirming(true)} disabled={save.isPending || freshLines.length === 0}>
             {save.isPending ? <Loader2Icon className="animate-spin" /> : <CheckIcon />}
             {t("recon.save")}
           </Button>
         </div>
         {freshLines.length === 0 && <p className="text-center text-xs text-muted-foreground">{t("recon.error.already_imported")}</p>}
       </Card>
+
+      {/* Last look before anything is saved. */}
+      <BottomSheet open={confirming} onOpenChange={(v) => !save.isPending && setConfirming(v)} title={t("recon.confirmTitle")} description={`${wallet.name} · ${wallet.currency === "USD" ? "$" : "៛"}`}>
+        <div className="space-y-4">
+          <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm">
+            {parsed.opening_balance !== null && (
+              <>
+                <dt className="text-muted-foreground">{t("recon.confirmOpening", { date: `${shortDate(parsed.period_start)}/${parsed.period_start.slice(0, 4)}` })}</dt>
+                <dd className="text-right font-medium tabular-nums">{formatMoney(parsed.opening_balance, wallet.currency)}</dd>
+              </>
+            )}
+            <dt className="text-muted-foreground">{t("recon.confirmIncome", { count: addIncome.length })}</dt>
+            <dd className="text-right font-medium text-emerald-600 tabular-nums dark:text-emerald-400">
+              {formatMoney(addIncome.reduce((sum, l) => sum + l.amount, 0), wallet.currency, { signed: true })}
+            </dd>
+            <dt className="text-muted-foreground">{t("recon.confirmExpense", { count: addExpense.length })}</dt>
+            <dd className="text-right font-medium tabular-nums">{formatMoney(addExpense.reduce((sum, l) => sum + l.amount, 0), wallet.currency)}</dd>
+            {matchedLines.length > 0 && (
+              <>
+                <dt className="text-muted-foreground">{t("recon.confirmMatched")}</dt>
+                <dd className="text-right font-medium tabular-nums">{matchedLines.length}</dd>
+              </>
+            )}
+            {adjustment !== 0 && (
+              <>
+                <dt className="text-muted-foreground">{t("recon.confirmAdjust")}</dt>
+                <dd className="text-right font-medium tabular-nums">{formatMoney(adjustment, wallet.currency, { signed: true })}</dd>
+              </>
+            )}
+            <dt className="border-t pt-2 text-muted-foreground">{t("recon.confirmBalanceAt", { date: shortDate(parsed.period_end) })}</dt>
+            <dd className="border-t pt-2 text-right font-semibold tabular-nums">{formatMoney(balanceAtEnd, wallet.currency)}</dd>
+            <dt className="text-muted-foreground">{t("recon.confirmBalanceNow")}</dt>
+            <dd className="text-right font-semibold tabular-nums">{formatMoney(balanceNow, wallet.currency)}</dd>
+          </dl>
+          {closing !== null &&
+            (balanceAtEnd === round(closing, scale) ? (
+              <p className="flex items-center gap-2 text-sm font-medium text-[#10B981]">
+                <CircleCheckIcon className="size-4" aria-hidden />
+                {t("recon.confirmMatchesBank")}
+              </p>
+            ) : (
+              <p className="text-xs text-amber-700 dark:text-amber-400">{t("recon.confirmNotMatching", { amount: formatMoney(closing, wallet.currency) })}</p>
+            ))}
+          <Button className="h-12 w-full text-base" onClick={() => save.mutate(undefined, { onSettled: () => setConfirming(false) })} disabled={save.isPending}>
+            {save.isPending ? <Loader2Icon className="animate-spin" /> : <CheckIcon />}
+            {t("recon.confirmImport")}
+          </Button>
+        </div>
+      </BottomSheet>
     </div>
   )
 }
