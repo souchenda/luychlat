@@ -106,7 +106,7 @@ async function whisper(provider: Provider, audio: { blob: Blob; name: string }, 
 async function gemini(key: string, audio: { blob: Blob; name: string }) {
   try {
     const data = Buffer.from(await audio.blob.arrayBuffer()).toString("base64")
-    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
