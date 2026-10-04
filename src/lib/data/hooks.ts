@@ -16,6 +16,7 @@ import type {
   DebtInput,
   EntryInput,
   RepaymentInput,
+  TrancheInput,
   TelegramSettings,
   TontineCollectInput,
   TontineInput,
@@ -358,6 +359,15 @@ export function useDebts(workspaceId: string | undefined) {
   })
 }
 
+export function useTranches(workspaceId: string | undefined, debtId: string | undefined) {
+  const { repo, scope } = useRepo()
+  return useQuery({
+    queryKey: [...queryKeys.repayments(scope, workspaceId ?? ""), "tranches", debtId],
+    queryFn: () => repo.listTranches(debtId!),
+    enabled: Boolean(workspaceId && debtId),
+  })
+}
+
 export function useRepayments(workspaceId: string | undefined, debtId: string | undefined) {
   const { repo, scope } = useRepo()
   return useQuery({
@@ -391,6 +401,8 @@ export function useDebtMutations(workspaceId: string | undefined) {
     }),
     recordRepayment: useMutation({ mutationFn: (input: RepaymentInput) => repo.recordRepayment(input), onSuccess: moneyMoved }),
     deleteRepayment: useMutation({ mutationFn: (id: string) => repo.deleteRepayment(id), onSuccess: moneyMoved }),
+    addTranche: useMutation({ mutationFn: (input: TrancheInput) => repo.addTranche(input), onSuccess: moneyMoved }),
+    deleteTranche: useMutation({ mutationFn: (id: string) => repo.deleteTranche(id), onSuccess: moneyMoved }),
   }
 }
 

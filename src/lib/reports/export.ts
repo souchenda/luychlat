@@ -157,7 +157,7 @@ export async function exportDebtsXlsx(input: {
     ],
     ...sortedRepayments.map((r) => {
       const d = debtById.get(r.debt_id)
-      return [d?.party_name ?? "", new Date(r.payment_date), r.amount_paid, d?.currency ?? "", wallet.get(r.wallet_id) ?? "", r.note ?? ""]
+      return [d?.party_name ?? "", new Date(r.payment_date), r.amount_paid, d?.currency ?? "", (r.wallet_id ? wallet.get(r.wallet_id) ?? "" : L(lang, "កត់ត្រាតែប៉ុណ្ណោះ", "Record only")), r.note ?? ""]
     }),
   ]
   const repay$ = await buildSheet(repaymentRows, [22, 18, 12, 10, 18, 28], (r, c) =>

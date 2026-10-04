@@ -13,6 +13,8 @@ import type {
   DebtDisbursement,
   DebtInput,
   DebtRepayment,
+  DebtTranche,
+  TrancheInput,
   EntryInput,
   RepaymentInput,
   TelegramSettings,
@@ -142,8 +144,14 @@ export interface DataRepo {
    * remaining balance.
    */
   recordRepayment(input: RepaymentInput): Promise<DebtRepayment>
-  /** Deletes the repayment's ledger row, which reverses the wallet and the debt. */
+  /** Deletes the repayment (and its ledger row, which reverses the wallet) and restores the debt. */
   deleteRepayment(id: string): Promise<void>
+  /** Oldest first. */
+  listTranches(debtId: string): Promise<DebtTranche[]>
+  /** Raises the debt total; with a wallet, also moves the money. */
+  addTranche(input: TrancheInput): Promise<DebtTranche>
+  /** Lowers the total (never below what was repaid) and undoes the wallet movement. */
+  deleteTranche(id: string): Promise<void>
 
   /** Newest first. */
   listNotifications(workspaceId: string): Promise<AppNotification[]>

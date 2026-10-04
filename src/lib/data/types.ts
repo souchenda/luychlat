@@ -219,12 +219,16 @@ export type DebtInput = {
 export type DebtRepayment = {
   id: string
   debt_id: string
-  wallet_id: string
+  /** Null for a record-only repayment (history only, no money moved). */
+  wallet_id: string | null
   /** In the debt currency. */
   amount_paid: number
   payment_date: string
   note: string | null
-  transaction_id: string
+  /** Null for a record-only repayment. */
+  transaction_id: string | null
+  /** Slip photo (receipts bucket path). */
+  attachment_path?: string | null
   created_at: string
 } & Attribution
 
@@ -305,15 +309,44 @@ export type TontineCollectInput = {
   note: string | null
 }
 
+/** More money borrowed / lent later on the same debt ("ខ្ចីបន្ថែម"); the debt total includes it. */
+export type DebtTranche = {
+  id: string
+  debt_id: string
+  amount: number
+  tranche_date: string
+  note: string | null
+  attachment_path: string | null
+  /** Set when the money was moved through a wallet. */
+  wallet_id: string | null
+  transaction_id: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export type TrancheInput = {
+  debt_id: string
+  amount: number
+  date: string
+  note: string | null
+  /** Null: record only. */
+  wallet_id: string | null
+  exchange_rate: number | null
+  attachment_path: string | null
+}
+
 export type RepaymentInput = {
   debt_id: string
-  wallet_id: string
+  /** Null: record only — lowers the debt, moves no money. */
+  wallet_id: string | null
   /** In the debt currency. */
   amount: number
   /** KHR per 1 USD; required when the wallet uses the other currency. */
   exchange_rate: number | null
   payment_date: string
   note: string | null
+  /** Slip photo already uploaded (receipts bucket path). */
+  attachment_path?: string | null
 }
 
 export type Category = {

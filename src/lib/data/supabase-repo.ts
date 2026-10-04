@@ -18,6 +18,7 @@ import {
   type WorkspaceMember,
   type Debt,
   type DebtRepayment,
+  type DebtTranche,
   type TelegramSettings,
   type Tontine,
   type TontinePayment,
@@ -538,6 +539,7 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
           p_exchange_rate: input.exchange_rate,
           p_payment_date: input.payment_date,
           p_note: input.note,
+          p_attachment: input.attachment_path ?? null,
         }),
       ) as DebtRepayment
       return toRepayment(row)
@@ -545,10 +547,51 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
 
     async deleteRepayment(id) {
       const row = unwrap(
-        await supabase.from("debt_repayments").select("transaction_id").eq("id", id).single(),
-      ) as Pick<DebtRepayment, "transaction_id">
-      // Cascades to the repayment; triggers restore the wallet and the debt.
-      await repo.deleteTransaction(row.transaction_id)
+        await supabase.from("debt_repayments").select("transaction_id, attachment_path").eq("id", id).single(),
+      ) as Pick<DebtRepayment, "transaction_id" | "attachment_path">
+      if (row.transaction_id) {
+        // Cascades to the repayment; triggers restore the wallet and the debt.
+        await repo.deleteTransaction(row.transaction_id)
+        return
+      }
+      // Record-only: just the row (the debt is re-derived by a trigger), and its slip.
+      unwrap(await supabase.from("debt_repayments").delete().eq("id", id))
+      if (row.attachment_path) await repo.deleteReceipt(row.attachment_path)
+    },
+
+    async listTranches(debtId) {
+      const rows = unwrap(
+        await supabase
+          .from("debt_tranches")
+          .select("*")
+          .eq("debt_id", debtId)
+          .order("tranche_date", { ascending: true })
+          .order("created_at", { ascending: true }),
+      ) as DebtTranche[]
+      return rows.map((r) => ({ ...r, amount: Number(r.amount) }))
+    },
+
+    async addTranche(input) {
+      const row = unwrap(
+        await supabase.rpc("add_debt_tranche", {
+          p_debt_id: input.debt_id,
+          p_amount: input.amount,
+          p_date: input.date,
+          p_note: input.note,
+          p_wallet_id: input.wallet_id,
+          p_exchange_rate: input.exchange_rate,
+          p_attachment: input.attachment_path,
+        }),
+      ) as DebtTranche
+      return { ...row, amount: Number(row.amount) }
+    },
+
+    async deleteTranche(id) {
+      const row = unwrap(
+        await supabase.from("debt_tranches").select("attachment_path").eq("id", id).single(),
+      ) as Pick<DebtTranche, "attachment_path">
+      unwrap(await supabase.rpc("delete_debt_tranche", { p_tranche_id: id }))
+      if (row.attachment_path) await repo.deleteReceipt(row.attachment_path).catch(() => {})
     },
 
     // --- notifications (created by the daily run_debt_alerts() job) ---------

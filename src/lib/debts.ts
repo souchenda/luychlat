@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, differenceInCalendarMonths, format, parseISO } from "date-fns"
+import { addMonths, differenceInCalendarDays, differenceInCalendarMonths, differenceInMonths, format, parseISO } from "date-fns"
 
 import type { Debt, DebtStatus } from "@/lib/data/types"
 import { roundMoney } from "@/lib/money"
@@ -35,6 +35,23 @@ export function debtStatus(
 export function daysLeft(debt: Pick<Debt, "due_date">, today: string = todayDate()): number | null {
   if (!debt.due_date) return null
   return differenceInCalendarDays(parseISO(debt.due_date), parseISO(today))
+}
+
+/**
+ * How long a debt has been overdue as whole months plus leftover days
+ * (due 2026-01-10, today 2026-08-16: 7 months 6 days, 218 days in all).
+ * Null when it isn't overdue.
+ */
+export function overdueSpan(
+  debt: Pick<Debt, "due_date">,
+  today: string = todayDate(),
+): { months: number; days: number; total: number } | null {
+  const left = daysLeft(debt, today)
+  if (left === null || left >= 0) return null
+  const due = parseISO(debt.due_date!)
+  const now = parseISO(today)
+  const months = differenceInMonths(now, due)
+  return { months, days: differenceInCalendarDays(now, addMonths(due, months)), total: -left }
 }
 
 /**

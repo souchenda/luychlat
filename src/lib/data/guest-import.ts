@@ -135,7 +135,7 @@ export function buildImportPayload(
       debt_id: t.debt_id && debtIds.has(t.debt_id) ? t.debt_id : null,
     })),
     repayments: data.repayments
-      .filter((r) => debtIds.has(r.debt_id) && txIds.has(r.transaction_id))
+      .filter((r) => debtIds.has(r.debt_id) && r.transaction_id != null && txIds.has(r.transaction_id))
       .map(({ id, debt_id, wallet_id, amount_paid, payment_date, note, transaction_id, created_at }) => ({
         id,
         debt_id,
