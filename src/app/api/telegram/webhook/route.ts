@@ -13,6 +13,7 @@ import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
 import { sendDigestNow } from "@/lib/server/weekly-digest"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
+import { marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 
 /**
@@ -57,6 +58,10 @@ async function handleGroupMessage(chatId: number, text: string, lang: Locale) {
   if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
     const answer = await marketAnswer(text, lang)
     if (answer) await sendText(chatId, answer)
+    return
+  }
+  if (/^\/market(@\w+)?$/i.test(command)) {
+    await sendText(chatId, marketSnapshotText(await currentMarket(), lang, phnomPenhToday().day))
     return
   }
   if (/^\/(fuel|gas)(@\w+)?$/i.test(command)) {
@@ -250,6 +255,10 @@ export async function POST(request: Request) {
   } else if (/^\/setfuel(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: MoC fuel and gas prices for a 10-day cycle (others get the normal help).
     await sendText(chatId, await setFuelReply(message.text, chatId))
+  } else if (/^\/market(@\w+)?$/i.test(command)) {
+    // The whole market snapshot (NBC, gold, fuel): for every chat, linked or not.
+    const ctx = await botContext(chatId)
+    await sendText(chatId, marketSnapshotText(await currentMarket(), ctx?.linked ? contextLocale(ctx) : lang, phnomPenhToday().day))
   } else if (/^\/(fuel|gas)(@\w+)?$/i.test(command)) {
     // Fuel and gas prices: for every chat, linked or not.
     const ctx = await botContext(chatId)

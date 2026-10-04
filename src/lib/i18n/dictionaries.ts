@@ -2496,6 +2496,14 @@ const km = {
   "fuel.perL": "៛/លីត្រ",
   "fuel.perKg": "៛/គីឡូ",
   "bot.groupPrivate": "🔒 ដើម្បីសុវត្ថិភាព និងឯកជនភាពហិរញ្ញវត្ថុរបស់អ្នក សូមចូលទៅកាន់ Chat ផ្ទាល់ខ្លួនជាមួយខ្ញុំ {bot}",
+  "bot.marketTitle": "📊 ហាងឆេងទីផ្សារ · LuyChlat",
+  "bot.marketNbc": "💵 អត្រាប្ដូរប្រាក់ផ្លូវការ NBC (គិតត្រឹម {date})",
+  "bot.marketLocalGold": "🪙 មាសហាង CSNJ ក្នុង ១ តម្លឹង ({date})",
+  "bot.marketSellBuy": "លក់ {sell} | ទិញ {buy}",
+  "bot.marketPerChi": "១ ជី {sell} | {buy}",
+  "bot.marketWorldGold": "🌍 តម្លៃយោងមាសអន្តរជាតិ (ក្នុង ១ តម្លឹង)",
+  "bot.marketChi": "១ ជី {price}",
+  "bot.marketCta": "🧮 គណនា៖ /rate 100 usd · /gold 2 ជី · /fuel",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4981,6 +4989,14 @@ const en: Record<MessageKey, string> = {
   "fuel.perL": "៛/L",
   "fuel.perKg": "៛/kg",
   "bot.groupPrivate": "🔒 For your financial safety and privacy, please message me in a private chat: {bot}",
+  "bot.marketTitle": "📊 Market snapshot · LuyChlat",
+  "bot.marketNbc": "💵 Official NBC exchange rates (as of {date})",
+  "bot.marketLocalGold": "🪙 CSNJ shop gold, per damlung ({date})",
+  "bot.marketSellBuy": "sell {sell} | buy {buy}",
+  "bot.marketPerChi": "per chi {sell} | {buy}",
+  "bot.marketWorldGold": "🌍 World gold reference (per damlung)",
+  "bot.marketChi": "per chi {price}",
+  "bot.marketCta": "🧮 Calculate: /rate 100 usd · /gold 2 chi · /fuel",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

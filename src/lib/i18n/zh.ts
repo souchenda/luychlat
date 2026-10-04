@@ -2447,4 +2447,12 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "fuel.perL": "៛/升",
   "fuel.perKg": "៛/公斤",
   "bot.groupPrivate": "🔒 为了您的财务安全与隐私，请在私聊中与我对话：{bot}",
+  "bot.marketTitle": "📊 市场行情 · LuyChlat",
+  "bot.marketNbc": "💵 NBC 官方汇率（截至 {date}）",
+  "bot.marketLocalGold": "🪙 CSNJ 金店金价（每两，{date}）",
+  "bot.marketSellBuy": "卖 {sell} | 买 {buy}",
+  "bot.marketPerChi": "每钱 {sell} | {buy}",
+  "bot.marketWorldGold": "🌍 国际金价参考（每两）",
+  "bot.marketChi": "每钱 {price}",
+  "bot.marketCta": "🧮 计算：/rate 100 usd · /gold 2钱 · /fuel",
 }

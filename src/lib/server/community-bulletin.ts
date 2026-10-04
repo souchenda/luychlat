@@ -1,7 +1,7 @@
 // Server only: the daily market bulletin for the LuyChlat community channel / group.
 import { longDate } from "@/lib/dates"
 import { homeGreeting, isMeritDay } from "@/lib/holidays"
-import { dictionaries, type MessageKey } from "@/lib/i18n/dictionaries"
+import { dictionaries, type Locale, type MessageKey } from "@/lib/i18n/dictionaries"
 import { fuelLines } from "@/lib/bot/fuel"
 import type { MarketLive } from "@/lib/market-calc"
 import { currentMarket, hasLocalToday, syncMarket } from "@/lib/server/market-sync"
@@ -199,4 +199,41 @@ async function maybeSendEveningRates(chat: string, now: ReturnType<typeof phnomP
   if (claimed !== true) return
   const res = await postReplacing(chat, { text, disable_web_page_preview: true, ...(await postButtons()) })
   logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Evening NBC rates sent to ${chat} (as of ${market.nbc.date})` : `Evening NBC post failed: ${res.description ?? "unknown"}`)
+}
+
+/**
+ * /market in the bot: the whole snapshot in one message — NBC rates (with the
+ * As-of day), gold (local CSNJ kilo / jewelry per damlung and per chi when
+ * recent, plus the world 24K / 18K reference) and MoC fuel & gas.
+ */
+export function marketSnapshotText(market: MarketLive | null, locale: Locale, today: string): string {
+  const km = locale === "km"
+  const t = (key: MessageKey, params?: Record<string, string | number>) =>
+    Object.entries(params ?? {}).reduce((text, [k, v]) => text.replaceAll(`{${k}}`, String(v)), dictionaries[locale][key] as string)
+  const d = (s: string) => (km ? kmDigits(s) : s)
+  const lines = [t("bot.marketTitle")]
+  const nbc = market?.nbc
+  if (nbc) {
+    lines.push("", t("bot.marketNbc", { date: d(nbc.date.split("-").reverse().join("/")) }))
+    for (const code of ["USD", "THB", "VND", "CNY", "EUR"]) {
+      const v = nbc.khr_per[code]
+      if (v) lines.push(rateLine(code, v))
+    }
+  }
+  const local = market?.local_gold && Date.parse(`${today}T00:00:00Z`) - Date.parse(`${market.local_gold.date}T00:00:00Z`) <= 3 * 86_400_000 ? market.local_gold : null
+  if (local) {
+    lines.push("", t("bot.marketLocalGold", { date: d(local.date.split("-").reverse().join("/")) }))
+    lines.push(`• ${t("bot.goldKilo")}: ${t("bot.marketSellBuy", { sell: fmtUsd(local.kilo.sell), buy: fmtUsd(local.kilo.buy) })} · ${t("bot.marketPerChi", { sell: fmtUsd(local.kilo.sell / 10), buy: fmtUsd(local.kilo.buy / 10) })}`)
+    if (local.jewelry) lines.push(`• ${t("bot.goldJewelry")}: ${t("bot.marketSellBuy", { sell: fmtUsd(local.jewelry.sell), buy: fmtUsd(local.jewelry.buy) })} · ${t("bot.marketPerChi", { sell: fmtUsd(local.jewelry.sell / 10), buy: fmtUsd(local.jewelry.buy / 10) })}`)
+  }
+  const ref = market?.gold?.reference
+  if (ref?.GOLD_24K || ref?.GOLD_18K) {
+    lines.push("", t("bot.marketWorldGold"))
+    if (ref.GOLD_24K) lines.push(`• 24K: ${fmtUsd(ref.GOLD_24K)} · ${t("bot.marketChi", { price: fmtUsd(ref.GOLD_24K / 10) })}`)
+    if (ref.GOLD_18K) lines.push(`• 18K: ${fmtUsd(ref.GOLD_18K)} · ${t("bot.marketChi", { price: fmtUsd(ref.GOLD_18K / 10) })}`)
+  }
+  if (market?.fuel) lines.push("", ...fuelLines(market.fuel, t, today, locale))
+  if (lines.length === 1) lines.push("", t("bot.rateNone"))
+  lines.push("", t("bot.marketCta"))
+  return lines.join("\n")
 }
