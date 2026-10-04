@@ -100,6 +100,7 @@ type Amount = { value: number; currency: Currency | null; start: number; end: nu
 export function parseAmountText(raw: string): Amount | null {
   const text = toLatinDigits(raw)
   const re = /(\$\s*)?(\d[\d,]*(?:\.\d+)?)\s*(k(?![a-z])|ពាន់|ម៉ឺន|លាន|រៀល|៛|\$|usd(?![a-z])|dollars?(?![a-z])|ដុល្លារ|riels?(?![a-z])|美元|美金|瑞尔|千|万)?/giu
+  const candidates: (Amount & { marked: boolean })[] = []
   for (const m of text.matchAll(re)) {
     let digits = m[2]
     // "20,000" is twenty thousand; a lone "2,5" is a decimal comma.
@@ -114,9 +115,21 @@ export function parseAmountText(raw: string): Amount | null {
       currency ??= "KHR"
     } else if (unit === "រៀល" || unit === "៛" || unit === "瑞尔" || unit.startsWith("riel")) currency = "KHR"
     else if (unit === "$" || unit === "usd" || unit.startsWith("dollar") || unit === "ដុល្លារ" || unit === "美元" || unit === "美金") currency = "USD"
-    return { value, currency, start: m.index!, end: m.index! + m[0].length }
+    let end = m.index! + m[0].length
+    // Spoken "ពីរដុល្លារកន្លះ" = $2.50.
+    const half = text.slice(end).match(/^\s*កន្លះ/u)
+    if (half && currency === "USD" && multiplier === 1) {
+      value += 0.5
+      end += half[0].length
+    }
+    const found = { value, currency, start: m.index!, end, marked: Boolean(currency) || multiplier > 1 }
+    // A number with a currency or ពាន់ / ម៉ឺន is the amount; otherwise keep looking.
+    if (found.marked) return { value: found.value, currency: found.currency, start: found.start, end: found.end }
+    candidates.push(found)
   }
-  return null
+  // No marked number: the largest is the price, not a quantity ("ទឹក 1 កេស 6000" → 6000).
+  const best = candidates.sort((a, b) => b.value - a.value)[0]
+  return best ? { value: best.value, currency: best.currency, start: best.start, end: best.end } : null
 }
 
 /** The wallet named in the message (longest match wins). */

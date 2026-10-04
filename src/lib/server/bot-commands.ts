@@ -175,7 +175,11 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
   const route = isRouting(ctx)
   const { workspace: ws, text: input } = route ? routeWorkspace(text, all, ctx.workspace_id ?? all[0].id) : { workspace: all[0], text }
   const parsed = parseEntry(input, { wallets: ws.wallets, categories: ws.categories, debts: ws.debts, rate: ws.rate })
-  if (!parsed.ok) return reply(failureText(parsed, ws, lang))
+  if (!parsed.ok) {
+    // A voice note without an amount: say exactly what was heard instead of the general hint.
+    if (heard && parsed.reason === "no_amount") return sendText(chatId, tr(lang, "bot.voiceNoAmount", { text: heard }))
+    return reply(failureText(parsed, ws, lang))
+  }
 
   const pendingId = await propose(chatId, parsed, ws, { text: input, heard, route })
   if (!pendingId) return reply(tr(lang, "bot.saveFailed"))
@@ -304,7 +308,12 @@ export async function handleVoiceMessage(chatId: number, voice: Voice, ctx: Cont
   }
   if (audio.size > MAX_VOICE_BYTES) return sendText(chatId, tr(lang, "bot.voiceTooLong"))
 
-  const text = (await transcribe(audio, lang))?.replace(/\s+/g, " ").slice(0, 300)
+  const transcript = await transcribe(audio, lang)
+  const text = transcript?.text.replace(/\s+/g, " ").slice(0, 300)
+  // Server log (not the admin event log): what was heard, to diagnose recognition problems.
+  console.info(
+    `[voice] chat …${String(chatId).slice(-4)} · chat language ${lang} · heard ${transcript?.language ?? "?"}${transcript?.retried ? " (asked again as Khmer)" : ""} · ${text ? `"${text.slice(0, 120)}"` : "no text"}`,
+  )
   if (!text) return sendText(chatId, tr(lang, "bot.voiceFailed"))
   // Speech-to-text writes amounts as Khmer words ("ពីរដុល្លារ"): turn them into digits for the parser.
   return handleEntryMessage(chatId, khmerWordsToDigits(text), ctx, text)

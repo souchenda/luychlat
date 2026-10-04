@@ -2455,4 +2455,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.marketWorldGold": "🌍 国际金价参考（每两）",
   "bot.marketChi": "每钱 {price}",
   "bot.marketCta": "🧮 计算：/rate 100 usd · /gold 2钱 · /fuel",
+  "bot.voiceNoAmount": "🤔 我听到的是：“{text}”，但没有找到金额。请再说一次，并说明金额和货币，例如“买水 1000 瑞尔”或“咖啡 2 美元”。",
 }

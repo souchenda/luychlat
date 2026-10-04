@@ -22,16 +22,19 @@ const HINT_KM = "ចំណាយ ចំណូល សងបំណុល ដុល
 const HINT_ZH = "支出 收入 还款 美元 瑞尔 咖啡 午饭 汽油 工资 ABA ACLEDA Wing"
 const HINT_EN = "expense income repay dollars riel coffee lunch fuel salary ABA ACLEDA Wing"
 
-export async function transcribe(audio: Blob, language: Locale): Promise<string | null> {
-  const provider = transcriptionProvider()
-  if (!provider) return null
+export type Transcript = { text: string; language: string | null; retried: boolean }
+
+/** Khmer script in a transcript. */
+const KHMER = /[ក-៿]/
+
+async function request(provider: Provider, audio: Blob, language: Locale | null, hint: string): Promise<{ text: string; language: string | null } | null> {
   const form = new FormData()
   form.append("file", audio, "voice.ogg")
   form.append("model", provider.model)
-  form.append("language", language)
+  if (language) form.append("language", language)
   form.append("temperature", "0")
-  form.append("response_format", "json")
-  form.append("prompt", language === "km" ? HINT_KM : language === "zh" ? HINT_ZH : HINT_EN)
+  form.append("response_format", "verbose_json")
+  form.append("prompt", hint)
   try {
     const res = await fetch(provider.url, {
       method: "POST",
@@ -40,10 +43,35 @@ export async function transcribe(audio: Blob, language: Locale): Promise<string 
       cache: "no-store",
       signal: AbortSignal.timeout(30_000),
     })
-    if (!res.ok) return null
-    const data = (await res.json()) as { text?: string }
-    return data.text?.trim() || null
-  } catch {
+    if (!res.ok) {
+      // Status and the provider's message only — never the key or the audio.
+      console.error(`[voice] transcription failed: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`)
+      return null
+    }
+    const data = (await res.json()) as { text?: string; language?: string }
+    const text = data.text?.trim()
+    return text ? { text, language: data.language?.toLowerCase() ?? null } : null
+  } catch (error) {
+    console.error(`[voice] transcription error: ${(error as Error).message}`)
     return null
   }
+}
+
+/**
+ * Speech to text. The spoken language is detected, not taken from the chat's
+ * language (a chat set to English often speaks Khmer). When Whisper hears
+ * Khmer as Thai / Lao, or a Khmer chat gets no Khmer back, it is asked again
+ * with Khmer set.
+ */
+export async function transcribe(audio: Blob, chatLanguage: Locale): Promise<Transcript | null> {
+  const provider = transcriptionProvider()
+  if (!provider) return null
+  const hint = chatLanguage === "km" ? HINT_KM : chatLanguage === "zh" ? HINT_ZH : HINT_EN
+  const first = await request(provider, audio, null, hint)
+  const looksKhmer = first ? KHMER.test(first.text) || first.language === "khmer" || first.language === "km" : false
+  const misheard = first?.language === "thai" || first?.language === "lao" || first?.language === "th" || first?.language === "lo"
+  if (first && (looksKhmer || (!misheard && chatLanguage !== "km"))) return { ...first, retried: false }
+  const khmer = await request(provider, audio, "km", HINT_KM)
+  if (khmer) return { ...khmer, language: "khmer", retried: true }
+  return first ? { ...first, retried: false } : null
 }
