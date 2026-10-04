@@ -3,7 +3,7 @@ import dns, { type LookupAddress, type LookupOptions } from "dns"
 import https from "https"
 
 import { findCsnjItem, parseCsnjArticle, plausible, type LocalGold } from "@/lib/local-gold"
-import { khrPerUnit, NBC_CURRENCIES, pickNbc, referenceRates, type MarketLive, type NbcRates } from "@/lib/market-calc"
+import { khrPerUnit, NBC_CURRENCIES, pickNbc, referenceRates, type FuelPrices, type MarketLive, type NbcRates } from "@/lib/market-calc"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 import { logEvent } from "@/lib/server/events"
 
@@ -171,6 +171,14 @@ export async function setManualRate(input: { usd_khr: number; date: string } | "
   return (await store(next)) ? next : null
 }
 
+/** /setfuel and /admin: the MoC fuel and gas prices for a 10-day cycle. */
+export async function setFuelPrices(input: Omit<FuelPrices, "source" | "updated_at">): Promise<MarketLive | null> {
+  const previous = await currentMarket()
+  const fuel: FuelPrices = { ...input, source: "manual", updated_at: new Date().toISOString() }
+  const next: MarketLive = { ...(previous ?? { fetched_at: new Date().toISOString() }), fuel }
+  return (await store(next)) ? next : null
+}
+
 let lastNbcTry = 0
 /**
  * Working days 16:30–19:00 Cambodia time: NBC publishes the next working day's
@@ -217,6 +225,8 @@ export function syncMarket(force = false): Promise<MarketLive | null> {
         nbc: pickNbc(previous?.nbc, nbc),
         gold: gold ?? previous?.gold,
         local_gold: pickLocal(previous?.local_gold, local),
+        // Entered by an admin; kept until replaced.
+        fuel: previous?.fuel,
       }
       return (await store(next)) ? next : previous
     } catch (error) {

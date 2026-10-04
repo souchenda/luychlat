@@ -26,6 +26,70 @@ export type MarketLive = {
   /** Phnom Penh counter prices (CSNJ via Oknha News, or an admin's /setgold). */
   local_gold?: LocalGold
   nbc?: NbcRates
+  /** Retail fuel and gas prices set by the Ministry of Commerce (entered by an admin). */
+  fuel?: FuelPrices
+}
+
+/**
+ * Fuel and gas retail ceilings published by the Ministry of Commerce (MoC)
+ * for each 10-day cycle (1–10, 11–20, 21–end of month), in riel. There is no
+ * automatic source: an admin enters them (/admin or Telegram /setfuel).
+ */
+export type FuelPrices = {
+  /** Regular gasoline (EA92), ៛ per litre. */
+  regular: number
+  /** Super gasoline, ៛ per litre. */
+  super: number
+  /** Diesel, ៛ per litre. */
+  diesel: number
+  /** LPG, ៛ per kg or per litre (see lpg_unit); null when not given. */
+  lpg: number | null
+  lpg_unit: "kg" | "L"
+  /** The cycle the prices are for (YYYY-MM-DD, inclusive). */
+  from: string
+  to: string
+  source: "manual"
+  updated_at: string
+}
+
+/** The MoC 10-day cycle containing a day: 1–10, 11–20, 21–end of month. */
+export function fuelCycle(day: string): { from: string; to: string } {
+  const [y, m, d] = day.split("-").map(Number)
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate()
+  const [a, b] = d <= 10 ? [1, 10] : d <= 20 ? [11, 20] : [21, last]
+  const p = (n: number) => String(n).padStart(2, "0")
+  return { from: `${y}-${p(m)}-${p(a)}`, to: `${y}-${p(m)}-${p(b)}` }
+}
+
+/**
+ * /setfuel <regular> <super> <diesel> [<lpg>[kg|L]] [<from dd-mm-yyyy> <to dd-mm-yyyy>]
+ * — riel per litre; the cycle defaults to the current one.
+ */
+export function parseSetFuel(text: string, today: string): Omit<FuelPrices, "source" | "updated_at"> | null {
+  const args = text.trim().split(/\s+/).slice(1)
+  const num = (v?: string) => Number((v ?? "").replace(/[,៛]/g, ""))
+  const [regular, sup, diesel] = [num(args[0]), num(args[1]), num(args[2])]
+  const ok = (n: number) => n >= 1000 && n <= 20000
+  if (![regular, sup, diesel].every(ok)) return null
+  let rest = args.slice(3)
+  let lpg: number | null = null
+  let unit: "kg" | "L" = "kg"
+  const lpgArg = rest[0]?.match(/^([\d,]+)(kg|l)?$/i)
+  if (lpgArg && !/^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(rest[0])) {
+    lpg = num(lpgArg[1])
+    if (!ok(lpg)) return null
+    unit = lpgArg[2]?.toLowerCase() === "l" ? "L" : "kg"
+    rest = rest.slice(1)
+  }
+  const date = (v?: string) => {
+    const m = v?.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/)
+    return m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : null
+  }
+  const cycle = fuelCycle(today)
+  const from = rest.length ? date(rest[0]) : cycle.from
+  const to = rest.length ? date(rest[1]) : cycle.to
+  if (!from || !to || to < from) return null
+  return { regular, super: sup, diesel, lpg, lpg_unit: unit, from, to }
 }
 
 /**

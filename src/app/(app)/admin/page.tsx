@@ -25,6 +25,7 @@ import { AccountControls, UserBadges, type DirectoryUser } from "@/components/ad
 import { ago, rpc, Section, Stat, useInvalidateAdmin, who } from "@/components/admin/ui"
 import { LocalGoldAdmin } from "@/components/admin/local-gold-admin"
 import { NbcRateAdmin } from "@/components/admin/nbc-rate-admin"
+import { FuelAdmin } from "@/components/admin/fuel-admin"
 import { SystemHealthCard } from "@/components/admin/system-health-card"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
@@ -630,6 +631,7 @@ export default function AdminPage() {
           <AboutInfoForm />
           <LocalGoldAdmin />
           <NbcRateAdmin />
+          <FuelAdmin />
         </>
       )}
     </div>

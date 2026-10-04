@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       { command: "help", description: "ជំនួយ · Help" },
       { command: "rate", description: "អត្រាប្ដូរប្រាក់ · Exchange rate · 汇率 (/rate 100 usd to khr)" },
       { command: "gold", description: "តម្លៃមាស · Gold price · 金价 (/gold 2 ជី)" },
+      { command: "fuel", description: "តម្លៃប្រេង & ហ្កាស · Fuel & gas prices · 油价" },
       { command: "digest", description: "សង្ខេបប្រចាំសប្ដាហ៍ · Weekly digest · 每周摘要" },
       { command: "nssf", description: "ប.ស.ស. · NSSF cards & info · 国家社保" },
       { command: "lang", description: "ភាសា · Language · 语言 (km / en / zh)" },

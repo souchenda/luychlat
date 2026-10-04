@@ -4,9 +4,10 @@ import { after, NextResponse } from "next/server"
 
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { asksForBalance, botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting, marketAnswer } from "@/lib/server/bot-commands"
-import { botDb, botKey, sendText, SIGNATURE, tr, webhookSecret } from "@/lib/server/telegram-bot"
-import { currentMarket, phnomPenhToday, setManualGold, setManualRate } from "@/lib/server/market-sync"
-import { parseSetRate } from "@/lib/market-calc"
+import { botDb, botKey, sendText, SIGNATURE, tg, tr, webhookSecret } from "@/lib/server/telegram-bot"
+import { currentMarket, phnomPenhToday, setFuelPrices, setManualGold, setManualRate } from "@/lib/server/market-sync"
+import { parseSetFuel, parseSetRate } from "@/lib/market-calc"
+import { fuelLines } from "@/lib/bot/fuel"
 import { transcriptionProvider } from "@/lib/server/transcribe"
 import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
@@ -41,6 +42,36 @@ type Update = {
   }
 }
 
+// Groups: the privacy note at most once per 10 minutes per group (no spam).
+const groupNoticeAt = new Map<number, number>()
+
+/**
+ * In a group the bot only answers public market questions (/rate, /gold,
+ * /fuel, /gas). Anything personal — logging, balances, /digest, /nssf, … —
+ * gets a short note pointing to the private chat, never data. Plain chatter
+ * is ignored.
+ */
+async function handleGroupMessage(chatId: number, text: string, lang: Locale) {
+  const command = text.trim().split(/\s+/, 1)[0] ?? ""
+  if (!command.startsWith("/")) return
+  if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
+    const answer = await marketAnswer(text, lang)
+    if (answer) await sendText(chatId, answer)
+    return
+  }
+  if (/^\/(fuel|gas)(@\w+)?$/i.test(command)) {
+    const fuel = (await currentMarket())?.fuel
+    await sendText(chatId, fuel ? fuelLines(fuel, (k, p) => tr(lang, k, p), phnomPenhToday().day, lang).join("\n") : tr(lang, "fuel.none"))
+    return
+  }
+  const now = Date.now()
+  if (now - (groupNoticeAt.get(chatId) ?? 0) < 10 * 60_000) return
+  groupNoticeAt.set(chatId, now)
+  if (groupNoticeAt.size > 5_000) groupNoticeAt.delete(groupNoticeAt.keys().next().value!)
+  const me = await tg<{ username?: string }>("getMe", {})
+  await sendText(chatId, tr(lang, "bot.groupPrivate", { bot: me.result?.username ? `@${me.result.username}` : "@luychlat_bot" }))
+}
+
 async function isAdminChat(chatId: number) {
   const { data } = await botDb().rpc("bot_admin_chats", { p_key: botKey() })
   return ((data as { chat_id: number }[] | null) ?? []).some((r) => Number(r.chat_id) === chatId)
@@ -51,6 +82,27 @@ const usd = (n: number) => `$${n.toLocaleString("en-US")}`
 const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}-${iso.slice(5, 7)}-${iso.slice(0, 4)}`
 
 /** /setrate <KHR per USD> [<as-of date>] · /setrate clear — NBC's newer official rate when the automatic feed lags. */
+/** /setfuel <regular> <super> <diesel> [<lpg>[kg|L]] [<from> <to>] — MoC prices for a 10-day cycle (admins). */
+async function setFuelReply(text: string, chatId: number) {
+  const today = phnomPenhToday().day
+  const input = parseSetFuel(text, today)
+  if (!input) {
+    const fuel = (await currentMarket())?.fuel
+    return [
+      "⛽ /setfuel <សាំងធម្មតា> <សាំងស៊ុបពែរ> <ម៉ាស៊ូត> [<ហ្កាស>kg|L] [<ពីថ្ងៃ> <ដល់ថ្ងៃ>]",
+      "ឧ. /setfuel 4150 4500 3950 3800kg  (វដ្ដ ១០ ថ្ងៃបច្ចុប្បន្ន)",
+      "ឧ. /setfuel 4150 4500 3950 3800kg 11-10-2026 20-10-2026",
+      ...(fuel ? ["", ...fuelLines(fuel, (k, p) => tr("km", k, p), today, "km")] : []),
+    ].join("\n")
+  }
+  const saved = await setFuelPrices(input)
+  if (!saved?.fuel) return "⚠️ មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។"
+  const note = `${input.regular}/${input.super}/${input.diesel}${input.lpg ? `/${input.lpg}${input.lpg_unit}` : ""} · ${input.from}–${input.to}`
+  logEvent("info", "setfuel", `Fuel prices set via Telegram: ${note}`)
+  await botDb().rpc("bot_admin_audit", { p_key: botKey(), p_chat_id: chatId, p_action: "SET_FUEL_PRICES", p_note: note })
+  return ["✅ បានកំណត់តម្លៃប្រេង៖", ...fuelLines(saved.fuel, (k, p) => tr("km", k, p), today, "km")].join("\n")
+}
+
 async function setRateReply(text: string, chatId: number) {
   const input = parseSetRate(text, phnomPenhToday().day)
   if (!input) {
@@ -150,6 +202,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
   const message = update.message
+  if (message && (message.chat.type === "group" || message.chat.type === "supergroup")) {
+    await handleGroupMessage(message.chat.id, message.text ?? "", telegramLocale(message.from?.language_code))
+    return NextResponse.json({ ok: true })
+  }
   if (!message || message.chat.type !== "private") return NextResponse.json({ ok: true })
 
   if (message.voice) {
@@ -191,6 +247,15 @@ export async function POST(request: Request) {
   } else if (/^\/setgold(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: today's Phnom Penh gold counter prices (others get the normal help).
     await sendText(chatId, await setGoldReply(message.text, chatId))
+  } else if (/^\/setfuel(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
+    // Admins only: MoC fuel and gas prices for a 10-day cycle (others get the normal help).
+    await sendText(chatId, await setFuelReply(message.text, chatId))
+  } else if (/^\/(fuel|gas)(@\w+)?$/i.test(command)) {
+    // Fuel and gas prices: for every chat, linked or not.
+    const ctx = await botContext(chatId)
+    const replyLang = ctx?.linked ? contextLocale(ctx) : lang
+    const fuel = (await currentMarket())?.fuel
+    await sendText(chatId, fuel ? fuelLines(fuel, (k, p) => tr(replyLang, k, p), phnomPenhToday().day, replyLang).join("\n") : tr(replyLang, "fuel.none"))
   } else if (/^\/setrate(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: NBC's newer official USD rate (others get the normal help).
     await sendText(chatId, await setRateReply(message.text, chatId))

@@ -6,6 +6,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { CurrencyConverter } from "@/components/market/currency-converter"
+import { fuelLines } from "@/lib/bot/fuel"
 import { nbcShortDate, NbcStamp } from "@/components/market/nbc-stamp"
 import { SettingsGroup, SettingsSubHeader } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
@@ -100,6 +101,19 @@ export default function MarketPage() {
               <ChevronDownIcon className={cn("size-4 transition-transform", allCurrencies && "rotate-180")} aria-hidden />
             </button>
           )}
+        </SettingsGroup>
+      )}
+
+      {/* Fuel and gas (Ministry of Commerce, 10-day cycle), entered by an admin. */}
+      {market?.fuel && (
+        <SettingsGroup title={t("fuel.section")}>
+          <div className="space-y-1 px-4 py-3 text-sm">
+            {fuelLines(market.fuel, t, new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10), locale).map((line, i) => (
+              <p key={i} className={i === 0 ? "text-xs text-muted-foreground" : "tabular-nums"}>
+                {line}
+              </p>
+            ))}
+          </div>
         </SettingsGroup>
       )}
 

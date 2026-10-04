@@ -1,7 +1,8 @@
 // Server only: the daily market bulletin for the LuyChlat community channel / group.
 import { longDate } from "@/lib/dates"
 import { homeGreeting, isMeritDay } from "@/lib/holidays"
-import { dictionaries } from "@/lib/i18n/dictionaries"
+import { dictionaries, type MessageKey } from "@/lib/i18n/dictionaries"
+import { fuelLines } from "@/lib/bot/fuel"
 import type { MarketLive } from "@/lib/market-calc"
 import { currentMarket, hasLocalToday, syncMarket } from "@/lib/server/market-sync"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
@@ -88,7 +89,13 @@ export function bulletinText(date: Date, market: MarketLive | null, today = ymd(
     lines.push("", "🪙 តម្លៃយោងមាសទីផ្សារពិភពលោក (ក្នុង ១ តម្លឹង)")
     if (ref.GOLD_24K) lines.push(`• មាសទឹក១០ 24K៖ $${fmt(ref.GOLD_24K)}`)
     if (ref.GOLD_18K) lines.push(`• មាស 18K៖ $${fmt(ref.GOLD_18K)}`)
-    lines.push("(ចំណាំ៖ ជាតម្លៃយោងទីផ្សារអន្តរជាតិ — តម្លៃជាក់ស្តែងអាចមានការប្រែប្រួលទៅតាមបណ្តាហាងមាសក្នុងស្រុក)")
+    lines.push("(ចំណាំ៖ តម្លៃយោងទីផ្សារអន្តរជាតិ — តម្លៃជាក់ស្តែងអាចប្រែប្រួលតាមបណ្តាហាងមាសក្នុងស្រុក)")
+  }
+  // Fuel and gas (MoC, 10-day cycle), when an admin has entered them.
+  if (market?.fuel) {
+    const kmT = (key: MessageKey, params?: Record<string, string | number>) =>
+      Object.entries(params ?? {}).reduce((text, [k, v]) => text.replaceAll(`{${k}}`, String(v)), km[key] as string)
+    lines.push("", ...fuelLines(market.fuel, kmT, today, "km"))
   }
   const tip = tipOfTheDay(date)
   lines.push("", `💡 គន្លឹះថ្ងៃនេះ៖ ${tip.title.km}`, tip.body.km, "", CTA, "", "— លុយឆ្លាត · LuyChlat")
@@ -106,6 +113,30 @@ export function eveningRatesText(market: MarketLive): string | null {
   }
   lines.push("", "ធនាគារជាតិនៃកម្ពុជា ចេញអត្រាសម្រាប់ថ្ងៃធ្វើការបន្ទាប់ ប្រហែលម៉ោង ៤:៣០ ល្ងាច។", "", CTA, "", "— លុយឆ្លាត · LuyChlat")
   return lines.join("\n")
+}
+
+/**
+ * Posts a market update and removes the previous one, so the channel never
+ * shows outdated rates: the new post goes out first, then the old one is
+ * deleted (a failure there — already deleted by hand, too old — is ignored).
+ * The last post's id is kept in the database (survives restarts).
+ */
+async function postReplacing(chat: string, payload: Record<string, unknown>) {
+  const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, ...payload })
+  if (!res.ok || !res.result) return res
+  const db = botDb()
+  try {
+    const { data } = await db.rpc("bot_kv_get", { p_key: botKey(), p_name: "community_posts" })
+    const last = data as { chat?: string; message_id?: number } | null
+    if (last?.message_id && last.chat === chat && last.message_id !== res.result.message_id) {
+      const del = await tg("deleteMessage", { chat_id: chat, message_id: last.message_id })
+      if (!del.ok) logEvent("warn", "bulletin", `Could not delete the previous post (${del.description ?? "unknown"}) — continuing`, { fold: true })
+    }
+  } catch {
+    // Never let the clean-up stop the update.
+  }
+  await db.rpc("bot_kv_set", { p_key: botKey(), p_name: "community_posts", p_value: { chat, message_id: res.result.message_id, at: new Date().toISOString() } })
+  return res
 }
 
 /** Buttons under a post: calculate with the bot, and open the app. */
@@ -145,8 +176,7 @@ export async function sendCommunityBulletin(): Promise<boolean> {
 
   // Fresh rates if the stored ones are older than 2 hours.
   if (!market || Date.now() - Date.parse(market.fetched_at) > 2 * 3_600_000) market = (await syncMarket(true)) ?? market
-  const res = await tg("sendMessage", {
-    chat_id: chat,
+  const res = await postReplacing(chat, {
     text: bulletinText(now.date, market, now.day).slice(0, 4000),
     disable_web_page_preview: true,
     ...(await postButtons()),
@@ -167,6 +197,6 @@ async function maybeSendEveningRates(chat: string, now: ReturnType<typeof phnomP
   if (!text) return
   const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: EVENING_JOB, p_day: now.day })
   if (claimed !== true) return
-  const res = await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true, ...(await postButtons()) })
+  const res = await postReplacing(chat, { text, disable_web_page_preview: true, ...(await postButtons()) })
   logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Evening NBC rates sent to ${chat} (as of ${market.nbc.date})` : `Evening NBC post failed: ${res.description ?? "unknown"}`)
 }
