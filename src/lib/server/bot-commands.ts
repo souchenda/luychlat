@@ -312,7 +312,7 @@ export async function handleVoiceMessage(chatId: number, voice: Voice, ctx: Cont
   const text = transcript?.text.replace(/\s+/g, " ").slice(0, 300)
   // Server log (not the admin event log): what was heard, to diagnose recognition problems.
   console.info(
-    `[voice] chat …${String(chatId).slice(-4)} · chat language ${lang} · heard ${transcript?.language ?? "?"}${transcript?.retried ? " (asked again as Khmer)" : ""} · ${text ? `"${text.slice(0, 120)}"` : "no text"}`,
+    `[voice] chat …${String(chatId).slice(-4)} · chat language ${lang} · ${transcript?.via ?? "-"} · heard ${transcript?.language ?? "?"}${transcript?.retried ? " (asked again as Khmer)" : ""}${transcript?.confidence ? ` · ${transcript.confidence}` : ""} · ${text ? `"${text.slice(0, 120)}"` : "no text"}`,
   )
   if (!text) return sendText(chatId, tr(lang, "bot.voiceFailed"))
   // Speech-to-text writes amounts as Khmer words ("ពីរដុល្លារ"): turn them into digits for the parser.

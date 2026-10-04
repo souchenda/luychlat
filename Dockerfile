@@ -47,6 +47,8 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0
 
 RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
+# ffmpeg: voice notes are cleaned up (level, padding, 16 kHz mono) before speech-to-text.
+RUN apk add --no-cache ffmpeg
 
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
