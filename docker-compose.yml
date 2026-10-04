@@ -11,6 +11,11 @@
 #   APP_PORT   host port (default 3000). Change it if 3000 is already used on a
 #              shared server; the container always listens on 3000 inside.
 #   APP_MEMORY memory cap (default 512m) so the app can't starve other services.
+#
+# Zero-downtime deploys (deploy/update.sh) run this file as two "slots":
+#   blue   project luysmart, container luysmart, port 3000
+#   green  project luysmart-green, container luysmart-green, port 3001
+# The new slot starts next to the old one; Nginx switches once it is healthy.
 
 services:
   app:
@@ -22,7 +27,7 @@ services:
         NEXT_PUBLIC_AUTH_METHODS: ${NEXT_PUBLIC_AUTH_METHODS:-email}
         NEXT_PUBLIC_BIOMETRIC_MOCK: "false"
     image: luysmart:latest
-    container_name: luysmart
+    container_name: ${CONTAINER_NAME:-luysmart}
     restart: unless-stopped
     ports:
       - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
@@ -43,8 +48,13 @@ services:
       # Optional: daily market posts to the community channel / group (bot must be its admin).
       TELEGRAM_COMMUNITY_CHAT_ID: ${TELEGRAM_COMMUNITY_CHAT_ID:-}
       TELEGRAM_COMMUNITY_CHANNEL_ID: ${TELEGRAM_COMMUNITY_CHANNEL_ID:-}
-      # This server sends the bot's reminders (one instance only).
+      # This server sends the bot's reminders — only from the active slot (deploy/run/active-slot).
       BOT_DISPATCHER: "on"
+      APP_SLOT: ${APP_SLOT:-blue}
+    volumes:
+      - ./deploy/run:/run/luysmart:ro
+    # Lets requests in flight finish when the old slot is stopped.
+    stop_grace_period: 30s
     mem_limit: ${APP_MEMORY:-512m}
     pids_limit: 256
     # The Node server needs no Linux capabilities and never escalates privileges.

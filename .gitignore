@@ -46,6 +46,8 @@ next-env.d.ts
 # Last commit the Droplet deployed successfully (deploy/update.sh)
 deploy/.deployed
 deploy/.deployed-env
+# Which blue / green slot Nginx points at (deploy/update.sh)
+deploy/run/active-slot
 
 # Real bank statements used to build parsers: never commit
 /samples/

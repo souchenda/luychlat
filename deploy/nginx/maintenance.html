@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="km">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0f9f6e">
+<title>LuyChlat · កំពុងធ្វើបច្ចុប្បន្នភាព</title>
+<!-- Served by Nginx for 502 / 503 / 504 while the app restarts (deploy/nginx-setup.sh).
+     Self-contained on purpose: no app assets, fonts or scripts from elsewhere. -->
+<style>
+  :root {
+    --bg: #f3faf7;
+    --card: #ffffff;
+    --ink: #0f172a;
+    --muted: #475569;
+    --line: #d1e7dd;
+    --brand: #0f9f6e;
+    --brand-ink: #ffffff;
+    --soft: #e3f5ed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #071a13;
+      --card: #0d241b;
+      --ink: #ecfdf5;
+      --muted: #a7c4b8;
+      --line: #1d3d31;
+      --brand: #10b981;
+      --brand-ink: #022c22;
+      --soft: #12342a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Kantumruy Pro", "Noto Sans Khmer", "Khmer OS Siemreap", "Khmer UI", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 32px 24px 24px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(15, 159, 110, 0.08);
+  }
+  .logo { width: 72px; height: 72px; margin: 0 auto 12px; display: block; }
+  .brand { font-weight: 700; font-size: 15px; letter-spacing: 0.02em; color: var(--brand); margin: 0 0 20px; }
+  h1 { font-size: 19px; text-wrap: balance; line-height: 1.6; margin: 0 0 8px; }
+  p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.75; }
+  .en { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); font-size: 14px; line-height: 1.6; }
+  .en strong { color: var(--ink); display: block; font-size: 15px; margin-bottom: 2px; }
+  .status {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin: 22px 0 16px; padding: 6px 12px; border-radius: 999px;
+    background: var(--soft); color: var(--muted); font-size: 13px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 0.35; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1); } }
+  button {
+    width: 100%; min-height: 48px; border: 0; border-radius: 14px;
+    background: var(--brand); color: var(--brand-ink);
+    font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  button:active { transform: translateY(1px); }
+  button:focus-visible { outline: 3px solid var(--line); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <svg class="logo" viewBox="0 0 512 512" role="img" aria-label="LuyChlat">
+    <rect width="512" height="512" rx="112" fill="#0f9f6e"/>
+    <circle cx="256" cy="256" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="20"/>
+    <text x="256" y="262" text-anchor="middle" dominant-baseline="middle" font-family="Kantumruy Pro, Noto Sans Khmer, Khmer OS, Khmer UI, sans-serif" font-size="210" font-weight="700" fill="#ffffff">៛</text>
+  </svg>
+  <p class="brand">LuyChlat · លុយឆ្លាត</p>
+
+  <h1>🛠️ ប្រព័ន្ធកំពុងធ្វើបច្ចុប្បន្នភាពប្រចាំថ្ងៃ</h1>
+  <p>យើងកំពុងកែលម្អប្រព័ន្ធដើម្បីឱ្យកាន់តែប្រសើរ។ ទំព័រនឹងដំណើរការឡើងវិញដោយស្វ័យប្រវត្តិក្នុងរយៈពេល ១ នាទី។</p>
+  <p class="en" lang="en"><strong>We're updating LuyChlat</strong>Your data is safe. This page reloads by itself as soon as we're back — usually within a minute.</p>
+
+  <div class="status" role="status" aria-live="polite">
+    <span class="dot" aria-hidden="true"></span>
+    <span id="status">ពិនិត្យរៀងរាល់ ៥ វិនាទី · every 5s</span>
+  </div>
+
+  <button type="button" id="retry">🔄 ព្យាយាមម្តងទៀត (Retry)</button>
+</main>
+<script>
+(function () {
+  var status = document.getElementById("status");
+  var retry = document.getElementById("retry");
+  var busy = false;
+  // Back when the app's own health check answers (this page itself comes with a 502 / 503).
+  function check(manual) {
+    if (busy) return;
+    busy = true;
+    if (manual) status.textContent = "កំពុងពិនិត្យ… · Checking…";
+    fetch("/api/health?t=" + Date.now(), { cache: "no-store", credentials: "same-origin" })
+      .then(function (r) {
+        if (r.ok) {
+          status.textContent = "ដំណើរការវិញហើយ · Back online";
+          location.reload();
+        } else if (manual) {
+          status.textContent = "មិនទាន់រួចរាល់ · Not ready yet — retrying";
+        }
+      })
+      .catch(function () {
+        if (manual) status.textContent = "មិនទាន់រួចរាល់ · Not ready yet — retrying";
+      })
+      .then(function () { busy = false; });
+  }
+  retry.addEventListener("click", function () { check(true); });
+  setInterval(function () { check(false); }, 5000);
+})();
+</script>
+</body>
+</html>

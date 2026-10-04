@@ -9,6 +9,7 @@ import { watchdogTick } from "@/lib/server/health-watchdog"
 import { maybeRefreshLocalGold, maybeRefreshNbc, syncMarket } from "@/lib/server/market-sync"
 import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
+import { readFileSync } from "fs"
 import { holyDayTick } from "@/lib/server/holy-days"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string; bill_id: string | null; due: string | null }
@@ -84,12 +85,28 @@ export async function dispatchOnce() {
 }
 
 /** Every minute while the server runs (one app instance on the Droplet). */
+/**
+ * Zero-downtime deploys run two containers for a moment (blue / green). Only
+ * the one Nginx points at — named in deploy/run/active-slot, mounted at
+ * /run/luysmart — sends reminders and posts, so nothing goes out twice. No
+ * file (a single container, local runs) means active.
+ */
+function isActiveSlot() {
+  try {
+    const active = readFileSync("/run/luysmart/active-slot", "utf8").trim()
+    return !active || active === (process.env.APP_SLOT || "blue")
+  } catch {
+    return true
+  }
+}
+
 export function startBotDispatcher() {
   if (!botToken()) return
-  setInterval(() => void dispatchOnce(), 60_000)
-  setTimeout(() => void dispatchOnce(), 15_000)
+  const ifActive = (job: () => Promise<unknown>) => () => void (isActiveSlot() ? job() : undefined)
+  setInterval(ifActive(() => dispatchOnce()), 60_000)
+  setTimeout(ifActive(() => dispatchOnce()), 15_000)
   // Live market rates (NBC + gold spot) for every user: at start, then every 30 minutes.
-  setTimeout(() => void syncMarket(true), 20_000)
-  setInterval(() => void syncMarket(true), 30 * 60_000)
+  setTimeout(ifActive(() => syncMarket(true)), 20_000)
+  setInterval(ifActive(() => syncMarket(true)), 30 * 60_000)
   console.log("[bot] reminder dispatcher and market sync started")
 }
