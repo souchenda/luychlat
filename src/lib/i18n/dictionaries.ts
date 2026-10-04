@@ -2180,7 +2180,7 @@ const km = {
   "admin.audit.empty": "មិនទាន់មានសកម្មភាព",
   "admin.audit.more": "បង្ហាញបន្ថែម",
   "bot.weeklyDigest": "សេចក្ដីសង្ខេបចំណាយប្រចាំសប្ដាហ៍",
-  "bot.weeklyDigestHint": "រៀងរាល់ថ្ងៃអាទិត្យ ម៉ោង ១៩:៣០ — ចំណាយសរុប ប្រភេទធំៗ និងប្រៀបធៀបនឹងសប្ដាហ៍មុន (PRO / ULTRA)",
+  "bot.weeklyDigestHint": "រៀងរាល់ថ្ងៃអាទិត្យ ម៉ោង ១៩:០០ — ចំណូល ចំណាយ ប្រាក់សន្សំ ប្រភេទធំៗ និងប្រៀបធៀបនឹងសប្ដាហ៍មុន (PRO / ULTRA) · ឬផ្ញើ /digest ពេលណាក៏បាន",
   "bot.weeklyDigestWarn": "⚠️ អ្នកណាដែលអាចបើក Telegram របស់អ្នក នឹងឃើញចំនួនទឹកប្រាក់ទាំងនេះ។",
   "bot.digestTitle": "📊 សង្ខេបប្រចាំសប្ដាហ៍ · {workspace} ({range})",
   "bot.digestSpent": "💸 ចំណាយសប្ដាហ៍នេះ៖ {amount}",
@@ -2361,6 +2361,13 @@ const km = {
   "customers.markTestHint": "មិនរាប់បញ្ចូលក្នុងតួលេខអាជីវកម្ម",
   "customers.testPrompt": "កំណត់ {name} ជាគណនីតេស្ត? មូលហេតុ៖",
   "customers.untestPrompt": "ដក {name} ចេញពីគណនីតេស្ត? មូលហេតុ៖",
+  "bot.digestIncome": "💰 ចំណូលសប្ដាហ៍នេះ៖ {amount}",
+  "bot.digestSaved": "🏦 សន្សំបាន៖ {amount} ({rate}% នៃចំណូល)",
+  "bot.digestOverspent": "⚠️ ចំណាយលើសចំណូល៖ {amount}",
+  "bot.digestLessPct": "📉 ចំណាយតិចជាងសប្ដាហ៍មុន {pct}% ({amount}) 👏",
+  "bot.digestMorePct": "📈 ចំណាយច្រើនជាងសប្ដាហ៍មុន {pct}% ({amount})",
+  "bot.digestOff": "📊 សេចក្ដីសង្ខេបប្រចាំសប្ដាហ៍ត្រូវបានបិទ។ ដើម្បីការពារឯកជនភាព bot មិនបង្ហាញចំនួនទឹកប្រាក់ទេ លុះត្រាតែអ្នកបើកវា៖ កម្មវិធី › ការកំណត់ › Telegram › «សេចក្ដីសង្ខេបចំណាយប្រចាំសប្ដាហ៍»។",
+  "bot.digestEmpty": "📊 សប្ដាហ៍នេះមិនទាន់មានការកត់ត្រាចំណូល ឬចំណាយនៅឡើយទេ។ សាកផ្ញើ «កាហ្វេ 2$» ដើម្បីចាប់ផ្ដើម — រៀងរាល់ថ្ងៃអាទិត្យ ម៉ោង ៧ យប់ អ្នកនឹងទទួលបានសេចក្ដីសង្ខេប។ 💪",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4530,7 +4537,7 @@ const en: Record<MessageKey, string> = {
   "admin.audit.empty": "No admin actions yet",
   "admin.audit.more": "Show more",
   "bot.weeklyDigest": "Weekly spending digest",
-  "bot.weeklyDigestHint": "Sundays at 19:30 — total spent, top categories and a comparison with last week (PRO / ULTRA)",
+  "bot.weeklyDigestHint": "Sundays at 19:00 — income, spending, savings, top categories and a comparison with last week (PRO / ULTRA) · or send /digest any time",
   "bot.weeklyDigestWarn": "⚠️ Anyone who can open your Telegram will see these amounts.",
   "bot.digestTitle": "📊 Weekly summary · {workspace} ({range})",
   "bot.digestSpent": "💸 Spent this week: {amount}",
@@ -4711,6 +4718,13 @@ const en: Record<MessageKey, string> = {
   "customers.markTestHint": "Left out of business metrics",
   "customers.testPrompt": "Mark {name} as a test account? Reason:",
   "customers.untestPrompt": "Count {name} as a real customer again? Reason:",
+  "bot.digestIncome": "💰 Income this week: {amount}",
+  "bot.digestSaved": "🏦 Saved: {amount} ({rate}% of income)",
+  "bot.digestOverspent": "⚠️ Spent more than earned: {amount}",
+  "bot.digestLessPct": "📉 Spending down {pct}% on last week ({amount}) 👏",
+  "bot.digestMorePct": "📈 Spending up {pct}% on last week ({amount})",
+  "bot.digestOff": "📊 The weekly digest is off. To protect your privacy, the bot shows no money totals unless you switch it on: app › Settings › Telegram › “Weekly spending digest”.",
+  "bot.digestEmpty": "📊 No income or spending logged this week yet. Try sending “coffee 2$” to start — every Sunday at 7 PM you'll get your summary. 💪",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

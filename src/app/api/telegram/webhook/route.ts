@@ -10,6 +10,7 @@ import { parseSetRate } from "@/lib/market-calc"
 import { transcriptionProvider } from "@/lib/server/transcribe"
 import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
+import { sendDigestNow } from "@/lib/server/weekly-digest"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 
 /**
@@ -201,6 +202,9 @@ export async function POST(request: Request) {
     } else {
       await sendText(chatId, tr(lang, "bot.langUsage"))
     }
+  } else if (/^\/(digest|weekly)(@\w+)?$/i.test(command)) {
+    // This week's digest now — only for chats that switched the digest on (it shows money totals).
+    await sendDigestNow(chatId, lang)
   } else if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
     // Calculators: for every chat, linked or not.
     const ctx = await botContext(chatId)
