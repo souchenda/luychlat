@@ -10,6 +10,7 @@ import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
 import { menuKeyboard } from "@/lib/server/bot-menu"
 import { botDb, botKey, botToken, maskNumbers, sendText, tg, tr } from "@/lib/server/telegram-bot"
 import { transcribe, transcriptionProvider } from "@/lib/server/transcribe"
+import { asksWhoOwesMe, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
 
 /**
  * A text message from a linked chat becomes a confirmation card; nothing is
@@ -160,6 +161,8 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
  */
 export async function handleEntryMessage(chatId: number, text: string, ctx: Context, heard?: string) {
   const lang = contextLocale(ctx)
+  // A spoken question goes to LuyChlat AI (PRO); typed ones are routed in the webhook.
+  if (heard && ctx.pro && (isAiQuestion(heard) || asksWhoOwesMe(heard) || asksForBalance(heard))) return handleAiQuestion(chatId, heard, lang)
   if (asksForBalance(heard ?? text)) return sendBalanceLock(chatId, lang)
   // Calculators work for everyone (public rates), before the plan checks.
   const answer = await marketAnswer(text, lang)

@@ -14,6 +14,7 @@ import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
 import { sendDigestNow } from "@/lib/server/weekly-digest"
 import { handleInvoiceCallback, handleInvoiceMessage, isInvoiceCallback } from "@/lib/server/invoice-bot"
+import { asksWhoOwesMe, awaitingAiQuestion, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
 import { menuCommand, menuKeyboard } from "@/lib/server/bot-menu"
 import { marketSnapshotText } from "@/lib/server/community-bulletin"
@@ -312,6 +313,14 @@ export async function POST(request: Request) {
     const ctx = await botContext(chatId)
     const answer = await marketAnswer(text, ctx?.linked ? contextLocale(ctx) : lang)
     if (answer) await sendText(chatId, answer)
+  } else if (/^\/(ai|ask)(@\w+)?$/i.test(command)) {
+    // LuyChlat AI: "/ai <question>", or /ai alone (and the 🤖 button) to be asked for one. Answered after the reply to Telegram.
+    const ctx = await botContext(chatId)
+    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE, menuKeyboard(lang))
+    else {
+      const question = text.trim().replace(/^\S+\s*/, "").slice(0, 1000)
+      after(() => handleAiQuestion(chatId, question, contextLocale(ctx)))
+    }
   } else if (isInvoiceRequest(text)) {
     // /invoice, "គិតលុយ 12$ …": a receipt photo with KHQR to forward (FREE: 5 a month).
     await handleInvoiceMessage(chatId, text.trim().slice(0, 500), lang)
@@ -330,7 +339,19 @@ export async function POST(request: Request) {
       // /start, /help and unknown commands: the examples, with the 1-tap keyboard.
       await sendText(chatId, [tr(locale, "bot.cmdHelp"), ...extras].join("\n\n"), menuKeyboard(locale))
     }
-    else await handleEntryMessage(chatId, message.text.trim().slice(0, 300), ctx)
+    else {
+      const plain = message.text.trim()
+      const locale = contextLocale(ctx)
+      // Calculators first ("how much is 100$ in riel?" has an exact answer), then questions for LuyChlat AI
+      // (PRO: free accounts keep the privacy pointer for balance questions), then an entry to log.
+      const calc = await marketAnswer(plain, locale)
+      const toAi =
+        !calc &&
+        (isAiQuestion(plain) || asksWhoOwesMe(plain) || (ctx.pro && asksForBalance(plain)) || (ctx.pro && (await awaitingAiQuestion(chatId))))
+      if (calc) await sendText(chatId, calc)
+      else if (toAi) after(() => handleAiQuestion(chatId, plain.slice(0, 1000), locale))
+      else await handleEntryMessage(chatId, plain.slice(0, 300), ctx)
+    }
   }
   return NextResponse.json({ ok: true })
 }

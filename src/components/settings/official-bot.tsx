@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BellIcon, ChartColumnIcon, CheckCircle2Icon, CrownIcon, Loader2Icon, MessageSquarePlusIcon, MoonStarIcon, SendIcon, UnlinkIcon } from "lucide-react"
+import { BellIcon, BotIcon, ChartColumnIcon, CheckCircle2Icon, CrownIcon, Loader2Icon, MessageSquarePlusIcon, MoonStarIcon, SendIcon, UnlinkIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -27,6 +27,8 @@ type Link = {
   debt_alerts: boolean
   /** Sunday-evening spending digest (opt-in: it puts weekly totals in the chat). */
   weekly_digest: boolean
+  /** /ai may use this account's figures (opt-in: answers put them in the chat). */
+  ai_numbers?: boolean
   /** Buddhist holy days (ថ្ងៃសីល), the evening before. */
   holy_day_alerts: boolean
   prayer_alerts: boolean
@@ -66,7 +68,7 @@ export function useTelegramLink() {
     enabled: Boolean(userId),
     queryFn: async () => {
       // Before the bot migration the table is missing: treat as "not linked".
-      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, weekly_digest, holy_day_alerts, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
+      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, weekly_digest, ai_numbers, holy_day_alerts, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
       return error ? null : (data as Link | null)
     },
   })
@@ -201,6 +203,15 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                 {linked.weekly_digest && <span className="mt-0.5 block text-xs text-amber-600 dark:text-amber-400">{t("bot.weeklyDigestWarn")}</span>}
               </span>
               <Switch checked={linked.weekly_digest} onCheckedChange={(v) => update.mutate({ weekly_digest: v })} aria-label={t("bot.weeklyDigest")} />
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <BotIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">{t("bot.aiNumbers")}</span>
+                <span className="block text-xs text-muted-foreground">{t("bot.aiNumbersHint")}</span>
+                {linked.ai_numbers && <span className="mt-0.5 block text-xs text-amber-600 dark:text-amber-400">{t("bot.aiNumbersWarn")}</span>}
+              </span>
+              <Switch checked={linked.ai_numbers ?? false} onCheckedChange={(v) => update.mutate({ ai_numbers: v })} aria-label={t("bot.aiNumbers")} />
             </label>
             <label className="flex items-center gap-3 text-sm">
               <span className="w-4 shrink-0 text-center text-sm" aria-hidden>
