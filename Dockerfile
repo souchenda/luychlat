@@ -48,11 +48,14 @@ ENV NODE_ENV=production \
 
 RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
 # ffmpeg: voice notes are cleaned up (level, padding, 16 kHz mono) before speech-to-text.
-RUN apk add --no-cache ffmpeg
+# Fonts: receipt images (Latin, Khmer, Chinese).
+RUN apk add --no-cache ffmpeg font-noto font-noto-khmer font-wqy-zenhei
 
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Skia's native binary for this platform (the standalone trace may not pick it up).
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@napi-rs ./node_modules/@napi-rs
 
 USER nextjs
 EXPOSE 3000

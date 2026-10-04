@@ -1,9 +1,11 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect } from "react"
 
 import { queryKeys, useRepo } from "@/lib/data/hooks"
 import { compressImage } from "@/lib/image"
+import { decodeKhqr } from "@/lib/khqr-decode"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -145,7 +147,8 @@ export function useBusinessLifecycle() {
 /**
  * The user's own KHQR (from their bank app), attached to payment reminders so
  * the debtor can scan and pay. Kept as the original image, at most ~1600 px,
- * so the code stays sharp enough to scan.
+ * so the code stays sharp enough to scan. Its text (khqr_payload, read in the
+ * browser) lets receipts and the bot redraw the same code.
  */
 export function useMyKhqr() {
   const queryClient = useQueryClient()
@@ -159,20 +162,45 @@ export function useMyKhqr() {
       const supabase = getSupabaseBrowserClient()
       if (!supabase) return null
       // A separate query: if the column isn't there yet the profile still loads.
-      const { data, error } = await supabase.from("profiles").select("khqr_path").eq("id", userId!).maybeSingle()
-      if (error) return null
-      return (data?.khqr_path as string | null) ?? null
+      const { data, error } = await supabase.from("profiles").select("khqr_path, khqr_payload").eq("id", userId!).maybeSingle()
+      if (error) {
+        // Before the khqr_payload column exists.
+        const old = await supabase.from("profiles").select("khqr_path").eq("id", userId!).maybeSingle()
+        return { path: (old.data?.khqr_path as string | null) ?? null, payload: null }
+      }
+      return { path: (data?.khqr_path as string | null) ?? null, payload: (data?.khqr_payload as string | null) ?? null }
     },
   })
-  const path = query.data ?? null
+  const path = query.data?.path ?? null
+  const payload = query.data?.payload ?? null
   const url = useImageUrl(path)
+
+  // A KHQR saved before its text was kept: read it once from the image.
+  useEffect(() => {
+    if (!userId || !path || payload || !url) return
+    let cancelled = false
+    void (async () => {
+      const image = await fetch(url).then((r) => (r.ok ? r.blob() : null)).catch(() => null)
+      const text = image ? await decodeKhqr(image) : null
+      const supabase = getSupabaseBrowserClient()
+      if (cancelled || !text || !supabase) return
+      const { error } = await supabase.from("profiles").update({ khqr_payload: text }).eq("id", userId)
+      if (!error) queryClient.setQueryData(key, { path, payload: text })
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per image
+  }, [userId, path, payload, url])
 
   const save = useMutation({
     mutationFn: async (file: File | null) => {
       const supabase = getSupabaseBrowserClient()
       if (!supabase || !userId) throw new Error("offline")
       let next: string | null = null
+      let text: string | null = null
       if (file) {
+        text = await decodeKhqr(file)
         // The profile-images bucket takes files up to 1 MB.
         const small = file.size <= 900_000 && /^image\/(png|jpeg|webp)$/.test(file.type)
         const blob = small ? file : await compressImage(file, 1600, 0.92)
@@ -181,12 +209,12 @@ export function useMyKhqr() {
         const { error } = await supabase.storage.from(BUCKET).upload(next, blob, { contentType: small ? file.type : "image/jpeg", upsert: false })
         if (error) throw error
       }
-      const { error } = await supabase.from("profiles").update({ khqr_path: next }).eq("id", userId)
+      const { error } = await supabase.from("profiles").update({ khqr_path: next, khqr_payload: text }).eq("id", userId)
       if (error) throw error
       if (path && path !== next) await supabase.storage.from(BUCKET).remove([path])
-      return next
+      return { path: next, payload: text }
     },
     onSuccess: (next) => queryClient.setQueryData(key, next),
   })
-  return { path, url, loading: query.isLoading, save }
+  return { path, payload, url, loading: query.isLoading, save }
 }

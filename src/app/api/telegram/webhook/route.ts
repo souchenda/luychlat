@@ -8,10 +8,12 @@ import { botDb, botKey, sendText, SIGNATURE, tg, tr, webhookSecret } from "@/lib
 import { currentMarket, phnomPenhToday, setFuelPrices, setManualGold, setManualRate } from "@/lib/server/market-sync"
 import { parseSetFuel, parseSetRate } from "@/lib/market-calc"
 import { fuelLines } from "@/lib/bot/fuel"
+import { isInvoiceRequest } from "@/lib/bot/parse-invoice"
 import { transcriptionProvider } from "@/lib/server/transcribe"
 import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
 import { sendDigestNow } from "@/lib/server/weekly-digest"
+import { handleInvoiceCallback, handleInvoiceMessage, isInvoiceCallback } from "@/lib/server/invoice-bot"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
 import { menuCommand, menuKeyboard } from "@/lib/server/bot-menu"
 import { marketSnapshotText } from "@/lib/server/community-bulletin"
@@ -219,7 +221,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
   if (update.callback_query) {
-    await handleCallback(update.callback_query)
+    if (isInvoiceCallback(update.callback_query.data)) await handleInvoiceCallback(update.callback_query)
+    else await handleCallback(update.callback_query)
     return NextResponse.json({ ok: true })
   }
   const message = update.message
@@ -309,6 +312,9 @@ export async function POST(request: Request) {
     const ctx = await botContext(chatId)
     const answer = await marketAnswer(text, ctx?.linked ? contextLocale(ctx) : lang)
     if (answer) await sendText(chatId, answer)
+  } else if (isInvoiceRequest(text)) {
+    // /invoice, "គិតលុយ 12$ …": a receipt photo with KHQR to forward (FREE: 5 a month).
+    await handleInvoiceMessage(chatId, text.trim().slice(0, 500), lang)
   } else if (command === "/stop") {
     const { data } = await db.rpc("bot_unlink_chat", { p_key: key, p_chat_id: chatId })
     await sendText(chatId, tr(lang, data ? "bot.unlinked" : "bot.notLinked") + SIGNATURE)

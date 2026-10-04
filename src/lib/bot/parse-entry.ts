@@ -30,7 +30,7 @@ export type ParsedEntry =
   | { ok: false; reason: "no_amount" | "no_wallet" | "no_debt" | "too_much"; debt?: BotDebt }
 
 const KHMER_DIGITS = "០១២៣៤៥៦៧៨៩"
-const toLatinDigits = (s: string) => s.replace(/[០-៩]/g, (d) => String(KHMER_DIGITS.indexOf(d)))
+export const toLatinDigits = (s: string) => s.replace(/[០-៩]/g, (d) => String(KHMER_DIGITS.indexOf(d)))
 
 // Latin words need word edges; Khmer is written without spaces, so it's matched as a substring.
 // A Latin word ends at anything that isn't a Latin letter or digit (so "给Dara" and "សងDara" find "Dara").

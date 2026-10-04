@@ -53,6 +53,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Self-contained server in .next/standalone (used by the Dockerfile and PM2 setups).
   output: "standalone",
+  // Native Skia (receipt images): loaded from node_modules at runtime, not bundled.
+  serverExternalPackages: ["@napi-rs/canvas"],
   // The floating Next.js dev badge overlaps the workspace switcher in previews (never shown in production).
   devIndicators: false,
   // Don't advertise the framework.
