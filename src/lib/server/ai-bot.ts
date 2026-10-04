@@ -1,19 +1,16 @@
-// Server only: LuyChlat AI in the Telegram bot (/ai, /ask, the 🤖 button, questions).
+// Server only: LuyChlat AI in the Telegram bot (/ai, /ask, the 🤖 button, questions),
+// answered by Gemini Flash (the server's GEMINI_API_KEY, also used for voice notes).
 //
 // Privacy: the AI only ever sees an anonymised summary — wallets as W1, W2,
 // custom categories as C1, debts as totals and counts, never names — and only
 // when the chat switched "AI can see my numbers" on (off by default: the
 // no-balances-in-chat rule). References in the answer are turned back into the
 // user's names here, after the AI. "Who owes me" is answered from the database.
-import Anthropic from "@anthropic-ai/sdk"
-
 import { parseAmountText } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
-
-const CLAUDE_MODEL = "claude-opus-5-5"
 
 type Figures = {
   workspace_type: string
@@ -118,34 +115,66 @@ function systemPrompt(locale: Locale, data: Record<string, unknown> | null) {
           "The user's own figures for this month are below (JSON). Use only these numbers; amounts ending in UsdEquivalent are in USD (riel converted at khrPerUsd). Wallets are W1, W2…; custom categories are C1, C2… — write these references exactly as given (the app shows the real names). Debts are only totals and counts: you don't know who the people are.",
           JSON.stringify(data),
         ].join("\n")
-      : "You cannot see any of the user's numbers in this chat. If they ask about their own balances, spending or debts, say that for privacy LuyChlat AI only sees their numbers in Telegram if they turn on “Let LuyChlat AI see my numbers” in the LuyChlat app › Settings › Telegram — or they can ask LuyChlat AI inside the app. Still give helpful general guidance.",
+      : `You cannot see any of the user's numbers in this chat. If they ask about their own balances, spending or debts, say that for privacy LuyChlat AI only sees their numbers in Telegram if they turn on “${tr(locale, "bot.aiNumbers")}” in the LuyChlat app › Settings › Telegram — or they can ask LuyChlat AI inside the app. Still give helpful general guidance.`,
   ].join("\n")
 }
 
-async function askClaude(locale: Locale, data: Record<string, unknown> | null, history: { q: string; a: string }[], question: string) {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const messages = [
-    ...history.flatMap((h) => [
-      { role: "user" as const, content: h.q },
-      { role: "assistant" as const, content: h.a },
-    ]),
-    { role: "user" as const, content: question },
-  ]
-  const response = await client.beta.messages.create({
-    model: CLAUDE_MODEL,
-    max_tokens: 4000,
-    output_config: { effort: "low" },
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    system: systemPrompt(locale, data),
-    messages,
-  })
-  if (response.stop_reason === "refusal") return null
-  return response.content
-    .flatMap((block) => (block.type === "text" ? [block.text] : []))
-    .join("\n")
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+
+type GeminiResponse = {
+  candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[]
+  promptFeedback?: { blockReason?: string }
+}
+
+/** Telegram shows plain text: drop Markdown that slips through (bold, headings, "* " bullets). */
+const plainText = (text: string) =>
+  text
     .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[*-]\s+/gm, "• ")
     .trim()
+
+/** The answer, or null when Gemini declined (safety). Throws on HTTP / network errors. */
+async function askGemini(locale: Locale, data: Record<string, unknown> | null, history: { q: string; a: string }[], question: string) {
+  const contents = [
+    ...history.flatMap((h) => [
+      { role: "user", parts: [{ text: h.q }] },
+      { role: "model", parts: [{ text: h.a }] },
+    ]),
+    { role: "user", parts: [{ text: question }] },
+  ]
+  const request = () =>
+    fetch(GEMINI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY ?? "" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt(locale, data) }] },
+        contents,
+        generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(40_000),
+    })
+  // "High demand" (503) and rate limits (429) are usually brief: try twice more.
+  let res = await request()
+  for (const wait of [1500, 4000]) {
+    if (res.ok || !(res.status === 429 || res.status >= 500)) break
+    await new Promise((resolve) => setTimeout(resolve, wait))
+    res = await request()
+  }
+  if (!res.ok) {
+    console.error(`[ai] gemini failed: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`)
+    throw new Error(`gemini ${res.status}`)
+  }
+  const body = (await res.json()) as GeminiResponse
+  const candidate = body.candidates?.[0]
+  if (body.promptFeedback?.blockReason || candidate?.finishReason === "SAFETY" || candidate?.finishReason === "PROHIBITED_CONTENT") return null
+  const text = (candidate?.content?.parts ?? [])
+    .filter((p) => !p.thought)
+    .map((p) => p.text ?? "")
+    .join("")
+  return plainText(text) || null
 }
 
 // --- Handlers ----------------------------------------------------------------
@@ -197,7 +226,7 @@ async function sendDebtors(chatId: number, lang: Locale) {
 export async function handleAiQuestion(chatId: number, question: string, lang: Locale) {
   const q = question.trim().slice(0, 1000)
   if (!q) return startAiPrompt(chatId, lang)
-  if (!process.env.ANTHROPIC_API_KEY) return sendText(chatId, tr(lang, "bot.aiUnavailable"))
+  if (!process.env.GEMINI_API_KEY) return sendText(chatId, tr(lang, "bot.aiUnavailable"))
   const ctx = await context(chatId)
   if (!ctx || ctx.status !== "ok") return sendText(chatId, statusText(ctx, lang))
   if (asksWhoOwesMe(q)) {
@@ -205,13 +234,18 @@ export async function handleAiQuestion(chatId: number, question: string, lang: L
     return sendDebtors(chatId, lang)
   }
 
-  await tg("sendChatAction", { chat_id: chatId, action: "typing" })
+  // "typing…" lasts about 5 seconds in Telegram; keep it up while Gemini answers.
+  const typing = () => void tg("sendChatAction", { chat_id: chatId, action: "typing" })
+  typing()
+  const keepTyping = setInterval(typing, 4500)
   const { data, names } = anonymise(ctx.numbers ? ctx.figures : null, lang)
   let answer: string | null
   try {
-    answer = await askClaude(lang, data, ctx.history ?? [], q)
+    answer = await askGemini(lang, data, ctx.history ?? [], q)
   } catch {
     return sendText(chatId, tr(lang, "bot.aiFailed"))
+  } finally {
+    clearInterval(keepTyping)
   }
   if (!answer) return sendText(chatId, tr(lang, "bot.aiDeclined"))
   // Count the query and keep the exchange (with references, not names) for follow-ups.
