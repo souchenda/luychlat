@@ -45,6 +45,7 @@ const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
 const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 const fmt = (n: number, digits = 0) => new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n)
 
+/** Gold prices in whole dollars, as Cambodian shops quote them. */
 const fmtUsd = (n: number) => `$${fmt(n, 0)}`
 
 /** The community channel, from either variable name. */
@@ -80,14 +81,14 @@ export function bulletinText(date: Date, market: MarketLive | null, today = ymd(
   if (local) {
     lines.push("", "🪙 តម្លៃមាសហាងក្នុងស្រុក (ក្នុង ១ តម្លឹង)")
     lines.push(`• មាសគីឡូ: លក់ចេញ ${fmtUsd(local.kilo.sell)} | ទិញចូល ${fmtUsd(local.kilo.buy)}`)
-    lines.push(`  ក្នុង ១ ជី៖ លក់ចេញ $${fmt(local.kilo.sell / 10, 2)} | ទិញចូល $${fmt(local.kilo.buy / 10, 2)}`)
+    lines.push(`  ក្នុង ១ ជី៖ លក់ចេញ $${fmt(local.kilo.sell / 10)} | ទិញចូល $${fmt(local.kilo.buy / 10)}`)
     if (local.jewelry) lines.push(`• មាសគ្រឿង: លក់ចេញ ${fmtUsd(local.jewelry.sell)} | ទិញចូល ${fmtUsd(local.jewelry.buy)}`)
     lines.push(local.source === "csnj" ? "ប្រភព៖ ហាងមាសពេជ្រ CSNJ តាមរយៈ Oknha News" : "ប្រភព៖ តម្លៃហាងក្នុងស្រុក ថ្ងៃនេះ")
   } else if (ref) {
     lines.push("", "🪙 តម្លៃយោងមាសទីផ្សារពិភពលោក (ក្នុង ១ តម្លឹង)")
-    if (ref.GOLD_24K) lines.push(`• មាសទឹក១០ 24K៖ $${fmt(ref.GOLD_24K, 2)}`)
-    if (ref.GOLD_18K) lines.push(`• មាស 18K៖ $${fmt(ref.GOLD_18K, 2)}`)
-    lines.push("(តម្លៃហាងក្នុងស្រុកថ្ងៃនេះ មិនទាន់ចេញ — ហាងអាចខុសពីនេះបន្តិច)")
+    if (ref.GOLD_24K) lines.push(`• មាសទឹក១០ 24K៖ $${fmt(ref.GOLD_24K)}`)
+    if (ref.GOLD_18K) lines.push(`• មាស 18K៖ $${fmt(ref.GOLD_18K)}`)
+    lines.push("(ចំណាំ៖ ជាតម្លៃយោងទីផ្សារអន្តរជាតិ — តម្លៃជាក់ស្តែងអាចមានការប្រែប្រួលទៅតាមបណ្តាហាងមាសក្នុងស្រុក)")
   }
   const tip = tipOfTheDay(date)
   lines.push("", `💡 គន្លឹះថ្ងៃនេះ៖ ${tip.title.km}`, tip.body.km, "", CTA, "", "— លុយឆ្លាត · LuyChlat")
