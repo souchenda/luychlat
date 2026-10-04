@@ -21,6 +21,7 @@ import {
   SettingsIcon,
   ShieldIcon,
   TargetIcon,
+  ReceiptIcon,
   WalletIcon,
   type LucideIcon,
 } from "lucide-react"
@@ -100,6 +101,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
         { href: "/debts", label: "nav.debtsTontine", icon: HandCoinsIcon },
         { href: "/reports", label: "reports.title", icon: ChartColumnIcon },
         { href: "/budgets", label: "budget.title", icon: TargetIcon },
+        { href: "/bills", label: "bills.title", icon: ReceiptIcon },
         { href: "/goals", label: "goals.pageTitle", icon: PiggyBankIcon },
         { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
         { href: "/reports#export", label: "reports.export", icon: FileSpreadsheetIcon, pro: true },

@@ -14,6 +14,7 @@ import { ExperienceSelector } from "@/components/islamic/islamic-mode"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DailyTipCard } from "@/components/dashboard/daily-tip-card"
 import { MarketRatesCard } from "@/components/dashboard/market-rates-card"
+import { BillsWidget } from "@/components/dashboard/bills-widget"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
 import { InsuranceRenewalCard } from "@/components/debts/insurance-card"
@@ -269,6 +270,7 @@ export default function HomePage() {
 
       <GoalsHomeCard wallets={walletsQuery.data} />
 
+      <BillsWidget workspaceId={ws} />
       <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} onAdd={editable ? () => setDebtFormOpen(true) : undefined} />
 
       <TontineDueCard workspaceId={ws} />
