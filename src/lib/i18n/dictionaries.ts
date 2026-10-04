@@ -2506,6 +2506,7 @@ const km = {
   "bot.marketCta": "🧮 គណនា៖ /rate 100 usd · /gold 2 ជី · /fuel",
   "bot.voiceNoAmount": "🤔 ខ្ញុំបានឮថា៖ «{text}» ប៉ុន្តែរកមិនឃើញចំនួនទឹកប្រាក់ទេ។ សូមនិយាយម្ដងទៀត ដោយបញ្ជាក់ចំនួន និងរូបិយប័ណ្ណ ឧ. «ទិញទឹក មួយពាន់រៀល» ឬ «កាហ្វេ ពីរដុល្លារ»។",
   "bot.langPick": "🌐 ជ្រើសភាសារបស់ bot៖",
+  "bot.keyboardReady": "⌨️ ប៊ូតុងខាងក្រោម ប្រើបានដោយចុចតែម្ដង។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5001,6 +5002,7 @@ const en: Record<MessageKey, string> = {
   "bot.marketCta": "🧮 Calculate: /rate 100 usd · /gold 2 chi · /fuel",
   "bot.voiceNoAmount": "🤔 I heard: “{text}” but couldn't find an amount. Please try again with the amount and currency, e.g. “water 1000 riel” or “coffee 2 dollars”.",
   "bot.langPick": "🌐 Choose the bot's language:",
+  "bot.keyboardReady": "⌨️ The buttons below work in one tap.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

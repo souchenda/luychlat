@@ -2459,4 +2459,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.langPick": "🌐 请选择机器人语言：",
   "bot.langSet": "✅ 机器人现在使用中文。",
   "bot.langUsage": "🌐 选择机器人语言：\n/lang km — ភាសាខ្មែរ\n/lang en — English\n/lang zh — 中文（简体）",
+  "bot.keyboardReady": "⌨️ 下方按钮一键即可使用。",
 }

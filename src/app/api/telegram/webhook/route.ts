@@ -13,6 +13,7 @@ import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
 import { sendDigestNow } from "@/lib/server/weekly-digest"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
+import { menuCommand, menuKeyboard } from "@/lib/server/bot-menu"
 import { marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 
@@ -249,7 +250,9 @@ export async function POST(request: Request) {
   // Before linking, replies follow the Telegram app's language (Khmer by default);
   // linked chats use the language chosen in the app or with /lang.
   const lang: Locale = telegramLocale(message.from?.language_code)
-  const [command, payload] = message.text.trim().split(/\s+/, 2)
+  // A tap on the 1-tap keyboard runs the same handler as its slash command.
+  const text = menuCommand(message.text) ?? message.text
+  const [command, payload] = text.trim().split(/\s+/, 2)
   const key = botKey()!
   const db = botDb()
 
@@ -263,13 +266,13 @@ export async function POST(request: Request) {
     })
     const result = data as { ok: boolean; name?: string } | null
     if (error || !result?.ok) await sendText(chatId, tr(lang, "bot.linkFailed") + SIGNATURE)
-    else await sendText(chatId, tr(lang, "bot.linked", { name: result.name || "" }) + SIGNATURE)
+    else await sendText(chatId, tr(lang, "bot.linked", { name: result.name || "" }) + SIGNATURE, menuKeyboard(lang))
   } else if (/^\/setgold(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: today's Phnom Penh gold counter prices (others get the normal help).
-    await sendText(chatId, await setGoldReply(message.text, chatId))
+    await sendText(chatId, await setGoldReply(text, chatId))
   } else if (/^\/setfuel(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: MoC fuel and gas prices for a 10-day cycle (others get the normal help).
-    await sendText(chatId, await setFuelReply(message.text, chatId))
+    await sendText(chatId, await setFuelReply(text, chatId))
   } else if (/^\/market(@\w+)?$/i.test(command)) {
     // The whole market snapshot (NBC, gold, fuel): for every chat, linked or not.
     const ctx = await botContext(chatId)
@@ -282,14 +285,14 @@ export async function POST(request: Request) {
     await sendText(chatId, fuel ? fuelLines(fuel, (k, p) => tr(replyLang, k, p), phnomPenhToday().day, replyLang).join("\n") : tr(replyLang, "fuel.none"))
   } else if (/^\/setrate(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: NBC's newer official USD rate (others get the normal help).
-    await sendText(chatId, await setRateReply(message.text, chatId))
+    await sendText(chatId, await setRateReply(text, chatId))
   } else if (/^\/(lang|language|km|en|zh)(@\w+)?$/i.test(command)) {
     // /lang km | en | zh, or the shortcuts /km /en /zh — the bot's language for this chat; /lang alone shows buttons.
     const short = command.slice(1).split("@")[0].toLowerCase()
     const choice = short === "km" || short === "en" || short === "zh" ? short : payload?.toLowerCase()
     if (choice === "km" || choice === "en" || choice === "zh") {
       const { data } = await db.rpc("bot_set_language", { p_key: key, p_chat_id: chatId, p_language: choice })
-      await sendText(chatId, data ? tr(choice, "bot.langSet") : tr(choice, "bot.notLinked"))
+      await sendText(chatId, data ? tr(choice, "bot.langSet") : tr(choice, "bot.notLinked"), menuKeyboard(choice))
     } else {
       const ctx = await botContext(chatId)
       await sendText(chatId, tr(ctx?.linked ? contextLocale(ctx) : lang, "bot.langPick"), { reply_markup: LANG_BUTTONS })
@@ -304,7 +307,7 @@ export async function POST(request: Request) {
   } else if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
     // Calculators: for every chat, linked or not.
     const ctx = await botContext(chatId)
-    const answer = await marketAnswer(message.text, ctx?.linked ? contextLocale(ctx) : lang)
+    const answer = await marketAnswer(text, ctx?.linked ? contextLocale(ctx) : lang)
     if (answer) await sendText(chatId, answer)
   } else if (command === "/stop") {
     const { data } = await db.rpc("bot_unlink_chat", { p_key: key, p_chat_id: chatId })
@@ -312,12 +315,14 @@ export async function POST(request: Request) {
   } else {
     // Linked chats: /help shows the logging examples, other text is an entry to confirm.
     const ctx = await botContext(chatId)
-    if (!ctx?.linked) await sendText(chatId, (await marketAnswer(message.text, lang)) ?? tr(lang, "bot.help") + SIGNATURE)
+    const answer = ctx?.linked ? null : await marketAnswer(text, lang)
+    if (!ctx?.linked) await sendText(chatId, answer ?? tr(lang, "bot.help") + SIGNATURE, answer ? {} : menuKeyboard(lang))
     else if (asksForBalance(command)) await handleEntryMessage(chatId, command, ctx) // /balance → the in-app pointer
     else if (command.startsWith("/")) {
       const locale = contextLocale(ctx)
       const extras = [transcriptionProvider() && tr(locale, "bot.cmdHelpVoice"), isRouting(ctx) && tr(locale, "bot.cmdHelpRoute")].filter(Boolean)
-      await sendText(chatId, [tr(locale, "bot.cmdHelp"), ...extras].join("\n\n"))
+      // /start, /help and unknown commands: the examples, with the 1-tap keyboard.
+      await sendText(chatId, [tr(locale, "bot.cmdHelp"), ...extras].join("\n\n"), menuKeyboard(locale))
     }
     else await handleEntryMessage(chatId, message.text.trim().slice(0, 300), ctx)
   }

@@ -33,7 +33,7 @@ export function transcriptionProvider(): Provider | null {
 const geminiKey = () => process.env.GEMINI_API_KEY?.trim() || null
 
 // Everyday money-logging words anchor Whisper on the domain (instead of poetry or sermons).
-const HINT_KM = "កត់ត្រាចំណាយលុយឆ្លាត៖ ទិញទឹក ១០០០រៀល, កាហ្វេ ២ដុល្លារ, សាំង ២០០០០រៀល, បាយថ្ងៃត្រង់, ថ្លៃម្ហូប, ដុល្លារ, រៀល"
+const HINT_KM = "កត់ត្រាចំណាយលុយឆ្លាត៖ ទិញទឹក ១០០០រៀល, ទិញទឹកសុទ្ធ, កាហ្វេ ២ដុល្លារ, សាំង ២០០០០រៀល, បាយថ្ងៃត្រង់, ថ្លៃម្ហូប, ដុល្លារ, រៀល"
 const HINT_ZH = "支出 收入 还款 美元 瑞尔 咖啡 午饭 汽油 工资 ABA ACLEDA Wing"
 const HINT_EN = "expense income repay dollars riel coffee lunch fuel salary ABA ACLEDA Wing"
 
@@ -115,7 +115,7 @@ async function gemini(key: string, audio: { blob: Blob; name: string }) {
             parts: [
               { inline_data: { mime_type: audio.blob.type || "audio/ogg", data } },
               {
-                text: "Transcribe this short Khmer voice note exactly as spoken, in Khmer script. It is someone logging an expense or income (for example: ទិញទឹក ១០០០រៀល, កាហ្វេ ២ដុល្លារ). Write amounts as digits. Reply with the transcription only — no translation, no comments. If there is no clear speech, reply with nothing.",
+                text: "Transcribe this Khmer voice note accurately for personal expense tracking (for example: ទិញទឹក ១០០០រៀល, កាហ្វេ ២ដុល្លារ). Write amounts as digits. Output only the Khmer transcript without commentary or translation. If there is no clear speech, output nothing.",
               },
             ],
           },
