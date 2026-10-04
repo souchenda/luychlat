@@ -41,13 +41,22 @@ export async function tg<T = unknown>(method: string, payload: Record<string, un
   }
 }
 
+/** Dates written with dashes (05-10-2026, 2026-10-05) look like 8-digit numbers. */
+const DATE_LIKE = /(?<![\d-])(\d{1,2}-\d{1,2}-\d{4}|\d{4}-\d{2}-\d{2})(?![\d-])/g
+
 /**
  * Account, card and phone numbers in a chat message: 8+ digits (spaces or
  * dashes between groups allowed) → "•••• 4222". Amounts are formatted with
- * commas and dates with slashes, so they are never matched.
+ * commas; dates (with slashes, or dd-mm-yyyy / yyyy-mm-dd) are set aside
+ * first, so they're never masked.
  */
-export const maskNumbers = (text: string) =>
-  text.replace(/(?<![\d,.])\d(?:[ -]?\d){7,}(?![\d,.])/g, (run) => `•••• ${run.replace(/\D/g, "").slice(-4)}`)
+export const maskNumbers = (text: string) => {
+  const dates: string[] = []
+  return text
+    .replace(DATE_LIKE, (d) => `\u0000${dates.push(d) - 1}\u0000`)
+    .replace(/(?<![\d,.])\d(?:[ -]?\d){7,}(?![\d,.])/g, (run) => `•••• ${run.replace(/\D/g, "").slice(-4)}`)
+    .replace(/\u0000(\d+)\u0000/g, (_, i: string) => dates[Number(i)])
+}
 
 /**
  * Plain-text message (no HTML parsing, so nothing in a name can change the

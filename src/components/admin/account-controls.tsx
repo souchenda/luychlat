@@ -1,12 +1,14 @@
 "use client"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { BanIcon, BuildingIcon, CheckCircle2Icon, IdCardIcon, ShieldCheckIcon, ShieldIcon, SmartphoneIcon } from "lucide-react"
+import { BanIcon, BuildingIcon, FlaskConicalIcon, CheckCircle2Icon, IdCardIcon, ShieldCheckIcon, ShieldIcon, SmartphoneIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { stepUp } from "@/components/security/step-up"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import { useT } from "@/lib/i18n/use-t"
+import { usePlan } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
@@ -31,6 +33,8 @@ export type DirectoryUser = {
   require_2fa: boolean
   business_verified: boolean
   business_note: string | null
+  /** Internal / test account: left out of business metrics. */
+  is_test?: boolean
   total: number
 }
 
@@ -60,6 +64,11 @@ export function UserBadges({ user, compact = false }: { user: DirectoryUser; com
       {user.suspended && (
         <Badge on tone="bad" icon={<BanIcon />}>
           {t("admin.badge.suspended")}
+        </Badge>
+      )}
+      {user.is_test && (
+        <Badge on tone="muted" icon={<FlaskConicalIcon />}>
+          {t("customers.test")}
         </Badge>
       )}
       {(user.telegram_linked || !compact) && (
@@ -103,6 +112,7 @@ const rpc = async (name: string, args: Record<string, unknown>) => {
 export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone: () => void }) {
   const t = useT()
   const queryClient = useQueryClient()
+  const superAdmin = usePlan().plan.staff_role === "super_admin"
   const label = user.display_name || user.email || user.user_id
   const act = useMutation({
     mutationFn: ({ name, args }: { name: string; args: Record<string, unknown> }) => rpc(name, args),
@@ -168,6 +178,19 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
         </Button>
       </div>
       {user.require_2fa && !user.mfa_enabled && <p className="text-xs text-amber-600">{t("admin.require2faPending")}</p>}
+      {superAdmin && (
+        <label className="flex items-center justify-between gap-3 border-t pt-2 text-sm">
+          <span>
+            <span className="block font-medium">🧪 {t("customers.markTest")}</span>
+            <span className="block text-xs text-muted-foreground">{t("customers.markTestHint")}</span>
+          </span>
+          <Switch
+            checked={Boolean(user.is_test)}
+            disabled={act.isPending}
+            onCheckedChange={(on) => void run("admin_set_test_account", "p_on", on, t(on ? "customers.testPrompt" : "customers.untestPrompt", { name: label }))}
+          />
+        </label>
+      )}
     </div>
   )
 }

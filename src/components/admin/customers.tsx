@@ -148,6 +148,17 @@ function CustomerSheet({ c, onClose }: { c: Customer; onClose: () => void }) {
     <BottomSheet open onOpenChange={(v) => !v && onClose()} title={name} description={c.email ?? undefined}>
       <div className="space-y-4">
         <Badges c={c} />
+        <label className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-sm">
+          <span>
+            <span className="block font-medium">🧪 {t("customers.markTest")}</span>
+            <span className="block text-xs text-muted-foreground">{t("customers.markTestHint")}</span>
+          </span>
+          <Switch
+            checked={c.is_test}
+            disabled={act.isPending}
+            onCheckedChange={(on) => void run(t(on ? "customers.testPrompt" : "customers.untestPrompt", { name }), "admin_set_test_account", { p_on: on })}
+          />
+        </label>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-xl bg-muted/60 px-3 py-2">
             <p className="text-xs text-muted-foreground">{t("admin.plan")}</p>
@@ -199,17 +210,6 @@ function CustomerSheet({ c, onClose }: { c: Customer; onClose: () => void }) {
           >
             {t(c.suspended ? "admin.reactivate" : "admin.suspend")}
           </Button>
-          <label className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-sm">
-            <span>
-              <span className="block font-medium">🧪 {t("customers.markTest")}</span>
-              <span className="block text-xs text-muted-foreground">{t("customers.markTestHint")}</span>
-            </span>
-            <Switch
-              checked={c.is_test}
-              disabled={act.isPending}
-              onCheckedChange={(on) => void run(t(on ? "customers.testPrompt" : "customers.untestPrompt", { name }), "admin_set_test_account", { p_on: on })}
-            />
-          </label>
         </div>
       </div>
     </BottomSheet>
