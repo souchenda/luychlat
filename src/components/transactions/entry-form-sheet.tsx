@@ -288,14 +288,14 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
                   id="entry-note"
                   className="h-11"
                   maxLength={500}
-                  placeholder={t("entry.notePlaceholder")}
+                  placeholder={t(type === "INCOME" ? "entry.notePlaceholderIncome" : "entry.notePlaceholder")}
                   {...register("note")}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>{t("entry.receipt")}</Label>
+              <Label>{t(type === "INCOME" ? "entry.receiptIncome" : "entry.receipt")}</Label>
               <ReceiptField value={receipt} onChange={setReceipt} />
             </div>
 

@@ -2368,6 +2368,8 @@ const km = {
   "bot.digestMorePct": "📈 ចំណាយច្រើនជាងសប្ដាហ៍មុន {pct}% ({amount})",
   "bot.digestOff": "📊 សេចក្ដីសង្ខេបប្រចាំសប្ដាហ៍ត្រូវបានបិទ។ ដើម្បីការពារឯកជនភាព bot មិនបង្ហាញចំនួនទឹកប្រាក់ទេ លុះត្រាតែអ្នកបើកវា៖ កម្មវិធី › ការកំណត់ › Telegram › «សេចក្ដីសង្ខេបចំណាយប្រចាំសប្ដាហ៍»។",
   "bot.digestEmpty": "📊 សប្ដាហ៍នេះមិនទាន់មានការកត់ត្រាចំណូល ឬចំណាយនៅឡើយទេ។ សាកផ្ញើ «កាហ្វេ 2$» ដើម្បីចាប់ផ្ដើម — រៀងរាល់ថ្ងៃអាទិត្យ ម៉ោង ៧ យប់ អ្នកនឹងទទួលបានសេចក្ដីសង្ខេប។ 💪",
+  "entry.notePlaceholderIncome": "ឧ. ប្រាក់ខែខែកញ្ញា ឬ ម៉ូយផ្ទេរថ្លៃទំនិញ",
+  "entry.receiptIncome": "រូបស្លីប ឬវិក្កយបត្រ (ស្រេចចិត្ត)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -4725,6 +4727,8 @@ const en: Record<MessageKey, string> = {
   "bot.digestMorePct": "📈 Spending up {pct}% on last week ({amount})",
   "bot.digestOff": "📊 The weekly digest is off. To protect your privacy, the bot shows no money totals unless you switch it on: app › Settings › Telegram › “Weekly spending digest”.",
   "bot.digestEmpty": "📊 No income or spending logged this week yet. Try sending “coffee 2$” to start — every Sunday at 7 PM you'll get your summary. 💪",
+  "entry.notePlaceholderIncome": "e.g. September salary or a customer payment",
+  "entry.receiptIncome": "Transfer slip or invoice photo (optional)",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

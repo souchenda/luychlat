@@ -2319,4 +2319,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.digestMorePct": "📈 支出比上周增加 {pct}%（{amount}）",
   "bot.digestOff": "📊 每周摘要已关闭。为保护您的隐私，除非您开启，机器人不会显示任何金额：应用 › 设置 › Telegram › “每周支出摘要”。",
   "bot.digestEmpty": "📊 本周还没有记录收入或支出。试着发送“咖啡 2$”开始记账——每周日晚上 7 点您会收到摘要。💪",
+  "entry.notePlaceholderIncome": "例如：九月工资或客户货款",
+  "entry.receiptIncome": "转账凭证或发票照片（可选）",
 }
