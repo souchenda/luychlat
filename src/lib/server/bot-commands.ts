@@ -364,6 +364,13 @@ type Confirmed = {
 export async function handleCallback(cb: Callback) {
   const chatId = cb.message?.chat.id
   const [verb, id, prefix] = (cb.data ?? "").split(":", 3)
+  if (chatId && cb.message?.chat.type === "private" && verb === "lang" && (id === "km" || id === "en" || id === "zh")) {
+    // The /lang buttons.
+    const { data } = await botDb().rpc("bot_set_language", { p_key: botKey(), p_chat_id: chatId, p_language: id })
+    await tg("answerCallbackQuery", { callback_query_id: cb.id })
+    await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: data ? tr(id, "bot.langSet") : tr(id, "bot.notLinked") })
+    return
+  }
   if (chatId && cb.message?.chat.type === "private" && (verb === "bp" || verb === "bs") && UUID.test(id ?? "")) {
     await billAction(cb, chatId, verb, id, prefix)
     return

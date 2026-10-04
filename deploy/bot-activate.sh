@@ -69,7 +69,7 @@ const api = (m, b) => fetch("https://api.telegram.org/bot" + t + "/" + m, { meth
     { command: "fuel", description: "តម្លៃប្រេង & ហ្កាស · Fuel & gas prices · 油价" },
     { command: "digest", description: "សង្ខេបប្រចាំសប្ដាហ៍ · Weekly digest · 每周摘要" },
     { command: "nssf", description: "ប.ស.ស. · NSSF cards & info · 国家社保" },
-    { command: "lang", description: "ភាសា · Language · 语言 (km / en / zh)" },
+    { command: "lang", description: "ភាសា · Language · 语言 (ខ្មែរ / 中文 / English)" },
     { command: "stop", description: "ផ្ដាច់ · Disconnect" },
   ] })
   console.log("OK " + hash + " " + me.result.username + " " + hook)

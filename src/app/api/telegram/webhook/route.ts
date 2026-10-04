@@ -179,10 +179,25 @@ async function handleDocument(chatId: number, doc: NonNullable<NonNullable<Updat
 }
 
 /** Telegram's interface language → ours (Chinese variants → zh). */
+/**
+ * The bot's language before a chat picks one: Khmer, except Chinese for a
+ * Chinese Telegram app. An English phone setting is common in Cambodia, so it
+ * no longer means English — users switch with /lang (or /en).
+ */
 function telegramLocale(code: string | undefined): Locale {
   if (code?.startsWith("zh")) return "zh"
-  if (code?.startsWith("en")) return "en"
   return "km"
+}
+
+/** /lang without a choice: one button per language. */
+const LANG_BUTTONS = {
+  inline_keyboard: [
+    [
+      { text: "🇰🇭 ភាសាខ្មែរ", callback_data: "lang:km" },
+      { text: "🇨🇳 中文", callback_data: "lang:zh" },
+      { text: "🇬🇧 English", callback_data: "lang:en" },
+    ],
+  ],
 }
 
 function sameSecret(a: string | null, b: string | null) {
@@ -268,14 +283,16 @@ export async function POST(request: Request) {
   } else if (/^\/setrate(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: NBC's newer official USD rate (others get the normal help).
     await sendText(chatId, await setRateReply(message.text, chatId))
-  } else if (/^\/lang(@\w+)?$/i.test(command)) {
-    // /lang km | en | zh — the bot's language for this chat.
-    const choice = payload?.toLowerCase()
+  } else if (/^\/(lang|language|km|en|zh)(@\w+)?$/i.test(command)) {
+    // /lang km | en | zh, or the shortcuts /km /en /zh — the bot's language for this chat; /lang alone shows buttons.
+    const short = command.slice(1).split("@")[0].toLowerCase()
+    const choice = short === "km" || short === "en" || short === "zh" ? short : payload?.toLowerCase()
     if (choice === "km" || choice === "en" || choice === "zh") {
       const { data } = await db.rpc("bot_set_language", { p_key: key, p_chat_id: chatId, p_language: choice })
       await sendText(chatId, data ? tr(choice, "bot.langSet") : tr(choice, "bot.notLinked"))
     } else {
-      await sendText(chatId, tr(lang, "bot.langUsage"))
+      const ctx = await botContext(chatId)
+      await sendText(chatId, tr(ctx?.linked ? contextLocale(ctx) : lang, "bot.langPick"), { reply_markup: LANG_BUTTONS })
     }
   } else if (/^\/nssf(@\w+)?$/i.test(command)) {
     // NSSF basics, and the account's own cards with copy buttons.
