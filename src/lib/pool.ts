@@ -1,7 +1,7 @@
 import type { Currency } from "@/lib/data/types"
 
 /** Shared pools (បេឡារួម): one event's money, held by a keeper. Used by the app, the public page and the bot. */
-export type PoolKind = "FESTIVAL" | "FAMILY" | "TRIP" | "GENERAL"
+export type PoolKind = "FESTIVAL" | "FAMILY" | "TRIP" | "GENERAL" | "CHARITY"
 export type PoolGauge = "safe" | "caution" | "low"
 export type PoolSettleMode = "REFUND" | "COLLECT" | "ROLLOVER"
 
@@ -18,6 +18,8 @@ export type PoolEntry = {
   preset_key: string | null
   date: string
   receipt: string | null
+  /** Key of the entry's photo for the public photo route (/api/pool-photo/<slug>/<photo>). */
+  photo?: string | null
 }
 
 export type PoolSnapshot = {
@@ -62,7 +64,11 @@ export const POOL_KINDS: { kind: PoolKind; emoji: string }[] = [
   { kind: "FAMILY", emoji: "👨‍👩‍👧‍👦" },
   { kind: "TRIP", emoji: "🏕️" },
   { kind: "GENERAL", emoji: "🤝" },
+  { kind: "CHARITY", emoji: "🎗️" },
 ]
+
+/** A receipt that came from Telegram (<owner>/tg/<file id>), served by the app's photo routes. */
+export const isTelegramReceipt = (ref: string | null | undefined) => Boolean(ref && /^[^/]+\/tg\/[A-Za-z0-9_-]{10,200}$/.test(ref))
 export const poolEmoji = (kind: string | null | undefined) => POOL_KINDS.find((k) => k.kind === kind?.toUpperCase())?.emoji ?? "🤝"
 
 export const GAUGE_EMOJI: Record<PoolGauge, string> = { safe: "🟢", caution: "🟡", low: "🔴" }

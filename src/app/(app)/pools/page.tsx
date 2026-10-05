@@ -86,7 +86,11 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
             <button
               key={k.kind}
               type="button"
-              onClick={() => setKind(k.kind)}
+              onClick={() => {
+                setKind(k.kind)
+                // Donations come in any amount: charity starts with custom contributions.
+                if (k.kind === "CHARITY") setSplit("CUSTOM")
+              }}
               aria-pressed={kind === k.kind}
               className={cn("rounded-xl border px-3 py-2.5 text-left transition-colors", kind === k.kind ? "border-primary bg-primary/5" : "hover:bg-muted/60")}
             >

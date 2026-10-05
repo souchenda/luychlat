@@ -2673,4 +2673,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "pool.bot.closedNoSpend": "该基金已结束。",
   "pool.bot.spendHelp": "🧾 记账：/spend 45$ 午饭（或 /spend 20000៛ 水）",
   "pool.bot.private": "🤝 共同基金在保管人关联的 Telegram 群组中使用。请打开应用 › 共同基金 › 关联 Telegram 群组。",
+  "pool.kind.CHARITY": "慈善 / 公益基金",
+  "pool.kindHint.CHARITY": "募集捐款——公开账目附收据",
+  "pool.placeholder.CHARITY": "例如：资助茶胶省贫困学生",
+  "pool.bot.photoAttached": "📎 已附上收据照片",
 }

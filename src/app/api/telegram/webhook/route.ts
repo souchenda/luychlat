@@ -16,7 +16,7 @@ import { sendDigestNow } from "@/lib/server/weekly-digest"
 import { handleInvoiceCallback, handleInvoiceMessage, isInvoiceCallback } from "@/lib/server/invoice-bot"
 import { asksWhoOwesMe, awaitingAiQuestion, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
-import { handlePoolGroupCommand } from "@/lib/server/pool-bot"
+import { bestPhoto, handlePoolGroupCommand, handlePoolPhotoReply } from "@/lib/server/pool-bot"
 import { menuCommand, menuKeyboard } from "@/lib/server/bot-menu"
 import { marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
@@ -41,6 +41,9 @@ type Update = {
   callback_query?: Parameters<typeof handleCallback>[0]
   message?: {
     text?: string
+    caption?: string
+    photo?: { file_id: string; width?: number; file_size?: number }[]
+    reply_to_message?: { message_id: number; from?: { is_bot?: boolean } }
     voice?: { file_id: string; duration?: number; file_size?: number }
     document?: { file_name?: string; mime_type?: string; file_size?: number }
     chat: { id: number; type: string }
@@ -57,11 +60,16 @@ const groupNoticeAt = new Map<number, number>()
  * gets a short note pointing to the private chat, never data. Plain chatter
  * is ignored.
  */
-async function handleGroupMessage(chatId: number, text: string, lang: Locale, fromId?: number) {
+async function handleGroupMessage(chatId: number, text: string, lang: Locale, fromId?: number, photo?: { fileId: string | null; replyTo: number | null }) {
   const command = text.trim().split(/\s+/, 1)[0] ?? ""
+  // A receipt photo sent as a reply to the bot's expense card (the keeper only).
+  if (!command.startsWith("/") && photo?.fileId && photo.replyTo) {
+    await handlePoolPhotoReply(chatId, fromId, photo.replyTo, photo.fileId, lang)
+    return
+  }
   if (!command.startsWith("/")) return
-  // A shared pool the keeper linked to this group: /pool, /fund, /trip, /spend, /pool link CODE.
-  if (await handlePoolGroupCommand(chatId, fromId, text, lang)) return
+  // A shared pool the keeper linked to this group: /pool, /fund, /trip, /spend (with a photo too), /pool link CODE.
+  if (await handlePoolGroupCommand(chatId, fromId, text, lang, photo?.fileId ?? null)) return
   if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
     const answer = await marketAnswer(text, lang)
     if (answer) await sendText(chatId, answer)
@@ -231,7 +239,10 @@ export async function POST(request: Request) {
   }
   const message = update.message
   if (message && (message.chat.type === "group" || message.chat.type === "supergroup")) {
-    await handleGroupMessage(message.chat.id, message.text ?? "", telegramLocale(message.from?.language_code), message.from?.id)
+    await handleGroupMessage(message.chat.id, message.text ?? message.caption ?? "", telegramLocale(message.from?.language_code), message.from?.id, {
+      fileId: bestPhoto(message.photo),
+      replyTo: message.reply_to_message?.from?.is_bot ? message.reply_to_message.message_id : null,
+    })
     return NextResponse.json({ ok: true })
   }
   if (!message || message.chat.type !== "private") return NextResponse.json({ ok: true })

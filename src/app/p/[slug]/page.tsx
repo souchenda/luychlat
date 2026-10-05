@@ -20,6 +20,7 @@ const KIND: Record<PoolKind, string> = {
   FAMILY: "ជួបជុំគ្រួសារ · Family gathering",
   TRIP: "ដំណើរកម្សាន្ត · Trip",
   GENERAL: "មូលនិធិរួម · Group fund",
+  CHARITY: "សប្បុរសធម៌ · Charity / Social fund",
 }
 const GAUGE: Record<PoolSnapshot["gauge"], string> = { safe: "គ្រប់គ្រាន់ · Enough", caution: "ប្រយ័ត្ន · Caution", low: "ជិតអស់ · Low" }
 const ddmm = (iso: string) => {
@@ -41,13 +42,9 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
   if (!data) notFound()
   const pool = toSnapshot(data as PoolSnapshot)
 
-  // Receipt photos (only when shared): short-lived links.
-  const paths = pool.entries.flatMap((e) => (e.receipt ? [e.receipt] : []))
-  const photoUrl = new Map<string, string>()
-  if (paths.length) {
-    const { data: signed } = await supabase.storage.from("receipts").createSignedUrls(paths, 15 * 60)
-    for (const s of signed ?? []) if (s.path && s.signedUrl) photoUrl.set(s.path, s.signedUrl)
-  }
+  // Receipt photos (only when shared) come through the public photo route (uploads and Telegram photos alike).
+  const photoUrl = (e: { photo?: string | null }) => (e.photo ? `/api/pool-photo/${slug}/${e.photo}` : null)
+  const charity = pool.kind === "CHARITY"
   const khqrSvg = pool.khqr && isKhqr(pool.khqr) ? await QRCode.toString(pool.khqr, { type: "svg", margin: 1, errorCorrectionLevel: "M" }) : null
   const settlement = pool.settlement
   const money = (n: number) => formatMoney(n, pool.currency)
@@ -62,6 +59,12 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
           {pool.title}
         </h1>
         {pool.keeper && <p className="text-sm text-muted-foreground">អ្នករក្សាលុយ · Keeper: {pool.keeper}</p>}
+        {charity && (
+          // What the page really offers: every entry in the open. Not a verification of the cause by LuyChlat.
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+            🔓 បញ្ជីចំហ · Open ledger — every expense{pool.share_photos ? " and receipt" : ""} is public
+          </p>
+        )}
       </header>
 
       <section className="rounded-2xl border bg-card p-4">
@@ -92,8 +95,15 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
       )}
 
       {khqrSvg && (
-        <section className="space-y-2 rounded-2xl border bg-card p-4 text-center">
-          <p className="text-sm font-semibold">ស្កេនបង់ជូនអ្នករក្សាលុយ · Scan to pay the keeper</p>
+        <section className={charity ? "space-y-2 rounded-2xl border-2 border-emerald-500/40 bg-card p-4 text-center" : "space-y-2 rounded-2xl border bg-card p-4 text-center"}>
+          {charity && pool.status === "active" ? (
+            <>
+              <p className="text-base font-bold">🤲 បើកទទួលការបរិច្ចាគ · Open for donations</p>
+              <p className="text-xs text-muted-foreground">ស្កេន KHQR ដើម្បីបរិច្ចាគជូន {pool.keeper || "អ្នករក្សាលុយ"} · Scan to donate to the keeper</p>
+            </>
+          ) : (
+            <p className="text-sm font-semibold">ស្កេនបង់ជូនអ្នករក្សាលុយ · Scan to pay the keeper</p>
+          )}
           <div className="mx-auto w-56 rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: khqrSvg }} />
           <p className="text-xs text-muted-foreground">KHQR</p>
         </section>
@@ -124,7 +134,7 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
         ) : (
           <div className="divide-y rounded-2xl border bg-card">
             {pool.entries.map((e, i) => {
-              const url = e.receipt ? photoUrl.get(e.receipt) : undefined
+              const url = photoUrl(e)
               return (
                 <div key={i} className="space-y-2 px-4 py-2.5 text-sm">
                   <div className="flex items-center gap-3">
@@ -135,9 +145,9 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
                     </span>
                   </div>
                   {url && (
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="block w-24 overflow-hidden rounded-lg border">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL */}
-                      <img src={url} alt="" className="h-24 w-24 object-cover" loading="lazy" />
+                    <a href={url} target="_blank" rel="noopener noreferrer" className={charity ? "block overflow-hidden rounded-lg border" : "block w-24 overflow-hidden rounded-lg border"}>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- served by the app's photo route */}
+                      <img src={url} alt="វិក្កយបត្រ · Receipt" className={charity ? "max-h-72 w-full bg-muted object-contain" : "h-24 w-24 object-cover"} loading="lazy" />
                     </a>
                   )}
                 </div>

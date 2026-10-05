@@ -1,3 +1,4 @@
+import { isTelegramReceipt } from "@/lib/pool"
 import { uuid } from "@/lib/uuid"
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js"
 
@@ -651,13 +652,15 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
     },
 
     async getReceiptUrl(ref) {
+      // Photos sent to the bot in a pool group stay on Telegram; the app fetches them for members.
+      if (isTelegramReceipt(ref)) return `/api/tg-photo?ref=${encodeURIComponent(ref)}`
       const { data } = await supabase.storage.from(RECEIPT_BUCKET).createSignedUrl(ref, SIGNED_URL_SECONDS)
       return data?.signedUrl ?? null
     },
 
     async deleteReceipt(ref) {
       // Only the uploader's own folder can be cleaned up; a member's photo stays with their account.
-      if (!ref.startsWith(`${userId}/`)) return
+      if (!ref.startsWith(`${userId}/`) || isTelegramReceipt(ref)) return
       await supabase.storage.from(RECEIPT_BUCKET).remove([ref])
     },
   }

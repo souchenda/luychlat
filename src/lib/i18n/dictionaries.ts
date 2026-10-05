@@ -2720,6 +2720,10 @@ const km = {
   "pool.bot.closedNoSpend": "បេឡានេះបានបិទហើយ។",
   "pool.bot.spendHelp": "🧾 កត់ត្រាចំណាយ៖ /spend 45$ បាយថ្ងៃត្រង់ (ឬ /spend 20000៛ ទឹក)",
   "pool.bot.private": "🤝 បេឡារួមដំណើរការនៅក្នុងក្រុម Telegram ដែលអ្នករក្សាលុយបានភ្ជាប់។ បើកវាក្នុងកម្មវិធី › បេឡារួម › ភ្ជាប់ក្រុម Telegram។",
+  "pool.kind.CHARITY": "សប្បុរសធម៌",
+  "pool.kindHint.CHARITY": "ប្រមូលជំនួយ — បញ្ជីចំហ មានរូបវិក្កយបត្រ",
+  "pool.placeholder.CHARITY": "ឧ. ជួយសិស្សក្រីក្រ ខេត្តតាកែវ",
+  "pool.bot.photoAttached": "📎 បានភ្ជាប់រូបវិក្កយបត្រ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5429,6 +5433,10 @@ const en: Record<MessageKey, string> = {
   "pool.bot.closedNoSpend": "This pool is closed.",
   "pool.bot.spendHelp": "🧾 Log spending: /spend 45$ lunch (or /spend 20000៛ water)",
   "pool.bot.private": "🤝 Shared pools work in the Telegram group the keeper linked. Open the app › Shared pools › Connect a Telegram group.",
+  "pool.kind.CHARITY": "Charity / Social fund",
+  "pool.kindHint.CHARITY": "Raise donations — an open ledger with receipts",
+  "pool.placeholder.CHARITY": "e.g. School supplies for students in Takeo",
+  "pool.bot.photoAttached": "📎 Receipt photo attached",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

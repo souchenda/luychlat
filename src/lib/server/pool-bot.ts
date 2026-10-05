@@ -4,6 +4,8 @@
 //   /spend 45$ បាយថ្ងៃត្រង់   log an expense (the keeper only)
 // New entries — from /spend, the app or the keeper's private chat — are posted
 // to the group by the dispatcher. Only the pool's own wallet is ever shown.
+// Receipt photos: /spend as a photo caption, or a photo sent as a reply to an
+// expense card; kept on Telegram (<keeper>/tg/<file id>), shown through the app.
 import { parseAmountText, toLatinDigits } from "@/lib/bot/parse-entry"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
@@ -59,10 +61,17 @@ function settlementText(p: PoolSnapshot, lang: Locale) {
   return [`${poolEmoji(p.kind)} ${p.title}`, head, ...s.shares.map((x) => `• ${x.name} — ${formatMoney(x.amount, p.currency)}`)].join("\n")
 }
 
+/** The largest photo size up to ~1600 px (Telegram sends several). */
+export function bestPhoto(sizes: { file_id: string; width?: number }[] | undefined): string | null {
+  if (!sizes?.length) return null
+  const fit = sizes.filter((s) => (s.width ?? 0) <= 1600)
+  return (fit.length ? fit[fit.length - 1] : sizes[0]).file_id
+}
+
 type Pending = {
   pool_id: string
   chat_id: number | null
-  items: { type: "INCOME" | "EXPENSE"; amt: number; note: string | null }[]
+  items: { id?: string; receipt?: boolean; type: "INCOME" | "EXPENSE"; amt: number; note: string | null }[]
   until: string | null
   low_alerted: boolean
   settle: boolean
@@ -81,7 +90,7 @@ export async function flushPoolPosts(poolId?: string) {
     if (raw.chat_id && raw.items.length) {
       const lines = raw.items.slice(-10).map((i) =>
         i.type === "EXPENSE"
-          ? tr(lang, "pool.bot.expense", { note: i.note ?? "—", amount: formatMoney(Number(i.amt), p.currency) })
+          ? tr(lang, "pool.bot.expense", { note: i.note ?? "—", amount: formatMoney(Number(i.amt), p.currency) }) + (i.receipt ? " 📎" : "")
           : tr(lang, "pool.bot.income", { note: i.note ?? "—", amount: formatMoney(Number(i.amt), p.currency) }),
       )
       if (raw.items.length > 10) lines.unshift(tr(lang, "pool.bot.more", { count: raw.items.length - 10 }))
@@ -91,7 +100,11 @@ export async function flushPoolPosts(poolId?: string) {
         lines.push(lowLine(p, lang))
         low = true
       } else if (p.gauge !== "low") low = false
-      await sendText(raw.chat_id, lines.join("\n"))
+      const sent = await sendText(raw.chat_id, lines.join("\n"))
+      // One expense per card: remember it, so a photo replied to the card becomes its receipt.
+      const only = raw.items.length === 1 && raw.items[0].type === "EXPENSE" ? raw.items[0].id : undefined
+      const messageId = (sent as { result?: { message_id?: number } }).result?.message_id
+      if (only && messageId) await botDb().rpc("bot_pool_remember", { p_key: botKey(), p_chat: raw.chat_id, p_message_id: messageId, p_transaction_id: only })
     }
     if (raw.settle && raw.chat_id) await sendText(raw.chat_id, settlementText(p, lang))
     await botDb().rpc("bot_pool_posted", { p_key: botKey(), p_pool_id: raw.pool_id, p_until: raw.until, p_low: low, p_settled: raw.settle })
@@ -99,7 +112,17 @@ export async function flushPoolPosts(poolId?: string) {
 }
 
 /** Group commands for pools; true when the message was one of them. */
-export async function handlePoolGroupCommand(chatId: number, fromId: number | undefined, text: string, fallback: Locale): Promise<boolean> {
+/** A photo replied to an expense card: attach it as that entry's receipt (keeper only). */
+export async function handlePoolPhotoReply(chatId: number, fromId: number | undefined, replyTo: number, fileId: string, lang: Locale) {
+  if (!fromId) return
+  const { data } = await botDb().rpc("bot_pool_attach", { p_key: botKey(), p_group: chatId, p_from: fromId, p_message_id: replyTo, p_photo: fileId })
+  const status = (data as { status?: string } | null)?.status
+  // Silence for photos that weren't meant as receipts (a reply to something else).
+  if (status === "ok") await sendText(chatId, tr(lang, "pool.bot.photoAttached"))
+  else if (status === "not_keeper") await sendText(chatId, tr(lang, "pool.bot.notKeeper"))
+}
+
+export async function handlePoolGroupCommand(chatId: number, fromId: number | undefined, text: string, fallback: Locale, photoId: string | null = null): Promise<boolean> {
   const [command, ...rest] = text.trim().split(/\s+/)
   const name = command.split("@")[0].toLowerCase()
   if (!["/pool", "/fund", "/trip", "/spend"].includes(name)) return false
@@ -141,6 +164,7 @@ export async function handlePoolGroupCommand(chatId: number, fromId: number | un
     p_amount: amount.value,
     p_currency: amount.currency ?? pool.currency,
     p_note: note || null,
+    p_photo: photoId,
   })
   const r = data as { status: string; pool_id?: string } | null
   if (r?.status === "ok") await flushPoolPosts(r.pool_id)
