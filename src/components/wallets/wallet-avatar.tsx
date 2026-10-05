@@ -2,7 +2,7 @@ import { BanknoteIcon, WalletIcon } from "lucide-react"
 
 import { goalEmoji } from "@/lib/goals"
 import { cn } from "@/lib/utils"
-import { getProvider, nameMark } from "@/lib/wallets/providers"
+import { getProvider, nameMark, providerForName } from "@/lib/wallets/providers"
 
 /** Dark text on light brand colours (e.g. Wing's lime), white otherwise. */
 function textColorFor(hex: string): string {
@@ -34,7 +34,9 @@ export function WalletAvatar({
       </span>
     )
   }
-  const provider = getProvider(icon)
+  // A wallet without a bank picked ("Other") still gets its bank's logo when its name says which.
+  const picked = getProvider(icon)
+  const provider = picked.key === "other" ? (providerForName(name) ?? picked) : picked
   if (provider.logo) {
     return (
       <span className={cn("flex size-10 shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-black/5", className)} aria-hidden>
