@@ -2611,6 +2611,8 @@ const km = {
   "recon.confirmMatchesBank": "ត្រូវគ្នានឹងរបាយការណ៍ធនាគារ",
   "recon.confirmNotMatching": "មិនទាន់ត្រូវនឹងសមតុល្យធនាគារ {amount} ទេ — បើក «តម្រឹមសមតុល្យ» ឬពិនិត្យជួរដែលបានរំលង។",
   "recon.confirmImport": "✅ បញ្ជាក់ការនាំចូល (Confirm Import)",
+  "ws.switchedTo": "🔄 ប្តូរទៅ {name}",
+  "ws.openList": "បង្ហាញកន្លែងធ្វើការទាំងអស់",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5211,6 +5213,8 @@ const en: Record<MessageKey, string> = {
   "recon.confirmMatchesBank": "Matches the bank statement",
   "recon.confirmNotMatching": "Doesn't match the bank's {amount} yet — turn on balance alignment or check skipped rows.",
   "recon.confirmImport": "✅ Confirm import",
+  "ws.switchedTo": "🔄 Switched to {name}",
+  "ws.openList": "Show all workspaces",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

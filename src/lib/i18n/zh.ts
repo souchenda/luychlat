@@ -2564,4 +2564,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "recon.confirmMatchesBank": "与银行对账单一致",
   "recon.confirmNotMatching": "与银行余额 {amount} 尚不一致——请开启余额对齐或检查跳过的行。",
   "recon.confirmImport": "✅ 确认导入",
+  "ws.switchedTo": "🔄 已切换到 {name}",
+  "ws.openList": "显示所有工作区",
 }
