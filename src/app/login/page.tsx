@@ -87,6 +87,7 @@ export default function LoginPage() {
     <main className="app-frame relative isolate flex min-h-dvh w-full max-w-md flex-col overflow-hidden px-4 pt-6 sm:px-6">
       {/* Soft emerald / mint glow behind the header. */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96">
+        <div className="absolute inset-0 bg-linear-to-b from-emerald-50/80 to-transparent dark:from-emerald-950/40" />
         <div className="absolute top-[-6rem] left-1/2 size-[26rem] -translate-x-1/2 rounded-full bg-emerald-400/25 blur-3xl dark:bg-emerald-500/15" />
         <div className="absolute top-8 left-[15%] size-56 rounded-full bg-teal-300/25 blur-3xl dark:bg-teal-500/10" />
         <div className="absolute top-4 right-[10%] size-48 rounded-full bg-lime-200/30 blur-3xl dark:bg-emerald-300/10" />
@@ -96,7 +97,7 @@ export default function LoginPage() {
         <LanguageToggle />
       </div>
 
-      <div className="mt-4 mb-6 flex flex-col items-center gap-3 text-center">
+      <div className="mt-4 mb-6 flex flex-col items-center gap-3 text-center animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
         <BrandMark className="size-16 rounded-[1.25rem] bg-linear-to-br from-emerald-500 to-teal-600 text-3xl text-white shadow-lg shadow-emerald-600/30 ring-1 ring-white/30 dark:shadow-emerald-500/20" />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{hydrated ? t("app.name") : "លុយឆ្លាត"}</h1>
@@ -105,7 +106,7 @@ export default function LoginPage() {
       </div>
 
       {hydrated && (
-        <div className="flex flex-col gap-5 rounded-2xl border border-neutral-100 bg-card/95 p-5 shadow-xl shadow-emerald-950/5 backdrop-blur sm:p-6 dark:border-neutral-800 dark:bg-card/90 dark:shadow-black/40">
+        <div className="flex flex-col gap-5 rounded-3xl border border-neutral-100 bg-card/95 p-5 shadow-2xl shadow-emerald-950/10 backdrop-blur delay-100 sm:p-6 dark:border-neutral-800 dark:bg-card/90 dark:shadow-black/50 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
           <div className="text-center">
             <h2 className="text-lg font-semibold">{t("login.title")}</h2>
             <p className="text-sm text-muted-foreground">{t("login.subtitle")}</p>
@@ -162,7 +163,7 @@ export default function LoginPage() {
       )}
 
       {hydrated && (
-        <p className="mx-auto mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-1 text-center text-[11px] text-emerald-800 dark:text-emerald-300">
+        <p className="mx-auto mt-4 rounded-2xl border border-emerald-500/20 delay-200 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none bg-emerald-500/5 px-3 py-1 text-center text-[11px] text-emerald-800 dark:text-emerald-300">
           {t("login.features")}
         </p>
       )}

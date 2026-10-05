@@ -3,14 +3,49 @@
 import { EyeIcon, EyeOffIcon, KeyRoundIcon, Loader2Icon, LockKeyholeIcon, MailIcon } from "lucide-react"
 import { useState } from "react"
 
-import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
 
 import { MIN_PASSWORD, PasswordHint } from "./password-hint"
+
+/** Sign in / Create account, with the white pill sliding under the active tab. */
+function AuthTabs({ value, onChange, label }: { value: "signin" | "signup"; onChange: (v: "signin" | "signup") => void; label: string }) {
+  const t = useT()
+  const tabs = [
+    { value: "signin" as const, label: t("login.signIn") },
+    { value: "signup" as const, label: t("login.signUp") },
+  ]
+  return (
+    <div role="radiogroup" aria-label={label} className="relative grid grid-cols-2 rounded-2xl bg-muted/70 p-1 dark:bg-neutral-800/70">
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-background shadow-md transition-transform duration-300 ease-out motion-reduce:transition-none",
+          value === "signup" && "translate-x-full",
+        )}
+      />
+      {tabs.map((tab) => (
+        <button
+          key={tab.value}
+          type="button"
+          role="radio"
+          aria-checked={value === tab.value}
+          onClick={() => onChange(tab.value)}
+          className={cn(
+            "relative z-10 rounded-xl py-2.5 text-sm transition-colors duration-300",
+            value === tab.value ? "font-semibold text-emerald-700 dark:text-emerald-400" : "font-medium text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -32,6 +67,12 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
+  const [shaking, setShaking] = useState(false)
+  /** Shows the error and gives the form a short shake. */
+  const fail = (message: string) => {
+    setError(message)
+    setShaking(true)
+  }
 
   const switchMode = (next: typeof mode) => {
     setMode(next)
@@ -44,7 +85,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     setError(undefined)
     setNotice(undefined)
     const address = email.trim().toLowerCase()
-    if (!EMAIL.test(address)) return setError(t("login.emailInvalid"))
+    if (!EMAIL.test(address)) return fail(t("login.emailInvalid"))
     const supabase = getSupabaseBrowserClient()
     if (!supabase) return
 
@@ -56,13 +97,13 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       setBusy(false)
       // Same answer whether or not the address has an account (no account probing).
       if (error && authErrorCode(error) !== "user_not_found") {
-        return setError(`${t("login.resetFailed")} (${authErrorCode(error) || error.status}: ${error.message})`)
+        return fail(`${t("login.resetFailed")} (${authErrorCode(error) || error.status}: ${error.message})`)
       }
       setNotice(t("login.resetSent", { email: address }))
       return
     }
 
-    if (password.length < MIN_PASSWORD) return setError(t("login.passwordShort", { min: MIN_PASSWORD }))
+    if (password.length < MIN_PASSWORD) return fail(t("login.passwordShort", { min: MIN_PASSWORD }))
     setBusy(true)
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email: address, password })
@@ -70,10 +111,10 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       // On success the AuthListener picks up the session and the login page redirects.
       if (error) {
         const code = authErrorCode(error)
-        if (code === "invalid_credentials") return setError(t("login.emailError"))
-        if (code === "email_not_confirmed" || /confirm/i.test(error.message)) return setError(t("login.emailUnconfirmed"))
+        if (code === "invalid_credentials") return fail(t("login.emailError"))
+        if (code === "email_not_confirmed" || /confirm/i.test(error.message)) return fail(t("login.emailUnconfirmed"))
         // Anything else is a setup or network problem: show Supabase's reason.
-        setError(`${t("login.signinFailed")} (${code || error.status || "error"}: ${error.message})`)
+        fail(`${t("login.signinFailed")} (${code || error.status || "error"}: ${error.message})`)
       }
       return
     }
@@ -86,9 +127,9 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     setBusy(false)
     if (error) {
       const code = authErrorCode(error)
-      if (code === "user_already_exists" || /registered|exists/i.test(error.message)) return setError(t("login.emailTaken"))
-      if (code === "weak_password") return setError(t("pw.chooseStronger"))
-      return setError(`${t("login.signupError")} (${code || error.status}: ${error.message})`)
+      if (code === "user_already_exists" || /registered|exists/i.test(error.message)) return fail(t("login.emailTaken"))
+      if (code === "weak_password") return fail(t("pw.chooseStronger"))
+      return fail(`${t("login.signupError")} (${code || error.status}: ${error.message})`)
     }
     // Normally (Supabase "Confirm email" off) signUp returns a session: the
     // AuthListener signs the user in and the login page goes to /home at once.
@@ -100,7 +141,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3">
+    <form onSubmit={submit} className={cn("space-y-3", shaking && "animate-shake motion-reduce:animate-none")} onAnimationEnd={() => setShaking(false)}>
       {mode === "forgot" ? (
         <div className="space-y-1">
           <p className="flex items-center gap-2 font-semibold">
@@ -110,16 +151,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
           <p className="text-sm text-muted-foreground">{t("login.forgotHint")}</p>
         </div>
       ) : (
-        <Segmented
-          className="rounded-2xl bg-muted/70 p-1 dark:bg-neutral-800/70 [&>button]:rounded-xl [&>button]:py-2.5 [&>button[aria-checked=true]]:font-semibold [&>button[aria-checked=true]]:text-emerald-700 [&>button[aria-checked=true]]:shadow-md dark:[&>button[aria-checked=true]]:text-emerald-400"
-          aria-label={t("login.emailTitle")}
-          value={mode}
-          onChange={switchMode}
-          options={[
-            { value: "signin", label: t("login.signIn") },
-            { value: "signup", label: t("login.signUp") },
-          ]}
-        />
+        <AuthTabs value={mode} onChange={switchMode} label={t("login.emailTitle")} />
       )}
       <div className="space-y-2">
         <Label htmlFor="login-email">{t("login.email")}</Label>
@@ -171,11 +203,11 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
           {mode === "signup" && <PasswordHint password={password} />}
         </div>
       )}
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-sm text-destructive animate-in fade-in-0 duration-200">{error}</p>}
       {notice && <p className="rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-400">{notice}</p>}
       <Button
         type="submit"
-        className="h-12 w-full rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-base font-semibold text-white shadow-md shadow-emerald-600/20 transition-all hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] disabled:opacity-60"
+        className="h-12 w-full rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-base font-semibold text-white shadow-md shadow-emerald-600/20 transition-all hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] disabled:opacity-60"
         disabled={disabled || busy}
       >
         {busy ? <Loader2Icon className="animate-spin" /> : mode === "forgot" ? <KeyRoundIcon /> : <MailIcon />}
