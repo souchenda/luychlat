@@ -235,7 +235,21 @@ export function WorkspaceFlip() {
     haptic()
     setSpin((n) => n + 1)
     setActive(next.type, next.type === "PERSONAL" ? null : next.id)
-    toast(t("ws.switchedTo", { name: label(next) }), { duration: 1200, id: "ws-flip" })
+    // A small pill that goes by itself after ~1.3 s and closes the moment it's tapped (it sits over the header).
+    const message = t("ws.switchedTo", { name: label(next) })
+    toast.custom(
+      (id) => (
+        <button
+          type="button"
+          onClick={() => toast.dismiss(id)}
+          className="mx-auto block max-w-[80vw] truncate rounded-full bg-foreground/90 px-4 py-2 text-sm font-medium text-background shadow-lg"
+          aria-label={message}
+        >
+          {message}
+        </button>
+      ),
+      { id: "ws-flip", duration: 1300, unstyled: true },
+    )
   }
 
   return (
