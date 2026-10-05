@@ -8,7 +8,8 @@ import type { Debt } from "@/lib/data/types"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { debtSchedule, installments, nextInstallment, type Installment, type InstallmentStatus } from "@/lib/loans/installments"
+import { useLoanInstallments } from "@/lib/loans/bank-loan"
+import { debtSchedule, installments, isBankLoan, nextInstallment, type Installment, type InstallmentStatus } from "@/lib/loans/installments"
 import { formatMoney, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
@@ -26,8 +27,10 @@ const ddmmyy = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}/${ymd.sl
 export function nextInstallmentAmount(debt: Debt): number | undefined {
   const schedule = debtSchedule(debt)
   if (!schedule) return undefined
-  const next = nextInstallment(installments(schedule, debt.paid_amount, todayDate(), debt.currency))
-  return next ? roundMoney(next.payment - next.paid, debt.currency) : undefined
+  const bank = isBankLoan(debt)
+  const next = nextInstallment(installments(schedule, debt.paid_amount, todayDate(), debt.currency, bank))
+  // Bank loan: a manual payment is a principal prepayment.
+  return next ? roundMoney((bank ? next.principal : next.payment) - next.paid, debt.currency) : undefined
 }
 
 function StatusChip({ status }: { status: InstallmentStatus }) {
@@ -40,8 +43,11 @@ export function ScheduleCard({ debt }: { debt: Debt }) {
   const t = useT()
   const [open, setOpen] = useState(false)
   const schedule = debtSchedule(debt)
+  const bank = isBankLoan(debt)
+  const paidRows = useLoanInstallments(debt.id, bank && open).data
   if (!schedule) return null
-  const list: Installment[] = installments(schedule, debt.paid_amount, todayDate(), debt.currency)
+  const paidOn = new Map((paidRows ?? []).map((r) => [r.n, r.paid_at]))
+  const list: Installment[] = installments(schedule, debt.paid_amount, todayDate(), debt.currency, bank)
   const next = nextInstallment(list)
   const paidCount = list.filter((i) => i.status === "PAID").length
   const overdue = list.filter((i) => i.status === "OVERDUE").length
@@ -52,7 +58,7 @@ export function ScheduleCard({ debt }: { debt: Debt }) {
     <section className="space-y-2">
       <h2 className="flex items-center gap-1.5 px-1 text-sm font-medium text-muted-foreground">
         <CalendarRangeIcon className="size-4" aria-hidden />
-        {t("schedule.title")}
+        {bank ? t("bankLoan.scheduleTitle", { count: list.length }) : t("schedule.title")}
       </h2>
       <Card className="gap-3 px-4 py-3">
         <div className="flex items-center justify-between gap-2 text-sm">
@@ -66,7 +72,7 @@ export function ScheduleCard({ debt }: { debt: Debt }) {
           <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.round((paidCount / list.length) * 100)}%` }} />
         </div>
 
-        {next && (
+        {next && !bank && (
           <div className={cn("flex items-center gap-3 rounded-xl p-3", next.status === "OVERDUE" ? "bg-rose-500/10" : "bg-muted/60")}>
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground">{t("schedule.next", { n: next.n, total: list.length })}</p>
@@ -84,7 +90,53 @@ export function ScheduleCard({ debt }: { debt: Debt }) {
           {t(open ? "schedule.hideTable" : "schedule.showTable")}
         </button>
 
-        {open && (
+        {open && bank && (
+          <div className="-mx-4 overflow-x-auto">
+            <table className="w-full text-xs tabular-nums">
+              <thead className="text-muted-foreground">
+                <tr className="border-b">
+                  <th className="px-2 py-1.5 text-left font-medium">#</th>
+                  <th className="px-2 py-1.5 text-left font-medium">{t("schedule.col.date")}</th>
+                  <th className="px-2 py-1.5 text-right font-medium">{t("bankLoan.col.principal")}</th>
+                  <th className="px-2 py-1.5 text-right font-medium">{t("schedule.col.interest")}</th>
+                  <th className="px-2 py-1.5 text-right font-medium">{t("bankLoan.col.fee")}</th>
+                  <th className="px-2 py-1.5 text-right font-medium">{t("bankLoan.col.total")}</th>
+                  <th className="px-2 py-1.5 text-right font-medium" aria-label={t("schedule.col.status")} />
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((i) => (
+                  <tr key={i.n} className={cn("border-b last:border-0", i === next && "bg-primary/5")}>
+                    <td className="px-2 py-1.5 text-muted-foreground">{i.n}</td>
+                    <td className="px-2 py-1.5 whitespace-nowrap">{ddmmyy(i.date)}</td>
+                    <td className="px-2 py-1.5 text-right">{money(i.principal)}</td>
+                    <td className="px-2 py-1.5 text-right text-muted-foreground">{money(i.interest)}</td>
+                    <td className="px-2 py-1.5 text-right text-muted-foreground">{money(i.fee)}</td>
+                    <td className="px-2 py-1.5 text-right font-medium">{money(i.payment)}</td>
+                    <td className="px-2 py-1.5 text-right">
+                      <StatusChip status={i.status} />
+                      {paidOn.get(i.n) && <span className="block text-[10px] text-muted-foreground">{ddmmyy(paidOn.get(i.n)!.slice(0, 10))}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="font-medium">
+                  <td className="px-2 py-1.5" colSpan={2}>
+                    {t("schedule.total")}
+                  </td>
+                  <td className="px-2 py-1.5 text-right">{money(debt.schedule_principal ?? debt.total_amount)}</td>
+                  <td className="px-2 py-1.5 text-right">{money(schedule.totalInterest)}</td>
+                  <td className="px-2 py-1.5 text-right">{money(schedule.totalFees)}</td>
+                  <td className="px-2 py-1.5 text-right">{money(schedule.totalPayment)}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+
+        {open && !bank && (
           <div className="-mx-4 overflow-x-auto">
             <table className="w-full text-xs tabular-nums">
               <thead className="text-muted-foreground">

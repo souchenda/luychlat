@@ -44,18 +44,29 @@ export function debtSchedule(d: Debt): LoanSchedule | null {
     method: d.schedule_method,
     frequency: d.schedule_frequency,
     firstPaymentDate: d.schedule_first_due,
+    startDate: d.start_date,
+    fee: d.schedule_fee ?? 0,
   })
 }
 
+/** Bank loan: the debt holds the principal only; interest and fee are expenses paid with each installment. */
+export const isBankLoan = (d: Pick<Debt, "schedule_method">) => d.schedule_method === "BANK"
+
+
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000)
 
-/** Each installment with what's been paid on it and its status today. */
-export function installments(schedule: LoanSchedule, paidTotal: number, today: string, currency: Debt["currency"]): Installment[] {
+/**
+ * Each installment with what's been paid on it and its status today. With
+ * `byPrincipal` (bank loans) the debt's paid amount is principal only, so it
+ * covers each installment's principal part.
+ */
+export function installments(schedule: LoanSchedule, paidTotal: number, today: string, currency: Debt["currency"], byPrincipal = false): Installment[] {
   let left = paidTotal
   return schedule.rows.map((row) => {
-    const paid = roundMoney(Math.min(row.payment, Math.max(0, left)), currency)
+    const due = byPrincipal ? row.principal : row.payment
+    const paid = roundMoney(Math.min(due, Math.max(0, left)), currency)
     left = roundMoney(left - paid, currency)
-    const full = paid >= row.payment - (currency === "KHR" ? 0.5 : 0.005)
+    const full = paid >= due - (currency === "KHR" ? 0.5 : 0.005)
     const days = dayDiff(row.date, today)
     const status: InstallmentStatus = full ? "PAID" : days < 0 ? "OVERDUE" : days <= DUE_WINDOW_DAYS ? "DUE" : paid > 0 ? "PARTIAL" : "PENDING"
     return { ...row, paid, status }
@@ -67,17 +78,23 @@ export const nextInstallment = (list: Installment[]) => list.find((i) => i.statu
 
 /**
  * The schedule fields and debt totals to save: total = everything to repay
- * (principal + interest), due date = the last installment.
+ * (principal + interest), due date = the last installment. A bank loan keeps
+ * the principal as its total (interest is booked as an expense per installment).
  */
-export function scheduleToSave(schedule: LoanSchedule, input: { frequency: LoanFrequency; count: number; method: LoanMethod; firstDue: string; principal: number }) {
+export function scheduleToSave(
+  schedule: LoanSchedule,
+  input: { frequency: LoanFrequency; count: number; method: LoanMethod; firstDue: string; principal: number; fee?: number },
+) {
+  const bank = input.method === "BANK"
   return {
-    total_amount: schedule.totalPayment,
+    total_amount: bank ? input.principal : schedule.totalPayment,
+    schedule_fee: bank ? (input.fee ?? 0) : null,
     due_date: schedule.lastPaymentDate,
     schedule_frequency: input.frequency,
     schedule_count: input.count,
     schedule_method: input.method,
     schedule_first_due: input.firstDue,
-    schedule_payment: schedule.monthlyPayment,
+    schedule_payment: schedule.basePayment,
     schedule_principal: input.principal,
   }
 }

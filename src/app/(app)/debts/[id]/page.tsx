@@ -7,8 +7,9 @@ import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { BankInstallmentButton } from "@/components/debts/bank-installment-button"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
-import { DebtPhotos } from "@/components/debts/debt-photos"
+import { LoanDocuments } from "@/components/debts/loan-documents"
 import { DebtProgress } from "@/components/debts/debt-progress"
 import { ReminderSheet } from "@/components/debts/reminder-sheet"
 import { RepaymentSheet } from "@/components/debts/repayment-sheet"
@@ -28,6 +29,7 @@ import { useActiveWorkspace, useDebtMutations, useDebts, useReceiptUrl, useRepay
 import { RepaymentTooLargeError, type Attribution } from "@/lib/data/types"
 import { useIslamicSettings } from "@/lib/islamic-settings"
 import { debtStatus, estimatedInterest, remaining } from "@/lib/debts"
+import { isBankLoan } from "@/lib/loans/installments"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { formatPhoneLocal } from "@/lib/format"
@@ -110,7 +112,9 @@ export default function DebtDetailPage() {
   }
 
   const settled = debtStatus(debt) === "SETTLED"
-  const interest = estimatedInterest(debt)
+  const bankLoan = isBankLoan(debt)
+  // A bank loan's interest is in its schedule (and booked per installment), not an estimate.
+  const interest = bankLoan ? 0 : estimatedInterest(debt)
   const repayments = repaymentsQuery.data ?? []
   const tranches = tranchesQuery.data ?? []
   // Timeline, oldest first: the first borrowing, later top-ups and repayments, each with the balance after it.
@@ -254,7 +258,16 @@ export default function DebtDetailPage() {
           )}
         </div>
 
-        {!settled && (
+        {!settled && bankLoan && (
+          <div className="space-y-2">
+            <BankInstallmentButton debt={debt} wallets={wallets} />
+            <Button variant="outline" className="h-10 w-full" onClick={() => setPayOpen(true)}>
+              <ArrowUpRightIcon />
+              {t("bankLoan.prepay")}
+            </Button>
+          </div>
+        )}
+        {!settled && !bankLoan && (
           <div className={debt.type === "RECEIVABLE" ? "grid grid-cols-2 gap-2" : ""}>
             <Button className="h-11 w-full" onClick={() => setPayOpen(true)}>
               {debt.type === "PAYABLE" ? <ArrowUpRightIcon /> : <ArrowDownLeftIcon />}
@@ -357,7 +370,7 @@ export default function DebtDetailPage() {
         </label>
       )}
 
-      <DebtPhotos debt={debt} />
+      <LoanDocuments debt={debt} />
 
       <TrancheSheet open={moreOpen} onOpenChange={setMoreOpen} debt={debt} wallets={wallets} />
       <RepaymentSheet open={payOpen} onOpenChange={setPayOpen} debt={debt} wallets={wallets} initialAmount={nextInstallmentAmount(debt)} />

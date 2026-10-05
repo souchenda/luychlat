@@ -108,6 +108,27 @@ export const DISBURSEMENT_CATEGORY_PRESETS: Record<"PAYABLE" | "RECEIVABLE", Cat
 }
 
 /**
+ * Bank loan installments (see public.pay_loan_installment): the interest and
+ * the monthly insurance / fee are real expenses, booked with each installment.
+ */
+export const LOAN_COST_CATEGORY_PRESETS: Record<"INTEREST" | "INSURANCE", CategoryPreset> = {
+  INTEREST: {
+    key: "loan_interest",
+    type: "EXPENSE",
+    icon: "landmark",
+    color: "#ef4444",
+    name: { km: "ការប្រាក់កម្ចី", en: "Loan interest" },
+  },
+  INSURANCE: {
+    key: "loan_insurance",
+    type: "EXPENSE",
+    icon: "receipt",
+    color: "#8b5cf6",
+    name: { km: "ធានារ៉ាប់រងកម្ចី", en: "Loan insurance" },
+  },
+}
+
+/**
  * Wallet reconciliation entries (see public.reconcile_wallet). They correct a
  * balance to reality and are not real income or spending, so reports and the
  * advisor leave them out.
@@ -215,6 +236,7 @@ const PRESET_NAMES = new Map(
     ...Object.values(CATEGORY_PRESETS).flat(),
     ...Object.values(DEBT_CATEGORY_PRESETS),
     ...Object.values(DISBURSEMENT_CATEGORY_PRESETS),
+    ...Object.values(LOAN_COST_CATEGORY_PRESETS),
     ...Object.values(ADJUSTMENT_CATEGORY_PRESETS),
     ...Object.values(WORKSPACE_TRANSFER_PRESETS),
     ...Object.values(ISLAMIC_CATEGORY_PRESETS),

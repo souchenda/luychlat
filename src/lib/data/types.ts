@@ -145,10 +145,12 @@ export type DebtExtras = {
   /** Installment schedule (PRO), see lib/loans/installments.ts. With one, total_amount includes the interest. */
   schedule_frequency?: "MONTHLY" | "WEEKLY" | null
   schedule_count?: number | null
-  schedule_method?: "FLAT" | "REDUCING" | null
+  schedule_method?: "FLAT" | "REDUCING" | "BANK" | null
   schedule_first_due?: string | null
   schedule_payment?: number | null
   schedule_principal?: number | null
+  /** Bank loan: monthly fee / insurance added to each installment. */
+  schedule_fee?: number | null
 }
 
 /** Optional loan insurance (e.g. credit life insurance the bank requires). */
