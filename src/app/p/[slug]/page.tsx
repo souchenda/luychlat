@@ -6,6 +6,7 @@ import QRCode from "qrcode"
 
 import { PoolGauge } from "@/components/pools/pool-gauge"
 import { PoolAutoRefresh } from "@/components/pools/pool-auto-refresh"
+import { PublicPoolDisclaimer } from "@/components/pools/public-pool-disclaimer"
 import { isKhqr } from "@/lib/khqr"
 import { formatMoney } from "@/lib/money"
 import { poolEmoji, toSnapshot, type PoolKind, type PoolSnapshot } from "@/lib/pool"
@@ -47,6 +48,10 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
   const charity = pool.kind === "CHARITY"
   const khqrSvg = pool.khqr && isKhqr(pool.khqr) ? await QRCode.toString(pool.khqr, { type: "svg", margin: 1, errorCorrectionLevel: "M" }) : null
   const settlement = pool.settlement
+  // "Report an issue": the support Telegram link an admin set (Support settings), else the official bot.
+  const { data: contacts } = await supabase.rpc("support_contacts")
+  const supportUrl = (contacts as { telegram_url?: string } | null)?.telegram_url
+  const reportUrl = supportUrl && /^https:\/\/t\.me\//.test(supportUrl) ? supportUrl : "https://t.me/luychlat_bot"
   const money = (n: number) => formatMoney(n, pool.currency)
 
   return (
@@ -156,6 +161,8 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
           </div>
         )}
       </section>
+
+      <PublicPoolDisclaimer reportUrl={reportUrl} />
 
       <footer className="pt-2 text-center text-xs text-muted-foreground">
         ទំព័រនេះអានបានតែប៉ុណ្ណោះ · Read-only, updates by itself
