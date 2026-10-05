@@ -13,6 +13,19 @@
   --font-quran: var(--font-quran), var(--font-arabic), serif;
   --font-heading: var(--font-sans);
   --animate-shake: shake 0.35s ease-in-out;
+  /* Login hero: a soft light drifting across the emerald, and a gently floating mark. */
+  --animate-aurora: aurora 14s ease-in-out infinite alternate;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes aurora {
+    0% { transform: translate3d(-12%, -6%, 0) scale(1); }
+    50% { transform: translate3d(10%, 4%, 0) scale(1.15); }
+    100% { transform: translate3d(-4%, 10%, 0) scale(1.05); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-8px) rotate(-3deg); }
+  }
 
   @keyframes shake {
     0%, 100% { transform: translateX(0); }

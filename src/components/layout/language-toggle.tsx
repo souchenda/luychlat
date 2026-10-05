@@ -1,6 +1,7 @@
 "use client"
 
-import { Segmented } from "@/components/common/segmented"
+import { GlobeIcon } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { useHydrated } from "@/hooks/use-hydrated"
 import { LOCALES, type Locale } from "@/lib/i18n/dictionaries"
@@ -17,28 +18,21 @@ export const LANGUAGE_NAMES: Record<Locale, { flag: string; name: string; short:
 const HEADER_LABEL: Record<Locale, string> = { km: "ខ្មែរ", en: "EN", zh: "CN" }
 
 /**
- * Language switch, never a menu. In the app header (`compact`) one tap cycles
- * ខ្មែរ → EN → 中文 → ខ្មែរ; the login screen shows all three inline
- * [ ខ្មែរ | EN | 中文 ] so a first-time visitor sees their language at once.
- * The choice is saved on this device and applies instantly.
+ * Language switch, never a menu: one tap cycles ខ្មែរ → EN → 中文 → ខ្មែរ and
+ * the page changes at once (saved on this device). `compact` is the app
+ * header's plain label; the login hero shows a glass pill with a globe.
  */
 export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   const hydrated = useHydrated()
   const { locale, setLocale } = useLocaleStore()
   const active = hydrated ? locale : "km"
   const current = LANGUAGE_NAMES[active]
+  const next = LOCALES[(LOCALES.indexOf(active) + 1) % LOCALES.length]
+  const label = `Language · ភាសា · 语言: ${current.name} → ${LANGUAGE_NAMES[next].name}`
 
   if (compact) {
-    const next = LOCALES[(LOCALES.indexOf(active) + 1) % LOCALES.length]
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-9 min-w-11 px-2.5 text-sm font-semibold"
-        onClick={() => setLocale(next)}
-        aria-label={`Language · ភាសា · 语言: ${current.name} → ${LANGUAGE_NAMES[next].name}`}
-        title={LANGUAGE_NAMES[next].name}
-      >
+      <Button variant="ghost" size="sm" className="h-9 min-w-11 px-2.5 text-sm font-semibold" onClick={() => setLocale(next)} aria-label={label} title={LANGUAGE_NAMES[next].name}>
         <span key={active} className="animate-in fade-in-0 duration-200">
           {HEADER_LABEL[active]}
         </span>
@@ -47,12 +41,17 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <Segmented
-      aria-label="Language · ភាសា · 语言"
-      value={active}
-      onChange={setLocale}
-      className="rounded-full bg-muted/70 p-0.5 backdrop-blur dark:bg-neutral-800/70 [&>button]:rounded-full [&>button]:px-3 [&>button]:py-1 [&>button]:text-xs [&>button[aria-checked=true]]:font-semibold [&>button[aria-checked=true]]:text-emerald-700 dark:[&>button[aria-checked=true]]:text-emerald-400"
-      options={LOCALES.map((code) => ({ value: code, label: <span lang={code}>{LANGUAGE_NAMES[code].short}</span> }))}
-    />
+    <button
+      type="button"
+      onClick={() => setLocale(next)}
+      aria-label={label}
+      title={LANGUAGE_NAMES[next].name}
+      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-white/15 pr-3.5 pl-2.5 text-sm font-medium text-white backdrop-blur-md transition-all hover:bg-white/25 active:scale-95"
+    >
+      <GlobeIcon key={`globe-${active}`} className="size-4 animate-in spin-in-90 duration-500 motion-reduce:animate-none" aria-hidden />
+      <span key={`label-${active}`} lang={active} className="min-w-[2.25rem] text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
+        {current.short}
+      </span>
+    </button>
   )
 }
