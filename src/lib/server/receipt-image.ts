@@ -7,7 +7,7 @@ import type { Locale } from "@/lib/i18n/dictionaries"
 import type { ReceiptData } from "@/lib/invoice"
 import { isKhqr, khqrInfo } from "@/lib/khqr"
 import { formatMoney } from "@/lib/money"
-import { formatPhoneDisplay } from "@/lib/phone"
+import { formatPhoneNumber } from "@/lib/format"
 
 const W = 900
 const PAD = 56
@@ -108,7 +108,7 @@ function layout(ctx: SKRSContext2D, data: ReceiptData, locale: Locale): number {
   ctx.fillStyle = "#0f766e"
   ctx.fillRect(0, 0, W, headerH)
   write(PAD, 80, data.merchant, { size: 44, weight: 700, color: "#ffffff" })
-  if (data.merchant_phone) write(PAD, 130, formatPhoneDisplay(data.merchant_phone), { size: 28, color: "#ccfbf1" })
+  if (data.merchant_phone) write(PAD, 130, formatPhoneNumber(data.merchant_phone), { size: 28, color: "#ccfbf1" })
   let y = headerH + 72
 
   write(PAD, y, L.title, { size: 38, weight: 700 })

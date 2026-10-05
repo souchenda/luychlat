@@ -42,7 +42,7 @@ import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
-import { formatPhoneDisplay } from "@/lib/phone"
+import { formatPhoneNumber } from "@/lib/format"
 import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
@@ -84,11 +84,11 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
   const personName = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
   const name = business ? business.name : personName
   const subtitle = business
-    ? [business.business_industry ? t(`industry.${business.business_industry}` as MessageKey) : null, business.business_phone ? formatPhoneDisplay(business.business_phone) : null]
+    ? [business.business_industry ? t(`industry.${business.business_industry}` as MessageKey) : null, business.business_phone ? formatPhoneNumber(business.business_phone) : null]
         .filter(Boolean)
         .join(" · ") ||
       t("business.addDetails")
-    : (profile?.phone ? formatPhoneDisplay(profile.phone) : null) || user?.email || (user?.phone ? formatPhoneDisplay(`+${user.phone}`) : "")
+    : (profile?.phone ? formatPhoneNumber(profile.phone) : null) || user?.email || (user?.phone ? formatPhoneNumber(`+${user.phone}`) : "")
   const [editOpen, setEditOpen] = useState(false)
   const router = useRouter()
   const { plan } = usePlan()
@@ -124,8 +124,13 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
           },
           { title: "nav.group.bizDebts", items: [{ href: "/debts", label: "nav.bizDebts", icon: HandCoinsIcon }] },
           {
-            title: "nav.group.bizReports",
-            items: [{ href: "/reports", label: "nav.bizReports", icon: ChartColumnIcon }, ...admin, exportItem],
+            title: "nav.group.bizAdmin",
+            items: [
+              { href: "/reports", label: "nav.bizReports", icon: ChartColumnIcon },
+              { href: "/bills", label: "nav.bizNssfBills", icon: ReceiptIcon },
+              ...admin,
+              exportItem,
+            ],
           },
           help,
         ]

@@ -30,7 +30,7 @@ import { useIslamicSettings } from "@/lib/islamic-settings"
 import { debtStatus, estimatedInterest, remaining } from "@/lib/debts"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
-import { formatPhoneLocal } from "@/lib/phone"
+import { formatPhoneLocal } from "@/lib/format"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 const fmtDate = (iso: string) => format(parseISO(iso), "dd/MM/yyyy")

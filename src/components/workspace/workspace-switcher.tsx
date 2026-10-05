@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { ArchiveIcon, ArrowLeftRightIcon, Building2Icon, CheckIcon, ChevronDownIcon, CrownIcon, Loader2Icon, PlusIcon, UserIcon, UsersIcon, type LucideIcon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
@@ -195,6 +195,23 @@ export function WorkspaceSwitcher() {
   )
 }
 
+const LAST_BUSINESS_KEY = "luychlat:last-business"
+const LONG_PRESS_MS = 500
+
+function readLastBusiness(): string | null {
+  try {
+    return localStorage.getItem(LAST_BUSINESS_KEY)
+  } catch {
+    return null
+  }
+}
+function saveLastBusiness(id: string) {
+  try {
+    localStorage.setItem(LAST_BUSINESS_KEY, id)
+  } catch {
+    // Private mode / blocked storage: the first business is used instead.
+  }
+}
 /** A short tick on phones that support it (Android); silently nothing elsewhere. */
 const haptic = (ms = 10) => {
   try {
@@ -205,38 +222,64 @@ const haptic = (ms = 10) => {
 }
 
 /**
- * Header: the current workspace as one compact pill — "👤 ផ្ទាល់ខ្លួន ⇄" —
- * that cycles like the language button: each tap goes straight to the next
- * workspace (Personal → each business → each family → Personal), no sheet.
- * Adding and managing workspaces lives in the menu / sidebar switcher.
+ * Header: only the current workspace, as one compact pill — "👤 ផ្ទាល់ខ្លួន ⇄" (no ▾).
+ * One tap flips Personal ⇄ the business used last (or the first one; Family
+ * when there is no business); from any business or family it goes back to
+ * Personal. Holding the pill (~0.5 s) opens the full list, with
+ * every workspace and "Add business".
  */
 export function WorkspaceFlip() {
   const t = useT()
   const setActive = usePrefsStore((s) => s.setActiveWorkspace)
   const { workspace } = useActiveWorkspace()
+  const { isUltra } = usePlan()
   const all = useWorkspaces().data ?? []
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
   const [spin, setSpin] = useState(0)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressed = useRef(false)
 
-  // Personal first, then businesses and families (archived businesses aren't in the cycle).
+  // Personal first, then businesses and families; archived businesses only in the sheet.
   const personal = all.find((w) => w.type === "PERSONAL" && w.role === "OWNER") ?? all.find((w) => w.type === "PERSONAL")
-  const spaces = [personal, ...all.filter((w) => w.type === "BUSINESS" && !w.archived_at), ...all.filter((w) => w.type === "FAMILY")].filter(
-    (w): w is Workspace => Boolean(w),
-  )
+  const businesses = all.filter((w) => w.type === "BUSINESS" && !w.archived_at)
+  const families = all.filter((w) => w.type === "FAMILY")
+  const spaces = [personal, ...businesses, ...families].filter((w): w is Workspace => Boolean(w))
+  const archived = all.filter((w) => w.type === "BUSINESS" && w.archived_at)
   const current = workspace ?? personal
-  if (!current) return null
   const label = (w: Workspace) => (w.type === "PERSONAL" ? t("ws.PERSONAL") : w.name)
-  const at = spaces.findIndex((w) => w.id === current.id)
-  // From an archived business (not in the cycle) the next stop is Personal.
-  const next = spaces.length > 1 ? spaces[(at + 1) % spaces.length] : undefined
-  const Icon = ICONS[current.type]
+  const go = (w: Workspace) => setActive(w.type, w.type === "PERSONAL" ? null : w.id)
 
+  // Remember the business in use, for the next flip from Personal.
+  useEffect(() => {
+    if (current?.type === "BUSINESS") saveLastBusiness(current.id)
+  }, [current?.id, current?.type])
+
+  /** Where one tap goes: Personal → last business (first one, else a family); anything else → Personal. */
+  const flipTarget = (): Workspace | undefined => {
+    if (!current) return undefined
+    if (current.type !== "PERSONAL") return personal
+    const last = readLastBusiness()
+    return businesses.find((w) => w.id === last) ?? businesses[0] ?? families[0]
+  }
+  const target = flipTarget()
+
+  const openList = () => {
+    haptic(15)
+    setSheetOpen(true)
+  }
   const tap = () => {
-    if (!next) return
+    // The click that ends a long press only opens the list.
+    if (longPressed.current) {
+      longPressed.current = false
+      return
+    }
+    if (!target || target.id === current?.id) return openList()
     haptic()
     setSpin((n) => n + 1)
-    setActive(next.type, next.type === "PERSONAL" ? null : next.id)
+    go(target)
     // A small pill that goes by itself after ~1.3 s and closes the moment it's tapped (it sits over the header).
-    const message = t("ws.switchedTo", { name: label(next) })
+    const message = t("ws.switchedTo", { name: label(target) })
     toast.custom(
       (id) => (
         <button
@@ -251,24 +294,82 @@ export function WorkspaceFlip() {
       { id: "ws-flip", duration: 1300, unstyled: true },
     )
   }
+  const pressStart = () => {
+    longPressed.current = false
+    if (pressTimer.current) clearTimeout(pressTimer.current)
+    pressTimer.current = setTimeout(() => {
+      longPressed.current = true
+      openList()
+    }, LONG_PRESS_MS)
+  }
+  const pressEnd = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current)
+    pressTimer.current = null
+  }
+  useEffect(() => () => pressEnd(), [])
+
+  if (!current) return null
+  const Icon = ICONS[current.type]
 
   return (
-    <button
-      type="button"
-      onClick={tap}
-      disabled={!next}
-      aria-label={next ? t("ws.flipTo", { name: label(next) }) : label(current)}
-      className="inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border bg-muted/50 py-1 pr-2 pl-3 text-sm font-medium transition-colors select-none hover:bg-muted active:scale-[0.98] disabled:opacity-100"
-    >
-      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-      <span key={current.id} className="truncate animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
-        {label(current)}
-      </span>
-      {next && (
+    <>
+      <button
+        type="button"
+        onClick={tap}
+        onPointerDown={pressStart}
+        onPointerUp={pressEnd}
+        onPointerLeave={pressEnd}
+        onPointerCancel={pressEnd}
+        onContextMenu={(e) => e.preventDefault()}
+        aria-label={target && target.id !== current.id ? t("ws.flipTo", { name: label(target) }) : t("ws.switch")}
+        aria-haspopup="dialog"
+        className="inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border bg-muted/50 py-1 pr-2 pl-3 text-sm font-medium transition-colors select-none [-webkit-touch-callout:none] hover:bg-muted active:scale-[0.98]"
+      >
+        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span key={current.id} className="truncate animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
+          {label(current)}
+        </span>
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-background shadow-xs">
           <ArrowLeftRightIcon className="size-3.5 text-primary transition-transform duration-300" style={{ transform: `rotate(${spin * 180}deg)` }} aria-hidden />
         </span>
-      )}
-    </button>
+      </button>
+
+      <BottomSheet open={sheetOpen} onOpenChange={setSheetOpen} title={t("ws.switch")}>
+        <div className="divide-y overflow-hidden rounded-2xl border">
+          {[...spaces, ...archived].map((w) => {
+            const WIcon = w.archived_at ? ArchiveIcon : ICONS[w.type]
+            return (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() => {
+                  go(w)
+                  setSheetOpen(false)
+                }}
+                className={cn("flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60", w.archived_at && "text-muted-foreground")}
+              >
+                <WIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{label(w)}</span>
+                {w.id === current.id && <CheckIcon className="size-4 text-primary" aria-hidden />}
+              </button>
+            )
+          })}
+        </div>
+        <Button
+          variant="outline"
+          className="mt-3 h-11 w-full"
+          onClick={() => {
+            setSheetOpen(false)
+            if (isUltra) setAddOpen(true)
+            else showUpgrade("business")
+          }}
+        >
+          <PlusIcon />
+          {t("business.add")}
+          {!isUltra && <CrownIcon className="text-amber-500" aria-label="ULTRA" />}
+        </Button>
+      </BottomSheet>
+      <AddBusinessSheet open={addOpen} onOpenChange={setAddOpen} />
+    </>
   )
 }

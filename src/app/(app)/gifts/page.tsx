@@ -1,5 +1,6 @@
 "use client"
 
+import { useMoney } from "@/lib/use-money"
 import { Loader2Icon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -19,12 +20,12 @@ import { GIFT_EVENTS, giftEmoji, giftSummary, personKey, type Gift, type GiftDir
 import { useGiftMutations, useGifts } from "@/lib/gifts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
+import { parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
 const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
-const totals = (m: Partial<Record<Currency, number>>) =>
-  (Object.entries(m) as [Currency, number][]).map(([c, n]) => formatMoney(n, c)).join(" + ") || "—"
+const totals = (m: Partial<Record<Currency, number>>, money: (n: number, c: Currency) => string) =>
+  (Object.entries(m) as [Currency, number][]).map(([c, n]) => money(n, c)).join(" + ") || "—"
 
 function EventChips({ value, onChange, withAll }: { value: GiftEventType | "all"; onChange: (v: GiftEventType | "all") => void; withAll?: boolean }) {
   const t = useT()
@@ -192,6 +193,7 @@ function AddGiftSheet({ open, onOpenChange, workspaceId, direction: initial, peo
 /** The two-way picture with one person and what to give back. */
 function PersonCard({ name, entries }: { name: string; entries: Gift[] }) {
   const t = useT()
+  const money = useMoney()
   const s = giftSummary(entries)
   return (
     <Card className="gap-2 px-4 py-3">
@@ -199,16 +201,16 @@ function PersonCard({ name, entries }: { name: string; entries: Gift[] }) {
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div className="rounded-xl bg-emerald-500/10 px-3 py-2">
           <p className="text-xs text-muted-foreground">{t("gift.theyGave", { count: s.countReceived })}</p>
-          <p className="font-semibold tabular-nums">{totals(s.received)}</p>
+          <p className="font-semibold tabular-nums">{totals(s.received, money)}</p>
         </div>
         <div className="rounded-xl bg-muted/60 px-3 py-2">
           <p className="text-xs text-muted-foreground">{t("gift.weGave", { count: s.countGiven })}</p>
-          <p className="font-semibold tabular-nums">{totals(s.given)}</p>
+          <p className="font-semibold tabular-nums">{totals(s.given, money)}</p>
         </div>
       </div>
       {s.suggestion && (
         <p className="rounded-xl bg-primary/5 px-3 py-2 text-sm">
-          💡 {t(s.suggestion.basis === "they_gave" ? "gift.suggestBack" : "gift.suggestSame", { amount: formatMoney(s.suggestion.amount, s.suggestion.currency) })}
+          💡 {t(s.suggestion.basis === "they_gave" ? "gift.suggestBack" : "gift.suggestSame", { amount: money(s.suggestion.amount, s.suggestion.currency) })}
           {s.lastReceived && s.suggestion.basis === "they_gave" && (
             <span className="block text-xs text-muted-foreground">
               {giftEmoji(s.lastReceived.event_type)} {t(`gift.event.${s.lastReceived.event_type}` as MessageKey)} · {ddmmyyyy(s.lastReceived.event_date)}
@@ -222,6 +224,7 @@ function PersonCard({ name, entries }: { name: string; entries: Gift[] }) {
 
 export default function GiftsPage() {
   const t = useT()
+  const money = useMoney()
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id
   const editable = canWrite(workspace)
@@ -290,7 +293,7 @@ export default function GiftsPage() {
         <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">{t("gift.empty")}</p>
       ) : (
         <>
-          <p className="px-1 text-xs text-muted-foreground">{t("gift.tabTotal", { count: list.length, amount: totals(tabTotal) })}</p>
+          <p className="px-1 text-xs text-muted-foreground">{t("gift.tabTotal", { count: list.length, amount: totals(tabTotal, money) })}</p>
           <Card className="gap-0 divide-y overflow-hidden py-0">
             {list.map((g) => (
               <div key={g.id} className="flex items-center gap-3 px-4 py-2.5">
@@ -303,7 +306,7 @@ export default function GiftsPage() {
                     {[g.event_title || t(`gift.event.${g.event_type}` as MessageKey), ddmmyyyy(g.event_date), g.transaction_id ? t("gift.inWallet") : null].filter(Boolean).join(" · ")}
                   </span>
                 </span>
-                <span className={cn("text-sm font-semibold tabular-nums", g.direction === "received" && "text-emerald-600 dark:text-emerald-400")}>{formatMoney(g.amount, g.currency)}</span>
+                <span className={cn("text-sm font-semibold tabular-nums", g.direction === "received" && "text-emerald-600 dark:text-emerald-400")}>{money(g.amount, g.currency)}</span>
                 {editable && (
                   <Button size="icon" variant="ghost" className="size-8 text-muted-foreground hover:text-destructive" onClick={() => void del(g)} aria-label={t("common.delete")}>
                     <Trash2Icon className="size-4" />

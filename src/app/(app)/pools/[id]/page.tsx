@@ -1,5 +1,7 @@
 "use client"
 
+import { usePrefsStore } from "@/stores/prefs-store"
+import { useMoney } from "@/lib/use-money"
 import { ArrowLeftIcon, CheckIcon, CopyIcon, ImageIcon, Loader2Icon, MinusIcon, PlusIcon, Share2Icon, UnlinkIcon } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
@@ -20,7 +22,7 @@ import { Switch } from "@/components/ui/switch"
 import { canWrite, useActiveWorkspace, useWallets } from "@/lib/data/hooks"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
+import { parseAmount, roundMoney } from "@/lib/money"
 import { poolEmoji, type PoolSettleMode, type PoolSnapshot } from "@/lib/pool"
 import { usePool, usePoolMutations } from "@/lib/pools"
 import { cn } from "@/lib/utils"
@@ -33,6 +35,7 @@ const ddmm = (iso: string) => {
 /** Record that a member put money in (income in the pool's wallet). */
 function ContributeSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; open: boolean; onOpenChange: (v: boolean) => void }) {
   const t = useT()
+  const money = useMoney()
   const { contribute, addMember } = usePoolMutations()
   const [memberId, setMemberId] = useState(pool.members[0]?.id ?? "")
   const member = pool.members.find((m) => m.id === memberId)
@@ -44,7 +47,7 @@ function ContributeSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; ope
     if (!memberId || !(value > 0)) return void toast.error(t("pool.needAmount"))
     try {
       await contribute.mutateAsync({ poolId: pool.id!, memberId, amount: value })
-      toast.success(t("pool.contributed", { name: member?.name ?? "", amount: formatMoney(value, pool.currency) }))
+      toast.success(t("pool.contributed", { name: member?.name ?? "", amount: money(value, pool.currency) }))
       setAmount("")
       onOpenChange(false)
     } catch {
@@ -80,8 +83,8 @@ function ContributeSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; ope
             <SelectContent>
               {pool.members.map((m) => (
                 <SelectItem key={m.id} value={m.id!}>
-                  {m.name} · {formatMoney(m.paid, pool.currency)}
-                  {m.pledged > 0 && ` / ${formatMoney(m.pledged, pool.currency)}`}
+                  {m.name} · {money(m.paid, pool.currency)}
+                  {m.pledged > 0 && ` / ${money(m.pledged, pool.currency)}`}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -110,6 +113,7 @@ function ContributeSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; ope
 /** Close the pool: refund / roll over (money left) or collect (money short). */
 function SettleSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; open: boolean; onOpenChange: (v: boolean) => void }) {
   const t = useT()
+  const money = useMoney()
   const router = useRouter()
   const { settle } = usePoolMutations()
   const surplus = pool.remaining > 0
@@ -139,7 +143,7 @@ function SettleSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; open: b
       ]
 
   return (
-    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("pool.close")} description={`${pool.title} · ${formatMoney(pool.remaining, pool.currency)}`}>
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("pool.close")} description={`${pool.title} · ${money(pool.remaining, pool.currency)}`}>
       <div className="space-y-4">
         <div className="space-y-2">
           {options.map((o) => (
@@ -166,7 +170,7 @@ function SettleSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; open: b
               {pool.members.map((m) => (
                 <div key={m.id} className="flex items-center justify-between px-4 py-2 text-sm">
                   <span>{m.name}</span>
-                  <span className="font-medium tabular-nums">{formatMoney(share(m), pool.currency)}</span>
+                  <span className="font-medium tabular-nums">{money(share(m), pool.currency)}</span>
                 </div>
               ))}
             </Card>
@@ -183,6 +187,8 @@ function SettleSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; open: b
 
 export default function PoolPage() {
   const t = useT()
+  const money = useMoney()
+  const hideBalances = usePrefsStore((st) => st.hideBalances)
   const { id } = useParams<{ id: string }>()
   const { workspace } = useActiveWorkspace()
   const editable = canWrite(workspace)
@@ -247,10 +253,10 @@ export default function PoolPage() {
           <span aria-hidden>{poolEmoji(pool.kind)}</span>
           {pool.title}
         </h1>
-        <PoolGauge pool={pool} labels={{ status: t(`pool.gauge.${pool.gauge}` as MessageKey), pooled: t("pool.pooled"), spent: t("pool.spent"), remaining: t("pool.remaining") }} />
+        <PoolGauge pool={pool} hidden={hideBalances} labels={{ status: t(`pool.gauge.${pool.gauge}` as MessageKey), pooled: t("pool.pooled"), spent: t("pool.spent"), remaining: t("pool.remaining") }} />
         {active && pool.topup_per_member !== null && (
           <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
-            {t("pool.topupHint", { amount: formatMoney(pool.topup_per_member, pool.currency) })}
+            {t("pool.topupHint", { amount: money(pool.topup_per_member, pool.currency) })}
           </p>
         )}
         {active && editable && (
@@ -269,11 +275,11 @@ export default function PoolPage() {
 
       {pool.settlement && (
         <Card className="gap-2 px-4 py-4">
-          <p className="text-sm font-semibold">{t(`pool.settled.${pool.settlement.mode}` as MessageKey, { amount: formatMoney(Math.abs(pool.settlement.remaining), pool.currency) })}</p>
+          <p className="text-sm font-semibold">{t(`pool.settled.${pool.settlement.mode}` as MessageKey, { amount: money(Math.abs(pool.settlement.remaining), pool.currency) })}</p>
           {pool.settlement.shares.map((s) => (
             <div key={s.name} className="flex justify-between text-sm">
               <span>{s.name}</span>
-              <span className="font-medium tabular-nums">{formatMoney(s.amount, pool.currency)}</span>
+              <span className="font-medium tabular-nums">{money(s.amount, pool.currency)}</span>
             </div>
           ))}
         </Card>
@@ -286,8 +292,8 @@ export default function PoolPage() {
             <div key={m.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
               <span className="min-w-0 flex-1 truncate">{m.name}</span>
               <span className="tabular-nums">
-                {formatMoney(m.paid, pool.currency)}
-                {m.pledged > 0 && <span className="text-muted-foreground"> / {formatMoney(m.pledged, pool.currency)}</span>}
+                {money(m.paid, pool.currency)}
+                {m.pledged > 0 && <span className="text-muted-foreground"> / {money(m.pledged, pool.currency)}</span>}
               </span>
               {m.pledged > 0 && m.paid >= m.pledged && <CheckIcon className="size-4 text-emerald-600" aria-label={t("pool.paidFull")} />}
             </div>
@@ -307,7 +313,7 @@ export default function PoolPage() {
                 <span className="min-w-0 flex-1 truncate">{e.note || e.category || "—"}</span>
                 {e.receipt && <ImageIcon className="size-3.5 text-muted-foreground" aria-label={t("pool.hasReceipt")} />}
                 <span className={cn("font-medium tabular-nums", e.type === "INCOME" && "text-emerald-600 dark:text-emerald-400")}>
-                  {formatMoney(e.type === "INCOME" ? e.amt : -e.amt, pool.currency, { signed: true })}
+                  {money(e.type === "INCOME" ? e.amt : -e.amt, pool.currency, { signed: true })}
                 </span>
               </div>
             ))}

@@ -1,6 +1,6 @@
 "use client"
 
-import { formatPhoneDisplay } from "@/lib/phone"
+import { formatPhoneNumber } from "@/lib/format"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
 import { ArrowLeftIcon, BookOpenIcon, ChevronRightIcon, Loader2Icon, MessageCircleReplyIcon, PhoneIcon, SendIcon, UsersIcon } from "lucide-react"
@@ -69,7 +69,7 @@ function Channels() {
               <a href={telHref(c.phone)} className="flex flex-col gap-1 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted/60">
                 <PhoneIcon className="size-5 text-primary" aria-hidden />
                 <span className="text-sm font-medium">{t("support.call")}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">{formatPhoneDisplay(c.phone)}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{formatPhoneNumber(c.phone)}</span>
               </a>
             )}
             {c?.community_url && (

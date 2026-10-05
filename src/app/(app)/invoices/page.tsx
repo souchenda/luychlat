@@ -1,5 +1,6 @@
 "use client"
 
+import { useMoney } from "@/lib/use-money"
 import { CheckIcon, DownloadIcon, Loader2Icon, PlusIcon, QrCodeIcon, RotateCcwIcon, ScrollTextIcon, Share2Icon, Trash2Icon, XIcon } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -17,7 +18,7 @@ import type { Currency } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { itemsTotal, type Invoice, type InvoiceStatus } from "@/lib/invoice"
 import { fetchReceipt, InvoiceLimitError, useInvoiceMutations, useInvoiceQuota, useInvoices } from "@/lib/invoices"
-import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
+import { parseAmount, roundMoney } from "@/lib/money"
 import { showUpgrade } from "@/lib/plan"
 import { useMyKhqr } from "@/lib/profile"
 import { cn } from "@/lib/utils"
@@ -40,6 +41,7 @@ const emptyRow = (): ItemRow => ({ name: "", qty: "1", price: "" })
 /** New invoice: customer, items (qty × price) or just a total, a note. */
 function InvoiceFormSheet({ open, onOpenChange, workspaceId, onCreated }: { open: boolean; onOpenChange: (v: boolean) => void; workspaceId: string; onCreated: (inv: Invoice) => void }) {
   const t = useT()
+  const money = useMoney()
   const { create } = useInvoiceMutations(workspaceId)
   const [currency, setCurrency] = useState<Currency>("USD")
   const [customer, setCustomer] = useState("")
@@ -142,7 +144,7 @@ function InvoiceFormSheet({ open, onOpenChange, workspaceId, onCreated }: { open
         ) : (
           <p className="flex items-baseline justify-between rounded-xl bg-muted px-4 py-3">
             <span className="text-sm text-muted-foreground">{t("invoices.total")}</span>
-            <span className="text-2xl font-semibold tabular-nums">{formatMoney(roundMoney(fromItems, currency), currency)}</span>
+            <span className="text-2xl font-semibold tabular-nums">{money(roundMoney(fromItems, currency), currency)}</span>
           </p>
         )}
 
@@ -355,6 +357,7 @@ function KhqrCard() {
 
 export default function InvoicesPage() {
   const t = useT()
+  const money = useMoney()
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id
   const editable = canWrite(workspace)
@@ -401,7 +404,7 @@ export default function InvoicesPage() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-semibold tabular-nums">{formatMoney(inv.total_amount, inv.currency)}</p>
+                <p className="text-sm font-semibold tabular-nums">{money(inv.total_amount, inv.currency)}</p>
                 <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-medium", STATUS_STYLE[inv.status])}>{t(`invoices.status.${inv.status}`)}</span>
               </div>
             </button>

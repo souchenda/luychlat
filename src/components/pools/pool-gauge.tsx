@@ -9,9 +9,12 @@ import { formatMoney } from "@/lib/money"
 export function PoolGauge({
   pool,
   labels,
+  hidden = false,
 }: {
   pool: Pick<PoolSnapshot, "pooled" | "spent" | "remaining" | "pct" | "gauge" | "currency">
   labels: { status: string; pooled: string; spent: string; remaining: string }
+  /** The 👁 privacy toggle (app only). */
+  hidden?: boolean
 }) {
   const color = GAUGE_COLOR[pool.gauge]
   return (
@@ -20,7 +23,7 @@ export function PoolGauge({
         <div>
           <p className="text-xs text-muted-foreground">{labels.remaining}</p>
           <p className="text-3xl font-bold tabular-nums" style={{ color }}>
-            {formatMoney(pool.remaining, pool.currency)}
+            {formatMoney(pool.remaining, pool.currency, { hidden })}
           </p>
         </div>
         <span
@@ -36,11 +39,11 @@ export function PoolGauge({
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div className="rounded-xl bg-muted/60 px-3 py-2">
           <p className="text-xs text-muted-foreground">{labels.pooled}</p>
-          <p className="font-semibold tabular-nums">{formatMoney(pool.pooled, pool.currency)}</p>
+          <p className="font-semibold tabular-nums">{formatMoney(pool.pooled, pool.currency, { hidden })}</p>
         </div>
         <div className="rounded-xl bg-muted/60 px-3 py-2">
           <p className="text-xs text-muted-foreground">{labels.spent}</p>
-          <p className="font-semibold tabular-nums">{formatMoney(pool.spent, pool.currency)}</p>
+          <p className="font-semibold tabular-nums">{formatMoney(pool.spent, pool.currency, { hidden })}</p>
         </div>
       </div>
     </div>

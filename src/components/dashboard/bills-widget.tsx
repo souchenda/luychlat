@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocaleStore } from "@/stores/locale-store"
+import { formatOverdue } from "@/lib/format"
 import { ChevronRightIcon, ReceiptIcon } from "lucide-react"
 import Link from "next/link"
 
@@ -13,10 +15,11 @@ import { usePrefsStore } from "@/stores/prefs-store"
 /** Home: bills due within a week (or overdue), opening /bills. Hidden when there are none. */
 export function BillsWidget({ workspaceId }: { workspaceId: string | undefined }) {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   const hidden = usePrefsStore((s) => s.hideBalances)
   const soon = (useBills(workspaceId).data ?? [])
     .filter((b) => b.is_active)
-    .map((b) => ({ bill: b, left: daysUntil(nextDue(b)) }))
+    .map((b) => ({ bill: b, due: nextDue(b), left: daysUntil(nextDue(b)) }))
     .filter((r) => r.left <= 7)
     .sort((a, b) => a.left - b.left)
     .slice(0, 3)
@@ -34,7 +37,7 @@ export function BillsWidget({ workspaceId }: { workspaceId: string | undefined }
         </span>
       </Link>
       <Card className="gap-0 divide-y py-0">
-        {soon.map(({ bill, left }) => (
+        {soon.map(({ bill, due, left }) => (
           <Link key={bill.id} href="/bills" className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/60">
             <span className="text-lg" aria-hidden>
               {BILL_EMOJI[bill.kind]}
@@ -43,7 +46,7 @@ export function BillsWidget({ workspaceId }: { workspaceId: string | undefined }
             <span className="text-right text-xs tabular-nums">
               <span className="block font-semibold">{formatMoney(bill.amount, bill.currency, { hidden })}</span>
               <span className={cn(left < 0 ? "text-rose-600 dark:text-rose-400" : left <= 3 ? "text-amber-600" : "text-muted-foreground")}>
-                {left < 0 ? t("bills.overdue", { count: -left }) : left === 0 ? t("bills.dueToday") : t("bills.inDays", { count: left })}
+                {left < 0 ? formatOverdue(t, due, locale) : left === 0 ? t("bills.dueToday") : t("bills.inDays", { count: left })}
               </span>
             </span>
           </Link>

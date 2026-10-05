@@ -2820,6 +2820,8 @@ const km = {
   "nav.budgetSaving": "ផែនការថវិកា & សន្សំ",
   "nav.tabBudgets": "ថវិកា",
   "nav.tabGoals": "សន្សំ",
+  "nav.group.bizAdmin": "របាយការណ៍ & រដ្ឋបាល",
+  "nav.bizNssfBills": "ប.ស.ស. & វិក្កយបត្រ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5629,6 +5631,8 @@ const en: Record<MessageKey, string> = {
   "nav.budgetSaving": "Budget & savings",
   "nav.tabBudgets": "Budget",
   "nav.tabGoals": "Savings",
+  "nav.group.bizAdmin": "Reports & administration",
+  "nav.bizNssfBills": "NSSF & bills",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

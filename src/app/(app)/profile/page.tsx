@@ -14,7 +14,7 @@ import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
 import { dayDate } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { formatPhoneDisplay } from "@/lib/phone"
+import { formatPhoneNumber } from "@/lib/format"
 import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -74,7 +74,7 @@ export default function ProfilePage() {
 
   const name = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
   const rawPhone = profile?.phone || (user?.phone ? `+${user.phone}` : "")
-  const phone = rawPhone ? formatPhoneDisplay(rawPhone) : ""
+  const phone = rawPhone ? formatPhoneNumber(rawPhone) : ""
   const joined = user?.created_at ? dayDate(new Date(user.created_at), locale) : null
 
   const signOut = async () => {

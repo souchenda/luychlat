@@ -2773,4 +2773,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nav.budgetSaving": "预算与储蓄",
   "nav.tabBudgets": "预算",
   "nav.tabGoals": "储蓄",
+  "nav.group.bizAdmin": "报表与行政",
+  "nav.bizNssfBills": "社保与账单",
 }
