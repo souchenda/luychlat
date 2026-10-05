@@ -144,7 +144,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   }
 
   const field =
-    "h-12 rounded-xl border-neutral-200 bg-neutral-50/50 text-sm shadow-none transition-colors focus-visible:border-emerald-500 focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-emerald-500/10 dark:border-neutral-800 dark:bg-neutral-900/50 dark:focus-visible:border-emerald-400 dark:focus-visible:bg-neutral-900"
+    "h-12 rounded-xl border-neutral-200 bg-neutral-50/50 text-sm shadow-none transition-colors focus-visible:border-emerald-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-neutral-800 dark:bg-neutral-900/50 dark:focus-visible:border-emerald-400 dark:focus-visible:bg-neutral-900"
   const label = "text-sm font-medium text-neutral-700 dark:text-neutral-300"
 
   if (mode === "forgot" && sentTo) {
@@ -242,7 +242,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       {notice && <p className="rounded-xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">{notice}</p>}
       <Button
         type="submit"
-        className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white shadow-lg shadow-emerald-600/25 transition-all hover:bg-emerald-700 hover:shadow-emerald-700/30 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
+        className="h-12 w-full rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-sm font-medium text-white shadow-md shadow-emerald-600/20 transition-all duration-200 hover:from-emerald-500 hover:to-teal-500 hover:shadow-lg hover:shadow-emerald-500/35 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
         disabled={disabled || busy}
       >
         {busy && <Loader2Icon className="animate-spin" />}

@@ -20,7 +20,7 @@ const HEADER_LABEL: Record<Locale, string> = { km: "ខ្មែរ", en: "EN", 
 /**
  * Language switch, never a menu: one tap cycles ខ្មែរ → EN → 中文 → ខ្មែរ and
  * the page changes at once (saved on this device). `compact` is the app
- * header's plain label; the login hero shows a glass pill with a globe.
+ * header's plain label; the login page shows a pill with a globe.
  */
 export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   const hydrated = useHydrated()
@@ -46,10 +46,11 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
       onClick={() => setLocale(next)}
       aria-label={label}
       title={LANGUAGE_NAMES[next].name}
-      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-white/15 pr-3.5 pl-2.5 text-sm font-medium text-white backdrop-blur-md transition-all hover:bg-white/25 active:scale-95"
+      className="group inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-200/80 bg-white/80 pr-3.5 pl-2.5 text-sm font-medium text-neutral-700 shadow-sm backdrop-blur transition-all hover:border-emerald-300 hover:text-emerald-700 active:scale-95 dark:border-neutral-800 dark:bg-neutral-900/80 dark:text-neutral-200 dark:hover:border-emerald-700 dark:hover:text-emerald-400"
     >
-      <GlobeIcon key={`globe-${active}`} className="size-4 animate-in spin-in-90 duration-500 motion-reduce:animate-none" aria-hidden />
-      <span key={`label-${active}`} lang={active} className="min-w-[2.25rem] text-center animate-in fade-in-0 slide-in-from-bottom-1 duration-200">
+      {/* Re-keyed on each change: the globe turns and the label pops in. */}
+      <GlobeIcon key={`globe-${active}`} className="size-4 text-emerald-600 animate-in spin-in-90 duration-500 motion-reduce:animate-none dark:text-emerald-400" aria-hidden />
+      <span key={`label-${active}`} lang={active} className="min-w-[2.25rem] text-center animate-in fade-in-0 zoom-in-75 duration-200 ease-out">
         {current.short}
       </span>
     </button>
