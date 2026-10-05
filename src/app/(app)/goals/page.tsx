@@ -1,5 +1,6 @@
 "use client"
 
+import { PlanningTabs } from "@/components/layout/planning-tabs"
 import { PiggyBankIcon, PlusIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
@@ -45,6 +46,7 @@ export default function GoalsPage() {
 
   return (
     <div className="space-y-4">
+      <PlanningTabs active="goals" />
       <div className="flex items-center justify-between gap-2">
         <h1 className="flex items-center gap-2 text-xl font-bold">
           <PiggyBankIcon className="size-5 text-primary" aria-hidden />

@@ -17,7 +17,6 @@ import {
   MoonStarIcon,
   ChevronRightIcon,
   PencilIcon,
-  PiggyBankIcon,
   SettingsIcon,
   ShieldIcon,
   TargetIcon,
@@ -93,50 +92,83 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
   const pro = plan.tier !== "FREE"
   const islamic = useIslamicEnabled()
 
-  const groups: { title: MessageKey; items: Item[] }[] = [
-    {
-      title: "nav.group.finance",
-      items: [
-        { href: "/home", label: "nav.home", icon: LayoutDashboardIcon },
-        // Staff only, right after Home. Cosmetic: the admin pages and their RPCs check the staff role in the database.
-        ...(plan.is_admin || plan.staff_role ? [{ href: "/admin", label: "admin.title", icon: ShieldIcon } as Item] : []),
-        { href: "/wallets", label: "nav.wallets", icon: WalletIcon },
-        { href: "/transactions", label: "nav.transactions", icon: ArrowLeftRightIcon },
-        { href: "/debts", label: "nav.debtsTontine", icon: HandCoinsIcon },
-        { href: "/reports", label: "reports.title", icon: ChartColumnIcon },
-        { href: "/budgets", label: "budget.title", icon: TargetIcon },
-        { href: "/bills", label: "bills.title", icon: ReceiptIcon },
-        { href: "/invoices", label: "invoices.title", icon: ScrollTextIcon },
-        { href: "/pools", label: "pool.pageTitle", icon: UsersRoundIcon },
-        { href: "/gifts", label: "gift.pageTitle", icon: GiftIcon },
-        { href: "/goals", label: "goals.pageTitle", icon: PiggyBankIcon },
-        { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
-        { href: "/reports#export", label: "reports.export", icon: FileSpreadsheetIcon, pro: true },
-      ],
-    },
-    {
-      title: "nav.group.perks",
-      items: [
-        { href: "/settings/plan#referral", label: "referral.title", icon: GiftIcon, hint: "nav.referHint" },
-        ...(islamic ? [{ href: "/islamic/prayer", label: "islamic.title", icon: MoonStarIcon } as Item] : []),
-      ],
-    },
-    {
-      title: "nav.group.help",
-      items: [
-        { href: "/guide", label: "nav.userGuide", icon: BookOpenIcon },
-        { href: "/market", label: "market.title", icon: LandmarkIcon },
-        { href: "/learn", label: "tips.hubTitle", icon: LightbulbIcon },
-        { href: "/support", label: "support.title", icon: HeadsetIcon },
-        { href: "/settings", label: "nav.settings", icon: SettingsIcon },
-      ],
-    },
-  ]
+  // Staff only. Cosmetic: the admin pages and their RPCs check the staff role in the database.
+  const admin: Item[] = plan.is_admin || plan.staff_role ? [{ href: "/admin", label: "admin.title", icon: ShieldIcon }] : []
+  const exportItem: Item = { href: "/reports#export", label: "reports.export", icon: FileSpreadsheetIcon, pro: true }
+  const help = {
+    title: "nav.group.help" as MessageKey,
+    items: [
+      { href: "/guide", label: "nav.userGuide", icon: BookOpenIcon },
+      { href: "/market", label: "market.title", icon: LandmarkIcon },
+      { href: "/learn", label: "tips.hubTitle", icon: LightbulbIcon },
+      { href: "/support", label: "support.title", icon: HeadsetIcon },
+      { href: "/settings", label: "nav.settings", icon: SettingsIcon },
+    ] as Item[],
+  }
+  // A business sees the business tools only (no tontine, gifts, saving goals or Islamic tools);
+  // Personal and Family see the household menu.
+  const groups: { title: MessageKey; items: Item[] }[] =
+    workspace?.type === "BUSINESS"
+      ? [
+          {
+            title: "nav.group.bizOps",
+            items: [
+              { href: "/home", label: "nav.home", icon: LayoutDashboardIcon },
+              { href: "/invoices", label: "nav.invoicesKhqr", icon: ScrollTextIcon },
+              { href: "/wallets", label: "nav.bizWallets", icon: WalletIcon },
+              { href: "/transactions", label: "nav.bizTransactions", icon: ArrowLeftRightIcon },
+            ],
+          },
+          { title: "nav.group.bizDebts", items: [{ href: "/debts", label: "nav.bizDebts", icon: HandCoinsIcon }] },
+          {
+            title: "nav.group.bizReports",
+            items: [{ href: "/reports", label: "nav.bizReports", icon: ChartColumnIcon }, ...admin, exportItem],
+          },
+          help,
+        ]
+      : [
+          {
+            title: "nav.group.daily",
+            items: [
+              { href: "/home", label: "nav.home", icon: LayoutDashboardIcon },
+              ...admin,
+              { href: "/wallets", label: "nav.walletsBanks", icon: WalletIcon },
+              { href: "/transactions", label: "nav.transactions", icon: ArrowLeftRightIcon },
+              { href: "/reports", label: "reports.title", icon: ChartColumnIcon },
+            ],
+          },
+          {
+            title: "nav.group.planning",
+            items: [
+              { href: "/bills", label: "nav.billsLife", icon: ReceiptIcon },
+              { href: "/debts", label: "nav.debtTracking", icon: HandCoinsIcon },
+              { href: "/budgets", label: "nav.budgetSaving", icon: TargetIcon },
+              { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
+            ],
+          },
+          {
+            title: "nav.group.social",
+            items: [
+              { href: "/gifts", label: "gift.pageTitle", icon: GiftIcon },
+              { href: "/pools", label: "pool.pageTitle", icon: UsersRoundIcon },
+            ],
+          },
+          {
+            title: "nav.group.other",
+            items: [
+              { href: "/settings/plan#referral", label: "referral.title", icon: GiftIcon, hint: "nav.referHint" },
+              ...(islamic ? [{ href: "/islamic/prayer", label: "islamic.title", icon: MoonStarIcon } as Item] : []),
+              exportItem,
+            ],
+          },
+          help,
+        ]
   // "/reports#export" is not "the Reports page" for highlighting; hash links never show as active.
   const isActive = (href: string) => {
     if (href.includes("#")) return false
-    // Every Islamic tab counts as the Islamic item.
+    // Every Islamic tab counts as the Islamic item; budgets and goals are one item.
     if (href.startsWith("/islamic")) return pathname.startsWith("/islamic")
+    if (href === "/budgets") return pathname.startsWith("/budgets") || pathname.startsWith("/goals")
     return pathname === href || pathname.startsWith(`${href}/`)
   }
 

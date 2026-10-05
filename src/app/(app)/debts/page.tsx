@@ -29,8 +29,10 @@ function DebtsView() {
   const t = useT();
   const router = useRouter();
   const params = useSearchParams();
-  const view = params.get("view") === "tontine" ? "tontine" : "debts";
   const { workspace } = useActiveWorkspace();
+  // Tontine is a household tool: a business workspace has debts only.
+  const business = workspace?.type === "BUSINESS";
+  const view = !business && params.get("view") === "tontine" ? "tontine" : "debts";
   const editable = canWrite(workspace);
   const debtsQuery = useDebts(workspace?.id);
   const [tab, setTab] = useState<DebtType>(
@@ -76,7 +78,7 @@ function DebtsView() {
       </div>
 
       {/* បំណុលទូទៅ | តុងទីន */}
-      <Segmented
+      {!business && <Segmented
         aria-label={t("debts.title")}
         value={view}
         onChange={(v) =>
@@ -88,7 +90,7 @@ function DebtsView() {
           { value: "debts", label: t("debts.generalTab") },
           { value: "tontine", label: t("tontine.title") },
         ]}
-      />
+      />}
 
       {view === "tontine" ? (
         <TontineList />

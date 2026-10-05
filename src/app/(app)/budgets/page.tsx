@@ -1,5 +1,6 @@
 "use client"
 
+import { PlanningTabs } from "@/components/layout/planning-tabs"
 import { addMonths, format } from "date-fns"
 import { enUS, km } from "date-fns/locale"
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, TargetIcon } from "lucide-react"
@@ -79,6 +80,7 @@ export default function BudgetsPage() {
 
   return (
     <div className="space-y-4">
+      <PlanningTabs active="budgets" />
       <div className="flex items-center justify-between gap-2">
         <h1 className="flex items-center gap-2 text-xl font-bold">
           <TargetIcon className="size-5 text-primary" aria-hidden />
