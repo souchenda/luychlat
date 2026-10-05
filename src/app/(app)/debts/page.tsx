@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { DebtCard } from "@/components/debts/debt-card";
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet";
@@ -24,6 +24,8 @@ import { canWrite, useActiveWorkspace, useDebts } from "@/lib/data/hooks";
 import type { DebtType } from "@/lib/data/types";
 import { byUrgency, debtStatus } from "@/lib/debts";
 import { useT } from "@/lib/i18n/use-t";
+import { drainStorageCleanup } from "@/lib/storage-cleanup";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 function DebtsView() {
   const t = useT();
@@ -176,6 +178,11 @@ function DebtsView() {
 }
 
 export default function DebtsPage() {
+  // Retry removing files of deleted loans that couldn't be removed at the time (e.g. offline).
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (supabase) void drainStorageCleanup(supabase);
+  }, []);
   return (
     <Suspense>
       <DebtsView />

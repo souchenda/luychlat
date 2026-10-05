@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { compressImage } from "@/lib/image"
+import { drainStorageCleanup } from "@/lib/storage-cleanup"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 /**
@@ -114,18 +115,17 @@ export function useLoanDocumentMutations(debt: { id: string; workspace_id: strin
   const remove = useMutation({
     mutationFn: async (doc: LoanDocument) => {
       const supabase = client()
+      // The database queues the file (public.storage_cleanup); it's removed just below.
       const { error } = await supabase.from("debt_documents").delete().eq("id", doc.id)
       if (error) throw error
-      if (doc.bucket === "loan-docs") {
-        await supabase.storage.from("loan-docs").remove([doc.path])
-      } else {
-        // A photo from before the vault: also off the debt (and its file, when it's our own upload).
+      if (doc.bucket === "receipts") {
+        // A photo from before the vault: also off the debt.
         await supabase
           .from("debts")
           .update({ attachment_paths: (debt.attachment_paths ?? []).filter((p) => p !== doc.path) })
           .eq("id", debt.id)
-        await supabase.storage.from("receipts").remove([doc.path])
       }
+      await drainStorageCleanup(supabase)
     },
     onSettled: () => {
       void invalidate()

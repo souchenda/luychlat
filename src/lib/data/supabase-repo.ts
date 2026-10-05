@@ -1,4 +1,5 @@
 import { isTelegramReceipt } from "@/lib/pool"
+import { drainStorageCleanup } from "@/lib/storage-cleanup"
 import { uuid } from "@/lib/uuid"
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js"
 
@@ -518,6 +519,8 @@ export function createSupabaseRepo(supabase: SupabaseClient, userId: string): Da
 
     async deleteDebt(id) {
       unwrap(await supabase.from("debts").delete().eq("id", id))
+      // Its document rows went with it; their files are queued — remove them now.
+      await drainStorageCleanup(supabase)
     },
 
     async listRepayments(debtId) {
