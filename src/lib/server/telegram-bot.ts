@@ -55,6 +55,8 @@ export const maskNumbers = (text: string) => {
   return text
     .replace(DATE_LIKE, (d) => `\u0000${dates.push(d) - 1}\u0000`)
     .replace(/(?<![\d,.])\d(?:[ -]?\d){7,}(?![\d,.])/g, (run) => `•••• ${run.replace(/\D/g, "").slice(-4)}`)
+    // A wallet name masked for the app ("ACLEDA 078***4222") still shows the prefix: in chat, the last 4 only.
+    .replace(/(?<![\d,.])\d{2,3}[*•]{2,}(\d{2,4})(?![\d,.])/g, (_, last: string) => `•••• ${last}`)
     .replace(/\u0000(\d+)\u0000/g, (_, i: string) => dates[Number(i)])
 }
 

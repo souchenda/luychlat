@@ -8,6 +8,7 @@
  * ACLEDA) are tuned from real sample exports.
  */
 
+import { maskAccountNumber } from "@/lib/wallets/account-number"
 import { parseStatementAmount, parseStatementDate, type DateOrder } from "./parse"
 
 export type BankCode = "ABA" | "ACLEDA" | "GENERIC"
@@ -119,7 +120,8 @@ export function extractMeta(rows: string[][], headerRow: number, dateOrder: Date
 }
 
 /** "••4321" for display. */
-export const maskAccount = (digits: string | null) => (digits ? `••${digits.slice(-4)}` : null)
+/** Prefix + last 4 (078***4222): accounts that are phone numbers often share the last digits. */
+export const maskAccount = (digits: string | null) => maskAccountNumber(digits)
 
 /** Fills balances the table didn't give (no running-balance column) from the statement's summary. */
 export function withMetaBalances<T extends { opening_balance: number | null; closing_balance: number | null }>(parsed: T, meta: StatementMeta | null): T {
