@@ -16,6 +16,8 @@ import { byNextDue, tontineProgress, type TontineProgress } from "@/lib/tontine"
 import { cn } from "@/lib/utils"
 
 import { TontineFormSheet } from "./tontine-form-sheet"
+import { formatDuration } from "@/lib/format"
+import { useLocaleStore } from "@/stores/locale-store"
 
 const fmtDate = (ymd: string) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`
 
@@ -41,15 +43,16 @@ export function TontineStatusPill({ dead, complete, className }: { dead: boolean
 /** "In 3 days" / "Today" / "2 days late" for the next round. */
 export function DueText({ p, className }: { p: TontineProgress; className?: string }) {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   if (p.daysLeft === null || !p.nextDate) return null
   const late = p.daysLeft < 0
   return (
     <span className={cn("tabular-nums", late ? "text-[#F43F5E]" : p.daysLeft <= 2 ? "text-amber-600" : "text-muted-foreground", className)}>
       {late
-        ? t("tontine.overdue", { days: -p.daysLeft })
+        ? t("tontine.overdue", { duration: formatDuration(-p.daysLeft, "overdue", locale) })
         : p.daysLeft === 0
           ? t("tontine.dueToday")
-          : t("tontine.dueIn", { days: p.daysLeft, date: fmtDate(p.nextDate) })}
+          : t("tontine.dueIn", { duration: formatDuration(p.daysLeft, "remaining", locale), date: fmtDate(p.nextDate) })}
     </span>
   )
 }

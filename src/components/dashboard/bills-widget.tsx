@@ -1,7 +1,7 @@
 "use client"
 
 import { useLocaleStore } from "@/stores/locale-store"
-import { formatOverdue } from "@/lib/format"
+import { formatDuration, formatOverdue } from "@/lib/format"
 import { ChevronRightIcon, ReceiptIcon } from "lucide-react"
 import Link from "next/link"
 
@@ -46,7 +46,7 @@ export function BillsWidget({ workspaceId }: { workspaceId: string | undefined }
             <span className="text-right text-xs tabular-nums">
               <span className="block font-semibold">{formatMoney(bill.amount, bill.currency, { hidden })}</span>
               <span className={cn(left < 0 ? "text-rose-600 dark:text-rose-400" : left <= 3 ? "text-amber-600" : "text-muted-foreground")}>
-                {left < 0 ? formatOverdue(t, due, locale) : left === 0 ? t("bills.dueToday") : t("bills.inDays", { count: left })}
+                {left < 0 ? formatOverdue(due, locale) : left === 0 ? t("bills.dueToday") : t("bills.inDays", { duration: formatDuration(left, "remaining", locale) })}
               </span>
             </span>
           </Link>

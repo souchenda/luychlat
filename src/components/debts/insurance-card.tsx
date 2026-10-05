@@ -10,6 +10,8 @@ import { useT } from "@/lib/i18n/use-t"
 import { renewalDays, upcomingRenewals } from "@/lib/insurance"
 import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { formatDuration } from "@/lib/format"
+import { useLocaleStore } from "@/stores/locale-store"
 
 /** Small "🛡️ Insured" pill for debt lists. */
 export function InsuredBadge({ debt, className }: { debt: Debt; className?: string }) {
@@ -34,6 +36,7 @@ export function InsuredBadge({ debt, className }: { debt: Debt; className?: stri
 /** Policy details and the renewal countdown on the debt page. */
 export function InsuranceCard({ debt }: { debt: Debt }) {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   if (!debt.insured) return null
   const days = renewalDays(debt)
   const tone =
@@ -74,7 +77,7 @@ export function InsuranceCard({ debt }: { debt: Debt }) {
       </dl>
       {days !== null && (
         <p className={cn("text-xs font-medium", tone)}>
-          {days < 0 ? t("insurance.overdue", { days: -days }) : days === 0 ? t("insurance.today") : t("insurance.inDays", { days })}
+          {days < 0 ? t("insurance.overdue", { duration: formatDuration(-days, "overdue", locale) }) : days === 0 ? t("insurance.today") : t("insurance.inDays", { duration: formatDuration(days, "remaining", locale) })}
         </p>
       )}
     </div>
@@ -84,6 +87,7 @@ export function InsuranceCard({ debt }: { debt: Debt }) {
 /** Home: loan insurance renewals due within 30 days or overdue (nothing when there are none). */
 export function InsuranceRenewalCard({ debts }: { debts: Debt[] | undefined }) {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   const due = upcomingRenewals(debts ?? [])
   if (!due.length) return null
   return (
@@ -107,7 +111,7 @@ export function InsuranceRenewalCard({ debts }: { debts: Debt[] | undefined }) {
                 </span>
               </span>
               <span className={cn("shrink-0 text-xs font-semibold", days < 0 ? "text-destructive" : "text-amber-700 dark:text-amber-400")}>
-                {days < 0 ? t("insurance.overdue", { days: -days }) : days === 0 ? t("insurance.today") : t("insurance.inDays", { days })}
+                {days < 0 ? t("insurance.overdue", { duration: formatDuration(-days, "overdue", locale) }) : days === 0 ? t("insurance.today") : t("insurance.inDays", { duration: formatDuration(days, "remaining", locale) })}
               </span>
             </Link>
           </li>

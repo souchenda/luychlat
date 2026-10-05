@@ -9,6 +9,8 @@ import { useT } from "@/lib/i18n/use-t"
 import { showUpgrade } from "@/lib/plan"
 import { useBusinessLifecycle } from "@/lib/profile"
 import { cn } from "@/lib/utils"
+import { formatDuration } from "@/lib/format"
+import { useLocaleStore } from "@/stores/locale-store"
 
 /** Whole days left until `iso` (at least 0). */
 export function daysUntil(iso: string, now: Date = new Date()): number {
@@ -18,6 +20,7 @@ export function daysUntil(iso: string, now: Date = new Date()): number {
 /** Free plan, Business workspace: "Business trial: X days left" (tap to upgrade). Nothing otherwise. */
 export function BusinessTrialTag({ workspace, className }: { workspace: Workspace | undefined; className?: string }) {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   if (workspace?.type !== "BUSINESS" || !workspace.trial_ends_at || workspace.locked) return null
   const days = daysUntil(workspace.trial_ends_at)
   return (
@@ -31,7 +34,7 @@ export function BusinessTrialTag({ workspace, className }: { workspace: Workspac
       )}
     >
       <TimerIcon className="size-3.5" aria-hidden />
-      {t("business.trialLeft", { days })}
+      {t("business.trialLeft", { duration: formatDuration(days, "remaining", locale) })}
     </button>
   )
 }

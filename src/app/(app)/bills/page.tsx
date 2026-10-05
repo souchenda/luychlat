@@ -1,6 +1,6 @@
 "use client"
 
-import { formatOverdue } from "@/lib/format"
+import { formatDuration, formatOverdue } from "@/lib/format"
 import { CheckIcon, ChevronDownIcon, ExternalLinkIcon, Loader2Icon, PlusIcon, ReceiptIcon, ShieldCheckIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -187,10 +187,10 @@ export default function BillsPage() {
                       {status === "off"
                         ? t("bills.paused")
                         : status === "overdue"
-                          ? formatOverdue(t, due, locale)
+                          ? formatOverdue(due, locale)
                           : status === "today"
                             ? t("bills.dueToday")
-                            : t("bills.dueIn", { count: left, date: dayDate(new Date(`${due}T12:00:00`), locale) })}
+                            : t("bills.dueIn", { duration: formatDuration(left, "remaining", locale), date: dayDate(new Date(`${due}T12:00:00`), locale) })}
                     </span>
                   </span>
                 </button>

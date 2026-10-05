@@ -14,7 +14,7 @@ import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
 import { dayDate } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { formatPhoneNumber } from "@/lib/format"
+import { formatDuration, formatPhoneNumber } from "@/lib/format"
 import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -130,7 +130,7 @@ export default function ProfilePage() {
               <>
                 {t("profile.expiresOn", { date: dayDate(periodEnd, locale) })}
                 <span className={cn("block text-xs font-normal", daysLeft <= 7 ? "text-destructive" : "text-muted-foreground")}>
-                  {t("profile.daysLeft", { days: daysLeft })}
+                  {t("profile.daysLeft", { duration: formatDuration(daysLeft, "remaining", locale) })}
                 </span>
               </>
             }

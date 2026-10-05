@@ -32,6 +32,7 @@ import { useInvestmentsOf, useMarketPrices } from "@/lib/investments-data"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
 import { contentLocale } from "@/lib/i18n/dictionaries"
+import { formatDuration } from "@/lib/format"
 
 type LogKind = "zakat" | "sadaqah" | "waqf" | "riba_purification"
 
@@ -398,7 +399,7 @@ export default function IslamicPage() {
               <div className="flex items-baseline justify-between gap-2">
                 <p className="text-sm">{t("islamic.hawlDue", { date: format(new Date(`${hawl.due}T12:00:00`), "dd/MM/yyyy") })}</p>
                 <p className={cn("text-sm font-semibold tabular-nums", hawl.isDue ? "text-[#F43F5E]" : "text-emerald-700 dark:text-emerald-400")}>
-                  {hawl.isDue ? t("islamic.hawlIsDue") : t("islamic.daysLeft", { days: hawl.daysLeft })}
+                  {hawl.isDue ? t("islamic.hawlIsDue") : t("islamic.daysLeft", { duration: formatDuration(hawl.daysLeft, "remaining", locale) })}
                 </p>
               </div>
               {hijriDue && <p className="-mt-2 text-xs text-muted-foreground">{formatHijri(hijriDue, contentLocale(locale), { short: true })}</p>}

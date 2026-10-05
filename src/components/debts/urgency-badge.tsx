@@ -1,6 +1,6 @@
 "use client"
 
-import { formatOverdue, formatRemaining } from "@/lib/format"
+import { formatDuration } from "@/lib/format"
 import { AlarmClockIcon, CalendarClockIcon, CalendarIcon, CircleCheckIcon, TriangleAlertIcon } from "lucide-react"
 
 import type { Debt } from "@/lib/data/types"
@@ -39,12 +39,12 @@ export function UrgencyBadge({ debt, className }: { debt: Debt; className?: stri
       : level === "none"
         ? t("urgency.none")
         : level === "safe"
-          ? formatRemaining(t, due, locale, today) || t("urgency.safe", { days })
+          ? formatDuration(days, "remaining", locale, today)
           : level === "soon"
-            ? t("urgency.soon", { days })
+            ? t("urgency.soon", { duration: formatDuration(days, "remaining", locale, today) })
             : days === 0
               ? t("urgency.today")
-              : formatOverdue(t, due, locale, today) || t("urgency.today")
+              : formatDuration(-days, "overdue", locale, today)
   const label = (locale === "km" ? khmerDigits : String)(installment ? `${t("urgency.installment", { n: installment.n })} · ${text}` : text)
   const { className: tone, icon: Icon } = STYLE[level]
 

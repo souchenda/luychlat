@@ -250,7 +250,7 @@ export default function DebtDetailPage() {
             {t("debt.startedOn", { date: fmtDate(debt.start_date) })}
             {debt.due_date && ` · ${t("debt.dueOn", { date: fmtDate(debt.due_date) })}`}
             {/* The whole term left (for a scheduled loan the badge above shows the next installment). */}
-            {!settled && debt.due_date && formatRemaining(t, debt.due_date, locale) && ` · ${formatRemaining(t, debt.due_date, locale)}`}
+            {!settled && debt.due_date && formatRemaining(debt.due_date, locale) && ` · ${formatRemaining(debt.due_date, locale)}`}
           </p>
           {debt.interest_rate > 0 && (
             <p>

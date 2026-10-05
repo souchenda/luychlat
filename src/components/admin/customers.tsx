@@ -17,6 +17,8 @@ import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { loginLabel } from "@/lib/auth-identifier"
+import { formatDuration } from "@/lib/format"
+import { useLocaleStore } from "@/stores/locale-store"
 
 /** A row of public.admin_customers: account, Telegram, plan and payment metadata only — never finances. */
 type Customer = {
@@ -68,6 +70,7 @@ function Badges({ c }: { c: Customer }) {
 
 function CustomerRow({ c, onOpen }: { c: Customer; onOpen: () => void }) {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   const daysLeft = c.status === "ACTIVE" && c.period_end ? differenceInCalendarDays(new Date(c.period_end), new Date()) : null
   // How the plan was obtained: paid (KHQR / entered by an admin) or free (trial, referral, promo).
   const how = c.status === "ACTIVE" && c.source ? t(`customers.source.${c.source}`) : null
@@ -91,7 +94,7 @@ function CustomerRow({ c, onOpen }: { c: Customer; onOpen: () => void }) {
           </span>
           {daysLeft !== null && (
             <p className={cn("mt-0.5 text-[11px] tabular-nums", daysLeft <= 7 ? "font-medium text-amber-600" : "text-muted-foreground")}>
-              {t("customers.daysLeft", { count: Math.max(0, daysLeft) })} · {format(new Date(c.period_end!), "dd/MM/yy")}
+              {t("customers.daysLeft", { duration: formatDuration(Math.max(0, daysLeft), "remaining", locale) })} · {format(new Date(c.period_end!), "dd/MM/yy")}
             </p>
           )}
           {c.status === "EXPIRED" && c.period_end && <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{format(new Date(c.period_end), "dd/MM/yy")}</p>}

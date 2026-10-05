@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns"
 import type { AlertKey, Debt } from "@/lib/data/types"
 import { daysLeft, debtStatus, remaining, todayDate } from "@/lib/debts"
 import { formatMoney } from "@/lib/money"
+import { formatDuration } from "@/lib/format"
 
 /**
  * Mirrors public.debt_alert_stage(): ranges rather than exact days so a missed
@@ -48,12 +49,12 @@ export function alertText(debt: Debt, stage: AlertKey, language: "km" | "en", op
         ? `${e("🔴")}បំណុលហួសកំណត់`
         : stage === "D0"
           ? `${e("🔴")}ដល់ថ្ងៃកំណត់ថ្ងៃនេះ`
-          : `${e("🟠")}ជិតដល់ថ្ងៃកំណត់ (${days} ថ្ងៃទៀត)`
+          : `${e("🟠")}ជិតដល់ថ្ងៃកំណត់ (${formatDuration(days, "remaining", "km")})`
     const side = debt.type === "PAYABLE" ? `${e("📤")}ត្រូវសងគេ` : `${e("📥")}គេជំពាក់យើង`
     return { title, body: `${side}: ${name}\n${e("💰")}នៅខ្វះ: ${left} / ${total}\n${e("📅")}ថ្ងៃកំណត់: ${due}` }
   }
   const title =
-    stage === "OVERDUE" ? `${e("🔴")}Debt overdue` : stage === "D0" ? `${e("🔴")}Due today` : `${e("🟠")}Due soon (${days} days left)`
+    stage === "OVERDUE" ? `${e("🔴")}Debt overdue` : stage === "D0" ? `${e("🔴")}Due today` : `${e("🟠")}Due soon (${formatDuration(days, "remaining", "en")})`
   const side = debt.type === "PAYABLE" ? `${e("📤")}I owe` : `${e("📥")}Owed to me`
   return { title, body: `${side}: ${name}\n${e("💰")}Remaining: ${left} of ${total}\n${e("📅")}Due: ${due}` }
 }

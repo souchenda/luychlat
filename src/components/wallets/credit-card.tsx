@@ -11,12 +11,15 @@ import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, roundMoney } from "@/lib/money"
 import { addDays, phnomPenhDate, phnomPenhDayStart, walletEffect } from "@/lib/reconcile/ledger"
 import { cn } from "@/lib/utils"
+import { formatDuration } from "@/lib/format"
+import { useLocaleStore } from "@/stores/locale-store"
 
 const today = () => phnomPenhDate(new Date().toISOString())
 
 /** Owed, available / limit with a usage bar, next due date, and a warning above 70 %. */
 export function CardMeter({ wallet, compact }: { wallet: Wallet; compact?: boolean }) {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   const s = cardSummary(wallet, today())
   if (!s) return null
   const pct = Math.min(100, Math.round(s.utilization * 100))
@@ -42,7 +45,7 @@ export function CardMeter({ wallet, compact }: { wallet: Wallet; compact?: boole
             )}
           >
             <CalendarClockIcon className="size-3" aria-hidden />
-            {s.daysLeft === 0 ? t("card.dueToday") : t("card.dueIn", { days: s.daysLeft })}
+            {s.daysLeft === 0 ? t("card.dueToday") : t("card.dueIn", { duration: formatDuration(s.daysLeft, "remaining", locale) })}
           </span>
         )}
         {s.high && (

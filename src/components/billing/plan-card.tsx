@@ -9,10 +9,13 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useT } from "@/lib/i18n/use-t"
 import { showUpgrade, usePlan } from "@/lib/plan"
+import { formatDuration } from "@/lib/format"
+import { useLocaleStore } from "@/stores/locale-store"
 
 /** Settings: current plan, expiry, AI usage, upgrade/renew — and the admin link. */
 export function PlanCard() {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   const { plan, isPro } = usePlan()
   const daysLeft = plan.period_end ? Math.ceil((new Date(plan.period_end).getTime() - Date.now()) / 86_400_000) : null
   const expired = !isPro && plan.last_period_end
@@ -35,7 +38,7 @@ export function PlanCard() {
             <p className="font-semibold">{isPro ? `LuyChlat ${plan.tier}` : t("plan.free")}</p>
             <p className={isPro ? "text-xs text-white/80" : "text-xs text-muted-foreground"}>
               {isPro && plan.period_end
-                ? t("plan.until", { date: format(new Date(plan.period_end), "dd/MM/yyyy"), days: daysLeft ?? 0 })
+                ? t("plan.until", { date: format(new Date(plan.period_end), "dd/MM/yyyy"), duration: formatDuration(daysLeft ?? 0, "remaining", locale) })
                 : expired
                   ? t("plan.expired", { date: format(new Date(plan.last_period_end!), "dd/MM/yyyy") })
                   : t("plan.freeHint")}
