@@ -257,7 +257,11 @@ export function CustomerDirectory() {
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("customers.search")} className="pl-8" aria-label={t("customers.search")} />
       </div>
       <Card className="gap-0 divide-y py-0">
-        {!data?.length ? <p className="px-4 py-4 text-sm text-muted-foreground">{t("admin.noUsers")}</p> : data.map((c) => <CustomerRow key={c.user_id} c={c} onOpen={() => setOpen(c)} />)}
+        {!data?.length ? (
+          <p className="px-4 py-4 text-sm text-muted-foreground">{t(debounced || filter !== "all" ? "admin.noUsers" : "customers.none")}</p>
+        ) : (
+          data.map((c) => <CustomerRow key={c.user_id} c={c} onOpen={() => setOpen(c)} />)
+        )}
       </Card>
       {data && total > data.length && (
         <Button variant="ghost" className="w-full" onClick={() => setLimit((l) => l + PAGE)}>

@@ -2782,4 +2782,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "admin.manualRatesHint": "黄金、NBC汇率和燃油自动更新——仅在需要覆盖时打开",
   "admin.manualActive": "正在使用手动汇率",
   "admin.autoFeeds": "自动",
+  "customers.none": "暂无客户账户（员工账户在下方“员工与角色”中管理）",
 }

@@ -2829,6 +2829,7 @@ const km = {
   "admin.manualRatesHint": "មាស អត្រា NBC និងប្រេង ធ្វើបច្ចុប្បន្នភាពដោយស្វ័យប្រវត្តិ — បើកតែពេលត្រូវកែ",
   "admin.manualActive": "កំពុងប្រើអត្រាដោយដៃ",
   "admin.autoFeeds": "ស្វ័យប្រវត្តិ",
+  "customers.none": "មិនទាន់មានអតិថិជនចុះឈ្មោះនៅឡើយ (គណនីបុគ្គលិកត្រូវបានគ្រប់គ្រងនៅផ្នែក បុគ្គលិក និងតួនាទី ខាងក្រោម)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5647,6 +5648,7 @@ const en: Record<MessageKey, string> = {
   "admin.manualRatesHint": "Gold, NBC rate and fuel update automatically — open only to override",
   "admin.manualActive": "Manual override active",
   "admin.autoFeeds": "Auto",
+  "customers.none": "No customer accounts yet (staff accounts are managed under Staff & Roles below)",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

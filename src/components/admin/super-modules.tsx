@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CrownIcon, HandshakeIcon, LockIcon, Loader2Icon, PlusIcon, ShieldCheckIcon, SlidersHorizontalIcon, TrendingUpIcon, UserCogIcon } from "lucide-react"
+import { CrownIcon, HandshakeIcon, InfoIcon, LockIcon, Loader2Icon, PlusIcon, ShieldCheckIcon, SlidersHorizontalIcon, TrendingUpIcon, UserCogIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -29,9 +29,13 @@ import { useSessionStore } from "@/stores/session-store"
 export function PrivacyNotice() {
   const t = useT()
   return (
-    <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-      <span className="font-semibold text-foreground">🛡️ {t("admin.privacyTitle")}</span> {t("super.privacyBody")}
-    </p>
+    <details className="group rounded-lg px-1 text-xs text-muted-foreground">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+        <span className="flex-1 truncate">{t("admin.privacyShort")}</span>
+        <InfoIcon className="size-3.5 shrink-0 group-open:text-primary" aria-hidden />
+      </summary>
+      <p className="mt-1.5 rounded-lg bg-emerald-500/5 px-3 py-2 leading-relaxed">{t("super.privacyBody")}</p>
+    </details>
   )
 }
 
