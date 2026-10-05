@@ -15,8 +15,11 @@ export const LANGUAGE_NAMES: Record<Locale, { flag: string; name: string; short:
   zh: { flag: "🇨🇳", name: "中文（简体）", short: "中文" },
 }
 
+/** The header button: one short label, nothing else (flag emoji show as "KH" letters on Windows). */
+const HEADER_LABEL: Record<Locale, string> = { km: "ខ្មែរ", en: "EN", zh: "CN" }
+
 /**
- * 文A language switch. In the app header (`compact`) one tap cycles
+ * Language switch. In the app header (`compact`) one tap cycles
  * ខ្មែរ → EN → 中文 → ខ្មែរ (the app's 1-tap standard); the login screen opens a
  * menu with the full names. The choice is saved on this device at once.
  */
@@ -32,14 +35,13 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
       <Button
         variant="ghost"
         size="sm"
-        className="h-9 gap-1 px-2 text-xs"
+        className="h-9 min-w-11 px-2.5 text-sm font-semibold"
         onClick={() => setLocale(next)}
         aria-label={`Language · ភាសា · 语言: ${current.name} → ${LANGUAGE_NAMES[next].name}`}
         title={LANGUAGE_NAMES[next].name}
       >
-        <LanguagesIcon />
         <span key={active} className="animate-in fade-in-0 duration-200">
-          {current.flag} {current.short}
+          {HEADER_LABEL[active]}
         </span>
       </Button>
     )
