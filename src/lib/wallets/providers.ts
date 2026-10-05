@@ -18,7 +18,7 @@ export type WalletProvider = {
  * are usually written in English keep their English name in Khmer too.
  */
 export const WALLET_PROVIDERS: WalletProvider[] = [
-  { key: "cash", name: { km: "សាច់ប្រាក់សុទ្ធ", en: "Cash in Hand" }, mark: "", color: "#16a34a", defaultCurrency: "USD" },
+  { key: "cash", name: { km: "សាច់ប្រាក់សុទ្ធ", en: "Cash in Hand" }, mark: "", color: "#16a34a", defaultCurrency: "USD", alias: /^(cash|សាច់ប្រាក់|លុយសុទ្ធ|សាច់ប្រាក់សុទ្ធ)$/i },
   { key: "aba", name: { km: "ABA Bank", en: "ABA Bank" }, mark: "ABA", color: "#0b4f6c", defaultCurrency: "USD", logo: "/banks/aba.png", alias: /\bABA\b/i },
   { key: "acleda", name: { km: "អេស៊ីលីដា", en: "ACLEDA" }, mark: "AC", color: "#1d3c8f", defaultCurrency: "USD", logo: "/banks/acleda.png", alias: /ACLEDA|អេស៊ីលីដា/i },
   { key: "wing", name: { km: "វីង", en: "Wing" }, mark: "W", color: "#8cc63f", defaultCurrency: "USD", logo: "/banks/wing.png", alias: /\bWING\b|វីង/i },

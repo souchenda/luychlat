@@ -27,7 +27,7 @@ const totals = (m: Partial<Record<Currency, number>>) =>
 
 export async function handleGiftMessage(chatId: number, text: string, lang: Locale) {
   const { data } = await botDb().rpc("bot_gift_context", { p_key: botKey(), p_chat_id: chatId })
-  const ctx = data as { status: string; wallets?: { id: string; name: string }[] } | null
+  const ctx = data as { status: string; workspace?: string; wallets?: { id: string; name: string; icon?: string | null }[] } | null
   if (ctx?.status !== "ok") return sendText(chatId, statusText(ctx?.status, lang))
   const g = parseGiftText(text, ctx.wallets ?? [])
   if (!g) return sendText(chatId, tr(lang, "gift.bot.help"))
@@ -42,7 +42,11 @@ export async function handleGiftMessage(chatId: number, text: string, lang: Loca
     `${giftEmoji(g.eventType)} ${tr(lang, g.direction === "given" ? "gift.bot.given" : "gift.bot.received")}`,
     `👤 ${g.person}${g.title ? ` · ${g.title}` : ""}`,
     `💵 ${formatMoney(g.amount, g.currency)} · ${tr(lang, `gift.event.${g.eventType}` as MessageKey)}`,
-    g.walletName ? `👛 ${g.walletName}` : tr(lang, "gift.bot.recordOnly"),
+    g.walletName
+      ? `👛 ${g.walletName}`
+      : g.missingWallet
+        ? tr(lang, "gift.bot.noSuchWallet", { wallet: g.missingWallet, workspace: ctx.workspace ?? "" })
+        : tr(lang, "gift.bot.recordOnly"),
     "",
     tr(lang, "gift.bot.confirmQ"),
   ]

@@ -2797,6 +2797,7 @@ const km = {
   "gift.bot.last": "ចុងក្រោយគេចងយើង៖ {emoji} {amount} · {date}",
   "gift.bot.suggestBack": "💡 គួរចងត្រឡប់ប្រហែល {amount}",
   "gift.bot.suggestSame": "💡 គេមិនទាន់ចងយើងទេ — យើងចងគេចុងក្រោយ {amount}",
+  "gift.bot.noSuchWallet": "⚠️ មិនមានកាបូប {wallet} ក្នុង «{workspace}» ទេ — កត់ត្រាតែប៉ុណ្ណោះ (មិនប៉ះពាល់កាបូប)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5583,6 +5584,7 @@ const en: Record<MessageKey, string> = {
   "gift.bot.last": "Last from them: {emoji} {amount} · {date}",
   "gift.bot.suggestBack": "💡 Give back about {amount}",
   "gift.bot.suggestSame": "💡 They haven't given yet — you last gave {amount}",
+  "gift.bot.noSuchWallet": "⚠️ No {wallet} wallet in “{workspace}” — record only (no wallet change)",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

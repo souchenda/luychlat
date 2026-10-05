@@ -1,5 +1,6 @@
 import type { Currency } from "@/lib/data/types"
 import type { GiftDirection, GiftEventType } from "@/lib/gift"
+import { WALLET_PROVIDERS, type WalletProvider } from "@/lib/wallets/providers"
 
 import { parseAmountText, toLatinDigits } from "./parse-entry"
 
@@ -17,6 +18,8 @@ export type ParsedGift = {
   currency: Currency
   walletId: string | null
   walletName: string | null
+  /** A bank / wallet named in the message ("ABA") that has no wallet in this workspace. */
+  missingWallet: string | null
   title: string | null
 }
 
@@ -35,7 +38,12 @@ function eventOf(text: string): GiftEventType {
   return "other"
 }
 
-export function parseGiftText(message: string, wallets: { id: string; name: string }[]): ParsedGift | null {
+/** The bank / e-wallet a word (or two, "Chip Mong") stands for. */
+function providerOf(words: string): WalletProvider | null {
+  return WALLET_PROVIDERS.find((p) => p.key !== "other" && p.alias?.test(words) && (p.key !== "cash" || /^\S+$/.test(words))) ?? null
+}
+
+export function parseGiftText(message: string, wallets: { id: string; name: string; icon?: string | null }[]): ParsedGift | null {
   const text = toLatinDigits(message).trim()
   const trigger = text.match(TRIGGER)
   if (!trigger) return null
@@ -57,6 +65,24 @@ export function parseGiftText(message: string, wallets: { id: string; name: stri
       break
     }
   }
+  // A bank / e-wallet word ("ABA", "ACLEDA", "Wing", "សាច់ប្រាក់") is never part of the name: it picks a
+  // wallet of that bank (by its bank icon or name), or is reported as missing.
+  let missingWallet: string | null = null
+  for (let i = 0; i < words.length; i++) {
+    // Two words only for a two-word name ("Chip Mong"): neither word may be a bank on its own.
+    const pair = i + 1 < words.length && !providerOf(words[i]) && !providerOf(words[i + 1]) ? `${words[i]} ${words[i + 1]}` : null
+    const pairProvider = pair ? providerOf(pair) : null
+    const provider = pairProvider || providerOf(words[i])
+    if (!provider) continue
+    const span = pairProvider ? 2 : 1
+    const said = words.slice(i, i + span).join(" ")
+    words.splice(i, span)
+    i--
+    if (wallet) continue
+    const match = wallets.find((w) => w.icon === provider.key) ?? wallets.find((w) => provider.alias?.test(w.name))
+    if (match) wallet = match
+    else missingWallet = said
+  }
   // Event words on their own ("ឡើងផ្ទះ", "មង្គលការ") are the occasion, not part of the name.
   const occasion = words.filter((x) => EVENT_WORD.test(x))
   const person = words.filter((x) => !EVENT_WORD.test(x)).join(" ").trim()
@@ -69,6 +95,7 @@ export function parseGiftText(message: string, wallets: { id: string; name: stri
     currency,
     walletId: wallet?.id ?? null,
     walletName: wallet?.name ?? null,
+    missingWallet: wallet ? null : missingWallet,
     title: occasion.length ? occasion.join(" ").slice(0, 255) : null,
   }
 }

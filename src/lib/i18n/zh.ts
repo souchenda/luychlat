@@ -2750,4 +2750,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "gift.bot.last": "对方最近一次：{emoji} {amount} · {date}",
   "gift.bot.suggestBack": "💡 建议回礼约 {amount}",
   "gift.bot.suggestSame": "💡 对方尚未给过——你上次给了 {amount}",
+  "gift.bot.noSuchWallet": "⚠️ “{workspace}”中没有 {wallet} 钱包——仅记录（不影响钱包）",
 }
