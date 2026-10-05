@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon, LifeBuoyIcon, Loader2Icon, MailCheckIcon } from "lucide-react"
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon, LifeBuoyIcon, Loader2Icon, LockIcon, MailCheckIcon, SmartphoneIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -166,6 +166,9 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   const field =
     "h-12 rounded-xl border-neutral-200 bg-neutral-50/50 text-sm shadow-none transition-colors focus-visible:border-emerald-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-neutral-800 dark:bg-neutral-900/50 dark:focus-visible:border-emerald-400 dark:focus-visible:bg-neutral-900"
   const label = "text-sm font-medium text-neutral-700 dark:text-neutral-300"
+  // Leading icon inside a field; turns emerald with the focus ring.
+  const leadIcon =
+    "pointer-events-none absolute top-1/2 left-3.5 z-10 size-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-emerald-500 dark:text-slate-500"
 
   if (mode === "forgot" && phoneReset) {
     return (
@@ -233,19 +236,22 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
         <Label htmlFor="login-email" className={label}>
           {t("login.identifier")}
         </Label>
-        <Input
-          id="login-email"
-          type="text"
-          autoComplete="username"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={t("login.identifierPlaceholder")}
-          className={field}
-          disabled={disabled}
-        />
+        <div className="group relative">
+          <SmartphoneIcon className={leadIcon} aria-hidden />
+          <Input
+            id="login-email"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t("login.identifierPlaceholder")}
+            className={cn(field, "pl-10")}
+            disabled={disabled}
+          />
+        </div>
       </div>
       {mode !== "forgot" && (
         <div className="space-y-1.5">
@@ -259,14 +265,15 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
               </button>
             )}
           </div>
-          <div className="relative">
+          <div className="group relative">
+            <LockIcon className={leadIcon} aria-hidden />
             <Input
               id="login-password"
               type={show ? "text" : "password"}
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={cn(field, "pr-11")}
+              className={cn(field, "pr-11 pl-10")}
               disabled={disabled}
             />
             <button
