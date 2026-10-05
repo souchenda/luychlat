@@ -50,7 +50,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nav.home": "首页",
   "nav.settings": "设置",
   "home.greeting": "您好",
-  "home.greetingName": "您好，{name} 👋",
+  "home.greetingName": "您好，{name}",
   "home.createAccount": "创建账户并保留数据",
   "settings.title": "设置",
   "settings.appearance": "外观",

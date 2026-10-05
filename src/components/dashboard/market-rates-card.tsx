@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRightIcon } from "lucide-react"
+import { ChevronRightIcon, CoinsIcon, LandmarkIcon } from "lucide-react"
 import Link from "next/link"
 
 import { nbcShortDate } from "@/components/market/nbc-stamp"
@@ -30,13 +30,15 @@ export function MarketRatesCard() {
       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-0.5">
         {usdKhr && (
           <span className="whitespace-nowrap">
-            <span aria-hidden>💵</span> <span className="text-muted-foreground">NBC</span> <span className="font-semibold tabular-nums">$1 = {khr.format(usdKhr)}៛</span>
+            <span aria-hidden className="mr-1 inline-flex size-5 items-center justify-center rounded-full bg-emerald-50 align-[-5px] text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"><LandmarkIcon className="size-3" strokeWidth={2} /></span>
+            <span className="text-muted-foreground">NBC</span> <span className="font-semibold tabular-nums">$1 = {khr.format(usdKhr)}៛</span>
             {market?.nbc && <span className="text-[11px] text-muted-foreground tabular-nums"> · {nbcShortDate(market.nbc, locale)}</span>}
           </span>
         )}
         {gold24 && (
           <span className="whitespace-nowrap">
-            <span aria-hidden>🪙</span> <span className="text-muted-foreground">{t(local ? "market.kiloGold" : "market.goldPerDamlung")}</span>{" "}
+            <span aria-hidden className="mr-1 inline-flex size-5 items-center justify-center rounded-full bg-amber-50 align-[-5px] text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"><CoinsIcon className="size-3" strokeWidth={2} /></span>
+            <span className="text-muted-foreground">{t(local ? "market.kiloGold" : "market.goldPerDamlung")}</span>{" "}
             <span className="font-semibold tabular-nums">${usd.format(gold24)}</span>
             <span className="text-xs text-muted-foreground">{t("market.perDamlung")}</span>
           </span>

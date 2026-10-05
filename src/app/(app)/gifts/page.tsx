@@ -1,7 +1,7 @@
 "use client"
 
 import { useMoney } from "@/lib/use-money"
-import { Loader2Icon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react"
+import { LightbulbIcon, Loader2Icon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -210,7 +210,8 @@ function PersonCard({ name, entries }: { name: string; entries: Gift[] }) {
       </div>
       {s.suggestion && (
         <p className="rounded-xl bg-primary/5 px-3 py-2 text-sm">
-          💡 {t(s.suggestion.basis === "they_gave" ? "gift.suggestBack" : "gift.suggestSame", { amount: money(s.suggestion.amount, s.suggestion.currency) })}
+          <LightbulbIcon className="mr-1 inline size-4 align-[-3px] text-amber-500" aria-hidden />
+          {t(s.suggestion.basis === "they_gave" ? "gift.suggestBack" : "gift.suggestSame", { amount: money(s.suggestion.amount, s.suggestion.currency) })}
           {s.lastReceived && s.suggestion.basis === "they_gave" && (
             <span className="block text-xs text-muted-foreground">
               {giftEmoji(s.lastReceived.event_type)} {t(`gift.event.${s.lastReceived.event_type}` as MessageKey)} · {ddmmyyyy(s.lastReceived.event_date)}

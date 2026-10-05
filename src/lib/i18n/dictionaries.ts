@@ -65,7 +65,7 @@ const km = {
   "nav.settings": "ការកំណត់",
 
   "home.greeting": "សួស្តី",
-  "home.greetingName": "សួស្តី {name} 👋",
+  "home.greetingName": "សួស្តី {name}",
   "home.createAccount": "បង្កើតគណនី និងរក្សាទិន្នន័យ",
 
   "settings.title": "ការកំណត់",
@@ -2951,7 +2951,7 @@ const en: Record<MessageKey, string> = {
   "nav.settings": "Settings",
 
   "home.greeting": "Hello",
-  "home.greetingName": "Hello, {name} 👋",
+  "home.greetingName": "Hello, {name}",
   "home.createAccount": "Create account & keep my data",
 
   "settings.title": "Settings",

@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, FileUpIcon, MinusIcon, PlusIcon, ReceiptTextIcon, TargetIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, FileUpIcon, HandHeartIcon, HandIcon, MinusIcon, PlusIcon, ReceiptTextIcon, SparklesIcon, TargetIcon, WalletIcon } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -126,7 +126,8 @@ export default function HomePage() {
             </h1>
           ) : (
             <h1 className="min-w-0 truncate pt-0.5 text-lg font-bold">
-              {givenName ? t("home.greetingName", { name: givenName }) : t("home.greeting")}
+              {givenName ? t("home.greetingName", { name: givenName }) : t("home.greeting")}{" "}
+              <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
             </h1>
           )}
           <div className="min-w-0 max-w-[62%] text-right leading-tight">
@@ -136,7 +137,12 @@ export default function HomePage() {
               </time>
             </p>
             <p className={festive ? "truncate text-xs font-medium text-primary" : "truncate text-xs text-muted-foreground"}>
-              {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)} {!islamicKey && isMeritDay(greeting.key) ? "🙏" : "✨"}
+              {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)}{" "}
+              {!islamicKey && isMeritDay(greeting.key) ? (
+                <HandHeartIcon className="inline size-3.5 align-[-2px]" aria-hidden />
+              ) : (
+                <SparklesIcon className="inline size-3.5 align-[-2px] text-amber-500" aria-hidden />
+              )}
             </p>
           </div>
         </div>

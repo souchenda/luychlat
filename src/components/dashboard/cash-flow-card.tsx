@@ -1,6 +1,6 @@
 "use client"
 
-import { CoinsIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
+import { TrendingDownIcon, TrendingUpIcon, WalletIcon } from "lucide-react"
 
 import { Amount } from "@/components/money/amount"
 import { Card } from "@/components/ui/card"
@@ -47,7 +47,7 @@ function Stat({ label, total, icon, tone, kind }: { label: string; total: DualTo
   return (
     <div className="flex min-w-0 flex-col gap-0.5 p-3">
       <span className="mb-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-        <span className={cn("[&_svg]:size-4", tone)}>{icon}</span>
+        <span className={cn("[&_svg]:size-3.5", tone)}>{icon}</span>
         <span className="truncate">{label}</span>
       </span>
       <Amount
@@ -87,9 +87,9 @@ export function CashFlowCard({
         <Skeleton className="h-24 w-full rounded-xl" />
       ) : (
         <Card className="grid grid-cols-3 gap-0 divide-x py-0">
-          <Stat label={t("flow.income")} total={flow.income} icon={<TrendingUpIcon />} tone="text-emerald-600 dark:text-emerald-400" kind="income" />
-          <Stat label={t("flow.expense")} total={flow.expense} icon={<TrendingDownIcon />} tone="text-rose-600 dark:text-rose-400" kind="expense" />
-          <Stat label={t("flow.net")} total={flow.net} icon={<CoinsIcon />} tone="text-teal-600 dark:text-teal-400" kind="net" />
+          <Stat label={t("flow.income")} total={flow.income} icon={<TrendingUpIcon strokeWidth={2} />} tone="text-emerald-500" kind="income" />
+          <Stat label={t("flow.expense")} total={flow.expense} icon={<TrendingDownIcon strokeWidth={2} />} tone="text-rose-500" kind="expense" />
+          <Stat label={t("flow.net")} total={flow.net} icon={<WalletIcon strokeWidth={2} />} tone="text-teal-500" kind="net" />
         </Card>
       )}
     </section>

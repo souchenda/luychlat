@@ -9,14 +9,15 @@ import { todayDate } from "@/lib/debts"
 import type { Debt, Wallet, Workspace } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
-import { tipOfTheDay, TOPIC_META } from "@/lib/tips"
+import { tipOfTheDay } from "@/lib/tips"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
+import { TopicIcon } from "@/components/tips/topic-icon"
 
 const DISMISS_KEY = "luychlat-tip-dismissed"
 
 /**
- * Home: "💡 គន្លឹះឆ្លាតវៃថ្ងៃនេះ" — one 30-second tip a day, chosen for the
+ * Home: "គន្លឹះឆ្លាតវៃថ្ងៃនេះ" (lightbulb) — one 30-second tip a day, chosen for the
  * user's situation (debts, a high credit-card balance, a business). "Another
  * tip" shows the next one; ✕ hides the card until tomorrow (this device).
  */
@@ -43,7 +44,6 @@ export function DailyTipCard({ wallets, debts, workspace }: { wallets?: Wallet[]
   }, [debts, wallets, today, islamic, workspace?.type, offset])
 
   if (hidden) return null
-  const topic = TOPIC_META[tip.topic]
 
   return (
     <section className="rounded-2xl border border-amber-500/25 bg-amber-500/5 px-4 py-3.5" aria-label={t("tips.today")}>
@@ -67,8 +67,9 @@ export function DailyTipCard({ wallets, debts, workspace }: { wallets?: Wallet[]
         </button>
       </div>
       <div key={tip.id} className="mt-2 animate-in fade-in-0 duration-300">
-        <p className="text-sm font-semibold">
-          <span aria-hidden>{topic.emoji}</span> {pick(tip.title, locale)}
+        <p className="flex items-center gap-2 text-sm font-semibold">
+          <TopicIcon topic={tip.topic} className="size-6 rounded-lg" iconClassName="size-3.5" />
+          {pick(tip.title, locale)}
         </p>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{pick(tip.body, locale)}</p>
       </div>

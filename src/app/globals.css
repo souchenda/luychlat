@@ -16,6 +16,13 @@
   /* Login hero: a soft light drifting across the emerald, and a gently floating mark. */
   --animate-aurora: aurora 14s ease-in-out infinite alternate;
   --animate-float: float 6s ease-in-out infinite;
+  /* Home greeting: the hand waves twice, once. */
+  --animate-wave: wave 1.6s ease-in-out 0.4s 1 both;
+  @keyframes wave {
+    0%, 60%, 100% { transform: rotate(0deg); }
+    10%, 30% { transform: rotate(16deg); }
+    20%, 40% { transform: rotate(-8deg); }
+  }
 
   @keyframes aurora {
     0% { transform: translate3d(-12%, -6%, 0) scale(1); }

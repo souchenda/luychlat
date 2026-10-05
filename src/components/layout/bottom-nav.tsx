@@ -34,10 +34,12 @@ function NavItem({ item, pathname }: { item: Item; pathname: string }) {
     <li className="flex-1">
       <Link
         href={item.href}
-        className={cn("flex flex-col items-center gap-1 py-2.5 text-[11px]", active ? "text-primary" : "text-muted-foreground")}
+        className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px] transition-colors", active ? "font-semibold text-primary" : "text-muted-foreground hover:text-foreground")}
         aria-current={active ? "page" : undefined}
       >
-        <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
+        <span className={cn("flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-200", active && "bg-primary/12")}>
+          <Icon className={cn("size-5 transition-all", active && "fill-primary/15")} strokeWidth={active ? 2 : 1.75} />
+        </span>
         {t(item.label)}
       </Link>
     </li>

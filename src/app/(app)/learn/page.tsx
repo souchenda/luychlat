@@ -10,6 +10,7 @@ import { HUB_TOPICS, TIPS, TOPIC_META, type TipTopic } from "@/lib/tips"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
+import { TopicIcon } from "@/components/tips/topic-icon"
 
 /** Financial knowledge hub: rounded topic cards, each opening short, practical tips. */
 export default function LearnPage() {
@@ -37,9 +38,7 @@ export default function LearnPage() {
                 onClick={() => setOpen(expanded ? null : topic)}
                 className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/60"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-xl" aria-hidden>
-                  {meta.emoji}
-                </span>
+                <TopicIcon topic={topic} className="size-10" iconClassName="size-5" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{pick(meta.title, locale)}</span>
                   <span className="block text-xs text-muted-foreground">{t("tips.count", { n: tips.length })}</span>
