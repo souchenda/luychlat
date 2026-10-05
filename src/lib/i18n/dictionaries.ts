@@ -663,7 +663,7 @@ const km = {
   "import.settingsTitle": "ទិន្នន័យ Guest នៅលើឧបករណ៍នេះ",
   "import.settingsHint": "{wallets} កាបូប និង {transactions} ប្រតិបត្តិការ ពី Guest Mode មិនទាន់ស្ថិតក្នុងគណនីរបស់អ្នកទេ។",
   "login.forgot": "ភ្លេចពាក្យសម្ងាត់?",
-  "login.forgotTitle": "កំណត់ពាក្យសម្ងាត់ថ្មី",
+  "login.forgotTitle": "កំណត់ពាក្យសម្ងាត់ឡើងវិញ",
   "login.forgotHint": "បញ្ចូលអ៊ីមែលគណនីរបស់អ្នក យើងនឹងផ្ញើតំណដើម្បីកំណត់ពាក្យសម្ងាត់ថ្មី។",
   "login.sendReset": "ផ្ញើតំណកំណត់ពាក្យសម្ងាត់",
   "login.resetSent": "ប្រសិនបើមានគណនីសម្រាប់ {email} យើងបានផ្ញើតំណទៅហើយ។ សូមពិនិត្យប្រអប់សំបុត្រ (និង Spam)។",
@@ -2872,13 +2872,9 @@ const km = {
   "loanDocs.image": "រូបភាព",
   "loanDocs.remove": "លុបឯកសារ",
   "loanDocs.removeConfirm": "លុប «{name}»?",
-  "login.badgeEncryption": "ការអ៊ិនគ្រីប AES-256",
-  "login.badgeEncryptionHint": "TLS ពេលផ្ញើ · AES-256 ពេលរក្សាទុក",
-  "login.badgeRls": "ឯកជនភាព RLS",
-  "login.badgeRlsHint": "ឃើញតែអ្នក និងសមាជិក",
-  "login.badgeSync": "ធ្វើសមកាលកម្មស្វ័យប្រវត្តិ",
-  "login.badgeSyncHint": "គ្រប់ឧបករណ៍របស់អ្នក",
-  "login.features": "⚡ កត់ត្រាសារធនាគារអូតូ • 👥 បេឡារួម • 📊 របាយការណ៍ឆ្លាតវៃ",
+  "login.resetSentTitle": "ពិនិត្យអ៊ីមែលរបស់អ្នក",
+  "login.resetSentDone": "យើងបានផ្ញើតំណភ្ជាប់សម្រាប់កំណត់ពាក្យសម្ងាត់ថ្មីទៅកាន់អ៊ីមែលរបស់អ្នករួចរាល់ហើយ។ សូមពិនិត្យមើលប្រអប់សំបុត្រ (Inbox) របស់អ្នក។",
+  "login.secureLine": "ការពារដោយសុវត្ថិភាពកម្រិតខ្ពស់",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5740,13 +5736,9 @@ const en: Record<MessageKey, string> = {
   "loanDocs.image": "Image",
   "loanDocs.remove": "Delete document",
   "loanDocs.removeConfirm": "Delete “{name}”?",
-  "login.badgeEncryption": "AES-256 encryption",
-  "login.badgeEncryptionHint": "TLS in transit · at rest",
-  "login.badgeRls": "Row-Level Security",
-  "login.badgeRlsHint": "Only you & your members",
-  "login.badgeSync": "Automatic cloud sync",
-  "login.badgeSyncHint": "Across your devices",
-  "login.features": "⚡ Auto-log bank alerts • 👥 Shared pools • 📊 Smart reports",
+  "login.resetSentTitle": "Check your email",
+  "login.resetSentDone": "We've sent a link to set a new password to your email. Please check your inbox.",
+  "login.secureLine": "Protected with strong security",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

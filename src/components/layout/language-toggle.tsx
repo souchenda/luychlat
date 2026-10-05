@@ -1,9 +1,7 @@
 "use client"
 
-import { CheckIcon, LanguagesIcon } from "lucide-react"
-
+import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useHydrated } from "@/hooks/use-hydrated"
 import { LOCALES, type Locale } from "@/lib/i18n/dictionaries"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -19,9 +17,10 @@ export const LANGUAGE_NAMES: Record<Locale, { flag: string; name: string; short:
 const HEADER_LABEL: Record<Locale, string> = { km: "ខ្មែរ", en: "EN", zh: "CN" }
 
 /**
- * Language switch. In the app header (`compact`) one tap cycles
- * ខ្មែរ → EN → 中文 → ខ្មែរ (the app's 1-tap standard); the login screen opens a
- * menu with the full names. The choice is saved on this device at once.
+ * Language switch, never a menu. In the app header (`compact`) one tap cycles
+ * ខ្មែរ → EN → 中文 → ខ្មែរ; the login screen shows all three inline
+ * [ ខ្មែរ | EN | 中文 ] so a first-time visitor sees their language at once.
+ * The choice is saved on this device and applies instantly.
  */
 export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   const hydrated = useHydrated()
@@ -48,22 +47,12 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" aria-label="Language · ភាសា · 语言">
-          <LanguagesIcon />
-          {current.name}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-44">
-        {(Object.keys(LANGUAGE_NAMES) as Locale[]).map((code) => (
-          <DropdownMenuItem key={code} onSelect={() => setLocale(code)}>
-            <span aria-hidden>{LANGUAGE_NAMES[code].flag}</span>
-            <span className="flex-1">{LANGUAGE_NAMES[code].name}</span>
-            {code === locale && <CheckIcon className="text-primary" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Segmented
+      aria-label="Language · ភាសា · 语言"
+      value={active}
+      onChange={setLocale}
+      className="rounded-full bg-muted/70 p-0.5 backdrop-blur dark:bg-neutral-800/70 [&>button]:rounded-full [&>button]:px-3 [&>button]:py-1 [&>button]:text-xs [&>button[aria-checked=true]]:font-semibold [&>button[aria-checked=true]]:text-emerald-700 dark:[&>button[aria-checked=true]]:text-emerald-400"
+      options={LOCALES.map((code) => ({ value: code, label: <span lang={code}>{LANGUAGE_NAMES[code].short}</span> }))}
+    />
   )
 }

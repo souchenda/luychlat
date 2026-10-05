@@ -1,6 +1,6 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon, KeyRoundIcon, Loader2Icon, LockKeyholeIcon, MailIcon } from "lucide-react"
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Loader2Icon, MailCheckIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 
 import { MIN_PASSWORD, PasswordHint } from "./password-hint"
 
-/** Sign in / Create account, with the white pill sliding under the active tab. */
+/** Sign in / Create account: an iOS-style segment, the white pill slides under the active tab. */
 function AuthTabs({ value, onChange, label }: { value: "signin" | "signup"; onChange: (v: "signin" | "signup") => void; label: string }) {
   const t = useT()
   const tabs = [
@@ -20,11 +20,11 @@ function AuthTabs({ value, onChange, label }: { value: "signin" | "signup"; onCh
     { value: "signup" as const, label: t("login.signUp") },
   ]
   return (
-    <div role="radiogroup" aria-label={label} className="relative grid grid-cols-2 rounded-2xl bg-muted/70 p-1 dark:bg-neutral-800/70">
+    <div role="radiogroup" aria-label={label} className="relative grid h-10 grid-cols-2 rounded-xl bg-neutral-100 p-0.5 dark:bg-neutral-900">
       <span
         aria-hidden
         className={cn(
-          "absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-background shadow-md transition-transform duration-300 ease-out motion-reduce:transition-none",
+          "absolute inset-y-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-[10px] bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-300 ease-out motion-reduce:transition-none dark:bg-neutral-700 dark:ring-white/5",
           value === "signup" && "translate-x-full",
         )}
       />
@@ -36,8 +36,8 @@ function AuthTabs({ value, onChange, label }: { value: "signin" | "signup"; onCh
           aria-checked={value === tab.value}
           onClick={() => onChange(tab.value)}
           className={cn(
-            "relative z-10 rounded-xl py-2.5 text-sm transition-colors duration-300",
-            value === tab.value ? "font-semibold text-emerald-700 dark:text-emerald-400" : "font-medium text-muted-foreground hover:text-foreground",
+            "relative z-10 rounded-[10px] text-sm font-medium transition-colors duration-200",
+            value === tab.value ? "text-neutral-900 dark:text-white" : "text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200",
           )}
         >
           {tab.label}
@@ -68,6 +68,8 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
   const [shaking, setShaking] = useState(false)
+  /** Reset link sent: the address it went to (the form makes way for a confirmation). */
+  const [sentTo, setSentTo] = useState<string>()
   /** Shows the error and gives the form a short shake. */
   const fail = (message: string) => {
     setError(message)
@@ -78,6 +80,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     setMode(next)
     setError(undefined)
     setNotice(undefined)
+    setSentTo(undefined)
   }
 
   const submit = async (e: React.FormEvent) => {
@@ -99,7 +102,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       if (error && authErrorCode(error) !== "user_not_found") {
         return fail(`${t("login.resetFailed")} (${authErrorCode(error) || error.status}: ${error.message})`)
       }
-      setNotice(t("login.resetSent", { email: address }))
+      setSentTo(address)
       return
     }
 
@@ -140,61 +143,89 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     }
   }
 
+  const field =
+    "h-12 rounded-xl border-neutral-200 bg-neutral-50/50 text-sm shadow-none transition-colors focus-visible:border-neutral-900 focus-visible:ring-0 dark:border-neutral-800 dark:bg-neutral-900/50 dark:focus-visible:border-neutral-100"
+  const label = "text-sm font-medium text-neutral-700 dark:text-neutral-300"
+
+  if (mode === "forgot" && sentTo) {
+    return (
+      <div className="space-y-5 text-center animate-in fade-in-0 duration-300">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+          <MailCheckIcon className="size-5" aria-hidden />
+        </span>
+        <div className="space-y-2">
+          <p className="text-base font-semibold">{t("login.resetSentTitle")}</p>
+          <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{t("login.resetSentDone")}</p>
+          <p className="text-sm font-medium break-all">{sentTo}</p>
+        </div>
+        <Button type="button" className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white transition-all hover:bg-emerald-700 active:scale-[0.99]" onClick={() => switchMode("signin")}>
+          {t("login.backToSignIn")}
+        </Button>
+      </div>
+    )
+  }
+
   return (
-    <form onSubmit={submit} className={cn("space-y-3", shaking && "animate-shake motion-reduce:animate-none")} onAnimationEnd={() => setShaking(false)}>
+    <form
+      key={mode === "forgot" ? "forgot" : "auth"}
+      onSubmit={submit}
+      className={cn("space-y-4 animate-in fade-in-0 duration-200", shaking && "animate-shake motion-reduce:animate-none")}
+      onAnimationEnd={() => setShaking(false)}
+    >
       {mode === "forgot" ? (
-        <div className="space-y-1">
-          <p className="flex items-center gap-2 font-semibold">
-            <KeyRoundIcon className="size-4" aria-hidden />
-            {t("login.forgotTitle")}
-          </p>
-          <p className="text-sm text-muted-foreground">{t("login.forgotHint")}</p>
+        <div className="space-y-1.5">
+          <button type="button" className="-ml-1 flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100" onClick={() => switchMode("signin")}>
+            <ArrowLeftIcon className="size-4" aria-hidden />
+            {t("login.backToSignIn")}
+          </button>
+          <p className="pt-2 text-lg font-semibold">{t("login.forgotTitle")}</p>
+          <p className="text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">{t("login.forgotHint")}</p>
         </div>
       ) : (
         <AuthTabs value={mode} onChange={switchMode} label={t("login.emailTitle")} />
       )}
-      <div className="space-y-2">
-        <Label htmlFor="login-email">{t("login.email")}</Label>
-        <div className="relative">
-          <MailIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input
-            id="login-email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@example.com"
-            className="h-12 rounded-xl pl-10 text-base focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
-            disabled={disabled}
-          />
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="login-email" className={label}>
+          {t("login.email")}
+        </Label>
+        <Input
+          id="login-email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="name@example.com"
+          className={field}
+          disabled={disabled}
+        />
       </div>
       {mode !== "forgot" && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor="login-password">{t("login.password")}</Label>
+            <Label htmlFor="login-password" className={label}>
+              {t("login.password")}
+            </Label>
             {mode === "signin" && (
-              <button type="button" className="text-xs text-primary" onClick={() => switchMode("forgot")}>
+              <button type="button" className="text-sm font-medium text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300" onClick={() => switchMode("forgot")}>
                 {t("login.forgot")}
               </button>
             )}
           </div>
           <div className="relative">
-            <LockKeyholeIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <Input
               id="login-password"
               type={show ? "text" : "password"}
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 rounded-xl pl-10 text-base focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 pr-11"
+              className={cn(field, "pr-11")}
               disabled={disabled}
             />
             <button
               type="button"
               onClick={() => setShow((v) => !v)}
-              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground"
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
               aria-label={show ? t("login.hidePassword") : t("login.showPassword")}
             >
               {show ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
@@ -203,21 +234,20 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
           {mode === "signup" && <PasswordHint password={password} />}
         </div>
       )}
-      {error && <p role="alert" className="text-sm text-destructive animate-in fade-in-0 duration-200">{error}</p>}
-      {notice && <p className="rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-400">{notice}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-red-600 animate-in fade-in-0 duration-200 dark:text-red-400">
+          {error}
+        </p>
+      )}
+      {notice && <p className="rounded-xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">{notice}</p>}
       <Button
         type="submit"
-        className="h-12 w-full rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-base font-semibold text-white shadow-md shadow-emerald-600/20 transition-all hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] disabled:opacity-60"
+        className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white transition-all hover:bg-emerald-700 active:scale-[0.99] disabled:opacity-60"
         disabled={disabled || busy}
       >
-        {busy ? <Loader2Icon className="animate-spin" /> : mode === "forgot" ? <KeyRoundIcon /> : <MailIcon />}
+        {busy && <Loader2Icon className="animate-spin" />}
         {mode === "forgot" ? t("login.sendReset") : mode === "signin" ? t("login.signIn") : t("login.signUp")}
       </Button>
-      {mode === "forgot" && (
-        <Button type="button" variant="ghost" className="w-full" onClick={() => switchMode("signin")}>
-          {t("login.backToSignIn")}
-        </Button>
-      )}
     </form>
   )
 }
