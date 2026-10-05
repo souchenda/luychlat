@@ -44,6 +44,7 @@ import { homeGreeting, isMeritDay } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
+import { useFeatures } from "@/lib/features"
 
 // Recharts is heavy; load the chart card after the rest of the dashboard.
 const CashFlowCharts = dynamic(() => import("@/components/dashboard/cash-flow-charts").then((m) => m.CashFlowCharts), {
@@ -63,6 +64,8 @@ export default function HomePage() {
   const ws = workspace?.id
   // Viewers in a family workspace can look but not record.
   const editable = canWrite(workspace)
+  // Bank statement import is in testing (feature flag): hidden until it is open to this account.
+  const canImport = useFeatures().allowed("statement_import")
 
   // One query covers the trend chart, this month's summary and the recent list.
   const months = useMemo(() => recentMonths(TREND_MONTHS), [])
@@ -222,7 +225,7 @@ export default function HomePage() {
               <span className="block text-xs text-muted-foreground">{t("recent.emptyHint")}</span>
             </span>
             {/* New accounts: bring in the history from a bank statement instead of typing it. */}
-            {editable && (
+            {editable && canImport && (
               <Button asChild size="sm" variant="outline" className="shrink-0">
                 <Link href="/wallets/import">
                   <FileUpIcon />

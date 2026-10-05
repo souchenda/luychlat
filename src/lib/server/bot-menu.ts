@@ -1,6 +1,8 @@
 // Server only: the bot's persistent 1-tap keyboard (private chats).
 import type { Locale } from "@/lib/i18n/dictionaries"
 
+import { botDb, botKey } from "./telegram-bot"
+
 /** Command behind each button, by position (same in every language). */
 const COMMANDS = [["/market", "/fuel"], ["/gold", "/rate"], ["/digest", "/nssf"], ["/invoice", "/ai"], ["/gift", "/lang"]]
 
@@ -18,11 +20,31 @@ const BY_TEXT = new Map(
 /** The command a tapped button stands for, or null for ordinary text. */
 export const menuCommand = (text: string) => BY_TEXT.get(text.trim()) ?? null
 
-/** `extra` for sendText: the keyboard, sized to fit, kept open. */
-export const menuKeyboard = (lang: Locale) => ({
+/** Buttons of features still in testing (public.feature_flags), by command. */
+const COMMAND_FEATURE: Record<string, string> = { "/invoice": "invoices", "/gift": "gifts" }
+
+/** What the account linked to this chat may use ({} when unknown: gated features stay hidden). */
+export async function botFeatures(chatId: number): Promise<Record<string, boolean>> {
+  const { data, error } = await botDb().rpc("bot_features", { p_key: botKey(), p_chat_id: chatId })
+  return error || !data ? {} : (data as Record<string, boolean>)
+}
+
+/** May this chat use the feature? */
+export const featureOk = (features: Record<string, boolean>, key: string) => features[key] === true
+
+/**
+ * `extra` for sendText: the keyboard, sized to fit, kept open. Buttons of a
+ * feature in testing appear only when `features` allows it.
+ */
+export const menuKeyboard = (lang: Locale, features: Record<string, boolean> = {}) => ({
   reply_markup: {
-    keyboard: LABELS[lang].map((row) => row.map((text) => ({ text }))),
+    keyboard: LABELS[lang]
+      .map((row, r) => row.filter((_, c) => !COMMAND_FEATURE[COMMANDS[r][c]] || featureOk(features, COMMAND_FEATURE[COMMANDS[r][c]])).map((text) => ({ text })))
+      .filter((row) => row.length > 0),
     resize_keyboard: true,
     is_persistent: true,
   },
 })
+
+/** The keyboard for this chat's account. */
+export const keyboardFor = async (chatId: number, lang: Locale) => menuKeyboard(lang, await botFeatures(chatId))

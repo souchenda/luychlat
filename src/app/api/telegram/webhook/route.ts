@@ -21,7 +21,7 @@ import { handleBankAlert, handleBankUndoCallback, isBankUndo } from "@/lib/serve
 import { parseBankAlert } from "@/lib/bot/bank-alert"
 import { isGiftMessage } from "@/lib/bot/parse-gift"
 import { handleGiftCallback, handleGiftLookup, handleGiftMessage, isGiftCallback } from "@/lib/server/gift-bot"
-import { menuCommand, menuKeyboard } from "@/lib/server/bot-menu"
+import { botFeatures, featureOk, keyboardFor, menuCommand } from "@/lib/server/bot-menu"
 import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 
@@ -230,6 +230,11 @@ function sameSecret(a: string | null, b: string | null) {
   return timingSafeEqual(Buffer.from(a), Buffer.from(b))
 }
 
+/** A button of a feature still in testing, tapped by an account that can't use it yet. */
+async function soon(callbackId: string, lang: Locale) {
+  await tg("answerCallbackQuery", { callback_query_id: callbackId, text: tr(lang, "bot.featureSoon").slice(0, 190), show_alert: true })
+}
+
 export async function POST(request: Request) {
   if (!sameSecret(request.headers.get("x-telegram-bot-api-secret-token"), webhookSecret())) {
     // Someone other than Telegram (or an old secret) calling the webhook.
@@ -245,11 +250,17 @@ export async function POST(request: Request) {
   if (update.callback_query) {
     if (isGiftCallback(update.callback_query.data)) {
       const ctx = update.callback_query.message ? await botContext(update.callback_query.message.chat.id) : null
-      await handleGiftCallback(update.callback_query, contextLocale(ctx))
+      const chat = update.callback_query.message?.chat.id
+      if (chat && !featureOk(await botFeatures(chat), "gifts")) await soon(update.callback_query.id, contextLocale(ctx))
+      else await handleGiftCallback(update.callback_query, contextLocale(ctx))
     } else if (isBankUndo(update.callback_query.data)) {
       const ctx = update.callback_query.message ? await botContext(update.callback_query.message.chat.id) : null
       await handleBankUndoCallback(update.callback_query, contextLocale(ctx))
-    } else if (isInvoiceCallback(update.callback_query.data)) await handleInvoiceCallback(update.callback_query)
+    } else if (isInvoiceCallback(update.callback_query.data)) {
+      const chat = update.callback_query.message?.chat.id
+      if (chat && !featureOk(await botFeatures(chat), "invoices")) await soon(update.callback_query.id, "km")
+      else await handleInvoiceCallback(update.callback_query)
+    }
     else await handleCallback(update.callback_query)
     return NextResponse.json({ ok: true })
   }
@@ -300,7 +311,7 @@ export async function POST(request: Request) {
     })
     const result = data as { ok: boolean; name?: string } | null
     if (error || !result?.ok) await sendText(chatId, tr(lang, "bot.linkFailed") + SIGNATURE)
-    else await sendText(chatId, tr(lang, "bot.linked", { name: result.name || "" }) + SIGNATURE, menuKeyboard(lang))
+    else await sendText(chatId, tr(lang, "bot.linked", { name: result.name || "" }) + SIGNATURE, await keyboardFor(chatId, lang))
   } else if (/^\/setgold(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: today's Phnom Penh gold counter prices (others get the normal help).
     await sendText(chatId, await setGoldReply(text, chatId))
@@ -326,7 +337,7 @@ export async function POST(request: Request) {
     const choice = short === "km" || short === "en" || short === "zh" ? short : payload?.toLowerCase()
     if (choice === "km" || choice === "en" || choice === "zh") {
       const { data } = await db.rpc("bot_set_language", { p_key: key, p_chat_id: chatId, p_language: choice })
-      await sendText(chatId, data ? tr(choice, "bot.langSet") : tr(choice, "bot.notLinked"), menuKeyboard(choice))
+      await sendText(chatId, data ? tr(choice, "bot.langSet") : tr(choice, "bot.notLinked"), await keyboardFor(chatId, choice))
     } else {
       const ctx = await botContext(chatId)
       await sendText(chatId, tr(ctx?.linked ? contextLocale(ctx) : lang, "bot.langPick"), { reply_markup: LANG_BUTTONS })
@@ -346,7 +357,7 @@ export async function POST(request: Request) {
   } else if (/^\/(ai|ask)(@\w+)?$/i.test(command)) {
     // LuyChlat AI: "/ai <question>", or /ai alone (and the 🤖 button) to be asked for one. Answered after the reply to Telegram.
     const ctx = await botContext(chatId)
-    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE, menuKeyboard(lang))
+    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE, await keyboardFor(chatId, lang))
     else {
       const question = text.trim().replace(/^\S+\s*/, "").slice(0, 1000)
       after(() => handleAiQuestion(chatId, question, contextLocale(ctx)))
@@ -360,14 +371,16 @@ export async function POST(request: Request) {
   } else if (/^\/gift(@\w+)?$/i.test(command)) {
     // /gift <name>: the two-way gift history (linked chats; the database checks plan and opt-in).
     const ctx = await botContext(chatId)
-    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE, menuKeyboard(lang))
+    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE, await keyboardFor(chatId, lang))
+    else if (!featureOk(await botFeatures(chatId), "gifts")) await sendText(chatId, tr(contextLocale(ctx), "bot.featureSoon"))
     else await handleGiftLookup(chatId, text.trim().replace(/^\S+\s*/, ""), contextLocale(ctx))
   } else if (/^\/(pool|fund|trip|spend)(@\w+)?$/i.test(command)) {
     // Shared pools live in the group the keeper linked (never balances in a private chat).
     await sendText(chatId, tr(lang, "pool.bot.private"))
   } else if (isInvoiceRequest(text)) {
-    // /invoice, "គិតលុយ 12$ …": a receipt photo with KHQR to forward (FREE: 5 a month).
-    await handleInvoiceMessage(chatId, text.trim().slice(0, 500), lang)
+    // /invoice, "គិតលុយ 12$ …": a receipt photo with KHQR to forward (FREE: 5 a month) — while in testing, staff and test accounts only.
+    if (!featureOk(await botFeatures(chatId), "invoices")) await sendText(chatId, tr(lang, "bot.featureSoon"))
+    else await handleInvoiceMessage(chatId, text.trim().slice(0, 500), lang)
   } else if (command === "/stop") {
     const { data } = await db.rpc("bot_unlink_chat", { p_key: key, p_chat_id: chatId })
     await sendText(chatId, tr(lang, data ? "bot.unlinked" : "bot.notLinked") + SIGNATURE)
@@ -375,17 +388,19 @@ export async function POST(request: Request) {
     // Linked chats: /help shows the logging examples, other text is an entry to confirm.
     const ctx = await botContext(chatId)
     const answer = ctx?.linked ? null : await marketAnswer(text, lang)
-    if (!ctx?.linked) await sendText(chatId, answer ?? tr(lang, "bot.help") + (await guideLine(lang)) + SIGNATURE, answer ? {} : menuKeyboard(lang))
+    if (!ctx?.linked) await sendText(chatId, answer ?? tr(lang, "bot.help") + (await guideLine(lang)) + SIGNATURE, answer ? {} : await keyboardFor(chatId, lang))
     else if (asksForBalance(command)) await handleEntryMessage(chatId, command, ctx) // /balance → the in-app pointer
     else if (command.startsWith("/")) {
       const locale = contextLocale(ctx)
       const extras = [transcriptionProvider() && tr(locale, "bot.cmdHelpVoice"), isRouting(ctx) && tr(locale, "bot.cmdHelpRoute")].filter(Boolean)
       // /start, /help and unknown commands: the examples, with the 1-tap keyboard.
-      await sendText(chatId, [tr(locale, "bot.cmdHelp"), ...extras].join("\n\n") + (await guideLine(locale)), menuKeyboard(locale))
+      await sendText(chatId, [tr(locale, "bot.cmdHelp"), ...extras].join("\n\n") + (await guideLine(locale)), await keyboardFor(chatId, locale))
     }
     else {
       const plain = message.text.trim()
       const locale = contextLocale(ctx)
+      // Gifts in testing: for everyone else a gift-like message is simply an entry to log.
+      const giftText = isGiftMessage(plain) && featureOk(await botFeatures(chatId), "gifts")
       // A bank alert forwarded (or pasted) to the bot: saved at once, with ↩️ Undo.
       const alert = parseBankAlert(plain)
       // Calculators first ("how much is 100$ in riel?" has an exact answer), then questions for LuyChlat AI
@@ -393,11 +408,11 @@ export async function POST(request: Request) {
       const calc = alert ? null : await marketAnswer(plain, locale)
       const toAi =
         !alert &&
-        !isGiftMessage(plain) &&
+        !giftText &&
         !calc &&
         (isAiQuestion(plain) || asksWhoOwesMe(plain) || (ctx.pro && asksForBalance(plain)) || (ctx.pro && (await awaitingAiQuestion(chatId))))
       if (alert) await handleBankAlert(chatId, alert, plain, locale)
-      else if (isGiftMessage(plain)) await handleGiftMessage(chatId, plain, locale)
+      else if (giftText) await handleGiftMessage(chatId, plain, locale)
       else if (calc) await sendText(chatId, calc)
       else if (toAi) after(() => handleAiQuestion(chatId, plain.slice(0, 1000), locale))
       else await handleEntryMessage(chatId, plain.slice(0, 300), ctx)

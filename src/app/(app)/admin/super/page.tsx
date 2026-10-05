@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useT } from "@/lib/i18n/use-t"
 import { usePlan } from "@/lib/plan"
+import { FeatureFlagsCard } from "@/components/admin/feature-flags"
 
 /**
  * Super Admin console: business metrics, prices and limits, referrals,
@@ -50,6 +51,7 @@ export default function SuperAdminPage() {
       <ReferralManager />
       <PromoManager />
       <PartnerHub />
+      <FeatureFlagsCard />
       <StaffManager />
       <AuditLogCard />
     </div>

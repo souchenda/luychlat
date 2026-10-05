@@ -7,7 +7,7 @@ import type { Locale } from "@/lib/i18n/dictionaries"
 import { DEFAULT_ABOUT } from "@/lib/app-info"
 import { convert, formatMoney } from "@/lib/money"
 import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
-import { menuKeyboard } from "@/lib/server/bot-menu"
+import { keyboardFor } from "@/lib/server/bot-menu"
 import { botDb, botKey, botToken, maskNumbers, sendText, tg, tr } from "@/lib/server/telegram-bot"
 import { transcribe, transcriptionProvider } from "@/lib/server/transcribe"
 import { asksWhoOwesMe, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
@@ -374,7 +374,7 @@ export async function handleCallback(cb: Callback) {
     await tg("answerCallbackQuery", { callback_query_id: cb.id })
     await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: data ? tr(id, "bot.langSet") : tr(id, "bot.notLinked") })
     // The 1-tap keyboard in the new language (an inline message can't carry it).
-    if (data) await sendText(chatId, tr(id, "bot.keyboardReady"), menuKeyboard(id))
+    if (data) await sendText(chatId, tr(id, "bot.keyboardReady"), await keyboardFor(chatId, id))
     return
   }
   if (chatId && cb.message?.chat.type === "private" && (verb === "bp" || verb === "bs") && UUID.test(id ?? "")) {

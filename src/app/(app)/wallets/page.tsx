@@ -26,6 +26,7 @@ import type { Transaction, TransactionFilter, Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
+import { useFeatures } from "@/lib/features"
 
 const RECENT_TRANSFERS: TransactionFilter = { type: "TRANSFER", limit: 10 }
 
@@ -33,6 +34,8 @@ export default function WalletsPage() {
   const t = useT()
   const { workspace } = useActiveWorkspace()
   const editable = canWrite(workspace)
+  // Bank statement import is in testing (feature flag): hidden until it is open to this account.
+  const canImport = useFeatures().allowed("statement_import")
   const walletsQuery = useWallets(workspace?.id)
   // Assets (gold, diamonds, stocks & crypto, property) count in net worth.
   const assets = useAssetsTotal(workspace?.id)
@@ -72,7 +75,7 @@ export default function WalletsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">{t("wallets.title")}</h1>
-        {editable && (
+        {editable && canImport && (
           <Button asChild size="sm" variant="outline">
             <Link href="/wallets/import">
               <FileUpIcon />
@@ -119,7 +122,7 @@ export default function WalletsPage() {
               <span className="font-medium">{t("wallets.empty")}</span>
               <span className="text-sm text-muted-foreground">{t("wallets.emptyHint")}</span>
             </button>
-            {editable && (
+            {editable && canImport && (
               <Link href="/wallets/import" className="flex items-center gap-3 rounded-xl border bg-primary/5 px-4 py-3 hover:bg-primary/10">
                 <FileUpIcon className="size-5 shrink-0 text-primary" aria-hidden />
                 <span className="min-w-0 flex-1">

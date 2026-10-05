@@ -47,6 +47,7 @@ import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
 import { loginLabel } from "@/lib/auth-identifier"
+import { featureOfPath, useFeatures } from "@/lib/features"
 
 type Item = { href: string; label: MessageKey; icon: LucideIcon; hint?: MessageKey; pro?: boolean }
 
@@ -95,6 +96,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
   const { plan } = usePlan()
   const pro = plan.tier !== "FREE"
   const islamic = useIslamicEnabled()
+  const features = useFeatures()
 
   // Staff only. Cosmetic: the admin pages and their RPCs check the staff role in the database.
   const admin: Item[] = plan.is_admin || plan.staff_role ? [{ href: "/admin", label: "admin.title", icon: ShieldIcon }] : []
@@ -111,7 +113,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
   }
   // A business sees the business tools only (no tontine, gifts, saving goals or Islamic tools);
   // Personal and Family see the household menu.
-  const groups: { title: MessageKey; items: Item[] }[] =
+  const allGroups: { title: MessageKey; items: Item[] }[] =
     workspace?.type === "BUSINESS"
       ? [
           {
@@ -172,6 +174,13 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
           },
           help,
         ]
+  // Features in testing (ADMIN_ONLY) only for staff and 🧪 test accounts; a group left empty goes.
+  const groups = allGroups
+    .map((g) => ({ ...g, items: g.items.filter((i) => {
+      const feature = featureOfPath(i.href.split("#")[0])
+      return !feature || features.allowed(feature)
+    }) }))
+    .filter((g) => g.items.length > 0)
   // "/reports#export" is not "the Reports page" for highlighting; hash links never show as active.
   const isActive = (href: string) => {
     if (href.includes("#")) return false

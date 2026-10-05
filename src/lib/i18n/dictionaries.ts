@@ -2885,6 +2885,18 @@ const km = {
   "login.phoneResetBody": "គណនីដែលចុះឈ្មោះដោយលេខទូរស័ព្ទ មិនមានអ៊ីមែលសម្រាប់ផ្ញើតំណទេ។ សូមទាក់ទងផ្នែកជំនួយ ដើម្បីផ្ទៀងផ្ទាត់ និងកំណត់ពាក្យសម្ងាត់ថ្មី។",
   "login.phoneResetTelegram": "ទាក់ទងផ្នែកជំនួយតាម Telegram",
   "login.signedOutElsewhere": "គណនីរបស់អ្នកបានចូលប្រើនៅលើឧបករណ៍ផ្សេង ដូច្នេះឧបករណ៍នេះត្រូវបានចាកចេញ។ គណនីមួយអាចប្រើបានតែលើឧបករណ៍ ១ គ្រឿងប៉ុណ្ណោះ។ បើមិនមែនជាអ្នក សូមចូលវិញ ហើយប្ដូរពាក្យសម្ងាត់។",
+  "feature.comingSoon": "មុខងារនេះកំពុងស្ថិតក្នុងការសាកល្បងផ្ទៃក្នុង (Coming Soon)",
+  "bot.featureSoon": "🧪 មុខងារនេះកំពុងស្ថិតក្នុងការសាកល្បងផ្ទៃក្នុង។ នឹងបើកឱ្យប្រើឆាប់ៗនេះ (Coming Soon) — សូមអរគុណសម្រាប់ការរង់ចាំ! 🙏",
+  "feature.title": "មុខងារកំពុងសាកល្បង",
+  "feature.hint": "សាកល្បង៖ ឃើញតែបុគ្គលិក និងគណនី 🧪 Test (ម៉ឺនុយ ទំព័រ និង Bot)។ សាធារណៈ៖ គ្រប់គ្នា។ បិទ៖ គ្មាននរណាឃើញ។ រាល់ការប្ដូរត្រូវកត់ត្រាក្នុងកំណត់ហេតុសវនកម្ម។",
+  "feature.prompt": "ប្ដូរ «{name}» ទៅ «{status}»? មូលហេតុ៖",
+  "feature.status.ADMIN_ONLY": "🧪 សាកល្បង",
+  "feature.status.PUBLIC": "សាធារណៈ",
+  "feature.status.DISABLED": "បិទ",
+  "feature.name.invoices": "វិក្កយបត្រ KHQR",
+  "feature.name.gifts": "ចំណងដៃ & បុណ្យ",
+  "feature.name.pools": "បេឡារួម",
+  "feature.name.statement_import": "នាំចូលរបាយការណ៍ធនាគារ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5759,6 +5771,18 @@ const en: Record<MessageKey, string> = {
   "login.phoneResetBody": "Accounts made with a phone number have no email to send a link to. Contact support to verify it's you and set a new password.",
   "login.phoneResetTelegram": "Contact support on Telegram",
   "login.signedOutElsewhere": "Your account was signed in on another device, so this one was signed out. An account can be active on one device at a time. If that wasn't you, sign in again and change your password.",
+  "feature.comingSoon": "This feature is in internal testing (coming soon)",
+  "bot.featureSoon": "🧪 This feature is in internal testing and will open soon — thanks for waiting! 🙏",
+  "feature.title": "Features in testing",
+  "feature.hint": "Testing: only staff and 🧪 Test accounts see it (menu, pages and bot). Public: everyone. Off: no one. Every change is recorded in the audit log.",
+  "feature.prompt": "Set “{name}” to “{status}”? Reason:",
+  "feature.status.ADMIN_ONLY": "🧪 Testing",
+  "feature.status.PUBLIC": "Public",
+  "feature.status.DISABLED": "Off",
+  "feature.name.invoices": "Invoices (KHQR)",
+  "feature.name.gifts": "Gift & merit ledger",
+  "feature.name.pools": "Shared pools",
+  "feature.name.statement_import": "Bank statement import",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
