@@ -23,6 +23,7 @@ import {
   TargetIcon,
   ReceiptIcon,
   ScrollTextIcon,
+  UsersRoundIcon,
   WalletIcon,
   type LucideIcon,
 } from "lucide-react"
@@ -104,6 +105,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
         { href: "/budgets", label: "budget.title", icon: TargetIcon },
         { href: "/bills", label: "bills.title", icon: ReceiptIcon },
         { href: "/invoices", label: "invoices.title", icon: ScrollTextIcon },
+        { href: "/pools", label: "pool.pageTitle", icon: UsersRoundIcon },
         { href: "/goals", label: "goals.pageTitle", icon: PiggyBankIcon },
         { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
         { href: "/reports#export", label: "reports.export", icon: FileSpreadsheetIcon, pro: true },

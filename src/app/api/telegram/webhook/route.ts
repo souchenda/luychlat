@@ -16,6 +16,7 @@ import { sendDigestNow } from "@/lib/server/weekly-digest"
 import { handleInvoiceCallback, handleInvoiceMessage, isInvoiceCallback } from "@/lib/server/invoice-bot"
 import { asksWhoOwesMe, awaitingAiQuestion, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
+import { handlePoolGroupCommand } from "@/lib/server/pool-bot"
 import { menuCommand, menuKeyboard } from "@/lib/server/bot-menu"
 import { marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
@@ -43,7 +44,7 @@ type Update = {
     voice?: { file_id: string; duration?: number; file_size?: number }
     document?: { file_name?: string; mime_type?: string; file_size?: number }
     chat: { id: number; type: string }
-    from?: { username?: string; language_code?: string }
+    from?: { id?: number; username?: string; language_code?: string }
   }
 }
 
@@ -56,9 +57,11 @@ const groupNoticeAt = new Map<number, number>()
  * gets a short note pointing to the private chat, never data. Plain chatter
  * is ignored.
  */
-async function handleGroupMessage(chatId: number, text: string, lang: Locale) {
+async function handleGroupMessage(chatId: number, text: string, lang: Locale, fromId?: number) {
   const command = text.trim().split(/\s+/, 1)[0] ?? ""
   if (!command.startsWith("/")) return
+  // A shared pool the keeper linked to this group: /pool, /fund, /trip, /spend, /pool link CODE.
+  if (await handlePoolGroupCommand(chatId, fromId, text, lang)) return
   if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
     const answer = await marketAnswer(text, lang)
     if (answer) await sendText(chatId, answer)
@@ -228,7 +231,7 @@ export async function POST(request: Request) {
   }
   const message = update.message
   if (message && (message.chat.type === "group" || message.chat.type === "supergroup")) {
-    await handleGroupMessage(message.chat.id, message.text ?? "", telegramLocale(message.from?.language_code))
+    await handleGroupMessage(message.chat.id, message.text ?? "", telegramLocale(message.from?.language_code), message.from?.id)
     return NextResponse.json({ ok: true })
   }
   if (!message || message.chat.type !== "private") return NextResponse.json({ ok: true })
@@ -321,6 +324,9 @@ export async function POST(request: Request) {
       const question = text.trim().replace(/^\S+\s*/, "").slice(0, 1000)
       after(() => handleAiQuestion(chatId, question, contextLocale(ctx)))
     }
+  } else if (/^\/(pool|fund|trip|spend)(@\w+)?$/i.test(command)) {
+    // Shared pools live in the group the keeper linked (never balances in a private chat).
+    await sendText(chatId, tr(lang, "pool.bot.private"))
   } else if (isInvoiceRequest(text)) {
     // /invoice, "គិតលុយ 12$ …": a receipt photo with KHQR to forward (FREE: 5 a month).
     await handleInvoiceMessage(chatId, text.trim().slice(0, 500), lang)

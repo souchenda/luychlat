@@ -1,6 +1,7 @@
 import { BanknoteIcon, WalletIcon } from "lucide-react"
 
 import { goalEmoji } from "@/lib/goals"
+import { poolEmoji } from "@/lib/pool"
 import { cn } from "@/lib/utils"
 import { getProvider, nameMark, providerForName } from "@/lib/wallets/providers"
 
@@ -26,11 +27,11 @@ export function WalletAvatar({
   name?: string
   className?: string
 }) {
-  // Savings goals show their emoji (🏠, 🚗, 🐑…).
-  if (icon?.startsWith("goal_")) {
+  // Savings goals show their emoji (🏠, 🚗, 🐑…), shared pools theirs (🪷, 🏕️…).
+  if (icon?.startsWith("goal_") || icon?.startsWith("pool_")) {
     return (
       <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-lg", className)} aria-hidden>
-        {goalEmoji(icon)}
+        {icon.startsWith("pool_") ? poolEmoji(icon.slice(5)) : goalEmoji(icon)}
       </span>
     )
   }

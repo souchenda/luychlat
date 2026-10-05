@@ -1,0 +1,402 @@
+"use client"
+
+import { ArrowLeftIcon, CheckIcon, CopyIcon, ImageIcon, Loader2Icon, MinusIcon, PlusIcon, Share2Icon, UnlinkIcon } from "lucide-react"
+import { useQueryClient } from "@tanstack/react-query"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
+import { toast } from "sonner"
+
+import { BottomSheet } from "@/components/common/bottom-sheet"
+import { PoolGauge } from "@/components/pools/pool-gauge"
+import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
+import { canWrite, useActiveWorkspace, useWallets } from "@/lib/data/hooks"
+import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { useT } from "@/lib/i18n/use-t"
+import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
+import { poolEmoji, type PoolSettleMode, type PoolSnapshot } from "@/lib/pool"
+import { usePool, usePoolMutations } from "@/lib/pools"
+import { cn } from "@/lib/utils"
+
+const ddmm = (iso: string) => {
+  const d = new Date(new Date(iso).getTime() + 7 * 3_600_000)
+  return `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}`
+}
+
+/** Record that a member put money in (income in the pool's wallet). */
+function ContributeSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const t = useT()
+  const { contribute, addMember } = usePoolMutations()
+  const [memberId, setMemberId] = useState(pool.members[0]?.id ?? "")
+  const member = pool.members.find((m) => m.id === memberId)
+  const [amount, setAmount] = useState("")
+  const [newName, setNewName] = useState("")
+
+  const submit = async () => {
+    const value = roundMoney(parseAmount(amount), pool.currency)
+    if (!memberId || !(value > 0)) return void toast.error(t("pool.needAmount"))
+    try {
+      await contribute.mutateAsync({ poolId: pool.id!, memberId, amount: value })
+      toast.success(t("pool.contributed", { name: member?.name ?? "", amount: formatMoney(value, pool.currency) }))
+      setAmount("")
+      onOpenChange(false)
+    } catch {
+      toast.error(t("common.error"))
+    }
+  }
+  const add = async () => {
+    if (!newName.trim()) return
+    try {
+      await addMember.mutateAsync({ poolId: pool.id!, name: newName.trim().slice(0, 60), pledged: 0 })
+      setNewName("")
+    } catch {
+      toast.error(t("common.error"))
+    }
+  }
+
+  return (
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("pool.contribute")} description={pool.title}>
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <Label>{t("pool.member")}</Label>
+          <Select
+            value={memberId}
+            onValueChange={(id) => {
+              setMemberId(id)
+              const m = pool.members.find((x) => x.id === id)
+              if (m && m.pledged > m.paid) setAmount(String(roundMoney(m.pledged - m.paid, pool.currency)))
+            }}
+          >
+            <SelectTrigger className="h-11! w-full" aria-label={t("pool.member")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {pool.members.map((m) => (
+                <SelectItem key={m.id} value={m.id!}>
+                  {m.name} · {formatMoney(m.paid, pool.currency)}
+                  {m.pledged > 0 && ` / ${formatMoney(m.pledged, pool.currency)}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="pool-amount">{t("pool.amount")}</Label>
+          <Input id="pool-amount" className="h-14 text-2xl font-semibold tabular-nums" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        </div>
+        <Button className="h-12 w-full text-base" onClick={() => void submit()} disabled={contribute.isPending}>
+          {contribute.isPending ? <Loader2Icon className="animate-spin" /> : <PlusIcon />}
+          {t("pool.contribute")}
+        </Button>
+        <div className="flex gap-2 border-t pt-3">
+          <Input className="h-10" maxLength={60} placeholder={t("pool.newMember")} value={newName} onChange={(e) => setNewName(e.target.value)} aria-label={t("pool.newMember")} />
+          <Button variant="outline" className="h-10" onClick={() => void add()} disabled={addMember.isPending || !newName.trim()}>
+            <PlusIcon />
+            {t("pool.addMember")}
+          </Button>
+        </div>
+      </div>
+    </BottomSheet>
+  )
+}
+
+/** Close the pool: refund / roll over (money left) or collect (money short). */
+function SettleSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const t = useT()
+  const router = useRouter()
+  const { settle } = usePoolMutations()
+  const surplus = pool.remaining > 0
+  const short = pool.remaining < 0
+  const [mode, setMode] = useState<PoolSettleMode>(short ? "COLLECT" : "REFUND")
+  const [nextTitle, setNextTitle] = useState(pool.title)
+  const paidTotal = pool.members.reduce((s, m) => s + m.paid, 0)
+  const share = (m: { paid: number }) =>
+    roundMoney(Math.abs(pool.remaining) * (paidTotal > 0 ? m.paid / paidTotal : 1 / Math.max(1, pool.members.length)), pool.currency)
+
+  const go = async () => {
+    try {
+      const r = (await settle.mutateAsync({ poolId: pool.id!, mode, nextTitle })) as { next_pool_id?: string | null }
+      toast.success(t("pool.closed"))
+      onOpenChange(false)
+      if (r?.next_pool_id) router.push(`/pools/${r.next_pool_id}`)
+    } catch {
+      toast.error(t("common.error"))
+    }
+  }
+
+  const options: { mode: PoolSettleMode; label: MessageKey; hint: MessageKey }[] = short
+    ? [{ mode: "COLLECT", label: "pool.settle.COLLECT", hint: "pool.settleHint.COLLECT" }]
+    : [
+        { mode: "REFUND", label: "pool.settle.REFUND", hint: "pool.settleHint.REFUND" },
+        ...(surplus ? [{ mode: "ROLLOVER" as const, label: "pool.settle.ROLLOVER" as const, hint: "pool.settleHint.ROLLOVER" as const }] : []),
+      ]
+
+  return (
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("pool.close")} description={`${pool.title} · ${formatMoney(pool.remaining, pool.currency)}`}>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          {options.map((o) => (
+            <button
+              key={o.mode}
+              type="button"
+              onClick={() => setMode(o.mode)}
+              aria-pressed={mode === o.mode}
+              className={cn("w-full rounded-xl border px-4 py-3 text-left", mode === o.mode ? "border-primary bg-primary/5" : "hover:bg-muted/60")}
+            >
+              <span className="block text-sm font-medium">{t(o.label)}</span>
+              <span className="block text-xs text-muted-foreground">{t(o.hint)}</span>
+            </button>
+          ))}
+        </div>
+        {mode === "ROLLOVER" ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="pool-next">{t("pool.nextTitle")}</Label>
+            <Input id="pool-next" className="h-11" maxLength={80} value={nextTitle} onChange={(e) => setNextTitle(e.target.value)} />
+          </div>
+        ) : (
+          pool.remaining !== 0 && (
+            <Card className="gap-0 divide-y py-0">
+              {pool.members.map((m) => (
+                <div key={m.id} className="flex items-center justify-between px-4 py-2 text-sm">
+                  <span>{m.name}</span>
+                  <span className="font-medium tabular-nums">{formatMoney(share(m), pool.currency)}</span>
+                </div>
+              ))}
+            </Card>
+          )
+        )}
+        <Button className="h-12 w-full text-base" onClick={() => void go()} disabled={settle.isPending}>
+          {settle.isPending ? <Loader2Icon className="animate-spin" /> : <CheckIcon />}
+          {t("pool.closeConfirm")}
+        </Button>
+      </div>
+    </BottomSheet>
+  )
+}
+
+export default function PoolPage() {
+  const t = useT()
+  const { id } = useParams<{ id: string }>()
+  const { workspace } = useActiveWorkspace()
+  const editable = canWrite(workspace)
+  const query = usePool(id)
+  const pool = query.data
+  const walletsData = useWallets(workspace?.id).data
+  const wallet = useMemo(() => (walletsData ?? []).filter((w) => w.id === pool?.wallet_id), [walletsData, pool?.wallet_id])
+  const { sharing, telegramCode, telegramUnlink } = usePoolMutations()
+  const queryClient = useQueryClient()
+  const [expenseOpen, setExpenseOpen] = useState(false)
+  const [contributeOpen, setContributeOpen] = useState(false)
+  const [settleOpen, setSettleOpen] = useState(false)
+  const [code, setCode] = useState<string | null>(null)
+
+  if (query.isLoading) return <Skeleton className="h-80 w-full rounded-xl" />
+  if (!pool) {
+    return (
+      <div className="space-y-4 py-10 text-center">
+        <p className="text-muted-foreground">{t("pool.notFound")}</p>
+        <Button asChild variant="outline">
+          <Link href="/pools">{t("common.back")}</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  const active = pool.status === "active"
+  const link = pool.share_slug && typeof window !== "undefined" ? `${window.location.origin}/p/${pool.share_slug}` : null
+  const copy = async () => {
+    if (!link) return
+    try {
+      await navigator.clipboard.writeText(link)
+      toast.success(t("pool.copied"))
+    } catch {
+      toast.error(t("common.error"))
+    }
+  }
+  const shareLink = async () => {
+    if (!link) return
+    if (navigator.share) await navigator.share({ title: pool.title, url: link }).catch(() => {})
+    else void copy()
+  }
+  const toggleSharing = (patch: { on: boolean; photos?: boolean; members?: boolean }) =>
+    sharing.mutate({ poolId: pool.id!, ...patch }, { onError: () => toast.error(t("common.error")) })
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-1">
+        <Button asChild size="icon" variant="ghost" aria-label={t("common.back")}>
+          <Link href="/pools">
+            <ArrowLeftIcon />
+          </Link>
+        </Button>
+        <span className="flex-1 text-sm text-muted-foreground">{t(`pool.kind.${pool.kind}` as MessageKey)}</span>
+        <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", active ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>
+          {t(active ? "pool.active" : "pool.settled")}
+        </span>
+      </div>
+
+      <Card className="gap-4 px-4 py-4">
+        <h1 className="flex items-center gap-2 text-xl font-bold">
+          <span aria-hidden>{poolEmoji(pool.kind)}</span>
+          {pool.title}
+        </h1>
+        <PoolGauge pool={pool} labels={{ status: t(`pool.gauge.${pool.gauge}` as MessageKey), pooled: t("pool.pooled"), spent: t("pool.spent"), remaining: t("pool.remaining") }} />
+        {active && pool.topup_per_member !== null && (
+          <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+            {t("pool.topupHint", { amount: formatMoney(pool.topup_per_member, pool.currency) })}
+          </p>
+        )}
+        {active && editable && (
+          <div className="grid grid-cols-2 gap-2">
+            <Button className="h-11" onClick={() => setExpenseOpen(true)} disabled={!wallet.length}>
+              <MinusIcon />
+              {t("pool.addExpense")}
+            </Button>
+            <Button variant="outline" className="h-11" onClick={() => setContributeOpen(true)}>
+              <PlusIcon />
+              {t("pool.contribute")}
+            </Button>
+          </div>
+        )}
+      </Card>
+
+      {pool.settlement && (
+        <Card className="gap-2 px-4 py-4">
+          <p className="text-sm font-semibold">{t(`pool.settled.${pool.settlement.mode}` as MessageKey, { amount: formatMoney(Math.abs(pool.settlement.remaining), pool.currency) })}</p>
+          {pool.settlement.shares.map((s) => (
+            <div key={s.name} className="flex justify-between text-sm">
+              <span>{s.name}</span>
+              <span className="font-medium tabular-nums">{formatMoney(s.amount, pool.currency)}</span>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      <section className="space-y-2">
+        <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("pool.members")}</h2>
+        <Card className="gap-0 divide-y overflow-hidden py-0">
+          {pool.members.map((m) => (
+            <div key={m.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+              <span className="min-w-0 flex-1 truncate">{m.name}</span>
+              <span className="tabular-nums">
+                {formatMoney(m.paid, pool.currency)}
+                {m.pledged > 0 && <span className="text-muted-foreground"> / {formatMoney(m.pledged, pool.currency)}</span>}
+              </span>
+              {m.pledged > 0 && m.paid >= m.pledged && <CheckIcon className="size-4 text-emerald-600" aria-label={t("pool.paidFull")} />}
+            </div>
+          ))}
+        </Card>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("pool.entries")}</h2>
+        {pool.entries.length === 0 ? (
+          <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">{t("pool.noEntries")}</p>
+        ) : (
+          <Card className="gap-0 divide-y overflow-hidden py-0">
+            {pool.entries.slice(0, 100).map((e) => (
+              <div key={e.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <span className="w-11 shrink-0 text-xs text-muted-foreground tabular-nums">{ddmm(e.date)}</span>
+                <span className="min-w-0 flex-1 truncate">{e.note || e.category || "—"}</span>
+                {e.receipt && <ImageIcon className="size-3.5 text-muted-foreground" aria-label={t("pool.hasReceipt")} />}
+                <span className={cn("font-medium tabular-nums", e.type === "INCOME" && "text-emerald-600 dark:text-emerald-400")}>
+                  {formatMoney(e.type === "INCOME" ? e.amt : -e.amt, pool.currency, { signed: true })}
+                </span>
+              </div>
+            ))}
+          </Card>
+        )}
+      </section>
+
+      {editable && (
+        <Card className="gap-3 px-4 py-4">
+          <label className="flex items-center gap-3 text-sm">
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{t("pool.shareLink")}</span>
+              <span className="block text-xs text-muted-foreground">{t("pool.shareHint")}</span>
+            </span>
+            <Switch checked={Boolean(pool.share_slug)} onCheckedChange={(on) => toggleSharing({ on })} disabled={sharing.isPending} aria-label={t("pool.shareLink")} />
+          </label>
+          {link && (
+            <>
+              <div className="flex gap-2">
+                <Input readOnly value={link} className="h-10 text-xs" aria-label={t("pool.shareLink")} onFocus={(e) => e.target.select()} />
+                <Button size="icon" variant="outline" className="size-10 shrink-0" onClick={() => void copy()} aria-label={t("pool.copy")}>
+                  <CopyIcon />
+                </Button>
+                <Button size="icon" variant="outline" className="size-10 shrink-0" onClick={() => void shareLink()} aria-label={t("pool.share")}>
+                  <Share2Icon />
+                </Button>
+              </div>
+              <label className="flex items-center gap-3 text-sm">
+                <span className="flex-1">{t("pool.sharePhotos")}</span>
+                <Switch checked={pool.share_photos} onCheckedChange={(v) => toggleSharing({ on: true, photos: v })} aria-label={t("pool.sharePhotos")} />
+              </label>
+              <label className="flex items-center gap-3 text-sm">
+                <span className="flex-1">{t("pool.shareMembers")}</span>
+                <Switch checked={pool.share_members} onCheckedChange={(v) => toggleSharing({ on: true, members: v })} aria-label={t("pool.shareMembers")} />
+              </label>
+            </>
+          )}
+        </Card>
+      )}
+
+      {editable && active && (
+        <Card className="gap-3 px-4 py-4">
+          <p className="text-sm font-medium">{t("pool.telegram")}</p>
+          {pool.tg_linked ? (
+            <div className="flex items-center gap-3">
+              <p className="flex-1 text-sm text-emerald-700 dark:text-emerald-400">{t("pool.telegramLinked")}</p>
+              <Button size="sm" variant="ghost" onClick={() => telegramUnlink.mutate(pool.id!, { onError: () => toast.error(t("common.error")) })}>
+                <UnlinkIcon />
+                {t("pool.unlink")}
+              </Button>
+            </div>
+          ) : code ? (
+            <div className="space-y-2 text-sm">
+              <p className="text-muted-foreground">{t("pool.telegramSteps")}</p>
+              <p className="rounded-xl bg-muted px-3 py-2 font-mono text-base">/pool link {code}</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">{t("pool.telegramHint")}</p>
+              <Button
+                variant="outline"
+                className="h-10"
+                disabled={telegramCode.isPending}
+                onClick={() => telegramCode.mutate(pool.id!, { onSuccess: setCode, onError: () => toast.error(t("common.error")) })}
+              >
+                {telegramCode.isPending && <Loader2Icon className="animate-spin" />}
+                {t("pool.telegramConnect")}
+              </Button>
+            </>
+          )}
+        </Card>
+      )}
+
+      {editable && active && (
+        <Button variant="outline" className="h-11 w-full" onClick={() => setSettleOpen(true)}>
+          <CheckIcon />
+          {t("pool.close")}
+        </Button>
+      )}
+
+      {workspace?.id && wallet.length > 0 && <EntryFormSheet
+          open={expenseOpen}
+          onOpenChange={(v) => {
+            setExpenseOpen(v)
+            // The pool's picture comes from its wallet's entries.
+            if (!v) void queryClient.invalidateQueries({ queryKey: ["pools"] })
+          }} workspaceId={workspace.id} wallets={wallet} type="EXPENSE" />}
+      {active && <ContributeSheet key={pool.members.length} pool={pool} open={contributeOpen} onOpenChange={setContributeOpen} />}
+      {active && <SettleSheet pool={pool} open={settleOpen} onOpenChange={setSettleOpen} />}
+    </div>
+  )
+}
