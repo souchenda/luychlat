@@ -81,8 +81,8 @@ if [ ! -f "$KEYS/keystore.properties" ]; then
     -keystore /ks/luychlat-release.jks -alias luychlat -keyalg RSA -keysize 2048 -validity 10000 \
     -storepass:env KS_PASS -keypass:env KS_PASS -dname "CN=LuyChlat, O=LuyChlat, C=KH"
   rm -f "$env_file"
-  umask 077
-  printf 'storeFile=/ks/luychlat-release.jks\nstorePassword=%s\nkeyAlias=luychlat\nkeyPassword=%s\n' "$pass" "$pass" > "$KEYS/keystore.properties"
+  # Private file only — in a subshell, so the rest of the build keeps the normal umask.
+  (umask 077; printf 'storeFile=/ks/luychlat-release.jks\nstorePassword=%s\nkeyAlias=luychlat\nkeyPassword=%s\n' "$pass" "$pass" > "$KEYS/keystore.properties")
   unset pass
   chmod 600 "$KEYS"/*
   echo "  new release key in $KEYS — back this folder up"
@@ -101,6 +101,6 @@ apk="$SRC/android/app/build/outputs/apk/release/LuyChlat-release.apk"
 [ -f "$apk" ] || { echo "✗ APK not found: $apk" >&2; exit 1; }
 install -m 0644 "$apk" "$OUT/LuyChlat.apk.new"
 mv -f "$OUT/LuyChlat.apk.new" "$OUT/LuyChlat.apk"
-(cd "$OUT" && sha256sum LuyChlat.apk > LuyChlat.apk.sha256)
+(cd "$OUT" && sha256sum LuyChlat.apk > LuyChlat.apk.sha256 && chmod 644 LuyChlat.apk.sha256)
 rm -f "$SRC/android/keystore.properties"
 echo "✓ $(du -h "$OUT/LuyChlat.apk" | cut -f1) → $OUT/LuyChlat.apk ($(cut -c1-16 "$OUT/LuyChlat.apk.sha256")…)"
