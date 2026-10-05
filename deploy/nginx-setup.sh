@@ -72,7 +72,7 @@ if [ ! -f "$SNIPPET" ]; then
 fi
 
 # 4. Patch the site once: upstream → include, maintenance page for 502 / 503 / 504.
-if grep -q "luysmart-upstream.conf" "$site" && grep -q "luysmart-maintenance" "$site"; then
+if grep -q "luysmart-upstream.conf" "$site" && grep -q "luysmart-maintenance" "$site" && grep -q "proxy_buffer_size" "$site"; then
   nginx -t >/dev/null 2>&1 && nginx -s reload
   echo "✓ Nginx already set up ($site)"
   exit 0
@@ -87,6 +87,20 @@ if "luysmart-upstream.conf" not in s:
     s, n = re.subn(r"upstream luysmart_app \{[^}]*\}", "# The upstream (active blue / green slot) is managed by /opt/luysmart/deploy/nginx-setup.sh.\ninclude /etc/nginx/snippets/luysmart-upstream.conf;", s, count=1)
     if n != 1:
         sys.exit("upstream block not found")
+if "proxy_buffer_size" not in s:
+    # Signed-in responses carry large Supabase auth cookies (Set-Cookie): with the
+    # default 4–8k header buffer Nginx answers "upstream sent too big header" → 502.
+    buffers = """    # Signed-in responses carry large Supabase auth cookies (Set-Cookie): the
+    # default 4–8k header buffer turns them into "upstream sent too big header" 502s.
+    proxy_buffer_size 64k;
+    proxy_buffers 8 64k;
+    proxy_busy_buffers_size 128k;
+
+"""
+    m = re.search(r"^[ \t]*(# Fingerprinted build assets[^\n]*\n[ \t]*)?location /_next/static/", s, re.M)
+    if not m:
+        sys.exit("app locations not found")
+    s = s[: m.start()] + buffers + s[m.start():]
 if "luysmart-maintenance" not in s:
     block = """    # While the app restarts or is down: LuyChlat's own page instead of Nginx's 502.
     error_page 502 503 504 /maintenance.html;
