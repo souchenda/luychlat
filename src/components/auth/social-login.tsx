@@ -45,7 +45,7 @@ export function SocialLogin({ disabled }: { disabled?: boolean }) {
       {authMethods.has("google") && (
         <Button
           variant="outline"
-          className="h-13 border-2 bg-white text-base font-semibold text-neutral-800 shadow-sm hover:bg-neutral-50 dark:border-neutral-600 dark:bg-white dark:text-neutral-800 dark:hover:bg-neutral-100"
+          className="h-12 rounded-xl border border-neutral-200 bg-white text-base font-semibold text-neutral-800 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-white dark:text-neutral-800 dark:hover:bg-neutral-100"
           onClick={() => signIn("google")}
           disabled={disabled}
         >
@@ -54,7 +54,7 @@ export function SocialLogin({ disabled }: { disabled?: boolean }) {
         </Button>
       )}
       {authMethods.has("apple") && (
-        <Button variant="outline" className="h-12 text-base" onClick={() => signIn("apple")} disabled={disabled}>
+        <Button variant="outline" className="h-12 rounded-xl text-base font-semibold shadow-sm" onClick={() => signIn("apple")} disabled={disabled}>
           <AppleIcon />
           {t("login.apple")}
         </Button>

@@ -2825,4 +2825,11 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "loanDocs.image": "图片",
   "loanDocs.remove": "删除文件",
   "loanDocs.removeConfirm": "删除“{name}”？",
+  "login.badgeEncryption": "AES-256 加密",
+  "login.badgeEncryptionHint": "传输 TLS · 存储加密",
+  "login.badgeRls": "行级安全",
+  "login.badgeRlsHint": "仅您和成员可见",
+  "login.badgeSync": "自动云同步",
+  "login.badgeSyncHint": "跨设备同步",
+  "login.features": "⚡ 自动记录银行通知 • 👥 共享资金池 • 📊 智能报表",
 }

@@ -2872,6 +2872,13 @@ const km = {
   "loanDocs.image": "រូបភាព",
   "loanDocs.remove": "លុបឯកសារ",
   "loanDocs.removeConfirm": "លុប «{name}»?",
+  "login.badgeEncryption": "ការអ៊ិនគ្រីប AES-256",
+  "login.badgeEncryptionHint": "TLS ពេលផ្ញើ · AES-256 ពេលរក្សាទុក",
+  "login.badgeRls": "ឯកជនភាព RLS",
+  "login.badgeRlsHint": "ឃើញតែអ្នក និងសមាជិក",
+  "login.badgeSync": "ធ្វើសមកាលកម្មស្វ័យប្រវត្តិ",
+  "login.badgeSyncHint": "គ្រប់ឧបករណ៍របស់អ្នក",
+  "login.features": "⚡ កត់ត្រាសារធនាគារអូតូ • 👥 បេឡារួម • 📊 របាយការណ៍ឆ្លាតវៃ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5733,6 +5740,13 @@ const en: Record<MessageKey, string> = {
   "loanDocs.image": "Image",
   "loanDocs.remove": "Delete document",
   "loanDocs.removeConfirm": "Delete “{name}”?",
+  "login.badgeEncryption": "AES-256 encryption",
+  "login.badgeEncryptionHint": "TLS in transit · at rest",
+  "login.badgeRls": "Row-Level Security",
+  "login.badgeRlsHint": "Only you & your members",
+  "login.badgeSync": "Automatic cloud sync",
+  "login.badgeSyncHint": "Across your devices",
+  "login.features": "⚡ Auto-log bank alerts • 👥 Shared pools • 📊 Smart reports",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

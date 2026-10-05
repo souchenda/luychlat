@@ -1,6 +1,6 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon, KeyRoundIcon, Loader2Icon, MailIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, KeyRoundIcon, Loader2Icon, LockKeyholeIcon, MailIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Segmented } from "@/components/common/segmented"
@@ -111,6 +111,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
         </div>
       ) : (
         <Segmented
+          className="rounded-2xl bg-muted/70 p-1 dark:bg-neutral-800/70 [&>button]:rounded-xl [&>button]:py-2.5 [&>button[aria-checked=true]]:font-semibold [&>button[aria-checked=true]]:text-emerald-700 [&>button[aria-checked=true]]:shadow-md dark:[&>button[aria-checked=true]]:text-emerald-400"
           aria-label={t("login.emailTitle")}
           value={mode}
           onChange={switchMode}
@@ -122,17 +123,20 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       )}
       <div className="space-y-2">
         <Label htmlFor="login-email">{t("login.email")}</Label>
-        <Input
-          id="login-email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="name@example.com"
-          className="h-12 text-base"
-          disabled={disabled}
-        />
+        <div className="relative">
+          <MailIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            id="login-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
+            className="h-12 rounded-xl pl-10 text-base focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
+            disabled={disabled}
+          />
+        </div>
       </div>
       {mode !== "forgot" && (
         <div className="space-y-2">
@@ -145,13 +149,14 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
             )}
           </div>
           <div className="relative">
+            <LockKeyholeIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <Input
               id="login-password"
               type={show ? "text" : "password"}
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 pr-11 text-base"
+              className="h-12 rounded-xl pl-10 text-base focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 pr-11"
               disabled={disabled}
             />
             <button
@@ -168,7 +173,11 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
       {notice && <p className="rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-400">{notice}</p>}
-      <Button type="submit" className="h-12 w-full text-base" disabled={disabled || busy}>
+      <Button
+        type="submit"
+        className="h-12 w-full rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-base font-semibold text-white shadow-md shadow-emerald-600/20 transition-all hover:from-emerald-500 hover:to-teal-500 active:scale-[0.99] disabled:opacity-60"
+        disabled={disabled || busy}
+      >
         {busy ? <Loader2Icon className="animate-spin" /> : mode === "forgot" ? <KeyRoundIcon /> : <MailIcon />}
         {mode === "forgot" ? t("login.sendReset") : mode === "signin" ? t("login.signIn") : t("login.signUp")}
       </Button>

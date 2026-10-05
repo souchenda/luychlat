@@ -8,16 +8,18 @@ export function Segmented<T extends string>({
   onChange,
   options,
   disabled,
+  className,
   "aria-label": ariaLabel,
 }: {
   value: T
   onChange: (value: T) => void
   options: { value: T; label: React.ReactNode }[]
   disabled?: boolean
+  className?: string
   "aria-label"?: string
 }) {
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className="grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-muted p-1">
+    <div role="radiogroup" aria-label={ariaLabel} className={cn("grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-muted p-1", className)}>
       {options.map((o) => (
         <button
           key={o.value}
