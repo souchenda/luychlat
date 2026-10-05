@@ -71,8 +71,9 @@ if [ ! -f "$SNIPPET" ]; then
   write_upstream "$port"
 fi
 
-# 4. Patch the site once: upstream → include, maintenance page for 502 / 503 / 504.
-if grep -q "luysmart-upstream.conf" "$site" && grep -q "luysmart-maintenance" "$site" && grep -q "proxy_buffer_size" "$site"; then
+# 4. Patch the site once: upstream → include, maintenance page for 502 / 503 / 504,
+#    and /LuyChlat.apk (the Android app, from /var/www/luysmart-downloads).
+if grep -q "luysmart-upstream.conf" "$site" && grep -q "luysmart-maintenance" "$site" && grep -q "proxy_buffer_size" "$site" && grep -q "luysmart-downloads" "$site"; then
   nginx -t >/dev/null 2>&1 && nginx -s reload
   echo "✓ Nginx already set up ($site)"
   exit 0
@@ -112,6 +113,22 @@ if "luysmart-maintenance" not in s:
 
 """
     # Inside the HTTPS server block: just before its first app location.
+    m = re.search(r"^[ \t]*(# Fingerprinted build assets[^\n]*\n[ \t]*)?location /_next/static/", s, re.M)
+    if not m:
+        sys.exit("app locations not found")
+    s = s[: m.start()] + block + s[m.start():]
+if "luysmart-downloads" not in s:
+    block = """    # The Android app for testers (built on this server by deploy/build-apk.sh).
+    location = /LuyChlat.apk {
+        root /var/www/luysmart-downloads;
+        try_files /LuyChlat.apk =404;
+        types { }
+        default_type application/vnd.android.package-archive;
+        add_header Content-Disposition 'attachment; filename="LuyChlat.apk"' always;
+        add_header Cache-Control "no-cache" always;
+    }
+
+"""
     m = re.search(r"^[ \t]*(# Fingerprinted build assets[^\n]*\n[ \t]*)?location /_next/static/", s, re.M)
     if not m:
         sys.exit("app locations not found")
