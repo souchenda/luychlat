@@ -32,7 +32,8 @@ import { debtStatus, estimatedInterest, remaining } from "@/lib/debts"
 import { isBankLoan } from "@/lib/loans/installments"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
-import { formatPhoneLocal } from "@/lib/format"
+import { formatPhoneLocal, formatRemaining } from "@/lib/format"
+import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 const fmtDate = (iso: string) => format(parseISO(iso), "dd/MM/yyyy")
@@ -80,6 +81,7 @@ function SlipButton({ path }: { path: string }) {
 
 export default function DebtDetailPage() {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
   const hideBalances = usePrefsStore((s) => s.hideBalances)
@@ -247,6 +249,8 @@ export default function DebtDetailPage() {
           <p>
             {t("debt.startedOn", { date: fmtDate(debt.start_date) })}
             {debt.due_date && ` · ${t("debt.dueOn", { date: fmtDate(debt.due_date) })}`}
+            {/* The whole term left (for a scheduled loan the badge above shows the next installment). */}
+            {!settled && debt.due_date && formatRemaining(t, debt.due_date, locale) && ` · ${formatRemaining(t, debt.due_date, locale)}`}
           </p>
           {debt.interest_rate > 0 && (
             <p>

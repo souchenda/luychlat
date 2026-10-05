@@ -1,11 +1,12 @@
 "use client"
 
-import { formatOverdue } from "@/lib/format"
+import { formatOverdue, formatRemaining } from "@/lib/format"
 import { AlarmClockIcon, CalendarClockIcon, CalendarIcon, CircleCheckIcon, TriangleAlertIcon } from "lucide-react"
 
 import type { Debt } from "@/lib/data/types"
 import { khmerDigits } from "@/lib/dates"
-import { daysLeft, urgency, type Urgency } from "@/lib/debts"
+import { daysLeft, dueOf, todayDate, urgency, type Urgency } from "@/lib/debts"
+import { nextScheduledDue } from "@/lib/loans/installments"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
 import { cn } from "@/lib/utils"
@@ -19,25 +20,32 @@ const STYLE: Record<Urgency, { className: string; icon: typeof CalendarIcon }> =
   none: { className: "bg-muted text-muted-foreground", icon: CalendarIcon },
 }
 
-/** Green: more than 7 days · amber: 1–7 days · red: due today or overdue. */
+/**
+ * Green: more than 7 days · amber: 1–7 days · red: due today or overdue.
+ * Time is said in days, then months and days, then years and months; a loan
+ * with an installment schedule shows its next installment ("លើកទី ៣ · …").
+ */
 export function UrgencyBadge({ debt, className }: { debt: Debt; className?: string }) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
-  const level = urgency(debt)
-  const days = daysLeft(debt) ?? 0
-  const label = (locale === "km" ? khmerDigits : String)(
+  const today = todayDate()
+  const level = urgency(debt, today)
+  const due = dueOf(debt, today)
+  const days = daysLeft({ due_date: due }, today) ?? 0
+  const installment = level === "settled" ? null : nextScheduledDue(debt, today)
+  const text =
     level === "settled"
       ? t("urgency.settled")
       : level === "none"
         ? t("urgency.none")
         : level === "safe"
-          ? t("urgency.safe", { days })
+          ? formatRemaining(t, due, locale, today) || t("urgency.safe", { days })
           : level === "soon"
             ? t("urgency.soon", { days })
             : days === 0
               ? t("urgency.today")
-              : formatOverdue(t, debt.due_date, locale) || t("urgency.today")
-  )
+              : formatOverdue(t, due, locale, today) || t("urgency.today")
+  const label = (locale === "km" ? khmerDigits : String)(installment ? `${t("urgency.installment", { n: installment.n })} · ${text}` : text)
   const { className: tone, icon: Icon } = STYLE[level]
 
   return (

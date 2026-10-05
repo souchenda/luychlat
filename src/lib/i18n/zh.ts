@@ -2849,4 +2849,9 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "feature.name.gifts": "礼金与功德账",
   "feature.name.pools": "共享资金池",
   "feature.name.statement_import": "导入银行对账单",
+  "urgency.leftMonthsDays": "剩余 {months}个月{days}天 ({total}天)",
+  "urgency.leftMonths": "剩余 {months}个月 ({total}天)",
+  "urgency.leftYearsMonths": "剩余 {years}年{months}个月 ({total}天)",
+  "urgency.leftYears": "剩余 {years}年 ({total}天)",
+  "urgency.installment": "第 {n} 期",
 }

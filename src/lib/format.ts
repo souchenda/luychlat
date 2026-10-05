@@ -8,7 +8,7 @@
  */
 import type { Currency } from "@/lib/data/types"
 import { khmerDigits } from "@/lib/dates"
-import { overdueSpan } from "@/lib/debts"
+import { overdueSpan, remainingSpan } from "@/lib/debts"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
 import { formatPhoneDisplay } from "@/lib/phone"
@@ -36,6 +36,31 @@ export function formatOverdue(t: T, dueDate: string | null | undefined, locale: 
     const params = { months: span.months, days: span.days, total: span.total, mo: span.months === 1 ? "mo" : "mos", d: span.days === 1 ? "day" : "days" }
     text = t(span.days === 0 ? "urgency.overdueMonths" : "urgency.overdueMonthsDays", params)
   }
+  return locale === "km" ? khmerDigits(text) : text
+}
+
+/**
+ * Time left until a due date, the way people say it (Khmer digits in Khmer):
+ *   under 30 days   "នៅសល់ ១៥ ថ្ងៃ"
+ *   under a year    "នៅសល់ ៣ ខែ ៤ ថ្ងៃ (៩៦ ថ្ងៃ)"
+ *   a year or more  "នៅសល់ ១០ ឆ្នាំ ៦ ខែ (៣,៨៣៤ ថ្ងៃ)"
+ * Empty when it is due today or past (see formatOverdue).
+ */
+export function formatRemaining(t: T, dueDate: string | null | undefined, locale: Locale, today?: string): string {
+  const span = remainingSpan(dueDate ?? null, today)
+  if (!span) return ""
+  const params = { years: span.years, months: span.months, days: span.days, total: span.total.toLocaleString("en-US") }
+  const key: MessageKey =
+    span.total < 30
+      ? "urgency.safe"
+      : span.years > 0
+        ? span.months > 0
+          ? "urgency.leftYearsMonths"
+          : "urgency.leftYears"
+        : span.days > 0
+          ? "urgency.leftMonthsDays"
+          : "urgency.leftMonths"
+  const text = t(key, key === "urgency.safe" ? { days: span.total } : params)
   return locale === "km" ? khmerDigits(text) : text
 }
 

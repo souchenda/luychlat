@@ -98,3 +98,11 @@ export function scheduleToSave(
     schedule_principal: input.principal,
   }
 }
+
+/** The next unpaid installment of a scheduled debt (number and date), or null without a schedule / when all are paid. */
+export function nextScheduledDue(d: Debt, today: string): { n: number; date: string } | null {
+  const schedule = debtSchedule(d)
+  if (!schedule) return null
+  const next = nextInstallment(installments(schedule, d.paid_amount, today, d.currency, isBankLoan(d)))
+  return next ? { n: next.n, date: next.date } : null
+}

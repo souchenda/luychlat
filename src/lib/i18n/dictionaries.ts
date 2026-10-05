@@ -2896,6 +2896,11 @@ const km = {
   "feature.name.gifts": "ចំណងដៃ & បុណ្យ",
   "feature.name.pools": "បេឡារួម",
   "feature.name.statement_import": "នាំចូលរបាយការណ៍ធនាគារ",
+  "urgency.leftMonthsDays": "នៅសល់ {months} ខែ {days} ថ្ងៃ ({total} ថ្ងៃ)",
+  "urgency.leftMonths": "នៅសល់ {months} ខែ ({total} ថ្ងៃ)",
+  "urgency.leftYearsMonths": "នៅសល់ {years} ឆ្នាំ {months} ខែ ({total} ថ្ងៃ)",
+  "urgency.leftYears": "នៅសល់ {years} ឆ្នាំ ({total} ថ្ងៃ)",
+  "urgency.installment": "លើកទី {n}",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5781,6 +5786,11 @@ const en: Record<MessageKey, string> = {
   "feature.name.gifts": "Gift & merit ledger",
   "feature.name.pools": "Shared pools",
   "feature.name.statement_import": "Bank statement import",
+  "urgency.leftMonthsDays": "{months} mos {days} days left ({total}d)",
+  "urgency.leftMonths": "{months} mos left ({total}d)",
+  "urgency.leftYearsMonths": "{years} yrs {months} mos left ({total}d)",
+  "urgency.leftYears": "{years} yrs left ({total}d)",
+  "urgency.installment": "Installment {n}",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

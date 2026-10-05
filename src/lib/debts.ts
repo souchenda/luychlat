@@ -1,6 +1,7 @@
 import { addMonths, differenceInCalendarDays, differenceInCalendarMonths, differenceInMonths, format, parseISO } from "date-fns"
 
 import type { Debt, DebtStatus } from "@/lib/data/types"
+import { nextScheduledDue } from "@/lib/loans/installments"
 import { roundMoney } from "@/lib/money"
 
 /** Days within which a due date counts as "due soon". */
@@ -38,6 +39,28 @@ export function daysLeft(debt: Pick<Debt, "due_date">, today: string = todayDate
 }
 
 /**
+ * The date that matters now: a loan with an installment schedule is due on its
+ * next unpaid installment (not the last one, years away); other debts on their due date.
+ */
+export function dueOf(debt: Debt, today: string = todayDate()): string | null {
+  return nextScheduledDue(debt, today)?.date ?? debt.due_date
+}
+
+/**
+ * Time left until a due date as years, months and days (today 2026-10-05,
+ * due 2036-09-20: 9 years 11 months 15 days, 3,637 days in all). Null when
+ * it is today or past.
+ */
+export function remainingSpan(dueDate: string | null, today: string = todayDate()): { years: number; months: number; days: number; total: number } | null {
+  if (!dueDate) return null
+  const total = differenceInCalendarDays(parseISO(dueDate), parseISO(today))
+  if (total <= 0) return null
+  const now = parseISO(today)
+  const allMonths = differenceInMonths(parseISO(dueDate), now)
+  return { years: Math.floor(allMonths / 12), months: allMonths % 12, days: differenceInCalendarDays(parseISO(dueDate), addMonths(now, allMonths)), total }
+}
+
+/**
  * How long a debt has been overdue as whole months plus leftover days
  * (due 2026-01-10, today 2026-08-16: 7 months 6 days, 218 days in all).
  * Null when it isn't overdue.
@@ -60,9 +83,10 @@ export function overdueSpan(
  */
 export type Urgency = "safe" | "soon" | "due" | "settled" | "none"
 
-export function urgency(debt: Pick<Debt, "total_amount" | "paid_amount" | "due_date">, today = todayDate()): Urgency {
+export function urgency(debt: Debt, today = todayDate()): Urgency {
   if (debtStatus(debt, today) === "SETTLED") return "settled"
-  const days = daysLeft(debt, today)
+  // Scheduled loans: the next installment, so a missed month turns red on time.
+  const days = daysLeft({ due_date: dueOf(debt, today) }, today)
   if (days === null) return "none"
   if (days <= 0) return "due"
   if (days <= DUE_SOON_DAYS) return "soon"
@@ -75,7 +99,8 @@ const URGENCY_RANK: Record<Urgency, number> = { due: 0, soon: 1, safe: 2, none: 
 export function byUrgency(a: Debt, b: Debt): number {
   const rank = URGENCY_RANK[urgency(a)] - URGENCY_RANK[urgency(b)]
   if (rank !== 0) return rank
-  if (a.due_date && b.due_date && a.due_date !== b.due_date) return a.due_date.localeCompare(b.due_date)
+  const [da, db] = [dueOf(a), dueOf(b)]
+  if (da && db && da !== db) return da.localeCompare(db)
   return b.created_at.localeCompare(a.created_at)
 }
 
