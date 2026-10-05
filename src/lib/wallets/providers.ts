@@ -3,8 +3,10 @@ import type { Currency } from "@/lib/data/types"
 export type WalletProvider = {
   key: string
   name: { km: string; en: string }
-  /** Short mark shown in the avatar (no trademarked logos are bundled). */
+  /** Short mark shown in the avatar when there is no logo. */
   mark: string
+  /** The bank's own logo (public/banks, taken from its official website; see public/banks/README.md). */
+  logo?: string
   color: string
   defaultCurrency: Currency
 }
@@ -16,10 +18,10 @@ export type WalletProvider = {
 export const WALLET_PROVIDERS: WalletProvider[] = [
   { key: "cash", name: { km: "សាច់ប្រាក់សុទ្ធ", en: "Cash in Hand" }, mark: "", color: "#16a34a", defaultCurrency: "USD" },
   { key: "aba", name: { km: "ABA Bank", en: "ABA Bank" }, mark: "ABA", color: "#0b4f6c", defaultCurrency: "USD" },
-  { key: "acleda", name: { km: "អេស៊ីលីដា", en: "ACLEDA" }, mark: "AC", color: "#1d3c8f", defaultCurrency: "USD" },
-  { key: "wing", name: { km: "វីង", en: "Wing" }, mark: "W", color: "#8cc63f", defaultCurrency: "USD" },
-  { key: "bakong", name: { km: "បាគង", en: "Bakong" }, mark: "BK", color: "#b91c1c", defaultCurrency: "KHR" },
-  { key: "truemoney", name: { km: "TrueMoney", en: "TrueMoney" }, mark: "TM", color: "#f26f21", defaultCurrency: "KHR" },
+  { key: "acleda", name: { km: "អេស៊ីលីដា", en: "ACLEDA" }, mark: "AC", color: "#1d3c8f", defaultCurrency: "USD", logo: "/banks/acleda.png" },
+  { key: "wing", name: { km: "វីង", en: "Wing" }, mark: "W", color: "#8cc63f", defaultCurrency: "USD", logo: "/banks/wing.png" },
+  { key: "bakong", name: { km: "បាគង", en: "Bakong" }, mark: "BK", color: "#b91c1c", defaultCurrency: "KHR", logo: "/banks/bakong.svg" },
+  { key: "truemoney", name: { km: "TrueMoney", en: "TrueMoney" }, mark: "TM", color: "#f26f21", defaultCurrency: "KHR", logo: "/banks/truemoney.webp" },
   { key: "canadia", name: { km: "កាណាឌីយ៉ា", en: "Canadia Bank" }, mark: "CB", color: "#c8102e", defaultCurrency: "USD" },
   { key: "prince", name: { km: "Prince Bank", en: "Prince Bank" }, mark: "PB", color: "#1e2a4a", defaultCurrency: "USD" },
   { key: "sathapana", name: { km: "Sathapana Bank", en: "Sathapana Bank" }, mark: "SBK", color: "#0057a8", defaultCurrency: "USD" },

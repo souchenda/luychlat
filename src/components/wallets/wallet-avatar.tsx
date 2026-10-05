@@ -11,7 +11,10 @@ function textColorFor(hex: string): string {
   return luminance > 0.6 ? "#1a2e05" : "#ffffff"
 }
 
-/** Brand mark for known banks; for a wallet the user named themselves ("Other"), the first letters of its name. */
+/**
+ * The bank's logo when we have it (public/banks), else its brand mark on its
+ * colour; for a wallet the user named themselves ("Other"), the first letters of its name.
+ */
 export function WalletAvatar({
   icon,
   color,
@@ -32,6 +35,14 @@ export function WalletAvatar({
     )
   }
   const provider = getProvider(icon)
+  if (provider.logo) {
+    return (
+      <span className={cn("flex size-10 shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-black/5", className)} aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element -- small static brand files, no optimisation needed */}
+        <img src={provider.logo} alt="" className="size-full object-cover" loading="lazy" decoding="async" draggable={false} />
+      </span>
+    )
+  }
   const custom = provider.key === "other" && name ? nameMark(name) : ""
   const background = color ?? provider.color
   return (
