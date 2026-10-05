@@ -4,12 +4,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
 import {
   CheckIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
   CrownIcon,
   InfoIcon,
   LifeBuoyIcon,
   Loader2Icon,
   SearchIcon,
+  ServerCogIcon,
+  SettingsIcon,
   ShieldAlertIcon,
   UsersIcon,
   XIcon,
@@ -38,6 +41,7 @@ import type { Currency } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
+import { useMarket } from "@/lib/market"
 import { usePlan } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -65,6 +69,65 @@ type AdminPayment = {
 type SubEvent = { id: number; kind: string; plan_code: string | null; period_end: string | null; note: string | null; created_at: string }
 const FILTERS = ["all", "pro", "free", "expiring", "expired", "pending", "suspended"] as const
 type Filter = (typeof FILTERS)[number]
+
+/** Nothing to act on: one slim line with a zero badge instead of an empty card. */
+function QuietRow({ icon, title, action }: { icon: React.ReactNode; title: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex h-11 items-center gap-2 rounded-xl border bg-card px-3 text-sm">
+      <span className="text-muted-foreground [&_svg]:size-4">{icon}</span>
+      <span className="flex-1 truncate text-muted-foreground">{title}</span>
+      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
+        <CheckIcon className="size-3" aria-hidden />0
+      </span>
+      {action}
+    </div>
+  )
+}
+
+/** Set-once settings: collapsed by default so the page stays on users and pending work. */
+function Collapsible({ icon, title, hint, badge, children }: { icon: React.ReactNode; title: string; hint: string; badge?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <details className="group rounded-xl border bg-card">
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+        <span className="text-muted-foreground [&_svg]:size-4">{icon}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium">{title}</span>
+          <span className="block truncate text-xs text-muted-foreground">{hint}</span>
+        </span>
+        {badge}
+        <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+      </summary>
+      <div className="space-y-6 border-t px-3 py-4">{children}</div>
+    </details>
+  )
+}
+
+function ManualRates() {
+  const t = useT()
+  const manual = useMarket().data?.nbc?.source === "manual"
+  return (
+    <Collapsible
+      icon={<ServerCogIcon />}
+      title={t("admin.manualRates")}
+      hint={t("admin.manualRatesHint")}
+      badge={
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
+            manual ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+          )}
+        >
+          <span className={cn("size-1.5 rounded-full", manual ? "bg-amber-500" : "bg-emerald-500")} aria-hidden />
+          {t(manual ? "admin.manualActive" : "admin.autoFeeds")}
+        </span>
+      }
+    >
+      <LocalGoldAdmin />
+      <NbcRateAdmin />
+      <FuelAdmin />
+    </Collapsible>
+  )
+}
 
 function PendingPayments() {
   const t = useT()
@@ -95,13 +158,12 @@ function PendingPayments() {
     }
   }
 
+  if (!data?.length) return <QuietRow icon={<CrownIcon />} title={t("admin.pendingPayments")} />
+
   return (
     <Section title={t("admin.pendingPayments")} icon={<CrownIcon />}>
-      <Card className="gap-0 divide-y py-0">
-        {!data?.length ? (
-          <p className="px-4 py-4 text-sm text-muted-foreground">{t("admin.noPending")}</p>
-        ) : (
-          data.map((p) => (
+      <Card className="gap-0 divide-y py-0 ring-1 ring-amber-500/40">
+        {data.map((p) => (
             <div key={p.id} className="space-y-2 px-4 py-3">
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
@@ -130,8 +192,7 @@ function PendingPayments() {
                 </Button>
               </div>
             </div>
-          ))
-        )}
+          ))}
       </Card>
     </Section>
   )
@@ -292,9 +353,13 @@ function Subscribers() {
 
   return (
     <Section title={t("admin.subscribers")} icon={<UsersIcon />} action={isFetching ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" /> : null}>
-      <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-        <span className="font-semibold text-foreground">🛡️ {t("admin.privacyTitle")}</span> {t("admin.privacyBody")}
-      </p>
+      <details className="group rounded-lg px-1 text-xs text-muted-foreground">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+          <span className="flex-1 truncate">{t("admin.privacyShort")}</span>
+          <InfoIcon className="size-3.5 shrink-0 group-open:text-primary" aria-hidden />
+        </summary>
+        <p className="mt-1.5 rounded-lg bg-emerald-500/5 px-3 py-2 leading-relaxed">{t("admin.privacyBody")}</p>
+      </details>
       <div className="flex gap-2">
         <div className="relative flex-1">
           <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
@@ -418,25 +483,24 @@ function SupportTickets() {
     queryFn: () => rpc<AdminTicket[]>("admin_list_tickets", { p_status: status, p_limit: 50 }),
     refetchInterval: 60_000,
   })
-  return (
-    <Section
-      title={t("admin.tickets")}
-      icon={<LifeBuoyIcon />}
-      action={
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger size="sm" className="w-32">
+  const filter = (
+    <Select value={status} onValueChange={setStatus}>
+      <SelectTrigger size="sm" className="w-32">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            {["active", "RESOLVED", "CLOSED", "all"].map((s) => (
-              <SelectItem key={s} value={s}>
-                {t(`admin.ticketFilter.${s}` as MessageKey)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      }
-    >
+      <SelectContent>
+        {["active", "RESOLVED", "CLOSED", "all"].map((s) => (
+          <SelectItem key={s} value={s}>
+            {t(`admin.ticketFilter.${s}` as MessageKey)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+  if (status === "active" && !data?.length) return <QuietRow icon={<LifeBuoyIcon />} title={t("admin.tickets")} action={filter} />
+
+  return (
+    <Section title={t("admin.tickets")} icon={<LifeBuoyIcon />} action={filter}>
       <Card className="gap-0 divide-y py-0">
         {!data?.length ? (
           <p className="px-4 py-4 text-sm text-muted-foreground">{t("admin.noTickets")}</p>
@@ -621,17 +685,21 @@ export default function AdminPage() {
           </Link>
         </Button>
       )}
+      <div className="space-y-2">
+        {admin && <PendingPayments />}
+        <SupportTickets />
+      </div>
       <SystemHealthCard />
-      {admin && <PendingPayments />}
-      <SupportTickets />
       {admin && (
         <>
           <Subscribers />
-          <SupportContactsForm />
-          <AboutInfoForm />
-          <LocalGoldAdmin />
-          <NbcRateAdmin />
-          <FuelAdmin />
+          <div className="space-y-2">
+            <Collapsible icon={<SettingsIcon />} title={t("admin.appSettings")} hint={t("admin.appSettingsHint")}>
+              <SupportContactsForm />
+              <AboutInfoForm />
+            </Collapsible>
+            <ManualRates />
+          </div>
         </>
       )}
     </div>

@@ -2775,4 +2775,11 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nav.tabGoals": "储蓄",
   "nav.group.bizAdmin": "报表与行政",
   "nav.bizNssfBills": "社保与账单",
+  "admin.privacyShort": "🛡️ 隐私：从不显示用户余额或交易",
+  "admin.appSettings": "应用设置",
+  "admin.appSettingsHint": "联系方式与关于",
+  "admin.manualRates": "手动覆盖汇率（紧急）",
+  "admin.manualRatesHint": "黄金、NBC汇率和燃油自动更新——仅在需要覆盖时打开",
+  "admin.manualActive": "正在使用手动汇率",
+  "admin.autoFeeds": "自动",
 }

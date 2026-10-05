@@ -2822,6 +2822,13 @@ const km = {
   "nav.tabGoals": "សន្សំ",
   "nav.group.bizAdmin": "របាយការណ៍ & រដ្ឋបាល",
   "nav.bizNssfBills": "ប.ស.ស. & វិក្កយបត្រ",
+  "admin.privacyShort": "🛡️ ឯកជនភាព៖ មិនបង្ហាញសមតុល្យ ឬប្រតិបត្តិការរបស់អ្នកប្រើទេ",
+  "admin.appSettings": "ការកំណត់កម្មវិធី",
+  "admin.appSettingsHint": "ទំនាក់ទំនង និងអំពីលុយឆ្លាត",
+  "admin.manualRates": "កែអត្រាដោយដៃ (បន្ទាន់)",
+  "admin.manualRatesHint": "មាស អត្រា NBC និងប្រេង ធ្វើបច្ចុប្បន្នភាពដោយស្វ័យប្រវត្តិ — បើកតែពេលត្រូវកែ",
+  "admin.manualActive": "កំពុងប្រើអត្រាដោយដៃ",
+  "admin.autoFeeds": "ស្វ័យប្រវត្តិ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5633,6 +5640,13 @@ const en: Record<MessageKey, string> = {
   "nav.tabGoals": "Savings",
   "nav.group.bizAdmin": "Reports & administration",
   "nav.bizNssfBills": "NSSF & bills",
+  "admin.privacyShort": "🛡️ Privacy: users' balances and transactions are never shown",
+  "admin.appSettings": "App settings",
+  "admin.appSettingsHint": "Contacts and About LuyChlat",
+  "admin.manualRates": "Manual rate override (emergency)",
+  "admin.manualRatesHint": "Gold, NBC rate and fuel update automatically — open only to override",
+  "admin.manualActive": "Manual override active",
+  "admin.autoFeeds": "Auto",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
