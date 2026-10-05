@@ -2850,4 +2850,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "feature.name.gifts": "礼金与功德账",
   "feature.name.pools": "共享资金池",
   "feature.name.statement_import": "导入银行对账单",
+  "app.downloadApk": "下载安卓应用（{size} APK）",
+  "app.iosHint": "iPhone 用户：点击“分享”，然后选择“添加到主屏幕”",
 }

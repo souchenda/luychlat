@@ -2897,6 +2897,8 @@ const km = {
   "feature.name.gifts": "ចំណងដៃ & បុណ្យ",
   "feature.name.pools": "បេឡារួម",
   "feature.name.statement_import": "នាំចូលរបាយការណ៍ធនាគារ",
+  "app.downloadApk": "ទាញយកកម្មវិធី Android (APK {size})",
+  "app.iosHint": "សម្រាប់ iPhone: ចុច Share រួចរើស 'Add to Home Screen'",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5783,6 +5785,8 @@ const en: Record<MessageKey, string> = {
   "feature.name.gifts": "Gift & merit ledger",
   "feature.name.pools": "Shared pools",
   "feature.name.statement_import": "Bank statement import",
+  "app.downloadApk": "Download Android App ({size} APK)",
+  "app.iosHint": "On iPhone: tap Share, then 'Add to Home Screen'",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

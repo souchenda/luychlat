@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 
+import { AppDownload } from "@/components/auth/app-download"
 import { EmailCodeLogin } from "@/components/auth/email-code-login"
 import { LoginFooter } from "@/components/auth/login-footer"
 import { EmailLogin } from "@/components/auth/email-login"
@@ -144,6 +145,8 @@ export default function LoginPage() {
             </div>
           </section>
         )}
+
+        {hydrated && <AppDownload />}
 
         <div className="mt-auto">{hydrated && <LoginFooter />}</div>
       </main>
