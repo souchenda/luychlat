@@ -130,6 +130,27 @@ export const ADJUSTMENT_CATEGORY_PRESETS: Record<"IN" | "OUT", CategoryPreset> =
 }
 
 /**
+ * Transfers with a wallet that moved to another workspace (public.move_wallet):
+ * not income or spending, like the adjustments.
+ */
+export const WORKSPACE_TRANSFER_PRESETS: Record<"IN" | "OUT", CategoryPreset> = {
+  IN: {
+    key: "workspace_transfer_in",
+    type: "INCOME",
+    icon: "arrow-left-right",
+    color: "#64748b",
+    name: { km: "ផ្ទេរពីកន្លែងធ្វើការផ្សេង", en: "Transfer from another workspace" },
+  },
+  OUT: {
+    key: "workspace_transfer_out",
+    type: "EXPENSE",
+    icon: "arrow-left-right",
+    color: "#64748b",
+    name: { km: "ផ្ទេរទៅកន្លែងធ្វើការផ្សេង", en: "Transfer to another workspace" },
+  },
+}
+
+/**
  * Islamic Finance tools (optional): created by public.set_islamic_tools when a
  * user turns them on, and hidden from pickers when the tools are off.
  */
@@ -186,6 +207,7 @@ export const NON_OPERATING_KEYS = new Set([
   ...Object.values(DEBT_CATEGORY_PRESETS).map((p) => p.key),
   ...Object.values(DISBURSEMENT_CATEGORY_PRESETS).map((p) => p.key),
   ...Object.values(ADJUSTMENT_CATEGORY_PRESETS).map((p) => p.key),
+  ...Object.values(WORKSPACE_TRANSFER_PRESETS).map((p) => p.key),
 ])
 
 const PRESET_NAMES = new Map(
@@ -194,6 +216,7 @@ const PRESET_NAMES = new Map(
     ...Object.values(DEBT_CATEGORY_PRESETS),
     ...Object.values(DISBURSEMENT_CATEGORY_PRESETS),
     ...Object.values(ADJUSTMENT_CATEGORY_PRESETS),
+    ...Object.values(WORKSPACE_TRANSFER_PRESETS),
     ...Object.values(ISLAMIC_CATEGORY_PRESETS),
     ...Object.values(OWNER_CATEGORY_PRESETS),
   ].map((p) => [p.key, p.name]),

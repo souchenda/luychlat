@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
+  ArrowRightLeftIcon,
   ChevronRightIcon,
   ChevronUpIcon,
   CreditCardIcon,
@@ -44,6 +45,7 @@ import { getProvider, POPULAR_PROVIDERS, searchProviders } from "@/lib/wallets/p
 import { useLocaleStore } from "@/stores/locale-store"
 
 import { CardMeter, PayCardSheet } from "./credit-card"
+import { MoveWalletSheet } from "./move-wallet-sheet"
 import { ReconcileSheet } from "./reconcile-sheet"
 import { WalletAvatar } from "./wallet-avatar"
 
@@ -176,6 +178,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   const members = useMembers(workspace?.type === "FAMILY" ? workspace.id : undefined).data ?? []
   const editing = Boolean(wallet)
   const [reconcileOpen, setReconcileOpen] = useState(false)
+  const [moveOpen, setMoveOpen] = useState(false)
   // Shared vs personal only matters in a family workspace.
   const family = workspace?.type === "FAMILY"
   // Someone else's personal wallet: visible, but only its owner may change or use it.
@@ -526,11 +529,16 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
               <Trash2Icon />
               {t("walletForm.delete")}
             </Button>
+            <Button type="button" variant="outline" className="col-span-2" onClick={() => setMoveOpen(true)}>
+              <ArrowRightLeftIcon />
+              {t("walletMove.button")}
+            </Button>
           </div>
         )}
         </fieldset>
       </form>
       {wallet && <ReconcileSheet open={reconcileOpen} onOpenChange={setReconcileOpen} wallet={wallet} />}
+      {wallet && <MoveWalletSheet open={moveOpen} onOpenChange={setMoveOpen} wallet={wallet} onMoved={() => onOpenChange(false)} />}
       {wallet && isCard(wallet) && <PayCardSheet open={payOpen} onOpenChange={setPayOpen} card={wallet} wallets={allWallets} />}
     </BottomSheet>
   )

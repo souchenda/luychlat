@@ -17,6 +17,8 @@ import { handleInvoiceCallback, handleInvoiceMessage, isInvoiceCallback } from "
 import { asksWhoOwesMe, awaitingAiQuestion, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
 import { bestPhoto, handlePoolGroupCommand, handlePoolPhotoReply } from "@/lib/server/pool-bot"
+import { handleBankAlert, handleBankUndoCallback, isBankUndo } from "@/lib/server/bank-alert-bot"
+import { parseBankAlert } from "@/lib/bot/bank-alert"
 import { menuCommand, menuKeyboard } from "@/lib/server/bot-menu"
 import { marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
@@ -233,7 +235,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
   if (update.callback_query) {
-    if (isInvoiceCallback(update.callback_query.data)) await handleInvoiceCallback(update.callback_query)
+    if (isBankUndo(update.callback_query.data)) {
+      const ctx = update.callback_query.message ? await botContext(update.callback_query.message.chat.id) : null
+      await handleBankUndoCallback(update.callback_query, contextLocale(ctx))
+    } else if (isInvoiceCallback(update.callback_query.data)) await handleInvoiceCallback(update.callback_query)
     else await handleCallback(update.callback_query)
     return NextResponse.json({ ok: true })
   }
@@ -359,13 +364,17 @@ export async function POST(request: Request) {
     else {
       const plain = message.text.trim()
       const locale = contextLocale(ctx)
+      // A bank alert forwarded (or pasted) to the bot: saved at once, with ↩️ Undo.
+      const alert = parseBankAlert(plain)
       // Calculators first ("how much is 100$ in riel?" has an exact answer), then questions for LuyChlat AI
       // (PRO: free accounts keep the privacy pointer for balance questions), then an entry to log.
-      const calc = await marketAnswer(plain, locale)
+      const calc = alert ? null : await marketAnswer(plain, locale)
       const toAi =
+        !alert &&
         !calc &&
         (isAiQuestion(plain) || asksWhoOwesMe(plain) || (ctx.pro && asksForBalance(plain)) || (ctx.pro && (await awaitingAiQuestion(chatId))))
-      if (calc) await sendText(chatId, calc)
+      if (alert) await handleBankAlert(chatId, alert, plain, locale)
+      else if (calc) await sendText(chatId, calc)
       else if (toAi) after(() => handleAiQuestion(chatId, plain.slice(0, 1000), locale))
       else await handleEntryMessage(chatId, plain.slice(0, 300), ctx)
     }
