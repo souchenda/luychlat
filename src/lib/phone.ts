@@ -28,16 +28,23 @@ export function toE164(national: string): string {
 }
 
 /**
- * For display: any Cambodian number as the local form with spaces.
- * "078824222" / "+85578824222" -> "078 824 222", "0123456789" -> "012 345 6789".
+ * For display, with spaces, the way it was written:
+ *   "078824222"     -> "078 824 222"      (9 digits: 0XX XXX XXX)
+ *   "0123456789"    -> "012 345 6789"     (10 digits: 0XX XXX XXXX)
+ *   "+85578824222"  -> "+855 78 824 222"  (with the country code: +855 XX XXX XXX)
  * Anything that isn't a Cambodian mobile/landline number is returned as typed.
  */
 export function formatPhoneDisplay(raw: string): string {
   const trimmed = raw.trim()
+  const compact = trimmed.replace(/[\s-]/g, "")
   // Another country's code: leave it as the user wrote it.
-  if (trimmed.startsWith("+") && !trimmed.replace(/[\s-]/g, "").startsWith("+855")) return trimmed
+  if (compact.startsWith("+") && !compact.startsWith("+855")) return trimmed
   const national = toNationalNumber(trimmed)
   if (!isValidNationalNumber(national)) return trimmed
+  if (compact.startsWith("+855")) return `${KH_COUNTRY_CODE} ${formatNationalNumber(national)}`
   const local = `0${national}`
   return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`
 }
+
+/** A number the app stored as +855… but the person typed the local way: "078 824 222". */
+export const formatPhoneLocal = (raw: string) => formatPhoneDisplay(`0${toNationalNumber(raw)}`)

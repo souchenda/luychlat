@@ -42,6 +42,7 @@ import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
+import { formatPhoneDisplay } from "@/lib/phone"
 import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
@@ -83,9 +84,11 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
   const personName = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
   const name = business ? business.name : personName
   const subtitle = business
-    ? [business.business_industry ? t(`industry.${business.business_industry}` as MessageKey) : null, business.business_phone].filter(Boolean).join(" · ") ||
+    ? [business.business_industry ? t(`industry.${business.business_industry}` as MessageKey) : null, business.business_phone ? formatPhoneDisplay(business.business_phone) : null]
+        .filter(Boolean)
+        .join(" · ") ||
       t("business.addDetails")
-    : profile?.phone || user?.email || user?.phone || ""
+    : (profile?.phone ? formatPhoneDisplay(profile.phone) : null) || user?.email || (user?.phone ? formatPhoneDisplay(`+${user.phone}`) : "")
   const [editOpen, setEditOpen] = useState(false)
   const router = useRouter()
   const { plan } = usePlan()

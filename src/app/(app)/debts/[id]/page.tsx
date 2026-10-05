@@ -30,7 +30,7 @@ import { useIslamicSettings } from "@/lib/islamic-settings"
 import { debtStatus, estimatedInterest, remaining } from "@/lib/debts"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
-import { formatNationalNumber, toNationalNumber } from "@/lib/phone"
+import { formatPhoneLocal } from "@/lib/phone"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 const fmtDate = (iso: string) => format(parseISO(iso), "dd/MM/yyyy")
@@ -205,7 +205,7 @@ export default function DebtDetailPage() {
           <h1 className="text-xl font-bold">{debt.party_name}</h1>
           {debt.contact_phone && (
             <a href={`tel:${debt.contact_phone}`} className="inline-flex items-center gap-1 text-sm text-primary">
-              <PhoneIcon className="size-3.5" />0{formatNationalNumber(toNationalNumber(debt.contact_phone))}
+              <PhoneIcon className="size-3.5" />{formatPhoneLocal(debt.contact_phone)}
             </a>
           )}
           {debt.note && <p className="text-sm text-muted-foreground">{debt.note}</p>}
