@@ -2751,4 +2751,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "gift.bot.suggestBack": "💡 建议回礼约 {amount}",
   "gift.bot.suggestSame": "💡 对方尚未给过——你上次给了 {amount}",
   "gift.bot.noSuchWallet": "⚠️ “{workspace}”中没有 {wallet} 钱包——仅记录（不影响钱包）",
+  "nav.userGuide": "使用手册",
+  "bot.guideLine": "📖 使用手册：{url}",
+  "bot.guideIntro": "📖 LuyChlat 使用手册——钱包、收支、债务、发票、共同基金和机器人。（需登录应用后查看）",
+  "bot.guideButton": "📖 打开使用手册",
 }

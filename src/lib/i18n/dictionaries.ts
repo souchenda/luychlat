@@ -2798,6 +2798,10 @@ const km = {
   "gift.bot.suggestBack": "💡 គួរចងត្រឡប់ប្រហែល {amount}",
   "gift.bot.suggestSame": "💡 គេមិនទាន់ចងយើងទេ — យើងចងគេចុងក្រោយ {amount}",
   "gift.bot.noSuchWallet": "⚠️ មិនមានកាបូប {wallet} ក្នុង «{workspace}» ទេ — កត់ត្រាតែប៉ុណ្ណោះ (មិនប៉ះពាល់កាបូប)",
+  "nav.userGuide": "សៀវភៅណែនាំអ្នកប្រើប្រាស់",
+  "bot.guideLine": "📖 មើលសៀវភៅណែនាំការប្រើប្រាស់ (User Manual)៖ {url}",
+  "bot.guideIntro": "📖 សៀវភៅណែនាំការប្រើប្រាស់ LuyChlat — របៀបប្រើកាបូប ចំណូលចំណាយ បំណុល វិក្កយបត្រ បេឡារួម និង bot។ (ត្រូវចូលគណនីក្នុងកម្មវិធី)",
+  "bot.guideButton": "📖 មើលសៀវភៅណែនាំការប្រើប្រាស់ (User Manual)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5585,6 +5589,10 @@ const en: Record<MessageKey, string> = {
   "gift.bot.suggestBack": "💡 Give back about {amount}",
   "gift.bot.suggestSame": "💡 They haven't given yet — you last gave {amount}",
   "gift.bot.noSuchWallet": "⚠️ No {wallet} wallet in “{workspace}” — record only (no wallet change)",
+  "nav.userGuide": "User Guide",
+  "bot.guideLine": "📖 User manual: {url}",
+  "bot.guideIntro": "📖 The LuyChlat user manual — wallets, income and spending, debts, invoices, shared pools and the bot. (Sign in to the app to open it.)",
+  "bot.guideButton": "📖 Open the user manual",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

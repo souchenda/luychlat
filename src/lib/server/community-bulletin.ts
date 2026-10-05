@@ -150,7 +150,7 @@ async function postButtons() {
 }
 
 /** The app's public address: PUBLIC_URL, else the origin of the bot's webhook. */
-async function appUrl(): Promise<string | null> {
+export async function appUrl(): Promise<string | null> {
   const fromEnv = process.env.PUBLIC_URL?.trim()
   if (fromEnv) return fromEnv.replace(/\/$/, "")
   const info = await tg<{ url?: string }>("getWebhookInfo", {})

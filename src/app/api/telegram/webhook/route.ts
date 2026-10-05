@@ -22,7 +22,7 @@ import { parseBankAlert } from "@/lib/bot/bank-alert"
 import { isGiftMessage } from "@/lib/bot/parse-gift"
 import { handleGiftCallback, handleGiftLookup, handleGiftMessage, isGiftCallback } from "@/lib/server/gift-bot"
 import { menuCommand, menuKeyboard } from "@/lib/server/bot-menu"
-import { marketSnapshotText } from "@/lib/server/community-bulletin"
+import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 
 /**
@@ -53,6 +53,12 @@ type Update = {
     chat: { id: number; type: string }
     from?: { id?: number; username?: string; language_code?: string }
   }
+}
+
+/** "📖 User manual: https://…/guide" under the help texts (nothing when the address is unknown). */
+async function guideLine(lang: Locale) {
+  const url = await appUrl()
+  return url ? `\n\n${tr(lang, "bot.guideLine", { url: `${url}/guide` })}` : ""
 }
 
 // Groups: the privacy note at most once per 10 minutes per group (no spam).
@@ -345,6 +351,12 @@ export async function POST(request: Request) {
       const question = text.trim().replace(/^\S+\s*/, "").slice(0, 1000)
       after(() => handleAiQuestion(chatId, question, contextLocale(ctx)))
     }
+  } else if (/^\/(guide|manual)(@\w+)?$/i.test(command)) {
+    // The user guide, as a button that opens it.
+    const ctx = await botContext(chatId)
+    const replyLang = ctx?.linked ? contextLocale(ctx) : lang
+    const url = await appUrl()
+    await sendText(chatId, tr(replyLang, "bot.guideIntro"), url ? { reply_markup: { inline_keyboard: [[{ text: tr(replyLang, "bot.guideButton"), url: `${url}/guide` }]] } } : {})
   } else if (/^\/gift(@\w+)?$/i.test(command)) {
     // /gift <name>: the two-way gift history (linked chats; the database checks plan and opt-in).
     const ctx = await botContext(chatId)
@@ -363,13 +375,13 @@ export async function POST(request: Request) {
     // Linked chats: /help shows the logging examples, other text is an entry to confirm.
     const ctx = await botContext(chatId)
     const answer = ctx?.linked ? null : await marketAnswer(text, lang)
-    if (!ctx?.linked) await sendText(chatId, answer ?? tr(lang, "bot.help") + SIGNATURE, answer ? {} : menuKeyboard(lang))
+    if (!ctx?.linked) await sendText(chatId, answer ?? tr(lang, "bot.help") + (await guideLine(lang)) + SIGNATURE, answer ? {} : menuKeyboard(lang))
     else if (asksForBalance(command)) await handleEntryMessage(chatId, command, ctx) // /balance → the in-app pointer
     else if (command.startsWith("/")) {
       const locale = contextLocale(ctx)
       const extras = [transcriptionProvider() && tr(locale, "bot.cmdHelpVoice"), isRouting(ctx) && tr(locale, "bot.cmdHelpRoute")].filter(Boolean)
       // /start, /help and unknown commands: the examples, with the 1-tap keyboard.
-      await sendText(chatId, [tr(locale, "bot.cmdHelp"), ...extras].join("\n\n"), menuKeyboard(locale))
+      await sendText(chatId, [tr(locale, "bot.cmdHelp"), ...extras].join("\n\n") + (await guideLine(locale)), menuKeyboard(locale))
     }
     else {
       const plain = message.text.trim()
