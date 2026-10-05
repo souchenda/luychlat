@@ -45,6 +45,7 @@ import { useMarket } from "@/lib/market"
 import { usePlan } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import { loginLabel } from "@/lib/auth-identifier"
 
 /**
  * Owner/admin console. Every call is an admin_* RPC that re-checks
@@ -168,7 +169,7 @@ function PendingPayments() {
               <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{who(p)}</p>
-                  {p.display_name && <p className="truncate text-xs text-muted-foreground">{p.email}</p>}
+                  {p.display_name && <p className="truncate text-xs text-muted-foreground">{loginLabel(p.email)}</p>}
                 </div>
                 <div className="text-right">
                   <p className="font-semibold tabular-nums">{formatMoney(p.amount, p.currency)}</p>
@@ -230,7 +231,7 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
     act.mutate({ name: "admin_extend_subscription", args: { p_user_id: user.user_id, p_plan_code: code, p_days: days, p_note: null } })
 
   return (
-    <BottomSheet open onOpenChange={(v) => !v && onClose()} title={who(user)} description={user.email ?? undefined}>
+    <BottomSheet open onOpenChange={(v) => !v && onClose()} title={who(user)} description={loginLabel(user.email) || undefined}>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-2">
           <Stat

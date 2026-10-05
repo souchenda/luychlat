@@ -21,6 +21,7 @@ import { formatMoney } from "@/lib/money"
 import { planKeys, type StaffRole } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
+import { loginLabel } from "@/lib/auth-identifier"
 
 
 // ---------------------------------------------------------------------------
@@ -436,8 +437,8 @@ export function StaffManager() {
           <div key={m.user_id} className="space-y-2 px-4 py-3">
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{m.display_name || m.email}</p>
-                <p className="truncate text-xs text-muted-foreground">{m.email}</p>
+                <p className="truncate text-sm font-medium">{m.display_name || loginLabel(m.email)}</p>
+                <p className="truncate text-xs text-muted-foreground">{loginLabel(m.email)}</p>
               </div>
               <span
                 className={cn(

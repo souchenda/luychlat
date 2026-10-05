@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { loginLabel } from "@/lib/auth-identifier"
 
 /** A row of public.admin_customers: account, Telegram, plan and payment metadata only — never finances. */
 type Customer = {
@@ -74,9 +75,9 @@ function CustomerRow({ c, onOpen }: { c: Customer; onOpen: () => void }) {
     <button type="button" onClick={onOpen} className={cn("w-full space-y-1 px-4 py-3 text-left hover:bg-muted/60", c.is_test && "opacity-75")}>
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{c.display_name || c.email || "—"}</p>
+          <p className="truncate text-sm font-medium">{c.display_name || loginLabel(c.email) || "—"}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {c.email}
+            {loginLabel(c.email)}
             {c.telegram_username && (
               <span className="ml-1.5 inline-flex items-center gap-0.5 [&_svg]:size-3">
                 <SendIcon />@{c.telegram_username}
@@ -127,7 +128,7 @@ function CustomerSheet({ c, onClose }: { c: Customer; onClose: () => void }) {
   const t = useT()
   const queryClient = useQueryClient()
   const [tier, setTier] = useState<Tier>(c.status === "ACTIVE" ? c.tier : "PRO")
-  const name = c.display_name || c.email || c.user_id
+  const name = c.display_name || loginLabel(c.email) || c.user_id
   const act = useMutation({
     mutationFn: ({ fn, args }: { fn: string; args: Record<string, unknown> }) => rpc(fn, args),
     onSuccess: () => {
@@ -145,7 +146,7 @@ function CustomerSheet({ c, onClose }: { c: Customer; onClose: () => void }) {
     void run(t("customers.grantPrompt", { name, tier, days }), "admin_extend_subscription", { p_plan_code: `${tier}_${days === 30 ? "MONTHLY" : "YEARLY"}`, p_days: days })
 
   return (
-    <BottomSheet open onOpenChange={(v) => !v && onClose()} title={name} description={c.email ?? undefined}>
+    <BottomSheet open onOpenChange={(v) => !v && onClose()} title={name} description={loginLabel(c.email) || undefined}>
       <div className="space-y-4">
         <Badges c={c} />
         <label className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-sm">

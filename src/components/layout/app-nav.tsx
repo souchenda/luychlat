@@ -46,6 +46,7 @@ import { formatPhoneNumber } from "@/lib/format"
 import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
+import { loginLabel } from "@/lib/auth-identifier"
 
 type Item = { href: string; label: MessageKey; icon: LucideIcon; hint?: MessageKey; pro?: boolean }
 
@@ -81,14 +82,14 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
   const { workspace } = useActiveWorkspace()
   // In the Business workspace the header shows the business, not the person.
   const business = workspace?.type === "BUSINESS" ? workspace : undefined
-  const personName = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
+  const personName = profile?.display_name?.trim() || loginLabel(user?.email).split("@")[0] || t("app.name")
   const name = business ? business.name : personName
   const subtitle = business
     ? [business.business_industry ? t(`industry.${business.business_industry}` as MessageKey) : null, business.business_phone ? formatPhoneNumber(business.business_phone) : null]
         .filter(Boolean)
         .join(" · ") ||
       t("business.addDetails")
-    : (profile?.phone ? formatPhoneNumber(profile.phone) : null) || user?.email || (user?.phone ? formatPhoneNumber(`+${user.phone}`) : "")
+    : (profile?.phone ? formatPhoneNumber(profile.phone) : null) || loginLabel(user?.email) || (user?.phone ? formatPhoneNumber(`+${user.phone}`) : "")
   const [editOpen, setEditOpen] = useState(false)
   const router = useRouter()
   const { plan } = usePlan()

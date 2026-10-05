@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { usePlan } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import { loginLabel } from "@/lib/auth-identifier"
 
 /** A row of public.admin_list_users: account and subscription metadata only — never finances. */
 export type DirectoryUser = {
@@ -113,7 +114,7 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
   const t = useT()
   const queryClient = useQueryClient()
   const superAdmin = usePlan().plan.staff_role === "super_admin"
-  const label = user.display_name || user.email || user.user_id
+  const label = user.display_name || loginLabel(user.email) || user.user_id
   const act = useMutation({
     mutationFn: ({ name, args }: { name: string; args: Record<string, unknown> }) => rpc(name, args),
     onSuccess: () => {

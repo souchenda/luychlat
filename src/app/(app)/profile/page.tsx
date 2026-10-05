@@ -19,6 +19,7 @@ import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
+import { loginLabel } from "@/lib/auth-identifier"
 
 /** One read-only line: a small muted label over a bold value, optionally with something on the right. */
 function InfoRow({
@@ -72,7 +73,7 @@ export default function ProfilePage() {
   const daysLeft = periodEnd ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / 86_400_000)) : 0
   const [editOpen, setEditOpen] = useState(false)
 
-  const name = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
+  const name = profile?.display_name?.trim() || loginLabel(user?.email).split("@")[0] || t("app.name")
   const rawPhone = profile?.phone || (user?.phone ? `+${user.phone}` : "")
   const phone = rawPhone ? formatPhoneNumber(rawPhone) : ""
   const joined = user?.created_at ? dayDate(new Date(user.created_at), locale) : null
@@ -108,7 +109,7 @@ export default function ProfilePage() {
 
       <SettingsGroup title={t("profile.contact")}>
         <InfoRow icon={<PhoneIcon />} tile="emerald" label={t("profile.phone")} value={phone} placeholder={t("profile.notSet")} />
-        <InfoRow icon={<MailIcon />} tile="sky" label={t("profile.email")} value={user?.email} placeholder={t("profile.notSet")} />
+        <InfoRow icon={<MailIcon />} tile="sky" label={t("profile.email")} value={loginLabel(user?.email) || undefined} placeholder={t("profile.notSet")} />
       </SettingsGroup>
 
       <SettingsGroup title={t("profile.accountCard")}>
@@ -190,7 +191,7 @@ export default function ProfilePage() {
       </div>
 
       {/* The privacy note ("who can see this") lives in the edit sheet, next to the fields it's about. */}
-      <ProfileSheet open={editOpen} onOpenChange={setEditOpen} profile={profile} email={user?.email} />
+      <ProfileSheet open={editOpen} onOpenChange={setEditOpen} profile={profile} email={loginLabel(user?.email) || undefined} />
     </div>
   )
 }

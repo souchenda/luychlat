@@ -8,6 +8,7 @@ import { stepUp } from "@/components/security/step-up"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import { loginLabel } from "@/lib/auth-identifier"
 
 /** Shared pieces of the /admin and /admin/super pages. */
 
@@ -17,7 +18,8 @@ export const rpc = async <T,>(name: string, args?: Record<string, unknown>) => {
   return data as T
 }
 
-export const who = (u: { display_name: string | null; email: string | null }) => u.display_name || u.email || "—"
+/** Name, else the sign-in (a phone account shows its number, not its internal address). */
+export const who = (u: { display_name: string | null; email: string | null }) => u.display_name || loginLabel(u.email) || "—"
 export const ago = (iso: string | null) => (iso ? formatDistanceToNowStrict(new Date(iso), { addSuffix: true }) : "—")
 
 export function useInvalidateAdmin() {

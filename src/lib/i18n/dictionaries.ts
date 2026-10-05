@@ -664,7 +664,7 @@ const km = {
   "import.settingsHint": "{wallets} កាបូប និង {transactions} ប្រតិបត្តិការ ពី Guest Mode មិនទាន់ស្ថិតក្នុងគណនីរបស់អ្នកទេ។",
   "login.forgot": "ភ្លេចពាក្យសម្ងាត់?",
   "login.forgotTitle": "កំណត់ពាក្យសម្ងាត់ឡើងវិញ",
-  "login.forgotHint": "បញ្ចូលអ៊ីមែលគណនីរបស់អ្នក យើងនឹងផ្ញើតំណដើម្បីកំណត់ពាក្យសម្ងាត់ថ្មី។",
+  "login.forgotHint": "បញ្ចូលអ៊ីមែល ឬលេខទូរស័ព្ទគណនីរបស់អ្នក។ គណនីអ៊ីមែលនឹងទទួលបានតំណដើម្បីកំណត់ពាក្យសម្ងាត់ថ្មី។",
   "login.sendReset": "ផ្ញើតំណកំណត់ពាក្យសម្ងាត់",
   "login.resetSent": "ប្រសិនបើមានគណនីសម្រាប់ {email} យើងបានផ្ញើតំណទៅហើយ។ សូមពិនិត្យប្រអប់សំបុត្រ (និង Spam)។",
   "login.resetFailed": "មិនអាចផ្ញើតំណបានទេ។ សូមព្យាយាមម្តងទៀតពេលក្រោយ។",
@@ -2875,6 +2875,15 @@ const km = {
   "login.resetSentTitle": "ពិនិត្យអ៊ីមែលរបស់អ្នក",
   "login.resetSentDone": "យើងបានផ្ញើតំណភ្ជាប់សម្រាប់កំណត់ពាក្យសម្ងាត់ថ្មីទៅកាន់អ៊ីមែលរបស់អ្នករួចរាល់ហើយ។ សូមពិនិត្យមើលប្រអប់សំបុត្រ (Inbox) របស់អ្នក។",
   "login.secureLine": "ការពារដោយសុវត្ថិភាពកម្រិតខ្ពស់",
+  "login.identifier": "លេខទូរស័ព្ទ ឬ អ៊ីមែល",
+  "login.identifierPlaceholder": "012 345 678 ឬ name@example.com",
+  "login.identifierInvalid": "សូមបញ្ចូលលេខទូរស័ព្ទកម្ពុជា ឬអ៊ីមែលឱ្យបានត្រឹមត្រូវ",
+  "login.identifierError": "លេខទូរស័ព្ទ/អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ",
+  "login.phoneTaken": "លេខទូរស័ព្ទនេះមានគណនីរួចហើយ។ សូមចូលគណនីវិញ។",
+  "login.phoneSignupUnavailable": "មិនទាន់អាចចុះឈ្មោះដោយលេខទូរស័ព្ទបានទេ។ សូមប្រើអ៊ីមែល ឬទាក់ទងផ្នែកជំនួយ។",
+  "login.phoneResetTitle": "ភ្លេចពាក្យសម្ងាត់គណនីលេខទូរស័ព្ទ?",
+  "login.phoneResetBody": "គណនីដែលចុះឈ្មោះដោយលេខទូរស័ព្ទ មិនមានអ៊ីមែលសម្រាប់ផ្ញើតំណទេ។ សូមទាក់ទងផ្នែកជំនួយ ដើម្បីផ្ទៀងផ្ទាត់ និងកំណត់ពាក្យសម្ងាត់ថ្មី។",
+  "login.phoneResetTelegram": "ទាក់ទងផ្នែកជំនួយតាម Telegram",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -3528,7 +3537,7 @@ const en: Record<MessageKey, string> = {
   "import.settingsHint": "{wallets} wallets and {transactions} transactions from Guest Mode aren't in your account yet.",
   "login.forgot": "Forgot password?",
   "login.forgotTitle": "Reset your password",
-  "login.forgotHint": "Enter your account email and we'll send a link to set a new password.",
+  "login.forgotHint": "Enter your account email or phone number. Email accounts get a link to set a new password.",
   "login.sendReset": "Send reset link",
   "login.resetSent": "If {email} has an account, a reset link is on its way. Check your inbox (and spam).",
   "login.resetFailed": "Couldn't send the link. Please try again later.",
@@ -5739,6 +5748,15 @@ const en: Record<MessageKey, string> = {
   "login.resetSentTitle": "Check your email",
   "login.resetSentDone": "We've sent a link to set a new password to your email. Please check your inbox.",
   "login.secureLine": "Protected with strong security",
+  "login.identifier": "Phone or email",
+  "login.identifierPlaceholder": "012 345 678 or name@example.com",
+  "login.identifierInvalid": "Enter a valid Cambodian phone number or email",
+  "login.identifierError": "Wrong phone/email or password",
+  "login.phoneTaken": "This phone number already has an account. Please sign in.",
+  "login.phoneSignupUnavailable": "Signing up with a phone number isn't available right now. Please use an email or contact support.",
+  "login.phoneResetTitle": "Forgot the password of a phone account?",
+  "login.phoneResetBody": "Accounts made with a phone number have no email to send a link to. Contact support to verify it's you and set a new password.",
+  "login.phoneResetTelegram": "Contact support on Telegram",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

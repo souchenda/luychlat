@@ -1,13 +1,15 @@
 "use client"
 
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Loader2Icon, MailCheckIcon } from "lucide-react"
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon, LifeBuoyIcon, Loader2Icon, MailCheckIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { EMAIL_PATTERN, parseLoginIdentifier } from "@/lib/auth-identifier"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { useSupportContacts } from "@/lib/support"
 import { cn } from "@/lib/utils"
 
 import { MIN_PASSWORD, PasswordHint } from "./password-hint"
@@ -47,16 +49,17 @@ function AuthTabs({ value, onChange, label }: { value: "signin" | "signup"; onCh
   )
 }
 
-export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const EMAIL = EMAIL_PATTERN
 
 /** Supabase error code, if any (older errors only have a message). */
 export const authErrorCode = (error: { message: string; status?: number }) =>
   "code" in error ? String((error as { code?: string }).code ?? "") : ""
 
 /**
- * Email + password through Supabase Auth's built-in email provider: no SMS
- * provider (Twilio etc.) needed. A new account gets the usual Personal and
- * Business workspaces from the signup trigger.
+ * Phone number OR email + password, through Supabase Auth's email provider: no
+ * SMS provider (Twilio etc.) and no SMS cost. A number signs in as its internal
+ * address (lib/auth-identifier.ts). A new account gets the usual Personal and
+ * Business workspaces — and, for a phone account, its number — from the signup trigger.
  */
 export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean; initialEmail?: string }) {
   const t = useT()
@@ -70,6 +73,9 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   const [shaking, setShaking] = useState(false)
   /** Reset link sent: the address it went to (the form makes way for a confirmation). */
   const [sentTo, setSentTo] = useState<string>()
+  /** "Forgot password" for a phone account: no email to send to, so support helps instead. */
+  const [phoneReset, setPhoneReset] = useState(false)
+  const support = useSupportContacts().data
   /** Shows the error and gives the form a short shake. */
   const fail = (message: string) => {
     setError(message)
@@ -81,14 +87,18 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     setError(undefined)
     setNotice(undefined)
     setSentTo(undefined)
+    setPhoneReset(false)
   }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(undefined)
     setNotice(undefined)
-    const address = email.trim().toLowerCase()
-    if (!EMAIL.test(address)) return fail(t("login.emailInvalid"))
+    const id = parseLoginIdentifier(email)
+    if (!id) return fail(t("login.identifierInvalid"))
+    const address = id.email
+    // A phone account has no email to send a reset link to: support helps instead.
+    if (mode === "forgot" && id.kind === "phone") return setPhoneReset(true)
     const supabase = getSupabaseBrowserClient()
     if (!supabase) return
 
@@ -114,7 +124,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       // On success the AuthListener picks up the session and the login page redirects.
       if (error) {
         const code = authErrorCode(error)
-        if (code === "invalid_credentials") return fail(t("login.emailError"))
+        if (code === "invalid_credentials") return fail(t("login.identifierError"))
         if (code === "email_not_confirmed" || /confirm/i.test(error.message)) return fail(t("login.emailUnconfirmed"))
         // Anything else is a setup or network problem: show Supabase's reason.
         fail(`${t("login.signinFailed")} (${code || error.status || "error"}: ${error.message})`)
@@ -130,7 +140,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     setBusy(false)
     if (error) {
       const code = authErrorCode(error)
-      if (code === "user_already_exists" || /registered|exists/i.test(error.message)) return fail(t("login.emailTaken"))
+      if (code === "user_already_exists" || /registered|exists/i.test(error.message)) return fail(t(id.kind === "phone" ? "login.phoneTaken" : "login.emailTaken"))
       if (code === "weak_password") return fail(t("pw.chooseStronger"))
       return fail(`${t("login.signupError")} (${code || error.status}: ${error.message})`)
     }
@@ -138,6 +148,8 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     // AuthListener signs the user in and the login page goes to /home at once.
     // If confirmation is still on in Supabase, there is no session yet.
     if (!data.session) {
+      // A phone account can't confirm by email: Supabase "Confirm email" must stay off.
+      if (id.kind === "phone") return fail(t("login.phoneSignupUnavailable"))
       setNotice(t("login.checkEmail", { email: address }))
       setMode("signin")
     }
@@ -146,6 +158,31 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   const field =
     "h-12 rounded-xl border-neutral-200 bg-neutral-50/50 text-sm shadow-none transition-colors focus-visible:border-emerald-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-neutral-800 dark:bg-neutral-900/50 dark:focus-visible:border-emerald-400 dark:focus-visible:bg-neutral-900"
   const label = "text-sm font-medium text-neutral-700 dark:text-neutral-300"
+
+  if (mode === "forgot" && phoneReset) {
+    return (
+      <div className="space-y-5 text-center animate-in fade-in-0 duration-300">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+          <LifeBuoyIcon className="size-5" aria-hidden />
+        </span>
+        <div className="space-y-2">
+          <p className="text-base font-semibold">{t("login.phoneResetTitle")}</p>
+          <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{t("login.phoneResetBody")}</p>
+          {support?.phone && <p className="text-sm font-medium">{support.phone}</p>}
+        </div>
+        {support?.telegram_url && (
+          <Button asChild className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white transition-all hover:bg-emerald-700 active:scale-[0.98]">
+            <a href={support.telegram_url} target="_blank" rel="noopener noreferrer">
+              {t("login.phoneResetTelegram")}
+            </a>
+          </Button>
+        )}
+        <Button type="button" variant="ghost" className="h-11 w-full rounded-xl text-sm" onClick={() => switchMode("signin")}>
+          {t("login.backToSignIn")}
+        </Button>
+      </div>
+    )
+  }
 
   if (mode === "forgot" && sentTo) {
     return (
@@ -186,16 +223,18 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       )}
       <div className="space-y-1.5">
         <Label htmlFor="login-email" className={label}>
-          {t("login.email")}
+          {t("login.identifier")}
         </Label>
         <Input
           id="login-email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
+          type="text"
+          autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="name@example.com"
+          placeholder={t("login.identifierPlaceholder")}
           className={field}
           disabled={disabled}
         />
@@ -242,7 +281,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       {notice && <p className="rounded-xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">{notice}</p>}
       <Button
         type="submit"
-        className="h-12 w-full rounded-xl bg-linear-to-r from-emerald-600 to-teal-600 text-sm font-medium text-white shadow-md shadow-emerald-600/20 transition-all duration-200 hover:from-emerald-500 hover:to-teal-500 hover:shadow-lg hover:shadow-emerald-500/35 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
+        className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white shadow-md shadow-emerald-600/20 transition-all duration-200 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/30 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
         disabled={disabled || busy}
       >
         {busy && <Loader2Icon className="animate-spin" />}

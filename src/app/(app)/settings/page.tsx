@@ -48,6 +48,7 @@ import { useMarket } from "@/lib/market"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
+import { loginLabel } from "@/lib/auth-identifier"
 
 /** Islamic Lifestyle & Finance Mode (off by default, 100% free); private to the user (synced, never shown to family). */
 function IslamicToolsRow() {
@@ -168,8 +169,8 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
 
-  const name = profile?.display_name?.trim() || user?.email?.split("@")[0] || t("app.name")
-  const contact = user?.email || (user?.phone ? `+${user.phone}` : "")
+  const name = profile?.display_name?.trim() || loginLabel(user?.email).split("@")[0] || t("app.name")
+  const contact = loginLabel(user?.email) || (user?.phone ? `+${user.phone}` : "")
 
   const signOut = async () => {
     if (!window.confirm(t("settings.signOutConfirm"))) return
