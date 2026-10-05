@@ -30,3 +30,8 @@ docker-compose.yml
 deploy
 docs
 supabase
+
+# Android app (Capacitor): not part of the web image.
+android
+capacitor-www
+capacitor.config.ts

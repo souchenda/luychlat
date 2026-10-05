@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes"
 import { useEffect, useState } from "react"
 
 import { Toaster } from "@/components/ui/sonner"
+import { installNativeBridge } from "@/lib/native-bridge"
 import { getQueryClient } from "@/lib/query-client"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -45,6 +46,12 @@ function ServiceWorker() {
   return null
 }
 
+/** Android app only: share sheet for shares and downloads (see lib/native-bridge.ts). */
+function NativeBridge() {
+  useEffect(() => installNativeBridge(), [])
+  return null
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(getQueryClient)
 
@@ -54,6 +61,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <AuthListener />
         <HtmlLang />
         <ServiceWorker />
+        <NativeBridge />
         {children}
         <Toaster position="top-center" richColors />
       </ThemeProvider>

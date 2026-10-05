@@ -7,3 +7,7 @@ docker-compose.yml  text eol=lf
 *.yaml              text eol=lf
 *.conf              text eol=lf
 ecosystem.config.cjs text eol=lf
+# Unix shell script: must keep LF line endings to run on macOS / Linux.
+android/gradlew text eol=lf
+*.jar binary
+*.png binary
