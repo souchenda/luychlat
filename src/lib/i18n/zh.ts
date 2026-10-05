@@ -1857,7 +1857,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "settings.group.general": "通用与功能",
   "settings.group.about": "关于",
   "settings.darkMode": "深色模式",
-  "settings.darkModeSystem": "跟随设备",
   "settings.hideBalances": "隐藏余额",
   "settings.hideBalancesHint": "以 ***** 代替金额显示",
   "settings.securityHint": "PIN、Face ID、密码、2FA 和设备",

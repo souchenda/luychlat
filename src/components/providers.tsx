@@ -1,7 +1,7 @@
 "use client"
 
 import { QueryClientProvider } from "@tanstack/react-query"
-import { ThemeProvider } from "next-themes"
+import { ThemeProvider, useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 
 import { Toaster } from "@/components/ui/sonner"
@@ -83,6 +83,16 @@ function SessionGuard() {
   return null
 }
 
+/** The browser / phone status bar takes the chosen theme's background. */
+function ThemeColor() {
+  const { resolvedTheme } = useTheme()
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]') ?? document.head.appendChild(Object.assign(document.createElement("meta"), { name: "theme-color" }))
+    meta.setAttribute("content", resolvedTheme === "dark" ? "#0a0a0a" : "#ffffff")
+  }, [resolvedTheme])
+  return null
+}
+
 /** Android app only: share sheet for shares and downloads (see lib/native-bridge.ts). */
 function NativeBridge() {
   useEffect(() => installNativeBridge(), [])
@@ -94,7 +104,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      {/* Light is the brand look for everyone; dark only when chosen in Settings (never from the device setting). */}
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+        <ThemeColor />
         <AuthListener />
         <HtmlLang />
         <ServiceWorker />

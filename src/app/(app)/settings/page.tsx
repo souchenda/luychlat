@@ -155,7 +155,7 @@ function ExchangeRateRow() {
 export default function SettingsPage() {
   const t = useT()
   const router = useRouter()
-  const { theme, resolvedTheme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const { locale, setLocale } = useLocaleStore()
   const user = useSessionStore((s) => s.user)
   const profile = useProfile().data
@@ -201,7 +201,6 @@ export default function SettingsPage() {
           icon={<MoonIcon />}
           tile="indigo"
           title={t("settings.darkMode")}
-          hint={mounted && theme === "system" ? t("settings.darkModeSystem") : undefined}
         >
           <Switch
             checked={mounted && resolvedTheme === "dark"}
