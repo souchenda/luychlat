@@ -108,6 +108,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
         { href: "/bills", label: "bills.title", icon: ReceiptIcon },
         { href: "/invoices", label: "invoices.title", icon: ScrollTextIcon },
         { href: "/pools", label: "pool.pageTitle", icon: UsersRoundIcon },
+        { href: "/gifts", label: "gift.pageTitle", icon: GiftIcon },
         { href: "/goals", label: "goals.pageTitle", icon: PiggyBankIcon },
         { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
         { href: "/reports#export", label: "reports.export", icon: FileSpreadsheetIcon, pro: true },

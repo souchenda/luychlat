@@ -19,6 +19,8 @@ import { sendNssfInfo } from "@/lib/server/nssf-bot"
 import { bestPhoto, handlePoolGroupCommand, handlePoolPhotoReply } from "@/lib/server/pool-bot"
 import { handleBankAlert, handleBankUndoCallback, isBankUndo } from "@/lib/server/bank-alert-bot"
 import { parseBankAlert } from "@/lib/bot/bank-alert"
+import { isGiftMessage } from "@/lib/bot/parse-gift"
+import { handleGiftCallback, handleGiftLookup, handleGiftMessage, isGiftCallback } from "@/lib/server/gift-bot"
 import { menuCommand, menuKeyboard } from "@/lib/server/bot-menu"
 import { marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
@@ -235,7 +237,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
   if (update.callback_query) {
-    if (isBankUndo(update.callback_query.data)) {
+    if (isGiftCallback(update.callback_query.data)) {
+      const ctx = update.callback_query.message ? await botContext(update.callback_query.message.chat.id) : null
+      await handleGiftCallback(update.callback_query, contextLocale(ctx))
+    } else if (isBankUndo(update.callback_query.data)) {
       const ctx = update.callback_query.message ? await botContext(update.callback_query.message.chat.id) : null
       await handleBankUndoCallback(update.callback_query, contextLocale(ctx))
     } else if (isInvoiceCallback(update.callback_query.data)) await handleInvoiceCallback(update.callback_query)
@@ -340,6 +345,11 @@ export async function POST(request: Request) {
       const question = text.trim().replace(/^\S+\s*/, "").slice(0, 1000)
       after(() => handleAiQuestion(chatId, question, contextLocale(ctx)))
     }
+  } else if (/^\/gift(@\w+)?$/i.test(command)) {
+    // /gift <name>: the two-way gift history (linked chats; the database checks plan and opt-in).
+    const ctx = await botContext(chatId)
+    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE, menuKeyboard(lang))
+    else await handleGiftLookup(chatId, text.trim().replace(/^\S+\s*/, ""), contextLocale(ctx))
   } else if (/^\/(pool|fund|trip|spend)(@\w+)?$/i.test(command)) {
     // Shared pools live in the group the keeper linked (never balances in a private chat).
     await sendText(chatId, tr(lang, "pool.bot.private"))
@@ -371,9 +381,11 @@ export async function POST(request: Request) {
       const calc = alert ? null : await marketAnswer(plain, locale)
       const toAi =
         !alert &&
+        !isGiftMessage(plain) &&
         !calc &&
         (isAiQuestion(plain) || asksWhoOwesMe(plain) || (ctx.pro && asksForBalance(plain)) || (ctx.pro && (await awaitingAiQuestion(chatId))))
       if (alert) await handleBankAlert(chatId, alert, plain, locale)
+      else if (isGiftMessage(plain)) await handleGiftMessage(chatId, plain, locale)
       else if (calc) await sendText(chatId, calc)
       else if (toAi) after(() => handleAiQuestion(chatId, plain.slice(0, 1000), locale))
       else await handleEntryMessage(chatId, plain.slice(0, 300), ctx)
