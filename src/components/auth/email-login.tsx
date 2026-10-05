@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { EMAIL_PATTERN, parseLoginIdentifier } from "@/lib/auth-identifier"
+import { claimSingleSession } from "@/lib/auth/single-session"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useSupportContacts } from "@/lib/support"
@@ -120,6 +121,8 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     setBusy(true)
     if (mode === "signin") {
       const { error } = await supabase.auth.signInWithPassword({ email: address, password })
+      // One device at a time: signing in here signs every other device out.
+      if (!error) await claimSingleSession(supabase)
       setBusy(false)
       // On success the AuthListener picks up the session and the login page redirects.
       if (error) {
@@ -140,7 +143,12 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     setBusy(false)
     if (error) {
       const code = authErrorCode(error)
-      if (code === "user_already_exists" || /registered|exists/i.test(error.message)) return fail(t(id.kind === "phone" ? "login.phoneTaken" : "login.emailTaken"))
+      if (code === "user_already_exists" || /registered|exists/i.test(error.message)) {
+        // One account per number / email: straight to "Sign in" with it still filled in, only the password to type.
+        setMode("signin")
+        setPassword("")
+        return fail(t(id.kind === "phone" ? "login.phoneTaken" : "login.emailTaken"))
+      }
       if (code === "weak_password") return fail(t("pw.chooseStronger"))
       return fail(`${t("login.signupError")} (${code || error.status}: ${error.message})`)
     }

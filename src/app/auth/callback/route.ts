@@ -1,6 +1,7 @@
 import type { EmailOtpType } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 
+import { claimSingleSession } from "@/lib/auth/single-session"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const EMAIL_LINK_TYPES: EmailOtpType[] = ["email", "signup", "magiclink", "recovery", "invite", "email_change"]
@@ -22,12 +23,19 @@ export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient()
   if (tokenHash && type && EMAIL_LINK_TYPES.includes(type)) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
-    if (!error) return NextResponse.redirect(`${origin}${safeNext}`)
+    if (!error) {
+      // A password-reset link is a fresh sign-in too: one device at a time.
+      await claimSingleSession(supabase)
+      return NextResponse.redirect(`${origin}${safeNext}`)
+    }
     return NextResponse.redirect(`${origin}/login?error=link`)
   }
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) return NextResponse.redirect(`${origin}${safeNext}`)
+    if (!error) {
+      await claimSingleSession(supabase)
+      return NextResponse.redirect(`${origin}${safeNext}`)
+    }
   }
 
   return NextResponse.redirect(`${origin}/login?error=oauth`)

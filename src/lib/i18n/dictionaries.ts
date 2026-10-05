@@ -638,7 +638,7 @@ const km = {
   "login.signinFailed": "ចូលគណនីមិនបានសម្រេច",
   "login.emailError": "អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ",
   "login.emailUnconfirmed": "សូមចុចតំណបញ្ជាក់ក្នុងអ៊ីមែលរបស់អ្នកជាមុនសិន",
-  "login.emailTaken": "អ៊ីមែលនេះមានគណនីរួចហើយ។ សូមចូលគណនីវិញ។",
+  "login.emailTaken": "អ៊ីមែលនេះមានគណនីរួចហើយ។ សូមជ្រើសរើសផ្ទាំង 'ចូលគណនី' ដើម្បីចូលប្រើប្រាស់។",
   "login.signupError": "មិនអាចបង្កើតគណនីបានទេ។ សូមព្យាយាមម្តងទៀត។",
   "login.checkEmail": "បានផ្ញើតំណបញ្ជាក់ទៅ {email}។ ចុចតំណនោះ រួចចូលគណនីនៅទីនេះ។",
   "login.showPassword": "បង្ហាញពាក្យសម្ងាត់",
@@ -2879,11 +2879,12 @@ const km = {
   "login.identifierPlaceholder": "012 345 678 ឬ name@example.com",
   "login.identifierInvalid": "សូមបញ្ចូលលេខទូរស័ព្ទកម្ពុជា ឬអ៊ីមែលឱ្យបានត្រឹមត្រូវ",
   "login.identifierError": "លេខទូរស័ព្ទ/អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ",
-  "login.phoneTaken": "លេខទូរស័ព្ទនេះមានគណនីរួចហើយ។ សូមចូលគណនីវិញ។",
+  "login.phoneTaken": "លេខទូរស័ព្ទនេះមានគណនីរួចហើយ។ សូមជ្រើសរើសផ្ទាំង 'ចូលគណនី' ដើម្បីចូលប្រើប្រាស់។",
   "login.phoneSignupUnavailable": "មិនទាន់អាចចុះឈ្មោះដោយលេខទូរស័ព្ទបានទេ។ សូមប្រើអ៊ីមែល ឬទាក់ទងផ្នែកជំនួយ។",
   "login.phoneResetTitle": "ភ្លេចពាក្យសម្ងាត់គណនីលេខទូរស័ព្ទ?",
   "login.phoneResetBody": "គណនីដែលចុះឈ្មោះដោយលេខទូរស័ព្ទ មិនមានអ៊ីមែលសម្រាប់ផ្ញើតំណទេ។ សូមទាក់ទងផ្នែកជំនួយ ដើម្បីផ្ទៀងផ្ទាត់ និងកំណត់ពាក្យសម្ងាត់ថ្មី។",
   "login.phoneResetTelegram": "ទាក់ទងផ្នែកជំនួយតាម Telegram",
+  "login.signedOutElsewhere": "គណនីរបស់អ្នកបានចូលប្រើនៅលើឧបករណ៍ផ្សេង ដូច្នេះឧបករណ៍នេះត្រូវបានចាកចេញ។ គណនីមួយអាចប្រើបានតែលើឧបករណ៍ ១ គ្រឿងប៉ុណ្ណោះ។ បើមិនមែនជាអ្នក សូមចូលវិញ ហើយប្ដូរពាក្យសម្ងាត់។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5752,11 +5753,12 @@ const en: Record<MessageKey, string> = {
   "login.identifierPlaceholder": "012 345 678 or name@example.com",
   "login.identifierInvalid": "Enter a valid Cambodian phone number or email",
   "login.identifierError": "Wrong phone/email or password",
-  "login.phoneTaken": "This phone number already has an account. Please sign in.",
+  "login.phoneTaken": "This phone number already has an account. Choose the 'Sign in' tab to use it.",
   "login.phoneSignupUnavailable": "Signing up with a phone number isn't available right now. Please use an email or contact support.",
   "login.phoneResetTitle": "Forgot the password of a phone account?",
   "login.phoneResetBody": "Accounts made with a phone number have no email to send a link to. Contact support to verify it's you and set a new password.",
   "login.phoneResetTelegram": "Contact support on Telegram",
+  "login.signedOutElsewhere": "Your account was signed in on another device, so this one was signed out. An account can be active on one device at a time. If that wasn't you, sign in again and change your password.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

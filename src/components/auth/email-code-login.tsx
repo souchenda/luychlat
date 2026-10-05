@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useT } from "@/lib/i18n/use-t"
+import { claimSingleSession } from "@/lib/auth/single-session"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 import { authErrorCode, EMAIL } from "./email-login"
@@ -69,6 +70,7 @@ export function EmailCodeLogin({ disabled }: { disabled?: boolean }) {
     setBusy(true)
     setError(undefined)
     const { error } = await supabase.auth.verifyOtp({ email: address, token: value, type: "email" })
+    if (!error) await claimSingleSession(supabase)
     setBusy(false)
     // On success the AuthListener picks up the session and the login page redirects.
     if (error) {

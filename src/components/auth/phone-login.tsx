@@ -9,6 +9,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Label } from "@/components/ui/label"
 import { useT } from "@/lib/i18n/use-t"
 import { formatNationalNumber, isValidNationalNumber, KH_COUNTRY_CODE, toE164, toNationalNumber } from "@/lib/phone"
+import { claimSingleSession } from "@/lib/auth/single-session"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 const RESEND_SECONDS = 60
@@ -49,6 +50,7 @@ export function PhoneLogin({ disabled }: { disabled?: boolean }) {
     setBusy(true)
     setError(undefined)
     const { error } = await supabase.auth.verifyOtp({ phone: toE164(national), token, type: "sms" })
+    if (!error) await claimSingleSession(supabase)
     setBusy(false)
     // On success the AuthListener picks up the session and the login page redirects.
     if (error) {

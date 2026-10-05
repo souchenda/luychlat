@@ -31,6 +31,14 @@ function GuestDataNote() {
   )
 }
 
+/** Signed out because the account signed in on another device. */
+function SignedOutElsewhere() {
+  const t = useT()
+  const params = useSearchParams()
+  if (params.get("signed_out") !== "elsewhere") return null
+  return <p className="rounded-xl bg-amber-500/10 p-3 text-sm leading-relaxed text-amber-800 dark:text-amber-300">{t("login.signedOutElsewhere")}</p>
+}
+
 function OAuthError() {
   const t = useT()
   const params = useSearchParams()
@@ -94,6 +102,7 @@ export default function LoginPage() {
               )}
               <Suspense>
                 <OAuthError />
+            <SignedOutElsewhere />
                 <ReferralCapture />
               </Suspense>
               <GuestDataNote />

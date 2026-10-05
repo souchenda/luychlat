@@ -2832,9 +2832,10 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "login.identifierPlaceholder": "012 345 678 或 name@example.com",
   "login.identifierInvalid": "请输入有效的柬埔寨手机号或邮箱",
   "login.identifierError": "手机号/邮箱或密码不正确",
-  "login.phoneTaken": "该手机号已有账户，请直接登录。",
+  "login.phoneTaken": "该手机号已有账户，请选择“登录”标签进入。",
   "login.phoneSignupUnavailable": "暂时无法用手机号注册，请使用邮箱或联系客服。",
   "login.phoneResetTitle": "忘记手机号账户的密码？",
   "login.phoneResetBody": "用手机号注册的账户没有邮箱可接收链接。请联系客服验证身份并设置新密码。",
   "login.phoneResetTelegram": "通过 Telegram 联系客服",
+  "login.signedOutElsewhere": "您的账户已在另一台设备上登录，因此本设备已退出。一个账户同一时间只能在一台设备上使用。如非本人操作，请重新登录并修改密码。",
 }
