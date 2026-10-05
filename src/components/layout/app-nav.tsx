@@ -98,6 +98,8 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
       title: "nav.group.finance",
       items: [
         { href: "/home", label: "nav.home", icon: LayoutDashboardIcon },
+        // Staff only, right after Home. Cosmetic: the admin pages and their RPCs check the staff role in the database.
+        ...(plan.is_admin || plan.staff_role ? [{ href: "/admin", label: "admin.title", icon: ShieldIcon } as Item] : []),
         { href: "/wallets", label: "nav.wallets", icon: WalletIcon },
         { href: "/transactions", label: "nav.transactions", icon: ArrowLeftRightIcon },
         { href: "/debts", label: "nav.debtsTontine", icon: HandCoinsIcon },
@@ -129,8 +131,6 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
       ],
     },
   ]
-  // Staff only, first in the menu. Cosmetic: the admin pages and their RPCs check the staff role in the database.
-  const adminItem: Item | null = plan.is_admin || plan.staff_role ? { href: "/admin", label: "admin.title", icon: ShieldIcon } : null
   // "/reports#export" is not "the Reports page" for highlighting; hash links never show as active.
   const isActive = (href: string) => {
     if (href.includes("#")) return false
@@ -193,20 +193,6 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
 
       {/* Menu */}
       <nav aria-label={t("nav.menu")} className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
-        {adminItem && (
-          <div className="rounded-xl border border-amber-500/40 bg-amber-500/5">
-            <NavLink
-              item={adminItem}
-              active={isActive(adminItem.href)}
-              onNavigate={onNavigate}
-              badge={
-                <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400" aria-hidden>
-                  🛡️
-                </span>
-              }
-            />
-          </div>
-        )}
         {groups.map((group) => (
           <div key={group.title} className="space-y-0.5">
             <p className="px-3 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{t(group.title)}</p>
