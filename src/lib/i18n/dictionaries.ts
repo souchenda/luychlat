@@ -3024,6 +3024,7 @@ const km = {
   "login.fullName": "ឈ្មោះពេញ ឬ ឈ្មោះហៅក្រៅ",
   "login.fullNamePlaceholder": "ឧ. សុខ សាន",
   "login.nameRequired": "សូមបញ្ចូលឈ្មោះរបស់អ្នក",
+  "market.goldShort": "មាស",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6037,6 +6038,7 @@ const en: Record<MessageKey, string> = {
   "login.fullName": "Full name or nickname",
   "login.fullNamePlaceholder": "e.g. John Doe",
   "login.nameRequired": "Please enter your name",
+  "market.goldShort": "Gold",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

@@ -2977,4 +2977,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "login.fullName": "全名或昵称",
   "login.fullNamePlaceholder": "例如 张三",
   "login.nameRequired": "请输入您的姓名",
+  "market.goldShort": "黄金",
 }

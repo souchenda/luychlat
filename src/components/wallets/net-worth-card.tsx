@@ -119,7 +119,7 @@ export function NetWorthCard({
         {actions && <div className="flex w-[7.25rem] shrink-0 flex-col justify-center gap-2">{actions}</div>}
       </div>
 
-      {footer && <div className="mt-4 border-t border-white/15 pt-3 empty:hidden">{footer}</div>}
+      {footer && <div className="mt-3 border-t border-white/15 pt-2 -mb-1 empty:hidden">{footer}</div>}
     </section>
   )
 }
