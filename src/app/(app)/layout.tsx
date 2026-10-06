@@ -11,6 +11,7 @@ import { PendingReferralRedeemer } from "@/components/billing/referral"
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet"
 import { DesktopSidebar, MobileNavTrigger } from "@/components/layout/app-nav"
 import { DormantGate } from "@/components/layout/dormant-gate"
+import { WelcomeGuide } from "@/components/onboarding/welcome-guide"
 import { FeatureGate } from "@/components/layout/feature-gate"
 import { BottomNav } from "@/components/layout/bottom-nav"
 import { HashScroller } from "@/components/layout/hash-scroller"
@@ -106,6 +107,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <DormantGate>
               <FeatureGate>{children}</FeatureGate>
             </DormantGate>
+            <WelcomeGuide />
           </main>
         </div>
         <BottomNav />

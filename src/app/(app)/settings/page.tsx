@@ -1,6 +1,6 @@
 "use client"
 
-import { BookOpenIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
+import { BookOpenIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -29,6 +29,7 @@ import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 import { loginLabel } from "@/lib/auth-identifier"
 import { DeleteAccountSheet } from "@/components/settings/delete-account"
+import { useOnboardingStore } from "@/lib/onboarding"
 
 /** Islamic Lifestyle & Finance Mode (off by default, 100% free); private to the user (synced, never shown to family). */
 function IslamicToolsRow() {
@@ -241,6 +242,7 @@ export default function SettingsPage() {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.group.about")}>
+        <SettingsRow onClick={() => useOnboardingStore.getState().show()} icon={<CompassIcon />} tile="emerald" title={t("onboarding.replay")} hint={t("onboarding.replayHint")} />
         <SettingsRow href="/guide" icon={<BookOpenIcon />} tile="teal" title={t("guide.title")} hint={t("guide.settingsHint")} />
         <SettingsRow href="/support" icon={<LifeBuoyIcon />} tile="sky" title={t("support.title")} hint={t("support.settingsHint")} />
         <SettingsRow onClick={() => setAboutOpen(true)} icon={<InfoIcon />} tile="emerald" title={t("about.title")}>
