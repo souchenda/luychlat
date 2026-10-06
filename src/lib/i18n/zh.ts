@@ -2763,7 +2763,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nav.group.social": "社交与家庭",
   "nav.group.other": "其他",
   "nav.walletsBanks": "钱包与银行",
-  "nav.billsLife": "账单与佛日",
+  "nav.billsLife": "每月账单",
   "nav.debtTracking": "债务与借款",
   "nav.budgetSaving": "预算与储蓄",
   "nav.tabBudgets": "预算",
