@@ -2935,4 +2935,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "holyDay.linkToRemind": "绑定 Telegram 以接收佛日提醒",
   "holyDay.reminderOn": "已开启佛日提醒",
   "holyDay.reminderOff": "已关闭佛日提醒",
+  "home.openHolyDays": "查看农历和佛日",
 }

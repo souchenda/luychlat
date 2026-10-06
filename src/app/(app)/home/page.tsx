@@ -131,21 +131,40 @@ export default function HomePage() {
               <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
             </h1>
           )}
-          <div className="min-w-0 max-w-[62%] text-right leading-tight">
-            <p className="truncate text-xs text-muted-foreground">
-              <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
-                {longDate(today, locale)}
-              </time>
-            </p>
-            <p className={festive ? "truncate text-xs font-medium text-primary" : "truncate text-xs text-muted-foreground"}>
-              {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)}{" "}
-              {!islamicKey && isMeritDay(greeting.key) ? (
-                <HandHeartIcon className="inline size-3.5 align-[-2px]" aria-hidden />
-              ) : (
-                <SparklesIcon className="inline size-3.5 align-[-2px] text-amber-500" aria-hidden />
-              )}
-            </p>
-          </div>
+          {/* The date and the day's greeting open the holy-day calendar (/bills); in Islamic Mode they stay plain text. */}
+          {(() => {
+            const lines = (
+              <>
+                <p className="truncate text-xs text-muted-foreground">
+                  <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
+                    {longDate(today, locale)}
+                  </time>
+                </p>
+                <p className={festive ? "truncate text-xs font-medium text-primary" : "truncate text-xs text-muted-foreground"}>
+                  {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)}{" "}
+                  {!islamicKey && isMeritDay(greeting.key) ? (
+                    <HandHeartIcon className="inline size-3.5 align-[-2px]" aria-hidden />
+                  ) : (
+                    <SparklesIcon className="inline size-3.5 align-[-2px] text-amber-500" aria-hidden />
+                  )}
+                  {!islamicKey && (
+                    <ChevronRightIcon className="ml-0.5 inline size-3 align-[-1px] opacity-50 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" aria-hidden />
+                  )}
+                </p>
+              </>
+            )
+            return islamicKey ? (
+              <div className="min-w-0 max-w-[62%] text-right leading-tight">{lines}</div>
+            ) : (
+              <Link
+                href="/bills"
+                aria-label={t("home.openHolyDays")}
+                className="group -mr-1.5 min-w-0 max-w-[62%] rounded-lg px-1.5 py-0.5 text-right leading-tight transition-all hover:bg-muted/70 active:scale-[0.98] active:opacity-80"
+              >
+                {lines}
+              </Link>
+            )
+          })()}
         </div>
         {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
         <BusinessTrialTag workspace={workspace} className="mt-1.5" />

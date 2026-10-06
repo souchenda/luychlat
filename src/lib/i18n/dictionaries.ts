@@ -2982,6 +2982,7 @@ const km = {
   "holyDay.linkToRemind": "ភ្ជាប់ Telegram ដើម្បីទទួលការរំលឹកថ្ងៃសីល",
   "holyDay.reminderOn": "បានបើកការរំលឹកថ្ងៃសីល",
   "holyDay.reminderOff": "បានបិទការរំលឹកថ្ងៃសីល",
+  "home.openHolyDays": "មើលប្រតិទិនចន្ទគតិ និងថ្ងៃសីល",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5953,6 +5954,7 @@ const en: Record<MessageKey, string> = {
   "holyDay.linkToRemind": "Link Telegram to get holy-day reminders",
   "holyDay.reminderOn": "Holy-day reminders on",
   "holyDay.reminderOff": "Holy-day reminders off",
+  "home.openHolyDays": "Open the lunar calendar and holy days",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
