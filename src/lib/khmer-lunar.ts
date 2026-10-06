@@ -108,7 +108,12 @@ export function khmerLunarDate(iso: string): KhmerLunarDate {
     const length = daysInMonth(month, be)
     if (offset < length) {
       const dayIndex = offset // 0-based within the month
-      return { day: dayIndex < 15 ? dayIndex + 1 : dayIndex - 14, phase: dayIndex < 15 ? "kert" : "roch", month, monthLength: length, be }
+      const day = dayIndex < 15 ? dayIndex + 1 : dayIndex - 14
+      const phase = dayIndex < 15 ? "kert" : "roch"
+      // The lunar year is counted by the BE that starts at its Visak Bochea (15 កើត ពិសាខ):
+      // from មិគសិរ until then, the era in use is still the previous one.
+      const beforeVisak = month < 5 || (month === 5 && phase === "kert" && day < 15)
+      return { day, phase, month, monthLength: length, be: beforeVisak ? be - 1 : be }
     }
     offset -= length
   }
@@ -132,4 +137,73 @@ export function formatLunar(l: KhmerLunarDate, locale: "km" | "en" | "zh"): stri
   if (locale === "km") return `${kmNum(l.day)} ${l.phase === "kert" ? "កើត" : "រោច"} ខែ${LUNAR_MONTHS_KM[l.month]}`
   const phase = locale === "zh" ? (l.phase === "kert" ? "上弦" : "下弦") : l.phase === "kert" ? "waxing" : "waning"
   return locale === "zh" ? `${LUNAR_MONTHS_EN[l.month]}月 ${phase}${l.day}日` : `${l.day} ${phase}, ${LUNAR_MONTHS_EN[l.month]}`
+}
+
+/** 12 animal years from ជូត (Rat); 2020 was ជូត. */
+const ANIMALS_KM = ["ជូត", "ឆ្លូវ", "ខាល", "ថោះ", "រោង", "ម្សាញ់", "មមី", "មមែ", "វក", "រកា", "ច", "កុរ"] as const
+const ANIMALS_EN = ["Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Goat", "Monkey", "Rooster", "Dog", "Pig"] as const
+const ANIMALS_ZH = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"] as const
+/** Sak (ស័ក) by Chula Sakaraj year mod 10. */
+const SAK_KM = ["សំរឹទ្ធិស័ក", "ឯកស័ក", "ទោស័ក", "ត្រីស័ក", "ចត្វាស័ក", "បញ្ចស័ក", "ឆស័ក", "សប្តស័ក", "អដ្ឋស័ក", "នព្វស័ក"] as const
+const SAK_EN = ["Samritthisak", "Aekasak", "Tosak", "Treisak", "Chattvasak", "Panchasak", "Chhasak", "Sapdasak", "Atthasak", "Noppasak"] as const
+const WEEKDAYS_KM = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"] as const
+
+/**
+ * The animal year and sak of a date. Both turn at Khmer New Year, taken as
+ * 14 April (the sak strictly turns on Leung Sak, a day or two later — close
+ * enough for display). 2024 ឆ្នាំរោង ឆស័ក · 2026 ឆ្នាំមមី អដ្ឋស័ក.
+ */
+export function khmerYearName(iso: string): { animal: number; sak: number } {
+  const [y, m, d] = iso.split("-").map(Number)
+  const year = m > 4 || (m === 4 && d >= 14) ? y : y - 1
+  return { animal: (((year - 2020) % 12) + 12) % 12, sak: (year - 638) % 10 }
+}
+
+/**
+ * The full Chhankitek line: "ថ្ងៃអង្គារ ១០ រោច ខែភទ្របទ ឆ្នាំមមី អដ្ឋស័ក ព.ស. ២៥៧០"
+ * (English / Chinese spelled out the same way).
+ */
+export function formatChhankitek(iso: string, locale: "km" | "en" | "zh"): string {
+  const l = khmerLunarDate(iso)
+  const { animal, sak } = khmerYearName(iso)
+  const [y, m, d] = iso.split("-").map(Number)
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+  if (locale === "km") return `ថ្ងៃ${WEEKDAYS_KM[weekday]} ${formatLunar(l, "km")} ឆ្នាំ${ANIMALS_KM[animal]} ${SAK_KM[sak]} ព.ស. ${kmNum(l.be)}`
+  const day = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { weekday: "long", timeZone: "UTC" })
+  if (locale === "zh") return `${day} ${formatLunar(l, "zh")} ${ANIMALS_ZH[animal]}年 ${SAK_EN[sak]} 佛历 ${l.be}`
+  return `${day}, ${formatLunar(l, "en")}, Year of the ${ANIMALS_EN[animal]}, ${SAK_EN[sak]}, BE ${l.be}`
+}
+
+/** Festivals that fall on a holy day (month index, phase, day; "last" = the month's last day). */
+const FESTIVALS: { key: string; month: number; phase: "kert" | "roch"; day: number | "last" }[] = [
+  { key: "meakBochea", month: 2, phase: "kert", day: 15 },
+  { key: "visakBochea", month: 5, phase: "kert", day: 15 },
+  { key: "pchumBen", month: 9, phase: "roch", day: "last" },
+  { key: "chenhVassa", month: 10, phase: "kert", day: 15 },
+  { key: "waterFestival", month: 11, phase: "kert", day: 15 },
+]
+
+export type HolyDay = {
+  iso: string
+  lunar: KhmerLunarDate
+  /** big: full moon (15 កើត) or the month's last day; small: 8 កើត / 8 រោច. */
+  kind: "big" | "small"
+  /** A festival on that day, if any (key for i18n: holyDay.festival.<key>). */
+  festival: string | null
+  daysAway: number
+}
+
+/** The next ថ្ងៃសីល from a date (today counts), within ~2 months. */
+export function nextHolyDay(fromIso: string): HolyDay | null {
+  const [y, m, d] = fromIso.split("-").map(Number)
+  const start = Date.UTC(y, m - 1, d)
+  for (let i = 0; i < 60; i++) {
+    const iso = new Date(start + i * 86_400_000).toISOString().slice(0, 10)
+    const l = khmerLunarDate(iso)
+    if (!isSilDay(l)) continue
+    const last = l.phase === "roch" && l.day === l.monthLength - 15
+    const festival = FESTIVALS.find((f) => f.month === l.month && f.phase === l.phase && (f.day === "last" ? last : f.day === l.day))?.key ?? null
+    return { iso, lunar: l, kind: l.day === 15 || last ? "big" : "small", festival, daysAway: i }
+  }
+  return null
 }

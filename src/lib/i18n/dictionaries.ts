@@ -2968,6 +2968,20 @@ const km = {
   "onboarding.bot.body": "ទទួលការរំលឹកហិរញ្ញវត្ថុ ឆែកអត្រាប្តូរប្រាក់ NBC និងកត់ត្រាលុយតាមរយៈសារសំឡេងក្នុង Telegram។",
   "onboarding.replay": "របៀបប្រើប្រាស់ (App Guide)",
   "onboarding.replayHint": "មើលការណែនាំ ៤ ជំហានម្ដងទៀត",
+  "holyDay.title": "ចន្ទគតិថ្ងៃនេះ",
+  "holyDay.next": "ថ្ងៃសីលបន្ទាប់៖",
+  "holyDay.today": "ថ្ងៃនេះជា",
+  "holyDay.big": "ថ្ងៃសីលធំ",
+  "holyDay.small": "ថ្ងៃសីលតូច",
+  "holyDay.festival.meakBochea": "មាឃបូជា",
+  "holyDay.festival.visakBochea": "វិសាខបូជា",
+  "holyDay.festival.pchumBen": "ភ្ជុំបិណ្ឌ",
+  "holyDay.festival.chenhVassa": "ចេញព្រះវស្សា",
+  "holyDay.festival.waterFestival": "បុណ្យអុំទូក (អកអំបុក)",
+  "holyDay.remind": "រំលឹកមុន ១ ថ្ងៃតាម Telegram (ថ្ងៃកោរ)",
+  "holyDay.linkToRemind": "ភ្ជាប់ Telegram ដើម្បីទទួលការរំលឹកថ្ងៃសីល",
+  "holyDay.reminderOn": "បានបើកការរំលឹកថ្ងៃសីល",
+  "holyDay.reminderOff": "បានបិទការរំលឹកថ្ងៃសីល",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5925,6 +5939,20 @@ const en: Record<MessageKey, string> = {
   "onboarding.bot.body": "Get money reminders, check NBC exchange rates and record money with voice messages in Telegram.",
   "onboarding.replay": "App Guide",
   "onboarding.replayHint": "Watch the 4-step welcome guide again",
+  "holyDay.title": "Today in the Khmer lunar calendar",
+  "holyDay.next": "Next holy day:",
+  "holyDay.today": "Today is",
+  "holyDay.big": "a major holy day",
+  "holyDay.small": "a minor holy day",
+  "holyDay.festival.meakBochea": "Meak Bochea",
+  "holyDay.festival.visakBochea": "Visak Bochea",
+  "holyDay.festival.pchumBen": "Pchum Ben",
+  "holyDay.festival.chenhVassa": "End of Buddhist Lent",
+  "holyDay.festival.waterFestival": "Water Festival",
+  "holyDay.remind": "Remind me the day before in Telegram (shave day)",
+  "holyDay.linkToRemind": "Link Telegram to get holy-day reminders",
+  "holyDay.reminderOn": "Holy-day reminders on",
+  "holyDay.reminderOff": "Holy-day reminders off",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

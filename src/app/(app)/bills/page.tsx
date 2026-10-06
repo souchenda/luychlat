@@ -23,6 +23,7 @@ import { formatMoney, parseAmount } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
+import { HolyDayCard } from "@/components/bills/holy-day-card"
 
 const NO_WALLET = "__none__"
 
@@ -148,6 +149,8 @@ export default function BillsPage() {
         )}
       </div>
       <p className="text-sm text-muted-foreground">{t("bills.hint")}</p>
+
+      <HolyDayCard />
 
       {bills.isLoading ? (
         <Skeleton className="h-32 w-full rounded-xl" />
