@@ -2,6 +2,7 @@
 
 import { ArrowLeftRightIcon, ArrowUpDownIcon, CheckIcon, FileUpIcon, PlusIcon, WalletIcon } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -43,6 +44,7 @@ export default function WalletsPage() {
   const categories = useCategories(workspace?.id).data ?? []
   const { reorder } = useWalletMutations(workspace?.id)
 
+  const router = useRouter()
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Wallet | null>(null)
   const [transferOpen, setTransferOpen] = useState(false)
@@ -60,10 +62,8 @@ export default function WalletsPage() {
     setEditing(null)
     setFormOpen(true)
   }
-  const openEdit = (wallet: Wallet) => {
-    setEditing(wallet)
-    setFormOpen(true)
-  }
+  // A tap opens the wallet's statement (balance, in / out, history); editing is the ✏️ there.
+  const openStatement = (wallet: Wallet) => router.push(`/wallets/${wallet.id}`)
   const move = (index: number, direction: -1 | 1) => {
     const ids = active.map((w) => w.id)
     const target = index + direction
@@ -133,14 +133,14 @@ export default function WalletsPage() {
             )}
           </div>
         ) : (
-          <WalletList wallets={active} onSelect={openEdit} reorderMode={reorderMode} onMove={move} />
+          <WalletList wallets={active} onSelect={openStatement} reorderMode={reorderMode} onMove={move} />
         )}
       </section>
 
       {archived.length > 0 && (
         <section className="space-y-2">
           <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("wallets.archived")}</h2>
-          <WalletList wallets={archived} onSelect={openEdit} muted />
+          <WalletList wallets={archived} onSelect={openStatement} muted />
         </section>
       )}
 

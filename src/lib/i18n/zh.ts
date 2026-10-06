@@ -3019,4 +3019,13 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "pool.bot.planRequired": "👑 在 Telegram 群组中管理企业支出仅限 LuyChlat PRO 账户。请升级套餐后使用。",
   "bot.menuOpen": "📋 下方是一键按钮。点「❌ 关闭菜单」即可隐藏——也可用输入框旁的 ≡ 菜单。",
   "bot.menuClosed": "✅ 菜单已关闭。点输入框旁的 ≡，或发送 /menu 可再次打开。",
+  "wallets.notFound": "找不到该钱包",
+  "wallets.edit": "编辑钱包",
+  "wallets.balanceNow": "当前余额",
+  "wallets.prevMonth": "上个月",
+  "wallets.nextMonth": "下个月",
+  "wallets.moneyIn": "收入 / 转入",
+  "wallets.moneyOut": "支出 / 转出",
+  "wallets.history": "交易记录",
+  "wallets.noHistory": "本月暂无交易",
 }

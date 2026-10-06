@@ -21,9 +21,11 @@ type TransactionListProps = {
   onSelect?: (tx: Transaction) => void
   /** Group rows under day headings (ledger view). */
   groupByDay?: boolean
+  /** A wallet's statement: transfers show as − (out of it) or + (into it), in its own currency. */
+  forWalletId?: string
 }
 
-export function TransactionList({ transactions, wallets, categories, onSelect, groupByDay }: TransactionListProps) {
+export function TransactionList({ transactions, wallets, categories, onSelect, groupByDay, forWalletId }: TransactionListProps) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const walletById = new Map(wallets.map((w) => [w.id, w]))
@@ -80,17 +82,22 @@ export function TransactionList({ transactions, wallets, categories, onSelect, g
           <RecordedBy row={tx} className="mt-0.5 flex" />
         </span>
         <span className="text-right">
-          <Amount
-            value={tx.type === "EXPENSE" ? -tx.amount : tx.amount}
-            currency={tx.currency}
-            signed={!isTransfer}
-            className={cn(
-              "block text-sm font-semibold",
-              tx.type === "INCOME" && "text-emerald-600 dark:text-emerald-400",
-              tx.type === "EXPENSE" && "text-foreground",
-            )}
-          />
-          {isTransfer && toWallet && toWallet.currency !== tx.currency && tx.to_amount !== null && (
+          {isTransfer && forWalletId && tx.to_wallet_id === forWalletId && toWallet ? (
+            // Into this wallet: + in its currency.
+            <Amount value={tx.to_amount ?? tx.amount} currency={toWallet.currency} signed className="block text-sm font-semibold text-emerald-600 dark:text-emerald-400" />
+          ) : (
+            <Amount
+              value={tx.type === "EXPENSE" || (isTransfer && forWalletId === tx.wallet_id) ? -tx.amount : tx.amount}
+              currency={tx.currency}
+              signed={!isTransfer || Boolean(forWalletId)}
+              className={cn(
+                "block text-sm font-semibold",
+                tx.type === "INCOME" && "text-emerald-600 dark:text-emerald-400",
+                tx.type === "EXPENSE" && "text-foreground",
+              )}
+            />
+          )}
+          {isTransfer && !(forWalletId && tx.to_wallet_id === forWalletId) && toWallet && toWallet.currency !== tx.currency && tx.to_amount !== null && (
             <Amount value={tx.to_amount} currency={toWallet.currency} className="block text-xs text-muted-foreground" />
           )}
         </span>

@@ -3066,6 +3066,15 @@ const km = {
   "pool.bot.planRequired": "👑 មុខងារគ្រប់គ្រងចំណាយអាជីវកម្មក្នុងក្រុម Telegram គឺសម្រាប់តែគណនី LuyChlat PRO ប៉ុណ្ណោះ។ សូមដំឡើងគម្រោងដើម្បីប្រើប្រាស់។",
   "bot.menuOpen": "📋 ប៊ូតុង ១ ប៉ះ ខាងក្រោម។ ចុច «❌ បិទ Menu» ដើម្បីបិទ — ឬប្រើ ≡ Menu ខាងឆ្វេងប្រអប់សរសេរ។",
   "bot.menuClosed": "✅ បានបិទ Menu។ ចុច ≡ ខាងឆ្វេងប្រអប់សរសេរ ឬវាយ /menu ដើម្បីបើកម្តងទៀត។",
+  "wallets.notFound": "រកមិនឃើញកាបូបនេះទេ",
+  "wallets.edit": "កែកាបូប",
+  "wallets.balanceNow": "សមតុល្យបច្ចុប្បន្ន",
+  "wallets.prevMonth": "ខែមុន",
+  "wallets.nextMonth": "ខែបន្ទាប់",
+  "wallets.moneyIn": "ចូល (ចំណូល/វេរចូល)",
+  "wallets.moneyOut": "ចេញ (ចំណាយ/វេរចេញ)",
+  "wallets.history": "ប្រវត្តិប្រតិបត្តិការ",
+  "wallets.noHistory": "ខែនេះមិនទាន់មានប្រតិបត្តិការទេ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6121,6 +6130,15 @@ const en: Record<MessageKey, string> = {
   "pool.bot.planRequired": "👑 Business expense tracking in a Telegram group is for LuyChlat PRO accounts only. Please upgrade your plan to use it.",
   "bot.menuOpen": "📋 One-tap buttons below. Tap “❌ Close menu” to hide them — or use the ≡ Menu next to the message box.",
   "bot.menuClosed": "✅ Menu closed. Tap ≡ next to the message box, or send /menu, to open it again.",
+  "wallets.notFound": "Wallet not found",
+  "wallets.edit": "Edit wallet",
+  "wallets.balanceNow": "Current balance",
+  "wallets.prevMonth": "Previous month",
+  "wallets.nextMonth": "Next month",
+  "wallets.moneyIn": "In",
+  "wallets.moneyOut": "Out",
+  "wallets.history": "Transaction history",
+  "wallets.noHistory": "No transactions this month",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

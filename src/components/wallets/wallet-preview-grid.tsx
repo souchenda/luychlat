@@ -18,7 +18,7 @@ const balanceSize = (w: Wallet) => (usd2.format(Math.abs(w.balance)).length <= 9
 
 /**
  * Home: the first two cash / bank wallets side by side (logo, name, balance,
- * ≈ the other currency), each opening /wallets. With fewer than two, the free
+ * ≈ the other currency), each opening its statement (/wallets/<id>). With fewer than two, the free
  * slot adds a wallet. Credit cards and the full list live on /wallets.
  */
 export function WalletPreviewGrid({ wallets, onAdd }: { wallets: Wallet[]; onAdd?: () => void }) {
@@ -32,7 +32,7 @@ export function WalletPreviewGrid({ wallets, onAdd }: { wallets: Wallet[]; onAdd
         return (
           <Link
             key={w.id}
-            href="/wallets"
+            href={`/wallets/${w.id}`}
             className="flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3 shadow-xs transition-colors hover:bg-muted/40 active:scale-[0.99]"
           >
             <span className="flex min-w-0 items-center gap-2">
