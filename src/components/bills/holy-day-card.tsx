@@ -13,7 +13,6 @@ import { khmerDigits } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { formatChhankitek, formatLunar, nextHolyDay } from "@/lib/khmer-lunar"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -30,14 +29,14 @@ function shortDate(iso: string, locale: string) {
 }
 
 /**
- * Bills page, top: today's full Chhankitek date, the next ថ្ងៃសីល (big / small,
- * with its festival) and how far away it is, and the Telegram reminder on the
- * eve (ថ្ងៃកោរ) — the same switch as Settings › Telegram. Hidden in Islamic Mode.
+ * On Home and at the top of Bills: today's full Chhankitek date, the next
+ * ថ្ងៃសីល (big / small, with its festival) and how far away it is, and the
+ * Telegram reminder on the eve (ថ្ងៃកោរ) — the same switch as Settings ›
+ * Telegram. Shown to everyone, Islamic Mode included.
  */
 export function HolyDayCard() {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
-  const islamic = useIslamicEnabled()
   const link = useTelegramLink().data
   const queryClient = useQueryClient()
   // The date comes from this device after mounting (no server/client mismatch around midnight).
@@ -56,7 +55,8 @@ export function HolyDayCard() {
     onError: () => toast.error(t("common.error")),
   })
 
-  if (!today || islamic) return null
+  // Only waits for the device's date (one render after mounting).
+  if (!today) return null
   const next = nextHolyDay(today)
 
   return (
