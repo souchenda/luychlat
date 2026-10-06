@@ -25,7 +25,17 @@ export type BotDebt = { id: string; type: "PAYABLE" | "RECEIVABLE"; party_name: 
 export type BotContext = { wallets: BotWallet[]; categories: BotCategory[]; debts: BotDebt[]; rate: number }
 
 export type ParsedEntry =
-  | { ok: true; kind: "EXPENSE" | "INCOME"; amount: number; currency: Currency; wallet: BotWallet; category: BotCategory | null; note: string }
+  | {
+      ok: true
+      kind: "EXPENSE" | "INCOME"
+      amount: number
+      currency: Currency
+      wallet: BotWallet
+      category: BotCategory | null
+      /** No category named and no keyword matched: the category is the "other" fallback (the AI may suggest a better one). */
+      guessed: boolean
+      note: string
+    }
   | { ok: true; kind: "REPAY"; amount: number; currency: Currency; wallet: BotWallet; debt: BotDebt; note: string }
   | { ok: false; reason: "no_amount" | "no_wallet" | "no_debt" | "too_much"; debt?: BotDebt }
 
@@ -77,7 +87,7 @@ const KEYWORDS: { preset: string; words: string[] }[] = [
   { preset: "services", words: ["សេវា", "service"] },
   { preset: "gift_received", words: ["អំណោយ", "gift"] },
   { preset: "side_income", words: ["ចំណូលបន្ថែម", "freelance"] },
-  { preset: "food", words: ["កាហ្វេ", "បាយ", "ញ៉ាំ", "ម្ហូប", "អាហារ", "ភេសជ្ជៈ", "នំ", "ទឹកក្រូច", "គុយទាវ", "coffee", "lunch", "dinner", "breakfast", "food", "eat", "drink", "meal", "restaurant", "snack", "咖啡", "早餐", "早饭", "午餐", "午饭", "晚餐", "晚饭", "吃饭", "饭", "餐", "奶茶", "饮料", "外卖", "水果"] },
+  { preset: "food", words: ["បាយព្រឹក", "បាយថ្ងៃត្រង់", "បាយល្ងាច", "អាហារពេលព្រឹក", "អាហារថ្ងៃត្រង់", "អាហារពេលល្ងាច", "នំប៉័ង", "នំបញ្ចុក", "ទឹកសុទ្ធ", "ទឹកដប", "ទឹកកក", "បបរ", "ស៊ុប", "សាច់អាំង", "ភីហ្សា", "កាហ្វេ", "បាយ", "ញ៉ាំ", "ម្ហូប", "អាហារ", "ភេសជ្ជៈ", "នំ", "ទឹកក្រូច", "គុយទាវ", "coffee", "lunch", "dinner", "breakfast", "food", "eat", "drink", "meal", "restaurant", "snack", "咖啡", "早餐", "早饭", "午餐", "午饭", "晚餐", "晚饭", "吃饭", "饭", "餐", "奶茶", "饮料", "外卖", "水果"] },
   { preset: "transport", words: ["សាកឡាន", "សាកភ្លើង", "សាកថ្ម", "ev", "charging", "充电", "សាំង", "ប្រេង", "តុកតុក", "ម៉ូតូ", "ឡាន", "ធ្វើដំណើរ", "ចតឡាន", "grab", "passapp", "tuk", "taxi", "fuel", "gas", "petrol", "bus", "parking", "油费", "汽油", "加油", "打车", "出租车", "停车", "车费", "嘟嘟车"] },
   { preset: "phone", words: ["កាតទូរស័ព្ទ", "ទូរស័ព្ទ", "អ៊ីនធឺណិត", "smart", "cellcard", "metfone", "internet", "phone", "topup", "top up", "话费", "手机", "网费", "流量", "充值"] },
   { preset: "utilities", words: ["ទឹកភ្លើង", "អគ្គិសនី", "electric", "electricity", "edc", "water", "电费", "水费", "水电"] },
@@ -147,17 +157,44 @@ function findWallet(text: string, wallets: BotWallet[]): BotWallet | null {
   return null
 }
 
-function findCategory(text: string, kind: "INCOME" | "EXPENSE", categories: BotCategory[]): BotCategory | null {
+/** Shortest Khmer keyword (in characters) matched with one typo; shorter ones are real words too ("បាត" ≠ "បាយ"). */
+const TYPO_MIN = 5
+
+/**
+ * One wrong key: `word` appears in `text` with exactly one character swapped
+ * for another ("បាតព្រឹក" for "បាយព្រឹក"; ត and យ sit side by side on the
+ * Khmer keyboard). Khmer only (Latin words keep their exact word edges), and
+ * only for words of TYPO_MIN characters or more.
+ */
+export function hasWithTypo(text: string, word: string): boolean {
+  if (isLatin(word)) return false
+  const w = Array.from(word)
+  if (w.length < TYPO_MIN) return false
+  const t = Array.from(text)
+  for (let i = 0; i + w.length <= t.length; i++) {
+    let diff = 0
+    for (let j = 0; j < w.length && diff <= 1; j++) if (t[i + j] !== w[j]) diff++
+    if (diff === 1) return true
+  }
+  return false
+}
+
+function findCategory(text: string, kind: "INCOME" | "EXPENSE", categories: BotCategory[]): { category: BotCategory | null; guessed: boolean } {
   const own = categories.filter((c) => c.type === kind)
   const named = own
     .filter((c) => c.name.trim().length >= 2 && has(text, c.name.toLowerCase().trim()))
     .sort((a, b) => b.name.length - a.name.length)[0]
-  if (named) return named
+  if (named) return { category: named, guessed: false }
   for (const k of KEYWORDS) {
     const cat = own.find((c) => c.preset_key === k.preset)
-    if (cat && hasAny(text, k.words)) return cat
+    if (cat && hasAny(text, k.words)) return { category: cat, guessed: false }
   }
-  return own.find((c) => c.preset_key === (kind === "INCOME" ? "other_income" : "other_expense")) ?? null
+  // Then a typo in a longer keyword ("បាតព្រឹក" → food).
+  for (const k of KEYWORDS) {
+    const cat = own.find((c) => c.preset_key === k.preset)
+    if (cat && k.words.some((w) => hasWithTypo(text, w))) return { category: cat, guessed: false }
+  }
+  return { category: own.find((c) => c.preset_key === (kind === "INCOME" ? "other_income" : "other_expense")) ?? null, guessed: true }
 }
 
 function findDebt(text: string, debts: BotDebt[]): BotDebt | null {
@@ -201,13 +238,15 @@ export function parseEntry(message: string, ctx: BotContext): ParsedEntry {
   const pool = usable.length ? usable : ctx.wallets
   const wallet = named ?? (amount.currency && pool.find((w) => w.currency === amount.currency)) ?? pool[0]
   const currency = amount.currency ?? wallet.currency
+  const { category, guessed } = findCategory(text, kind, ctx.categories)
   return {
     ok: true,
     kind,
     amount: roundMoney(amount.value, currency),
     currency,
     wallet,
-    category: findCategory(text, kind, ctx.categories),
+    category,
+    guessed,
     note,
   }
 }
