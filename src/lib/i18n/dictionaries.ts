@@ -2893,6 +2893,21 @@ const km = {
   "feature.name.pools": "បេឡារួម",
   "feature.name.statement_import": "នាំចូលរបាយការណ៍ធនាគារ",
   "urgency.installment": "លើកទី {n}",
+  "bot.signupAlert": "🎉 សមាជិកថ្មីទើបចុះឈ្មោះ (New User Sign-up)!\n• 👤 គណនី/លេខទូរស័ព្ទ៖ {account}\n• 📅 កាលបរិច្ឆេទ៖ {date}\n• 🌐 វិធីចុះឈ្មោះ៖ {method}\n• 📊 សមាជិកសរុប៖ {total} នាក់",
+  "bot.birthdayWish": "🎂 រីករាយថ្ងៃខួបកំណើត {name}! 🎉\nក្រុមការងារ លុយឆ្លាត (LuyChlat) សូមប្រសិទ្ធពរជ័យឱ្យបងមានសុខភាពល្អបរិបូរណ៍ សុភមង្គល និងជោគជ័យគ្រប់ភារកិច្ច លុយកាក់ហូរចូលដូចទឹក! 💰🥳",
+  "bot.birthdayYou": "បង",
+  "birthday.title": "រីករាយថ្ងៃខួបកំណើត {name}!",
+  "birthday.body": "ក្រុមការងារ លុយឆ្លាត សូមប្រសិទ្ធពរជ័យឱ្យបងមានសុខភាពល្អបរិបូរណ៍ សុភមង្គល និងជោគជ័យគ្រប់ភារកិច្ច លុយកាក់ហូរចូលដូចទឹក!",
+  "profile.extrasTitle": "ព័ត៌មានបន្ថែម (ស្រេចចិត្ត)",
+  "profile.extrasHint": "ឯកជន៖ មានតែអ្នក (និងអ្នកគ្រប់គ្រង) ទេដែលឃើញ — សមាជិកគ្រួសារមិនឃើញទេ។ ថ្ងៃកំណើតសម្រាប់សារជូនពរ។",
+  "profile.birthDate": "ថ្ងៃខែឆ្នាំកំណើត",
+  "profile.birthDateInvalid": "ថ្ងៃខែឆ្នាំកំណើតមិនត្រឹមត្រូវ",
+  "profile.occupation": "មុខរបរ",
+  "occupation.STUDENT": "សិស្ស/និស្សិត",
+  "occupation.EMPLOYEE": "បុគ្គលិក",
+  "occupation.BUSINESS_OWNER": "ម្ចាស់អាជីវកម្ម",
+  "occupation.GENERAL": "ទូទៅ",
+  "customers.provider.phone": "លេខទូរស័ព្ទ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5775,6 +5790,21 @@ const en: Record<MessageKey, string> = {
   "feature.name.pools": "Shared pools",
   "feature.name.statement_import": "Bank statement import",
   "urgency.installment": "Installment {n}",
+  "bot.signupAlert": "🎉 New User Sign-up!\n• 👤 Account / phone: {account}\n• 📅 Date: {date}\n• 🌐 Signed up with: {method}\n• 📊 Total members: {total}",
+  "bot.birthdayWish": "🎂 Happy birthday, {name}! 🎉\nEveryone at LuyChlat wishes you great health, happiness and success in everything you do — may money flow in like water! 💰🥳",
+  "bot.birthdayYou": "friend",
+  "birthday.title": "Happy birthday, {name}!",
+  "birthday.body": "Everyone at LuyChlat wishes you great health, happiness and success — may money flow in like water!",
+  "profile.extrasTitle": "More about you (optional)",
+  "profile.extrasHint": "Private: only you (and the app's admins) see this — not family members. Your birthday is for a birthday wish.",
+  "profile.birthDate": "Date of birth",
+  "profile.birthDateInvalid": "That date of birth isn't valid",
+  "profile.occupation": "Occupation",
+  "occupation.STUDENT": "Student",
+  "occupation.EMPLOYEE": "Employee",
+  "occupation.BUSINESS_OWNER": "Business owner",
+  "occupation.GENERAL": "General",
+  "customers.provider.phone": "Phone",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

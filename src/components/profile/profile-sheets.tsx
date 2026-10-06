@@ -20,6 +20,10 @@ import { INDUSTRIES, useBusinessLifecycle, useSaveBusinessProfile, useSaveProfil
 import { usePrefsStore } from "@/stores/prefs-store"
 
 import { ProfileAvatar } from "./profile-avatar"
+import { OCCUPATIONS, useProfilePrivate, useSaveProfilePrivate, type Occupation } from "@/lib/profile-private"
+import { todayDate } from "@/lib/debts"
+import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { cn } from "@/lib/utils"
 
 /** Photo with a camera badge (add / change) and a trash button (remove); keeps the picked file until Save. */
 function PhotoPicker({
@@ -108,6 +112,17 @@ export function ProfileSheet({ open, onOpenChange, profile, email }: { open: boo
   const [bio, setBio] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [removed, setRemoved] = useState(false)
+  // Optional, private (owner + super admin only): birthday wishes and a better fit of tips.
+  const extras = useProfilePrivate().data
+  const saveExtras = useSaveProfilePrivate()
+  const [birthDate, setBirthDate] = useState("")
+  const [occupation, setOccupation] = useState<Occupation | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setBirthDate(extras?.birth_date ?? "")
+    setOccupation(extras?.occupation ?? null)
+  }, [open, extras])
 
   useEffect(() => {
     if (!open) return
@@ -121,6 +136,11 @@ export function ProfileSheet({ open, onOpenChange, profile, email }: { open: boo
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return void toast.error(t("profile.nameRequired"))
+    if (birthDate && (birthDate > todayDate() || birthDate < "1900-01-01")) return void toast.error(t("profile.birthDateInvalid"))
+    // The private details save on their own; a failure there doesn't undo the profile.
+    if ((birthDate || null) !== (extras?.birth_date ?? null) || occupation !== (extras?.occupation ?? null)) {
+      saveExtras.mutate({ birth_date: birthDate || null, occupation }, { onError: () => toast.error(t("common.error")) })
+    }
     save.mutate(
       { display_name: name, phone, bio, photo: file, removePhoto: removed, avatar_path: profile?.avatar_path },
       {
@@ -184,6 +204,35 @@ export function ProfileSheet({ open, onOpenChange, profile, email }: { open: boo
         <div className="space-y-1.5">
           <Label htmlFor="profile-bio">{t("profile.bio")}</Label>
           <Textarea id="profile-bio" rows={2} maxLength={200} value={bio} onChange={(e) => setBio(e.target.value)} />
+        </div>
+        <div className="space-y-3 rounded-xl border border-dashed p-3">
+          <p className="text-xs font-medium text-muted-foreground">{t("profile.extrasTitle")}</p>
+          <div className="space-y-1.5">
+            <Label htmlFor="profile-birth">{t("profile.birthDate")}</Label>
+            <Input id="profile-birth" className="h-11" type="date" min="1900-01-01" max={todayDate()} value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{t("profile.occupation")}</Label>
+            <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("profile.occupation")}>
+              {OCCUPATIONS.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  role="radio"
+                  aria-checked={occupation === o}
+                  // Tapping the chosen one again clears it (it's optional).
+                  onClick={() => setOccupation(occupation === o ? null : o)}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                    occupation === o ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted",
+                  )}
+                >
+                  {t(`occupation.${o}` as MessageKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">{t("profile.extrasHint")}</p>
         </div>
         {email && <p className="text-xs text-muted-foreground">{t("profile.signedInAs", { email })}</p>}
         <p className="text-xs text-muted-foreground">{t("profile.visibility")}</p>

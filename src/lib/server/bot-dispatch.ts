@@ -12,6 +12,7 @@ import { weeklyDigestTick } from "@/lib/server/weekly-digest"
 import { readFileSync } from "fs"
 import { holyDayTick } from "@/lib/server/holy-days"
 import { flushPoolPosts } from "@/lib/server/pool-bot"
+import { birthdayTick, flushSignupAlerts } from "@/lib/server/member-events"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string; bill_id: string | null; due: string | null }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
@@ -77,6 +78,8 @@ export async function dispatchOnce() {
     await weeklyDigestTick()
     await holyDayTick()
     await flushPoolPosts()
+    await flushSignupAlerts()
+    await birthdayTick()
     await watchdogTick()
   } catch (error) {
     console.error("[bot] dispatch failed:", (error as Error).message)

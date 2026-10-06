@@ -45,6 +45,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useFeatures } from "@/lib/features"
+import { BirthdayCard } from "@/components/dashboard/birthday-card"
 
 // Recharts is heavy; load the chart card after the rest of the dashboard.
 const CashFlowCharts = dynamic(() => import("@/components/dashboard/cash-flow-charts").then((m) => m.CashFlowCharts), {
@@ -155,6 +156,7 @@ export default function HomePage() {
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
 
       {/* NBC $1 = …៛ · gold 24K per damlung — opens /market. */}
+      <BirthdayCard />
       <MarketRatesCard />
 
       <DailyTipCard wallets={walletsQuery.data} debts={debtsQuery.data} workspace={workspace} />

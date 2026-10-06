@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { differenceInCalendarDays, format } from "date-fns"
-import { Loader2Icon, SearchIcon, SendIcon, UsersRoundIcon } from "lucide-react"
+import { CakeIcon, Loader2Icon, SearchIcon, SendIcon, UsersRoundIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -16,9 +16,10 @@ import { Switch } from "@/components/ui/switch"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
-import { loginLabel } from "@/lib/auth-identifier"
+import { isPhoneLoginEmail, loginLabel } from "@/lib/auth-identifier"
 import { formatDuration } from "@/lib/format"
 import { useLocaleStore } from "@/stores/locale-store"
+import type { MessageKey } from "@/lib/i18n/dictionaries"
 
 /** A row of public.admin_customers: account, Telegram, plan and payment metadata only — never finances. */
 type Customer = {
@@ -42,6 +43,8 @@ type Customer = {
   paid_count: number
   /** Internal / test account: left out of business metrics. */
   is_test: boolean
+  birth_date: string | null
+  occupation: string | null
   suspended: boolean
   total: number
 }
@@ -61,7 +64,16 @@ function Badges({ c }: { c: Customer }) {
   return (
     <span className="flex flex-wrap items-center gap-1 text-[11px]">
       <span className="rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground">{t("customers.joined", { date: joined(c.joined_at) })}</span>
-      <span className="rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground">{t(c.provider === "google" ? "customers.provider.google" : "customers.provider.email")}</span>
+      <span className="rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground">
+        {t(c.provider === "google" ? "customers.provider.google" : isPhoneLoginEmail(c.email) ? "customers.provider.phone" : "customers.provider.email")}
+      </span>
+      {c.birth_date && (
+        <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-rose-700 dark:text-rose-300">
+          <CakeIcon className="size-3" aria-hidden />
+          {format(new Date(`${c.birth_date}T12:00:00`), "dd/MM/yyyy")}
+        </span>
+      )}
+      {c.occupation && <span className="rounded-full bg-sky-500/10 px-1.5 py-0.5 text-sky-700 dark:text-sky-300">{t(`occupation.${c.occupation}` as MessageKey)}</span>}
       {c.is_test && <span className="rounded-full bg-violet-500/15 px-1.5 py-0.5 font-semibold text-violet-700 dark:text-violet-300">🧪 {t("customers.test")}</span>}
       {c.suspended && <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 font-semibold text-destructive">🔴 {t("admin.badge.suspended")}</span>}
     </span>
