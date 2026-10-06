@@ -3098,6 +3098,14 @@ const km = {
   "biz.apiActive": "Key សកម្ម (…{hint})",
   "biz.apiLastUsed": "ប្រើចុងក្រោយ {when}",
   "biz.apiNeverUsed": "មិនទាន់ប្រើ",
+  "od.limit": "ឥណទានវិបារូបន៍ / OD (បើមាន)",
+  "od.placeholder": "ឧ. 32,000,000",
+  "od.hint": "ខ្សែឥណទាន OD ពីធនាគារ (ACLEDA / ABA)។ សមតុល្យនៅតែជាលុយផ្ទាល់; «អាចប្រើបាន» = សមតុល្យ + OD។ OD មិនរាប់ជាទ្រព្យសកម្មទេ។",
+  "od.ledger": "សមតុល្យ (លុយផ្ទាល់)",
+  "od.line": "ឥណទាន OD",
+  "od.available": "អាចប្រើបាន (រួម OD)",
+  "od.used": "កំពុងប្រើ OD",
+  "od.short": "អាចប្រើ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6185,6 +6193,14 @@ const en: Record<MessageKey, string> = {
   "biz.apiActive": "Active key (…{hint})",
   "biz.apiLastUsed": "last used {when}",
   "biz.apiNeverUsed": "not used yet",
+  "od.limit": "Overdraft / OD limit (optional)",
+  "od.placeholder": "e.g. 32,000,000",
+  "od.hint": "The bank's overdraft line (ACLEDA / ABA). The balance stays your own cash; “available” = balance + OD. The OD never counts as an asset.",
+  "od.ledger": "Ledger balance (own cash)",
+  "od.line": "OD limit",
+  "od.available": "Available (with OD)",
+  "od.used": "OD in use",
+  "od.short": "Available",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

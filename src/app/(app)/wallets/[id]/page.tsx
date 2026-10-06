@@ -114,12 +114,38 @@ export default function WalletStatementPage() {
           </div>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">{t("wallets.balanceNow")}</p>
-          <Amount value={wallet.balance} currency={wallet.currency} className="block text-4xl font-bold tracking-tight tabular-nums" />
+          <p className="text-xs text-muted-foreground">{t(wallet.od_limit ? "od.ledger" : "wallets.balanceNow")}</p>
+          <Amount
+            value={wallet.balance}
+            currency={wallet.currency}
+            className={`block text-4xl font-bold tracking-tight tabular-nums ${wallet.balance < 0 ? "text-rose-600" : ""}`}
+          />
           <p className="text-sm text-muted-foreground tabular-nums">
             ≈ <Amount value={convert(wallet.balance, wallet.currency, other, khrPerUsd)} currency={other} />
           </p>
         </div>
+        {/* Overdraft line: ledger (own cash) + OD = available, as in the bank's app. */}
+        {wallet.od_limit ? (
+          <div className="grid grid-cols-2 gap-2 border-t pt-3 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">{t("od.line")}</p>
+              <Amount value={wallet.od_limit} currency={wallet.currency} className="block font-semibold whitespace-nowrap tabular-nums" />
+              {wallet.balance < 0 && (
+                <p className="text-xs text-rose-600 tabular-nums">
+                  {t("od.used")} <Amount value={-wallet.balance} currency={wallet.currency} />
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">{t("od.available")}</p>
+              <Amount
+                value={wallet.balance + wallet.od_limit}
+                currency={wallet.currency}
+                className="block text-lg font-bold whitespace-nowrap text-emerald-700 tabular-nums dark:text-emerald-400"
+              />
+            </div>
+          </div>
+        ) : null}
         {isCard(wallet) && <CardMeter wallet={wallet} />}
       </Card>
 

@@ -57,6 +57,7 @@ const schema = z.object({
   visibility: z.enum(["SHARED", "PERSONAL"]),
   kind: z.enum(["STANDARD", "CREDIT_CARD"]),
   creditLimit: z.string(),
+  odLimit: z.string(),
   statementDay: z.string(),
   dueDay: z.string(),
 })
@@ -196,6 +197,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           visibility: wallet.visibility,
           kind: wallet.kind ?? "STANDARD",
           creditLimit: wallet.credit_limit != null ? String(wallet.credit_limit) : "",
+          odLimit: wallet.od_limit != null ? String(wallet.od_limit) : "",
           statementDay: wallet.statement_day != null ? String(wallet.statement_day) : "",
           dueDay: wallet.due_day != null ? String(wallet.due_day) : "",
         }
@@ -207,6 +209,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           visibility: "SHARED",
           kind: "STANDARD",
           creditLimit: "",
+          odLimit: "",
           statementDay: "",
           dueDay: "",
         }
@@ -252,6 +255,10 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
     const cardFields = isCardForm
       ? { kind: "CREDIT_CARD" as const, credit_limit: roundMoney(limit, currency), statement_day: statementDay, due_day: dueDay }
       : {} // Ordinary wallets don't send the card columns (works before the card migration too).
+    // A bank wallet's overdraft line (optional; empty or 0 = none).
+    const od = parseAmount(values.odLimit || "0")
+    if (!isCardForm && (Number.isNaN(od) || od < 0)) return void toast.error(t("walletForm.amountInvalid"))
+    const odFields = isCardForm ? {} : { od_limit: od > 0 ? roundMoney(od, currency) : null }
     const amount = roundMoney(parseAmount(values.balance || "0"), currency)
     const input = {
       name: values.name.trim(),
@@ -262,13 +269,14 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
       // A new card starts at what you already owe on it.
       balance: isCardForm ? -Math.abs(amount) : amount,
       ...cardFields,
+      ...odFields,
     }
     try {
       // Existing wallets: the balance only changes through the ledger or Reconcile.
       if (wallet) {
         await mutations.update.mutateAsync({
           id: wallet.id,
-          input: { name: input.name, icon: input.icon, color: input.color, visibility, currency, ...(isCard(wallet) ? cardFields : {}) },
+          input: { name: input.name, icon: input.icon, color: input.color, visibility, currency, ...(isCard(wallet) ? cardFields : odFields) },
         })
       } else await mutations.create.mutateAsync(input)
       toast.success(t("walletForm.saved"))
@@ -429,6 +437,15 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
               </div>
             </div>
             <p className="text-xs text-muted-foreground">{t("card.hint")}</p>
+          </div>
+        )}
+
+        {/* Bank wallets: an optional overdraft / working-capital line (like ACLEDA / ABA business accounts). */}
+        {!card && icon !== "cash" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="od-limit">{t("od.limit")}</Label>
+            <Input id="od-limit" className="h-11 tabular-nums" inputMode="decimal" placeholder={t("od.placeholder")} autoComplete="off" {...register("odLimit")} />
+            <p className="text-xs text-muted-foreground">{t("od.hint")}</p>
           </div>
         )}
 

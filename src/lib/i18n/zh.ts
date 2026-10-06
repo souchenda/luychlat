@@ -3051,4 +3051,12 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "biz.apiActive": "有效密钥（…{hint}）",
   "biz.apiLastUsed": "最近使用 {when}",
   "biz.apiNeverUsed": "尚未使用",
+  "od.limit": "透支额度 / OD（如有）",
+  "od.placeholder": "例如 32,000,000",
+  "od.hint": "银行透支额度（ACLEDA / ABA）。余额仍是自有资金；「可用」= 余额 + 透支额度。透支额度不计入资产。",
+  "od.ledger": "账面余额（自有资金）",
+  "od.line": "透支额度",
+  "od.available": "可用（含透支）",
+  "od.used": "已用透支",
+  "od.short": "可用",
 }

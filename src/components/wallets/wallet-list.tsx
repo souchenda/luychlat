@@ -66,11 +66,18 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: Wa
             </span>
             <span className="text-right">
               <Amount value={wallet.balance} currency={wallet.currency} className="block text-sm font-semibold" />
-              <Amount
-                value={convert(wallet.balance, wallet.currency, other, khrPerUsd)}
-                currency={other}
-                className="block text-xs text-muted-foreground"
-              />
+              {wallet.od_limit ? (
+                // Overdraft line: what can still be spent (balance + OD), like the bank's "available".
+                <span className="block text-xs text-muted-foreground">
+                  {t("od.short")} <Amount value={wallet.balance + wallet.od_limit} currency={wallet.currency} />
+                </span>
+              ) : (
+                <Amount
+                  value={convert(wallet.balance, wallet.currency, other, khrPerUsd)}
+                  currency={other}
+                  className="block text-xs text-muted-foreground"
+                />
+              )}
             </span>
           </>
         )

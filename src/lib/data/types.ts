@@ -58,7 +58,8 @@ export type Wallet = {
   goal_target?: number | null
   /** Savings goal: target date (yyyy-MM-dd). */
   goal_date?: string | null
-} & CreditCardFields
+} & CreditCardFields &
+  OverdraftFields
 
 /**
  * A credit card is a wallet whose balance is what you owe (negative). Spending
@@ -73,6 +74,12 @@ export type CreditCardFields = {
   due_day?: number | null
 }
 export type WalletKind = "STANDARD" | "CREDIT_CARD"
+
+/**
+ * A bank wallet's overdraft (OD) / working-capital line: balance stays the
+ * ledger balance (negative while drawn); available = balance + od_limit.
+ */
+export type OverdraftFields = { od_limit?: number | null }
 
 export type Transaction = {
   id: string
@@ -411,7 +418,8 @@ export type WalletInput = {
   /** Savings goals only (see lib/goals.ts). */
   goal_target?: number | null
   goal_date?: string | null
-} & CreditCardFields
+} & CreditCardFields &
+  OverdraftFields
 
 /** Transfer update payload (workspace is fixed). */
 export type TransferUpdate = Omit<TransferInput, "workspace_id"> & { type: "TRANSFER" }
