@@ -24,6 +24,7 @@ import { handleGiftCallback, handleGiftLookup, handleGiftMessage, isGiftCallback
 import { botFeatures, featureOk, keyboardFor, menuCommand } from "@/lib/server/bot-menu"
 import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
+import { handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -258,6 +259,8 @@ export async function POST(request: Request) {
     } else if (isBankUndo(update.callback_query.data)) {
       const ctx = update.callback_query.message ? await botContext(update.callback_query.message.chat.id) : null
       await handleBankUndoCallback(update.callback_query, contextLocale(ctx))
+    } else if (isSlipCallback(update.callback_query.data)) {
+      await handleSlipCallback(update.callback_query)
     } else if (isInvoiceCallback(update.callback_query.data)) {
       const chat = update.callback_query.message?.chat.id
       if (chat && !featureOk(await botFeatures(chat), "invoices")) await soon(update.callback_query.id, "km")
@@ -284,6 +287,19 @@ export async function POST(request: Request) {
       const ctx = await botContext(chatId)
       if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
       else await handleVoiceMessage(chatId, voice, ctx)
+    })
+    return NextResponse.json({ ok: true })
+  }
+  // A photo: a bank slip to read (Gemini Vision) and save with one tap on a category.
+  const slipPhoto = bestPhoto(message.photo)
+  if (slipPhoto) {
+    const chatId = message.chat.id
+    // Reading takes several seconds: answer Telegram now so it doesn't resend the update.
+    after(async () => {
+      const ctx = await botContext(chatId)
+      if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
+      else if (!featureOk(await botFeatures(chatId), "bank_slips")) await sendText(chatId, tr(contextLocale(ctx), "bot.featureSoon"))
+      else await handlePrivatePhoto(chatId, slipPhoto)
     })
     return NextResponse.json({ ok: true })
   }

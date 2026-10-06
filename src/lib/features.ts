@@ -15,6 +15,8 @@ export const FEATURES = {
   gifts: { routes: ["/gifts"], emoji: "🎁" },
   pools: { routes: ["/pools"], emoji: "👥" },
   statement_import: { routes: ["/wallets/import"], emoji: "📄" },
+  // Telegram only: slip photos read by Gemini Vision, saved with one tap.
+  bank_slips: { routes: [], emoji: "🧾" },
 } as const
 
 export type FeatureKey = keyof typeof FEATURES

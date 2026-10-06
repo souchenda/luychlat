@@ -31,7 +31,7 @@ type Workspace = {
   debts: BotDebt[]
 }
 
-type Context = {
+export type Context = {
   linked: boolean
   pro?: boolean
   /** ULTRA plan, and ULTRA with "log into all workspaces" on. */
@@ -63,7 +63,7 @@ export const contextLocale = (ctx: Context | null): Locale => (ctx?.language ===
 export const isRouting = (ctx: Context | null) => Boolean(ctx?.route_all && (ctx.workspaces?.length ?? 0) > 1)
 
 /** Why this chat can't log right now (PRO, opt-in, write access), or null. */
-function blocked(ctx: Context, lang: Locale) {
+export function blocked(ctx: Context, lang: Locale) {
   if (!ctx.pro) return tr(lang, "bot.cmdPro")
   if (!ctx.enabled) return tr(lang, "bot.cmdOff")
   if (!ctx.writable) return tr(lang, "bot.cmdReadonly")
@@ -71,7 +71,7 @@ function blocked(ctx: Context, lang: Locale) {
 }
 
 /** Workspaces from the context, with numbers as numbers. */
-function workspacesOf(ctx: Context): Workspace[] {
+export function workspacesOf(ctx: Context): Workspace[] {
   const list = ctx.workspaces?.length
     ? ctx.workspaces
     : [{ id: ctx.workspace_id ?? "", name: "", type: ctx.workspace_type ?? "PERSONAL", rate: ctx.rate ?? 4000, wallets: ctx.wallets ?? [], categories: ctx.categories ?? [], debts: ctx.debts ?? [] }]
