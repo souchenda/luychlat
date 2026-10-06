@@ -1,0 +1,125 @@
+import { createHash } from "crypto"
+import { NextResponse } from "next/server"
+
+import { parseMerchantPayment } from "@/lib/bot/merchant-khqr"
+import { formatMoney } from "@/lib/money"
+import { logEvent } from "@/lib/server/events"
+import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
+
+/**
+ * KHQR ingest API — a merchant's own tool (e.g. AUTOBOK) pushes each bank
+ * payment notification it reads, and LuyChlat records it as Sales income in
+ * the business workspace the key belongs to (the bank's wallet in that
+ * currency), once per bank reference.
+ *
+ *   POST /api/khqr/ingest
+ *   Authorization: Bearer lck_<64 hex>        (Settings › Telegram › Business KHQR group)
+ *   Content-Type: application/json
+ *
+ * Body — either the bank's message as is:
+ *   { "text": "Received 1.00 USD from Sreyleak Tim,ABA Bank by KHQR,on 06-Oct-2026 10:22PM, at … (Hash. a1a576d9)." }
+ * or the fields:
+ *   { "bank": "ACLEDA" | "ABA", "amount": 1.00, "currency": "USD" | "KHR", "ref": "a1a576d9",
+ *     "payer": "Sreyleak Tim", "paid_at": "2026-10-06T22:22:00+07:00" }
+ * (aliases: hash / transactionId → ref, sender → payer, timestamp → paid_at — ISO 8601 with
+ * its offset: "2026-10-06T22:22:00+07:00" or the true UTC "2026-10-06T15:22:00Z"). Other
+ * fields (e.g. chatId) are ignored: the key decides the business. Optional:
+ * "notify_group": true posts "✅ +$1.00 បានកត់ត្រា …" in the Telegram group(s) linked to the business.
+ *
+ * Answers: 201 recorded · 200 duplicate (already recorded — safe to retry) · 401 bad key ·
+ * 402 plan required · 403 not allowed · 422 not a payment / no wallet · 429 too many.
+ */
+export const runtime = "nodejs"
+
+const KEY = /^lck_[a-f0-9]{64}$/
+const hits = new Map<string, number[]>()
+const PER_MINUTE = 120
+
+const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : typeof v === "number" ? String(v) : "")
+
+export async function POST(request: Request) {
+  const auth = request.headers.get("authorization") ?? ""
+  const apiKey = auth.replace(/^Bearer\s+/i, "").trim()
+  if (!KEY.test(apiKey)) return NextResponse.json({ ok: false, status: "unauthorized", error: "Missing or malformed API key (Authorization: Bearer lck_…)" }, { status: 401 })
+  const keyHash = createHash("sha256").update(apiKey).digest("hex")
+
+  const now = Date.now()
+  const recent = (hits.get(keyHash) ?? []).filter((t) => now - t < 60_000)
+  if (recent.length >= PER_MINUTE) return NextResponse.json({ ok: false, status: "rate_limited" }, { status: 429 })
+  hits.set(keyHash, [...recent, now])
+  if (hits.size > 2_000) hits.delete(hits.keys().next().value!)
+
+  let body: Record<string, unknown>
+  try {
+    const raw = await request.text()
+    if (raw.length > 8_000) return NextResponse.json({ ok: false, status: "invalid", error: "Body too large" }, { status: 413 })
+    body = JSON.parse(raw) as Record<string, unknown>
+    if (!body || typeof body !== "object") throw new Error("not an object")
+  } catch {
+    return NextResponse.json({ ok: false, status: "invalid", error: "Body must be JSON" }, { status: 400 })
+  }
+
+  // The bank's message as is, or the fields.
+  const text = str(body.text, 2_000)
+  const parsed = text ? parseMerchantPayment(text) : null
+  if (text && !parsed) return NextResponse.json({ ok: false, status: "invalid", error: "Not an ACLEDA / ABA PayWay KHQR payment message" }, { status: 422 })
+  const pay = parsed
+    ? { bank: parsed.bank, amount: parsed.amount, currency: parsed.currency, ref: parsed.ref, payer: parsed.payer, posted_at: parsed.postedAt }
+    : {
+        bank: str(body.bank, 10).toUpperCase(),
+        amount: typeof body.amount === "number" ? body.amount : Number(str(body.amount, 30).replace(/,/g, "")),
+        currency: str(body.currency, 5).toUpperCase(),
+        ref: str(body.ref ?? body.hash ?? body.transactionId ?? body.transaction_id, 64),
+        payer: str(body.payer ?? body.sender, 80) || null,
+        posted_at: str(body.paid_at ?? body.timestamp, 40) || null,
+      }
+
+  const { data, error } = await botDb().rpc("bot_khqr_ingest", { p_key: botKey(), p_key_hash: keyHash, p_pay: pay })
+  if (error) {
+    logEvent("error", "khqr", `KHQR ingest failed: ${error.message}`, { fold: true })
+    return NextResponse.json({ ok: false, status: "error" }, { status: 500 })
+  }
+  const r = data as {
+    status: string
+    transaction_id?: string
+    workspace_id?: string
+    workspace?: string
+    wallet?: string
+    amount?: number
+    currency?: "USD" | "KHR"
+    bank?: string
+    posted_at?: string
+  }
+  const http: Record<string, number> = { ok: 201, duplicate: 200, unauthorized: 401, plan_required: 402, not_writable: 403, invalid: 422, no_wallet: 422 }
+  const status = http[r.status] ?? 500
+  const message =
+    r.status === "ok" && r.amount !== undefined && r.currency
+      ? tr("km", "biz.recorded", { amount: `+${formatMoney(Number(r.amount), r.currency)}`, workspace: r.workspace ?? "", bank: r.bank ?? pay.bank })
+      : null
+
+  if (r.status === "ok") {
+    logEvent("info", "khqr", `KHQR ${r.bank} payment pushed by API (${r.workspace})`, { fold: true })
+    // Optional: say so in the business's linked Telegram group(s).
+    if (body.notify_group === true && message && r.workspace_id) {
+      const { data: groups } = await botDb().rpc("bot_biz_groups_of", { p_key: botKey(), p_workspace_id: r.workspace_id })
+      for (const g of (groups as { chat_id: number | string }[] | null) ?? []) await sendText(Number(g.chat_id), message).catch(() => null)
+    }
+  }
+
+  return NextResponse.json(
+    {
+      ok: r.status === "ok" || r.status === "duplicate",
+      status: r.status === "ok" ? "recorded" : r.status,
+      transaction_id: r.transaction_id ?? null,
+      workspace: r.workspace ?? null,
+      wallet: r.wallet ?? null,
+      amount: r.amount ?? null,
+      currency: r.currency ?? null,
+      bank: r.bank ?? pay.bank ?? null,
+      ref: pay.ref ? String(pay.ref).toLowerCase() : null,
+      posted_at: r.posted_at ?? null,
+      message,
+    },
+    { status },
+  )
+}

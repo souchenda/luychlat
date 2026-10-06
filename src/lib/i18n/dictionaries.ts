@@ -3088,6 +3088,16 @@ const km = {
   "biz.linkedGroups": "ក្រុមដែលបានភ្ជាប់",
   "biz.unlink": "ផ្ដាច់",
   "biz.unlinked": "បានផ្ដាច់ក្រុម",
+  "biz.apiTitle": "AUTOBOK / API (KHQR)",
+  "biz.apiHint": "កម្មវិធីរបស់អ្នក (ឧ. AUTOBOK) ផ្ញើការទូទាត់ KHQR មក LuyChlat តាម HTTPS — កត់ត្រាជាចំណូលពីការលក់ក្នុង «{workspace}» ដោយស្វ័យប្រវត្តិ (មិនកត់ស្ទួន)។",
+  "biz.apiCreate": "បង្កើត API Key",
+  "biz.apiRegenerate": "បង្កើត Key ថ្មី (Key ចាស់ឈប់ដំណើរការ)",
+  "biz.apiRevoke": "លុប Key",
+  "biz.apiRevoked": "បានលុប API Key",
+  "biz.apiShownOnce": "⚠️ Key នេះបង្ហាញតែម្តងគត់ — ចម្លងដាក់ក្នុង AUTOBOK ឥឡូវនេះ ហើយកុំចែករំលែក។",
+  "biz.apiActive": "Key សកម្ម (…{hint})",
+  "biz.apiLastUsed": "ប្រើចុងក្រោយ {when}",
+  "biz.apiNeverUsed": "មិនទាន់ប្រើ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6165,6 +6175,16 @@ const en: Record<MessageKey, string> = {
   "biz.linkedGroups": "Linked groups",
   "biz.unlink": "Unlink",
   "biz.unlinked": "Group unlinked",
+  "biz.apiTitle": "AUTOBOK / API (KHQR)",
+  "biz.apiHint": "Your own tool (e.g. AUTOBOK) sends KHQR payments to LuyChlat over HTTPS — recorded as sales income in “{workspace}” automatically (never twice).",
+  "biz.apiCreate": "Create API key",
+  "biz.apiRegenerate": "New key (the old one stops working)",
+  "biz.apiRevoke": "Revoke",
+  "biz.apiRevoked": "API key revoked",
+  "biz.apiShownOnce": "⚠️ This key is shown only once — copy it into AUTOBOK now and keep it secret.",
+  "biz.apiActive": "Active key (…{hint})",
+  "biz.apiLastUsed": "last used {when}",
+  "biz.apiNeverUsed": "not used yet",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
