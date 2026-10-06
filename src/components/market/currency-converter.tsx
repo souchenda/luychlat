@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftRightIcon } from "lucide-react"
+import { ArrowUpDownIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Input } from "@/components/ui/input"
@@ -37,7 +37,7 @@ export function CurrencyConverter({ khrPer, locale, asOf }: { khrPer: Record<str
 
   const currencySelect = (current: string, set: (code: string) => void, label: string) => (
     <Select value={current} onValueChange={set}>
-      <SelectTrigger size="sm" className="mt-1 w-full text-xs font-semibold" aria-label={label}>
+      <SelectTrigger size="sm" className="h-9 w-[5.5rem] shrink-0 border-0 bg-background text-xs font-semibold shadow-xs" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -50,17 +50,18 @@ export function CurrencyConverter({ khrPer, locale, asOf }: { khrPer: Record<str
     </Select>
   )
 
+  // Compact: two rows (amount + currency, result + currency) with the swap between them.
   return (
-    <section className="space-y-3 rounded-2xl border bg-card p-4 shadow-xs">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold">{t("market.converter")}</h2>
-        <span className="text-[11px] text-muted-foreground">
-          {t("market.nbcRate")}
-          {asOf && ` · ${asOf}`}
+    <section className="space-y-2.5 rounded-2xl border bg-card p-3.5 shadow-xs">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="shrink-0 text-sm font-bold">{t("market.converter")}</h2>
+        <span className="min-w-0 truncate text-right text-[11px] text-muted-foreground tabular-nums">
+          {one} {from} = {rate.toLocaleString("en-US", { maximumFractionDigits: rate >= 100 ? 2 : 4 })} {to}
+          {asOf && ` · ${t("market.nbcRate")} ${asOf}`}
         </span>
       </div>
 
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1">
         {PAIRS.map(([a, b]) => (
           <button
             key={`${a}${b}`}
@@ -70,7 +71,7 @@ export function CurrencyConverter({ khrPer, locale, asOf }: { khrPer: Record<str
               setTo(b)
             }}
             className={cn(
-              "shrink-0 rounded-full border px-2.5 py-1 text-xs transition-colors",
+              "shrink-0 rounded-full border px-2.5 py-0.5 text-xs transition-colors",
               from === a && to === b ? "border-primary bg-primary/10 font-semibold text-primary" : "text-muted-foreground hover:bg-muted",
             )}
           >
@@ -79,9 +80,9 @@ export function CurrencyConverter({ khrPer, locale, asOf }: { khrPer: Record<str
         ))}
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <div className="rounded-xl border bg-muted/40 p-2.5">
-          <label htmlFor="convert-amount" className="mb-1 block text-[10px] text-muted-foreground">
+      <div className="relative overflow-hidden rounded-xl border">
+        <div className="flex items-center gap-2 bg-muted/40 py-1.5 pr-1.5 pl-3">
+          <label htmlFor="convert-amount" className="sr-only">
             {t("market.amount")}
           </label>
           <Input
@@ -89,37 +90,31 @@ export function CurrencyConverter({ khrPer, locale, asOf }: { khrPer: Record<str
             inputMode="decimal"
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))}
-            className="h-8 border-0 bg-transparent px-0 text-base font-bold shadow-none focus-visible:ring-0 dark:bg-transparent"
+            className="h-9 min-w-0 flex-1 border-0 bg-transparent px-0 text-lg font-bold shadow-none focus-visible:ring-0 dark:bg-transparent"
             placeholder="0"
           />
           {currencySelect(from, setFrom, t("market.from"))}
         </div>
-
+        <div className="flex items-center gap-2 border-t bg-primary/5 py-1.5 pr-1.5 pl-3">
+          <p className="min-w-0 flex-1 truncate text-lg font-extrabold text-primary tabular-nums" aria-live="polite">
+            <span className="sr-only">{t("market.youGet")} </span>
+            {format(converted, to)}
+          </p>
+          {currencySelect(to, setTo, t("market.to"))}
+        </div>
         <button
           type="button"
           onClick={() => {
             setFrom(to)
             setTo(from)
           }}
-          className="flex size-8 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary shadow-xs transition-transform active:rotate-180"
+          className="absolute top-1/2 right-[6.75rem] flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-primary/30 bg-background text-primary shadow-sm transition-transform active:rotate-180"
           aria-label={t("market.swap")}
           title={t("market.swap")}
         >
-          <ArrowLeftRightIcon className="size-4" />
+          <ArrowUpDownIcon className="size-3.5" />
         </button>
-
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-2.5">
-          <p className="mb-1 text-[10px] text-primary">{t("market.youGet")}</p>
-          <p className="flex h-8 items-center truncate text-base font-extrabold text-primary tabular-nums" aria-live="polite">
-            {format(converted, to)}
-          </p>
-          {currencySelect(to, setTo, t("market.to"))}
-        </div>
       </div>
-
-      <p className="text-center text-[11px] text-muted-foreground tabular-nums">
-        {one} {from} = {rate.toLocaleString("en-US", { maximumFractionDigits: rate >= 100 ? 2 : 4 })} {to}
-      </p>
     </section>
   )
 }
