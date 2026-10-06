@@ -38,6 +38,7 @@ import { isCard } from "@/lib/credit-card"
 import { PersonalWalletError, PlanLimitError, WalletInUseError, type Currency, type Wallet, type WalletKind, type WalletVisibility } from "@/lib/data/types"
 import { type MessageKey, pick as pickText, type Locale } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { maskAccount } from "@/lib/format"
 import { parseAmount, roundMoney } from "@/lib/money"
 import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
@@ -239,6 +240,10 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   const card = kind === "CREDIT_CARD"
   const currencyChoice = useWatch({ control, name: "currency" })
   const both = !wallet && !card && currencyChoice === "BOTH"
+  // "$ + ៛": ACLEDA / ABA usually give both currencies the same account number.
+  const [ownKhrNo, setOwnKhrNo] = useState(false)
+  const accountNo = useWatch({ control, name: "accountNo" })
+  const accountNoKhr = useWatch({ control, name: "accountNoKhr" })
   // A card is one currency: drop "$ + ៛" when switching to a card.
   useEffect(() => {
     if (card && getValues("currency") === "BOTH") setValue("currency", "USD")
@@ -324,6 +329,8 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
     const odUsd = parseAmount(values.odLimit || "0")
     const odKhr = parseAmount(values.odLimitKhr || "0")
     if (Number.isNaN(odUsd) || Number.isNaN(odKhr) || odUsd < 0 || odKhr < 0) return void toast.error(t("walletForm.amountInvalid"))
+    const khrNo = (ownKhrNo ? values.accountNoKhr : values.accountNo).trim()
+    const pairName = (no: string, code: string) => [base, maskAccount(no), code].filter(Boolean).join(" ").slice(0, 60)
     const pair = [
       {
         currency: "USD" as const,
@@ -335,14 +342,14 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
         currency: "KHR" as const,
         balance: roundMoney(parseAmount(values.balanceKhr || "0"), "KHR"),
         od_limit: odKhr > 0 ? roundMoney(odKhr, "KHR") : null,
-        account_no: values.accountNoKhr.trim() || null,
+        account_no: khrNo || null,
       },
     ]
     let made = 0
     try {
       for (const p of pair) {
         await mutations.create.mutateAsync({
-          name: `${base} ${p.currency}`.slice(0, 60),
+          name: pairName(p.account_no ?? "", p.currency),
           icon: values.icon,
           color: null,
           visibility,
@@ -465,7 +472,14 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
             )}
           />
           {hasHistory && <p className="text-xs text-muted-foreground">{t("walletForm.currencyLocked")}</p>}
-          {both && <p className="text-xs text-muted-foreground">{t("walletForm.pairHint", { name: name?.trim() || "ACLEDA" })}</p>}
+          {both && (
+            <p className="text-xs text-muted-foreground">
+              {t("walletForm.pairHint", {
+                usd: [name?.trim(), maskAccount(accountNo), "USD"].filter(Boolean).join(" "),
+                khr: [name?.trim(), maskAccount(ownKhrNo ? accountNoKhr : accountNo), "KHR"].filter(Boolean).join(" "),
+              })}
+            </p>
+          )}
         </div>
 
         {!wallet && (
@@ -599,24 +613,30 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
             <ChevronRightIcon className="size-4 text-muted-foreground" />
           </Link>
         )}
+        {!wallet && both && icon !== "cash" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="pair-account">{t(ownKhrNo ? "walletForm.accountNoUsd" : "walletForm.accountNoBoth")}</Label>
+            <Input id="pair-account" className="h-11 tabular-nums" inputMode="numeric" placeholder="0001 23 456789" autoComplete="off" maxLength={30} {...register("accountNo")} />
+            {ownKhrNo && (
+              <Input className="h-11 tabular-nums" inputMode="numeric" autoComplete="off" maxLength={30} placeholder={t("walletForm.accountNoKhr")} aria-label={t("walletForm.accountNoKhr")} {...register("accountNoKhr")} />
+            )}
+            <button type="button" className="text-xs font-medium text-primary" onClick={() => setOwnKhrNo((v) => !v)}>
+              {t(ownKhrNo ? "walletForm.sameNumber" : "walletForm.differentKhrNumber")}
+            </button>
+          </div>
+        )}
         {!wallet && both && (
           <div className="grid grid-cols-2 gap-2">
             {(
               [
-                { sign: "$", code: "USD", account: "accountNo", balance: "balance", od: "odLimit" },
-                { sign: "៛", code: "KHR", account: "accountNoKhr", balance: "balanceKhr", od: "odLimitKhr" },
+                { sign: "$", code: "USD", balance: "balance", od: "odLimit" },
+                { sign: "៛", code: "KHR", balance: "balanceKhr", od: "odLimitKhr" },
               ] as const
             ).map((c) => (
               <div key={c.code} className="space-y-2 rounded-xl border bg-muted/30 p-2.5">
                 <p className="text-sm font-semibold">
                   {c.sign} {c.code}
                 </p>
-                {icon !== "cash" && (
-                  <div className="space-y-1">
-                    <Label className="text-xs">{t("walletForm.accountNoShort")}</Label>
-                    <Input className="h-10 bg-background text-sm tabular-nums" inputMode="numeric" autoComplete="off" maxLength={30} aria-label={`${t("walletForm.accountNoShort")} ${c.code}`} {...register(c.account)} />
-                  </div>
-                )}
                 <div className="space-y-1">
                   <Label className="text-xs">{t("walletForm.openingBalance")}</Label>
                   <Input className="h-10 bg-background text-sm tabular-nums" inputMode="decimal" placeholder="0" autoComplete="off" aria-label={`${t("walletForm.openingBalance")} ${c.code}`} {...register(c.balance)} />

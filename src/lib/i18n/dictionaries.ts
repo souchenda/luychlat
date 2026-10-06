@@ -3106,12 +3106,17 @@ const km = {
   "od.available": "អាចប្រើបាន (រួម OD)",
   "od.used": "កំពុងប្រើ OD",
   "od.short": "អាចប្រើ",
-  "walletForm.pairHint": "នឹងបង្កើតកាបូប ២ ក្នុងពេលតែមួយ៖ «{name} USD» និង «{name} KHR»។",
+  "walletForm.pairHint": "នឹងបង្កើតកាបូប ២៖ «{usd}» និង «{khr}»។",
   "walletForm.pairSaved": "បានបង្កើតកាបូប {name} ទាំង $ និង ៛",
   "walletForm.pairHalf": "បានបង្កើតតែ «{name}» ប៉ុណ្ណោះ",
   "walletForm.accountNo": "លេខគណនី (បើមាន)",
   "walletForm.accountNoShort": "លេខគណនី",
   "walletForm.accountInvalid": "លេខគណនីត្រូវតែជាលេខ (អាចមានដកឃ្លា ឬ -)",
+  "walletForm.accountNoBoth": "លេខគណនី (ប្រើសម្រាប់ $ និង ៛)",
+  "walletForm.accountNoUsd": "លេខគណនី $",
+  "walletForm.accountNoKhr": "លេខគណនី ៛",
+  "walletForm.differentKhrNumber": "គណនី ៛ មានលេខផ្សេង?",
+  "walletForm.sameNumber": "ប្រើលេខតែមួយសម្រាប់ទាំងពីរ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6207,12 +6212,17 @@ const en: Record<MessageKey, string> = {
   "od.available": "Available (with OD)",
   "od.used": "OD in use",
   "od.short": "Available",
-  "walletForm.pairHint": "Creates 2 wallets at once: “{name} USD” and “{name} KHR”.",
+  "walletForm.pairHint": "Creates 2 wallets: “{usd}” and “{khr}”.",
   "walletForm.pairSaved": "{name} created in both $ and ៛",
   "walletForm.pairHalf": "Only “{name}” was created",
   "walletForm.accountNo": "Account number (optional)",
   "walletForm.accountNoShort": "Account no.",
   "walletForm.accountInvalid": "Account number: digits only (spaces or dashes allowed)",
+  "walletForm.accountNoBoth": "Account number (for both $ and ៛)",
+  "walletForm.accountNoUsd": "Account number ($)",
+  "walletForm.accountNoKhr": "Account number (៛)",
+  "walletForm.differentKhrNumber": "Different number for ៛?",
+  "walletForm.sameNumber": "Use the same number for both",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
