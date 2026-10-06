@@ -1,13 +1,12 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, HomeIcon } from "lucide-react"
 
 import { Amount } from "@/components/money/amount"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { convert, roundMoney } from "@/lib/money"
-import { isGoal } from "@/lib/goals"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 /** Wallet totals, plus assets (gold at market rate + land, house, vehicles…) in USD when given. */
@@ -21,8 +20,6 @@ export function computeTotals(wallets: Wallet[], khrPerUsd: number, assetsUsd = 
   const usd = sum("USD")
   const khr = sum("KHR")
   return {
-    // Savings goals count in the totals (they are assets) but not as wallets.
-    count: active.filter((w) => !isGoal(w)).length,
     usdWallets: usd,
     khrWallets: khr,
     assets: assetsUsd,
@@ -78,13 +75,11 @@ export function NetWorthCard({ wallets, loading, assetsUsd = 0 }: { wallets: Wal
           <Amount value={totals.khrWallets} currency="KHR" />
         </span>
         {totals.assets > 0 && (
-          <span className="rounded-full bg-amber-400/30 px-2.5 py-1 ring-1 ring-amber-200/40 backdrop-blur-sm" title={t("assets.pageTitle")}>
-            🏠 <Amount value={totals.assets} currency="USD" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/30 px-2.5 py-1 ring-1 ring-amber-200/40 backdrop-blur-sm" title={t("assets.pageTitle")}>
+            <HomeIcon className="size-3" aria-hidden />
+            <Amount value={totals.assets} currency="USD" />
           </span>
         )}
-        <span className="ml-auto text-white/75">
-          {t("netWorth.walletCount", { count: totals.count })} · {t("netWorth.rate", { rate: khrPerUsd.toLocaleString("en-US") })}
-        </span>
       </div>
     </section>
   )

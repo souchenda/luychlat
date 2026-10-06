@@ -88,8 +88,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "ws.PERSONAL": "个人",
   "ws.BUSINESS": "商业",
   "netWorth.title": "总余额",
-  "netWorth.walletCount": "{count} 个钱包",
-  "netWorth.rate": "$1 = {rate}៛",
   "netWorth.toggle": "显示 / 隐藏余额",
   "wallets.title": "钱包与银行账户",
   "wallets.add": "添加钱包",

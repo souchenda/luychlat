@@ -105,8 +105,6 @@ const km = {
   "ws.PERSONAL": "ផ្ទាល់ខ្លួន",
   "ws.BUSINESS": "អាជីវកម្ម",
   "netWorth.title": "ទ្រព្យសកម្មសរុប",
-  "netWorth.walletCount": "{count} កាបូប",
-  "netWorth.rate": "1$ = {rate}៛",
   "netWorth.toggle": "បង្ហាញ / លាក់សមតុល្យ",
 
   "wallets.title": "កាបូបលុយ និងគណនីធនាគារ",
@@ -3077,8 +3075,6 @@ const en: Record<MessageKey, string> = {
   "ws.PERSONAL": "Personal",
   "ws.BUSINESS": "Business",
   "netWorth.title": "Total balance",
-  "netWorth.walletCount": "{count} wallets",
-  "netWorth.rate": "$1 = {rate}៛",
   "netWorth.toggle": "Show / hide balances",
 
   "wallets.title": "Wallets & bank accounts",
