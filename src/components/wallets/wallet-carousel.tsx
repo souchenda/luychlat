@@ -13,13 +13,13 @@ import { getProvider } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
-import { CardMeter } from "./credit-card"
 import { WalletAvatar } from "./wallet-avatar"
 
 /**
- * Home: wallets and cards side by side, swiped horizontally (snaps per card),
- * instead of a tall list — logo, name, kind, balance (≈ the other currency),
- * and a card's limit meter. Each opens /wallets; the last tile adds one.
+ * Home: cash and bank wallets side by side, swiped horizontally (snaps per card),
+ * instead of a tall list — logo, name, kind, balance (≈ the other currency).
+ * Credit cards stay on /wallets only, so Home shows just money you own.
+ * Each opens /wallets; the last tile adds one.
  */
 export function WalletCarousel({ wallets, onAdd }: { wallets: Wallet[]; onAdd?: () => void }) {
   const t = useT()
@@ -28,7 +28,7 @@ export function WalletCarousel({ wallets, onAdd }: { wallets: Wallet[]; onAdd?: 
 
   return (
     <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {wallets.map((w) => {
+      {wallets.filter((w) => !isCard(w)).map((w) => {
         const other = w.currency === "USD" ? "KHR" : "USD"
         return (
           <Link
@@ -41,7 +41,7 @@ export function WalletCarousel({ wallets, onAdd }: { wallets: Wallet[]; onAdd?: 
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium">{w.name}</span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {isCard(w) ? t("card.kind") : pick(getProvider(w.icon).name, locale)} · {w.currency}
+                  {pick(getProvider(w.icon).name, locale)} · {w.currency}
                 </span>
               </span>
             </span>
@@ -51,7 +51,6 @@ export function WalletCarousel({ wallets, onAdd }: { wallets: Wallet[]; onAdd?: 
                 ≈ <Amount value={convert(w.balance, w.currency, other, khrPerUsd)} currency={other} />
               </span>
             </span>
-            {isCard(w) && <CardMeter wallet={w} compact />}
           </Link>
         )
       })}
