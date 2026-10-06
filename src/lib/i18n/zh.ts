@@ -2973,4 +2973,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.offeringTomorrow": "{emoji} 明天是{name}。别忘了准备祭品和水果，并为仪式设定预算。",
   "bot.festivalTomorrow": "{emoji} 明天就是{name}。记得为节日开支做好预算，避免超支。",
   "holyDay.upcoming": "即将到来的节日与祭祀日",
+  "wallets.seeAllCount": "查看全部（{n}）",
 }

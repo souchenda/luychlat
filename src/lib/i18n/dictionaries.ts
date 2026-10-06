@@ -3020,6 +3020,7 @@ const km = {
   "bot.offeringTomorrow": "{emoji} ស្អែកជា{name}។ កុំភ្លេចទិញគ្រឿងសែន ផ្លែឈើ និងកំណត់ថវិកាសម្រាប់ពិធីនេះ ដើម្បីកុំឱ្យលើសផែនការ។",
   "bot.festivalTomorrow": "{emoji} ស្អែកចូលដល់{name}ហើយ។ កុំភ្លេចរៀបចំថវិកាសម្រាប់ចំណាយបុណ្យ ដើម្បីកុំឱ្យលើសផែនការ។",
   "holyDay.upcoming": "ថ្ងៃបុណ្យ និងថ្ងៃសែនខាងមុខ",
+  "wallets.seeAllCount": "មើលទាំងអស់ ({n})",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6029,6 +6030,7 @@ const en: Record<MessageKey, string> = {
   "bot.offeringTomorrow": "{emoji} Tomorrow is {name}. Don't forget to buy offerings and fruit, and set a budget for the ceremony.",
   "bot.festivalTomorrow": "{emoji} {name} starts tomorrow. Set a budget for festival spending so it stays on plan.",
   "holyDay.upcoming": "Upcoming festivals & offering days",
+  "wallets.seeAllCount": "See all ({n})",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

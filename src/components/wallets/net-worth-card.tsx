@@ -116,7 +116,7 @@ export function NetWorthCard({
           </div>
         </div>
 
-        {actions && <div className="flex w-[7.25rem] shrink-0 flex-col justify-center gap-1.5">{actions}</div>}
+        {actions && <div className="flex w-[7.25rem] shrink-0 flex-col justify-center gap-2">{actions}</div>}
       </div>
 
       {footer && <div className="mt-4 border-t border-white/15 pt-3 empty:hidden">{footer}</div>}
@@ -125,7 +125,7 @@ export function NetWorthCard({
 }
 
 /**
- * Quick entry, stacked on the right of the hero card: compact frosted glass with a white icon disc,
+ * Quick entry, stacked (and centred) on the right of the hero card: compact frosted glass with a white icon disc,
  * 36px tall. The glass is a dark tint (not white) so white text stays readable on the light top-right bloom.
  */
 export function HeroAction({
@@ -146,12 +146,12 @@ export function HeroAction({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-9 items-center gap-1.5 rounded-lg border border-white/20 bg-emerald-950/25 px-2.5 text-xs font-medium text-white backdrop-blur-sm transition-all hover:bg-emerald-950/35 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none active:scale-[0.97] disabled:opacity-50"
+      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-emerald-950/25 px-2.5 text-xs font-medium text-white backdrop-blur-sm transition-all hover:bg-emerald-950/35 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none active:scale-[0.97] disabled:opacity-50"
     >
       <span className={`grid size-5 shrink-0 place-items-center rounded-full bg-white shadow-sm ${tone}`}>
         <Icon className="size-3" strokeWidth={3} aria-hidden />
       </span>
-      <span className="truncate">{label}</span>
+      <span className="truncate text-center">{label}</span>
     </button>
   )
 }

@@ -32,10 +32,11 @@ import { cashFlow } from "@/lib/analytics"
 import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
-import { longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
+import { khmerDigits, longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { islamicGreeting, toHijri } from "@/lib/islamic"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
+import { isCard } from "@/lib/credit-card"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -44,7 +45,7 @@ import { useFeatures } from "@/lib/features"
 import { BirthdayCard } from "@/components/dashboard/birthday-card"
 import { LunarPill } from "@/components/dashboard/lunar-pill"
 import { FestivalBanner } from "@/components/dashboard/festival-banner"
-import { WalletCarousel } from "@/components/wallets/wallet-carousel"
+import { WalletPreviewGrid } from "@/components/wallets/wallet-preview-grid"
 
 const RECENT_COUNT = 4
 const TREND_MONTHS = 6
@@ -78,6 +79,8 @@ export default function HomePage() {
   const wallets = walletsQuery.data ?? []
   // Wallets section lists ordinary wallets; savings goals show in their own card.
   const active = wallets.filter((w) => !w.archived_at && !isGoal(w))
+  // Home previews the first two cash / bank wallets; credit cards and the rest are on /wallets.
+  const preview = active.filter((w) => !isCard(w)).slice(0, 2)
   const transactions = useMemo(() => txQuery.data ?? [], [txQuery.data])
   const thisMonth = monthKey()
   const monthTransactions = useMemo(
@@ -93,6 +96,7 @@ export default function HomePage() {
   const givenName = useProfile().data?.display_name?.trim().split(/\s+/).pop()
   const today = useToday()
   const locale = useLocaleStore((s) => s.locale)
+  const count = locale === "km" ? khmerDigits(String(active.length)) : String(active.length)
   // Islamic tools (optional): Ramadan / Eid greetings in season. The Hijri date itself is on /islamic.
   const islamic = useIslamicEnabled()
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
@@ -171,10 +175,13 @@ export default function HomePage() {
 
       <section className="space-y-2">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-medium text-muted-foreground">{t("nav.wallets")}</h2>
-          {active.length > 0 && (
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {t("nav.wallets")}
+            {active.length > 0 && ` (${count})`}
+          </h2>
+          {active.length > preview.length && (
             <Link href="/wallets" className="flex items-center text-sm text-primary">
-              {t("wallets.seeAll")}
+              {t("wallets.seeAllCount", { n: count })}
               <ChevronRightIcon className="size-4" />
             </Link>
           )}
@@ -192,7 +199,7 @@ export default function HomePage() {
             <span className="text-sm text-muted-foreground">{t("wallets.emptyHint")}</span>
           </button>
         ) : (
-          <WalletCarousel wallets={active} onAdd={editable ? () => setWalletFormOpen(true) : undefined} />
+          <WalletPreviewGrid wallets={preview} onAdd={editable ? () => setWalletFormOpen(true) : undefined} />
         )}
       </section>
 
