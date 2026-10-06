@@ -671,10 +671,7 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">{t("admin.title")}</h1>
-        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{t(`admin.role.${role}`)}</span>
-      </div>
+      <h1 className="text-2xl font-bold">{t("admin.title")}</h1>
       {role === "super_admin" && (
         <Button asChild variant="outline" className="w-full justify-between">
           <Link href="/admin/super">
