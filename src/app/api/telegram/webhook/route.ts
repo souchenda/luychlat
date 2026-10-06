@@ -25,6 +25,7 @@ import { botFeatures, featureOk, keyboardFor, menuCommand } from "@/lib/server/b
 import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
+import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -44,6 +45,12 @@ export const runtime = "nodejs"
 
 type Update = {
   callback_query?: Parameters<typeof handleCallback>[0]
+  /** The bot's own membership changed (added to / removed from a group). */
+  my_chat_member?: {
+    chat: { id: number; type: string }
+    from?: { language_code?: string }
+    new_chat_member?: { status?: string }
+  }
   message?: {
     text?: string
     caption?: string
@@ -74,6 +81,8 @@ const groupNoticeAt = new Map<number, number>()
  * is ignored.
  */
 async function handleGroupMessage(chatId: number, text: string, lang: Locale, fromId?: number, photo?: { fileId: string | null; replyTo: number | null }) {
+  // Track the group (it is left after 10 minutes without an active pool linked).
+  await noteGroupSeen(chatId).catch(() => null)
   const command = text.trim().split(/\s+/, 1)[0] ?? ""
   // A receipt photo sent as a reply to the bot's expense card (the keeper only).
   if (!command.startsWith("/") && photo?.fileId && photo.replyTo) {
@@ -248,6 +257,16 @@ export async function POST(request: Request) {
   try {
     update = (await request.json()) as Update
   } catch {
+    return NextResponse.json({ ok: true })
+  }
+  // Added to / removed from a group: start the 10-minute "link a pool" clock, or stop tracking it.
+  const membership = update.my_chat_member
+  if (membership) {
+    if (membership.chat.type === "group" || membership.chat.type === "supergroup") {
+      const status = membership.new_chat_member?.status ?? ""
+      if (status === "member" || status === "administrator") await noteGroupJoined(membership.chat.id, telegramLocale(membership.from?.language_code))
+      else if (status === "left" || status === "kicked") await noteGroupLeft(membership.chat.id)
+    }
     return NextResponse.json({ ok: true })
   }
   if (update.callback_query) {

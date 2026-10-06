@@ -39,7 +39,8 @@ export async function POST(request: Request) {
   const hook = await tg("setWebhook", {
     url,
     secret_token: webhookSecret(),
-    allowed_updates: ["message", "callback_query"],
+    // my_chat_member: added to / removed from groups (unlinked groups are left after 10 minutes).
+    allowed_updates: ["message", "callback_query", "my_chat_member"],
     drop_pending_updates: true,
   })
   await tg("setMyCommands", {

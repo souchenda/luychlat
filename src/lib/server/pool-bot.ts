@@ -132,7 +132,15 @@ export async function handlePoolGroupCommand(chatId: number, fromId: number | un
     if (!fromId) return true
     const { data } = await db.rpc("bot_pool_link", { p_key: botKey(), p_group: chatId, p_from: fromId, p_code: rest[1] ?? "" })
     const r = data as { status: string; title?: string } | null
-    await sendText(chatId, r?.status === "ok" ? tr(fallback, "pool.bot.linked", { title: r.title ?? "" }) : r?.status === "not_linked" ? tr(fallback, "pool.bot.linkNotLinked") : tr(fallback, "pool.bot.badCode"))
+    const reply =
+      r?.status === "ok"
+        ? tr(fallback, "pool.bot.linked", { title: r.title ?? "" })
+        : r?.status === "not_linked"
+          ? tr(fallback, "pool.bot.linkNotLinked")
+          : r?.status === "plan_required"
+            ? tr(fallback, "pool.bot.planRequired")
+            : tr(fallback, "pool.bot.badCode")
+    await sendText(chatId, reply)
     return true
   }
 

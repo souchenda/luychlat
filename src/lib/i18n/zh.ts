@@ -3014,4 +3014,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.slipCat.salary": "💼 工资",
   "bot.slipCat.income": "💰 其他收入",
   "feature.name.bank_slips": "银行单据识别（Telegram）",
+  "bot.groupWelcome": "👋 你好！我是 LuyChlat 共享资金池助手。\n要在本群使用，请保管人在 LuyChlat › 共享资金池 › 「连接 Telegram 群」中获取代码，并在 10 分钟内于本群发送 /pool link CODE。\n如未连接资金池，我将自动退出本群。",
+  "bot.groupLeaving": "👋 本群尚未连接 LuyChlat 资金池，我先退出了。准备好连接时可随时再次添加我。谢谢！🙏",
+  "pool.bot.planRequired": "👑 在 Telegram 群组中管理企业支出仅限 LuyChlat PRO 账户。请升级套餐后使用。",
 }

@@ -57,7 +57,7 @@ const api = (m, b) => fetch("https://api.telegram.org/bot" + t + "/" + m, { meth
   if (!me.ok) { console.log("ERR bad_token"); return }
   let hook = "no_public_url"
   if (process.env.PUBLIC_URL) {
-    const r = await api("setWebhook", { url: process.env.PUBLIC_URL + "/api/telegram/webhook", secret_token: h("luychlat-webhook"), allowed_updates: ["message", "callback_query"] })
+    const r = await api("setWebhook", { url: process.env.PUBLIC_URL + "/api/telegram/webhook", secret_token: h("luychlat-webhook"), allowed_updates: ["message", "callback_query", "my_chat_member"] })
     hook = r.ok ? "ok" : "failed"
   }
   await api("setMyCommands", { commands: [

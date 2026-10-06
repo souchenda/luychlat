@@ -11,6 +11,7 @@ import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
 import { readFileSync } from "fs"
 import { festivalTick, holyDayTick } from "@/lib/server/holy-days"
+import { groupSweepTick } from "@/lib/server/group-guard"
 import { flushPoolPosts } from "@/lib/server/pool-bot"
 import { birthdayTick, dormancyTick, flushSignupAlerts } from "@/lib/server/member-events"
 
@@ -82,6 +83,7 @@ export async function dispatchOnce() {
     await flushSignupAlerts()
     await birthdayTick()
     await dormancyTick()
+    await groupSweepTick()
     await watchdogTick()
   } catch (error) {
     console.error("[bot] dispatch failed:", (error as Error).message)
