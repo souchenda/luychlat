@@ -216,6 +216,10 @@ async function sendToAdmins(text: string) {
   }
 }
 
+/** The figure an incident's peak tracks (CPU %, RAM %, disk %, app memory %, DB ms). */
+const issueValue = (issue: Issue, s: Sample): number | null =>
+  ({ cpu: s.cpu_pct, ram: s.ram_pct, disk: s.disk_pct, app_mem: s.app_mem_pct, db_slow: s.db_ms, db_down: null, webhook: s.pending_updates })[issue] ?? null
+
 const history: Sample[] = []
 /** Open alerts (issue → when last alerted), shared with the database so deploys don't lose them. */
 const lastAlert = new Map<Issue, number>()
@@ -241,7 +245,11 @@ export async function watchdogTick() {
 
   for (const issue of issues) {
     clearStreak.set(issue, 0)
+    const value = issueValue(issue, sample)
     const last = lastAlert.get(issue) ?? 0
+    // The incident log (Super Admin › Development › Security): opened with the first alert, peak while open.
+    if (!lastAlert.has(issue)) await botDb().rpc("bot_health_incident", { p_key: botKey(), p_issue: issue, p_event: "open", p_value: value })
+    else if (value != null) await botDb().rpc("bot_health_incident", { p_key: botKey(), p_issue: issue, p_event: "peak", p_value: value })
     if (Date.now() - last >= LIMITS.cooldownMs) {
       lastAlert.set(issue, Date.now())
       await botDb().rpc("bot_health_alert_set", { p_key: botKey(), p_issue: issue, p_open: true })
@@ -257,6 +265,7 @@ export async function watchdogTick() {
     lastAlert.delete(issue)
     clearStreak.delete(issue)
     await botDb().rpc("bot_health_alert_set", { p_key: botKey(), p_issue: issue, p_open: false })
+    await botDb().rpc("bot_health_incident", { p_key: botKey(), p_issue: issue, p_event: "close" })
     await sendToAdmins(recoveredText(issue, sample, [...lastAlert.keys()]))
     logEvent("info", "watchdog", `Recovered: ${issue}`)
   }

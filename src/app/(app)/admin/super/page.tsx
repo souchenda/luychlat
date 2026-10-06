@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, Loader2Icon, ShieldAlertIcon } from "lucide-react"
+import { ArrowLeftIcon, ChevronRightIcon, GitCommitHorizontalIcon, Loader2Icon, ShieldAlertIcon } from "lucide-react"
 import Link from "next/link"
 
 import { AuditLogCard } from "@/components/admin/audit-log"
@@ -44,6 +44,17 @@ export default function SuperAdminPage() {
         <h1 className="min-w-0 flex-1 truncate text-xl font-bold">{t("super.title")}</h1>
       </div>
       <PrivacyNotice />
+      {/* Development: what shipped each day (live today) and the roadmap; EOD report at 23:59. */}
+      <Link href="/admin/super/changelog" className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted/50">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+          <GitCommitHorizontalIcon className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{t("dev.title")}</span>
+          <span className="block text-xs text-muted-foreground">{t("dev.cardHint")}</span>
+        </span>
+        <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
+      </Link>
       <BusinessMetrics />
       <CustomerDirectory />
       <PricingEngine />

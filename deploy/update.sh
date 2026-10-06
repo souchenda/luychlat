@@ -97,6 +97,13 @@ fi
 COMPOSE_PROJECT_NAME=$(slot_project "$next") CONTAINER_NAME=$(slot_project "$next") APP_PORT=$(slot_port "$next") APP_SLOT=$next \
   bash ./deploy/bot-activate.sh || echo "! Bot activation failed (the app is deployed; activate it in /admin)"
 git rev-parse HEAD > deploy/.deployed
+# Super Admin › Development: record the commits this deploy shipped (never fails the deploy).
+bash ./deploy/changelog-sync.sh || echo "! Changelog not recorded (the app is deployed)"
+# Security stats (blocked / rate-limited requests per minute) every 5 minutes, plus a backfill of the last day now.
+if [ -d /etc/cron.d ] && [ ! -f /etc/cron.d/luychlat-security ]; then
+  echo "*/5 * * * * root cd $(pwd) && bash deploy/security-stats.sh >/dev/null 2>&1" > /etc/cron.d/luychlat-security
+fi
+bash ./deploy/security-stats.sh 1440 || echo "! Security stats not recorded"
 # Lets auto-update.sh redeploy when .env changes (e.g. a new token).
 sha256sum .env 2>/dev/null | cut -d' ' -f1 > deploy/.deployed-env || true
 docker image prune -f >/dev/null
