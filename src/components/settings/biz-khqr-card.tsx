@@ -7,7 +7,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { useActiveWorkspace } from "@/lib/data/hooks"
+import { useActiveWorkspace, useWorkspaces } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
@@ -18,16 +18,22 @@ const client = () => {
 }
 
 /**
- * Settings › Telegram, in a business workspace (its owner): link the Telegram
- * group where ACLEDA / ABA PayWay post KHQR payments. Each payment there is
- * then recorded as Sales income in this workspace, in real time, once.
+ * Settings › Telegram, for anyone who owns a business workspace (whatever
+ * workspace is open; no plan check here — the database checks the plan when
+ * a code is made, super admins exempt): link the Telegram group where ACLEDA /
+ * ABA PayWay post KHQR payments. Each payment there is then recorded as Sales
+ * income in that business, in real time, once.
  */
 export function BizKhqrCard() {
   const t = useT()
-  const { workspace } = useActiveWorkspace()
+  const active = useActiveWorkspace().workspace
+  const businesses = (useWorkspaces().data ?? []).filter((w) => w.type === "BUSINESS" && w.role === "OWNER" && !w.archived_at)
+  const [pickedId, setPickedId] = useState<string | null>(null)
+  // The open business by default, else the first one owned.
+  const workspace = businesses.find((w) => w.id === pickedId) ?? businesses.find((w) => w.id === active?.id) ?? businesses[0]
   const queryClient = useQueryClient()
   const [code, setCode] = useState<string | null>(null)
-  const show = workspace?.type === "BUSINESS" && workspace.role === "OWNER"
+  const show = Boolean(workspace)
 
   const groups = useQuery({
     queryKey: ["biz-groups", workspace?.id],
@@ -59,7 +65,7 @@ export function BizKhqrCard() {
     onError: () => toast.error(t("common.error")),
   })
 
-  if (!show) return null
+  if (!show || !workspace) return null
   const command = code ? `/biz link ${code}` : ""
   const copy = async () => {
     try {
@@ -81,6 +87,29 @@ export function BizKhqrCard() {
           <p className="text-xs leading-relaxed text-muted-foreground">{t("biz.cardHint", { workspace: workspace.name })}</p>
         </div>
       </div>
+
+      {businesses.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {businesses.map((w) => (
+            <button
+              key={w.id}
+              type="button"
+              onClick={() => {
+                setPickedId(w.id)
+                setCode(null)
+              }}
+              aria-pressed={w.id === workspace.id}
+              className={
+                w.id === workspace.id
+                  ? "rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground"
+                  : "rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/80"
+              }
+            >
+              {w.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {code ? (
         <div className="space-y-2 text-sm">

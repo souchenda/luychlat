@@ -24,9 +24,9 @@ const SECTIONS: Record<string, { title: MessageKey; render: () => React.ReactNod
     title: "settings.telegramBot",
     render: () => (
       <>
-        <OfficialBotCard legacy={<TelegramSettingsCard />} />
-        {/* Business workspaces: the KHQR payments group (ACLEDA / ABA PayWay → Sales income). */}
+        {/* Owners of a business: the KHQR payments group (ACLEDA / ABA PayWay → Sales income), first so it is seen. */}
         <BizKhqrCard />
+        <OfficialBotCard legacy={<TelegramSettingsCard />} />
       </>
     ),
   },
