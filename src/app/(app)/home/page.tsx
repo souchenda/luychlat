@@ -1,6 +1,7 @@
 "use client"
 
 import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, MinusIcon, PlusIcon, ReceiptTextIcon, SparklesIcon, TargetIcon, WalletIcon } from "lucide-react"
+import { format } from "date-fns"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 
@@ -24,19 +25,20 @@ import { TransactionList } from "@/components/transactions/transaction-list"
 import { Button } from "@/components/ui/button"
 import { useToday } from "@/hooks/use-today"
 import { Skeleton } from "@/components/ui/skeleton"
-import { NetWorthCard } from "@/components/wallets/net-worth-card"
+import { HeroAction, NetWorthCard } from "@/components/wallets/net-worth-card"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { cashFlow } from "@/lib/analytics"
 import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
-import { monthKey, monthRange, recentMonths } from "@/lib/dates"
+import { longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { islamicGreeting, toHijri } from "@/lib/islamic"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
 import { useT } from "@/lib/i18n/use-t"
+import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useFeatures } from "@/lib/features"
 import { BirthdayCard } from "@/components/dashboard/birthday-card"
@@ -89,6 +91,7 @@ export default function HomePage() {
   // Cambodian names are family name first ("ស៊ូ ចិន្តា"): greet by the given name, the last word.
   const givenName = useProfile().data?.display_name?.trim().split(/\s+/).pop()
   const today = useToday()
+  const locale = useLocaleStore((s) => s.locale)
   // Islamic tools (optional): Ramadan / Eid greetings in season. The Hijri date itself is on /islamic.
   const islamic = useIslamicEnabled()
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
@@ -97,21 +100,28 @@ export default function HomePage() {
 
   return (
     <div className="space-y-4">
-      {/* One row: greeting on the left, the lunar day / next holy day pill on the right. */}
+      {/* One row: greeting with today's date under it on the left, the lunar day / next holy day pill on the right. */}
       <header>
         <div className="flex items-center justify-between gap-3">
-          {workspace?.type === "BUSINESS" ? (
-            // Business workspace: the business's logo and name instead of a personal greeting.
-            <h1 className="flex min-w-0 items-center gap-2 text-lg font-bold">
-              <ProfileAvatar path={workspace.logo_path} name={workspace.name} business className="size-8 rounded-lg text-xs" />
-              <span className="truncate">{workspace.name}</span>
-            </h1>
-          ) : (
-            <h1 className="min-w-0 truncate pt-0.5 text-lg font-bold">
-              {givenName ? t("home.greetingName", { name: givenName }) : t("home.greeting")}{" "}
-              <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
-            </h1>
-          )}
+          <div className="min-w-0">
+            {workspace?.type === "BUSINESS" ? (
+              // Business workspace: the business's logo and name instead of a personal greeting.
+              <h1 className="flex min-w-0 items-center gap-2 text-lg font-bold">
+                <ProfileAvatar path={workspace.logo_path} name={workspace.name} business className="size-8 rounded-lg text-xs" />
+                <span className="truncate">{workspace.name}</span>
+              </h1>
+            ) : (
+              <h1 className="min-w-0 truncate pt-0.5 text-lg font-bold">
+                {givenName ? t("home.greetingName", { name: givenName }) : t("home.greeting")}{" "}
+                <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
+              </h1>
+            )}
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
+                {longDate(today, locale)}
+              </time>
+            </p>
+          </div>
           {/* Right: a small gold pill with today's lunar day and the next holy day (opens /bills).
               Islamic Mode in season shows its greeting instead. */}
           {islamicKey ? (
@@ -129,33 +139,26 @@ export default function HomePage() {
 
       <ExperienceSelector />
 
-      <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
-
-      <div className={editable ? "grid grid-cols-3 gap-2" : "hidden"}>
-        <Button
-          className="h-11 flex-col gap-0.5 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
-          onClick={() => setEntryType("INCOME")}
-        >
-          <PlusIcon className="size-4" />
-          <span className="text-xs">{t("tx.INCOME")}</span>
-        </Button>
-        <Button
-          className="h-11 flex-col gap-0.5 bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500"
-          onClick={() => setEntryType("EXPENSE")}
-        >
-          <MinusIcon className="size-4" />
-          <span className="text-xs">{t("tx.EXPENSE")}</span>
-        </Button>
-        <Button
-          variant="secondary"
-          className="h-11 flex-col gap-0.5"
-          onClick={() => setTransferOpen(true)}
-          disabled={active.length < 2}
-        >
-          <ArrowLeftRightIcon className="size-4" />
-          <span className="text-xs">{t("tx.TRANSFER")}</span>
-        </Button>
-      </div>
+      <NetWorthCard
+        wallets={walletsQuery.data}
+        loading={walletsQuery.isLoading}
+        assetsUsd={assets.totalUsd}
+        actions={
+          editable && (
+            <>
+              <HeroAction icon={PlusIcon} tone="text-emerald-700" label={t("tx.INCOME")} onClick={() => setEntryType("INCOME")} />
+              <HeroAction icon={MinusIcon} tone="text-rose-600" label={t("tx.EXPENSE")} onClick={() => setEntryType("EXPENSE")} />
+              <HeroAction
+                icon={ArrowLeftRightIcon}
+                tone="text-teal-700"
+                label={t("tx.TRANSFER")}
+                onClick={() => setTransferOpen(true)}
+                disabled={active.length < 2}
+              />
+            </>
+          )
+        }
+      />
 
       {/* NBC $1 = …៛ · gold 24K per damlung — opens /market. */}
       <MarketRatesCard />
@@ -280,3 +283,4 @@ export default function HomePage() {
     </div>
   )
 }
+

@@ -1,6 +1,7 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon, HomeIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, HomeIcon, type LucideIcon } from "lucide-react"
+import type { ReactNode } from "react"
 
 import { Amount } from "@/components/money/amount"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -28,8 +29,21 @@ export function computeTotals(wallets: Wallet[], khrPerUsd: number, assetsUsd = 
   }
 }
 
-/** Total of the active workspace (wallets, savings goals and assets), in USD and KHR at the configured rate. */
-export function NetWorthCard({ wallets, loading, assetsUsd = 0 }: { wallets: Wallet[] | undefined; loading?: boolean; assetsUsd?: number }) {
+/**
+ * Total of the active workspace (wallets, savings goals and assets), in USD and KHR at the configured rate.
+ * `actions` (Home): quick-entry buttons sitting inside the bottom of the card.
+ */
+export function NetWorthCard({
+  wallets,
+  loading,
+  assetsUsd = 0,
+  actions,
+}: {
+  wallets: Wallet[] | undefined
+  loading?: boolean
+  assetsUsd?: number
+  actions?: ReactNode
+}) {
   const t = useT()
   const { hideBalances, toggleHideBalances, khrPerUsd } = usePrefsStore()
   const totals = computeTotals(wallets ?? [], khrPerUsd, assetsUsd)
@@ -81,6 +95,37 @@ export function NetWorthCard({ wallets, loading, assetsUsd = 0 }: { wallets: Wal
           </span>
         )}
       </div>
+
+      {actions && <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/15 pt-4">{actions}</div>}
     </section>
+  )
+}
+
+/** Quick entry inside the hero card: dark frosted glass on the emerald gradient (keeps white text readable), a white icon disc, 48px tall. */
+export function HeroAction({
+  icon: Icon,
+  tone,
+  label,
+  onClick,
+  disabled,
+}: {
+  icon: LucideIcon
+  tone: string
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex h-12 items-center justify-center gap-1.5 rounded-2xl border border-white/20 bg-emerald-950/25 px-2 text-sm font-medium text-white shadow-inner shadow-white/5 backdrop-blur-sm transition-all hover:bg-emerald-950/35 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none active:scale-[0.97] disabled:opacity-50"
+    >
+      <span className={`grid size-6 shrink-0 place-items-center rounded-full bg-white shadow-sm ${tone}`}>
+        <Icon className="size-3.5" strokeWidth={2.75} aria-hidden />
+      </span>
+      <span className="truncate">{label}</span>
+    </button>
   )
 }
