@@ -15,6 +15,8 @@ import { useLocaleStore } from "@/stores/locale-store"
 
 /** ភទ្របទ in khmerLunarDate's month index (មិគសិរ = 0). */
 const PHOTROBOT = 9
+/** On the day, these show a wish in the pill ("ចូលឆ្នាំចិន (ហេង ហេង)") instead of the plain name. */
+const PILL_WISH = new Set<CulturalKey>(["chinese_new_year", "dongzhi"])
 /** A festival / offering day this close takes the pill over from the holy-day countdown. */
 const SOON_DAYS = 3
 
@@ -51,7 +53,7 @@ export function LunarPill() {
     const soon = on ? null : upcomingCulturalDays(today, SOON_DAYS)[0]
     if (on) {
       key = on.key
-      text = name(on.key)
+      text = PILL_WISH.has(on.key) ? t(`cultural.${on.key}.pill` as MessageKey) : name(on.key)
     } else if (soon) {
       key = soon.key
       text = `${name(soon.key)} (${t("holyDay.pillDays", { n: daysUntil(today, soon.start) })})`

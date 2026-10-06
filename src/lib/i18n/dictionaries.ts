@@ -3003,7 +3003,7 @@ const km = {
   "cultural.chinese_new_year.name": "បុណ្យចូលឆ្នាំចិន",
   "cultural.khmer_new_year.name": "ចូលឆ្នាំខ្មែរ",
   "cultural.hungry_ghost.name": "ថ្ងៃសែនក្បាលទឹក",
-  "cultural.mid_autumn.name": "ថ្ងៃសែនព្រះខែ",
+  "cultural.mid_autumn.name": "ពិធីសែនព្រះខែ",
   "cultural.pchum_ben.name": "ភ្ជុំបិណ្ឌ",
   "cultural.water_festival.name": "បុណ្យអុំទូក",
   "cultural.dongzhi.name": "ថ្ងៃសែននំអ៊ី",
@@ -3017,7 +3017,7 @@ const km = {
   "festival.mid_autumn.body": "ពេញបូណ៌មី ជួបជុំគ្រួសារ ជាមួយនំព្រះខែ។ សូមឱ្យគ្រួសារបងពោរពេញដោយសេចក្ដីសុខ និងភាពកក់ក្ដៅ!",
   "festival.dongzhi.title": "ថ្ងៃសែននំអ៊ី",
   "festival.dongzhi.body": "ថ្ងៃដុងជី (冬至) ញ៉ាំនំអ៊ីជុំគ្នា ជាសញ្ញានៃការជួបជុំ និងភាពសុខដុមរមនា។ សូមឱ្យគ្រួសារបងរីកចម្រើន!",
-  "bot.offeringTomorrow": "{emoji} ស្អែកជា{name}។ កុំភ្លេចទិញគ្រឿងសែន ផ្លែឈើ និងកំណត់ថវិកាសម្រាប់ពិធីនេះ ដើម្បីកុំឱ្យលើសផែនការ។",
+  "bot.offeringTomorrow": "🔔 ស្អែកជា{name}!\nកុំភ្លេចត្រៀមទិញសម្ភារសែនព្រេន ផ្លែឈើ និងចាត់ចែងថវិកាណា៎បង! 🧧✨",
   "bot.festivalTomorrow": "{emoji} ស្អែកចូលដល់{name}ហើយ។ កុំភ្លេចរៀបចំថវិកាសម្រាប់ចំណាយបុណ្យ ដើម្បីកុំឱ្យលើសផែនការ។",
   "holyDay.upcoming": "ថ្ងៃបុណ្យ និងថ្ងៃសែនខាងមុខ",
   "wallets.seeAllCount": "មើលទាំងអស់ ({n})",
@@ -3026,6 +3026,8 @@ const km = {
   "login.nameRequired": "សូមបញ្ចូលឈ្មោះរបស់អ្នក",
   "market.goldShort": "មាស",
   "login.signedOutElsewhereShort": "គណនីបានចូលលើឧបករណ៍ផ្សេង។ សូមចូលឡើងវិញ។",
+  "cultural.chinese_new_year.pill": "ចូលឆ្នាំចិន (ហេង ហេង)",
+  "cultural.dongzhi.pill": "ថ្ងៃសែននំអ៊ី (ហេង ហេង)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6032,7 +6034,7 @@ const en: Record<MessageKey, string> = {
   "festival.mid_autumn.body": "Full moon, family and mooncakes — may your home be full of warmth and togetherness!",
   "festival.dongzhi.title": "Happy Dongzhi!",
   "festival.dongzhi.body": "Sweet rice balls together for reunion and harmony. May your family thrive!",
-  "bot.offeringTomorrow": "{emoji} Tomorrow is {name}. Don't forget to buy offerings and fruit, and set a budget for the ceremony.",
+  "bot.offeringTomorrow": "🔔 Tomorrow is {name}!\nDon't forget to buy offerings and fruit, and plan your budget! 🧧✨",
   "bot.festivalTomorrow": "{emoji} {name} starts tomorrow. Set a budget for festival spending so it stays on plan.",
   "holyDay.upcoming": "Upcoming festivals & offering days",
   "wallets.seeAllCount": "See all ({n})",
@@ -6041,6 +6043,8 @@ const en: Record<MessageKey, string> = {
   "login.nameRequired": "Please enter your name",
   "market.goldShort": "Gold",
   "login.signedOutElsewhereShort": "Signed in on another device. Please sign in again.",
+  "cultural.chinese_new_year.pill": "Chinese New Year (Heng heng!)",
+  "cultural.dongzhi.pill": "Dongzhi (Heng heng!)",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

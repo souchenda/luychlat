@@ -2970,7 +2970,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "festival.mid_autumn.body": "月圆人团圆——祝您阖家幸福，温馨美满！",
   "festival.dongzhi.title": "冬至快乐！",
   "festival.dongzhi.body": "冬至吃汤圆，团团圆圆，祝您阖家安康！",
-  "bot.offeringTomorrow": "{emoji} 明天是{name}。别忘了准备祭品和水果，并为仪式设定预算。",
+  "bot.offeringTomorrow": "🔔 明天是{name}！\n别忘了准备祭品和水果，并安排好预算哦！🧧✨",
   "bot.festivalTomorrow": "{emoji} 明天就是{name}。记得为节日开支做好预算，避免超支。",
   "holyDay.upcoming": "即将到来的节日与祭祀日",
   "wallets.seeAllCount": "查看全部（{n}）",
@@ -2979,4 +2979,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "login.nameRequired": "请输入您的姓名",
   "market.goldShort": "黄金",
   "login.signedOutElsewhereShort": "账户已在其他设备登录，请重新登录。",
+  "cultural.chinese_new_year.pill": "春节（兴兴旺旺）",
+  "cultural.dongzhi.pill": "冬至（兴兴旺旺）",
 }
