@@ -1,7 +1,7 @@
 "use client"
 
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Loader2Icon, LockIcon, SmartphoneIcon, UserIcon } from "lucide-react"
-import { useState } from "react"
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Loader2Icon, LockIcon, SmartphoneIcon, TriangleAlertIcon, UserIcon, XIcon } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -78,6 +78,9 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
   const [shaking, setShaking] = useState(false)
+  /** Arrived from /login?signed_out=elsewhere (single-device rule): a one-line note on the sign-in tab. */
+  const [elsewhere, setElsewhere] = useState(false)
+  useEffect(() => setElsewhere(new URLSearchParams(window.location.search).get("signed_out") === "elsewhere"), [])
   /** Forgot password started: the code step (Telegram) takes over the form. */
   const [reset, setReset] = useState<ResetStart | null>(null)
   /** Shows the error and gives the form a short shake. */
@@ -171,7 +174,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   }
 
   const field =
-    "h-12 rounded-xl border-neutral-200 bg-neutral-50/50 text-sm shadow-none transition-colors focus-visible:border-emerald-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-neutral-800 dark:bg-neutral-900/50 dark:focus-visible:border-emerald-400 dark:focus-visible:bg-neutral-900"
+    "h-11 rounded-xl border-neutral-200 bg-neutral-50/50 text-sm shadow-none transition-colors focus-visible:border-emerald-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-neutral-800 dark:bg-neutral-900/50 dark:focus-visible:border-emerald-400 dark:focus-visible:bg-neutral-900"
   const label = "text-sm font-medium text-neutral-700 dark:text-neutral-300"
   // Leading icon inside a field; turns emerald with the focus ring.
   const leadIcon =
@@ -198,7 +201,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     <form
       key={mode === "forgot" ? "forgot" : "auth"}
       onSubmit={submit}
-      className={cn("space-y-4 animate-in fade-in-0 duration-200", shaking && "animate-shake motion-reduce:animate-none")}
+      className={cn("space-y-3 animate-in fade-in-0 duration-200", shaking && "animate-shake motion-reduce:animate-none")}
       onAnimationEnd={() => setShaking(false)}
     >
       {mode === "forgot" ? (
@@ -213,8 +216,18 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       ) : (
         <AuthTabs value={mode} onChange={switchMode} label={t("login.emailTitle")} />
       )}
+      {/* Signed out by the one-device rule: only on "Sign in" (never shown to someone signing up). */}
+      {mode === "signin" && elsewhere && (
+        <p role="status" className="flex items-center gap-2 rounded-lg bg-amber-500/10 py-1.5 pr-1 pl-2.5 text-xs text-amber-800 dark:text-amber-300">
+          <TriangleAlertIcon className="size-3.5 shrink-0" aria-hidden />
+          <span className="min-w-0 flex-1">{t("login.signedOutElsewhereShort")}</span>
+          <button type="button" onClick={() => setElsewhere(false)} className="rounded-md p-1 hover:bg-amber-500/15" aria-label={t("common.close")}>
+            <XIcon className="size-3.5" aria-hidden />
+          </button>
+        </p>
+      )}
       {mode === "signup" && (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <Label htmlFor="signup-name" className={label}>
             {t("login.fullName")}
           </Label>
@@ -236,7 +249,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
           </div>
         </div>
       )}
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <Label htmlFor="login-email" className={label}>
           {t("login.identifier")}
         </Label>
@@ -258,7 +271,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
         </div>
       </div>
       {mode !== "forgot" && (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <div className="flex items-center justify-between">
             <Label htmlFor="login-password" className={label}>
               {t("login.password")}
@@ -300,7 +313,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       {notice && <p className="rounded-xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">{notice}</p>}
       <Button
         type="submit"
-        className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white shadow-md shadow-emerald-600/20 transition-all duration-200 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/30 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
+        className="h-11 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white shadow-md shadow-emerald-600/20 transition-all duration-200 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/30 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
         disabled={disabled || busy}
       >
         {busy && <Loader2Icon className="animate-spin" />}

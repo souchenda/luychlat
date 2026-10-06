@@ -32,12 +32,12 @@ function GuestDataNote() {
 }
 
 /** Signed out because the account signed in on another device. */
-function SignedOutElsewhere() {
+/** After deleting the account. (Signed out by the one-device rule: a one-line note inside the sign-in form.) */
+function AccountDeletedNote() {
   const t = useT()
   const params = useSearchParams()
-  if (params.get("deleted") === "1") return <p className="rounded-xl bg-neutral-100 p-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">{t("deleteAccount.done")}</p>
-  if (params.get("signed_out") !== "elsewhere") return null
-  return <p className="rounded-xl bg-amber-500/10 p-3 text-sm leading-relaxed text-amber-800 dark:text-amber-300">{t("login.signedOutElsewhere")}</p>
+  if (params.get("deleted") !== "1") return null
+  return <p className="rounded-xl bg-neutral-100 p-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">{t("deleteAccount.done")}</p>
 }
 
 function OAuthError() {
@@ -76,25 +76,23 @@ export default function LoginPage() {
         <div className="absolute -top-24 left-1/2 size-[22rem] animate-aurora rounded-full bg-[radial-gradient(closest-side,rgba(45,212,191,0.16),transparent)] motion-reduce:animate-none" />
       </div>
 
-      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-5 pb-6">
+      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-3 pb-2">
         <div className="flex justify-end">
           <LanguageToggle />
         </div>
 
         {/* Brand: logo, then title, then the card — each a beat after the last. */}
-        <div className="mt-6 mb-7 flex flex-col items-center text-center">
-          <BrandMark className="size-16 rounded-[1.25rem] bg-linear-to-br from-emerald-500 to-teal-600 text-3xl text-white shadow-lg shadow-emerald-600/30 ring-1 ring-white/40 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none dark:ring-white/10" />
-          <h1 className="mt-4 text-2xl font-semibold delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "លុយឆ្លាត"}</h1>
-          <p className="mt-1 text-sm text-neutral-500 delay-75 dark:text-neutral-400 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated && t("app.tagline")}</p>
+        <div className="mb-3 flex flex-col items-center text-center">
+          <BrandMark className="size-12 rounded-[1rem] bg-linear-to-br from-emerald-500 to-teal-600 text-2xl text-white shadow-lg shadow-emerald-600/30 ring-1 ring-white/40 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none dark:ring-white/10" />
+          <h1 className="mt-2 text-xl font-semibold delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "លុយឆ្លាត"}</h1>
+          <p className="mt-0.5 text-sm text-neutral-500 delay-75 dark:text-neutral-400 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated && t("app.tagline")}</p>
         </div>
 
         {hydrated && (
-          <section className="rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-xl shadow-emerald-950/5 delay-150 dark:border-neutral-800 dark:bg-neutral-900/80 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
-            <div className="flex flex-col gap-5">
-              <div className="space-y-1">
-                <h2 className="text-lg font-semibold">{t("login.title")}</h2>
-                <p className="text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">{t("login.subtitle")}</p>
-              </div>
+          <section className="rounded-3xl border border-neutral-200/80 bg-white px-5 py-4 shadow-xl shadow-emerald-950/5 delay-150 dark:border-neutral-800 dark:bg-neutral-900/80 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+            <div className="flex flex-col gap-3">
+              {/* One line: the brand's tagline above already says what this is. */}
+              <h2 className="text-base font-semibold">{t("login.title")}</h2>
 
               {cloudDisabled && (
                 <p className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
@@ -103,7 +101,7 @@ export default function LoginPage() {
               )}
               <Suspense>
                 <OAuthError />
-            <SignedOutElsewhere />
+                <AccountDeletedNote />
                 <ReferralCapture />
               </Suspense>
               <GuestDataNote />

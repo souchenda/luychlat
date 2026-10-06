@@ -13,7 +13,7 @@ export function LoginFooter() {
 
   // Android draws under the navigation bar (viewport-fit=cover) and often reports no inset: keep some room.
   return (
-    <footer className="pt-10 pb-[max(env(safe-area-inset-bottom),0.5rem)] text-center text-xs text-neutral-400 dark:text-neutral-500">
+    <footer className="pt-3 pb-[max(env(safe-area-inset-bottom),0.25rem)] text-center text-xs text-neutral-400 dark:text-neutral-500">
       <p>
         🔒 {t("login.secureLine")} · v{APP_VERSION}
       </p>

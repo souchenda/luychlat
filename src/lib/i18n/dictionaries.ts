@@ -2866,7 +2866,7 @@ const km = {
   "loanDocs.remove": "លុបឯកសារ",
   "loanDocs.removeConfirm": "លុប «{name}»?",
   "login.secureLine": "ការពារដោយសុវត្ថិភាពកម្រិតខ្ពស់",
-  "login.identifier": "លេខទូរស័ព្ទ ឬ អ៊ីមែល",
+  "login.identifier": "ទូរស័ព្ទ ឬ អ៊ីមែល",
   "login.identifierPlaceholder": "012 345 678 ឬ name@example.com",
   "login.identifierInvalid": "សូមបញ្ចូលលេខទូរស័ព្ទកម្ពុជា ឬអ៊ីមែលឱ្យបានត្រឹមត្រូវ",
   "login.identifierError": "លេខទូរស័ព្ទ/អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ",
@@ -3021,10 +3021,11 @@ const km = {
   "bot.festivalTomorrow": "{emoji} ស្អែកចូលដល់{name}ហើយ។ កុំភ្លេចរៀបចំថវិកាសម្រាប់ចំណាយបុណ្យ ដើម្បីកុំឱ្យលើសផែនការ។",
   "holyDay.upcoming": "ថ្ងៃបុណ្យ និងថ្ងៃសែនខាងមុខ",
   "wallets.seeAllCount": "មើលទាំងអស់ ({n})",
-  "login.fullName": "ឈ្មោះពេញ ឬ ឈ្មោះហៅក្រៅ",
+  "login.fullName": "ឈ្មោះ",
   "login.fullNamePlaceholder": "ឧ. សុខ សាន",
   "login.nameRequired": "សូមបញ្ចូលឈ្មោះរបស់អ្នក",
   "market.goldShort": "មាស",
+  "login.signedOutElsewhereShort": "គណនីបានចូលលើឧបករណ៍ផ្សេង។ សូមចូលឡើងវិញ។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6035,10 +6036,11 @@ const en: Record<MessageKey, string> = {
   "bot.festivalTomorrow": "{emoji} {name} starts tomorrow. Set a budget for festival spending so it stays on plan.",
   "holyDay.upcoming": "Upcoming festivals & offering days",
   "wallets.seeAllCount": "See all ({n})",
-  "login.fullName": "Full name or nickname",
+  "login.fullName": "Name",
   "login.fullNamePlaceholder": "e.g. John Doe",
   "login.nameRequired": "Please enter your name",
   "market.goldShort": "Gold",
+  "login.signedOutElsewhereShort": "Signed in on another device. Please sign in again.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

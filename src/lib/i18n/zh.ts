@@ -2974,8 +2974,9 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.festivalTomorrow": "{emoji} 明天就是{name}。记得为节日开支做好预算，避免超支。",
   "holyDay.upcoming": "即将到来的节日与祭祀日",
   "wallets.seeAllCount": "查看全部（{n}）",
-  "login.fullName": "全名或昵称",
+  "login.fullName": "姓名",
   "login.fullNamePlaceholder": "例如 张三",
   "login.nameRequired": "请输入您的姓名",
   "market.goldShort": "黄金",
+  "login.signedOutElsewhereShort": "账户已在其他设备登录，请重新登录。",
 }
