@@ -3059,4 +3059,10 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "od.available": "可用（含透支）",
   "od.used": "已用透支",
   "od.short": "可用",
+  "walletForm.pairHint": "将一次创建 2 个钱包：「{name} USD」和「{name} KHR」。",
+  "walletForm.pairSaved": "已创建 {name} 的 $ 和 ៛ 钱包",
+  "walletForm.pairHalf": "仅创建了「{name}」",
+  "walletForm.accountNo": "账号（可选）",
+  "walletForm.accountNoShort": "账号",
+  "walletForm.accountInvalid": "账号只能是数字（可含空格或 -）",
 }

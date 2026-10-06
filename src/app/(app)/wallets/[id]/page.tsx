@@ -18,6 +18,7 @@ import { isCard } from "@/lib/credit-card"
 import { canWrite, useActiveWorkspace, useCategories, useTransactions, useWalletHasHistory, useWallets } from "@/lib/data/hooks"
 import type { Transaction } from "@/lib/data/types"
 import { monthKey, monthLabel, monthRange, type MonthKey } from "@/lib/dates"
+import { maskAccount } from "@/lib/format"
 import { pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { convert, roundMoney } from "@/lib/money"
@@ -110,6 +111,7 @@ export default function WalletStatementPage() {
             <h1 className="truncate text-lg font-semibold">{wallet.name}</h1>
             <p className="truncate text-xs text-muted-foreground">
               {kind} · {wallet.currency}
+              {wallet.account_no ? ` · ${maskAccount(wallet.account_no)}` : ""}
             </p>
           </div>
         </div>

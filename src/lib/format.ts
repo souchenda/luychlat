@@ -88,3 +88,10 @@ export function formatRemaining(dueDate: string | null | undefined, locale: Loca
 
 /** A converted amount, always marked as approximate: "≈ 2,060,000៛". */
 export const formatApprox = (amount: number, currency: Currency, hidden = false) => `≈ ${formatMoney(amount, currency, { hidden })}`
+
+/** "3860 0123 6262" → "386***6262" (digits only; short numbers as they are). */
+export function maskAccount(account: string | null | undefined): string {
+  const digits = (account ?? "").replace(/\D/g, "")
+  if (!digits) return ""
+  return digits.length >= 8 ? `${digits.slice(0, 3)}***${digits.slice(-4)}` : digits
+}

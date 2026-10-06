@@ -79,7 +79,11 @@ export type WalletKind = "STANDARD" | "CREDIT_CARD"
  * A bank wallet's overdraft (OD) / working-capital line: balance stays the
  * ledger balance (negative while drawn); available = balance + od_limit.
  */
-export type OverdraftFields = { od_limit?: number | null }
+export type OverdraftFields = {
+  od_limit?: number | null
+  /** The bank account number (digits, spaces or dashes), shown masked (lib/format maskAccount). */
+  account_no?: string | null
+}
 
 export type Transaction = {
   id: string

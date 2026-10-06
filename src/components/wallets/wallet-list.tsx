@@ -9,6 +9,7 @@ import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { isCard } from "@/lib/credit-card"
 import { convert } from "@/lib/money"
+import { maskAccount } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { getProvider } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -61,6 +62,7 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: Wa
                 )}
                 <span className="truncate">
                   {isCard(wallet) ? t("card.kind") : pick(getProvider(wallet.icon).name, locale)} · {wallet.currency}
+                  {wallet.account_no ? ` · ${maskAccount(wallet.account_no)}` : ""}
                 </span>
               </span>
             </span>

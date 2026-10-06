@@ -52,8 +52,14 @@ import { WalletAvatar } from "./wallet-avatar"
 const schema = z.object({
   icon: z.string(),
   name: z.string().trim().min(1, "walletForm.nameRequired").max(60),
-  currency: z.enum(["USD", "KHR"]),
+  // BOTH (new bank wallets only): a USD and a KHR wallet in one go, as Cambodian bank accounts come in pairs.
+  currency: z.enum(["USD", "KHR", "BOTH"]),
   balance: z.string().refine((v) => !Number.isNaN(parseAmount(v)), "walletForm.amountInvalid"),
+  balanceKhr: z.string().refine((v) => !Number.isNaN(parseAmount(v)), "walletForm.amountInvalid"),
+  // Bank account numbers (digits, spaces, dashes); the KHR ones are for "$ + ៛".
+  accountNo: z.string().trim().regex(/^([0-9][0-9 -]{2,29})?$/, "walletForm.accountInvalid"),
+  accountNoKhr: z.string().trim().regex(/^([0-9][0-9 -]{2,29})?$/, "walletForm.accountInvalid"),
+  odLimitKhr: z.string(),
   visibility: z.enum(["SHARED", "PERSONAL"]),
   kind: z.enum(["STANDARD", "CREDIT_CARD"]),
   creditLimit: z.string(),
@@ -194,6 +200,10 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           name: wallet.name,
           currency: wallet.currency,
           balance: String(wallet.balance),
+          balanceKhr: "",
+          accountNo: wallet.account_no ?? "",
+          accountNoKhr: "",
+          odLimitKhr: "",
           visibility: wallet.visibility,
           kind: wallet.kind ?? "STANDARD",
           creditLimit: wallet.credit_limit != null ? String(wallet.credit_limit) : "",
@@ -206,6 +216,10 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           name: pickText(getProvider("cash").name, locale),
           currency: "USD",
           balance: "",
+          balanceKhr: "",
+          accountNo: "",
+          accountNoKhr: "",
+          odLimitKhr: "",
           visibility: "SHARED",
           kind: "STANDARD",
           creditLimit: "",
@@ -219,6 +233,12 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   const icon = useWatch({ control, name: "icon" })
   const kind = useWatch({ control, name: "kind" }) as WalletKind
   const card = kind === "CREDIT_CARD"
+  const currencyChoice = useWatch({ control, name: "currency" })
+  const both = !wallet && !card && currencyChoice === "BOTH"
+  // A card is one currency: drop "$ + ៛" when switching to a card.
+  useEffect(() => {
+    if (card && getValues("currency") === "BOTH") setValue("currency", "USD")
+  }, [card, getValues, setValue])
   const [payOpen, setPayOpen] = useState(false)
   const allWallets = useWallets(workspaceId).data ?? []
   const name = useWatch({ control, name: "name" })
@@ -241,7 +261,8 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   }
 
   const onSubmit = handleSubmit(async (values) => {
-    const currency = values.currency as Currency
+    if (values.currency === "BOTH" && !wallet && values.kind !== "CREDIT_CARD") return void createPair(values)
+    const currency = (values.currency === "BOTH" ? "USD" : values.currency) as Currency
     const visibility: WalletVisibility = family ? values.visibility : (wallet?.visibility ?? "SHARED")
     const isCardForm = values.kind === "CREDIT_CARD"
     const limit = parseAmount(values.creditLimit)
@@ -258,7 +279,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
     // A bank wallet's overdraft line (optional; empty or 0 = none).
     const od = parseAmount(values.odLimit || "0")
     if (!isCardForm && (Number.isNaN(od) || od < 0)) return void toast.error(t("walletForm.amountInvalid"))
-    const odFields = isCardForm ? {} : { od_limit: od > 0 ? roundMoney(od, currency) : null }
+    const odFields = isCardForm ? {} : { od_limit: od > 0 ? roundMoney(od, currency) : null, account_no: values.accountNo.trim() || null }
     const amount = roundMoney(parseAmount(values.balance || "0"), currency)
     const input = {
       name: values.name.trim(),
@@ -286,6 +307,50 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
       toast.error(error instanceof PersonalWalletError ? t("wallet.personalOnly") : t("common.error"))
     }
   })
+
+  /** "$ + ៛": the USD wallet, then the KHR one ("ACLEDA USD", "ACLEDA KHR"), each with its account number and OD. */
+  const createPair = async (values: FormValues) => {
+    const visibility: WalletVisibility = family ? values.visibility : "SHARED"
+    const base = values.name.trim()
+    const odUsd = parseAmount(values.odLimit || "0")
+    const odKhr = parseAmount(values.odLimitKhr || "0")
+    if (Number.isNaN(odUsd) || Number.isNaN(odKhr) || odUsd < 0 || odKhr < 0) return void toast.error(t("walletForm.amountInvalid"))
+    const pair = [
+      {
+        currency: "USD" as const,
+        balance: roundMoney(parseAmount(values.balance || "0"), "USD"),
+        od_limit: odUsd > 0 ? roundMoney(odUsd, "USD") : null,
+        account_no: values.accountNo.trim() || null,
+      },
+      {
+        currency: "KHR" as const,
+        balance: roundMoney(parseAmount(values.balanceKhr || "0"), "KHR"),
+        od_limit: odKhr > 0 ? roundMoney(odKhr, "KHR") : null,
+        account_no: values.accountNoKhr.trim() || null,
+      },
+    ]
+    let made = 0
+    try {
+      for (const p of pair) {
+        await mutations.create.mutateAsync({
+          name: `${base} ${p.currency}`.slice(0, 60),
+          icon: values.icon,
+          color: null,
+          visibility,
+          currency: p.currency,
+          balance: p.balance,
+          ...(icon !== "cash" ? { od_limit: p.od_limit, account_no: p.account_no } : {}),
+        })
+        made += 1
+      }
+      toast.success(t("walletForm.pairSaved", { name: base }))
+      onOpenChange(false)
+    } catch (error) {
+      if (made === 1) toast.message(t("walletForm.pairHalf", { name: `${base} USD` }))
+      if (error instanceof PlanLimitError) return showUpgrade("wallets")
+      toast.error(error instanceof PersonalWalletError ? t("wallet.personalOnly") : t("common.error"))
+    }
+  }
 
   const toggleArchive = async () => {
     if (!wallet) return
@@ -384,11 +449,14 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
                 options={[
                   { value: "USD", label: "$" },
                   { value: "KHR", label: "៛" },
+                  // New, non-card wallets: both at once.
+                  ...(!wallet && !card ? [{ value: "BOTH", label: "$ + ៛" }] : []),
                 ]}
               />
             )}
           />
           {hasHistory && <p className="text-xs text-muted-foreground">{t("walletForm.currencyLocked")}</p>}
+          {both && <p className="text-xs text-muted-foreground">{t("walletForm.pairHint", { name: name?.trim() || "ACLEDA" })}</p>}
         </div>
 
         {!wallet && (
@@ -440,12 +508,19 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           </div>
         )}
 
-        {/* Bank wallets: an optional overdraft / working-capital line (like ACLEDA / ABA business accounts). */}
-        {!card && icon !== "cash" && (
-          <div className="space-y-1.5">
-            <Label htmlFor="od-limit">{t("od.limit")}</Label>
-            <Input id="od-limit" className="h-11 tabular-nums" inputMode="decimal" placeholder={t("od.placeholder")} autoComplete="off" {...register("odLimit")} />
-            <p className="text-xs text-muted-foreground">{t("od.hint")}</p>
+        {/* Bank wallets (create and edit alike): the account number, and an optional overdraft / working-capital line. */}
+        {!card && !both && icon !== "cash" && (
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="account-no">{t("walletForm.accountNo")}</Label>
+              <Input id="account-no" className="h-11 tabular-nums" inputMode="numeric" placeholder="0001 23 456789 1 2" autoComplete="off" maxLength={30} {...register("accountNo")} aria-invalid={Boolean(formState.errors.accountNo)} />
+              {formState.errors.accountNo && <p className="text-sm text-destructive">{errorText(formState.errors.accountNo.message)}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="od-limit">{t("od.limit")}</Label>
+              <Input id="od-limit" className="h-11 tabular-nums" inputMode="decimal" placeholder={t("od.placeholder")} autoComplete="off" {...register("odLimit")} />
+              <p className="text-xs text-muted-foreground">{t("od.hint")}</p>
+            </div>
           </div>
         )}
 
@@ -515,7 +590,42 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
             <ChevronRightIcon className="size-4 text-muted-foreground" />
           </Link>
         )}
-        {wallet ? null : (
+        {!wallet && both && (
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                { sign: "$", code: "USD", account: "accountNo", balance: "balance", od: "odLimit" },
+                { sign: "៛", code: "KHR", account: "accountNoKhr", balance: "balanceKhr", od: "odLimitKhr" },
+              ] as const
+            ).map((c) => (
+              <div key={c.code} className="space-y-2 rounded-xl border bg-muted/30 p-2.5">
+                <p className="text-sm font-semibold">
+                  {c.sign} {c.code}
+                </p>
+                {icon !== "cash" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">{t("walletForm.accountNoShort")}</Label>
+                    <Input className="h-10 bg-background text-sm tabular-nums" inputMode="numeric" autoComplete="off" maxLength={30} aria-label={`${t("walletForm.accountNoShort")} ${c.code}`} {...register(c.account)} />
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label className="text-xs">{t("walletForm.openingBalance")}</Label>
+                  <Input className="h-10 bg-background text-sm tabular-nums" inputMode="decimal" placeholder="0" autoComplete="off" aria-label={`${t("walletForm.openingBalance")} ${c.code}`} {...register(c.balance)} />
+                </div>
+                {icon !== "cash" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">{t("od.line")}</Label>
+                    <Input className="h-10 bg-background text-sm tabular-nums" inputMode="decimal" placeholder="0" autoComplete="off" aria-label={`${t("od.line")} ${c.code}`} {...register(c.od)} />
+                  </div>
+                )}
+              </div>
+            ))}
+            {(formState.errors.balance || formState.errors.balanceKhr || formState.errors.accountNo || formState.errors.accountNoKhr) && (
+              <p className="col-span-2 text-sm text-destructive">{t(formState.errors.accountNo || formState.errors.accountNoKhr ? "walletForm.accountInvalid" : "walletForm.amountInvalid")}</p>
+            )}
+          </div>
+        )}
+        {wallet || both ? null : (
         <div className="space-y-2">
           <Label htmlFor="wallet-balance">{t(card ? "card.owedNow" : "walletForm.openingBalance")}</Label>
           <Input
