@@ -10,7 +10,7 @@ import { maybeRefreshLocalGold, maybeRefreshNbc, syncMarket } from "@/lib/server
 import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
 import { readFileSync } from "fs"
-import { holyDayTick } from "@/lib/server/holy-days"
+import { festivalTick, holyDayTick } from "@/lib/server/holy-days"
 import { flushPoolPosts } from "@/lib/server/pool-bot"
 import { birthdayTick, dormancyTick, flushSignupAlerts } from "@/lib/server/member-events"
 
@@ -77,6 +77,7 @@ export async function dispatchOnce() {
     await sendCommunityBulletin()
     await weeklyDigestTick()
     await holyDayTick()
+    await festivalTick()
     await flushPoolPosts()
     await flushSignupAlerts()
     await birthdayTick()

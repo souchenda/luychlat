@@ -6,8 +6,10 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { CULTURAL_ICON } from "@/components/culture/cultural-look"
 import { useTelegramLink } from "@/components/settings/official-bot"
 import { Switch } from "@/components/ui/switch"
+import { CHINESE_KEYS, culturalDayOn, daysUntil, upcomingCulturalDays } from "@/lib/cultural-calendar"
 import { formatDuration } from "@/lib/format"
 import { khmerDigits } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
@@ -16,6 +18,9 @@ import { useT } from "@/lib/i18n/use-t"
 import { formatChhankitek, formatLunar, nextHolyDay } from "@/lib/khmer-lunar"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useLocaleStore } from "@/stores/locale-store"
+
+/** Festivals / offering days listed (today's first, then the soonest). */
+const UPCOMING = 6
 
 const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
 const EN_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -28,11 +33,24 @@ function shortDate(iso: string, locale: string) {
   return `${d} ${EN_MONTHS[m - 1]}`
 }
 
+/** "១០–១២ តុលា" for a multi-day holiday (same month), else "៣០ កញ្ញា – ១ តុលា"; one day as shortDate. */
+function dateRange(start: string, end: string, locale: string) {
+  if (start === end) return shortDate(start, locale)
+  const [, m1, d1] = start.split("-").map(Number)
+  const [, m2] = end.split("-").map(Number)
+  if (m1 === m2 && locale !== "zh") {
+    const tail = shortDate(end, locale)
+    return locale === "km" ? `${khmerDigits(String(d1))}–${tail}` : `${d1}–${tail}`
+  }
+  return `${shortDate(start, locale)} – ${shortDate(end, locale)}`
+}
+
 /**
  * On Home and at the top of Bills: today's full Chhankitek date, the next
  * ថ្ងៃសីល (big / small, with its festival) and how far away it is, and the
  * Telegram reminder on the eve (ថ្ងៃកោរ) — the same switch as Settings ›
- * Telegram. Shown to everyone, Islamic Mode included.
+ * Telegram — plus the coming festivals and Khmer-Chinese offering days, so
+ * families can plan and budget ahead. Shown to everyone, Islamic Mode included.
  */
 export function HolyDayCard() {
   const t = useT()
@@ -58,6 +76,8 @@ export function HolyDayCard() {
   // Only waits for the device's date (one render after mounting).
   if (!today) return null
   const next = nextHolyDay(today)
+  const running = culturalDayOn(today)
+  const coming = [...(running ? [running] : []), ...upcomingCulturalDays(today)].slice(0, UPCOMING)
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-amber-200/80 bg-linear-to-br from-amber-50 via-orange-50/70 to-yellow-50 p-4 shadow-sm dark:border-amber-900/50 dark:from-amber-500/10 dark:via-orange-500/5 dark:to-yellow-500/10">
@@ -89,6 +109,33 @@ export function HolyDayCard() {
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {coming.length > 0 && (
+        <div className="mt-3 rounded-xl bg-white/70 p-3 dark:bg-black/20">
+          <p className="text-xs font-medium text-amber-800/80 dark:text-amber-300/80">{t("holyDay.upcoming")}</p>
+          <ul className="mt-2 space-y-2">
+            {coming.map((d) => {
+              const Icon = CULTURAL_ICON[d.key]
+              const away = daysUntil(today, d.start)
+              return (
+                <li key={`${d.key}-${d.start}`} className="flex items-center gap-2.5">
+                  <span
+                    className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${CHINESE_KEYS.has(d.key) ? "bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-300" : "bg-amber-100/70 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"}`}
+                  >
+                    <Icon className="size-4" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">{t(`cultural.${d.key}.name` as MessageKey)}</span>
+                    <span className="block text-xs text-neutral-600 dark:text-neutral-400">
+                      {dateRange(d.start, d.end, locale)} · {away <= 0 ? t("holyDay.pillToday") : formatDuration(away, "remaining", locale, today)}
+                    </span>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
         </div>
       )}
 
