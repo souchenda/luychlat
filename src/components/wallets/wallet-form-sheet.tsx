@@ -49,13 +49,17 @@ import { MoveWalletSheet } from "./move-wallet-sheet"
 import { ReconcileSheet } from "./reconcile-sheet"
 import { WalletAvatar } from "./wallet-avatar"
 
+/** A typed amount, or nothing (then 0). */
+const amountOrEmpty = (v: string) => !v.trim() || !Number.isNaN(parseAmount(v))
+
 const schema = z.object({
   icon: z.string(),
   name: z.string().trim().min(1, "walletForm.nameRequired").max(60),
   // BOTH (new bank wallets only): a USD and a KHR wallet in one go, as Cambodian bank accounts come in pairs.
   currency: z.enum(["USD", "KHR", "BOTH"]),
-  balance: z.string().refine((v) => !Number.isNaN(parseAmount(v)), "walletForm.amountInvalid"),
-  balanceKhr: z.string().refine((v) => !Number.isNaN(parseAmount(v)), "walletForm.amountInvalid"),
+  // Empty = 0 (the KHR one is only on screen for "$ + ៛"; an empty hidden field must never block Save).
+  balance: z.string().refine(amountOrEmpty, "walletForm.amountInvalid"),
+  balanceKhr: z.string().refine(amountOrEmpty, "walletForm.amountInvalid"),
   // Bank account numbers (digits, spaces, dashes); the KHR ones are for "$ + ៛".
   accountNo: z.string().trim().regex(/^([0-9][0-9 -]{2,29})?$/, "walletForm.accountInvalid"),
   accountNoKhr: z.string().trim().regex(/^([0-9][0-9 -]{2,29})?$/, "walletForm.accountInvalid"),
@@ -306,6 +310,11 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
       if (error instanceof PlanLimitError) return showUpgrade("wallets")
       toast.error(error instanceof PersonalWalletError ? t("wallet.personalOnly") : t("common.error"))
     }
+  }, (errors) => {
+    // Never a silent Save: say what blocked it (also a field that isn't on screen).
+    const first = Object.values(errors)[0]
+    console.warn("[wallet form] invalid:", Object.keys(errors))
+    toast.error(first?.message ? t(first.message as MessageKey) : t("walletForm.amountInvalid"))
   })
 
   /** "$ + ៛": the USD wallet, then the KHR one ("ACLEDA USD", "ACLEDA KHR"), each with its account number and OD. */
