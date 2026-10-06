@@ -12,7 +12,10 @@ import { logEvent } from "@/lib/server/events"
  *   - alerts admins who linked @luychlat_bot when RAM or CPU stays above 75%
  *     for 5 minutes, disk is above 85%, the app nears its memory limit, the
  *     database is slow or down, or the webhook reports errors — at most once
- *     per 30 minutes per issue, plus a "recovered" message when it clears;
+ *     per 30 minutes per issue, plus a "recovered" message when it clears
+ *     for good (CPU below 60% / RAM below 65% for 3 minutes, other issues
+ *     absent for 3 checks). Open alerts are kept in the database, so a deploy
+ *     (a fresh process) still sends the recovery for an alert raised before it;
  *   - stores one sample every 5 minutes, and every Sunday at 19:00 (Cambodia)
  *     sends the weekly summary (uptime, response times, peaks).
  */
@@ -36,6 +39,23 @@ export type Sample = {
 const startedAt = Date.now()
 
 export const LIMITS = { ram: 75, cpu: 75, disk: 85, appMem: 85, dbSlowMs: 1500, sustainedMinutes: 5, cooldownMs: 30 * 60_000 }
+/** Recovery needs a clear margin below the alert line, for a few minutes (no flapping). */
+export const RECOVERY = { cpu: 60, ram: 65, minutes: 3 }
+
+/**
+ * Has an open issue cleared for good? CPU / RAM: the last RECOVERY.minutes
+ * samples all below the recovery line. Others: absent from the last
+ * RECOVERY.minutes checks (`clearStreak` = checks in a row without it).
+ */
+export function hasRecovered(issue: Issue, history: Sample[], clearStreak: number): boolean {
+  if (issue === "cpu" || issue === "ram") {
+    const key = issue === "cpu" ? "cpu_pct" : "ram_pct"
+    const line = issue === "cpu" ? RECOVERY.cpu : RECOVERY.ram
+    const window = history.slice(-RECOVERY.minutes)
+    return window.length >= RECOVERY.minutes && window.every((s) => s[key] != null && (s[key] as number) < line)
+  }
+  return clearStreak >= RECOVERY.minutes
+}
 
 const readText = (path: string) => {
   try {
@@ -171,14 +191,22 @@ export function alertText(issue: Issue, s: Sample): string {
   return `🚨 LuyChlat System Health Alert!\n- ${what}\n- Recommended action: ${action}`
 }
 
-const RECOVERED: Record<Issue, string> = {
-  ram: "RAM is back to normal",
-  cpu: "CPU is back to normal",
-  disk: "Disk space is back below the limit",
-  app_mem: "App memory is back to normal",
-  db_slow: "Database response is back to normal",
-  db_down: "The database is answering again",
-  webhook: "The Telegram webhook is healthy again",
+const RECOVERED: Record<Issue, (s: Sample) => string> = {
+  ram: (s) => `RAM usage returned to normal (${s.ram_pct}%)`,
+  cpu: (s) => `CPU usage returned to normal (${s.cpu_pct}%)`,
+  disk: (s) => `Disk space is back below the limit (${s.disk_pct}%)`,
+  app_mem: (s) => `App memory returned to normal (${s.app_mem_pct}%)`,
+  db_slow: (s) => `Database response is back to normal (${s.db_ms} ms)`,
+  db_down: () => "The database is answering again",
+  webhook: () => "The Telegram webhook is healthy again",
+}
+
+const ISSUE_NAME: Record<Issue, string> = { ram: "RAM", cpu: "CPU", disk: "disk", app_mem: "app memory", db_slow: "database speed", db_down: "database", webhook: "Telegram webhook" }
+
+/** "✅ LuyChlat System Health Recovered: CPU usage returned to normal (12%). All services are healthy." */
+export function recoveredText(issue: Issue, s: Sample, stillOpen: Issue[]): string {
+  const rest = stillOpen.length ? `Still being watched: ${stillOpen.map((i) => ISSUE_NAME[i]).join(", ")}.` : "All services are healthy."
+  return `✅ LuyChlat System Health Recovered: ${RECOVERED[issue](s)}. ${rest}`
 }
 
 async function sendToAdmins(text: string) {
@@ -189,34 +217,48 @@ async function sendToAdmins(text: string) {
 }
 
 const history: Sample[] = []
+/** Open alerts (issue → when last alerted), shared with the database so deploys don't lose them. */
 const lastAlert = new Map<Issue, number>()
-const active = new Set<Issue>()
+const clearStreak = new Map<Issue, number>()
+let loaded = false
 let ticks = 0
+
+/** Open alerts raised by an earlier process (before a deploy). */
+async function loadOpenAlerts() {
+  const { data, error } = await botDb().rpc("bot_health_alerts", { p_key: botKey() })
+  if (error) return
+  for (const [issue, at] of Object.entries((data as Record<string, string> | null) ?? {})) lastAlert.set(issue as Issue, Date.parse(at) || Date.now())
+  loaded = true
+}
 
 /** Once a minute. */
 export async function watchdogTick() {
+  if (!loaded) await loadOpenAlerts()
   const sample = await takeSample()
   history.push(sample)
   if (history.length > 30) history.shift()
   const issues = findIssues(history)
 
   for (const issue of issues) {
+    clearStreak.set(issue, 0)
     const last = lastAlert.get(issue) ?? 0
     if (Date.now() - last >= LIMITS.cooldownMs) {
       lastAlert.set(issue, Date.now())
+      await botDb().rpc("bot_health_alert_set", { p_key: botKey(), p_issue: issue, p_open: true })
       await sendToAdmins(alertText(issue, sample))
       logEvent("warn", "watchdog", `Alert: ${issue} (RAM ${sample.ram_pct}%, CPU ${sample.cpu_pct}%, disk ${sample.disk_pct}%, DB ${sample.db_ms ?? "–"} ms)`)
     }
-    active.add(issue)
   }
-  for (const issue of [...active]) {
-    if (!issues.includes(issue)) {
-      active.delete(issue)
-      if (lastAlert.has(issue)) {
-        await sendToAdmins(`✅ LuyChlat: ${RECOVERED[issue]}.`)
-        logEvent("info", "watchdog", `Recovered: ${issue}`)
-      }
-    }
+  // An open alert clears once it has really recovered (margin + a few minutes), with one message.
+  for (const issue of [...lastAlert.keys()]) {
+    if (issues.includes(issue)) continue
+    clearStreak.set(issue, (clearStreak.get(issue) ?? 0) + 1)
+    if (!hasRecovered(issue, history, clearStreak.get(issue) ?? 0)) continue
+    lastAlert.delete(issue)
+    clearStreak.delete(issue)
+    await botDb().rpc("bot_health_alert_set", { p_key: botKey(), p_issue: issue, p_open: false })
+    await sendToAdmins(recoveredText(issue, sample, [...lastAlert.keys()]))
+    logEvent("info", "watchdog", `Recovered: ${issue}`)
   }
 
   // One stored sample every 5 minutes (also the uptime record).
