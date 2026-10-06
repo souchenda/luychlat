@@ -147,6 +147,8 @@ export default function HomePage() {
         wallets={walletsQuery.data}
         loading={walletsQuery.isLoading}
         assetsUsd={assets.totalUsd}
+        // NBC $1 = …៛ · gold per damlung, inside the bottom of the card — opens /market.
+        footer={<MarketRatesCard />}
         actions={
           editable && (
             <>
@@ -164,8 +166,6 @@ export default function HomePage() {
         }
       />
 
-      {/* NBC $1 = …៛ · gold 24K per damlung — opens /market. */}
-      <MarketRatesCard />
 
       <BirthdayCard />
 
