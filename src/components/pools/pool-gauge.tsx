@@ -3,8 +3,9 @@ import { formatMoney } from "@/lib/money"
 
 /**
  * "Enough or not?" — the remaining money as a bar with its status
- * (🟢 safe > 30 %, 🟡 caution 15–30 %, 🔴 low < 15 %). No hooks: also used by
- * the public page (a server component), so labels come in as props.
+ * (🟢 safe > 30 %, 🟡 caution 15–30 %, 🔴 low < 15 %). A pool with nothing in
+ * and nothing spent yet is "⚪ collecting" (neutral grey), not "low". No hooks:
+ * also used by the public page (a server component), so labels come in as props.
  */
 export function PoolGauge({
   pool,
@@ -12,11 +13,12 @@ export function PoolGauge({
   hidden = false,
 }: {
   pool: Pick<PoolSnapshot, "pooled" | "spent" | "remaining" | "pct" | "gauge" | "currency">
-  labels: { status: string; pooled: string; spent: string; remaining: string }
+  labels: { status: string; pooled: string; spent: string; remaining: string; collecting?: string }
   /** The 👁 privacy toggle (app only). */
   hidden?: boolean
 }) {
-  const color = GAUGE_COLOR[pool.gauge]
+  const collecting = pool.pooled === 0 && pool.spent === 0
+  const color = collecting ? "#71717a" : GAUGE_COLOR[pool.gauge]
   return (
     <div className="space-y-3">
       <div className="flex items-end justify-between gap-3">
@@ -30,7 +32,7 @@ export function PoolGauge({
           className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
           style={{ backgroundColor: `${color}1f`, color }}
         >
-          {GAUGE_EMOJI[pool.gauge]} {labels.status} · {Math.max(0, Math.round(pool.pct))}%
+          {collecting ? `⚪ ${labels.collecting ?? labels.status}` : `${GAUGE_EMOJI[pool.gauge]} ${labels.status} · ${Math.max(0, Math.round(pool.pct))}%`}
         </span>
       </div>
       <div className="h-3 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(gaugeWidth(pool))}>

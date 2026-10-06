@@ -53,9 +53,13 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
   const supportUrl = (contacts as { telegram_url?: string } | null)?.telegram_url
   const reportUrl = supportUrl && /^https:\/\/t\.me\//.test(supportUrl) ? supportUrl : "https://t.me/luychlat_bot"
   const money = (n: number) => formatMoney(n, pool.currency)
+  // Only real participants: names with no target that never paid are left out
+  // (when the pool has targets at all — a rolled-over pool starts with none). Same rule as the app.
+  const hasTargets = pool.members.some((m) => m.pledged > 0)
+  const members = hasTargets ? pool.members.filter((m) => m.pledged > 0 || m.paid > 0) : pool.members
 
   return (
-    <main className="mx-auto min-h-dvh max-w-lg space-y-4 bg-background px-4 py-6">
+    <main className="mx-auto min-h-dvh w-full max-w-lg space-y-4 bg-background px-4 py-6">
       <PoolAutoRefresh />
       <header className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground">{KIND[pool.kind]}</p>
@@ -73,7 +77,7 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
       </header>
 
       <section className="rounded-2xl border bg-card p-4">
-        <PoolGauge pool={pool} labels={{ status: GAUGE[pool.gauge], pooled: "លុយរួម · Pooled", spent: "បានចាយ · Spent", remaining: "នៅសល់ · Remaining" }} />
+        <PoolGauge pool={pool} labels={{ status: GAUGE[pool.gauge], pooled: "លុយរួម · Pooled", spent: "បានចាយ · Spent", remaining: "នៅសល់ · Remaining", collecting: "កំពុងប្រមូលលុយ · Collecting" }} />
         {pool.status === "active" && pool.topup_per_member !== null && (
           <p className="mt-3 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
             ⚠️ សូមរៃបន្ថែមម្នាក់ {money(pool.topup_per_member)} · Suggested top-up per person
@@ -114,11 +118,11 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
         </section>
       )}
 
-      {!pool.members_hidden && pool.members.length > 0 && (
+      {!pool.members_hidden && members.length > 0 && (
         <section className="space-y-2">
           <h2 className="px-1 text-sm font-medium text-muted-foreground">សមាជិក · Members</h2>
           <div className="divide-y rounded-2xl border bg-card">
-            {pool.members.map((m, i) => (
+            {members.map((m, i) => (
               <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
                 <span>{m.name}</span>
                 <span className="tabular-nums">
