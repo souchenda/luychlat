@@ -3028,6 +3028,21 @@ const km = {
   "login.signedOutElsewhereShort": "គណនីបានចូលលើឧបករណ៍ផ្សេង។ សូមចូលឡើងវិញ។",
   "cultural.chinese_new_year.pill": "ចូលឆ្នាំចិន (ហេង ហេង)",
   "cultural.dongzhi.pill": "ថ្ងៃសែននំអ៊ី (ហេង ហេង)",
+  "pool.inPool": "លុយក្នុងបេឡា៖",
+  "pool.pooledSpent": "រៃបាន {pooled} · ចាយ {spent}",
+  "pool.payIn": "រៃលុយចូល",
+  "pool.takeOut": "ដកលុយចាយ",
+  "pool.payMember": "បង់ {amount}",
+  "pool.paidMember": "បានបង់ {amount}",
+  "pool.collectAll": "ប្រមូលគ្រប់គ្នា {amount}",
+  "pool.collectedAll": "បានប្រមូល {amount} ពី {n} នាក់",
+  "pool.emptyHint": "មិនទាន់មានលុយរៃចូល - ចុច [បង់] នៅលើសមាជិកនីមួយៗ ឬ [ប្រមូលគ្រប់គ្នា] ដើម្បីចាប់ផ្តើម។",
+  "pool.tapToRename": "ចុចលើឈ្មោះដើម្បីកែ",
+  "pool.renamed": "បានកែឈ្មោះ",
+  "pool.idleMembers": "លុបឈ្មោះ {n} ដែលគ្មានគោលដៅ",
+  "pool.idleRemoved": "បានលុបឈ្មោះ {n}",
+  "pool.memberTarget": "ត្រូវបង់",
+  "pool.undo": "ត្រឡប់",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6045,6 +6060,21 @@ const en: Record<MessageKey, string> = {
   "login.signedOutElsewhereShort": "Signed in on another device. Please sign in again.",
   "cultural.chinese_new_year.pill": "Chinese New Year (Heng heng!)",
   "cultural.dongzhi.pill": "Dongzhi (Heng heng!)",
+  "pool.inPool": "Money in the pool:",
+  "pool.pooledSpent": "Collected {pooled} · Spent {spent}",
+  "pool.payIn": "Add money",
+  "pool.takeOut": "Spend",
+  "pool.payMember": "Pay {amount}",
+  "pool.paidMember": "Paid {amount}",
+  "pool.collectAll": "Collect all {amount}",
+  "pool.collectedAll": "Collected {amount} from {n} members",
+  "pool.emptyHint": "No money in yet — tap Pay on each member, or Collect all, to start.",
+  "pool.tapToRename": "Tap a name to rename",
+  "pool.renamed": "Name updated",
+  "pool.idleMembers": "Remove {n} names with no target",
+  "pool.idleRemoved": "Removed {n} names",
+  "pool.memberTarget": "Owes",
+  "pool.undo": "Undo",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

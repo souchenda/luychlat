@@ -96,6 +96,34 @@ export function usePoolMutations() {
         rpc("pool_record_contribution", { p_pool_id: v.poolId, p_member_id: v.memberId, p_amount: v.amount, p_date: null }),
       onSuccess: () => done(true),
     }),
+    /** One tap: record what a member (or, without memberId, everyone) still owes against their target. Returns the new transactions (for Undo). */
+    markPaid: useMutation({
+      mutationFn: async (v: { poolId: string; memberId?: string }) => ((await rpc("pool_mark_paid", { p_pool_id: v.poolId, p_member_id: v.memberId ?? null })) as string[] | null) ?? [],
+      onSuccess: () => done(true),
+    }),
+    /** Undo a one-tap payment: deleting its transactions also removes the pool link. */
+    undoPaid: useMutation({
+      mutationFn: async (transactionIds: string[]) => {
+        const { error } = await client().from("transactions").delete().in("id", transactionIds)
+        if (error) throw error
+      },
+      onSuccess: () => done(true),
+    }),
+    rename: useMutation({
+      mutationFn: async (v: { memberId: string; name: string }) => {
+        const { error } = await client().from("pool_members").update({ name: v.name }).eq("id", v.memberId)
+        if (error) throw error
+      },
+      onSuccess: () => done(),
+    }),
+    /** Names added without a target that never paid (they hold no money, so nothing else changes). */
+    removeIdle: useMutation({
+      mutationFn: async (memberIds: string[]) => {
+        const { error } = await client().from("pool_members").delete().in("id", memberIds)
+        if (error) throw error
+      },
+      onSuccess: () => done(),
+    }),
     addMember: useMutation({
       mutationFn: async (v: { poolId: string; name: string; pledged: number }) => {
         const { error } = await client().from("pool_members").insert({ pool_id: v.poolId, name: v.name, pledged: v.pledged, sort: 999 })
