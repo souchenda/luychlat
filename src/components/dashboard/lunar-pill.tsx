@@ -11,6 +11,9 @@ import { useT } from "@/lib/i18n/use-t"
 import { khmerLunarDate, nextHolyDay } from "@/lib/khmer-lunar"
 import { useLocaleStore } from "@/stores/locale-store"
 
+/** ភទ្របទ in khmerLunarDate's month index (មិគសិរ = 0). */
+const PHOTROBOT = 9
+
 /**
  * Home header, right: today's lunar day and the next holy day / festival as a
  * small gold pill — "១០រោច · ភ្ជុំបិណ្ឌ (៥ថ្ងៃ) ›" — that opens the full card on /bills.
@@ -28,7 +31,15 @@ export function LunarPill() {
   const day = locale === "km" ? `${l.day}${phase}` : locale === "zh" ? `${phase}${l.day}` : `${l.day} ${phase}`
   const what = next ? (next.festival ? t(`holyDay.festival.${next.festival}` as MessageKey) : t("holyDay.pill")) : null
   const when = next ? (next.daysAway === 0 ? t("holyDay.pillToday") : t("holyDay.pillDays", { n: next.daysAway })) : null
-  const text = [day, what && `${what} (${when})`].filter(Boolean).join(" · ")
+  // Kan Ben: the 14/15 days of waning ភទ្របទ up to Pchum Ben, its last day — "បិណ្ឌ ១០ · ភ្ជុំបិណ្ឌ (៥ថ្ងៃ)".
+  const benLast = l.monthLength - 15
+  const ben = l.month === PHOTROBOT && l.phase === "roch" ? benLast - l.day : null
+  const text =
+    ben === 0
+      ? t("holyDay.pchumBenToday")
+      : ben !== null
+        ? `${t("holyDay.benDay", { n: l.day })} · ${t("holyDay.festival.pchumBen")} (${t("holyDay.pillDays", { n: ben })})`
+        : [day, what && `${what} (${when})`].filter(Boolean).join(" · ")
 
   return (
     <Link

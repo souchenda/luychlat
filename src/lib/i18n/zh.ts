@@ -2938,4 +2938,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "holyDay.pillToday": "今天",
   "holyDay.pillDays": "{n}天",
   "wallets.addShort": "添加",
+  "holyDay.benDay": "亡人节第{n}天",
+  "holyDay.pchumBenToday": "亡人节（大佛日）",
 }

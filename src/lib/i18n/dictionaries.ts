@@ -2985,6 +2985,8 @@ const km = {
   "holyDay.pillToday": "ថ្ងៃនេះ",
   "holyDay.pillDays": "{n}ថ្ងៃ",
   "wallets.addShort": "បន្ថែម",
+  "holyDay.benDay": "បិណ្ឌ {n}",
+  "holyDay.pchumBenToday": "ថ្ងៃភ្ជុំបិណ្ឌ (សីលធំ)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5959,6 +5961,8 @@ const en: Record<MessageKey, string> = {
   "holyDay.pillToday": "today",
   "holyDay.pillDays": "{n}d",
   "wallets.addShort": "Add",
+  "holyDay.benDay": "Ben day {n}",
+  "holyDay.pchumBenToday": "Pchum Ben (great holy day)",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
