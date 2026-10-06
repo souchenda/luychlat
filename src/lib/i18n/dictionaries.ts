@@ -3075,6 +3075,19 @@ const km = {
   "wallets.moneyOut": "ចេញ (ចំណាយ/វេរចេញ)",
   "wallets.history": "ប្រវត្តិប្រតិបត្តិការ",
   "wallets.noHistory": "ខែនេះមិនទាន់មានប្រតិបត្តិការទេ",
+  "biz.recorded": "✅ {amount} បានកត់ត្រា ({workspace} · {bank})",
+  "biz.noWallet": "⚠️ {workspace} មិនទាន់មានកាបូបទេ។ សូមបង្កើតកាបូប ACLEDA / ABA ក្នុង LuyChlat ដើម្បីកត់ត្រាការទូទាត់ KHQR។",
+  "biz.linked": "✅ ក្រុមនេះបានភ្ជាប់ទៅ «{workspace}» ហើយ។ រាល់ការទូទាត់ KHQR ពី ACLEDA និង ABA PayWay នឹងកត់ត្រាជាចំណូលពីការលក់ដោយស្វ័យប្រវត្តិ។\nℹ️ ខ្ញុំត្រូវតែជា Admin ក្នុងក្រុមនេះ (ឬបិទ Group Privacy) ទើបអានសារបាន។",
+  "biz.status": "🏪 ក្រុមនេះកត់ត្រាការទូទាត់ KHQR ទៅ «{workspace}»។",
+  "biz.notLinked": "🏪 ក្រុមនេះមិនទាន់ភ្ជាប់អាជីវកម្មទេ។ បើក LuyChlat › ការកំណត់ › Telegram › «ក្រុម KHQR អាជីវកម្ម» ហើយវាយ /biz link CODE នៅទីនេះ។",
+  "biz.cardTitle": "ក្រុម KHQR អាជីវកម្ម",
+  "biz.cardHint": "ភ្ជាប់ក្រុម Telegram ដែល ACLEDA / ABA PayWay ផ្ញើដំណឹងការទូទាត់ KHQR — រាល់ការទូទាត់នឹងកត់ត្រាជាចំណូលពីការលក់ក្នុង «{workspace}» ដោយស្វ័យប្រវត្តិ (មិនកត់ស្ទួន)។",
+  "biz.getCode": "យកលេខកូដភ្ជាប់",
+  "biz.steps": "1. បន្ថែម @luychlat_bot ទៅក្រុម ហើយដាក់ជា Admin (ឬ BotFather › /setprivacy › Disable)\n2. វាយក្នុងក្រុម៖",
+  "biz.codeValid": "លេខកូដប្រើបាន ៣០ នាទី។",
+  "biz.linkedGroups": "ក្រុមដែលបានភ្ជាប់",
+  "biz.unlink": "ផ្ដាច់",
+  "biz.unlinked": "បានផ្ដាច់ក្រុម",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6139,6 +6152,19 @@ const en: Record<MessageKey, string> = {
   "wallets.moneyOut": "Out",
   "wallets.history": "Transaction history",
   "wallets.noHistory": "No transactions this month",
+  "biz.recorded": "✅ {amount} recorded ({workspace} · {bank})",
+  "biz.noWallet": "⚠️ {workspace} has no wallet yet. Add an ACLEDA / ABA wallet in LuyChlat to record KHQR payments.",
+  "biz.linked": "✅ This group is now linked to “{workspace}”. Every ACLEDA and ABA PayWay KHQR payment will be recorded as sales income automatically.\nℹ️ I must be an admin of this group (or have group privacy off) to read the messages.",
+  "biz.status": "🏪 This group records KHQR payments into “{workspace}”.",
+  "biz.notLinked": "🏪 This group isn't linked to a business. Open LuyChlat › Settings › Telegram › “Business KHQR group” and send /biz link CODE here.",
+  "biz.cardTitle": "Business KHQR group",
+  "biz.cardHint": "Link the Telegram group where ACLEDA / ABA PayWay post KHQR payment notifications — every payment is recorded as sales income in “{workspace}” automatically (never twice).",
+  "biz.getCode": "Get a link code",
+  "biz.steps": "1. Add @luychlat_bot to the group and make it an admin (or BotFather › /setprivacy › Disable)\n2. Send in the group:",
+  "biz.codeValid": "The code works for 30 minutes.",
+  "biz.linkedGroups": "Linked groups",
+  "biz.unlink": "Unlink",
+  "biz.unlinked": "Group unlinked",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

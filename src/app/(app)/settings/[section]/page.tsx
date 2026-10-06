@@ -10,6 +10,7 @@ import { DangerZone } from "@/components/settings/danger-zone"
 import { DataManagement } from "@/components/settings/data-management"
 import { InstallAppCard } from "@/components/settings/install-app"
 import { OfficialBotCard } from "@/components/settings/official-bot"
+import { BizKhqrCard } from "@/components/settings/biz-khqr-card"
 import { SecuritySettings } from "@/components/settings/security-settings"
 import { SettingsSubHeader } from "@/components/settings/settings-ui"
 import { TelegramSettingsCard } from "@/components/settings/telegram-settings"
@@ -19,7 +20,16 @@ import { useT } from "@/lib/i18n/use-t"
 /** Settings sub-pages, opened from the rows on /settings. */
 const SECTIONS: Record<string, { title: MessageKey; render: () => React.ReactNode }> = {
   security: { title: "settings.security", render: () => <SecuritySettings /> },
-  telegram: { title: "settings.telegramBot", render: () => <OfficialBotCard legacy={<TelegramSettingsCard />} /> },
+  telegram: {
+    title: "settings.telegramBot",
+    render: () => (
+      <>
+        <OfficialBotCard legacy={<TelegramSettingsCard />} />
+        {/* Business workspaces: the KHQR payments group (ACLEDA / ABA PayWay → Sales income). */}
+        <BizKhqrCard />
+      </>
+    ),
+  },
   plan: {
     title: "settings.planRow",
     render: () => (

@@ -26,6 +26,7 @@ import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
+import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -60,7 +61,7 @@ type Update = {
     document?: { file_name?: string; mime_type?: string; file_size?: number }
     /** Shared with the "📱 Share my number" button (password reset). */
     contact?: { phone_number: string; user_id?: number }
-    chat: { id: number; type: string }
+    chat: { id: number; type: string; title?: string }
     from?: { id?: number; username?: string; language_code?: string }
   }
 }
@@ -80,9 +81,18 @@ const groupNoticeAt = new Map<number, number>()
  * gets a short note pointing to the private chat, never data. Plain chatter
  * is ignored.
  */
-async function handleGroupMessage(chatId: number, text: string, lang: Locale, fromId?: number, photo?: { fileId: string | null; replyTo: number | null }) {
-  // Track the group (it is left after 10 minutes without an active pool linked).
+async function handleGroupMessage(
+  chatId: number,
+  text: string,
+  lang: Locale,
+  fromId?: number,
+  photo?: { fileId: string | null; replyTo: number | null },
+  title?: string,
+) {
+  // Track the group (it is left after 10 minutes without an active pool or business linked).
   await noteGroupSeen(chatId).catch(() => null)
+  // A KHQR payment notification (ACLEDA / ABA PayWay) in a business-linked group: Sales income, in real time.
+  if (await handleKhqrGroupMessage(chatId, text, lang)) return
   const command = text.trim().split(/\s+/, 1)[0] ?? ""
   // A receipt photo sent as a reply to the bot's expense card (the keeper only).
   if (!command.startsWith("/") && photo?.fileId && photo.replyTo) {
@@ -90,6 +100,8 @@ async function handleGroupMessage(chatId: number, text: string, lang: Locale, fr
     return
   }
   if (!command.startsWith("/")) return
+  // A business KHQR group: /biz, /biz link CODE.
+  if (await handleBizGroupCommand(chatId, fromId, text, title, lang)) return
   // A shared pool the keeper linked to this group: /pool, /fund, /trip, /spend (with a photo too), /pool link CODE.
   if (await handlePoolGroupCommand(chatId, fromId, text, lang, photo?.fileId ?? null)) return
   if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
@@ -293,7 +305,7 @@ export async function POST(request: Request) {
     await handleGroupMessage(message.chat.id, message.text ?? message.caption ?? "", telegramLocale(message.from?.language_code), message.from?.id, {
       fileId: bestPhoto(message.photo),
       replyTo: message.reply_to_message?.from?.is_bot ? message.reply_to_message.message_id : null,
-    })
+    }, message.chat.title)
     return NextResponse.json({ ok: true })
   }
   if (!message || message.chat.type !== "private") return NextResponse.json({ ok: true })
