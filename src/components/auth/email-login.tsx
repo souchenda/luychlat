@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Loader2Icon, LockIcon, SmartphoneIcon } from "lucide-react"
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Loader2Icon, LockIcon, SmartphoneIcon, UserIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -56,15 +56,21 @@ export const EMAIL = EMAIL_PATTERN
 export const authErrorCode = (error: { message: string; status?: number }) =>
   "code" in error ? String((error as { code?: string }).code ?? "") : ""
 
+/** Profiles keep up to 40 characters of the name (public.default_display_name). */
+const NAME_MAX = 40
+
 /**
  * Phone number OR email + password, through Supabase Auth's email provider: no
  * SMS provider (Twilio etc.) and no SMS cost. A number signs in as its internal
- * address (lib/auth-identifier.ts). A new account gets the usual Personal and
- * Business workspaces — and, for a phone account, its number — from the signup trigger.
+ * address (lib/auth-identifier.ts). Sign-up also asks for a name, sent as
+ * `full_name`: the signup trigger makes it the profile's display name (instead of
+ * "•••222"), next to the usual Personal and Business workspaces and, for a phone
+ * account, its number.
  */
 export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean; initialEmail?: string }) {
   const t = useT()
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin")
+  const [name, setName] = useState("")
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState("")
   const [show, setShow] = useState(false)
@@ -91,6 +97,8 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     e.preventDefault()
     setError(undefined)
     setNotice(undefined)
+    const fullName = name.trim().replace(/\s+/g, " ")
+    if (mode === "signup" && !fullName) return fail(t("login.nameRequired"))
     const id = parseLoginIdentifier(email)
     if (!id) return fail(t("login.identifierInvalid"))
     const address = id.email
@@ -137,7 +145,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     const { data, error } = await supabase.auth.signUp({
       email: address,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/home` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/home`, data: { full_name: fullName.slice(0, NAME_MAX) } },
     })
     setBusy(false)
     if (error) {
@@ -204,6 +212,29 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
         </div>
       ) : (
         <AuthTabs value={mode} onChange={switchMode} label={t("login.emailTitle")} />
+      )}
+      {mode === "signup" && (
+        <div className="space-y-1.5">
+          <Label htmlFor="signup-name" className={label}>
+            {t("login.fullName")}
+          </Label>
+          <div className="group relative">
+            <UserIcon className={leadIcon} aria-hidden />
+            <Input
+              id="signup-name"
+              type="text"
+              autoComplete="name"
+              autoCapitalize="words"
+              maxLength={NAME_MAX}
+              aria-required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("login.fullNamePlaceholder")}
+              className={cn(field, "pl-10")}
+              disabled={disabled}
+            />
+          </div>
+        </div>
       )}
       <div className="space-y-1.5">
         <Label htmlFor="login-email" className={label}>

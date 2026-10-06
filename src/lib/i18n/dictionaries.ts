@@ -2886,7 +2886,7 @@ const km = {
   "feature.name.pools": "បេឡារួម",
   "feature.name.statement_import": "នាំចូលរបាយការណ៍ធនាគារ",
   "urgency.installment": "លើកទី {n}",
-  "bot.signupAlert": "🎉 សមាជិកថ្មីទើបចុះឈ្មោះ (New User Sign-up)!\n• 👤 គណនី/លេខទូរស័ព្ទ៖ {account}\n• 📅 កាលបរិច្ឆេទ៖ {date}\n• 🌐 វិធីចុះឈ្មោះ៖ {method}\n• 📊 សមាជិកសរុប៖ {total} នាក់",
+  "bot.signupAlert": "🎉 សមាជិកថ្មីទើបចុះឈ្មោះ (New User Sign-up)!\n• 👤 ឈ្មោះ៖ {name}\n• 📱 ទូរស័ព្ទ/អ៊ីមែល៖ {account}\n• 📅 កាលបរិច្ឆេទ៖ {date}\n• 🌐 វិធីចុះឈ្មោះ៖ {method}\n• 📊 សមាជិកសរុប៖ {total} នាក់",
   "bot.birthdayWish": "🎂 រីករាយថ្ងៃខួបកំណើត {name}! 🎉\nក្រុមការងារ លុយឆ្លាត (LuyChlat) សូមប្រសិទ្ធពរជ័យឱ្យបងមានសុខភាពល្អបរិបូរណ៍ សុភមង្គល និងជោគជ័យគ្រប់ភារកិច្ច លុយកាក់ហូរចូលដូចទឹក! 💰🥳",
   "bot.birthdayYou": "បង",
   "birthday.title": "រីករាយថ្ងៃខួបកំណើត {name}!",
@@ -3021,6 +3021,9 @@ const km = {
   "bot.festivalTomorrow": "{emoji} ស្អែកចូលដល់{name}ហើយ។ កុំភ្លេចរៀបចំថវិកាសម្រាប់ចំណាយបុណ្យ ដើម្បីកុំឱ្យលើសផែនការ។",
   "holyDay.upcoming": "ថ្ងៃបុណ្យ និងថ្ងៃសែនខាងមុខ",
   "wallets.seeAllCount": "មើលទាំងអស់ ({n})",
+  "login.fullName": "ឈ្មោះពេញ ឬ ឈ្មោះហៅក្រៅ",
+  "login.fullNamePlaceholder": "ឧ. សុខ សាន",
+  "login.nameRequired": "សូមបញ្ចូលឈ្មោះរបស់អ្នក",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5896,7 +5899,7 @@ const en: Record<MessageKey, string> = {
   "feature.name.pools": "Shared pools",
   "feature.name.statement_import": "Bank statement import",
   "urgency.installment": "Installment {n}",
-  "bot.signupAlert": "🎉 New User Sign-up!\n• 👤 Account / phone: {account}\n• 📅 Date: {date}\n• 🌐 Signed up with: {method}\n• 📊 Total members: {total}",
+  "bot.signupAlert": "🎉 New User Sign-up!\n• 👤 Name: {name}\n• 📱 Phone / email: {account}\n• 📅 Date: {date}\n• 🌐 Signed up with: {method}\n• 📊 Total members: {total}",
   "bot.birthdayWish": "🎂 Happy birthday, {name}! 🎉\nEveryone at LuyChlat wishes you great health, happiness and success in everything you do — may money flow in like water! 💰🥳",
   "bot.birthdayYou": "friend",
   "birthday.title": "Happy birthday, {name}!",
@@ -6031,6 +6034,9 @@ const en: Record<MessageKey, string> = {
   "bot.festivalTomorrow": "{emoji} {name} starts tomorrow. Set a budget for festival spending so it stays on plan.",
   "holyDay.upcoming": "Upcoming festivals & offering days",
   "wallets.seeAllCount": "See all ({n})",
+  "login.fullName": "Full name or nickname",
+  "login.fullNamePlaceholder": "e.g. John Doe",
+  "login.nameRequired": "Please enter your name",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

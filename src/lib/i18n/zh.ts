@@ -2839,7 +2839,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "feature.name.pools": "共享资金池",
   "feature.name.statement_import": "导入银行对账单",
   "urgency.installment": "第 {n} 期",
-  "bot.signupAlert": "🎉 新用户注册！\n• 👤 账户/手机号：{account}\n• 📅 日期：{date}\n• 🌐 注册方式：{method}\n• 📊 会员总数：{total} 人",
+  "bot.signupAlert": "🎉 新用户注册！\n• 👤 姓名：{name}\n• 📱 电话/邮箱：{account}\n• 📅 日期：{date}\n• 🌐 注册方式：{method}\n• 📊 会员总数：{total} 人",
   "bot.birthdayWish": "🎂 {name}，生日快乐！🎉\nLuyChlat 团队祝您身体健康、幸福美满、万事顺利，财源滚滚！💰🥳",
   "bot.birthdayYou": "朋友",
   "birthday.title": "{name}，生日快乐！",
@@ -2974,4 +2974,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.festivalTomorrow": "{emoji} 明天就是{name}。记得为节日开支做好预算，避免超支。",
   "holyDay.upcoming": "即将到来的节日与祭祀日",
   "wallets.seeAllCount": "查看全部（{n}）",
+  "login.fullName": "全名或昵称",
+  "login.fullNamePlaceholder": "例如 张三",
+  "login.nameRequired": "请输入您的姓名",
 }

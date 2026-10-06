@@ -8,7 +8,7 @@ import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText, SIGNATURE, tg, tr } from "./telegram-bot"
 
-type Pending = { user_id: string; email: string | null; provider: string; created_at: string; total_members: number }
+type Pending = { user_id: string; email: string | null; provider: string; created_at: string; total_members: number; display_name?: string | null }
 type AdminChat = { chat_id: number; language: Locale }
 
 const METHOD: Record<string, string> = { phone: "Phone", email: "Email", google: "Google", apple: "Apple" }
@@ -36,6 +36,8 @@ export async function flushSignupAlerts() {
     let delivered = false
     for (const a of admins) {
       const text = tr(a.language, "bot.signupAlert", {
+        // The name typed at sign-up; a masked default ("•••222") is no name.
+        name: p.display_name && !p.display_name.startsWith("•") ? p.display_name : "—",
         account: loginLabel(p.email) || "—",
         date: cambodiaTime(p.created_at),
         method: METHOD[p.provider] ?? p.provider,
