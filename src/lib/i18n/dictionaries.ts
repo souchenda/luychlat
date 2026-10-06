@@ -3064,6 +3064,8 @@ const km = {
   "bot.groupWelcome": "👋 សួស្តី! ខ្ញុំជាជំនួយការបេឡារួម LuyChlat។\nដើម្បីប្រើក្នុងក្រុមនេះ អ្នករក្សាលុយបើក LuyChlat › បេឡារួម › «ភ្ជាប់ក្រុម Telegram» ហើយវាយ /pool link CODE នៅទីនេះ ក្នុងរយៈពេល ១០ នាទី។\nបើមិនមានការភ្ជាប់ ខ្ញុំនឹងចាកចេញពីក្រុមដោយស្វ័យប្រវត្តិ។",
   "bot.groupLeaving": "👋 ក្រុមនេះមិនទាន់ភ្ជាប់បេឡារួម LuyChlat ទេ ដូច្នេះខ្ញុំសូមចាកចេញ។ អាចបន្ថែមខ្ញុំម្តងទៀតពេលណាក៏បាន ពេលត្រៀមភ្ជាប់។ អរគុណ! 🙏",
   "pool.bot.planRequired": "👑 មុខងារគ្រប់គ្រងចំណាយអាជីវកម្មក្នុងក្រុម Telegram គឺសម្រាប់តែគណនី LuyChlat PRO ប៉ុណ្ណោះ។ សូមដំឡើងគម្រោងដើម្បីប្រើប្រាស់។",
+  "bot.menuOpen": "📋 ប៊ូតុង ១ ប៉ះ ខាងក្រោម។ ចុច «❌ បិទ Menu» ដើម្បីបិទ — ឬប្រើ ≡ Menu ខាងឆ្វេងប្រអប់សរសេរ។",
+  "bot.menuClosed": "✅ បានបិទ Menu។ ចុច ≡ ខាងឆ្វេងប្រអប់សរសេរ ឬវាយ /menu ដើម្បីបើកម្តងទៀត។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6117,6 +6119,8 @@ const en: Record<MessageKey, string> = {
   "bot.groupWelcome": "👋 Hi! I'm the LuyChlat shared-pool assistant.\nTo use me here, the keeper opens LuyChlat › Shared pool › “Connect a Telegram group” and sends /pool link CODE in this group within 10 minutes.\nIf no pool is linked, I'll leave the group automatically.",
   "bot.groupLeaving": "👋 No LuyChlat pool is linked to this group, so I'm leaving. Add me again any time you're ready to link one. Thank you! 🙏",
   "pool.bot.planRequired": "👑 Business expense tracking in a Telegram group is for LuyChlat PRO accounts only. Please upgrade your plan to use it.",
+  "bot.menuOpen": "📋 One-tap buttons below. Tap “❌ Close menu” to hide them — or use the ≡ Menu next to the message box.",
+  "bot.menuClosed": "✅ Menu closed. Tap ≡ next to the message box, or send /menu, to open it again.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

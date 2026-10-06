@@ -61,19 +61,16 @@ const api = (m, b) => fetch("https://api.telegram.org/bot" + t + "/" + m, { meth
     hook = r.ok ? "ok" : "failed"
   }
   await api("setMyCommands", { commands: [
-    { command: "start", description: "ភ្ជាប់គណនី LuyChlat · Connect your account" },
+    { command: "start", description: "ភ្ជាប់គណនី / ចាប់ផ្តើម · Connect / start" },
+    { command: "rate", description: "អត្រាប្តូរប្រាក់ & មាស · Exchange rate & gold" },
+    { command: "fuel", description: "តម្លៃប្រេងឥន្ធនៈ · Fuel prices" },
+    { command: "pool", description: "បេឡារួម · Shared pool" },
+    { command: "weekly", description: "របាយការណ៍ប្រចាំសប្តាហ៍ · Weekly report" },
     { command: "help", description: "ជំនួយ · Help" },
-    { command: "guide", description: "📖 សៀវភៅណែនាំការប្រើប្រាស់ · User manual · 使用手册" },
-    { command: "ai", description: "🤖 សួរទីប្រឹក្សា AI · Ask the AI advisor · 问 AI 顾问" },
-    { command: "invoice", description: "🧾 វិក្កយបត្រ · Quick invoice · 开发票 (/invoice 12$ កាហ្វេ 2)" },
-    { command: "gift", description: "🎁 ចំណងដៃ & បច្ច័យ · Gifts & merit · 礼金 (/gift សុខា)" },
-    { command: "market", description: "ហាងឆេងទីផ្សារ (ប្តូរប្រាក់ មាស ប្រេងសាំង) · Market rates · 市场行情" },
-    { command: "rate", description: "អត្រាប្ដូរប្រាក់ · Exchange rate · 汇率 (/rate 100 usd to khr)" },
-    { command: "gold", description: "តម្លៃមាស · Gold price · 金价 (/gold 2 ជី)" },
-    { command: "fuel", description: "តម្លៃប្រេង & ហ្កាស · Fuel & gas prices · 油价" },
-    { command: "digest", description: "សង្ខេបប្រចាំសប្ដាហ៍ · Weekly digest · 每周摘要" },
-    { command: "nssf", description: "ប.ស.ស. · NSSF cards & info · 国家社保" },
-    { command: "lang", description: "ភាសា · Language · 语言 (ខ្មែរ / 中文 / English)" },
+    { command: "menu", description: "ប៊ូតុង ១ ប៉ះ (បិទបាន) · 1-tap buttons" },
+    { command: "gold", description: "តម្លៃមាស · Gold price (/gold 2 ជី)" },
+    { command: "ai", description: "🤖 សួរទីប្រឹក្សា AI · Ask the AI advisor" },
+    { command: "lang", description: "ភាសា · Language (ខ្មែរ / 中文 / English)" },
     { command: "stop", description: "ផ្ដាច់ · Disconnect" },
   ] })
   console.log("OK " + hash + " " + me.result.username + " " + hook)

@@ -3017,4 +3017,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.groupWelcome": "👋 你好！我是 LuyChlat 共享资金池助手。\n要在本群使用，请保管人在 LuyChlat › 共享资金池 › 「连接 Telegram 群」中获取代码，并在 10 分钟内于本群发送 /pool link CODE。\n如未连接资金池，我将自动退出本群。",
   "bot.groupLeaving": "👋 本群尚未连接 LuyChlat 资金池，我先退出了。准备好连接时可随时再次添加我。谢谢！🙏",
   "pool.bot.planRequired": "👑 在 Telegram 群组中管理企业支出仅限 LuyChlat PRO 账户。请升级套餐后使用。",
+  "bot.menuOpen": "📋 下方是一键按钮。点「❌ 关闭菜单」即可隐藏——也可用输入框旁的 ≡ 菜单。",
+  "bot.menuClosed": "✅ 菜单已关闭。点输入框旁的 ≡，或发送 /menu 可再次打开。",
 }

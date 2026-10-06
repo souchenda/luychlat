@@ -1,7 +1,12 @@
-// Server only: the bot's persistent 1-tap keyboard (private chats).
+// Server only: the bot's 1-tap keyboard (private chats) — shown only on /menu,
+// compact, with a close button. Everything else removes it: the native ≡ menu
+// (setMyCommands) is the everyday way in, and takes no screen space.
 import type { Locale } from "@/lib/i18n/dictionaries"
 
 import { botDb, botKey } from "./telegram-bot"
+
+/** The "close" button's text (any language) → /menuclose. */
+const CLOSE: Record<Locale, string> = { km: "❌ បិទ Menu", en: "❌ Close menu", zh: "❌ 关闭菜单" }
 
 /** Command behind each button, by position (same in every language). */
 const COMMANDS = [["/market", "/fuel"], ["/gold", "/rate"], ["/digest", "/nssf"], ["/invoice", "/ai"], ["/gift", "/lang"]]
@@ -17,8 +22,13 @@ const BY_TEXT = new Map(
   (Object.values(LABELS) as string[][][]).flatMap((rows) => rows.flatMap((row, r) => row.map((label, c) => [label, COMMANDS[r][c]] as const))),
 )
 
+for (const label of Object.values(CLOSE)) BY_TEXT.set(label, "/menuclose")
+
 /** The command a tapped button stands for, or null for ordinary text. */
 export const menuCommand = (text: string) => BY_TEXT.get(text.trim()) ?? null
+
+/** `extra` for sendText: take any reply keyboard off the screen (the old persistent one included). */
+export const KEYBOARD_OFF = { reply_markup: { remove_keyboard: true } } as const
 
 /** Buttons of features still in testing (public.feature_flags), by command. */
 const COMMAND_FEATURE: Record<string, string> = { "/invoice": "invoices", "/gift": "gifts" }
@@ -33,18 +43,22 @@ export async function botFeatures(chatId: number): Promise<Record<string, boolea
 export const featureOk = (features: Record<string, boolean>, key: string) => features[key] === true
 
 /**
- * `extra` for sendText: the keyboard, sized to fit, kept open. Buttons of a
- * feature in testing appear only when `features` allows it.
+ * `extra` for sendText on /menu: the buttons, compact (resize_keyboard), not
+ * persistent, with "❌ បិទ Menu" last. Buttons of a feature in testing appear
+ * only when `features` allows it.
  */
 export const menuKeyboard = (lang: Locale, features: Record<string, boolean> = {}) => ({
   reply_markup: {
-    keyboard: LABELS[lang]
-      .map((row, r) => row.filter((_, c) => !COMMAND_FEATURE[COMMANDS[r][c]] || featureOk(features, COMMAND_FEATURE[COMMANDS[r][c]])).map((text) => ({ text })))
-      .filter((row) => row.length > 0),
+    keyboard: [
+      ...LABELS[lang]
+        .map((row, r) => row.filter((_, c) => !COMMAND_FEATURE[COMMANDS[r][c]] || featureOk(features, COMMAND_FEATURE[COMMANDS[r][c]])).map((text) => ({ text })))
+        .filter((row) => row.length > 0),
+      [{ text: CLOSE[lang] }],
+    ],
     resize_keyboard: true,
-    is_persistent: true,
+    is_persistent: false,
   },
 })
 
-/** The keyboard for this chat's account. */
-export const keyboardFor = async (chatId: number, lang: Locale) => menuKeyboard(lang, await botFeatures(chatId))
+/** The /menu keyboard for this chat's account. */
+export const menuFor = async (chatId: number, lang: Locale) => menuKeyboard(lang, await botFeatures(chatId))

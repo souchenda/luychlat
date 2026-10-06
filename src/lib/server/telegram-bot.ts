@@ -62,11 +62,15 @@ export const maskNumbers = (text: string) => {
 
 /**
  * Plain-text message (no HTML parsing, so nothing in a name can change the
- * markup). Private chats get account-like numbers masked (maskNumbers).
+ * markup). Private chats get account-like numbers masked (maskNumbers), and a
+ * message without buttons of its own also takes any reply keyboard off the
+ * screen — clearing the old persistent keyboard for everyone the bot writes to.
  */
 export function sendText(chatId: number | string, text: string, extra: Record<string, unknown> = {}) {
-  const body = typeof chatId === "number" && chatId > 0 ? maskNumbers(text) : text
-  return tg("sendMessage", { chat_id: chatId, text: body.slice(0, 4000), disable_web_page_preview: true, ...extra })
+  const priv = typeof chatId === "number" && chatId > 0
+  const body = priv ? maskNumbers(text) : text
+  const markup = priv && !("reply_markup" in extra) ? { reply_markup: { remove_keyboard: true } } : {}
+  return tg("sendMessage", { chat_id: chatId, text: body.slice(0, 4000), disable_web_page_preview: true, ...markup, ...extra })
 }
 
 /** Stored alert texts escape &, <, > for HTML; turn them back for plain text. */
