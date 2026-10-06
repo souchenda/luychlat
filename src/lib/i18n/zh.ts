@@ -2934,4 +2934,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "holyDay.reminderOn": "已开启佛日提醒",
   "holyDay.reminderOff": "已关闭佛日提醒",
   "home.openHolyDays": "查看农历和佛日",
+  "holyDay.pill": "佛日",
+  "holyDay.pillToday": "今天",
+  "holyDay.pillDays": "{n}天",
+  "wallets.addShort": "添加",
 }

@@ -2981,6 +2981,10 @@ const km = {
   "holyDay.reminderOn": "បានបើកការរំលឹកថ្ងៃសីល",
   "holyDay.reminderOff": "បានបិទការរំលឹកថ្ងៃសីល",
   "home.openHolyDays": "មើលប្រតិទិនចន្ទគតិ និងថ្ងៃសីល",
+  "holyDay.pill": "ថ្ងៃសីល",
+  "holyDay.pillToday": "ថ្ងៃនេះ",
+  "holyDay.pillDays": "{n}ថ្ងៃ",
+  "wallets.addShort": "បន្ថែម",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5951,6 +5955,10 @@ const en: Record<MessageKey, string> = {
   "holyDay.reminderOn": "Holy-day reminders on",
   "holyDay.reminderOff": "Holy-day reminders off",
   "home.openHolyDays": "Open the lunar calendar and holy days",
+  "holyDay.pill": "Holy day",
+  "holyDay.pillToday": "today",
+  "holyDay.pillDays": "{n}d",
+  "wallets.addShort": "Add",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

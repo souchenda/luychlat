@@ -1,10 +1,7 @@
 "use client"
 
-import { format } from "date-fns"
-import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, FileUpIcon, HandHeartIcon, HandIcon, MinusIcon, PlusIcon, ReceiptTextIcon, SparklesIcon, TargetIcon, WalletIcon } from "lucide-react"
-import dynamic from "next/dynamic"
+import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, MinusIcon, PlusIcon, ReceiptTextIcon, SparklesIcon, TargetIcon, WalletIcon } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 
 import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
@@ -30,37 +27,27 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { NetWorthCard } from "@/components/wallets/net-worth-card"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
-import { WalletList } from "@/components/wallets/wallet-list"
 import { cashFlow } from "@/lib/analytics"
 import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
-import { longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
+import { monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { islamicGreeting, toHijri } from "@/lib/islamic"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
-import { homeGreeting, isMeritDay } from "@/lib/holidays"
 import { useT } from "@/lib/i18n/use-t"
-import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useFeatures } from "@/lib/features"
 import { BirthdayCard } from "@/components/dashboard/birthday-card"
-import { HolyDayCard } from "@/components/bills/holy-day-card"
+import { LunarPill } from "@/components/dashboard/lunar-pill"
+import { WalletCarousel } from "@/components/wallets/wallet-carousel"
 
-// Recharts is heavy; load the chart card after the rest of the dashboard.
-const CashFlowCharts = dynamic(() => import("@/components/dashboard/cash-flow-charts").then((m) => m.CashFlowCharts), {
-  ssr: false,
-  loading: () => <Skeleton className="h-64 w-full rounded-xl" />,
-})
-
-const WALLET_PREVIEW = 4
-const RECENT_COUNT = 5
+const RECENT_COUNT = 4
 const TREND_MONTHS = 6
 
 export default function HomePage() {
   const t = useT()
-  const router = useRouter()
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id
@@ -101,25 +88,18 @@ export default function HomePage() {
   // The display name from Settings, once the user has set one.
   // Cambodian names are family name first ("ស៊ូ ចិន្តា"): greet by the given name, the last word.
   const givenName = useProfile().data?.display_name?.trim().split(/\s+/).pop()
-  const locale = useLocaleStore((s) => s.locale)
-  const greeting = homeGreeting(new Date(), locale)
   const today = useToday()
   // Islamic tools (optional): Ramadan / Eid greetings in season. The Hijri date itself is on /islamic.
   const islamic = useIslamicEnabled()
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
   const hijri = islamic ? toHijri(today, hijriOffset) : null
   const islamicKey = islamicGreeting(hijri)
-  const festive = Boolean(islamicKey) || greeting.key !== "holiday.everyday"
-  // Khmer numerals for the Ben day in Khmer (បិណ្ឌទី ៥).
-  const greetingParams = Object.fromEntries(
-    Object.entries(greeting.params ?? {}).map(([k, v]) => [k, locale === "km" ? String(v).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)]) : v]),
-  )
 
   return (
     <div className="space-y-4">
-      {/* One row: greeting on the left, today's date and the festival / wish on the right. */}
+      {/* One row: greeting on the left, the lunar day / next holy day pill on the right. */}
       <header>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           {workspace?.type === "BUSINESS" ? (
             // Business workspace: the business's logo and name instead of a personal greeting.
             <h1 className="flex min-w-0 items-center gap-2 text-lg font-bold">
@@ -132,40 +112,16 @@ export default function HomePage() {
               <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
             </h1>
           )}
-          {/* The date and the day's greeting open the holy-day calendar (/bills); in Islamic Mode they stay plain text. */}
-          {(() => {
-            const lines = (
-              <>
-                <p className="truncate text-xs text-muted-foreground">
-                  <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
-                    {longDate(today, locale)}
-                  </time>
-                </p>
-                <p className={festive ? "truncate text-xs font-medium text-primary" : "truncate text-xs text-muted-foreground"}>
-                  {islamicKey ? t(islamicKey) : t(greeting.key, greetingParams)}{" "}
-                  {!islamicKey && isMeritDay(greeting.key) ? (
-                    <HandHeartIcon className="inline size-3.5 align-[-2px]" aria-hidden />
-                  ) : (
-                    <SparklesIcon className="inline size-3.5 align-[-2px] text-amber-500" aria-hidden />
-                  )}
-                  {!islamicKey && (
-                    <ChevronRightIcon className="ml-0.5 inline size-3 align-[-1px] opacity-50 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" aria-hidden />
-                  )}
-                </p>
-              </>
-            )
-            return islamicKey ? (
-              <div className="min-w-0 max-w-[62%] text-right leading-tight">{lines}</div>
-            ) : (
-              <Link
-                href="/bills"
-                aria-label={t("home.openHolyDays")}
-                className="group -mr-1.5 min-w-0 max-w-[62%] rounded-lg px-1.5 py-0.5 text-right leading-tight transition-all hover:bg-muted/70 active:scale-[0.98] active:opacity-80"
-              >
-                {lines}
-              </Link>
-            )
-          })()}
+          {/* Right: a small gold pill with today's lunar day and the next holy day (opens /bills).
+              Islamic Mode in season shows its greeting instead. */}
+          {islamicKey ? (
+            <span className="inline-flex max-w-[58%] shrink-0 items-center gap-1 truncate rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+              <SparklesIcon className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{t(islamicKey)}</span>
+            </span>
+          ) : (
+            <LunarPill />
+          )}
         </div>
         {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
         <BusinessTrialTag workspace={workspace} className="mt-1.5" />
@@ -174,20 +130,6 @@ export default function HomePage() {
       <ExperienceSelector />
 
       <NetWorthCard wallets={walletsQuery.data} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
-
-      {/* NBC $1 = …៛ · gold 24K per damlung — opens /market. */}
-      <BirthdayCard />
-      <MarketRatesCard />
-      <HolyDayCard />
-
-      <DailyTipCard wallets={walletsQuery.data} debts={debtsQuery.data} workspace={workspace} />
-
-      {workspace?.role === "VIEWER" && (
-        <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
-          <EyeIcon className="size-4 shrink-0" aria-hidden />
-          {t("family.viewerNotice")}
-        </p>
-      )}
 
       <div className={editable ? "grid grid-cols-3 gap-2" : "hidden"}>
         <Button
@@ -215,6 +157,46 @@ export default function HomePage() {
         </Button>
       </div>
 
+      {/* NBC $1 = …៛ · gold 24K per damlung — opens /market. */}
+      <MarketRatesCard />
+
+      <BirthdayCard />
+
+      <section className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-sm font-medium text-muted-foreground">{t("nav.wallets")}</h2>
+          {active.length > 0 && (
+            <Link href="/wallets" className="flex items-center text-sm text-primary">
+              {t("wallets.seeAll")}
+              <ChevronRightIcon className="size-4" />
+            </Link>
+          )}
+        </div>
+        {walletsQuery.isLoading ? (
+          <Skeleton className="h-36 w-full rounded-xl" />
+        ) : active.length === 0 ? (
+          <button
+            type="button"
+            onClick={() => setWalletFormOpen(true)}
+            className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed p-6 text-center hover:bg-muted/50"
+          >
+            <WalletIcon className="size-8 text-muted-foreground" />
+            <span className="font-medium">{t("wallets.empty")}</span>
+            <span className="text-sm text-muted-foreground">{t("wallets.emptyHint")}</span>
+          </button>
+        ) : (
+          <WalletCarousel wallets={active} onAdd={editable ? () => setWalletFormOpen(true) : undefined} />
+        )}
+      </section>
+
+
+      {workspace?.role === "VIEWER" && (
+        <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
+          <EyeIcon className="size-4 shrink-0" aria-hidden />
+          {t("family.viewerNotice")}
+        </p>
+      )}
+
       <CashFlowCard
         flow={flow}
         loading={txQuery.isLoading}
@@ -226,6 +208,8 @@ export default function HomePage() {
           </Link>
         }
       />
+
+      <DailyTipCard wallets={walletsQuery.data} debts={debtsQuery.data} workspace={workspace} />
 
       <BudgetHomeCard
         workspaceId={ws}
@@ -273,33 +257,6 @@ export default function HomePage() {
         )}
       </section>
 
-      <section className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-medium text-muted-foreground">{t("nav.wallets")}</h2>
-          {active.length > 0 && (
-            <Link href="/wallets" className="flex items-center text-sm text-primary">
-              {t("wallets.seeAll")}
-              <ChevronRightIcon className="size-4" />
-            </Link>
-          )}
-        </div>
-        {walletsQuery.isLoading ? (
-          <Skeleton className="h-36 w-full rounded-xl" />
-        ) : active.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => setWalletFormOpen(true)}
-            className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed p-6 text-center hover:bg-muted/50"
-          >
-            <WalletIcon className="size-8 text-muted-foreground" />
-            <span className="font-medium">{t("wallets.empty")}</span>
-            <span className="text-sm text-muted-foreground">{t("wallets.emptyHint")}</span>
-          </button>
-        ) : (
-          <WalletList wallets={active.slice(0, WALLET_PREVIEW)} onSelect={() => router.push("/wallets")} />
-        )}
-      </section>
-
       <GoalsHomeCard wallets={walletsQuery.data} />
 
       <BillsWidget workspaceId={ws} />
@@ -308,8 +265,6 @@ export default function HomePage() {
       <TontineDueCard workspaceId={ws} />
 
       <InsuranceRenewalCard debts={debtsQuery.data} />
-
-      <CashFlowCharts transactions={transactions} categories={categoriesQuery.data ?? []} months={months} />
 
       <WalletFormSheet open={walletFormOpen} onOpenChange={setWalletFormOpen} workspaceId={ws} />
       <TransferSheet open={transferOpen} onOpenChange={setTransferOpen} workspaceId={ws} wallets={wallets} />

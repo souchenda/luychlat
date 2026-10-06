@@ -12,7 +12,8 @@ import type { Debt } from "@/lib/data/types"
 import { byUrgency, debtStatus, remaining } from "@/lib/debts"
 import { useT } from "@/lib/i18n/use-t"
 
-const PREVIEW = 3
+// Home stays short: the 2 most urgent; the rest are one tap away on /debts.
+const PREVIEW = 2
 
 /** Outstanding totals per side and the most urgent open debts. `onAdd` shows a "+ Add debt" action (omitted for read-only viewers). */
 export function DebtTrackerWidget({ debts, loading, onAdd }: { debts: Debt[] | undefined; loading?: boolean; onAdd?: () => void }) {
