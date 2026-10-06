@@ -50,6 +50,8 @@ type Update = {
     reply_to_message?: { message_id: number; from?: { is_bot?: boolean } }
     voice?: { file_id: string; duration?: number; file_size?: number }
     document?: { file_name?: string; mime_type?: string; file_size?: number }
+    /** Shared with the "📱 Share my number" button (password reset). */
+    contact?: { phone_number: string; user_id?: number }
     chat: { id: number; type: string }
     from?: { id?: number; username?: string; language_code?: string }
   }
@@ -285,6 +287,22 @@ export async function POST(request: Request) {
     })
     return NextResponse.json({ ok: true })
   }
+  // Password reset: the person shared their own Telegram contact (Telegram has verified the number).
+  if (message.contact) {
+    const chatId = message.chat.id
+    const lang = telegramLocale(message.from?.language_code)
+    const own = message.contact.user_id !== undefined && message.contact.user_id === message.from?.id
+    const done = { reply_markup: { remove_keyboard: true } }
+    if (!own) {
+      await sendText(chatId, tr(lang, "bot.resetNotOwnContact"), done)
+      return NextResponse.json({ ok: true })
+    }
+    const { data } = await botDb().rpc("bot_reset_contact", { p_key: botKey(), p_chat_id: chatId, p_phone: message.contact.phone_number })
+    const r = data as { status?: string; code?: string } | null
+    if (r?.status === "ok" && r.code) await tg("sendMessage", { chat_id: chatId, text: tr(lang, "bot.resetCode", { code: r.code }), parse_mode: "HTML", ...done })
+    else await sendText(chatId, tr(lang, r?.status === "mismatch" ? "bot.resetMismatch" : "bot.resetExpired"), done)
+    return NextResponse.json({ ok: true })
+  }
   if (message.document) {
     await handleDocument(message.chat.id, message.document, message.from?.language_code)
     return NextResponse.json({ ok: true })
@@ -301,6 +319,17 @@ export async function POST(request: Request) {
   const key = botKey()!
   const db = botDb()
 
+  // /start reset_<token>: the deep link from "forgot password" in the app.
+  if (command === "/start" && payload && /^reset_[0-9a-f]{32}$/.test(payload)) {
+    const { data } = await db.rpc("bot_reset_bind", { p_key: key, p_token: payload.slice(6), p_chat_id: chatId })
+    if (data === "phone") {
+      // Only the person's own number proves the account: Telegram shares it with this button.
+      await sendText(chatId, tr(lang, "bot.resetShareContact"), {
+        reply_markup: { keyboard: [[{ text: tr(lang, "bot.resetShareButton"), request_contact: true }]], resize_keyboard: true, one_time_keyboard: true },
+      })
+    } else await sendText(chatId, tr(lang, data === "other" ? "bot.resetUseEmail" : "bot.resetExpired"))
+    return NextResponse.json({ ok: true })
+  }
   if (command === "/start" && payload && /^[0-9a-fA-F]{32}$/.test(payload)) {
     const { data, error } = await db.rpc("bot_link_chat", {
       p_key: key,

@@ -35,6 +35,7 @@ function GuestDataNote() {
 function SignedOutElsewhere() {
   const t = useT()
   const params = useSearchParams()
+  if (params.get("deleted") === "1") return <p className="rounded-xl bg-neutral-100 p-3 text-sm leading-relaxed text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">{t("deleteAccount.done")}</p>
   if (params.get("signed_out") !== "elsewhere") return null
   return <p className="rounded-xl bg-amber-500/10 p-3 text-sm leading-relaxed text-amber-800 dark:text-amber-300">{t("login.signedOutElsewhere")}</p>
 }

@@ -45,10 +45,12 @@ type Customer = {
   is_test: boolean
   birth_date: string | null
   occupation: string | null
+  account_status?: "ACTIVE" | "DORMANT" | "DELETED"
   suspended: boolean
   total: number
 }
-type Filter = "all" | "paying" | "free" | "test"
+// "all" is the active accounts; dormant ones (6+ months quiet) have their own tab.
+type Filter = "all" | "paying" | "free" | "test" | "dormant"
 const PAGE = 30
 
 const STATUS_TONE: Record<Customer["status"], string> = {
@@ -266,6 +268,7 @@ export function CustomerDirectory() {
           { value: "paying", label: t("customers.filter.paying") },
           { value: "free", label: t("customers.filter.free") },
           { value: "test", label: "🧪" },
+          { value: "dormant", label: t("customers.filter.dormant") },
         ]}
       />
       <div className="relative">

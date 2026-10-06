@@ -3,6 +3,7 @@
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { loginLabel } from "@/lib/auth-identifier"
 
+import { appUrl } from "./community-bulletin"
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText, SIGNATURE, tg, tr } from "./telegram-bot"
@@ -74,4 +75,32 @@ export async function birthdayTick() {
     }
   }
   if (sent) logEvent("info", "birthdays", `Birthday wishes sent to ${sent} chat${sent === 1 ? "" : "s"}`, { fold: true })
+}
+
+const DORMANCY_JOB = "dormancy"
+
+/**
+ * From 10:00 Cambodia time, once a day: accounts quiet for 180 days are put to
+ * sleep (sessions end, data closed until they reactivate), and those quiet for
+ * 150 days get one friendly Telegram nudge.
+ */
+export async function dormancyTick() {
+  const now = phnomPenhToday()
+  if (now.hour < 10) return
+  const db = botDb()
+  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: DORMANCY_JOB, p_day: now.day })
+  if (claimed !== true) return
+  const { data, error } = await db.rpc("bot_dormancy_run", { p_key: botKey() })
+  if (error) {
+    logEvent("error", "dormancy", `Dormancy run failed: ${error.message}`, { fold: true })
+    return
+  }
+  const url = (await appUrl()) ?? ""
+  let sent = 0
+  for (const p of (data as { chat_id: number; language: Locale; display_name: string | null }[] | null) ?? []) {
+    const name = p.display_name && !p.display_name.startsWith("•") ? p.display_name : tr(p.language, "bot.birthdayYou")
+    const r = await sendText(p.chat_id, tr(p.language, "bot.dormancyNudge", { name, url }) + SIGNATURE).catch(() => null)
+    if (r?.ok) sent += 1
+  }
+  if (sent) logEvent("info", "dormancy", `Inactivity nudge sent to ${sent} chat${sent === 1 ? "" : "s"}`, { fold: true })
 }

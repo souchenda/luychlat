@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon, LifeBuoyIcon, Loader2Icon, LockIcon, MailCheckIcon, SmartphoneIcon } from "lucide-react"
+import { ArrowLeftIcon, EyeIcon, EyeOffIcon, Loader2Icon, LockIcon, SmartphoneIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -10,10 +10,10 @@ import { EMAIL_PATTERN, parseLoginIdentifier } from "@/lib/auth-identifier"
 import { claimSingleSession } from "@/lib/auth/single-session"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { useSupportContacts } from "@/lib/support"
 import { cn } from "@/lib/utils"
 
 import { MIN_PASSWORD, PasswordHint } from "./password-hint"
+import { TelegramReset, type ResetStart } from "./telegram-reset"
 
 /** Sign in / Create account: an iOS-style segment, the white pill slides under the active tab. */
 function AuthTabs({ value, onChange, label }: { value: "signin" | "signup"; onChange: (v: "signin" | "signup") => void; label: string }) {
@@ -72,11 +72,8 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
   const [shaking, setShaking] = useState(false)
-  /** Reset link sent: the address it went to (the form makes way for a confirmation). */
-  const [sentTo, setSentTo] = useState<string>()
-  /** "Forgot password" for a phone account: no email to send to, so support helps instead. */
-  const [phoneReset, setPhoneReset] = useState(false)
-  const support = useSupportContacts().data
+  /** Forgot password started: the code step (Telegram) takes over the form. */
+  const [reset, setReset] = useState<ResetStart | null>(null)
   /** Shows the error and gives the form a short shake. */
   const fail = (message: string) => {
     setError(message)
@@ -87,8 +84,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     setMode(next)
     setError(undefined)
     setNotice(undefined)
-    setSentTo(undefined)
-    setPhoneReset(false)
+    setReset(null)
   }
 
   const submit = async (e: React.FormEvent) => {
@@ -98,22 +94,25 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
     const id = parseLoginIdentifier(email)
     if (!id) return fail(t("login.identifierInvalid"))
     const address = id.email
-    // A phone account has no email to send a reset link to: support helps instead.
-    if (mode === "forgot" && id.kind === "phone") return setPhoneReset(true)
     const supabase = getSupabaseBrowserClient()
     if (!supabase) return
 
     if (mode === "forgot") {
+      // A code through Telegram for every account; an email account also gets the usual link.
+      // The answer looks the same whether or not the account exists (no probing).
       setBusy(true)
-      const { error } = await supabase.auth.resetPasswordForEmail(address, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
-      })
+      const [tgRes, mailRes] = await Promise.all([
+        fetch("/api/auth/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier: email }) }).catch(() => null),
+        id.kind === "email"
+          ? supabase.auth.resetPasswordForEmail(address, { redirectTo: `${window.location.origin}/auth/callback?next=/reset-password` })
+          : Promise.resolve(null),
+      ])
       setBusy(false)
-      // Same answer whether or not the address has an account (no account probing).
-      if (error && authErrorCode(error) !== "user_not_found") {
-        return fail(`${t("login.resetFailed")} (${authErrorCode(error) || error.status}: ${error.message})`)
-      }
-      setSentTo(address)
+      if (tgRes?.status === 429) return fail(t("reset.tooMany"))
+      const body = tgRes?.ok ? ((await tgRes.json()) as { link?: string | null }) : null
+      const emailed = Boolean(mailRes && !mailRes.error)
+      if (!body && !emailed) return fail(t("login.resetFailed"))
+      setReset({ id, link: body?.link ?? null, emailed })
       return
     }
 
@@ -170,46 +169,20 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   const leadIcon =
     "pointer-events-none absolute top-1/2 left-3.5 z-10 size-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-emerald-500 dark:text-slate-500"
 
-  if (mode === "forgot" && phoneReset) {
+  if (mode === "forgot" && reset) {
     return (
-      <div className="space-y-5 text-center animate-in fade-in-0 duration-300">
-        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-          <LifeBuoyIcon className="size-5" aria-hidden />
-        </span>
-        <div className="space-y-2">
-          <p className="text-base font-semibold">{t("login.phoneResetTitle")}</p>
-          <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{t("login.phoneResetBody")}</p>
-          {support?.phone && <p className="text-sm font-medium">{support.phone}</p>}
-        </div>
-        {support?.telegram_url && (
-          <Button asChild className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white transition-all hover:bg-emerald-700 active:scale-[0.98]">
-            <a href={support.telegram_url} target="_blank" rel="noopener noreferrer">
-              {t("login.phoneResetTelegram")}
-            </a>
-          </Button>
-        )}
-        <Button type="button" variant="ghost" className="h-11 w-full rounded-xl text-sm" onClick={() => switchMode("signin")}>
-          {t("login.backToSignIn")}
-        </Button>
-      </div>
-    )
-  }
-
-  if (mode === "forgot" && sentTo) {
-    return (
-      <div className="space-y-5 text-center animate-in fade-in-0 duration-300">
-        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-          <MailCheckIcon className="size-5" aria-hidden />
-        </span>
-        <div className="space-y-2">
-          <p className="text-base font-semibold">{t("login.resetSentTitle")}</p>
-          <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">{t("login.resetSentDone")}</p>
-          <p className="text-sm font-medium break-all">{sentTo}</p>
-        </div>
-        <Button type="button" className="h-12 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white transition-all hover:bg-emerald-700 active:scale-[0.99]" onClick={() => switchMode("signin")}>
-          {t("login.backToSignIn")}
-        </Button>
-      </div>
+      <TelegramReset
+        start={reset}
+        field={field}
+        label={label}
+        onBack={() => switchMode("signin")}
+        onDone={() => {
+          // Signed out everywhere by the reset: sign in again with the new password.
+          switchMode("signin")
+          setPassword("")
+          setNotice(t("reset.done"))
+        }}
+      />
     )
   }
 

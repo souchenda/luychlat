@@ -10,6 +10,7 @@ import { ExchangeRateSync } from "@/lib/exchange-rate"
 import { PendingReferralRedeemer } from "@/components/billing/referral"
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet"
 import { DesktopSidebar, MobileNavTrigger } from "@/components/layout/app-nav"
+import { DormantGate } from "@/components/layout/dormant-gate"
 import { FeatureGate } from "@/components/layout/feature-gate"
 import { BottomNav } from "@/components/layout/bottom-nav"
 import { HashScroller } from "@/components/layout/hash-scroller"
@@ -102,7 +103,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           >
             <WorkspaceLockedBanner workspace={workspace} />
-            <FeatureGate>{children}</FeatureGate>
+            <DormantGate>
+              <FeatureGate>{children}</FeatureGate>
+            </DormantGate>
           </main>
         </div>
         <BottomNav />

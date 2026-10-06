@@ -1,27 +1,6 @@
 "use client"
 
-import {
-  BookOpenIcon,
-  ChartColumnIcon,
-  CheckCircle2Icon,
-  CoinsIcon,
-  CrownIcon,
-  DatabaseIcon,
-  EyeOffIcon,
-  InfoIcon,
-  LanguagesIcon,
-  LightbulbIcon,
-  LifeBuoyIcon,
-  LogOutIcon,
-  MoonIcon,
-  MoonStarIcon,
-  SendIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
-  TagsIcon,
-  TargetIcon,
-  UsersIcon,
-} from "lucide-react"
+import { BookOpenIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -49,6 +28,7 @@ import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 import { loginLabel } from "@/lib/auth-identifier"
+import { DeleteAccountSheet } from "@/components/settings/delete-account"
 
 /** Islamic Lifestyle & Finance Mode (off by default, 100% free); private to the user (synced, never shown to family). */
 function IslamicToolsRow() {
@@ -165,6 +145,7 @@ export default function SettingsPage() {
   const bot = useOfficialBot()
   const telegram = useTelegramLink()
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   // next-themes only knows the theme after mounting.
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -277,9 +258,22 @@ export default function SettingsPage() {
         />
       </SettingsGroup>
 
+      {/* Danger zone: the account and everything in it, for good (store requirement). */}
+      <SettingsGroup title={t("deleteAccount.zone")}>
+        <SettingsRow
+          onClick={() => setDeleteOpen(true)}
+          chevron={false}
+          icon={<UserXIcon />}
+          tile="rose"
+          title={<span className="text-destructive">{t("deleteAccount.title")}</span>}
+          hint={t("deleteAccount.rowHint")}
+        />
+      </SettingsGroup>
+
       <SettingsFooter />
 
       <AboutSheet open={aboutOpen} onOpenChange={setAboutOpen} />
+      <DeleteAccountSheet open={deleteOpen} onOpenChange={setDeleteOpen} />
     </div>
   )
 }
