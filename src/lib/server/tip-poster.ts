@@ -2,10 +2,10 @@
 // LuyChlat's permanent design for every daily tip poster. Change it only on the
 // founder's explicit request:
 //   · 1080 × 1080, deep emerald gradient, soft glow, faint ៛ watermark
-//   · the standard frame (poster-kit.ts): logo top-left, the pill
-//     "គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ" top-right, the app-first two-line footer
-//   · the Khmer date under the header, then the headline (bold, white, numbers
-//     in gold), no underline
+//   · the standard frame (poster-kit.ts): logo top-left, the DATE pill top-right
+//     ("ថ្ងៃព្រហស្បតិ៍ ទី០៨ តុលា ២០២៦", calendar icon), the app-first two-line footer
+//   · the tip tag "គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ" (bulb) right above the headline (bold,
+//     white, numbers in gold), no underline
 //   · middle, no box: the explanation (primary, white) and its last sentence as
 //     the takeaway (secondary, soft gold), centred between headline and footer
 //   · type: MiSans Khmer, Kantumruy Pro behind it for Latin
@@ -16,7 +16,7 @@ import { createCanvas } from "@napi-rs/canvas"
 
 import { longDate } from "@/lib/dates"
 
-import { FAMILIES, FRAME, drawFooter, drawHeader, drawRich, loadFonts, wrap } from "./poster-kit"
+import { FAMILIES, FRAME, drawFooter, drawHeader, drawIcon, drawRich, loadFonts, wrap } from "./poster-kit"
 
 const { W, H, PAD } = FRAME
 
@@ -65,17 +65,22 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
   ctx.textBaseline = "alphabetic"
   ctx.fillText("៛", W + 50, H - 150)
 
-  drawHeader(ctx, { text: "គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", icon: "bulb" })
-
-  // The date, then the headline.
-  ctx.textAlign = "left"
+  // Header pill: the date, "ថ្ងៃព្រហស្បតិ៍ ទី០៨ តុលា ២០២៦".
   const [yy, mm, dd] = day.split("-").map(Number)
-  ctx.font = `400 28px ${FAMILIES}`
-  ctx.fillStyle = "rgba(254,243,199,0.82)"
-  ctx.fillText(longDate(new Date(yy, mm - 1, dd, 12), "km"), PAD, FRAME.contentTop + 60)
+  const date = longDate(new Date(yy, mm - 1, dd, 12), "km").replace("ខែ", "").replace("ឆ្នាំ", "").replace(/\s+/g, " ").trim()
+  drawHeader(ctx, { text: date, icon: "calendar" })
+
+  // The tip tag right above the headline.
+  ctx.textAlign = "left"
+  ctx.textBaseline = "alphabetic"
+  const tagY = FRAME.contentTop + 82
+  drawIcon(ctx, "bulb", PAD + 12, tagY - 11)
+  ctx.font = `600 30px ${FAMILIES}`
+  ctx.fillStyle = "#fde68a"
+  ctx.fillText("គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", PAD + 36, tagY)
   ctx.font = `700 86px ${FAMILIES}`
   const titleLines = wrap(ctx, tip.title, W - 2 * PAD, 2)
-  let y = FRAME.contentTop + 178
+  let y = tagY + 104
   for (const line of titleLines) {
     drawRich(ctx, line, PAD, y, 86, { weight: 700, color: "#ffffff" })
     y += 112

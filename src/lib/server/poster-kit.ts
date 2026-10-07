@@ -135,8 +135,8 @@ export function roundRect(ctx: SKRSContext2D, x: number, y: number, w: number, h
   ctx.closePath()
 }
 
-export type Icon = "phone" | "plane" | "globe" | "bulb"
-/** Small gold line icons centred on (cx, cy): a phone, Telegram's paper plane, a globe, a light bulb. */
+export type Icon = "phone" | "plane" | "globe" | "bulb" | "calendar"
+/** Small gold line icons centred on (cx, cy): a phone, Telegram's paper plane, a globe, a light bulb, a calendar. */
 export function drawIcon(ctx: SKRSContext2D, icon: Icon, cx: number, cy: number) {
   ctx.save()
   ctx.strokeStyle = GOLD
@@ -175,6 +175,17 @@ export function drawIcon(ctx: SKRSContext2D, icon: Icon, cx: number, cy: number)
     ctx.moveTo(cx - 13, cy)
     ctx.lineTo(cx + 13, cy)
     ctx.stroke()
+  } else if (icon === "calendar") {
+    roundRect(ctx, cx - 12, cy - 10, 24, 22, 4)
+    ctx.stroke()
+    ctx.fillRect(cx - 12, cy - 10, 24, 6)
+    ctx.beginPath()
+    ctx.moveTo(cx - 6, cy - 14)
+    ctx.lineTo(cx - 6, cy - 8)
+    ctx.moveTo(cx + 6, cy - 14)
+    ctx.lineTo(cx + 6, cy - 8)
+    ctx.stroke()
+    for (const [dx, dy] of [[-5, 2], [1, 2], [7, 2], [-5, 7], [1, 7]]) ctx.fillRect(cx + dx - 1.5, cy + dy - 1.5, 3, 3)
   } else {
     ctx.beginPath()
     ctx.arc(cx, cy - 3, 9, Math.PI * 0.8, Math.PI * 2.2)
