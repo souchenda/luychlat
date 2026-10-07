@@ -4,7 +4,8 @@
 // number ("$730/ឆ្នាំ", "៥០%", "២០,០០០៛") picked out in bold gold. Drawn with
 // Skia (@napi-rs/canvas), whose HarfBuzz shaping gets Khmer right; lines break
 // at Khmer word boundaries (Intl.Segmenter), never inside a cluster.
-// Typeface: Kantumruy Pro, the app's brand font (public/fonts, SIL OFL).
+// Typeface: MiSans Khmer on trial (POSTER_FONT=kantumruy switches back), with
+// Kantumruy Pro — the app's brand font — behind it for Latin (public/fonts).
 import path from "node:path"
 
 import { createCanvas, GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas"
@@ -15,14 +16,19 @@ const W = 1080
 const H = 1350
 const PAD = 90
 const GOLD = "#fcd34d"
-const FAMILIES = `"Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", sans-serif`
+const FAMILIES =
+  process.env.POSTER_FONT === "kantumruy"
+    ? `"Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", sans-serif`
+    : `"MiSans Khmer", "Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", sans-serif`
 
 let fontsLoaded = false
 function loadFonts() {
   if (fontsLoaded) return
   fontsLoaded = true
   // The brand font first (shipped in public/), system fonts only as a fallback.
-  for (const weight of [400, 600, 700]) GlobalFonts.registerFromPath(path.join(process.cwd(), "public", "fonts", `KantumruyPro-${weight}.ttf`), "Kantumruy Pro")
+  const dir = path.join(process.cwd(), "public", "fonts")
+  for (const weight of [400, 600, 700]) GlobalFonts.registerFromPath(path.join(dir, `KantumruyPro-${weight}.ttf`), "Kantumruy Pro")
+  for (const w of ["Regular", "Medium", "Semibold", "Bold"]) GlobalFonts.registerFromPath(path.join(dir, `MiSansKhmer-${w}.woff2`), "MiSans Khmer")
   for (const dir of ["/usr/share/fonts", "C:/Windows/Fonts"]) GlobalFonts.loadFontsFromDir(dir)
 }
 

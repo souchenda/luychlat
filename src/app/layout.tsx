@@ -2,12 +2,14 @@ import type { Metadata, Viewport } from "next"
 import { Amiri, Amiri_Quran, Geist_Mono, Kantumruy_Pro } from "next/font/google"
 
 import { Providers } from "@/components/providers"
+import { appFontOn, misansKhmer } from "@/lib/fonts/misans-khmer"
 
 import "./globals.css"
 
-// Kantumruy Pro covers both Khmer and Latin glyphs.
+// Kantumruy Pro covers both Khmer and Latin glyphs. --font-sans is set on <html>
+// below: Kantumruy Pro, or MiSans Khmer first while NEXT_PUBLIC_APP_FONT=misans.
 const kantumruy = Kantumruy_Pro({
-  variable: "--font-sans",
+  variable: "--font-kantumruy",
   subsets: ["khmer", "latin"],
 })
 
@@ -59,7 +61,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="km" className={`${kantumruy.variable} ${geistMono.variable} ${amiri.variable} ${amiriQuran.variable}`} suppressHydrationWarning>
+    <html
+      lang="km"
+      className={`${kantumruy.variable} ${appFontOn ? misansKhmer.variable : ""} ${geistMono.variable} ${amiri.variable} ${amiriQuran.variable}`}
+      style={{ "--font-sans": appFontOn ? "var(--font-misans-khmer), var(--font-kantumruy)" : "var(--font-kantumruy)" } as React.CSSProperties}
+      suppressHydrationWarning
+    >
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>

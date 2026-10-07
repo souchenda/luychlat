@@ -194,7 +194,10 @@ export async function dailyTipTick() {
     if (!(await claim("tip-preview", now.day))) return
     let t = await getTip(now.day)
     if (!t) {
-      const tip = defaultTip(now.day)
+      // Never the same tip two days running.
+      const yesterday = await getTip(new Date(Date.parse(`${now.day}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10))
+      const first = defaultTip(now.day)
+      const tip = yesterday?.tip_id === first.id ? nextTip(first.id) : first
       const { data } = await db.rpc("bot_tip_ensure", { p_key: botKey(), p_day: now.day, p_tip_id: tip.id, p_title: tip.title.km, p_body: tip.body.km })
       t = data as DailyTip | null
     }
