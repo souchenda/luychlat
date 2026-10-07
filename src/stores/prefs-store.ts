@@ -18,10 +18,16 @@ type PrefsState = {
    * to it, so this local copy only makes the first paint instant.
    */
   khrPerUsd: number
+  /** Wallets page: list wallets under their bank (default) or as one list. */
+  walletsGrouped: boolean
+  /** Wallets page: bank groups the user folded away (provider keys). */
+  collapsedBanks: string[]
   /** `id` picks a specific Family or Business workspace. */
   setActiveWorkspace: (type: WorkspaceType, id?: string | null) => void
   toggleHideBalances: () => void
   setKhrPerUsd: (rate: number) => void
+  setWalletsGrouped: (grouped: boolean) => void
+  toggleBankCollapsed: (key: string) => void
 }
 
 export const usePrefsStore = create<PrefsState>()(
@@ -32,6 +38,8 @@ export const usePrefsStore = create<PrefsState>()(
       activeBusinessId: null,
       hideBalances: false,
       khrPerUsd: DEFAULT_KHR_PER_USD,
+      walletsGrouped: true,
+      collapsedBanks: [],
       setActiveWorkspace: (activeWorkspace, id) =>
         set((s) => ({
           activeWorkspace,
@@ -40,6 +48,11 @@ export const usePrefsStore = create<PrefsState>()(
         })),
       toggleHideBalances: () => set((s) => ({ hideBalances: !s.hideBalances })),
       setKhrPerUsd: (khrPerUsd) => set({ khrPerUsd }),
+      setWalletsGrouped: (walletsGrouped) => set({ walletsGrouped }),
+      toggleBankCollapsed: (key) =>
+        set((s) => ({
+          collapsedBanks: s.collapsedBanks.includes(key) ? s.collapsedBanks.filter((k) => k !== key) : [...s.collapsedBanks, key],
+        })),
     }),
     {
       name: "luysmart-prefs",

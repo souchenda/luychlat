@@ -3113,4 +3113,10 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "dev.peak": "峰值 {value}",
   "dev.ongoing": "进行中",
   "dev.recoveredIn": "{minutes} 分钟",
+  "wallets.cards": "信用卡",
+  "wallets.filterLabel": "按银行筛选",
+  "wallets.count": "{count} 个账户",
+  "wallets.groupByBank": "按银行分组",
+  "wallets.flatList": "显示为单一列表",
+  "wallets.countOne": "1 个账户",
 }

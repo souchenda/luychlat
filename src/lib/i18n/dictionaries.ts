@@ -3160,6 +3160,12 @@ const km = {
   "dev.peak": "ខ្ពស់បំផុត {value}",
   "dev.ongoing": "កំពុងបន្ត",
   "dev.recoveredIn": "{minutes} នាទី",
+  "wallets.cards": "ប័ណ្ណឥណទាន",
+  "wallets.filterLabel": "ច្រោះតាមធនាគារ",
+  "wallets.count": "{count} គណនី",
+  "wallets.groupByBank": "បែងចែកតាមធនាគារ",
+  "wallets.flatList": "បង្ហាញជាបញ្ជីតែមួយ",
+  "wallets.countOne": "1 គណនី",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6309,6 +6315,12 @@ const en: Record<MessageKey, string> = {
   "dev.peak": "peak {value}",
   "dev.ongoing": "ongoing",
   "dev.recoveredIn": "{minutes} min",
+  "wallets.cards": "Credit cards",
+  "wallets.filterLabel": "Filter by bank",
+  "wallets.count": "{count} accounts",
+  "wallets.groupByBank": "Group by bank",
+  "wallets.flatList": "Show as one list",
+  "wallets.countOne": "1 account",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

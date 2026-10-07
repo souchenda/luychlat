@@ -74,3 +74,9 @@ export function nameMark(name: string): string {
   const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" })
   return words.map((w) => seg.segment(w)[Symbol.iterator]().next().value?.segment ?? "").join("").toUpperCase()
 }
+
+/** The bank a wallet belongs to: the one picked, or for "Other" the one its name mentions (as the avatar shows). */
+export function walletInstitution(w: { icon: string | null; name?: string | null }): WalletProvider {
+  const picked = getProvider(w.icon)
+  return picked.key === "other" ? (providerForName(w.name) ?? picked) : picked
+}

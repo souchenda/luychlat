@@ -26,9 +26,11 @@ type WalletListProps = {
   reorderMode?: boolean
   onMove?: (index: number, direction: -1 | 1) => void
   muted?: boolean
+  /** Inside a bank group: the bank is in the header, so rows show only currency and account. */
+  hideProvider?: boolean
 }
 
-export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: WalletListProps) {
+export function WalletList({ wallets, onSelect, reorderMode, onMove, muted, hideProvider }: WalletListProps) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
@@ -61,7 +63,8 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted }: Wa
                   </span>
                 )}
                 <span className="truncate">
-                  {isCard(wallet) ? t("card.kind") : pick(getProvider(wallet.icon).name, locale)} · {wallet.currency}
+                  {isCard(wallet) ? `${t("card.kind")} · ` : hideProvider ? "" : `${pick(getProvider(wallet.icon).name, locale)} · `}
+                  {wallet.currency}
                   {wallet.account_no ? ` · ${maskAccount(wallet.account_no)}` : ""}
                 </span>
               </span>
