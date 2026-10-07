@@ -10,7 +10,7 @@
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 
 import { botToken } from "./telegram-bot"
-import { FAMILIES, drawIcon, drawSpread, loadFonts, roundRect, wrap, type Icon } from "./tip-poster"
+import { FAMILIES, drawIcon, drawSpread, loadFonts, roundRect, wrap } from "./tip-poster"
 
 const W = 1080
 const H = 1080
