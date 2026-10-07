@@ -109,7 +109,7 @@ export function DayCard({ day, tip }: { day: string; tip: DailyTip | null }) {
   }
 
   const upload = async (file: File) => {
-    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 5 * 1024 * 1024) return toast.error(t("tips.posterInvalid"))
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 10 * 1024 * 1024) return toast.error(t("tips.posterInvalid"))
     const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg"
     const path = `${day}/${crypto.randomUUID().replace(/-/g, "")}.${ext}`
     const { error } = await client().storage.from("tip-posters").upload(path, file, { contentType: file.type, upsert: false })

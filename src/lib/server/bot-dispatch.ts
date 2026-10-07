@@ -4,7 +4,7 @@ import { cambodiaNow, formatMinutes, prayerTimes, PROVINCES } from "@/lib/prayer
 import { duePrayer } from "@/lib/prayer-alerts"
 
 import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "./telegram-bot"
-import { sendCommunityBulletin } from "@/lib/server/community-bulletin"
+import { sendCommunityBulletin, syncCommunityPost } from "@/lib/server/community-bulletin"
 import { communityRoutineTick } from "@/lib/server/community-routine"
 import { dailyTipTick } from "@/lib/server/tip-bot"
 import { watchdogTick } from "@/lib/server/health-watchdog"
@@ -78,6 +78,7 @@ export async function dispatchOnce() {
     await sendPrayerTimes()
     await marketScheduleTick()
     await sendCommunityBulletin()
+    await syncCommunityPost()
     await communityRoutineTick()
     await dailyTipTick()
     await weeklyDigestTick()

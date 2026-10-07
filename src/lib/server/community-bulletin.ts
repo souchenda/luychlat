@@ -61,7 +61,10 @@ const rateLine = (code: string, v: number) => {
 const asOf = (iso: string) => kmDigits(iso.split("-").reverse().join("/"))
 const CTA = "🧮 គណនាផ្ទាល់ជាមួយ @luychlat_bot៖ ផ្ញើ «/rate 100 usd» ឬ «/gold 2 ជី»"
 
-export function bulletinText(date: Date, market: MarketLive | null, today = ymd(date)): string {
+/** "🔄 ធ្វើបច្ចុប្បន្នភាព៖ ម៉ោង ១០:៥១" — on a post edited after fresher data came in. */
+const updatedLine = (at: Date) => `🔄 ធ្វើបច្ចុប្បន្នភាព៖ ម៉ោង ${kmDigits(new Date(at.getTime() + 7 * 3_600_000).toISOString().slice(11, 16))}`
+
+export function bulletinText(date: Date, market: MarketLive | null, today = ymd(date), updatedAt?: Date): string {
   const lines: string[] = ["📊 ព័ត៌មានទីផ្សារប្រចាំថ្ងៃ · LuyChlat", `📅 ${longDate(date, "km")}`]
   const greeting = homeGreeting(date)
   if (greeting.key !== "holiday.everyday") {
@@ -96,12 +99,12 @@ export function bulletinText(date: Date, market: MarketLive | null, today = ymd(
   const kmT = (key: MessageKey, params?: Record<string, string | number>) =>
     Object.entries(params ?? {}).reduce((text, [k, v]) => text.replaceAll(`{${k}}`, String(v)), km[key] as string)
   lines.push("", ...(market?.fuel ? fuelLines(market.fuel, kmT, today, "km") : fuelPendingLines(kmT, today, "km")))
-  lines.push("", CTA, "", "— លុយឆ្លាត · LuyChlat")
+  lines.push("", CTA, "", ...(updatedAt ? [updatedLine(updatedAt)] : []), "— លុយឆ្លាត · LuyChlat")
   return lines.join("\n")
 }
 
 /** Evening: NBC's rate for the next working day (published ~16:30). */
-export function eveningRatesText(market: MarketLive): string | null {
+export function eveningRatesText(market: MarketLive, updatedAt?: Date): string | null {
   const nbc = market.nbc
   if (!nbc) return null
   const lines = [`💵 អត្រាប្ដូរប្រាក់ផ្លូវការ NBC សម្រាប់ថ្ងៃ ${asOf(nbc.date)}`]
@@ -109,7 +112,7 @@ export function eveningRatesText(market: MarketLive): string | null {
     const v = nbc.khr_per[code]
     if (v) lines.push(rateLine(code, v))
   }
-  lines.push("", "ធនាគារជាតិនៃកម្ពុជា ចេញអត្រាសម្រាប់ថ្ងៃធ្វើការបន្ទាប់ ប្រហែលម៉ោង ៤:៣០ ល្ងាច។", "", CTA, "", "— លុយឆ្លាត · LuyChlat")
+  lines.push("", "ធនាគារជាតិនៃកម្ពុជា ចេញអត្រាសម្រាប់ថ្ងៃធ្វើការបន្ទាប់ ប្រហែលម៉ោង ៤:៣០ ល្ងាច។", "", CTA, "", ...(updatedAt ? [updatedLine(updatedAt)] : []), "— លុយឆ្លាត · LuyChlat")
   return lines.join("\n")
 }
 
@@ -119,7 +122,7 @@ export function eveningRatesText(market: MarketLive): string | null {
  * deleted (a failure there — already deleted by hand, too old — is ignored).
  * The last post's id is kept in the database (survives restarts).
  */
-async function postReplacing(chat: string, payload: Record<string, unknown>) {
+async function postReplacing(chat: string, payload: Record<string, unknown>, kind: "bulletin" | "evening" = "bulletin") {
   const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, ...payload })
   if (!res.ok || !res.result) return res
   const db = botDb()
@@ -133,7 +136,12 @@ async function postReplacing(chat: string, payload: Record<string, unknown>) {
   } catch {
     // Never let the clean-up stop the update.
   }
-  await db.rpc("bot_kv_set", { p_key: botKey(), p_name: "community_posts", p_value: { chat, message_id: res.result.message_id, at: new Date().toISOString() } })
+  const day = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)
+  await db.rpc("bot_kv_set", {
+    p_key: botKey(),
+    p_name: "community_posts",
+    p_value: { chat, message_id: res.result.message_id, at: new Date().toISOString(), kind, day, sig: String(payload.text ?? "") },
+  })
   return res
 }
 
@@ -207,6 +215,46 @@ async function nudgeFuelPrices(market: MarketLive | null, day: string) {
   logEvent("warn", "bulletin", fuel ? "Fuel prices are from a previous cycle — admins reminded" : "No fuel prices entered — admins reminded", { fold: true })
 }
 
+type PostedRecord = { chat?: string; message_id?: number; at?: string; kind?: "bulletin" | "evening"; day?: string; sig?: string }
+
+/**
+ * Called every minute: today's market post in the channel always shows the
+ * same verified data as the app. When the rates, gold or fuel behind it
+ * changed (a fresher NBC rate, today's gold, /setfuel…), the post is edited in
+ * place — same buttons — with "🔄 ធ្វើបច្ចុប្បន្នភាព៖ ម៉ោង …". `sig` is the post's
+ * text without that line, so nothing is edited when nothing changed.
+ */
+export async function syncCommunityPost(): Promise<"edited" | "same" | "none"> {
+  const chat = communityChat()
+  if (!chat) return "none"
+  const db = botDb()
+  const { data } = await db.rpc("bot_kv_get", { p_key: botKey(), p_name: "community_posts" })
+  const post = data as PostedRecord | null
+  const now = phnomPenhNow()
+  // Only today's post (yesterday's evening post is replaced by this morning's bulletin anyway).
+  const postDay = post?.day ?? (post?.at ? phnomPenhDay(post.at) : null)
+  if (!post?.message_id || post.chat !== chat || postDay !== now.day) return "none"
+  const market = await currentMarket()
+  if (!market) return "none"
+  const kind = post.kind ?? "bulletin"
+  const fresh = kind === "evening" ? eveningRatesText(market) : bulletinText(now.date, market, now.day)
+  if (!fresh || fresh === post.sig) return "same"
+  const at = new Date()
+  const text = (kind === "evening" ? eveningRatesText(market, at) : bulletinText(now.date, market, now.day, at))!.slice(0, 4000)
+  const res = await tg("editMessageText", { chat_id: chat, message_id: post.message_id, text, disable_web_page_preview: true, ...(await postButtons()) })
+  // "message is not modified" also means it already shows this.
+  if (!res.ok && !/not modified/i.test(res.description ?? "")) {
+    logEvent("error", "bulletin", `Updating the channel post failed: ${res.description ?? "unknown"}`, { fold: true })
+    return "none"
+  }
+  await db.rpc("bot_kv_set", { p_key: botKey(), p_name: "community_posts", p_value: { ...post, kind, day: now.day, sig: fresh, updated_at: at.toISOString() } })
+  logEvent("info", "bulletin", `Channel ${kind} post updated with the latest verified data`)
+  return "edited"
+}
+
+/** The Cambodian day of an ISO time. */
+const phnomPenhDay = (iso: string) => new Date(Date.parse(iso) + 7 * 3_600_000).toISOString().slice(0, 10)
+
 /** 17:00–19:30: once NBC's next-working-day rate is in, post it (once a day). */
 async function maybeSendEveningRates(chat: string, now: ReturnType<typeof phnomPenhNow>) {
   // Working days only: NBC publishes Monday–Friday (a weekend would repeat Friday's rate).
@@ -218,7 +266,7 @@ async function maybeSendEveningRates(chat: string, now: ReturnType<typeof phnomP
   if (!text) return
   const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: EVENING_JOB, p_day: now.day })
   if (claimed !== true) return
-  const res = await postReplacing(chat, { text, disable_web_page_preview: true, ...(await postButtons()) })
+  const res = await postReplacing(chat, { text, disable_web_page_preview: true, ...(await postButtons()) }, "evening")
   logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Evening NBC rates sent to ${chat} (as of ${market.nbc.date})` : `Evening NBC post failed: ${res.description ?? "unknown"}`)
 }
 

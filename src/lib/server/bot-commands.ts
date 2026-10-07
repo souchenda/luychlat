@@ -287,7 +287,8 @@ function voiceAllowed(chatId: number) {
 type Voice = { file_id: string; duration?: number; file_size?: number }
 
 /** A voice note from a linked chat: transcribe it, then treat it like a typed message. */
-export async function handleVoiceMessage(chatId: number, voice: Voice, ctx: Context) {
+/** `onText`: a voice note replying to a prompt (e.g. a slip's note) — true when it took the text. */
+export async function handleVoiceMessage(chatId: number, voice: Voice, ctx: Context, onText?: (text: string) => Promise<boolean>) {
   const lang = contextLocale(ctx)
   // Check the plan and opt-in before downloading or paying for a transcription.
   const stop = blocked(ctx, lang)
@@ -318,6 +319,7 @@ export async function handleVoiceMessage(chatId: number, voice: Voice, ctx: Cont
     `[voice] chat …${String(chatId).slice(-4)} · chat language ${lang} · ${transcript?.via ?? "-"} · heard ${transcript?.language ?? "?"}${transcript?.retried ? " (asked again as Khmer)" : ""}${transcript?.confidence ? ` · ${transcript.confidence}` : ""} · ${text ? `"${text.slice(0, 120)}"` : "no text"}`,
   )
   if (!text) return sendText(chatId, tr(lang, "bot.voiceFailed"))
+  if (onText && (await onText(text))) return
   // Speech-to-text writes amounts as Khmer words ("ពីរដុល្លារ"): turn them into digits for the parser.
   return handleEntryMessage(chatId, khmerWordsToDigits(text), ctx, text)
 }

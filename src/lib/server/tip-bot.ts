@@ -5,9 +5,11 @@
 //   10:30–11:59  draft today's tip (unless one was prepared in Admin › Super ›
 //                Daily tips), render the poster, send a private preview to each
 //                super admin's linked chat:
-//                  [✅ អនុម័តផ្សាយ]  [🔄 ប្តូរគន្លឹះថ្មី] [❌ ផ្អាកថ្ងៃនេះ]
-//                Replying to the preview with text edits it (first line = title
-//                when there are several lines) → a new version to approve.
+//                  [✅ អនុម័តផ្សាយ]
+//                  [✏️ កែអត្ថបទ] [🔄 ប្តូរគន្លឹះថ្មី]
+//                  [❌ ផ្អាកថ្ងៃនេះ]
+//                ✏️ (or replying to the preview) takes new text (first line =
+//                title when there are several lines) → a new version to approve.
 //   12:00–12:59  post today's tip if — and only if — it is APPROVED; otherwise
 //                stay silent (the preview then says so).
 //
@@ -29,7 +31,8 @@ export type DailyTip = {
   poster_path: string | null
   status: "DRAFT" | "APPROVED" | "SKIPPED" | "POSTED"
   version: number
-  previews: { chat: number; msg: number }[]
+  /** Preview photos, plus the "send the new text" prompts (prompt: true) that a reply to also edits. */
+  previews: { chat: number; msg: number; prompt?: boolean }[]
 }
 
 const PREVIEW = { from: 10 * 60 + 30, until: 12 * 60 }
@@ -70,7 +73,7 @@ export function previewCaption(t: DailyTip, today: string, locked: boolean): str
     tipCaption(t),
     "",
     statusLine(t, today, locked),
-    ...(editable ? ["✏️ Reply សារនេះ ដើម្បីកែ (ជួរទី ១ = ចំណងជើង)។"] : []),
+    ...(editable ? ["✏️ ចុច «កែអត្ថបទ» ឬ Reply សារនេះ ដើម្បីកែ (ជួរទី ១ = ចំណងជើង)។"] : []),
   ].join("\n")
 }
 
@@ -79,11 +82,12 @@ type Button = { text: string; callback_data: string }
 export function previewKeyboard(t: DailyTip, locked: boolean): Button[][] {
   if (t.status === "POSTED" || locked) return []
   const data = (action: string) => `tq:${t.day.replace(/-/g, "")}:${t.version}:${action}`
+  const edit = { text: "✏️ កែអត្ថបទ", callback_data: data("e") }
   const fresh = { text: "🔄 ប្តូរគន្លឹះថ្មី", callback_data: data("n") }
   const skip = { text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: data("s") }
-  if (t.status === "APPROVED") return [[fresh, skip]]
+  if (t.status === "APPROVED") return [[edit, fresh], [skip]]
   if (t.status === "SKIPPED") return [[{ text: "↩️ បើកវិញ (ពិនិត្យម្ដងទៀត)", callback_data: data("d") }]]
-  return [[{ text: "✅ អនុម័តផ្សាយ", callback_data: data("a") }], [fresh, skip]]
+  return [[{ text: "✅ អនុម័តផ្សាយ", callback_data: data("a") }], [edit, fresh], [skip]]
 }
 
 /** Is today's 12:00 cut-off past for this day? */
@@ -124,8 +128,19 @@ async function photo(chatId: number | string, png: Buffer, caption: string, opts
     cache: "no-store",
     signal: AbortSignal.timeout(30_000),
   }).catch(() => null)
-  const json = (await res?.json().catch(() => null)) as { ok?: boolean; result?: { message_id?: number }; description?: string } | null
-  return json?.ok ? (json.result?.message_id ?? opts.messageId ?? null) : null
+  const json = (await res?.json().catch(() => null)) as { ok?: boolean; result?: { message_id?: number; reply_markup?: unknown }; description?: string } | null
+  if (!json?.ok) {
+    logEvent("error", "daily-tip", `Telegram ${opts.messageId ? "editMessageMedia" : "sendPhoto"} failed: ${json?.description ?? "no answer"}`, { fold: true })
+    return null
+  }
+  const id = json.result?.message_id ?? opts.messageId ?? null
+  // The buttons must be there: if Telegram's answer shows none, attach them again.
+  const wanted = (opts.reply_markup as { inline_keyboard?: unknown[] } | undefined)?.inline_keyboard?.length
+  if (id && wanted && !json.result?.reply_markup) {
+    const fix = await tg("editMessageReplyMarkup", { chat_id: chatId, message_id: id, reply_markup: opts.reply_markup })
+    logEvent(fix.ok ? "warn" : "error", "daily-tip", fix.ok ? "Preview buttons were missing — attached again" : `Preview buttons missing and could not be attached: ${fix.description ?? ""}`, { fold: true })
+  }
+  return id
 }
 
 /** Redraws every preview of a day: the whole poster after a text change, else just the caption and buttons. */
@@ -135,7 +150,7 @@ async function refreshPreviews(t: DailyTip, withImage: boolean) {
   const caption = previewCaption(t, today, locked)
   const reply_markup = { inline_keyboard: previewKeyboard(t, locked) }
   const png = withImage ? await posterFor(t) : null
-  for (const p of t.previews ?? []) {
+  for (const p of (t.previews ?? []).filter((x) => !x.prompt)) {
     if (png) await photo(p.chat, png, caption, { messageId: p.msg, reply_markup })
     else await tg("editMessageCaption", { chat_id: p.chat, message_id: p.msg, caption, parse_mode: "HTML", reply_markup })
   }
@@ -223,7 +238,7 @@ type Callback = { id: string; data?: string; message?: { message_id: number; cha
 /** A preview button: approve / new tip / skip / reopen — from a super admin's chat only. */
 export async function handleTipCallback(cb: Callback) {
   const answer = (text?: string, alert = false) => tg("answerCallbackQuery", { callback_query_id: cb.id, ...(text ? { text: text.slice(0, 190), show_alert: alert } : {}) })
-  const m = /^tq:(\d{4})(\d{2})(\d{2}):(\d+):([ansd])$/.exec(cb.data ?? "")
+  const m = /^tq:(\d{4})(\d{2})(\d{2}):(\d+):([ansde])$/.exec(cb.data ?? "")
   const chatId = cb.message?.chat.id
   if (!m || !chatId || cb.message?.chat.type !== "private") return answer()
   const day = `${m[1]}-${m[2]}-${m[3]}`
@@ -231,6 +246,7 @@ export async function handleTipCallback(cb: Callback) {
   const action = m[5]
   const current = await getTip(day)
   if (!current) return answer("រកមិនឃើញគន្លឹះនេះទេ។", true)
+  if (action === "e") return askForText(chatId, current, cb.message!.message_id, answer)
   // An older preview (edited since, here or in the app): show the current version instead.
   if (current.version !== version && action !== "d") {
     await refreshPreviews(current, true)
@@ -262,6 +278,26 @@ export async function handleTipCallback(cb: Callback) {
   const t = data as DailyTip
   await answer(action === "a" ? "✅ បានអនុម័ត" : action === "n" ? "🔄 គន្លឹះថ្មី" : action === "s" ? "❌ បានផ្អាក" : "↩️ បើកវិញ")
   await refreshPreviews(t, action === "n")
+}
+
+/** ✏️ កែអត្ថបទ: a prompt to reply to with the new text; the reply edits the tip (handleTipReply). */
+async function askForText(chatId: number, t: DailyTip, previewMsg: number, answer: (text?: string, alert?: boolean) => unknown) {
+  if (t.status === "POSTED" || lockedFor(t.day)) return answer("ផុតម៉ោងកែហើយ។", true)
+  const sent = await tg<{ message_id: number }>("sendMessage", {
+    chat_id: chatId,
+    text: [
+      "✏️ សូម Reply សារនេះដោយអត្ថបទថ្មី៖",
+      "• ច្រើនជួរ៖ ជួរទី ១ = ចំណងជើង, ជួរបន្ទាប់ = ការពន្យល់",
+      "• មួយជួរ៖ ប្តូរតែការពន្យល់",
+      "",
+      `ចំណងជើងបច្ចុប្បន្ន៖ ${t.title}`,
+    ].join("\n"),
+    reply_to_message_id: previewMsg,
+    reply_markup: { force_reply: true, input_field_placeholder: t.title.slice(0, 60) },
+  })
+  if (!sent.ok || !sent.result) return answer("មិនអាចផ្ញើបានទេ។", true)
+  await botDb().rpc("bot_tip_set_previews", { p_key: botKey(), p_day: t.day, p_previews: [...(t.previews ?? []), { chat: chatId, msg: sent.result.message_id, prompt: true }] })
+  return answer()
 }
 
 /**

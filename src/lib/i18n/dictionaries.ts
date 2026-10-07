@@ -3207,7 +3207,7 @@ const km = {
   "tips.previewPoster": "មើល Poster",
   "tips.uploadPoster": "ដាក់ Poster ផ្ទាល់",
   "tips.removePoster": "ប្រើ Poster ស្វ័យប្រវត្តិ",
-  "tips.posterInvalid": "រូបភាព PNG / JPG / WebP មិនលើស 5MB",
+  "tips.posterInvalid": "រូបភាព PNG / JPG / WebP មិនលើស 10MB",
   "tips.newTip": "ប្តូរគន្លឹះថ្មី",
   "tips.save": "រក្សាទុក (ត្រូវអនុម័តម្ដងទៀត)",
   "tips.approve": "អនុម័តផ្សាយ",
@@ -3220,6 +3220,11 @@ const km = {
   "tips.stale": "គន្លឹះនេះទើបតែកែប្រែ — សូមពិនិត្យម្ដងទៀត",
   "tips.alreadyPosted": "បានចេញផ្សាយរួចហើយ",
   "tips.isToday": "ថ្ងៃនេះ",
+  "bot.noteBtn": "📝 បន្ថែមចំណាំ",
+  "bot.noteBtnEdit": "📝 កែចំណាំ",
+  "bot.notePrompt": "📝 សូម Reply សារនេះដោយវាយអក្សរ ឬផ្ញើសំឡេងបញ្ជាក់ថាទិញអ្វី ឬសម្រាប់នរណា:",
+  "bot.notePlaceholder": "ឧ. សម្ភារៈសិក្សាកូន",
+  "bot.noteSaved": "✅ បានបន្ថែមចំណាំ៖ {note}",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6416,7 +6421,7 @@ const en: Record<MessageKey, string> = {
   "tips.previewPoster": "Preview poster",
   "tips.uploadPoster": "Upload poster",
   "tips.removePoster": "Use generated poster",
-  "tips.posterInvalid": "PNG / JPG / WebP image up to 5 MB",
+  "tips.posterInvalid": "PNG / JPG / WebP image up to 10 MB",
   "tips.newTip": "New tip",
   "tips.save": "Save (needs approval again)",
   "tips.approve": "Approve",
@@ -6429,6 +6434,11 @@ const en: Record<MessageKey, string> = {
   "tips.stale": "This tip was just changed — please review it again",
   "tips.alreadyPosted": "Already posted",
   "tips.isToday": "today",
+  "bot.noteBtn": "📝 Add note",
+  "bot.noteBtnEdit": "📝 Edit note",
+  "bot.notePrompt": "📝 Reply to this message with text or a voice note: what was it for, or for whom?",
+  "bot.notePlaceholder": "e.g. school supplies for my son",
+  "bot.noteSaved": "✅ Note added: {note}",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

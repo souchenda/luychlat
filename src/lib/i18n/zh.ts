@@ -3160,7 +3160,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "tips.previewPoster": "预览海报",
   "tips.uploadPoster": "上传海报",
   "tips.removePoster": "使用自动海报",
-  "tips.posterInvalid": "PNG / JPG / WebP 图片，最大 5 MB",
+  "tips.posterInvalid": "PNG / JPG / WebP 图片，最大 10 MB",
   "tips.newTip": "换一条",
   "tips.save": "保存（需重新批准）",
   "tips.approve": "批准发布",
@@ -3173,4 +3173,9 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "tips.stale": "此贴士刚被修改 — 请重新审核",
   "tips.alreadyPosted": "已发布",
   "tips.isToday": "今天",
+  "bot.noteBtn": "📝 添加备注",
+  "bot.noteBtnEdit": "📝 修改备注",
+  "bot.notePrompt": "📝 请回复此消息（文字或语音）：买了什么，或是为谁买的？",
+  "bot.notePlaceholder": "例如：孩子的学习用品",
+  "bot.noteSaved": "✅ 已添加备注：{note}",
 }

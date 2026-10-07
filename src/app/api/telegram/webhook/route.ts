@@ -24,7 +24,7 @@ import { handleGiftCallback, handleGiftLookup, handleGiftMessage, isGiftCallback
 import { botFeatures, featureOk, KEYBOARD_OFF, menuCommand, menuFor } from "@/lib/server/bot-menu"
 import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
-import { handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
+import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
@@ -316,11 +316,13 @@ export async function POST(request: Request) {
   if (message.voice) {
     const chatId = message.chat.id
     const voice = message.voice
+    // A voice reply to a slip's "add a note" prompt becomes that note.
+    const replyTo = message.chat.type === "private" ? message.reply_to_message?.message_id : undefined
     // Downloading and transcribing can take a while: answer Telegram now so it doesn't resend the update.
     after(async () => {
       const ctx = await botContext(chatId)
       if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
-      else await handleVoiceMessage(chatId, voice, ctx)
+      else await handleVoiceMessage(chatId, voice, ctx, replyTo ? (text) => handleNoteReply(chatId, replyTo, text) : undefined)
     })
     return NextResponse.json({ ok: true })
   }
@@ -333,7 +335,7 @@ export async function POST(request: Request) {
       const ctx = await botContext(chatId)
       if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
       else if (!featureOk(await botFeatures(chatId), "bank_slips")) await sendText(chatId, tr(contextLocale(ctx), "bot.featureSoon"))
-      else await handlePrivatePhoto(chatId, slipPhoto)
+      else await handlePrivatePhoto(chatId, slipPhoto, message.caption)
     })
     return NextResponse.json({ ok: true })
   }
@@ -360,9 +362,10 @@ export async function POST(request: Request) {
   if (!message.text) return NextResponse.json({ ok: true })
 
   const chatId = message.chat.id
-  // A super admin's reply to a daily-tip preview edits that tip (tip-bot.ts).
-  if (message.reply_to_message && message.chat.type === "private" && (await handleTipReply(chatId, message.reply_to_message.message_id, message.text))) {
-    return NextResponse.json({ ok: true })
+  // Replies: to a slip's "add a note" prompt → that note; a super admin's to a daily-tip preview → edits it.
+  if (message.reply_to_message && message.chat.type === "private") {
+    const replyTo = message.reply_to_message.message_id
+    if ((await handleNoteReply(chatId, replyTo, message.text)) || (await handleTipReply(chatId, replyTo, message.text))) return NextResponse.json({ ok: true })
   }
   // Before linking, replies follow the Telegram app's language (Khmer by default);
   // linked chats use the language chosen in the app or with /lang.

@@ -83,7 +83,17 @@ async function readSlip(fileId: string): Promise<ReadResult> {
 const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
 
 /** What the slip card shows; kept on the pending entry (action.slip) to redraw it. */
-type SlipInfo = { kind: "EXPENSE" | "INCOME"; amount: number; currency: "USD" | "KHR"; bank: string | null; party: string | null; date: string | null; time: string | null }
+type SlipInfo = {
+  kind: "EXPENSE" | "INCOME"
+  amount: number
+  currency: "USD" | "KHR"
+  bank: string | null
+  party: string | null
+  date: string | null
+  time: string | null
+  /** The photo's caption — what was bought / for whom ("ទិញសម្ភារៈសិក្សាឱ្យកូន"). */
+  note?: string | null
+}
 type Keyboard = { text: string; callback_data: string }[][]
 
 /**
@@ -104,6 +114,7 @@ function slipCard(lang: Locale, pendingId: string, info: SlipInfo, wallet: BotWa
     walletLine,
     ...(info.date ? [`📅 ${ddmmyyyy(info.date)}${info.time ? ` ${info.time}` : ""}`] : []),
     ...(info.party ? [`${info.kind === "INCOME" ? "↩️" : "➡️"} ${info.party}`] : []),
+    ...(info.note ? [`📝 ${info.note}`] : []),
     "",
     wallet ? tr(lang, "bot.slipAsk") : tr(lang, "bot.slipWhichWallet", { bank: info.bank ?? "", currency: info.currency }),
   ]
@@ -119,7 +130,7 @@ function slipCard(lang: Locale, pendingId: string, info: SlipInfo, wallet: BotWa
 }
 
 /** A slip photo in the private chat (gated by plan and the bank_slips feature in the webhook). */
-export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Context | null) {
+export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Context | null, caption?: string | null) {
   const lang = contextLocale(ctx)
   if (!ctx?.linked) return sendText(chatId, tr(lang, "bot.notLinked"))
   const stop = blocked(ctx, lang)
@@ -150,8 +161,11 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   // The payment time: the slip's own, else now when the slip is from today (it was just paid).
   const now = phnomPenhToday()
   const time = slip.time ?? (!slip.date || slip.date === now.day ? `${String(now.hour).padStart(2, "0")}:${String(now.minute).padStart(2, "0")}` : null)
-  const note = ["🧾", slip.bank, slip.party ? `${slip.direction === "IN" ? "←" : "→"} ${slip.party}` : null].filter(Boolean).join(" ").slice(0, 200)
-  const info: SlipInfo = { kind, amount: slip.amount, currency: slip.currency, bank: slip.bank, party: slip.party, date: slip.date, time: slip.time }
+  // The caption (what was bought / for whom) first, then the slip's own "🧾 bank → payee".
+  const userNote = cleanNote(caption)
+  const slipNote = ["🧾", slip.bank, slip.party ? `${slip.direction === "IN" ? "←" : "→"} ${slip.party}` : null].filter(Boolean).join(" ").slice(0, 200)
+  const note = [userNote, slipNote].filter(Boolean).join(" · ")
+  const info: SlipInfo = { kind, amount: slip.amount, currency: slip.currency, bank: slip.bank, party: slip.party, date: slip.date, time: slip.time, note: userNote }
   const action = {
     kind,
     // Unsure: a placeholder that bot_confirm refuses (wallet_pending) until one of wallet_choices is picked.
@@ -202,7 +216,18 @@ type Tagged = {
   food: boolean
   subcategory: Meal | null
   need_want: "NEED" | "WANT" | null
+  /** The user's own words (without the slip's "🧾 …" part). */
+  note?: string | null
 }
+
+/** A caption or reply as a note: one line, at most 300 characters. */
+export const cleanNote = (text: string | null | undefined) => (text ?? "").replace(/\s+/g, " ").trim().slice(0, 300) || null
+/** The user's part of a stored note: everything but the slip's "🧾 bank → payee". */
+export const userPart = (note: string | null | undefined) =>
+  (note ?? "")
+    .split(" · ")
+    .filter((s) => s && !s.startsWith("🧾"))
+    .join(" · ") || null
 
 const MEAL_CODE: Record<Meal, string> = { breakfast: "b", lunch: "l", dinner: "d", snack: "s" }
 const MEAL_KEY: Record<Meal, MessageKey> = { breakfast: "bot.meal.breakfast", lunch: "bot.meal.lunch", dinner: "bot.meal.dinner", snack: "bot.meal.snack" }
@@ -215,6 +240,7 @@ function savedCard(lang: Locale, txId: string, t: Tagged) {
     `👛 ${t.wallet}`,
     `🏷️ ${t.label}${t.food && t.subcategory ? ` · ${tr(lang, MEAL_KEY[t.subcategory])}` : ""}`,
     ...(t.need_want ? [tr(lang, t.need_want === "NEED" ? "bot.need" : "bot.want")] : []),
+    ...(t.note ? [`📝 ${t.note}`] : []),
   ].join("\n")
   const mark = (on: boolean, label: string) => (on ? `✓ ${label}` : label)
   const keyboard: { text: string; callback_data: string }[][] = []
@@ -224,12 +250,29 @@ function savedCard(lang: Locale, txId: string, t: Tagged) {
     { text: mark(t.need_want === "NEED", tr(lang, "bot.need")), callback_data: `st:${txId}:N` },
     { text: mark(t.need_want === "WANT", tr(lang, "bot.want")), callback_data: `st:${txId}:W` },
   ])
+  keyboard.push([{ text: tr(lang, t.note ? "bot.noteBtnEdit" : "bot.noteBtn"), callback_data: `st:${txId}:T` }])
   return { text: maskNumbers(text), reply_markup: { inline_keyboard: keyboard } }
 }
 
 async function tagTransaction(chatId: number, txId: string, meal: Meal | null, needWant: "NEED" | "WANT" | null) {
   const { data, error } = await botDb().rpc("bot_tx_tag", { p_key: botKey(), p_chat_id: chatId, p_tx_id: txId, p_subcategory: meal, p_need_want: needWant })
   return { data: data as ({ ok?: boolean; category?: string | null; preset?: string | null; account_no?: string | null } & Partial<Tagged>) | null, error }
+}
+
+type TaggedRow = { amount?: number; currency?: "USD" | "KHR"; wallet?: string; account_no?: string | null; category?: string | null; preset?: string | null; subcategory?: Meal | null; need_want?: "NEED" | "WANT" | null; note?: string | null }
+/** The saved card's data from a row returned by bot_tx_tag / bot_tx_note. */
+function taggedFrom(lang: Locale, d: TaggedRow): Tagged {
+  const food = d.preset === "food"
+  return {
+    amount: Number(d.amount),
+    currency: d.currency ?? "USD",
+    wallet: walletLabel({ name: d.wallet ?? "", account_no: d.account_no ?? null }),
+    label: d.category ? `${food ? "🍲 " : ""}${categoryLabel({ name: d.category, preset_key: d.preset ?? null }, lang)}` : tr(lang, "entry.uncategorized"),
+    food,
+    subcategory: d.subcategory ?? null,
+    need_want: d.need_want ?? null,
+    note: userPart(d.note),
+  }
 }
 
 /** A category button under a slip card: save with that category, then show the result on the card. */
@@ -282,7 +325,16 @@ export async function handleSlipCallback(cb: Callback) {
   const meal: Meal | null = food ? (choice.tag ? "snack" : (action.meal ?? null)) : null
   if (meal && r.tx_id) await tagTransaction(chatId, r.tx_id, meal, null)
   const booked = ws?.wallets.find((w) => w.id === action.wallet_id)
-  const tagged: Tagged = { amount: Number(action.amount), currency: action.currency ?? "USD", wallet: booked ? walletLabel(booked) : (r.wallet ?? ""), label, food, subcategory: meal, need_want: null }
+  const tagged: Tagged = {
+    amount: Number(action.amount),
+    currency: action.currency ?? "USD",
+    wallet: booked ? walletLabel(booked) : (r.wallet ?? ""),
+    label,
+    food,
+    subcategory: meal,
+    need_want: null,
+    note: action.slip?.note ?? null,
+  }
   const card =
     r.tx_id && action.kind === "EXPENSE"
       ? savedCard(lang, r.tx_id, tagged)
@@ -330,10 +382,11 @@ async function handleTagCallback(cb: Callback) {
   const [, txId, code] = (cb.data ?? "").split(":", 3)
   const chatId = cb.message?.chat.id
   const tag = TAG_CODES[code ?? ""]
-  if (!chatId || cb.message?.chat.type !== "private" || !UUID.test(txId ?? "") || !tag) return answer()
+  if (!chatId || cb.message?.chat.type !== "private" || !UUID.test(txId ?? "") || (!tag && code !== "T")) return answer()
   const ctx = await botContext(chatId)
   const lang: Locale = contextLocale(ctx)
   if (!ctx?.linked) return answer(tr(lang, "bot.notLinked"), true)
+  if (code === "T") return askForNote(chatId, txId, cb.message!.message_id, lang, answer)
 
   const { data, error } = await tagTransaction(chatId, txId, tag.meal ?? null, tag.needWant ?? null)
   if (error) {
@@ -343,22 +396,56 @@ async function handleTagCallback(cb: Callback) {
   }
   if (!data?.ok) return answer(tr(lang, "bot.expired"), true)
   await answer(tag.meal ? tr(lang, MEAL_KEY[tag.meal]) : tr(lang, tag.needWant === "NEED" ? "bot.need" : "bot.want"))
-  const food = data.preset === "food"
-  const label = data.category ? `${food ? "🍲 " : ""}${categoryLabel({ name: data.category, preset_key: data.preset ?? null }, lang)}` : tr(lang, "entry.uncategorized")
-  const card = savedCard(lang, txId, {
-    amount: Number(data.amount),
-    currency: data.currency ?? "USD",
-    wallet: walletLabel({ name: data.wallet ?? "", account_no: data.account_no ?? null }),
-    label,
-    food,
-    subcategory: data.subcategory ?? null,
-    need_want: data.need_want ?? null,
-  })
+  const card = savedCard(lang, txId, taggedFrom(lang, data as TaggedRow))
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, ...card }).catch(() => null)
 }
 
-/** Webhook entry: a private photo from a linked chat. */
-export async function handlePrivatePhoto(chatId: number, fileId: string) {
+/** [📝 បន្ថែមចំណាំ]: a prompt to reply to (text or voice); the reply becomes the entry's note. */
+async function askForNote(chatId: number, txId: string, cardMsg: number, lang: Locale, answer: (text?: string, alert?: boolean) => unknown) {
+  const sent = await tg<{ message_id: number }>("sendMessage", {
+    chat_id: chatId,
+    text: tr(lang, "bot.notePrompt"),
+    reply_to_message_id: cardMsg,
+    reply_markup: { force_reply: true, input_field_placeholder: tr(lang, "bot.notePlaceholder") },
+  })
+  if (!sent.ok || !sent.result) return answer(tr(lang, "bot.saveFailed"), true)
+  const { data, error } = await botDb().rpc("bot_note_prompt_set", { p_key: botKey(), p_chat_id: chatId, p_message_id: sent.result.message_id, p_tx_id: txId, p_card_msg: cardMsg })
+  if (error || data !== true) {
+    await tg("deleteMessage", { chat_id: chatId, message_id: sent.result.message_id }).catch(() => null)
+    const why = /plan_required/.test(error?.message ?? "") ? "bot.cmdPro" : /commands_off/.test(error?.message ?? "") ? "bot.cmdOff" : "bot.expired"
+    return answer(tr(lang, why), true)
+  }
+  return answer()
+}
+
+/**
+ * A reply (typed, or a voice note already turned into text) to a note prompt:
+ * set the note, acknowledge, and redraw the saved card. False when the replied-to
+ * message isn't a note prompt — the message is then handled as usual.
+ */
+export async function handleNoteReply(chatId: number, replyTo: number, text: string): Promise<boolean> {
+  const note = cleanNote(text)
+  if (!note) return false
+  const { data, error } = await botDb().rpc("bot_tx_note", { p_key: botKey(), p_chat_id: chatId, p_prompt_message_id: replyTo, p_note: note })
+  if (!error && data === null) return false
+  const lang = contextLocale(await botContext(chatId))
+  const r = data as ({ ok?: boolean; tx_id?: string; card_msg?: number | null; user_note?: string; type?: string } & TaggedRow) | null
+  if (error || !r?.ok) {
+    const msg = error?.message ?? ""
+    const why = /plan_required/.test(msg) ? "bot.cmdPro" : /commands_off/.test(msg) ? "bot.cmdOff" : /not_writable/.test(msg) ? "bot.cmdReadonly" : error ? "bot.saveFailed" : "bot.expired"
+    await sendText(chatId, tr(lang, why))
+    return true
+  }
+  await sendText(chatId, maskNumbers(tr(lang, "bot.noteSaved", { note: r.user_note ?? note })))
+  if (r.card_msg && r.tx_id && r.type === "EXPENSE") {
+    const card = savedCard(lang, r.tx_id, taggedFrom(lang, r))
+    await tg("editMessageText", { chat_id: chatId, message_id: r.card_msg, ...card }).catch(() => null)
+  }
+  return true
+}
+
+/** Webhook entry: a private photo from a linked chat (its caption becomes the note). */
+export async function handlePrivatePhoto(chatId: number, fileId: string, caption?: string | null) {
   const ctx = await botContext(chatId)
-  return handleSlipPhoto(chatId, fileId, ctx)
+  return handleSlipPhoto(chatId, fileId, ctx, caption)
 }
