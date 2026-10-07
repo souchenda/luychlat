@@ -27,6 +27,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { defaultNeedWant } from "@/lib/need-want"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 import { ReceiptField, type ReceiptValue } from "./receipt-field"
@@ -68,6 +69,8 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
   // Expenses: Need vs Want (reports) and, for food, the meal.
   const [needWant, setNeedWant] = useState<NeedWant | "NONE">("NONE")
   const [meal, setMeal] = useState<Meal | null>(null)
+  // A new expense gets a smart Need / Want default (meals, rent… → need) until the user picks one.
+  const [needWantTouched, setNeedWantTouched] = useState(false)
 
   const islamic = useIslamicEnabled()
   // System categories (debt flows, balance adjustments) are only set by the app; keep the current one when editing.
@@ -126,11 +129,17 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
     setReceipt(transaction?.receipt_url ? { kind: "saved", ref: transaction.receipt_url } : { kind: "none" })
     setNeedWant(transaction?.need_want ?? "NONE")
     setMeal(transaction?.subcategory ?? null)
+    setNeedWantTouched(Boolean(transaction))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the sheet opens
   }, [open, transaction?.id])
 
   const [amountText, currency, walletId, categoryId] = useWatch({ control, name: ["amount", "currency", "walletId", "categoryId"] })
-  const isFood = type === "EXPENSE" && categories.find((c) => c.id === categoryId)?.preset_key === "food"
+  const preset = categories.find((c) => c.id === categoryId)?.preset_key ?? null
+  const isFood = type === "EXPENSE" && preset === "food"
+  useEffect(() => {
+    if (type !== "EXPENSE" || needWantTouched || !categoryId) return
+    setNeedWant(defaultNeedWant({ preset, meal: isFood ? meal : null }) ?? "NONE")
+  }, [type, needWantTouched, categoryId, preset, meal, isFood])
   const wallet = walletById.get(walletId)
   // Keep the rate an existing entry was recorded with; new entries use the configured rate.
   const rate = transaction?.exchange_rate ?? khrPerUsd
@@ -314,7 +323,10 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
                 <Segmented
                   aria-label={t("nw.label")}
                   value={needWant}
-                  onChange={setNeedWant}
+                  onChange={(v) => {
+                    setNeedWantTouched(true)
+                    setNeedWant(v)
+                  }}
                   options={[
                     { value: "NONE", label: t("nw.none") },
                     { value: "NEED", label: t("nw.NEED") },

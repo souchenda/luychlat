@@ -9,6 +9,7 @@
 import { MEALS, categoryFor, cleanSlip, isFoodChoice, mealFor, resolveWallet, slipChoices, walletLabel, type Meal, type Slip } from "@/lib/bot/bank-slip"
 import type { BotWallet } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
+import { defaultNeedWant } from "@/lib/need-want"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
 import { convert, formatMoney } from "@/lib/money"
 import { blocked, botContext, contextLocale, workspacesOf, type Context } from "@/lib/server/bot-commands"
@@ -323,7 +324,9 @@ export async function handleSlipCallback(cb: Callback) {
   // Food: the meal from the payment time (☕ is always a snack); the card lets the user change it.
   const food = isFoodChoice(choice)
   const meal: Meal | null = food ? (choice.tag ? "snack" : (action.meal ?? null)) : null
-  if (meal && r.tx_id) await tagTransaction(chatId, r.tx_id, meal, null)
+  // Need vs Want pre-selected (meals, fuel, rent… are needs; coffee, entertainment… wants); one tap switches it.
+  const needWant = action.kind === "EXPENSE" ? defaultNeedWant({ preset: category.preset_key, meal, text: [action.slip?.party, action.slip?.note].filter(Boolean).join(" ") }) : null
+  if ((meal || needWant) && r.tx_id) await tagTransaction(chatId, r.tx_id, meal, needWant)
   const booked = ws?.wallets.find((w) => w.id === action.wallet_id)
   const tagged: Tagged = {
     amount: Number(action.amount),
@@ -332,7 +335,7 @@ export async function handleSlipCallback(cb: Callback) {
     label,
     food,
     subcategory: meal,
-    need_want: null,
+    need_want: needWant,
     note: action.slip?.note ?? null,
   }
   const card =
