@@ -207,14 +207,22 @@ async function fetchGold(): Promise<MarketLive["gold"] | undefined> {
 }
 
 let last: MarketLive | null = null
+let lastRead = 0
 let lastRun = 0
 let running: Promise<MarketLive | null> | null = null
 
-/** The last stored data (read once from the database after a restart). */
+/** How long the stored data is trusted before it is read again (the other deploy slot, or a change made in the database). */
+const READ_TTL_MS = 60_000
+
+/** The stored data, re-read from the database at most once a minute. */
 export async function currentMarket(): Promise<MarketLive | null> {
-  if (last) return last
-  const { data } = await botDb().rpc("bot_get_market", { p_key: botKey() })
-  last = (data as MarketLive | null) ?? null
+  if (last && Date.now() - lastRead < READ_TTL_MS) return last
+  const { data, error } = await botDb().rpc("bot_get_market", { p_key: botKey() })
+  // A failed read keeps what we had rather than blanking the bulletin.
+  if (!error) {
+    last = (data as MarketLive | null) ?? null
+    lastRead = Date.now()
+  }
   return last
 }
 
@@ -226,6 +234,7 @@ async function store(next: MarketLive): Promise<boolean> {
     return false
   }
   last = next
+  lastRead = Date.now()
   return true
 }
 
