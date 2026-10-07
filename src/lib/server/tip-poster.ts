@@ -124,9 +124,9 @@ export function splitTakeaway(body: string): { lead: string; takeaway: string | 
 }
 
 /**
- * Layout, top to bottom: mark · tag pill · date · headline + gold accent ·
- * the explanation · the takeaway in its own gold-edged box · footer (two lines
- * left, LUYCHLAT badge right). The middle block is centred between the
+ * Layout, top to bottom: mark with "លុយឆ្លាត" over a smaller "LuyChlat" · tag
+ * pill · date · headline · the explanation · the takeaway in its own
+ * gold-edged box · footer (two lines, left, clear of the bottom edge). The middle block is centred between the
  * headline and the footer, so a short tip never leaves the bottom empty.
  */
 export function tipPoster(tip: { title: string; body: string }, day: string): Buffer {
@@ -172,9 +172,12 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
   ctx.font = `700 50px ${FAMILIES}`
   ctx.fillText("៛", PAD + mark / 2, markTop + mark / 2 + 3)
   ctx.textAlign = "left"
-  ctx.font = `700 38px ${FAMILIES}`
-  ctx.fillText("លុយឆ្លាត · LuyChlat", PAD + mark + 22, markTop + mark / 2 - 3)
   ctx.textBaseline = "alphabetic"
+  ctx.font = `700 42px ${FAMILIES}`
+  ctx.fillText("លុយឆ្លាត", PAD + mark + 22, markTop + 42)
+  ctx.font = `500 24px ${FAMILIES}`
+  ctx.fillStyle = "rgba(236,253,245,0.8)"
+  ctx.fillText("LuyChlat", PAD + mark + 24, markTop + 74)
 
   // Tag pill (a gold bulb dot in place of 💡 — the server has no emoji font), then the date.
   const label = "គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ"
@@ -205,14 +208,11 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
     drawRich(ctx, line, PAD, y, 86, { weight: 700, color: "#ffffff" })
     y += 112
   }
-  roundRect(ctx, PAD, y - 64, 120, 10, 5)
-  ctx.fillStyle = GOLD
-  ctx.fill()
 
   // Middle block: the explanation, then the takeaway box — centred in the space left.
   const { lead, takeaway } = splitTakeaway(tip.body)
-  const footerTop = H - 196
-  const regionTop = y - 10
+  const footerTop = H - 220
+  const regionTop = y - 60
   const bodySize = 40
   const bodyLineH = 66
   const boxPadX = 40
@@ -259,7 +259,7 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
     }
   }
 
-  // Footer: two lines left, the LUYCHLAT badge right.
+  // Footer: two lines, left-aligned, with room below.
   ctx.fillStyle = "rgba(255,255,255,0.22)"
   ctx.fillRect(PAD, footerTop, W - 2 * PAD, 2)
   ctx.textAlign = "left"
@@ -269,15 +269,6 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
   ctx.font = `400 28px ${FAMILIES}`
   ctx.fillStyle = "#a7f3d0"
   ctx.fillText("ចូលរួមសហគមន៍ លុយឆ្លាត @LuyChlatCommunity", PAD, footerTop + 112)
-  ctx.font = `700 26px ${FAMILIES}`
-  const badge = "LUYCHLAT"
-  const bw = ctx.measureText(badge).width + 44
-  roundRect(ctx, W - PAD - bw, footerTop + 52, bw, 50, 25)
-  ctx.fillStyle = GOLD
-  ctx.fill()
-  ctx.fillStyle = "#064e3b"
-  ctx.textAlign = "center"
-  ctx.fillText(badge, W - PAD - bw / 2, footerTop + 86)
 
   return canvas.toBuffer("image/png")
 }
