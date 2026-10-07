@@ -1,3 +1,17 @@
+// ─── BRAND STANDARD · approved by the founder on 2026-10-07 (poster v3) ───
+// This layout, typography and footer are LuyChlat's permanent design for every
+// daily tip poster. Change them only on the founder's explicit request:
+//   · 1080 × 1080, deep emerald gradient, soft glow, faint ៛ watermark
+//   · top-left: ៛ tile + "លុយឆ្លាត" (bold) over "LuyChlat" spread to the same width
+//   · gold tag pill "គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", the Khmer date under it
+//   · headline (bold, white, numbers in gold), no underline
+//   · middle, no box: the explanation (primary, white) and its last sentence as
+//     the takeaway (secondary, soft gold), centred between headline and footer
+//   · footer near the bottom: 📱 app · ✈️ @LuyChlatCommunity · 🌐 luy.ibmserp.com,
+//     each with a drawn gold icon
+//   · type: MiSans Khmer, Kantumruy Pro behind it for Latin
+// ──────────────────────────────────────────────────────────────────────────
+
 // Server only: the daily tip poster (1080 × 1080 PNG, square) — open
 // typography on an emerald gradient (no boxed card): the LuyChlat mark, the
 // tip's title large, a gold accent, the explanation in light text, and every
