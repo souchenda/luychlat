@@ -162,7 +162,7 @@ async function setRateReply(text: string, chatId: number) {
   const input = parseSetRate(text, phnomPenhToday().day)
   if (!input) {
     const nbc = (await currentMarket())?.nbc
-    const now = nbc ? `\nឥឡូវ៖ $1 = ${nbc.usd_khr.toLocaleString("en-US")}៛ · As of ${ddmmyyyy(nbc.date)} (${nbc.source === "manual" ? "admin" : "Frankfurter"})` : ""
+    const now = nbc ? `\nឥឡូវ៖ $1 = ${nbc.usd_khr.toLocaleString("en-US")}៛ · As of ${ddmmyyyy(nbc.date)} (${nbc.source === "manual" ? "admin" : nbc.source === "nbc" ? "nbc.gov.kh" : "Frankfurter"})` : ""
     return `💵 /setrate <អត្រា> [<ថ្ងៃ As of>]\nឧ. /setrate 4057 05-10-2026 (ថ្ងៃលំនាំដើម = ថ្ងៃធ្វើការបន្ទាប់)\n/setrate clear — ត្រឡប់ទៅប្រភពស្វ័យប្រវត្តិ${now}`
   }
   const saved = await setManualRate(input)

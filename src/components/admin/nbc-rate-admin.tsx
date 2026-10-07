@@ -58,7 +58,7 @@ export function NbcRateAdmin() {
       <Card className="gap-3 px-4 py-4">
         {nbc && (
           <p className="text-xs text-muted-foreground">
-            {t("nbcAdmin.current", { rate: nbc.usd_khr.toLocaleString("en-US"), date: nbc.date, source: nbc.source === "manual" ? "admin" : "Frankfurter" })}
+            {t("nbcAdmin.current", { rate: nbc.usd_khr.toLocaleString("en-US"), date: nbc.date, source: nbc.source === "manual" ? "admin" : nbc.source === "nbc" ? "nbc.gov.kh" : "Frankfurter" })}
           </p>
         )}
         <div className="grid grid-cols-2 gap-2">

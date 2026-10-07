@@ -105,8 +105,8 @@ export type NbcRates = {
   usd_khr: number
   /** KHR per 1 unit of each currency (USD included). */
   khr_per: Record<string, number>
-  /** "frankfurter" (automatic) or "manual" (an admin's /setrate, USD only). */
-  source?: "frankfurter" | "manual"
+  /** "nbc" (nbc.gov.kh itself), "frankfurter" (its NBC mirror, fallback) or "manual" (an admin's /setrate, USD only). */
+  source?: "nbc" | "frankfurter" | "manual"
   /** When this rate was last fetched or confirmed (ISO). */
   fetched_at?: string
   /** With a manual USD rate: the "As of" date of the other currencies. */
@@ -131,6 +131,8 @@ export function pickNbc(previous: NbcRates | undefined, fetched: NbcRates | unde
   if (previous?.source === "manual" && fetched.date < previous.date) {
     return { ...previous, khr_per: { ...fetched.khr_per, USD: previous.usd_khr }, others_date: fetched.date, fetched_at: fetched.fetched_at }
   }
+  // Never backwards: an older "As of" day (a lagging mirror) never replaces a newer rate.
+  if (previous && fetched.date < previous.date) return previous
   return fetched
 }
 

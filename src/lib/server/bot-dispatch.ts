@@ -8,7 +8,7 @@ import { sendCommunityBulletin } from "@/lib/server/community-bulletin"
 import { communityRoutineTick } from "@/lib/server/community-routine"
 import { dailyTipTick } from "@/lib/server/tip-bot"
 import { watchdogTick } from "@/lib/server/health-watchdog"
-import { maybeRefreshLocalGold, maybeRefreshNbc, syncMarket } from "@/lib/server/market-sync"
+import { marketScheduleTick, syncMarket } from "@/lib/server/market-sync"
 import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
 import { readFileSync } from "fs"
@@ -76,8 +76,7 @@ export async function dispatchOnce() {
   try {
     await sendDueNotifications()
     await sendPrayerTimes()
-    await maybeRefreshLocalGold()
-    await maybeRefreshNbc()
+    await marketScheduleTick()
     await sendCommunityBulletin()
     await communityRoutineTick()
     await dailyTipTick()
