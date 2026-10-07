@@ -32,6 +32,20 @@ import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
  */
 export const runtime = "nodejs"
 
+type LinkedGroup = { chat_id: number | string; title: string | null }
+
+const BANK_TITLES: Record<string, RegExp> = { ACLEDA: /acleda|អេស៊ីលីដា/i, ABA: /(^|[^a-z])aba([^a-z]|$)/i }
+
+/**
+ * Where a payment is announced: the groups whose title names its bank ("DL ABA KHQR");
+ * if none does, the groups that name no bank — never another bank's group.
+ */
+function groupsForBank(groups: LinkedGroup[], bank: string): LinkedGroup[] {
+  const banksIn = (g: LinkedGroup) => Object.keys(BANK_TITLES).filter((b) => BANK_TITLES[b].test(g.title ?? ""))
+  const own = groups.filter((g) => banksIn(g).includes(bank.toUpperCase()))
+  return own.length ? own : groups.filter((g) => banksIn(g).length === 0)
+}
+
 // lck_… a business's key (Sales income); lcp_… a shared pool's key (asks its group which share paid).
 const KEY = /^lc[kp]_[a-f0-9]{64}$/
 const hits = new Map<string, number[]>()
@@ -114,10 +128,10 @@ export async function POST(request: Request) {
 
   if (r.status === "ok") {
     logEvent("info", "khqr", `KHQR ${r.bank} payment pushed by API (${r.workspace})`, { fold: true })
-    // Optional: say so in the business's linked Telegram group(s).
+    // Optional: say so in the business's linked Telegram group for this bank.
     if (body.notify_group === true && message && r.workspace_id) {
       const { data: groups } = await botDb().rpc("bot_biz_groups_of", { p_key: botKey(), p_workspace_id: r.workspace_id })
-      for (const g of (groups as { chat_id: number | string }[] | null) ?? []) await sendText(Number(g.chat_id), message).catch(() => null)
+      for (const g of groupsForBank((groups as LinkedGroup[] | null) ?? [], r.bank ?? pay.bank)) await sendText(Number(g.chat_id), message).catch(() => null)
     }
   }
 
