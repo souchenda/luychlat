@@ -4,7 +4,8 @@
 // blessing, not a money lecture. The motifs (pagoda spire, lotus, tiffin
 // carrier and ansom) are drawn in gold line art — the server has no emoji font.
 // Dates: the official national holiday, Sat 10 – Mon 12 Oct 2026 (Pchum Thom
-// Sun 11 Oct, lib/holidays.ts). Footer: app · community · website, with drawn icons. Footer: two
+// Sun 11 Oct, lib/holidays.ts). Footer: app-first (no bot username) — the app on line 1,
+// community • website on line 2, with drawn icons. Footer: two
 // left-aligned lines, no badge. Admins preview with "/poster pchumben".
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 
@@ -274,22 +275,31 @@ export function pchumBenPoster(): Buffer {
   const lines = wrap(ctx, c.blessing, W - 2 * PAD, 5)
   lines.forEach((line, i) => ctx.fillText(line, PAD, 688 + i * 66))
 
-  // Footer: the approved three items, each with a drawn gold icon, left-aligned (no pill or button).
-  const fTop = H - 196
+  // Footer, app-first (no bot username), two compact lines with drawn gold icons, no pill or button:
+  //   📱 កត់ត្រាចំណូល-ចំណាយ ជាមួយអែប លុយឆ្លាត
+  //   ✈️ សហគមន៍ លុយឆ្លាត   •   🌐 luy.ibmserp.com
+  const fTop = H - 150
   ctx.fillStyle = "rgba(52,211,153,0.28)"
   ctx.fillRect(PAD, fTop, W - 2 * PAD, 1.5)
-  const items: [Icon, string, number, string][] = [
-    ["phone", "កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", 600, "#ffffff"],
-    ["plane", "សហគមន៍ លុយឆ្លាត", 500, "#d1fae5"],
-    ["globe", "luy.ibmserp.com", 500, "#d1fae5"],
-  ]
-  items.forEach(([kind, text, weight, color], i) => {
-    const baseline = fTop + 58 + i * 46
-    drawIcon(ctx, kind, PAD + 14, baseline - 10)
-    ctx.font = `${weight} 26px ${FAMILIES}`
-    ctx.fillStyle = color
-    ctx.fillText(text, PAD + 44, baseline)
-  })
+  ctx.textAlign = "left"
+  const line1 = fTop + 58
+  drawIcon(ctx, "phone", PAD + 14, line1 - 10)
+  ctx.font = `600 27px ${FAMILIES}`
+  ctx.fillStyle = "#ffffff"
+  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយអែប លុយឆ្លាត", PAD + 44, line1)
+  const line2 = fTop + 106
+  ctx.font = `500 26px ${FAMILIES}`
+  ctx.fillStyle = "#d1fae5"
+  drawIcon(ctx, "plane", PAD + 14, line2 - 10)
+  const community = "សហគមន៍ លុយឆ្លាត"
+  ctx.fillText(community, PAD + 44, line2)
+  let x = PAD + 44 + ctx.measureText(community).width + 26
+  ctx.fillStyle = "rgba(209,250,229,0.55)"
+  ctx.fillText("•", x, line2)
+  x += ctx.measureText("•").width + 26
+  drawIcon(ctx, "globe", x + 14, line2 - 10)
+  ctx.fillStyle = "#d1fae5"
+  ctx.fillText("luy.ibmserp.com", x + 44, line2)
 
   return canvas.toBuffer("image/png")
 }
