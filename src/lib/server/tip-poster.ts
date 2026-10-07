@@ -101,6 +101,61 @@ function drawRich(ctx: SKRSContext2D, line: string, x: number, y: number, size: 
   run(line.slice(last), false)
 }
 
+/** Text drawn letter by letter so it spans exactly `width` (to match a line above it). */
+function drawSpread(ctx: SKRSContext2D, text: string, x: number, y: number, width: number) {
+  const chars = [...text]
+  const natural = chars.reduce((w, c) => w + ctx.measureText(c).width, 0)
+  const extra = chars.length > 1 ? Math.max(0, (width - natural) / (chars.length - 1)) : 0
+  let at = x
+  for (const c of chars) {
+    ctx.fillText(c, at, y)
+    at += ctx.measureText(c).width + extra
+  }
+}
+
+type Icon = "phone" | "plane" | "globe"
+/** Small gold line icons centred on (cx, cy): a phone, Telegram's paper plane, a globe. */
+function drawIcon(ctx: SKRSContext2D, icon: Icon, cx: number, cy: number) {
+  ctx.save()
+  ctx.strokeStyle = GOLD
+  ctx.fillStyle = GOLD
+  ctx.lineWidth = 2.6
+  ctx.lineJoin = "round"
+  if (icon === "phone") {
+    roundRect(ctx, cx - 9, cy - 14, 18, 28, 4)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(cx, cy + 9, 1.8, 0, Math.PI * 2)
+    ctx.fill()
+  } else if (icon === "plane") {
+    ctx.beginPath()
+    ctx.moveTo(cx - 13, cy - 1)
+    ctx.lineTo(cx + 13, cy - 11)
+    ctx.lineTo(cx + 7, cy + 12)
+    ctx.lineTo(cx - 1, cy + 4)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = "#064e3b"
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(cx - 1, cy + 4)
+    ctx.lineTo(cx + 13, cy - 11)
+    ctx.stroke()
+  } else {
+    ctx.beginPath()
+    ctx.arc(cx, cy, 13, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, 5.5, 13, 0, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(cx - 13, cy)
+    ctx.lineTo(cx + 13, cy)
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
 function roundRect(ctx: SKRSContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
@@ -124,9 +179,10 @@ export function splitTakeaway(body: string): { lead: string; takeaway: string | 
 }
 
 /**
- * Layout, top to bottom: mark with "លុយឆ្លាត" over a smaller "LuyChlat" · tag
- * pill · date · headline · the explanation · the takeaway in its own
- * gold-edged box · footer (two lines, left, clear of the bottom edge). The middle block is centred between the
+ * Layout, top to bottom: mark with "លុយឆ្លាត" over a smaller, width-matched
+ * "LuyChlat" · tag pill · date · headline · the explanation (primary) and its
+ * takeaway (secondary, soft gold) as one clean hierarchy, centred · footer near
+ * the bottom: app, community, website, each with a small drawn icon. The middle block is centred between the
  * headline and the footer, so a short tip never leaves the bottom empty.
  */
 export function tipPoster(tip: { title: string; body: string }, day: string): Buffer {
@@ -173,11 +229,13 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
   ctx.fillText("៛", PAD + mark / 2, markTop + mark / 2 + 3)
   ctx.textAlign = "left"
   ctx.textBaseline = "alphabetic"
+  const nameX = PAD + mark + 22
   ctx.font = `700 42px ${FAMILIES}`
-  ctx.fillText("លុយឆ្លាត", PAD + mark + 22, markTop + 42)
+  ctx.fillText("លុយឆ្លាត", nameX, markTop + 42)
+  const nameW = ctx.measureText("លុយឆ្លាត").width
   ctx.font = `500 24px ${FAMILIES}`
   ctx.fillStyle = "rgba(236,253,245,0.8)"
-  ctx.fillText("LuyChlat", PAD + mark + 24, markTop + 74)
+  drawSpread(ctx, "LuyChlat", nameX, markTop + 74, nameW)
 
   // Tag pill (a gold bulb dot in place of 💡 — the server has no emoji font), then the date.
   const label = "គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ"
@@ -209,66 +267,56 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
     y += 112
   }
 
-  // Middle block: the explanation, then the takeaway box — centred in the space left.
+  // Middle: one clean hierarchy, no box — the lead (primary), then the takeaway (secondary, soft gold),
+  // centred between the headline and the footer.
   const { lead, takeaway } = splitTakeaway(tip.body)
-  const footerTop = H - 220
+  const footerTop = H - 250
   const regionTop = y - 60
-  const bodySize = 40
-  const bodyLineH = 66
-  const boxPadX = 40
-  const boxSize = 38
-  const boxLineH = 62
-  const boxWidth = W - 2 * PAD - 2 * boxPadX - 12
-  const gap = 44
-  ctx.font = `400 ${bodySize}px ${FAMILIES}`
-  let leadLines = wrap(ctx, lead, W - 2 * PAD, 6)
-  ctx.font = `600 ${boxSize}px ${FAMILIES}`
-  let boxLines = takeaway ? wrap(ctx, takeaway, boxWidth, 3) : []
-  const blockH = () => leadLines.length * bodyLineH + (boxLines.length ? gap + boxLines.length * boxLineH + 52 : 0)
-  const room = footerTop - regionTop - 30
-  // Too tall: fewer explanation lines first, then fewer takeaway lines.
+  const lead_ = { size: 44, lineH: 72, weight: 500, color: "#ffffff" }
+  const sub = { size: 36, lineH: 60, weight: 400, color: "#fde68a" }
+  const gap = 34
+  const width = W - 2 * PAD
+  ctx.font = `${lead_.weight} ${lead_.size}px ${FAMILIES}`
+  let leadLines = wrap(ctx, lead, width, 5)
+  ctx.font = `${sub.weight} ${sub.size}px ${FAMILIES}`
+  let subLines = takeaway ? wrap(ctx, takeaway, width, 3) : []
+  const blockH = () => leadLines.length * lead_.lineH + (subLines.length ? gap + subLines.length * sub.lineH : 0)
+  const room = footerTop - regionTop - 40
   while (blockH() > room && leadLines.length > 1) {
-    ctx.font = `400 ${bodySize}px ${FAMILIES}`
-    leadLines = wrap(ctx, lead, W - 2 * PAD, leadLines.length - 1)
+    ctx.font = `${lead_.weight} ${lead_.size}px ${FAMILIES}`
+    leadLines = wrap(ctx, lead, width, leadLines.length - 1)
   }
-  while (blockH() > room && boxLines.length > 1) {
-    ctx.font = `600 ${boxSize}px ${FAMILIES}`
-    boxLines = wrap(ctx, takeaway!, boxWidth, boxLines.length - 1)
+  while (blockH() > room && subLines.length > 1) {
+    ctx.font = `${sub.weight} ${sub.size}px ${FAMILIES}`
+    subLines = wrap(ctx, takeaway!, width, subLines.length - 1)
   }
-  let by = regionTop + Math.max(30, (footerTop - regionTop - blockH()) / 2) + bodySize
+  let by = regionTop + Math.max(20, (footerTop - regionTop - blockH()) / 2) + lead_.size
   for (const line of leadLines) {
-    drawRich(ctx, line, PAD, by, bodySize, { weight: 400, color: "#ecfdf5" })
-    by += bodyLineH
+    drawRich(ctx, line, PAD, by, lead_.size, { weight: lead_.weight, color: lead_.color })
+    by += lead_.lineH
   }
-  if (boxLines.length) {
-    const boxTop = by - bodySize + gap - 22
-    const boxH = boxLines.length * boxLineH + 52
-    roundRect(ctx, PAD, boxTop, W - 2 * PAD, boxH, 26)
-    ctx.fillStyle = "rgba(6,78,59,0.45)"
-    ctx.fill()
-    ctx.lineWidth = 2
-    ctx.strokeStyle = "rgba(252,211,77,0.45)"
-    ctx.stroke()
-    roundRect(ctx, PAD, boxTop, 10, boxH, 5)
-    ctx.fillStyle = GOLD
-    ctx.fill()
-    let ty = boxTop + 26 + boxSize
-    for (const line of boxLines) {
-      drawRich(ctx, line, PAD + boxPadX + 12, ty, boxSize, { weight: 600, color: "#fef3c7" })
-      ty += boxLineH
-    }
+  by += gap - (lead_.lineH - sub.lineH)
+  for (const line of subLines) {
+    drawRich(ctx, line, PAD, by, sub.size, { weight: sub.weight, color: sub.color })
+    by += sub.lineH
   }
 
-  // Footer: two lines, left-aligned, with room below.
+  // Footer, near the bottom: app · community · website, each with a small gold icon.
   ctx.fillStyle = "rgba(255,255,255,0.22)"
-  ctx.fillRect(PAD, footerTop, W - 2 * PAD, 2)
+  ctx.fillRect(PAD, footerTop + 40, W - 2 * PAD, 2)
   ctx.textAlign = "left"
-  ctx.font = `600 30px ${FAMILIES}`
-  ctx.fillStyle = "#ffffff"
-  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", PAD, footerTop + 64)
-  ctx.font = `400 28px ${FAMILIES}`
-  ctx.fillStyle = "#a7f3d0"
-  ctx.fillText("ចូលរួមសហគមន៍ លុយឆ្លាត @LuyChlatCommunity", PAD, footerTop + 112)
+  const rows: [Icon, string, number, string][] = [
+    ["phone", "កត់ចំណូល-ចំណាយជាមួយ លុយឆ្លាត អេប", 600, "#ffffff"],
+    ["plane", "@LuyChlatCommunity", 500, "#d1fae5"],
+    ["globe", "luy.ibmserp.com", 500, "#d1fae5"],
+  ]
+  rows.forEach(([icon, text, weight, color], i) => {
+    const baseline = footerTop + 98 + i * 48
+    drawIcon(ctx, icon, PAD + 14, baseline - 11)
+    ctx.font = `${weight} 29px ${FAMILIES}`
+    ctx.fillStyle = color
+    ctx.fillText(text, PAD + 46, baseline)
+  })
 
   return canvas.toBuffer("image/png")
 }
