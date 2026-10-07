@@ -57,6 +57,12 @@ export type PoolSnapshot = {
   share_members: boolean
   tg_linked: boolean
   created_at: string
+  /** Shares are people or families ("គ្រួសារទី ១"). */
+  unit?: "PERSON" | "FAMILY"
+  /** "pchumben": the festival template (offerings / travel / food categories). */
+  template?: string | null
+  /** The live progress message in the linked group (group view only). */
+  progress_msg?: number | null
 }
 
 export const POOL_KINDS: { kind: PoolKind; emoji: string }[] = [

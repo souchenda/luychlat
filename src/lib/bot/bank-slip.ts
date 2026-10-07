@@ -26,6 +26,8 @@ export type Slip = {
   account: string | null
   /** The name printed with the slip owner's account ("DL USD"), if any. */
   accountName?: string | null
+  /** The slip owner's account holder name ("SOK DARA"), if printed. */
+  owner?: string | null
   /** A bill payment / top-up's consumer ID or phone number, if any. */
   consumer?: string | null
 }
@@ -59,6 +61,7 @@ export function cleanSlip(raw: unknown): Slip | null {
     party: text(r.party, 60),
     account: cleanAccount(r.account),
     accountName: text(r.account_name, 40),
+    owner: text(r.owner, 60),
     consumer: text(r.consumer, 30),
   }
 }

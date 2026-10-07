@@ -18,6 +18,10 @@ export type NewPool = {
   start: string | null
   end: string | null
   recordPaid: boolean
+  /** Shares are people or families ("គ្រួសារទី ១"). */
+  unit?: "PERSON" | "FAMILY"
+  /** "pchumben": adds the offerings / travel / food categories. */
+  template?: "pchumben" | null
 }
 
 /** Thrown when a FREE account already has an active pool. */
@@ -88,6 +92,8 @@ export function usePoolMutations() {
           p_start: v.pool.start,
           p_end: v.pool.end,
           p_record_paid: v.pool.recordPaid,
+          p_unit: v.pool.unit ?? "PERSON",
+          p_template: v.pool.template ?? null,
         })) as string,
       onSuccess: () => done(true),
     }),
@@ -138,6 +144,10 @@ export function usePoolMutations() {
     }),
     telegramCode: useMutation({
       mutationFn: async (poolId: string) => (await rpc("pool_telegram_code", { p_pool_id: poolId })) as string,
+    }),
+    // AUTOBOK → this pool: a new key (shown once; makes any older key stop working).
+    khqrKey: useMutation({
+      mutationFn: async (poolId: string) => (await rpc("pool_khqr_key_create", { p_pool_id: poolId })) as string,
     }),
     telegramUnlink: useMutation({
       mutationFn: (poolId: string) => rpc("pool_telegram_unlink", { p_pool_id: poolId }),

@@ -28,6 +28,7 @@ import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { handlePosterCallback, isPosterCallback, sendFestivalPoster } from "@/lib/server/festival-poster"
 import { handleGroupSlip, handleGroupSlipCallback, isGroupSlipCallback } from "@/lib/server/biz-slip-bot"
+import { handlePoolFlowCallback, handlePoolSlip, handlePoolSpendText, isPoolFlowCallback } from "@/lib/server/pool-flow"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
 
@@ -114,7 +115,11 @@ async function handleGroupMessage(
       caption: text.trim() || null,
     })
     if (handled) return
+    // A shared pool's group: a payment slip (→ which share?) or the keeper's spending slip.
+    if (await handlePoolSlip(chatId, { fileId: photo.fileId, fileUniqueId: photo.uniqueId ?? null, messageId: photo.messageId, fromId, caption: text.trim() || null })) return
   }
+  // The pool keeper's plain "ទិញផ្លែឈើ 40,000៛" (no /spend needed).
+  if (!command.startsWith("/") && !photo?.fileId && fromId && (await handlePoolSpendText(chatId, fromId, text))) return
   if (!command.startsWith("/")) return
   // A business KHQR group: /biz, /biz link CODE.
   if (await handleBizGroupCommand(chatId, fromId, text, title, lang)) return
@@ -314,6 +319,8 @@ export async function POST(request: Request) {
       await handlePosterCallback(update.callback_query)
     } else if (isGroupSlipCallback(update.callback_query.data)) {
       await handleGroupSlipCallback(update.callback_query)
+    } else if (isPoolFlowCallback(update.callback_query.data)) {
+      await handlePoolFlowCallback(update.callback_query)
     } else if (isInvoiceCallback(update.callback_query.data)) {
       const chat = update.callback_query.message?.chat.id
       if (chat && !featureOk(await botFeatures(chat), "invoices")) await soon(update.callback_query.id, "km")

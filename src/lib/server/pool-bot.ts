@@ -10,6 +10,7 @@ import { parseAmountText, toLatinDigits } from "@/lib/bot/parse-entry"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
 import { GAUGE_EMOJI, poolEmoji, toSnapshot, type PoolSnapshot } from "@/lib/pool"
+import { postClosing, postProgress } from "@/lib/server/pool-flow"
 import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
 
 const khmerDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
@@ -106,7 +107,13 @@ export async function flushPoolPosts(poolId?: string) {
       const messageId = (sent as { result?: { message_id?: number } }).result?.message_id
       if (only && messageId) await botDb().rpc("bot_pool_remember", { p_key: botKey(), p_chat: raw.chat_id, p_message_id: messageId, p_transaction_id: only })
     }
-    if (raw.settle && raw.chat_id) await sendText(raw.chat_id, settlementText(p, lang))
+    // Money came in: the live progress message follows.
+    if (raw.chat_id && raw.items.some((i) => i.type === "INCOME") && p.status === "active") await postProgress(raw.chat_id, p).catch(() => null)
+    // Closing: the summary, the card image and (family / festival pools) the blessing.
+    if (raw.settle && raw.chat_id) {
+      if (lang === "km") await postClosing(raw.chat_id, p).catch(() => sendText(raw.chat_id!, settlementText(p, lang)))
+      else await sendText(raw.chat_id, settlementText(p, lang))
+    }
     await botDb().rpc("bot_pool_posted", { p_key: botKey(), p_pool_id: raw.pool_id, p_until: raw.until, p_low: low, p_settled: raw.settle })
   }
 }

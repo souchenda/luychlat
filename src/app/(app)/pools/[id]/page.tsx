@@ -314,7 +314,7 @@ export default function PoolPage() {
   const pool = query.data
   const walletsData = useWallets(workspace?.id).data
   const wallet = useMemo(() => (walletsData ?? []).filter((w) => w.id === pool?.wallet_id), [walletsData, pool?.wallet_id])
-  const { sharing, telegramCode, telegramUnlink, markPaid, undoPaid, removeIdle } = usePoolMutations()
+  const { sharing, telegramCode, telegramUnlink, khqrKey, markPaid, undoPaid, removeIdle } = usePoolMutations()
   const queryClient = useQueryClient()
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [contributeOpen, setContributeOpen] = useState(false)
@@ -324,6 +324,7 @@ export default function PoolPage() {
   // Counts in Khmer digits for Khmer ("សមាជិក (៥)").
   const num = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
   const [code, setCode] = useState<string | null>(null)
+  const [apiKey, setApiKey] = useState<string | null>(null)
 
   if (query.isLoading) return <Skeleton className="h-80 w-full rounded-xl" />
   if (!pool) {
@@ -557,6 +558,39 @@ export default function PoolPage() {
                 {t("pool.telegramConnect")}
               </Button>
             </>
+          )}
+        </Card>
+      )}
+
+      {editable && active && pool.tg_linked && (
+        <Card className="gap-3 px-4 py-4">
+          <p className="text-sm font-medium">{t("pool.autobok")}</p>
+          <p className="text-xs text-muted-foreground">{t("pool.autobokHint")}</p>
+          {apiKey ? (
+            <div className="space-y-2">
+              <p className="break-all rounded-xl bg-muted px-3 py-2 font-mono text-xs">{apiKey}</p>
+              <Button
+                variant="outline"
+                className="h-10 w-full"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(apiKey).then(() => toast.success(t("pool.autobokCopied")))
+                }}
+              >
+                <CopyIcon />
+                {t("pool.autobokCopy")}
+              </Button>
+              <p className="text-xs text-amber-700 dark:text-amber-400">{t("pool.autobokOnce")}</p>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              className="h-10"
+              disabled={khqrKey.isPending}
+              onClick={() => khqrKey.mutate(pool.id!, { onSuccess: setApiKey, onError: () => toast.error(t("common.error")) })}
+            >
+              {khqrKey.isPending && <Loader2Icon className="animate-spin" />}
+              {t("pool.autobokCreate")}
+            </Button>
           )}
         </Card>
       )}

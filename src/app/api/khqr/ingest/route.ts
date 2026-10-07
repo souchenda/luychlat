@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { parseMerchantPayment } from "@/lib/bot/merchant-khqr"
 import { formatMoney } from "@/lib/money"
 import { logEvent } from "@/lib/server/events"
+import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
 
 /**
@@ -31,7 +32,8 @@ import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
  */
 export const runtime = "nodejs"
 
-const KEY = /^lck_[a-f0-9]{64}$/
+// lck_… a business's key (Sales income); lcp_… a shared pool's key (asks its group which share paid).
+const KEY = /^lc[kp]_[a-f0-9]{64}$/
 const hits = new Map<string, number[]>()
 const PER_MINUTE = 120
 
@@ -73,6 +75,19 @@ export async function POST(request: Request) {
         payer: str(body.payer ?? body.sender, 80) || null,
         posted_at: str(body.paid_at ?? body.timestamp, 40) || null,
       }
+
+  if (apiKey.startsWith("lcp_")) {
+    // A shared pool: the payment waits for the treasurer to tap which share it is (in the pool's group).
+    const { data: opened, error: poolError } = await botDb().rpc("bot_pool_khqr_ingest", { p_key: botKey(), p_key_hash: keyHash, p_pay: { ...pay, ref: pay.ref || null } })
+    if (poolError) {
+      logEvent("error", "pool", `Pool KHQR ingest failed: ${poolError.message}`, { fold: true })
+      return NextResponse.json({ ok: false, status: "error" }, { status: 500 })
+    }
+    const o = opened as { status: string; id?: string; chat_id?: number | null }
+    if (o.status === "ok") await announcePoolPayment(o).catch(() => null)
+    const code: Record<string, number> = { ok: 201, duplicate: 200, unauthorized: 401, no_pool: 410, invalid: 422 }
+    return NextResponse.json({ ok: o.status === "ok" || o.status === "duplicate", status: o.status, pending_id: o.id ?? null }, { status: code[o.status] ?? 500 })
+  }
 
   const { data, error } = await botDb().rpc("bot_khqr_ingest", { p_key: botKey(), p_key_hash: keyHash, p_pay: pay })
   if (error) {

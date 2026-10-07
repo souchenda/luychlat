@@ -40,6 +40,9 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
   const [start, setStart] = useState("")
   const [end, setEnd] = useState("")
   const [recordPaid, setRecordPaid] = useState(true)
+  // Festival pools count families by default ("គ្រួសារទី ១") and get the Pchum Ben categories.
+  const [unit, setUnit] = useState<"PERSON" | "FAMILY">("FAMILY")
+  const [template, setTemplate] = useState(true)
 
   useEffect(() => {
     if (!open) return
@@ -50,11 +53,16 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
     setStart("")
     setEnd("")
     setRecordPaid(true)
+    setUnit("FAMILY")
+    setTemplate(true)
   }, [open])
 
   const members =
     split === "EQUAL"
-      ? Array.from({ length: Math.min(100, Math.max(0, Math.floor(parseAmount(count) || 0))) }, (_, i) => ({ name: t("pool.memberN", { n: i + 1 }), pledged: roundMoney(parseAmount(each) || 0, currency) }))
+      ? Array.from({ length: Math.min(100, Math.max(0, Math.floor(parseAmount(count) || 0))) }, (_, i) => ({
+          name: t(unit === "FAMILY" ? "pool.familyN" : "pool.memberN", { n: i + 1 }),
+          pledged: roundMoney(parseAmount(each) || 0, currency),
+        }))
       : rows.filter((r) => r.name.trim()).map((r) => ({ name: r.name.trim().slice(0, 60), pledged: roundMoney(parseAmount(r.amount) || 0, currency) }))
   const total = members.reduce((s, m) => s + m.pledged, 0)
 
@@ -65,7 +73,19 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
     try {
       const id = await create.mutateAsync({
         workspaceId,
-        pool: { kind, title: title.trim(), currency, split, members, target: null, start: start || null, end: end || null, recordPaid },
+        pool: {
+          kind,
+          title: title.trim(),
+          currency,
+          split,
+          members,
+          target: null,
+          start: start || null,
+          end: end || null,
+          recordPaid,
+          unit,
+          template: kind === "FESTIVAL" && template ? "pchumben" : null,
+        },
       })
       onOpenChange(false)
       router.push(`/pools/${id}`)
@@ -135,14 +155,36 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
           </div>
         </div>
 
+        <div className="space-y-1.5">
+          <Label>{t("pool.unit")}</Label>
+          <Segmented
+            value={unit}
+            onChange={setUnit}
+            aria-label={t("pool.unit")}
+            options={[
+              { value: "PERSON", label: t("pool.unitPerson") },
+              { value: "FAMILY", label: t("pool.unitFamily") },
+            ]}
+          />
+        </div>
+        {kind === "FESTIVAL" && (
+          <label className="flex items-start gap-3 rounded-xl border px-3 py-2.5 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4 accent-primary" checked={template} onChange={(e) => setTemplate(e.target.checked)} />
+            <span>
+              <span className="block font-medium">{t("pool.templatePchumBen")}</span>
+              <span className="block text-xs text-muted-foreground">{t("pool.templatePchumBenHint")}</span>
+            </span>
+          </label>
+        )}
+
         {split === "EQUAL" ? (
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="pool-count">{t("pool.memberCount")}</Label>
+              <Label htmlFor="pool-count">{t(unit === "FAMILY" ? "pool.familyCount" : "pool.memberCount")}</Label>
               <Input id="pool-count" className="h-11 tabular-nums" inputMode="numeric" value={count} onChange={(e) => setCount(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="pool-each">{t("pool.perMember", { currency: currency === "USD" ? "$" : "៛" })}</Label>
+              <Label htmlFor="pool-each">{t(unit === "FAMILY" ? "pool.perFamily" : "pool.perMember", { currency: currency === "USD" ? "$" : "៛" })}</Label>
               <Input id="pool-each" className="h-11 tabular-nums" inputMode="decimal" value={each} onChange={(e) => setEach(e.target.value)} />
             </div>
           </div>

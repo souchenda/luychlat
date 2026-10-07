@@ -3225,6 +3225,20 @@ const km = {
   "bot.notePrompt": "📝 សូម Reply សារនេះដោយវាយអក្សរ ឬផ្ញើសំឡេងបញ្ជាក់ថាទិញអ្វី ឬសម្រាប់នរណា:",
   "bot.notePlaceholder": "ឧ. សម្ភារៈសិក្សាកូន",
   "bot.noteSaved": "✅ បានបន្ថែមចំណាំ៖ {note}",
+  "pool.familyN": "គ្រួសារទី {n}",
+  "pool.unit": "គិតជា",
+  "pool.unitPerson": "នាក់",
+  "pool.unitFamily": "គ្រួសារ",
+  "pool.familyCount": "ចំនួនគ្រួសារ",
+  "pool.perFamily": "គ្រួសារមួយ ({currency})",
+  "pool.templatePchumBen": "គំរូបុណ្យភ្ជុំបិណ្ឌ",
+  "pool.templatePchumBenHint": "បន្ថែមប្រភេទចំណាយ៖ ទាន/បច្ច័យ · សាំង/ធ្វើដំណើរ · ម្ហូបអាហារ/ជួបជុំ",
+  "pool.autobok": "ទទួលប្រាក់ KHQR ដោយស្វ័យប្រវត្តិ (AUTOBOK)",
+  "pool.autobokHint": "ដាក់ key នេះក្នុង AUTOBOK។ ពេលមានប្រាក់ចូល bot នឹងសួរក្នុងក្រុមថា ជាចំណែករបស់អ្នកណា។",
+  "pool.autobokCreate": "បង្កើត key",
+  "pool.autobokCopy": "ចម្លង key",
+  "pool.autobokCopied": "បានចម្លង",
+  "pool.autobokOnce": "key បង្ហាញតែម្តងគត់។ បង្កើតថ្មី នឹងធ្វើឱ្យ key ចាស់លែងដំណើរការ។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6439,6 +6453,20 @@ const en: Record<MessageKey, string> = {
   "bot.notePrompt": "📝 Reply to this message with text or a voice note: what was it for, or for whom?",
   "bot.notePlaceholder": "e.g. school supplies for my son",
   "bot.noteSaved": "✅ Note added: {note}",
+  "pool.familyN": "Family {n}",
+  "pool.unit": "Shares are",
+  "pool.unitPerson": "People",
+  "pool.unitFamily": "Families",
+  "pool.familyCount": "Families",
+  "pool.perFamily": "Each family ({currency})",
+  "pool.templatePchumBen": "Pchum Ben template",
+  "pool.templatePchumBenHint": "Adds spending categories: offerings · fuel/travel · food/gathering",
+  "pool.autobok": "Auto-record KHQR payments (AUTOBOK)",
+  "pool.autobokHint": "Put this key in AUTOBOK. When money arrives, the bot asks in the group whose share it is.",
+  "pool.autobokCreate": "Create key",
+  "pool.autobokCopy": "Copy key",
+  "pool.autobokCopied": "Copied",
+  "pool.autobokOnce": "Shown once only. Creating a new key stops the old one.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
