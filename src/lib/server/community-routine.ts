@@ -1,8 +1,8 @@
 // Server only: the community channel's daily routine around the 09:30 market
 // bulletin (community-bulletin.ts):
 //
-//   07:00  ☀️ morning: a short motivation and the tip of the day (tips live here,
-//          never in the market bulletin — that one is market data only)
+//   07:00  ☀️ morning: a short motivation (no tip — tips go out at 12:00, and
+//          only after the Super Admin approves them: tip-bot.ts)
 //   09:30  📊 market bulletin (community-bulletin.ts)
 //   20:00  🌙 evening check-in: "did you record today?" — in the channel, and as
 //          a gentle nudge in the bot to users who switched it on (Settings ›
@@ -16,7 +16,6 @@ import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
 import type { Locale } from "@/lib/i18n/dictionaries"
-import { tipOfTheDay } from "@/lib/tips"
 
 const MORNING = { job: "community-morning", from: 7 * 60, until: 8 * 60 + 30 }
 const EVENING = { job: "community-evening", from: 20 * 60, until: 21 * 60 + 30 }
@@ -26,16 +25,12 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 const QUOTE = "«ស្រឡាញ់លុយ លុយនឹងស្រឡាញ់អ្នកវិញ! ចាប់ផ្តើមថ្ងៃថ្មីដោយភាពឆ្លាតវៃ និងកត់ត្រារាល់ចំណូល-ចំណាយឱ្យបានត្រឹមត្រូវ។»"
 
-/** 07:00 — title, the core quote, the tip of the day (Telegram HTML). */
-export function morningText(date: Date): string {
-  const tip = tipOfTheDay(date)
+/** 07:00 — title and the core quote (Telegram HTML). The tip goes out at 12:00, approved first (tip-bot.ts). */
+export function morningText(): string {
   return [
     "☀️ <b>អរុណសួស្តីថ្ងៃថ្មី · ថាមពលហិរញ្ញវត្ថុ</b>",
     "",
     `<i>${esc(QUOTE)}</i>`,
-    "",
-    `💡 <b>គន្លឹះថ្ងៃនេះ៖ ${esc(tip.title.km)}</b>`,
-    esc(tip.body.km),
     "",
     "— លុយឆ្លាត · LuyChlat",
   ].join("\n")
@@ -104,8 +99,7 @@ export async function communityRoutineTick() {
   const chat = communityChat()
 
   if (due === "morning" && chat && (await claim(MORNING.job, now.day))) {
-    const [y, m, d] = now.day.split("-").map(Number)
-    const res = await tg("sendMessage", { chat_id: chat, text: morningText(new Date(y, m - 1, d, 12)), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })
+    const res = await tg("sendMessage", { chat_id: chat, text: morningText(), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })
     logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Morning post sent to ${chat}` : `Morning post failed: ${res.description ?? "unknown"}`)
   }
 

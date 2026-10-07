@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, ChevronRightIcon, GitCommitHorizontalIcon, Loader2Icon, ShieldAlertIcon } from "lucide-react"
+import { ArrowLeftIcon, ChevronRightIcon, GitCommitHorizontalIcon, LightbulbIcon, Loader2Icon, ShieldAlertIcon } from "lucide-react"
 import Link from "next/link"
 
 import { AuditLogCard } from "@/components/admin/audit-log"
@@ -52,6 +52,17 @@ export default function SuperAdminPage() {
         <span className="min-w-0 flex-1">
           <span className="block font-medium">{t("dev.title")}</span>
           <span className="block text-xs text-muted-foreground">{t("dev.cardHint")}</span>
+        </span>
+        <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
+      </Link>
+      {/* Daily tip: drafted 10:30, posted 12:00 to the community only after approval. */}
+      <Link href="/admin/super/tips" className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted/50">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+          <LightbulbIcon className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{t("tips.adminTitle")}</span>
+          <span className="block text-xs text-muted-foreground">{t("tips.cardHint")}</span>
         </span>
         <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
       </Link>

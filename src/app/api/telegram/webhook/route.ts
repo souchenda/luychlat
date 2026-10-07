@@ -25,6 +25,7 @@ import { botFeatures, featureOk, KEYBOARD_OFF, menuCommand, menuFor } from "@/li
 import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
+import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
 
@@ -292,6 +293,8 @@ export async function POST(request: Request) {
       await handleBankUndoCallback(update.callback_query, contextLocale(ctx))
     } else if (isSlipCallback(update.callback_query.data)) {
       await handleSlipCallback(update.callback_query)
+    } else if (isTipCallback(update.callback_query.data)) {
+      await handleTipCallback(update.callback_query)
     } else if (isInvoiceCallback(update.callback_query.data)) {
       const chat = update.callback_query.message?.chat.id
       if (chat && !featureOk(await botFeatures(chat), "invoices")) await soon(update.callback_query.id, "km")
@@ -357,6 +360,10 @@ export async function POST(request: Request) {
   if (!message.text) return NextResponse.json({ ok: true })
 
   const chatId = message.chat.id
+  // A super admin's reply to a daily-tip preview edits that tip (tip-bot.ts).
+  if (message.reply_to_message && message.chat.type === "private" && (await handleTipReply(chatId, message.reply_to_message.message_id, message.text))) {
+    return NextResponse.json({ ok: true })
+  }
   // Before linking, replies follow the Telegram app's language (Khmer by default);
   // linked chats use the language chosen in the app or with /lang.
   const lang: Locale = telegramLocale(message.from?.language_code)
