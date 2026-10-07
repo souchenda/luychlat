@@ -1,9 +1,10 @@
-// Server only: festival posters (1080 × 1080). The first is Pchum Ben 2026 —
-// deep midnight blue with royal gold, MiSans Khmer, three money tips for the
-// festival, a quote and the LuyChlat footer. Admins preview it with
-// "/poster pchumben" in the bot. Icons are drawn (the server has no emoji font).
-// Dates follow the official calendar (lib/holidays.ts): Kan Ben 12 = Thu
-// 8 Oct, Pchum Thom = Sun 11 Oct 2026 (public holiday 10–12 Oct).
+// Server only: festival posters (1080 × 1080, MiSans Khmer). Pchum Ben 2026
+// follows the brand (deep emerald slate, emerald and Khmer gold — no blue) and
+// the founder's religious-wording rules: "សូមអនុមោទនា…", never "រីករាយ"; a
+// blessing, not a money lecture. The motifs (pagoda spire, lotus, tiffin
+// carrier and ansom) are drawn in gold line art — the server has no emoji font.
+// Dates: the official public holiday is Sat 10 – Mon 12 Oct 2026 (Pchum Thom
+// Sun 11 Oct, lib/holidays.ts). Admins preview with "/poster pchumben".
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 
 import { botToken } from "./telegram-bot"
@@ -12,90 +13,150 @@ import { FAMILIES, drawSpread, loadFonts, roundRect, wrap } from "./tip-poster"
 const W = 1080
 const H = 1080
 const PAD = 72
-const NAVY = "#0a1128"
-const GOLD = "#D4AF37"
-const AMBER = "#F59E0B"
+const EMERALD = "#10b981"
+const MINT = "#34d399"
+const GOLD = "#fbbf24"
+const GOLD_DEEP = "#d97706"
 const CREAM = "#fdf6e3"
 
-type Icon = "lantern" | "lotus" | "car" | "shield"
-
-/** Small gold line icons centred on (cx, cy). */
-function icon(ctx: SKRSContext2D, kind: Icon, cx: number, cy: number, s = 1) {
+/** A lotus blossom (filled petals in gold) centred on its base (x, y). */
+function lotus(ctx: SKRSContext2D, x: number, y: number, s: number) {
   ctx.save()
-  ctx.translate(cx, cy)
+  ctx.translate(x, y)
   ctx.scale(s, s)
+  const petal = (angle: number, len: number, wide: number, alpha: number) => {
+    ctx.save()
+    ctx.rotate(angle)
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.quadraticCurveTo(-wide, -len * 0.55, 0, -len)
+    ctx.quadraticCurveTo(wide, -len * 0.55, 0, 0)
+    const g = ctx.createLinearGradient(0, -len, 0, 0)
+    g.addColorStop(0, `rgba(253,230,138,${alpha})`)
+    g.addColorStop(1, `rgba(217,119,6,${alpha})`)
+    ctx.fillStyle = g
+    ctx.fill()
+    ctx.lineWidth = 1.6
+    ctx.strokeStyle = "rgba(253,230,138,0.9)"
+    ctx.stroke()
+    ctx.restore()
+  }
+  for (const a of [-1.15, 1.15]) petal(a, 34, 13, 0.55)
+  for (const a of [-0.62, 0.62]) petal(a, 44, 15, 0.75)
+  petal(0, 54, 16, 0.95)
+  ctx.beginPath()
+  ctx.moveTo(-40, 4)
+  ctx.quadraticCurveTo(0, 18, 40, 4)
+  ctx.lineWidth = 2.4
+  ctx.strokeStyle = "rgba(52,211,153,0.8)"
+  ctx.stroke()
+  ctx.restore()
+}
+
+/** A Khmer pagoda (vihara): tiered roofs with upturned ends, a tall spire, the hall and steps. */
+function pagoda(ctx: SKRSContext2D, cx: number, base: number, s: number) {
+  ctx.save()
+  ctx.translate(cx, base)
+  ctx.scale(s, s)
+  const fill = ctx.createLinearGradient(0, -330, 0, 0)
+  fill.addColorStop(0, "rgba(251,191,36,0.32)")
+  fill.addColorStop(1, "rgba(217,119,6,0.12)")
+  ctx.fillStyle = fill
   ctx.strokeStyle = GOLD
-  ctx.fillStyle = GOLD
   ctx.lineWidth = 2.6
   ctx.lineJoin = "round"
-  ctx.lineCap = "round"
-  if (kind === "lantern") {
+  const shape = (draw: () => void) => {
     ctx.beginPath()
-    ctx.ellipse(0, 2, 10, 12, 0, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillRect(-5, -13, 10, 3)
-    ctx.fillRect(-5, 13, 10, 3)
-    ctx.beginPath()
-    ctx.moveTo(0, -13)
-    ctx.lineTo(0, -18)
-    ctx.moveTo(0, 16)
-    ctx.lineTo(0, 21)
-    ctx.stroke()
-  } else if (kind === "lotus") {
-    for (const [dx, h, w] of [[0, 18, 7], [-9, 13, 6], [9, 13, 6]] as const) {
-      ctx.beginPath()
-      ctx.moveTo(dx, 9)
-      ctx.quadraticCurveTo(dx - w, 9 - h / 2, dx, 9 - h)
-      ctx.quadraticCurveTo(dx + w, 9 - h / 2, dx, 9)
-      ctx.fill()
-    }
-    ctx.beginPath()
-    ctx.moveTo(-15, 12)
-    ctx.quadraticCurveTo(0, 18, 15, 12)
-    ctx.stroke()
-  } else if (kind === "car") {
-    roundRect(ctx, -16, -2, 32, 12, 4)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(-10, -2)
-    ctx.lineTo(-6, -10)
-    ctx.lineTo(6, -10)
-    ctx.lineTo(10, -2)
-    ctx.stroke()
-    for (const x of [-9, 9]) {
-      ctx.beginPath()
-      ctx.arc(x, 12, 3.5, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  } else {
-    ctx.beginPath()
-    ctx.moveTo(0, -16)
-    ctx.lineTo(13, -10)
-    ctx.quadraticCurveTo(13, 8, 0, 17)
-    ctx.quadraticCurveTo(-13, 8, -13, -10)
+    draw()
     ctx.closePath()
+    ctx.fill()
     ctx.stroke()
+  }
+  // Steps and the hall with its pillars.
+  shape(() => ctx.rect(-120, -16, 240, 16))
+  shape(() => ctx.rect(-96, -96, 192, 80))
+  for (const x of [-72, -36, 0, 36, 72]) {
     ctx.beginPath()
-    ctx.moveTo(-5, 0)
-    ctx.lineTo(-1, 5)
-    ctx.lineTo(6, -5)
+    ctx.moveTo(x, -92)
+    ctx.lineTo(x, -20)
+    ctx.stroke()
+  }
+  // Three roof tiers, each with upturned (chovea) ends.
+  const tier = (y: number, half: number, rise: number) =>
+    shape(() => {
+      ctx.moveTo(-half - 18, y - 10)
+      ctx.quadraticCurveTo(-half, y, -half + 10, y - 4)
+      ctx.lineTo(-half * 0.45, y - rise)
+      ctx.lineTo(half * 0.45, y - rise)
+      ctx.lineTo(half - 10, y - 4)
+      ctx.quadraticCurveTo(half, y, half + 18, y - 10)
+      ctx.lineTo(half, y + 2)
+      ctx.lineTo(-half, y + 2)
+    })
+  tier(-96, 124, 46)
+  tier(-142, 92, 42)
+  tier(-184, 62, 38)
+  // The spire: stacked rings, then the point.
+  for (const [y, w] of [[-222, 26], [-238, 20], [-252, 15]] as const) shape(() => ctx.rect(-w, y, w * 2, 14))
+  shape(() => {
+    ctx.moveTo(-11, -252)
+    ctx.lineTo(0, -330)
+    ctx.lineTo(11, -252)
+  })
+  ctx.restore()
+}
+
+/** A tiffin carrier (ចានស្រាក់, carried to the pagoda): three stacked pots with a handle. */
+function tiffin(ctx: SKRSContext2D, cx: number, base: number, s: number) {
+  ctx.save()
+  ctx.translate(cx, base)
+  ctx.scale(s, s)
+  ctx.strokeStyle = GOLD
+  ctx.lineWidth = 2.4
+  for (let i = 0; i < 3; i++) {
+    roundRect(ctx, -26, -26 - i * 28, 52, 26, 8)
+    ctx.fillStyle = `rgba(251,191,36,${0.18 + i * 0.06})`
+    ctx.fill()
+    ctx.stroke()
+  }
+  ctx.beginPath()
+  ctx.moveTo(-30, -24)
+  ctx.lineTo(-30, -96)
+  ctx.quadraticCurveTo(0, -122, 30, -96)
+  ctx.lineTo(30, -24)
+  ctx.stroke()
+  ctx.restore()
+}
+
+/** Ansom (នំអន្សម): a leaf-wrapped rice cake lying down, tied with string. */
+function ansom(ctx: SKRSContext2D, cx: number, base: number, s: number) {
+  ctx.save()
+  ctx.translate(cx, base)
+  ctx.scale(s, s)
+  roundRect(ctx, -42, -30, 84, 30, 15)
+  ctx.fillStyle = "rgba(52,211,153,0.28)"
+  ctx.fill()
+  ctx.strokeStyle = MINT
+  ctx.lineWidth = 2.4
+  ctx.stroke()
+  ctx.strokeStyle = GOLD
+  for (const x of [-20, 0, 20]) {
+    ctx.beginPath()
+    ctx.moveTo(x, -30)
+    ctx.lineTo(x, 0)
     ctx.stroke()
   }
   ctx.restore()
 }
 
 const PCHUM_BEN_2026 = {
-  pill: "រដូវកាលបុណ្យភ្ជុំបិណ្ឌ · បិណ្ឌ ១២ - ភ្ជុំធំ",
-  // Kan Ben 12 (Thu 8 Oct) through Pchum Thom (Sun 11 Oct).
-  date: "ថ្ងៃព្រហស្បតិ៍ ទី០៨ ដល់ ថ្ងៃអាទិត្យ ទី១១ ខែតុលា ឆ្នាំ២០២៦",
-  title: "រីករាយពិធីបុណ្យភ្ជុំបិណ្ឌ",
-  subtitle: "ធ្វើបុណ្យដោយសេចក្តីជ្រះថ្លា គ្រប់គ្រងថវិកាដោយភាពឆ្លាតវៃ",
-  tips: [
-    ["lotus", "បែងចែកកញ្ចប់បច្ច័យ និងទេយ្យទាន", "កត់ត្រាក្នុងសៀវភៅបច្ច័យបុណ្យ"],
-    ["car", "បង្កើត «បេឡារួម ភ្ជុំបិណ្ឌ» សម្រាប់គ្រួសារ", "ថ្លៃសាំង ម្ហូបអាហារ ចង្ហាន់វត្ត"],
-    ["shield", "ត្រៀមកញ្ចប់ប្រាក់បម្រុងបន្ទាន់", "ពេលធ្វើដំណើរទៅស្រុក"],
-  ] as [Icon, string, string][],
-  quote: "បុណ្យកុសលកើតពីទឹកចិត្តជ្រះថ្លា ភាពសុខសាន្តកើតពីការចាត់ចែងលុយត្រឹមត្រូវ!",
+  pill: "ពិធីបុណ្យប្រពៃណីជាតិ",
+  lead: "សូមអនុមោទនាពិធីបុណ្យ",
+  title: "ភ្ជុំបិណ្ឌ",
+  // The official public holiday (Sat 10 – Mon 12 Oct 2026).
+  date: "ថ្ងៃទី ១០ ដល់ ១២ ខែតុលា ឆ្នាំ២០២៦",
+  blessing:
+    "សូមឧទ្ទិសកុសលផលបុណ្យជូនដល់បុព្វការីជនដែលបានចែកឋាន និងសូមជូនពរលោកអ្នកព្រមទាំងក្រុមគ្រួសារ ជួបតែសេចក្តីសុខ សុភមង្គល និងសុវត្ថិភាពក្នុងការធ្វើដំណើរទៅស្រុកកំណើតជួបជុំបងប្អូន។",
 }
 
 export const FESTIVAL_POSTERS = { pchumben: () => pchumBenPoster() } as const
@@ -107,35 +168,40 @@ export function pchumBenPoster(): Buffer {
   const canvas = createCanvas(W, H)
   const ctx = canvas.getContext("2d")
 
-  // Midnight blue with a warm gold glow and a few soft "lantern" lights.
-  const bg = ctx.createLinearGradient(0, 0, W * 0.3, H)
-  bg.addColorStop(0, NAVY)
-  bg.addColorStop(0.65, "#111b3d")
-  bg.addColorStop(1, "#1a2552")
+  // Deep emerald slate, an emerald glow behind the pagoda and a warm one below.
+  const bg = ctx.createLinearGradient(0, 0, W * 0.35, H)
+  bg.addColorStop(0, "#031c15")
+  bg.addColorStop(1, "#052e23")
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, W, H)
-  const glow = ctx.createRadialGradient(W * 0.85, H * 0.1, 0, W * 0.85, H * 0.1, W * 0.7)
-  glow.addColorStop(0, "rgba(245,158,11,0.22)")
-  glow.addColorStop(1, "rgba(245,158,11,0)")
+  const glow = ctx.createRadialGradient(W * 0.78, H * 0.3, 0, W * 0.78, H * 0.3, W * 0.55)
+  glow.addColorStop(0, "rgba(16,185,129,0.26)")
+  glow.addColorStop(1, "rgba(16,185,129,0)")
   ctx.fillStyle = glow
   ctx.fillRect(0, 0, W, H)
-  for (const [x, y, r, a] of [[930, 330, 5, 0.5], [990, 520, 3, 0.4], [880, 610, 4, 0.35], [1010, 180, 3, 0.45], [820, 120, 2.5, 0.4]]) {
-    ctx.beginPath()
-    ctx.arc(x, y, r, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(253,230,138,${a})`
-    ctx.fill()
-  }
+  const warm = ctx.createRadialGradient(W * 0.2, H, 0, W * 0.2, H, W * 0.6)
+  warm.addColorStop(0, "rgba(251,191,36,0.12)")
+  warm.addColorStop(1, "rgba(251,191,36,0)")
+  ctx.fillStyle = warm
+  ctx.fillRect(0, 0, W, H)
 
-  // Mark: a gold ៛ tile, "លុយឆ្លាត" over "LuyChlat".
+  // Motifs on the right: the pagoda, lotus at its feet, the tiffin carrier and ansom.
+  pagoda(ctx, 812, 488, 1)
+  lotus(ctx, 690, 508, 0.95)
+  lotus(ctx, 940, 508, 0.8)
+  tiffin(ctx, 615, 512, 0.95)
+  ansom(ctx, 990, 512, 0.75)
+
+  // Mark: the ៛ tile with "លុយឆ្លាត" over "LuyChlat".
   const mark = 64
   const top = 64
   roundRect(ctx, PAD, top, mark, mark, 18)
-  ctx.fillStyle = "rgba(212,175,55,0.16)"
+  ctx.fillStyle = "rgba(16,185,129,0.16)"
   ctx.fill()
   ctx.lineWidth = 2
-  ctx.strokeStyle = "rgba(212,175,55,0.6)"
+  ctx.strokeStyle = "rgba(52,211,153,0.6)"
   ctx.stroke()
-  ctx.fillStyle = GOLD
+  ctx.fillStyle = "#ffffff"
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
   ctx.font = `700 40px ${FAMILIES}`
@@ -143,99 +209,80 @@ export function pchumBenPoster(): Buffer {
   ctx.textAlign = "left"
   ctx.textBaseline = "alphabetic"
   ctx.font = `700 34px ${FAMILIES}`
-  ctx.fillStyle = "#ffffff"
   const nameX = PAD + mark + 18
   ctx.fillText("លុយឆ្លាត", nameX, top + 32)
   const nameW = ctx.measureText("លុយឆ្លាត").width
   ctx.font = `500 20px ${FAMILIES}`
-  ctx.fillStyle = "rgba(253,246,227,0.75)"
+  ctx.fillStyle = "rgba(209,250,229,0.75)"
   drawSpread(ctx, "LuyChlat", nameX, top + 58, nameW)
 
-  // Pill with a lantern, then the dates.
-  ctx.font = `600 27px ${FAMILIES}`
-  const pillTop = 162
-  const pillW = ctx.measureText(c.pill).width + 78
-  roundRect(ctx, PAD, pillTop, pillW, 54, 27)
-  ctx.fillStyle = "rgba(212,175,55,0.14)"
+  // Pill with a small lotus.
+  ctx.font = `600 28px ${FAMILIES}`
+  const pillTop = 176
+  const pillW = ctx.measureText(c.pill).width + 82
+  roundRect(ctx, PAD, pillTop, pillW, 56, 28)
+  ctx.fillStyle = "rgba(251,191,36,0.12)"
   ctx.fill()
-  ctx.strokeStyle = "rgba(212,175,55,0.6)"
+  ctx.strokeStyle = "rgba(251,191,36,0.6)"
   ctx.stroke()
-  icon(ctx, "lantern", PAD + 30, pillTop + 27, 0.95)
+  lotus(ctx, PAD + 32, pillTop + 40, 0.36)
   ctx.fillStyle = "#fde68a"
-  ctx.fillText(c.pill, PAD + 54, pillTop + 37)
-  ctx.font = `400 25px ${FAMILIES}`
-  ctx.fillStyle = "rgba(253,246,227,0.7)"
-  ctx.fillText(c.date, PAD, pillTop + 96)
+  ctx.fillText(c.pill, PAD + 58, pillTop + 38)
 
-  // Headline in gold, the subtitle under it.
-  ctx.font = `700 72px ${FAMILIES}`
-  const gold = ctx.createLinearGradient(PAD, 300, PAD + 700, 380)
-  gold.addColorStop(0, "#f8e08e")
-  gold.addColorStop(0.5, GOLD)
-  gold.addColorStop(1, AMBER)
-  ctx.fillStyle = gold
-  ctx.fillText(c.title, PAD, 352)
-  ctx.font = `500 29px ${FAMILIES}`
+  // Title: the reverent lead, then "ភ្ជុំបិណ្ឌ" large in gold.
+  ctx.font = `600 44px ${FAMILIES}`
   ctx.fillStyle = CREAM
-  for (const [i, line] of wrap(ctx, c.subtitle, W - 2 * PAD, 2).entries()) ctx.fillText(line, PAD, 418 + i * 44)
+  ctx.fillText(c.lead, PAD, 318)
+  ctx.font = `700 112px ${FAMILIES}`
+  const gold = ctx.createLinearGradient(PAD, 340, PAD + 420, 440)
+  gold.addColorStop(0, "#fde68a")
+  gold.addColorStop(0.5, GOLD)
+  gold.addColorStop(1, GOLD_DEEP)
+  ctx.fillStyle = gold
+  ctx.fillText(c.title, PAD, 438)
 
-  // Three cards.
-  let y = 462
-  const cardH = 94
-  for (const [kind, head, sub] of c.tips) {
-    roundRect(ctx, PAD, y, W - 2 * PAD, cardH, 22)
-    ctx.fillStyle = "rgba(255,255,255,0.055)"
-    ctx.fill()
-    ctx.lineWidth = 1.5
-    ctx.strokeStyle = "rgba(212,175,55,0.28)"
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.arc(PAD + 50, y + cardH / 2, 27, 0, Math.PI * 2)
-    ctx.fillStyle = "rgba(212,175,55,0.14)"
-    ctx.fill()
-    icon(ctx, kind, PAD + 50, y + cardH / 2, 1.05)
-    ctx.textAlign = "left"
-    ctx.font = `700 29px ${FAMILIES}`
-    ctx.fillStyle = "#ffffff"
-    ctx.fillText(wrap(ctx, head, W - 2 * PAD - 120, 1)[0], PAD + 98, y + 41)
-    ctx.font = `400 24px ${FAMILIES}`
-    ctx.fillStyle = "rgba(253,230,138,0.85)"
-    ctx.fillText(wrap(ctx, sub, W - 2 * PAD - 120, 1)[0], PAD + 98, y + 76)
-    y += cardH + 14
-  }
-
-  // Quote in a gold-edged accent.
+  // Date pill.
   ctx.font = `600 27px ${FAMILIES}`
-  const quoteLines = wrap(ctx, c.quote, W - 2 * PAD - 70, 2)
-  const qTop = y + 8
-  const qH = quoteLines.length * 42 + 32
-  roundRect(ctx, PAD, qTop, W - 2 * PAD, qH, 18)
-  ctx.fillStyle = "rgba(212,175,55,0.1)"
+  const dTop = 520
+  const dW = ctx.measureText(c.date).width + 48
+  roundRect(ctx, PAD, dTop, dW, 52, 26)
+  ctx.fillStyle = "rgba(16,185,129,0.18)"
   ctx.fill()
-  roundRect(ctx, PAD, qTop, 8, qH, 4)
-  ctx.fillStyle = GOLD
-  ctx.fill()
-  ctx.fillStyle = "#fde68a"
-  quoteLines.forEach((line, i) => ctx.fillText(line, PAD + 36, qTop + 46 + i * 42))
+  ctx.lineWidth = 1.6
+  ctx.strokeStyle = "rgba(52,211,153,0.7)"
+  ctx.stroke()
+  ctx.fillStyle = "#d1fae5"
+  ctx.fillText(c.date, PAD + 24, dTop + 35)
 
-  // Footer: two lines left, the LUYCHLAT mark right.
+  // A gold rule, then the blessing.
+  const rule = ctx.createLinearGradient(PAD, 0, W - PAD, 0)
+  rule.addColorStop(0, "rgba(251,191,36,0)")
+  rule.addColorStop(0.5, "rgba(251,191,36,0.75)")
+  rule.addColorStop(1, "rgba(251,191,36,0)")
+  ctx.fillStyle = rule
+  ctx.fillRect(PAD, 614, W - 2 * PAD, 2)
+  ctx.font = `400 34px ${FAMILIES}`
+  ctx.fillStyle = CREAM
+  const lines = wrap(ctx, c.blessing, W - 2 * PAD, 5)
+  lines.forEach((line, i) => ctx.fillText(line, PAD, 690 + i * 60))
+
+  // Footer: two lines left, the emerald LUYCHLAT badge right.
   const fTop = H - 132
-  ctx.fillStyle = "rgba(212,175,55,0.3)"
+  ctx.fillStyle = "rgba(52,211,153,0.28)"
   ctx.fillRect(PAD, fTop, W - 2 * PAD, 1.5)
   ctx.font = `600 26px ${FAMILIES}`
   ctx.fillStyle = "#ffffff"
   ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", PAD, fTop + 48)
   ctx.font = `400 24px ${FAMILIES}`
-  ctx.fillStyle = "rgba(253,246,227,0.72)"
+  ctx.fillStyle = "rgba(209,250,229,0.75)"
   ctx.fillText("ចូលរួមសហគមន៍ លុយឆ្លាត @LuyChlatCommunity", PAD, fTop + 88)
   ctx.font = `700 22px ${FAMILIES}`
   const badge = "LUYCHLAT"
   const bw = ctx.measureText(badge).width + 40
   roundRect(ctx, W - PAD - bw, fTop + 38, bw, 44, 22)
-  ctx.lineWidth = 2
-  ctx.strokeStyle = GOLD
-  ctx.stroke()
-  ctx.fillStyle = GOLD
+  ctx.fillStyle = EMERALD
+  ctx.fill()
+  ctx.fillStyle = "#022c22"
   ctx.textAlign = "center"
   ctx.fillText(badge, W - PAD - bw / 2, fTop + 68)
 
