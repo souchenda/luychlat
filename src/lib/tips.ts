@@ -10,6 +10,18 @@ export type TipTopic = "saving" | "debt" | "credit" | "business" | "islamic"
 type Text = { km: string; en: string }
 export type Tip = { id: string; topic: TipTopic; title: Text; body: Text }
 
+/*
+ * Khmer copy standard for tips (founder, 2026-10-07) — every tip here can be
+ * posted to @LuyChlatCommunity as the 12:00 daily tip:
+ *   - Native, natural Khmer — never a word-for-word English translation
+ *     (✗ «ហើយមើលវាកើនឡើង» for "watch it grow" → ✓ «នោះប្រាក់សន្សំនឹងកើនឡើងជាលំដាប់»).
+ *   - Warm, encouraging and actionable; 1–2 short sentences. The LAST sentence
+ *     is the takeaway (the poster sets it apart in soft gold), so make it the
+ *     line people remember.
+ *   - Everyday Cambodian examples and words: «ថ្លៃសាលាកូន», «ម៉ូតូថ្មី», «ទឹកភ្លើង»,
+ *     «សន្សំតិចៗតែទៀងទាត់», ABA / ACLEDA / KHQR, riel and dollars.
+ *   - Facts must be right (rates, rules, Islamic terms checked); no promises of returns.
+ */
 export const TIPS: Tip[] = [
   // Saving & budgeting
   {
@@ -71,7 +83,7 @@ export const TIPS: Tip[] = [
     topic: "saving",
     title: { km: "ដាក់ឈ្មោះគោលដៅសន្សំ", en: "Give savings a name" },
     body: {
-      km: "សន្សំសម្រាប់ «ថ្លៃសាលាកូន» ឬ «ម៉ូតូថ្មី» ងាយធ្វើតាមជាង «សន្សំទូទៅ»។ បង្កើតគោលដៅដាច់ៗ ហើយមើលវាកើនឡើង។",
+      km: "សន្សំសម្រាប់ «ថ្លៃសាលាកូន» ឬ «ម៉ូតូថ្មី» ងាយធ្វើតាមជាង «សន្សំទូទៅ»។ កំណត់គោលដៅឱ្យច្បាស់លាស់ នោះប្រាក់សន្សំនឹងកើនឡើងជាលំដាប់។",
       en: "Saving for “school fees” or “a new motorbike” is easier than “general savings”. Create separate goals and watch them grow.",
     },
   },
@@ -91,7 +103,7 @@ export const TIPS: Tip[] = [
     topic: "debt",
     title: { km: "សរសេរបំណុលទាំងអស់", en: "List every debt" },
     body: {
-      km: "សរសេរបំណុលទាំងអស់៖ ម្ចាស់បំណុល ចំនួននៅសល់ ការប្រាក់ និងថ្ងៃត្រូវសង។ មើលឃើញទាំងអស់ គឺជាជំហានដំបូងនៃការរួចពីបំណុល។",
+      km: "សរសេរបំណុលទាំងអស់៖ ម្ចាស់បំណុល ចំនួននៅសល់ ការប្រាក់ និងថ្ងៃត្រូវសង។ ដឹងច្បាស់ថាជំពាក់គេប៉ុន្មាន ទើបអាចរៀបចំផែនការសងឱ្យរួចខ្លួនបាន។",
       en: "Write down every debt: who, how much is left, the interest and the due date. Seeing it all is the first step out of debt.",
     },
   },
@@ -183,7 +195,7 @@ export const TIPS: Tip[] = [
     topic: "credit",
     title: { km: "ប័ណ្ណឥណទានមិនមែនជាប្រាក់ចំណូល", en: "A card is not extra income" },
     body: {
-      km: "ចាយតាមប័ណ្ណ តែអ្វីដែលអ្នកមានលុយសងរួចហើយ។ ចាត់ទុកវាដូចកាតដែលដកពីកាបូបរបស់អ្នកផ្ទាល់។",
+      km: "ចាយតាមប័ណ្ណ តែអ្វីដែលអ្នកមានលុយសងរួចហើយ។ ចាយតាមកាតក៏ដូចជាចាយលុយក្នុងហោប៉ៅខ្លួនឯងដែរ។",
       en: "Only spend on a card what you already have the money to repay. Treat it like a card that draws from your own wallet.",
     },
   },

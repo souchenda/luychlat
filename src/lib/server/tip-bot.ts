@@ -1,6 +1,8 @@
-// Server only: the 12:00 daily tip for @LuyChlatCommunity, posted only after the
-// Super Admin approves it (rules enforced in the database — see the
-// daily_tips migration).
+// Server only: the 12:00 daily tip for @LuyChlatCommunity. The Super Admin
+// reviews it from 10:30; if nobody approves, edits or skips it by 12:00, the
+// system approves and posts it (founder's policy, 2026-10-07: the daily queue
+// never stalls). A skipped day is never posted. Rules enforced in the database
+// (daily_tips migrations).
 //
 //   10:30–11:59  draft today's tip (unless one was prepared in Admin › Super ›
 //                Daily tips), render the poster, send a private preview to each
@@ -10,8 +12,8 @@
 //                  [❌ ផ្អាកថ្ងៃនេះ]
 //                ✏️ (or replying to the preview) takes new text (first line =
 //                title when there are several lines) → a new version to approve.
-//   12:00–12:59  post today's tip if — and only if — it is APPROVED; otherwise
-//                stay silent (the preview then says so).
+//   12:00–12:59  a DRAFT still waiting is approved by the system, then the
+//                APPROVED tip is posted (once). SKIPPED → nothing.
 //
 // Buttons carry the version they were shown with: a tap on an older preview
 // (after an edit here or in the app) refreshes it instead of approving.
@@ -33,6 +35,8 @@ export type DailyTip = {
   version: number
   /** Preview photos, plus the "send the new text" prompts (prompt: true) that a reply to also edits. */
   previews: { chat: number; msg: number; prompt?: boolean }[]
+  /** Approved by the system at the 12:00 cut-off (nobody approved it). */
+  auto_approved?: boolean
 }
 
 const PREVIEW = { from: 10 * 60 + 30, until: 12 * 60 }
@@ -54,13 +58,13 @@ export function tipCaption(t: Pick<DailyTip, "title" | "body">): string {
 }
 
 /** The status line on the private preview. */
-export function statusLine(t: Pick<DailyTip, "status" | "day">, today: string, locked: boolean): string {
-  if (t.status === "POSTED") return "📢 បានចេញផ្សាយរួចហើយ។"
+export function statusLine(t: Pick<DailyTip, "status" | "day" | "auto_approved">, today: string, locked: boolean): string {
+  if (t.status === "POSTED") return t.auto_approved ? "📢 បានចេញផ្សាយដោយស្វ័យប្រវត្តិ (គ្មានការអនុម័តមុនម៉ោង ១២:០០)។" : "📢 បានចេញផ្សាយរួចហើយ។"
   if (t.status === "SKIPPED") return "❌ បានផ្អាកថ្ងៃនេះ — មិនផ្សាយទេ។"
-  if (locked) return "⏰ ផុតម៉ោង ១២:០០ ហើយ ដោយមិនទាន់អនុម័ត — ថ្ងៃនេះមិនផ្សាយទេ។"
   const when = t.day === today ? "នៅម៉ោង ១២:០០ ថ្ងៃត្រង់" : `ថ្ងៃ ${kmDigits(t.day.split("-").reverse().join("/"))} ម៉ោង ១២:០០`
-  if (t.status === "APPROVED") return `✅ បានអនុម័ត! នឹងចេញផ្សាយ${when}។`
-  return `⏳ រង់ចាំការអនុម័ត — មិនផ្សាយទេ បើមិនទាន់អនុម័តមុនម៉ោង ១២:០០។`
+  if (t.status === "APPROVED") return t.auto_approved ? `✅ អនុម័តដោយស្វ័យប្រវត្តិ — កំពុងចេញផ្សាយ។` : `✅ បានអនុម័ត! នឹងចេញផ្សាយ${when}។`
+  if (locked) return "⏰ ផុតម៉ោង ១២:០០ — កំពុងចេញផ្សាយដោយស្វ័យប្រវត្តិ។"
+  return `⏳ រង់ចាំការពិនិត្យ — បើគ្មានការកែ ឬផ្អាកមុនម៉ោង ១២:០០ នឹងចេញផ្សាយដោយស្វ័យប្រវត្តិ${when}។`
 }
 
 /** The preview's caption: what will be posted, its status, and how to edit. */
@@ -73,7 +77,7 @@ export function previewCaption(t: DailyTip, today: string, locked: boolean): str
     tipCaption(t),
     "",
     statusLine(t, today, locked),
-    ...(editable ? ["✏️ ចុច «កែអត្ថបទ» ឬ Reply សារនេះ ដើម្បីកែ (ជួរទី ១ = ចំណងជើង)។"] : []),
+    ...(editable ? ["✏️ ចុច «កែអត្ថបទ» ដើម្បីកែ (ជួរទី ១ = ចំណងជើង)។"] : []),
   ].join("\n")
 }
 
@@ -177,6 +181,13 @@ async function claim(job: string, day: string) {
   return data === true
 }
 
+/** The day's tip from the pool — never the same as the day before. */
+async function pickTip(day: string) {
+  const yesterday = await getTip(new Date(Date.parse(`${day}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10))
+  const first = defaultTip(day)
+  return yesterday?.tip_id === first.id ? nextTip(first.id) : first
+}
+
 async function getTip(day: string): Promise<DailyTip | null> {
   const { data } = await botDb().rpc("bot_tip_get", { p_key: botKey(), p_day: day })
   const t = data as DailyTip | null
@@ -194,10 +205,7 @@ export async function dailyTipTick() {
     if (!(await claim("tip-preview", now.day))) return
     let t = await getTip(now.day)
     if (!t) {
-      // Never the same tip two days running.
-      const yesterday = await getTip(new Date(Date.parse(`${now.day}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10))
-      const first = defaultTip(now.day)
-      const tip = yesterday?.tip_id === first.id ? nextTip(first.id) : first
+      const tip = await pickTip(now.day)
       const { data } = await db.rpc("bot_tip_ensure", { p_key: botKey(), p_day: now.day, p_tip_id: tip.id, p_title: tip.title.km, p_body: tip.body.km })
       t = data as DailyTip | null
     }
@@ -207,17 +215,19 @@ export async function dailyTipTick() {
     return
   }
 
-  // 12:00–12:59: post only an approved tip (the database claims it once).
+  // 12:00–12:59: a tip still waiting is approved by the system, then the approved tip is posted (claimed once).
   const chat = communityChat()
   if (!chat) return
+  if (!(await getTip(now.day))) {
+    // No draft at all (the 10:30 run was missed): today's tip from the pool, never yesterday's again.
+    const tip = await pickTip(now.day)
+    await db.rpc("bot_tip_ensure", { p_key: botKey(), p_day: now.day, p_tip_id: tip.id, p_title: tip.title.km, p_body: tip.body.km })
+  }
+  const { data: auto } = await db.rpc("bot_tip_auto_approve", { p_key: botKey() })
+  if ((auto as DailyTip | null)?.day) logEvent("info", "daily-tip", `No approval by 12:00 — tip v${(auto as DailyTip).version} approved by the system`)
   const { data } = await db.rpc("bot_tip_claim_post", { p_key: botKey() })
   const t = data as DailyTip | null
-  if (!t?.day) {
-    // Not approved: say so on the preview, once.
-    const pending = await getTip(now.day)
-    if (pending && pending.status !== "POSTED" && pending.status !== "APPROVED" && (await claim("tip-lock", now.day))) await refreshPreviews(pending, false)
-    return
-  }
+  if (!t?.day) return
   const [url, me] = await Promise.all([appUrl(), tg<{ username?: string }>("getMe", {})])
   const row = [
     ...(me.result?.username ? [{ text: "🤖 កត់ត្រាជាមួយ Bot", url: `https://t.me/${me.result.username}` }] : []),
@@ -231,7 +241,7 @@ export async function dailyTipTick() {
   }
   await db.rpc("bot_tip_posted", { p_key: botKey(), p_day: t.day, p_message_id: msg })
   await refreshPreviews(t, false)
-  logEvent("info", "daily-tip", `Approved tip v${t.version} posted to ${chat}`)
+  logEvent("info", "daily-tip", `${t.auto_approved ? "Auto-approved" : "Approved"} tip v${t.version} posted to ${chat}`)
 }
 
 export const isTipCallback = (data: string | undefined) => Boolean(data?.startsWith("tq:"))
@@ -314,6 +324,12 @@ export async function handleTipReply(chatId: number, replyTo: number, text: stri
   if (typeof day !== "string") return false
   const current = await getTip(day)
   if (!current) return false
+  // Only a reply to the ✏️ prompt changes the text — a comment or design note sent as a reply to the
+  // preview photo must never become the published tip (it would auto-publish at 12:00).
+  if (!current.previews?.some((p) => p.chat === chatId && p.msg === replyTo && p.prompt)) {
+    await tg("sendMessage", { chat_id: chatId, text: "ℹ️ សារនេះមិនបានកែគន្លឹះទេ។ ដើម្បីកែអត្ថបទ សូមចុច «✏️ កែអត្ថបទ» នៅក្រោមរូបមើលជាមុន។", reply_to_message_id: replyTo })
+    return true
+  }
   const lines = text.trim().split(/\n+/).map((l) => l.trim()).filter(Boolean)
   const title = (lines.length > 1 ? lines[0] : current.title).slice(0, TIP_TITLE_MAX)
   const body = (lines.length > 1 ? lines.slice(1).join("\n") : lines[0] ?? "").slice(0, TIP_BODY_MAX)
