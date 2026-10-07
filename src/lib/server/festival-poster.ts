@@ -3,8 +3,9 @@
 // the founder's religious-wording rules: "សូមអនុមោទនា…", never "រីករាយ"; a
 // blessing, not a money lecture. The motifs (pagoda spire, lotus, tiffin
 // carrier and ansom) are drawn in gold line art — the server has no emoji font.
-// Dates: the official public holiday is Sat 10 – Mon 12 Oct 2026 (Pchum Thom
-// Sun 11 Oct, lib/holidays.ts). Admins preview with "/poster pchumben".
+// Dates as set by the founder: 10–13 Oct 2026 (Pchum Thom Sun 11 Oct; the
+// official schedule lists the public holiday as 10–12 Oct). Footer: two
+// left-aligned lines, no badge. Admins preview with "/poster pchumben".
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 
 import { botToken } from "./telegram-bot"
@@ -13,7 +14,6 @@ import { FAMILIES, drawSpread, loadFonts, roundRect, wrap } from "./tip-poster"
 const W = 1080
 const H = 1080
 const PAD = 72
-const EMERALD = "#10b981"
 const MINT = "#34d399"
 const GOLD = "#fbbf24"
 const GOLD_DEEP = "#d97706"
@@ -59,8 +59,8 @@ function pagoda(ctx: SKRSContext2D, cx: number, base: number, s: number) {
   ctx.translate(cx, base)
   ctx.scale(s, s)
   const fill = ctx.createLinearGradient(0, -330, 0, 0)
-  fill.addColorStop(0, "rgba(251,191,36,0.32)")
-  fill.addColorStop(1, "rgba(217,119,6,0.12)")
+  fill.addColorStop(0, "rgba(251,191,36,0.5)")
+  fill.addColorStop(1, "rgba(217,119,6,0.22)")
   ctx.fillStyle = fill
   ctx.strokeStyle = GOLD
   ctx.lineWidth = 2.6
@@ -115,7 +115,7 @@ function tiffin(ctx: SKRSContext2D, cx: number, base: number, s: number) {
   ctx.lineWidth = 2.4
   for (let i = 0; i < 3; i++) {
     roundRect(ctx, -26, -26 - i * 28, 52, 26, 8)
-    ctx.fillStyle = `rgba(251,191,36,${0.18 + i * 0.06})`
+    ctx.fillStyle = `rgba(251,191,36,${0.32 + i * 0.08})`
     ctx.fill()
     ctx.stroke()
   }
@@ -153,8 +153,8 @@ const PCHUM_BEN_2026 = {
   pill: "ពិធីបុណ្យប្រពៃណីជាតិ",
   lead: "សូមអនុមោទនាពិធីបុណ្យ",
   title: "ភ្ជុំបិណ្ឌ",
-  // The official public holiday (Sat 10 – Mon 12 Oct 2026).
-  date: "ថ្ងៃទី ១០ ដល់ ១២ ខែតុលា ឆ្នាំ២០២៦",
+  // As set by the founder (the official schedule lists the public holiday as 10–12 Oct).
+  date: "ថ្ងៃទី ១០ ដល់ ១៣ ខែតុលា ឆ្នាំ២០២៦",
   blessing:
     "សូមឧទ្ទិសកុសលផលបុណ្យជូនដល់បុព្វការីជនដែលបានចែកឋាន និងសូមជូនពរលោកអ្នកព្រមទាំងក្រុមគ្រួសារ ជួបតែសេចក្តីសុខ សុភមង្គល និងសុវត្ថិភាពក្នុងការធ្វើដំណើរទៅស្រុកកំណើតជួបជុំបងប្អូន។",
 }
@@ -185,7 +185,15 @@ export function pchumBenPoster(): Buffer {
   ctx.fillStyle = warm
   ctx.fillRect(0, 0, W, H)
 
-  // Motifs on the right: the pagoda, lotus at its feet, the tiffin carrier and ansom.
+  // Motifs on the right: a soft gold warmth behind the pagoda roof and the tiffin, then the
+  // pagoda, lotus at its feet, the tiffin carrier and ansom.
+  for (const [x, y, r] of [[812, 300, 190], [615, 450, 90]] as const) {
+    const warmth = ctx.createRadialGradient(x, y, 0, x, y, r)
+    warmth.addColorStop(0, "rgba(251,191,36,0.20)")
+    warmth.addColorStop(1, "rgba(251,191,36,0)")
+    ctx.fillStyle = warmth
+    ctx.fillRect(x - r, y - r, r * 2, r * 2)
+  }
   pagoda(ctx, 812, 488, 1)
   lotus(ctx, 690, 508, 0.95)
   lotus(ctx, 940, 508, 0.8)
@@ -264,27 +272,18 @@ export function pchumBenPoster(): Buffer {
   ctx.font = `400 34px ${FAMILIES}`
   ctx.fillStyle = CREAM
   const lines = wrap(ctx, c.blessing, W - 2 * PAD, 5)
-  lines.forEach((line, i) => ctx.fillText(line, PAD, 690 + i * 60))
+  lines.forEach((line, i) => ctx.fillText(line, PAD, 688 + i * 66))
 
-  // Footer: two lines left, the emerald LUYCHLAT badge right.
+  // Footer: two clean lines, left-aligned (no second brand mark).
   const fTop = H - 132
   ctx.fillStyle = "rgba(52,211,153,0.28)"
   ctx.fillRect(PAD, fTop, W - 2 * PAD, 1.5)
   ctx.font = `600 26px ${FAMILIES}`
   ctx.fillStyle = "#ffffff"
   ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", PAD, fTop + 48)
-  ctx.font = `400 24px ${FAMILIES}`
-  ctx.fillStyle = "rgba(209,250,229,0.75)"
-  ctx.fillText("ចូលរួមសហគមន៍ លុយឆ្លាត @LuyChlatCommunity", PAD, fTop + 88)
-  ctx.font = `700 22px ${FAMILIES}`
-  const badge = "LUYCHLAT"
-  const bw = ctx.measureText(badge).width + 40
-  roundRect(ctx, W - PAD - bw, fTop + 38, bw, 44, 22)
-  ctx.fillStyle = EMERALD
-  ctx.fill()
-  ctx.fillStyle = "#022c22"
-  ctx.textAlign = "center"
-  ctx.fillText(badge, W - PAD - bw / 2, fTop + 68)
+  ctx.font = `500 25px ${FAMILIES}`
+  ctx.fillStyle = "#a7f3d0"
+  ctx.fillText("ចូលរួមសហគមន៍ លុយឆ្លាត @LuyChlatCommunity", PAD, fTop + 90)
 
   return canvas.toBuffer("image/png")
 }
