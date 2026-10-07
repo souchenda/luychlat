@@ -3192,4 +3192,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "pool.autobokCopy": "复制密钥",
   "pool.autobokCopied": "已复制",
   "pool.autobokOnce": "仅显示一次。生成新密钥后旧密钥将失效。",
+  "biz.transferRecorded": "🔄 已记录内部转账：{from} (*{suffix}) ➔ {to} ({amount})",
 }

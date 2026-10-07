@@ -3239,6 +3239,7 @@ const km = {
   "pool.autobokCopy": "ចម្លង key",
   "pool.autobokCopied": "បានចម្លង",
   "pool.autobokOnce": "key បង្ហាញតែម្តងគត់។ បង្កើតថ្មី នឹងធ្វើឱ្យ key ចាស់លែងដំណើរការ។",
+  "biz.transferRecorded": "🔄 បានកត់ត្រាការផ្ទេរប្រាក់ផ្ទៃក្នុង៖ {from} (*{suffix}) ➔ {to} ({amount})",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6467,6 +6468,7 @@ const en: Record<MessageKey, string> = {
   "pool.autobokCopy": "Copy key",
   "pool.autobokCopied": "Copied",
   "pool.autobokOnce": "Shown once only. Creating a new key stops the old one.",
+  "biz.transferRecorded": "🔄 Internal transfer recorded: {from} (*{suffix}) ➔ {to} ({amount})",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

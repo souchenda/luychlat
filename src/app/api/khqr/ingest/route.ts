@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { parseMerchantPayment } from "@/lib/bot/merchant-khqr"
 import { formatMoney } from "@/lib/money"
 import { logEvent } from "@/lib/server/events"
+import { transferText, type TransferResult } from "@/lib/server/biz-group-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
 
@@ -80,7 +81,16 @@ export async function POST(request: Request) {
   const parsed = text ? parseMerchantPayment(text) : null
   if (text && !parsed) return NextResponse.json({ ok: false, status: "invalid", error: "Not an ACLEDA / ABA PayWay KHQR payment message" }, { status: 422 })
   const pay = parsed
-    ? { bank: parsed.bank, amount: parsed.amount, currency: parsed.currency, ref: parsed.ref, payer: parsed.payer, posted_at: parsed.postedAt }
+    ? {
+        bank: parsed.bank,
+        amount: parsed.amount,
+        currency: parsed.currency,
+        ref: parsed.ref,
+        payer: parsed.payer,
+        posted_at: parsed.postedAt,
+        payer_account: parsed.payerAccount,
+        merchant: parsed.merchant,
+      }
     : {
         bank: str(body.bank, 10).toUpperCase(),
         amount: typeof body.amount === "number" ? body.amount : Number(str(body.amount, 30).replace(/,/g, "")),
@@ -88,6 +98,9 @@ export async function POST(request: Request) {
         ref: str(body.ref ?? body.hash ?? body.transactionId ?? body.transaction_id, 64),
         payer: str(body.payer ?? body.sender, 80) || null,
         posted_at: str(body.paid_at ?? body.timestamp, 40) || null,
+        // Optional: the payer's account ending and the receiver ("at SOU CHENDA") — an own transfer is recorded as one.
+        payer_account: str(body.payer_account, 30) || null,
+        merchant: str(body.merchant ?? body.receiver, 80) || null,
       }
 
   if (apiKey.startsWith("lcp_")) {
@@ -118,16 +131,21 @@ export async function POST(request: Request) {
     currency?: "USD" | "KHR"
     bank?: string
     posted_at?: string
+    from_wallet?: string
+    from_bank?: string | null
+    suffix?: string
   }
-  const http: Record<string, number> = { ok: 201, duplicate: 200, unauthorized: 401, plan_required: 402, not_writable: 403, invalid: 422, no_wallet: 422 }
+  const http: Record<string, number> = { ok: 201, transfer: 201, duplicate: 200, unauthorized: 401, plan_required: 402, not_writable: 403, invalid: 422, no_wallet: 422 }
   const status = http[r.status] ?? 500
   const message =
     r.status === "ok" && r.amount !== undefined && r.currency
       ? tr("km", "biz.recorded", { amount: `+${formatMoney(Number(r.amount), r.currency)}`, workspace: r.workspace ?? "", bank: r.bank ?? pay.bank })
-      : null
+      : r.status === "transfer" && r.amount !== undefined && r.currency
+        ? transferText(r as TransferResult)
+        : null
 
-  if (r.status === "ok") {
-    logEvent("info", "khqr", `KHQR ${r.bank} payment pushed by API (${r.workspace})`, { fold: true })
+  if (r.status === "ok" || r.status === "transfer") {
+    logEvent("info", "khqr", `KHQR ${r.bank} ${r.status === "transfer" ? "own transfer" : "payment"} pushed by API (${r.workspace})`, { fold: true })
     // Optional: say so in the business's linked Telegram group for this bank.
     if (body.notify_group === true && message && r.workspace_id) {
       const { data: groups } = await botDb().rpc("bot_biz_groups_of", { p_key: botKey(), p_workspace_id: r.workspace_id })

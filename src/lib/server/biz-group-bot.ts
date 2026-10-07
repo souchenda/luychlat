@@ -12,6 +12,18 @@ import { formatMoney } from "@/lib/money"
 import { logEvent } from "./events"
 import { botDb, botKey, sendText, tr } from "./telegram-bot"
 
+export type TransferResult = { amount?: number; currency?: "USD" | "KHR"; bank?: string; from_wallet?: string; from_bank?: string | null; suffix?: string }
+
+/** "🔄 បានកត់ត្រាការផ្ទេរប្រាក់ផ្ទៃក្នុង៖ ACLEDA (*262) ➔ ABA (21,600,000៛)" — the owner's own move, not a sale. */
+export function transferText(r: TransferResult): string {
+  return tr("km", "biz.transferRecorded", {
+    from: r.from_bank || r.from_wallet || "—",
+    suffix: r.suffix ?? "",
+    to: r.bank ?? "",
+    amount: formatMoney(Number(r.amount), r.currency ?? "USD"),
+  })
+}
+
 /** A KHQR payment notification in a group: record it if the group is linked. True when it was one. */
 export async function handleKhqrGroupMessage(chatId: number, text: string, lang: Locale): Promise<boolean> {
   const pay = parseMerchantPayment(text)
@@ -19,7 +31,16 @@ export async function handleKhqrGroupMessage(chatId: number, text: string, lang:
   const { data, error } = await botDb().rpc("bot_khqr_sale", {
     p_key: botKey(),
     p_group: chatId,
-    p_pay: { bank: pay.bank, amount: pay.amount, currency: pay.currency, payer: pay.payer, ref: pay.ref, posted_at: pay.postedAt },
+    p_pay: {
+      bank: pay.bank,
+      amount: pay.amount,
+      currency: pay.currency,
+      payer: pay.payer,
+      ref: pay.ref,
+      posted_at: pay.postedAt,
+      payer_account: pay.payerAccount,
+      merchant: pay.merchant,
+    },
   })
   const r = data as { status?: string; workspace?: string; wallet?: string; amount?: number; currency?: "USD" | "KHR"; bank?: string } | null
   if (error || !r) {
@@ -30,6 +51,9 @@ export async function handleKhqrGroupMessage(chatId: number, text: string, lang:
     logEvent("info", "khqr", `KHQR ${pay.bank} payment recorded (${r.workspace})`, { fold: true })
     const money = formatMoney(Number(r.amount), r.currency ?? pay.currency)
     await sendText(chatId, tr(lang, "biz.recorded", { amount: `+${money}`, workspace: r.workspace ?? "", bank: pay.bank }))
+  } else if (r.status === "transfer") {
+    logEvent("info", "khqr", `KHQR ${pay.bank} own transfer recorded (${r.workspace})`, { fold: true })
+    await sendText(chatId, transferText(r as TransferResult))
   } else if (r.status === "no_wallet") {
     await sendText(chatId, tr(lang, "biz.noWallet", { workspace: r.workspace ?? "" }))
   } else if (r.status === "plan_required") {

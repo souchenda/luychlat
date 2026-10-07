@@ -25,7 +25,12 @@ export type MerchantPayment = {
   postedAt: string | null
   /** The merchant name the payment was made to ("Sou Chenda"). */
   merchant: string | null
+  /** The payer's account ending as printed ("(*262)" → "262"), if any: an own wallet's means a transfer. */
+  payerAccount: string | null
 }
+
+const ABA_PAYER_ACCOUNT = /paid\s+by\s+.+?\(\s*\*\s*(\d{3,})\s*\)\s+on\s/i
+const MASKED_ACCOUNT = /\d*[*x•]+(\d{3,})/
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 const num = (s: string) => Number(s.replace(/,/g, ""))
@@ -76,6 +81,7 @@ export function parseMerchantPayment(raw: string, now: Date = new Date()): Merch
       ref: a[13].toLowerCase(),
       postedAt: iso(Number(a[7]), a[6], Number(a[5]), hour24(a[8], a[9], a[10])),
       merchant: tidy(a[11]),
+      payerAccount: MASKED_ACCOUNT.exec(a[3])?.[1] ?? null,
     }
   }
 
@@ -98,6 +104,7 @@ export function parseMerchantPayment(raw: string, now: Date = new Date()): Merch
       ref: b[11],
       postedAt,
       merchant: tidy(b[10]),
+      payerAccount: ABA_PAYER_ACCOUNT.exec(text)?.[1] ?? null,
     }
   }
   return null
