@@ -17,6 +17,11 @@ export type Slip = {
   time: string | null
   /** Who the money went to (or came from), as printed. */
   party: string | null
+  /**
+   * The slip owner's own account (OUT: paid from, IN: paid into): digits, with
+   * "*" for each masked run ("016*4222"); null when the slip shows none.
+   */
+  account: string | null
 }
 
 /**
@@ -46,7 +51,51 @@ export function cleanSlip(raw: unknown): Slip | null {
     date,
     time,
     party: text(r.party, 60),
+    account: cleanAccount(r.account),
   }
+}
+
+/** "016 824 222" → "016824222"; "016 *** 4222", "016xxx4222" → "016*4222". Too few digits → null. */
+export function cleanAccount(v: unknown): string | null {
+  if (typeof v !== "string" && typeof v !== "number") return null
+  const s = String(v)
+    .replace(/[*xX•·●…]+|\.{2,}/g, "*")
+    .replace(/[^0-9*]/g, "")
+    .replace(/\*+/g, "*")
+    .replace(/^\*$/, "")
+  return s.replace(/\*/g, "").length >= 4 && s.length <= 40 ? s : null
+}
+
+/**
+ * How well a slip's account matches a wallet's account number: the count of
+ * known digits that agree (every visible part must agree, masked runs are
+ * wildcards), 0 when they differ. "016*4222" matches 016824222 (7) but never
+ * 078824222, though both end in 4222.
+ */
+export function accountScore(slipAccount: string | null, walletAccount: string | null | undefined): number {
+  const wallet = (walletAccount ?? "").replace(/\D/g, "")
+  if (!slipAccount || wallet.length < 4) return 0
+  const parts = slipAccount.split("*")
+  if (parts.length === 1) {
+    // Fully printed: the same number (or one ends with the other), also with phone-style numbers
+    // "855" country code / leading 0 left off (Wing, ABA by phone).
+    const local = (d: string) => d.replace(/^855(?=\d{8,9}$)/, "").replace(/^0+/, "")
+    const a = parts[0]
+    if (a === wallet || (local(a).length >= 6 && local(a) === local(wallet))) return a.length
+    const [short, long] = a.length < wallet.length ? [a, wallet] : [wallet, a]
+    return short.length >= 6 && long.endsWith(short) ? short.length : 0
+  }
+  // Masked: the visible head and tail must match the ends, any middle pieces in order between them.
+  const head = parts[0]
+  const tail = parts[parts.length - 1]
+  if (!wallet.startsWith(head) || !wallet.endsWith(tail) || head.length + tail.length > wallet.length) return 0
+  let at = head.length
+  for (const mid of parts.slice(1, -1)) {
+    const i = wallet.indexOf(mid, at)
+    if (i < 0 || i + mid.length > wallet.length - tail.length) return 0
+    at = i + mid.length
+  }
+  return parts.join("").length
 }
 
 /** Bank names as printed on slips → words that appear in wallet names. */
@@ -64,12 +113,21 @@ const BANK_WORDS: [RegExp, string[]][] = [
 ]
 
 /**
- * The wallet for the slip: one named after its bank (in the slip's currency
- * first), else one in that currency, else the first. Credit cards only when
- * the bank matches.
+ * The wallet for the slip. First by account number: the wallet(s) whose number
+ * best matches the slip's (in the slip's currency first — a "$ + ៛" pair shares
+ * one number). Only when no number matches: one named after its bank (in the
+ * slip's currency first), else one in that currency, else the first. Credit
+ * cards only when the bank or the number matches.
  */
-export function pickWallet(slip: Pick<Slip, "bank" | "currency">, wallets: BotWallet[]): BotWallet | null {
+export function pickWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pick<Slip, "account">>, wallets: BotWallet[]): BotWallet | null {
   if (!wallets.length) return null
+  if (slip.account) {
+    const scored = wallets.map((w) => ({ w, score: accountScore(slip.account!, w.account_no) })).filter((x) => x.score >= 4)
+    const best = Math.max(0, ...scored.map((x) => x.score))
+    const top = scored.filter((x) => x.score === best).map((x) => x.w)
+    const byNumber = top.find((w) => w.currency === slip.currency) ?? top[0]
+    if (byNumber) return byNumber
+  }
   const words = slip.bank ? (BANK_WORDS.find(([re]) => re.test(slip.bank!))?.[1] ?? [slip.bank.toLowerCase()]) : []
   const named = wallets.filter((w) => words.some((x) => w.name.toLowerCase().includes(x)))
   const plain = wallets.filter((w) => w.kind !== "CREDIT_CARD")

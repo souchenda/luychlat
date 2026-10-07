@@ -32,10 +32,11 @@ function slipAllowed(chatId: number) {
 const PROMPT = [
   "This photo should be a Cambodian bank transfer or payment slip / receipt (ACLEDA, ABA, Wing, Bakong / KHQR, Canadia, Prince, etc.), possibly a phone screenshot.",
   "Read it and answer JSON only:",
-  '{"is_slip": boolean, "amount": number, "currency": "USD" | "KHR", "direction": "OUT" | "IN", "bank": string, "date": "YYYY-MM-DD" | null, "time": "HH:MM" | null, "party": string | null}',
+  '{"is_slip": boolean, "amount": number, "currency": "USD" | "KHR", "direction": "OUT" | "IN", "bank": string, "date": "YYYY-MM-DD" | null, "time": "HH:MM" | null, "party": string | null, "account": string | null}',
   "amount: the transferred / paid amount only (not fees, not a balance). Riel (៛, KHR) has no decimals.",
   "direction: OUT if the slip owner sent or paid money (Transfer to, Paid to, Payment), IN if they received it.",
   "bank: the app or bank that issued the slip. date: the transaction date. time: the transaction time, 24-hour (convert AM/PM). party: the recipient (OUT) or sender (IN) name as printed.",
+  "account: the slip owner's OWN account number — the account money was paid FROM (OUT) or received INTO (IN), never the other party's. Copy it as printed, keeping masking such as *** or xxx; null if not shown.",
   'If it is not a slip or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
@@ -53,7 +54,7 @@ async function readSlip(fileId: string): Promise<ReadResult> {
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         contents: [{ parts: [{ inline_data: { mime_type: file.type, data: Buffer.from(file.bytes).toString("base64") } }, { text: PROMPT }] }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 256, thinkingConfig: { thinkingBudget: 0 } },
+        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 320, thinkingConfig: { thinkingBudget: 0 } },
       }),
       cache: "no-store",
       signal: AbortSignal.timeout(45_000),

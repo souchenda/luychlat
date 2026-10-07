@@ -19,7 +19,7 @@
 import { convert, roundMoney } from "@/lib/money"
 
 type Currency = "USD" | "KHR"
-export type BotWallet = { id: string; name: string; currency: Currency; kind?: string | null }
+export type BotWallet = { id: string; name: string; currency: Currency; kind?: string | null; account_no?: string | null }
 export type BotCategory = { id: string; name: string; type: "INCOME" | "EXPENSE"; preset_key: string | null }
 export type BotDebt = { id: string; type: "PAYABLE" | "RECEIVABLE"; party_name: string; currency: Currency; remaining: number }
 export type BotContext = { wallets: BotWallet[]; categories: BotCategory[]; debts: BotDebt[]; rate: number }
