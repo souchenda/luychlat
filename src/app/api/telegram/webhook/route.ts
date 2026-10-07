@@ -27,6 +27,7 @@ import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { handlePosterCallback, isPosterCallback, sendFestivalPoster } from "@/lib/server/festival-poster"
+import { handleGroupSlip, handleGroupSlipCallback, isGroupSlipCallback } from "@/lib/server/biz-slip-bot"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
 
@@ -57,14 +58,15 @@ type Update = {
   message?: {
     text?: string
     caption?: string
-    photo?: { file_id: string; width?: number; file_size?: number }[]
+    photo?: { file_id: string; file_unique_id?: string; width?: number; file_size?: number }[]
+    message_id?: number
     reply_to_message?: { message_id: number; from?: { is_bot?: boolean } }
     voice?: { file_id: string; duration?: number; file_size?: number }
     document?: { file_name?: string; mime_type?: string; file_size?: number }
     /** Shared with the "📱 Share my number" button (password reset). */
     contact?: { phone_number: string; user_id?: number }
     chat: { id: number; type: string; title?: string }
-    from?: { id?: number; username?: string; language_code?: string }
+    from?: { id?: number; username?: string; first_name?: string; last_name?: string; language_code?: string }
   }
 }
 
@@ -88,7 +90,7 @@ async function handleGroupMessage(
   text: string,
   lang: Locale,
   fromId?: number,
-  photo?: { fileId: string | null; replyTo: number | null },
+  photo?: { fileId: string | null; replyTo: number | null; uniqueId?: string | null; messageId?: number; fromName?: string },
   title?: string,
 ) {
   // Track the group (it is left after 10 minutes without an active pool or business linked).
@@ -100,6 +102,18 @@ async function handleGroupMessage(
   if (!command.startsWith("/") && photo?.fileId && photo.replyTo) {
     await handlePoolPhotoReply(chatId, fromId, photo.replyTo, photo.fileId, lang)
     return
+  }
+  // A bank slip from a group admin in a business group: recorded straight into the business.
+  if (!command.startsWith("/") && photo?.fileId && fromId && photo.messageId) {
+    const handled = await handleGroupSlip(chatId, {
+      fileId: photo.fileId,
+      fileUniqueId: photo.uniqueId ?? null,
+      messageId: photo.messageId,
+      fromId,
+      fromName: photo.fromName || "Admin",
+      caption: text.trim() || null,
+    })
+    if (handled) return
   }
   if (!command.startsWith("/")) return
   // A business KHQR group: /biz, /biz link CODE.
@@ -298,6 +312,8 @@ export async function POST(request: Request) {
       await handleTipCallback(update.callback_query)
     } else if (isPosterCallback(update.callback_query.data)) {
       await handlePosterCallback(update.callback_query)
+    } else if (isGroupSlipCallback(update.callback_query.data)) {
+      await handleGroupSlipCallback(update.callback_query)
     } else if (isInvoiceCallback(update.callback_query.data)) {
       const chat = update.callback_query.message?.chat.id
       if (chat && !featureOk(await botFeatures(chat), "invoices")) await soon(update.callback_query.id, "km")
@@ -308,9 +324,13 @@ export async function POST(request: Request) {
   }
   const message = update.message
   if (message && (message.chat.type === "group" || message.chat.type === "supergroup")) {
+    const fileId = bestPhoto(message.photo)
     await handleGroupMessage(message.chat.id, message.text ?? message.caption ?? "", telegramLocale(message.from?.language_code), message.from?.id, {
-      fileId: bestPhoto(message.photo),
+      fileId,
       replyTo: message.reply_to_message?.from?.is_bot ? message.reply_to_message.message_id : null,
+      uniqueId: message.photo?.find((p) => p.file_id === fileId)?.file_unique_id ?? null,
+      messageId: message.message_id,
+      fromName: [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ") || message.from?.username || "",
     }, message.chat.title)
     return NextResponse.json({ ok: true })
   }

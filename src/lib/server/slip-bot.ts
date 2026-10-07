@@ -45,7 +45,7 @@ const PROMPT = [
 type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" }
 
 /** Reads the slip photo with Gemini Vision (retrying brief overloads). */
-async function readSlip(fileId: string): Promise<ReadResult> {
+export async function readSlip(fileId: string): Promise<ReadResult> {
   const key = process.env.GEMINI_API_KEY?.trim()
   if (!key) return { error: "busy" }
   const file = await telegramFile(fileId)
