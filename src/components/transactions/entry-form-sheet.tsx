@@ -21,7 +21,7 @@ import { ISLAMIC_KEYS, NON_OPERATING_KEYS } from "@/lib/categories/presets"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { usableWallets, useCategories, useProfile, useTransactionMutations } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
-import { DebtLinkedError, type CategoryType, type Currency, type EntryInput, type Transaction, type Wallet } from "@/lib/data/types"
+import { DebtLinkedError, type CategoryType, type Currency, type EntryInput, type Meal, type NeedWant, type Transaction, type Wallet } from "@/lib/data/types"
 import { fromDateInput, toDateInput } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -65,6 +65,9 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
 
   const [receipt, setReceipt] = useState<ReceiptValue>({ kind: "none" })
   const [categoryFormOpen, setCategoryFormOpen] = useState(false)
+  // Expenses: Need vs Want (reports) and, for food, the meal.
+  const [needWant, setNeedWant] = useState<NeedWant | "NONE">("NONE")
+  const [meal, setMeal] = useState<Meal | null>(null)
 
   const islamic = useIslamicEnabled()
   // System categories (debt flows, balance adjustments) are only set by the app; keep the current one when editing.
@@ -121,10 +124,13 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
     if (!open) return
     reset(defaults())
     setReceipt(transaction?.receipt_url ? { kind: "saved", ref: transaction.receipt_url } : { kind: "none" })
+    setNeedWant(transaction?.need_want ?? "NONE")
+    setMeal(transaction?.subcategory ?? null)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the sheet opens
   }, [open, transaction?.id])
 
-  const [amountText, currency, walletId] = useWatch({ control, name: ["amount", "currency", "walletId"] })
+  const [amountText, currency, walletId, categoryId] = useWatch({ control, name: ["amount", "currency", "walletId", "categoryId"] })
+  const isFood = type === "EXPENSE" && categories.find((c) => c.id === categoryId)?.preset_key === "food"
   const wallet = walletById.get(walletId)
   // Keep the rate an existing entry was recorded with; new entries use the configured rate.
   const rate = transaction?.exchange_rate ?? khrPerUsd
@@ -152,6 +158,8 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
         note: v.note.trim() || null,
         transaction_date: fromDateInput(v.date, transaction?.transaction_date),
         receipt_url: receiptRef,
+        need_want: type === "EXPENSE" && needWant !== "NONE" ? needWant : null,
+        subcategory: isFood ? meal : null,
       }
       if (transaction) await mutations.update.mutateAsync({ id: transaction.id, input })
       else await mutations.createEntry.mutateAsync(input)
@@ -275,6 +283,46 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
               />
               {err(formState.errors.categoryId?.message)}
             </div>
+
+            {isFood && (
+              <div className="space-y-2">
+                <Label>{t("meal.label")}</Label>
+                <div role="radiogroup" aria-label={t("meal.label")} className="flex flex-wrap gap-1.5">
+                  {(["breakfast", "lunch", "dinner", "snack"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      role="radio"
+                      aria-checked={meal === m}
+                      // Tap the chosen meal again to clear it.
+                      onClick={() => setMeal((v) => (v === m ? null : m))}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-sm transition-all active:scale-95",
+                        meal === m ? "bg-primary font-semibold text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {t(`meal.${m}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {type === "EXPENSE" && (
+              <div className="space-y-2">
+                <Label>{t("nw.label")}</Label>
+                <Segmented
+                  aria-label={t("nw.label")}
+                  value={needWant}
+                  onChange={setNeedWant}
+                  options={[
+                    { value: "NONE", label: t("nw.none") },
+                    { value: "NEED", label: t("nw.NEED") },
+                    { value: "WANT", label: t("nw.WANT") },
+                  ]}
+                />
+              </div>
+            )}
             </fieldset>
 
             <div className="grid grid-cols-2 gap-3">

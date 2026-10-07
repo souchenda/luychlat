@@ -35,7 +35,8 @@ import { formatMoney } from "@/lib/money"
 import { exportDebtsXlsx, exportFileName, exportTransactionsXlsx } from "@/lib/reports/export"
 import { profitAndLoss } from "@/lib/reports/pl"
 import { formatRange, presetRange, rangeToFilter, type DateRange, type RangePreset } from "@/lib/reports/ranges"
-import { accountSummary, inCurrency, percentOf, type Native } from "@/lib/reports/summary"
+import { accountSummary, inCurrency, percentOf, spendingSplit, type Native } from "@/lib/reports/summary"
+import { NeedsWants } from "@/components/reports/needs-wants"
 import { showUpgrade, useIsPro } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -137,6 +138,7 @@ export default function ReportsPage() {
     [periodTx, categories, wallets, walletId, khrPerUsd],
   )
   const spentTotal = summary ? inCurrency(summary.cashOut, currency, khrPerUsd) : 0
+  const split = useMemo(() => (periodTx ? spendingSplit(periodTx, categories, walletId) : null), [periodTx, categories, walletId])
   const pl = useMemo(() => (periodTx ? profitAndLoss(periodTx, categories, khrPerUsd) : null), [periodTx, categories, khrPerUsd])
   const walletName = walletId ? wallets.find((w) => w.id === walletId)?.name : undefined
   const business = workspace?.type === "BUSINESS"
@@ -362,6 +364,8 @@ export default function ReportsPage() {
           </Card>
         )}
       </section>
+
+      {!loading && split && <NeedsWants split={split} currency={currency} khrPerUsd={khrPerUsd} />}
 
       {/* Statement (also the printable / PDF view) */}
       <Card id="statement" className="scroll-mt-20 gap-0 overflow-hidden py-0 print:border-0 print:shadow-none">

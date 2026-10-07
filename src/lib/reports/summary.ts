@@ -78,6 +78,40 @@ export function accountSummary(
   return { cashIn: round(cashIn), cashOut: round(cashOut), expenses, count }
 }
 
+export type SpendingSplit = {
+  need: Native
+  want: Native
+  unset: Native
+  /** Food expenses by meal ("none" when not set). */
+  meals: Record<"breakfast" | "lunch" | "dinner" | "snack" | "none", Native>
+  /** Any food expense at all (the meal list shows only then). */
+  hasFood: boolean
+}
+
+/** Expenses split into Needs / Wants / not set, and food by meal — the same expenses as the category list. */
+export function spendingSplit(transactions: Transaction[], categories: Category[], walletId: string | null): SpendingSplit {
+  const byId = new Map(categories.map((c) => [c.id, c]))
+  const excluded = adjustmentCategoryIds(categories)
+  const split: SpendingSplit = {
+    need: zero(),
+    want: zero(),
+    unset: zero(),
+    meals: { breakfast: zero(), lunch: zero(), dinner: zero(), snack: zero(), none: zero() },
+    hasFood: false,
+  }
+  for (const tx of transactions) {
+    if (tx.type !== "EXPENSE" || (walletId && tx.wallet_id !== walletId)) continue
+    if (tx.category_id && excluded.has(tx.category_id)) continue
+    const bucket = tx.need_want === "NEED" ? split.need : tx.need_want === "WANT" ? split.want : split.unset
+    bucket[tx.currency] += tx.amount
+    if (tx.category_id && byId.get(tx.category_id)?.preset_key === "food") {
+      split.hasFood = true
+      split.meals[tx.subcategory ?? "none"][tx.currency] += tx.amount
+    }
+  }
+  return split
+}
+
 /** Share of `part` in `total` as a percentage with one decimal (0 when there is no total). */
 export function percentOf(part: number, total: number): number {
   return total > 0 ? Math.round((part / total) * 1000) / 10 : 0

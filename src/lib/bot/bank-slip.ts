@@ -1,6 +1,7 @@
 // Bank slips sent to the bot as photos (ACLEDA, ABA, Bakong / KHQR…): the
 // pure parts — cleaning what Gemini Vision read, choosing the wallet, and the
 // one-tap category buttons. The server side is src/lib/server/slip-bot.ts.
+import type { Meal } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import type { BotCategory, BotWallet } from "./parse-entry"
 
@@ -12,6 +13,8 @@ export type Slip = {
   bank: string | null
   /** YYYY-MM-DD, or null when the slip shows none. */
   date: string | null
+  /** HH:MM (24h, as printed), or null when the slip shows none. */
+  time: string | null
   /** Who the money went to (or came from), as printed. */
   party: string | null
 }
@@ -29,6 +32,11 @@ export function cleanSlip(raw: unknown): Slip | null {
   const currency = cur === "USD" || cur === "$" ? "USD" : cur === "KHR" || cur === "៛" || cur === "RIEL" ? "KHR" : null
   if (!currency || !Number.isFinite(amount) || amount <= 0 || amount >= 1e12) return null
   const date = typeof r.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.date) && !Number.isNaN(Date.parse(`${r.date}T00:00:00Z`)) ? r.date : null
+  // "19:05", "7:05 PM", "07:05:33 am" → "19:05" / "07:05".
+  const hm = typeof r.time === "string" ? /^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?[Mm]?\.?$/.exec(r.time.trim()) : null
+  let hour = hm ? Number(hm[1]) : NaN
+  if (hm?.[3] && hour >= 1 && hour <= 12) hour = (hour % 12) + (/p/i.test(hm[3]) ? 12 : 0)
+  const time = hm && hour < 24 && Number(hm[2]) < 60 ? `${String(hour).padStart(2, "0")}:${hm[2]}` : null
   const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().replace(/\s+/g, " ").slice(0, max) : null)
   return {
     amount: currency === "KHR" ? Math.round(amount) : Math.round(amount * 100) / 100,
@@ -36,6 +44,7 @@ export function cleanSlip(raw: unknown): Slip | null {
     direction: String(r.direction ?? "").toUpperCase() === "IN" ? "IN" : "OUT",
     bank: text(r.bank, 40),
     date,
+    time,
     party: text(r.party, 60),
   }
 }
@@ -103,3 +112,29 @@ export function categoryFor(choice: SlipChoice, kind: "EXPENSE" | "INCOME", cate
   }
   return own.find((c) => c.preset_key === (kind === "INCOME" ? "other_income" : "other_expense")) ?? null
 }
+
+/** The meal of a food expense (transactions.subcategory). */
+export type { Meal }
+export const MEALS: Meal[] = ["breakfast", "lunch", "dinner", "snack"]
+
+/** Cafés and drink shops (as Cambodian slips print them): always a snack / drink, whatever the hour. */
+const CAFE = /caf[eé]|coffee|kopi|espresso|starbucks|amazon|brown|tube|costa|milk ?tea|bubble ?tea|chatime|koi th[eé]|gong ?cha|tous les jours|bakery|tea|កាហ្វេ|តែ/i
+
+/**
+ * The meal from the payment time (Cambodia, HH:MM): 06:00–10:30 breakfast,
+ * 11:00–14:00 lunch, 17:00–21:00 dinner, any other hour (or a café) snack.
+ * Null when there is no time to go by.
+ */
+export function mealFor(time: string | null, party: string | null): Meal | null {
+  if (party && CAFE.test(party)) return "snack"
+  const m = time ? /^(\d{2}):(\d{2})$/.exec(time) : null
+  if (!m) return null
+  const minutes = Number(m[1]) * 60 + Number(m[2])
+  if (minutes >= 6 * 60 && minutes <= 10 * 60 + 30) return "breakfast"
+  if (minutes >= 11 * 60 && minutes <= 14 * 60) return "lunch"
+  if (minutes >= 17 * 60 && minutes <= 21 * 60) return "dinner"
+  return "snack"
+}
+
+/** A slip choice that books food (the meal row shows under its saved card). */
+export const isFoodChoice = (c: SlipChoice) => c.presets[0] === "food"

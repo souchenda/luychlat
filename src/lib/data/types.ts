@@ -106,7 +106,16 @@ export type Transaction = {
   reconciled_at?: string | null
   /** The bank's transaction reference, when known. */
   bank_ref?: string | null
-} & Attribution
+} & SpendingTags &
+  Attribution
+
+/** Finer labels on an expense: the meal of a food expense, and Need vs Want (reports). */
+export type SpendingTags = {
+  subcategory?: Meal | null
+  need_want?: NeedWant | null
+}
+export type Meal = "breakfast" | "lunch" | "dinner" | "snack"
+export type NeedWant = "NEED" | "WANT"
 
 /** Who recorded a row; the name is a snapshot taken when it was recorded. */
 export type Attribution = {
@@ -394,7 +403,7 @@ export type EntryInput = {
   note: string | null
   transaction_date: string
   receipt_url: string | null
-}
+} & SpendingTags
 
 export type TransactionFilter = {
   /** Inclusive ISO lower bound on transaction_date. */
