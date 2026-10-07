@@ -104,15 +104,39 @@ export function bulletinText(date: Date, market: MarketLive | null, today = ymd(
 }
 
 /** Evening: NBC's rate for the next working day (published ~16:30). */
+const FLAGS: Record<string, string> = { USD: "🇺🇸", THB: "🇹🇭", CNY: "🇨🇳", EUR: "🇪🇺", VND: "🇻🇳" }
+
+/**
+ * Evening: NBC's rate for the next working day (published ~16:30), as Telegram
+ * HTML — the rates in a monospaced block so the columns line up:
+ *
+ *   💵 អត្រាប្តូរប្រាក់ផ្លូវការ (NBC)
+ *   📅 សម្រាប់ថ្ងៃទី 08/10/2026
+ *   🇺🇸 1 USD       =  4,066 ៛
+ *   🇻🇳 1,000 VND   =    158 ៛
+ *   ℹ️ … ✨ sign up for the app
+ */
 export function eveningRatesText(market: MarketLive, updatedAt?: Date): string | null {
   const nbc = market.nbc
   if (!nbc) return null
-  const lines = [`💵 អត្រាប្ដូរប្រាក់ផ្លូវការ NBC សម្រាប់ថ្ងៃ ${asOf(nbc.date)}`]
-  for (const code of ["USD", "THB", "VND", "CNY", "EUR"]) {
+  const rows: string[] = []
+  for (const code of ["USD", "THB", "CNY", "EUR", "VND"]) {
     const v = nbc.khr_per[code]
-    if (v) lines.push(rateLine(code, v))
+    if (!v) continue
+    const unit = v < 1 ? 1000 : v < 10 ? 100 : 1
+    const label = `${fmt(unit)} ${code}`.padEnd(11)
+    const value = fmt(v * unit, v * unit >= 100 ? 0 : 2).padStart(6)
+    rows.push(`${FLAGS[code] ?? "💱"} ${label} = ${value} ៛`)
   }
-  lines.push("", "ធនាគារជាតិនៃកម្ពុជា ចេញអត្រាសម្រាប់ថ្ងៃធ្វើការបន្ទាប់ ប្រហែលម៉ោង ៤:៣០ ល្ងាច។", "", CTA, "", ...(updatedAt ? [updatedLine(updatedAt)] : []), "— លុយឆ្លាត · LuyChlat")
+  const lines = [
+    "💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ (NBC)</b>",
+    `📅 សម្រាប់ថ្ងៃទី ${nbc.date.split("-").reverse().join("/")}`,
+    "",
+    `<pre>${rows.join("\n")}</pre>`,
+    "ℹ️ អត្រាចេញផ្សាយដោយ ធនាគារជាតិនៃកម្ពុជា",
+    "✨ ចុះឈ្មោះប្រើអេប Free ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត!",
+    ...(updatedAt ? ["", updatedLine(updatedAt)] : []),
+  ]
   return lines.join("\n")
 }
 
@@ -145,13 +169,15 @@ async function postReplacing(chat: string, payload: Record<string, unknown>, kin
   return res
 }
 
-/** Buttons under a post: calculate with the bot, and open the app. */
-async function postButtons() {
+/**
+ * Buttons under a post: calculate with the bot, and open the app. The evening
+ * NBC post leads with signing up: [📱 ចុះឈ្មោះ / បើកកម្មវិធី] [🤖 គណនាជាមួយ Bot].
+ */
+async function postButtons(kind: "bulletin" | "evening" = "bulletin") {
   const [url, me] = await Promise.all([appUrl(), tg<{ username?: string }>("getMe", {})])
-  const row = [
-    ...(me.result?.username ? [{ text: "🤖 គណនាជាមួយ Bot", url: `https://t.me/${me.result.username}` }] : []),
-    ...(url ? [{ text: "📱 បើកកម្មវិធី", url }] : []),
-  ]
+  const bot = me.result?.username ? [{ text: "🤖 គណនាជាមួយ Bot", url: `https://t.me/${me.result.username}` }] : []
+  const app = url ? [{ text: kind === "evening" ? "📱 ចុះឈ្មោះ / បើកកម្មវិធី" : "📱 បើកកម្មវិធី", url }] : []
+  const row = kind === "evening" ? [...app, ...bot] : [...bot, ...app]
   return row.length ? { reply_markup: { inline_keyboard: [row] } } : {}
 }
 
@@ -241,7 +267,14 @@ export async function syncCommunityPost(): Promise<"edited" | "same" | "none"> {
   if (!fresh || fresh === post.sig) return "same"
   const at = new Date()
   const text = (kind === "evening" ? eveningRatesText(market, at) : bulletinText(now.date, market, now.day, at))!.slice(0, 4000)
-  const res = await tg("editMessageText", { chat_id: chat, message_id: post.message_id, text, disable_web_page_preview: true, ...(await postButtons()) })
+  const res = await tg("editMessageText", {
+    chat_id: chat,
+    message_id: post.message_id,
+    text,
+    disable_web_page_preview: true,
+    ...(kind === "evening" ? { parse_mode: "HTML" } : {}),
+    ...(await postButtons(kind)),
+  })
   // "message is not modified" also means it already shows this.
   if (!res.ok && !/not modified/i.test(res.description ?? "")) {
     logEvent("error", "bulletin", `Updating the channel post failed: ${res.description ?? "unknown"}`, { fold: true })
@@ -266,7 +299,7 @@ async function maybeSendEveningRates(chat: string, now: ReturnType<typeof phnomP
   if (!text) return
   const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: EVENING_JOB, p_day: now.day })
   if (claimed !== true) return
-  const res = await postReplacing(chat, { text, disable_web_page_preview: true, ...(await postButtons()) }, "evening")
+  const res = await postReplacing(chat, { text, parse_mode: "HTML", disable_web_page_preview: true, ...(await postButtons("evening")) }, "evening")
   logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Evening NBC rates sent to ${chat} (as of ${market.nbc.date})` : `Evening NBC post failed: ${res.description ?? "unknown"}`)
 }
 
