@@ -40,7 +40,8 @@ export function cleanSlip(raw: unknown): Slip | null {
   if (!raw || typeof raw !== "object") return null
   const r = raw as Record<string, unknown>
   if (r.is_slip === false) return null
-  const amount = typeof r.amount === "number" ? r.amount : Number(String(r.amount ?? "").replace(/[^0-9.]/g, ""))
+  // "-11.66" (a purchase printed with its minus sign) is 11.66: the direction says which way it went.
+  const amount = Math.abs(typeof r.amount === "number" ? r.amount : Number(String(r.amount ?? "").replace(/[^0-9.]/g, "")))
   const cur = String(r.currency ?? "").toUpperCase()
   const currency = cur === "USD" || cur === "$" ? "USD" : cur === "KHR" || cur === "៛" || cur === "RIEL" ? "KHR" : null
   if (!currency || !Number.isFinite(amount) || amount <= 0 || amount >= 1e12) return null

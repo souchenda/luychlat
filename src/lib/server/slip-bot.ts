@@ -4,7 +4,8 @@
 // The saved card then offers the meal (food, guessed from the time) and Need / Want.
 //
 // Privacy: only the slip photo goes to Gemini (the same server key as voice
-// notes); wallets and categories are matched here. The card is plain text and
+// notes) — or, while Gemini is overloaded, to Groq's vision model (Groq already
+// transcribes voice notes); wallets and categories are matched here. The card is plain text and
 // passes through maskNumbers (account numbers on the slip never echo back).
 import { categoryFor, cleanSlip, isFoodChoice, mealFor, resolveWallet, slipChoices, walletLabel, type Meal, type Slip } from "@/lib/bot/bank-slip"
 import type { BotWallet } from "@/lib/bot/parse-entry"
@@ -18,6 +19,9 @@ import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, maskNumbers, sendText, telegramFile, tg, tr } from "@/lib/server/telegram-bot"
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+// The fallback reader while Gemini is overloaded (503s / no answer): fast, good on Latin print, weak on Khmer script.
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+const GROQ_VISION = "qwen/qwen3.8-27b"
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 // Gemini Vision costs quota shared with voice notes and /ai: a few slips per hour per chat.
@@ -33,15 +37,15 @@ function slipAllowed(chatId: number) {
 
 const PROMPT = [
   "This photo should be a Cambodian bank receipt (ACLEDA, ABA, Wing, Bakong / KHQR, Canadia, Prince, etc.), possibly a phone screenshot:",
-  "a transfer, a KHQR / merchant payment, OR a bill payment / mobile top-up (Smart, Cellcard, Metfone, EDC, water, internet, PIN-less top-up). All of these are valid slips.",
+  "a transfer, a KHQR / merchant payment, a card / POS purchase (ABA \"Purchase\" with \"Seller:\", \"Purchase #\", \"APV\", \"Trx. ID\"), OR a bill payment / mobile top-up (Smart, Cellcard, Metfone, EDC, water, internet, PIN-less top-up). All of these are valid slips.",
   "Read it and answer JSON only:",
   '{"is_slip": boolean, "amount": number, "currency": "USD" | "KHR", "direction": "OUT" | "IN", "bank": string, "date": "YYYY-MM-DD" | null, "time": "HH:MM" | null, "party": string | null, "account": string | null, "account_name": string | null, "owner": string | null, "consumer": string | null}',
-  "amount: the transferred / paid amount only (not fees, not a balance), always positive — \"-5.00 USD\" or \"Original amount: 5.00 USD\" is 5.00. Riel (៛, KHR) has no decimals.",
-  "direction: OUT if the slip owner sent or paid money (Transfer to, Paid to, Payment, Bill payment, Top-up, a minus sign), IN if they received it.",
+  "amount: the transferred / paid amount only (not fees, not a balance), always positive (drop any minus sign) — \"-5.00 USD\" or \"Original amount: 5.00 USD\" is 5.00. Riel (៛, KHR) has no decimals.",
+  "direction: OUT if the slip owner sent or paid money (Transfer to, Paid to, Payment, Purchase, Bill payment, Top-up, a minus sign), IN if they received it.",
   "bank: the app or bank that issued the slip. date: the transaction date. time: the transaction time, 24-hour (convert AM/PM).",
-  "party: the recipient (OUT) or sender (IN) name as printed; for a bill payment or top-up, the biller / service without extras (\"Smart Mobile (PIN-less)\" → \"Smart Mobile\").",
+  "party: the recipient (OUT) or sender (IN) name as printed — for a purchase, the Seller / Merchant (\"Seller: HUAT HUAT RESTAURANT BK\" → \"HUAT HUAT RESTAURANT BK\"); for a bill payment or top-up, the biller / service without extras (\"Smart Mobile (PIN-less)\" → \"Smart Mobile\").",
   "account: the slip owner's OWN account number — the account money was paid FROM (OUT) or received INTO (IN), never the other party's. Copy it as printed, keeping masking such as *** or xxx; null if not shown.",
-  "account_name: the name or label printed with that own account, if any (\"DL USD (016 824 222)\" → \"DL USD\"); null otherwise.",
+  "account_name: the label printed with that own account, if any (\"DL USD (016 824 222)\" → \"DL USD\"); null when it is just the holder's name (\"From account: SOK DARA (012 345 678)\" → account \"012 345 678\", owner \"SOK DARA\", account_name null).",
   "owner: the slip owner's account holder name as printed (who paid, for OUT; who received, for IN); null if not shown.",
   "consumer: for a bill payment / top-up, the consumer ID or phone number paid for, as printed; null otherwise.",
   'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
@@ -49,43 +53,95 @@ const PROMPT = [
 
 type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" }
 
-/** Reads the slip photo with Gemini Vision (retrying brief overloads). */
-export async function readSlip(fileId: string): Promise<ReadResult> {
-  const key = process.env.GEMINI_API_KEY?.trim()
-  if (!key) return { error: "busy" }
-  const file = await telegramFile(fileId)
-  if (!file) return { error: "unreadable" }
+type Answer = { text: string } | { fail: string }
+
+/** Gemini Vision's raw answer (retrying brief overloads). */
+async function askGemini(key: string, type: string, image: string): Promise<Answer> {
   const request = () =>
     fetch(GEMINI_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
-        contents: [{ parts: [{ inline_data: { mime_type: file.type, data: Buffer.from(file.bytes).toString("base64") } }, { text: PROMPT }] }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 400, thinkingConfig: { thinkingBudget: 0 } },
+        contents: [{ parts: [{ inline_data: { mime_type: type, data: image } }, { text: PROMPT }] }],
+        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } },
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(45_000),
+      signal: AbortSignal.timeout(20_000),
     })
   try {
+    // Quick 429 / 5xx answers are retried; a request that hangs goes straight to the fallback.
     let res = await request()
     for (const wait of [1500, 4000]) {
       if (res.ok || !(res.status === 429 || res.status >= 500)) break
       await new Promise((resolve) => setTimeout(resolve, wait))
       res = await request()
     }
-    if (!res.ok) {
-      logEvent("error", "slips", `Gemini slip read failed: HTTP ${res.status}`, { fold: true })
-      return { error: "busy" }
-    }
+    if (!res.ok) return { fail: `HTTP ${res.status}` }
     const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
-    const text = (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("")
-    const slip = cleanSlip(JSON.parse(text.replace(/^```(?:json)?|```$/g, "").trim()))
-    // Logged without the slip's content: why a photo was turned down, so a failure is never invisible.
-    if (!slip) logEvent("warn", "slips", `Slip not accepted: ${/"is_slip"\s*:\s*false/.test(text) ? "Gemini: not a bank receipt" : "amount / currency unreadable"}`, { fold: true })
-    return slip ? { slip } : { error: "unreadable" }
-  } catch {
+    return { text: (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("") }
+  } catch (e) {
+    return { fail: e instanceof Error && e.name === "TimeoutError" ? "timed out" : "request failed" }
+  }
+}
+
+async function askGroq(key: string, type: string, image: string): Promise<Answer> {
+  try {
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: GROQ_VISION,
+        temperature: 0,
+        max_completion_tokens: 600,
+        response_format: { type: "json_object" },
+        messages: [{ role: "user", content: [{ type: "image_url", image_url: { url: `data:${type};base64,${image}` } }, { type: "text", text: PROMPT }] }],
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(25_000),
+    })
+    if (!res.ok) return { fail: `HTTP ${res.status}` }
+    const body = (await res.json()) as { choices?: { message?: { content?: string } }[] }
+    return { text: body.choices?.[0]?.message?.content ?? "" }
+  } catch (e) {
+    return { fail: e instanceof Error && e.name === "TimeoutError" ? "timed out" : "request failed" }
+  }
+}
+
+/**
+ * Reads the slip photo: Gemini Vision first; while it is overloaded or doesn't answer, Groq's
+ * vision model. Every failure is logged (without the slip's content), so none is invisible.
+ */
+export async function readSlip(fileId: string): Promise<ReadResult> {
+  const gemini = process.env.GEMINI_API_KEY?.trim()
+  const groq = process.env.GROQ_API_KEY?.trim()
+  if (!gemini && !groq) return { error: "busy" }
+  const file = await telegramFile(fileId)
+  if (!file) return { error: "unreadable" }
+  const image = Buffer.from(file.bytes).toString("base64")
+  const readers: [string, () => Promise<Answer>][] = []
+  if (gemini) readers.push(["Gemini", () => askGemini(gemini, file.type, image)])
+  if (groq) readers.push(["Groq", () => askGroq(groq, file.type, image)])
+  for (const [name, ask] of readers) {
+    const got = await ask()
+    if ("fail" in got) {
+      logEvent("warn", "slips", `Slip read: ${name} ${got.fail}`, { fold: true })
+      continue
+    }
+    let raw: unknown
+    try {
+      raw = JSON.parse(got.text.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/^\s*```(?:json)?|```\s*$/g, "").trim())
+    } catch {
+      logEvent("warn", "slips", `Slip read: ${name} answered without JSON`, { fold: true })
+      continue
+    }
+    const slip = cleanSlip(raw)
+    if (slip) return { slip }
+    // A definite answer ("not a receipt" / no amount): the photo is the problem, not the reader.
+    logEvent("warn", "slips", `Slip not accepted (${name}): ${(raw as { is_slip?: unknown })?.is_slip === false ? "not a bank receipt" : "amount / currency unreadable"}`, { fold: true })
     return { error: "unreadable" }
   }
+  // No reader answered: "try again shortly", not "send a clearer photo".
+  return { error: "busy" }
 }
 
 const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
