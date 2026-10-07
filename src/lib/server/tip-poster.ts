@@ -29,14 +29,14 @@ import { longDate } from "@/lib/dates"
 const W = 1080
 const H = 1080
 const PAD = 84
-const GOLD = "#fcd34d"
-const FAMILIES =
+export const GOLD = "#fcd34d"
+export const FAMILIES =
   process.env.POSTER_FONT === "kantumruy"
     ? `"Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", sans-serif`
     : `"MiSans Khmer", "Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", sans-serif`
 
 let fontsLoaded = false
-function loadFonts() {
+export function loadFonts() {
   if (fontsLoaded) return
   fontsLoaded = true
   // The brand font first (shipped in public/), system fonts only as a fallback.
@@ -74,7 +74,7 @@ function pieces(paragraph: string): string[] {
 }
 
 /** Lines of `text` that fit `maxWidth`, at most `maxLines` (the last cut with "…"). */
-function wrap(ctx: SKRSContext2D, text: string, maxWidth: number, maxLines: number): string[] {
+export function wrap(ctx: SKRSContext2D, text: string, maxWidth: number, maxLines: number): string[] {
   const lines: string[] = []
   for (const paragraph of text.replace(/[\u0000-\u0009\u000b-\u001f]/g, " ").split(/\n+/)) {
     let line = ""
@@ -97,7 +97,7 @@ function wrap(ctx: SKRSContext2D, text: string, maxWidth: number, maxLines: numb
 }
 
 /** Draws one line, numbers in bold gold and the rest in the `base` style. */
-function drawRich(ctx: SKRSContext2D, line: string, x: number, y: number, size: number, base: { weight: number; color: string }) {
+export function drawRich(ctx: SKRSContext2D, line: string, x: number, y: number, size: number, base: { weight: number; color: string }) {
   let at = x
   let last = 0
   const run = (text: string, number: boolean) => {
@@ -116,7 +116,7 @@ function drawRich(ctx: SKRSContext2D, line: string, x: number, y: number, size: 
 }
 
 /** Text drawn letter by letter so it spans exactly `width` (to match a line above it). */
-function drawSpread(ctx: SKRSContext2D, text: string, x: number, y: number, width: number) {
+export function drawSpread(ctx: SKRSContext2D, text: string, x: number, y: number, width: number) {
   const chars = [...text]
   const natural = chars.reduce((w, c) => w + ctx.measureText(c).width, 0)
   const extra = chars.length > 1 ? Math.max(0, (width - natural) / (chars.length - 1)) : 0
@@ -170,7 +170,7 @@ function drawIcon(ctx: SKRSContext2D, icon: Icon, cx: number, cy: number) {
   ctx.restore()
 }
 
-function roundRect(ctx: SKRSContext2D, x: number, y: number, w: number, h: number, r: number) {
+export function roundRect(ctx: SKRSContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
   ctx.arcTo(x + w, y, x + w, y + h, r)

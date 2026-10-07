@@ -26,6 +26,7 @@ import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
+import { sendFestivalPoster } from "@/lib/server/festival-poster"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
 
@@ -401,6 +402,10 @@ export async function POST(request: Request) {
   } else if (/^\/setgold(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: today's Phnom Penh gold counter prices (others get the normal help).
     await sendText(chatId, await setGoldReply(text, chatId))
+  } else if (/^\/poster(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
+    // Admins only: preview a festival poster here (/poster pchumben); nothing is posted publicly.
+    const problem = await sendFestivalPoster(chatId, payload)
+    if (problem) await sendText(chatId, problem)
   } else if (/^\/setfuel(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: MoC fuel and gas prices for a 10-day cycle (others get the normal help).
     await sendText(chatId, await setFuelReply(text, chatId))
