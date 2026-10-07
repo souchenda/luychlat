@@ -151,7 +151,7 @@ function ansom(ctx: SKRSContext2D, cx: number, base: number, s: number) {
 }
 
 const PCHUM_BEN_2026 = {
-  pill: "ពិធីបុណ្យប្រពៃណីជាតិ",
+  pill: "ពិធីបុណ្យប្រពៃណីជាតិខ្មែរ",
   lead: "សូមអនុមោទនាពិធីបុណ្យ",
   title: "ភ្ជុំបិណ្ឌ",
   // The official national holiday (Sat 10 – Mon 12 Oct 2026).
@@ -227,7 +227,7 @@ export function pchumBenPoster(): Buffer {
 
   // Pill with a small lotus.
   ctx.font = `600 28px ${FAMILIES}`
-  const pillTop = 176
+  const pillTop = 166
   const pillW = ctx.measureText(c.pill).width + 82
   roundRect(ctx, PAD, pillTop, pillW, 56, 28)
   ctx.fillStyle = "rgba(251,191,36,0.12)"
@@ -241,7 +241,8 @@ export function pchumBenPoster(): Buffer {
   // Title: the reverent lead, then "ភ្ជុំបិណ្ឌ" large in gold.
   ctx.font = `600 44px ${FAMILIES}`
   ctx.fillStyle = CREAM
-  ctx.fillText(c.lead, PAD, 318)
+  // Kept well above the big title so it never meets "ភ្ជុំបិណ្ឌ"'s upper vowels.
+  ctx.fillText(c.lead, PAD, 296)
   ctx.font = `700 112px ${FAMILIES}`
   const gold = ctx.createLinearGradient(PAD, 340, PAD + 420, 440)
   gold.addColorStop(0, "#fde68a")
