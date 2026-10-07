@@ -53,16 +53,16 @@ const PROMPT = [
 
 type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" }
 
-type Answer = { text: string } | { fail: string }
+export type Answer = { text: string } | { fail: string }
 
 /** Gemini Vision's raw answer (retrying brief overloads). */
-async function askGemini(key: string, type: string, image: string): Promise<Answer> {
+export async function askGemini(key: string, type: string, image: string, prompt: string = PROMPT): Promise<Answer> {
   const request = () =>
     fetch(GEMINI_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
-        contents: [{ parts: [{ inline_data: { mime_type: type, data: image } }, { text: PROMPT }] }],
+        contents: [{ parts: [{ inline_data: { mime_type: type, data: image } }, { text: prompt }] }],
         generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } },
       }),
       cache: "no-store",
@@ -84,7 +84,7 @@ async function askGemini(key: string, type: string, image: string): Promise<Answ
   }
 }
 
-async function askGroq(key: string, type: string, image: string): Promise<Answer> {
+export async function askGroq(key: string, type: string, image: string, prompt: string = PROMPT): Promise<Answer> {
   try {
     const res = await fetch(GROQ_URL, {
       method: "POST",
@@ -94,7 +94,7 @@ async function askGroq(key: string, type: string, image: string): Promise<Answer
         temperature: 0,
         max_completion_tokens: 600,
         response_format: { type: "json_object" },
-        messages: [{ role: "user", content: [{ type: "image_url", image_url: { url: `data:${type};base64,${image}` } }, { type: "text", text: PROMPT }] }],
+        messages: [{ role: "user", content: [{ type: "image_url", image_url: { url: `data:${type};base64,${image}` } }, { type: "text", text: prompt }] }],
       }),
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),

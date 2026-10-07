@@ -283,10 +283,10 @@ export async function setManualRate(input: { usd_khr: number; date: string } | "
   return (await store(next)) ? next : null
 }
 
-/** /setfuel and /admin: the MoC fuel and gas prices for a 10-day cycle. */
-export async function setFuelPrices(input: Omit<FuelPrices, "source" | "updated_at">): Promise<MarketLive | null> {
+/** /setfuel and /admin (manual), or the Ministry's notice (moc): the fuel and gas prices for a period. */
+export async function setFuelPrices(input: Omit<FuelPrices, "source" | "updated_at">, source: FuelPrices["source"] = "manual"): Promise<MarketLive | null> {
   const previous = await currentMarket()
-  const fuel: FuelPrices = { ...input, source: "manual", updated_at: new Date().toISOString() }
+  const fuel: FuelPrices = { ...input, source, updated_at: new Date().toISOString() }
   const next: MarketLive = { ...(previous ?? { fetched_at: new Date().toISOString() }), fuel }
   return (await store(next)) ? next : null
 }
@@ -346,6 +346,11 @@ export async function marketScheduleTick() {
     if (nbcSlot === "17:30" && !sourceStatus.nbc.ok)
       await integrityAlert("nbc", day, `nbc.gov.kh មិនឆ្លើយតបនៅល្ងាច (បានសាក ៣ ដង) — អត្រាថ្ងៃធ្វើការបន្ទាប់មិនទាន់ទទួលបាន`)
   }
+
+  // MoC fuel prices from the Ministry's Telegram channel (src/lib/server/moc-fuel-sync.ts).
+  const { MOC_SLOTS, checkMocFuel } = await import("./moc-fuel-sync")
+  const mocSlot = dueSlot(MOC_SLOTS, hour, minute)
+  if (mocSlot && (await claimSlot("moc", day, mocSlot))) await checkMocFuel(day, mocSlot === "15:00")
 
   const goldSlot = dueSlot(GOLD_SLOTS, hour, minute)
   if (goldSlot && !hasLocalToday(await currentMarket()) && (await claimSlot("gold", day, goldSlot))) {

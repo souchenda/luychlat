@@ -16,7 +16,7 @@ const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេ
 const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 /** "០១–១០ តុលា" / "01–10 Oct" / "10月01–10日" (both months when the cycle crosses one). */
-function cycleText(from: string, to: string, locale: Locale): string {
+export function cycleText(from: string, to: string, locale: Locale): string {
   const [, fm, fd] = from.split("-").map(Number)
   const [, tm, td] = to.split("-").map(Number)
   const p = (n: number) => String(n).padStart(2, "0")
@@ -35,7 +35,8 @@ export function fuelLines(fuel: FuelPrices, t: T, today: string, locale: Locale)
   const lines = [
     t("fuel.title", { range: cycleText(fuel.from, fuel.to, locale) }),
     `• ${t("fuel.regular")}${sep} ${num(fuel.regular)} ${perL}`,
-    `• ${t("fuel.super")}${sep} ${num(fuel.super)} ${perL}`,
+    // The Ministry's notice caps only EA92 and diesel: Super only when an admin gave it.
+    ...(fuel.super ? [`• ${t("fuel.super")}${sep} ${num(fuel.super)} ${perL}`] : []),
     `• ${t("fuel.diesel")}${sep} ${num(fuel.diesel)} ${perL}`,
   ]
   if (fuel.lpg) lines.push(`• ${t("fuel.lpg")}${sep} ${num(fuel.lpg)} ${fuel.lpg_unit === "L" ? perL : t("fuel.perKg")}`)

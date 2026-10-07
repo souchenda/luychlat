@@ -38,8 +38,8 @@ export type MarketLive = {
 export type FuelPrices = {
   /** Regular gasoline (EA92), ៛ per litre. */
   regular: number
-  /** Super gasoline, ៛ per litre. */
-  super: number
+  /** Super gasoline, ៛ per litre; null when not given (the MoC notice caps only EA92 and diesel). */
+  super: number | null
   /** Diesel, ៛ per litre. */
   diesel: number
   /** LPG, ៛ per kg or per litre (see lpg_unit); null when not given. */
@@ -48,7 +48,10 @@ export type FuelPrices = {
   /** The cycle the prices are for (YYYY-MM-DD, inclusive). */
   from: string
   to: string
-  source: "manual"
+  /** manual: /setfuel or Admin; moc: read from the Ministry's notice on its Telegram channel. */
+  source: "manual" | "moc"
+  /** moc: the notice's post id on t.me/mocnewsfeed. */
+  post?: number | null
   updated_at: string
 }
 
