@@ -1,20 +1,23 @@
-// Server only: festival posters (1080 × 1080, MiSans Khmer). Pchum Ben 2026
-// follows the brand (deep emerald slate, emerald and Khmer gold — no blue) and
-// the founder's religious-wording rules: "សូមអនុមោទនា…", never "រីករាយ"; a
-// blessing, not a money lecture. The motifs (pagoda spire, lotus, tiffin
-// carrier and ansom) are drawn in gold line art — the server has no emoji font.
-// Dates: the official national holiday, Sat 10 – Mon 12 Oct 2026 (Pchum Thom
-// Sun 11 Oct, lib/holidays.ts). Footer: app-first (no bot username) — the app on line 1,
-// community • website on line 2, with drawn icons. Footer: two
-// left-aligned lines, no badge. Admins preview with "/poster pchumben".
+// Server only: festival posters (1080 × 1080, MiSans Khmer) on the standard
+// frame (poster-kit.ts: logo left, category pill right, app-first two-line
+// footer). Pchum Ben 2026 follows the brand (deep emerald slate, emerald and
+// Khmer gold — no blue) and the founder's religious wording: "សូមអនុមោទនា…",
+// never "រីករាយ"; a blessing, not a money lecture. Motifs (pagoda, lotus, tiffin
+// carrier, ansom) are drawn in gold line art. Dates: the official national
+// holiday, Sat 10 – Mon 12 Oct 2026. The approved artwork is saved in
+// public/posters; "/poster pchumben" (admins) previews it with a one-tap
+// broadcast to @LuyChlatCommunity, allowed during its window and only once.
+import { readFileSync } from "node:fs"
+import path from "node:path"
+
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 
-import { botToken } from "./telegram-bot"
-import { FAMILIES, drawIcon, drawSpread, loadFonts, roundRect, wrap } from "./tip-poster"
+import { appUrl } from "./community-bulletin"
+import { logEvent } from "./events"
+import { FAMILIES, FRAME, drawFooter, drawHeader, loadFonts, roundRect, wrap } from "./poster-kit"
+import { botDb, botKey, botToken, tg } from "./telegram-bot"
 
-const W = 1080
-const H = 1080
-const PAD = 72
+const { W, H, PAD } = FRAME
 const MINT = "#34d399"
 const GOLD = "#fbbf24"
 const GOLD_DEEP = "#d97706"
@@ -160,7 +163,19 @@ const PCHUM_BEN_2026 = {
     "សូមឧទ្ទិសកុសលផលបុណ្យជូនដល់បុព្វការីជនដែលបានចែកឋាន និងសូមជូនពរលោកអ្នកព្រមទាំងក្រុមគ្រួសារ ជួបតែសេចក្តីសុខ សុភមង្គល និងសុវត្ថិភាពក្នុងការធ្វើដំណើរទៅស្រុកកំណើតជួបជុំបងប្អូន។",
 }
 
-export const FESTIVAL_POSTERS = { pchumben: () => pchumBenPoster() } as const
+/**
+ * Festival posters: the generator, the approved artwork saved in public/posters
+ * (that exact file is what gets broadcast), the days it may go to the channel
+ * (Cambodia dates, inclusive) and its caption.
+ */
+export const FESTIVAL_POSTERS = {
+  pchumben: {
+    render: () => pchumBenPoster(),
+    file: "pchum-ben-2026.png",
+    window: ["2026-10-10", "2026-10-12"] as const,
+    caption: "🪷 សូមអនុមោទនាពិធីបុណ្យភ្ជុំបិណ្ឌ\n\nសូមឧទ្ទិសកុសលផលបុណ្យជូនដល់បុព្វការីជន និងសូមជូនពរលោកអ្នកព្រមទាំងក្រុមគ្រួសារ ធ្វើដំណើរទៅស្រុកកំណើតដោយសុខសុវត្ថិភាព។\n\n— លុយឆ្លាត · LuyChlat",
+  },
+} as const
 export type FestivalPosterKey = keyof typeof FESTIVAL_POSTERS
 
 export function pchumBenPoster(): Buffer {
@@ -175,7 +190,7 @@ export function pchumBenPoster(): Buffer {
   bg.addColorStop(1, "#052e23")
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, W, H)
-  const glow = ctx.createRadialGradient(W * 0.78, H * 0.3, 0, W * 0.78, H * 0.3, W * 0.55)
+  const glow = ctx.createRadialGradient(W * 0.78, H * 0.32, 0, W * 0.78, H * 0.32, W * 0.55)
   glow.addColorStop(0, "rgba(16,185,129,0.26)")
   glow.addColorStop(1, "rgba(16,185,129,0)")
   ctx.fillStyle = glow
@@ -186,74 +201,42 @@ export function pchumBenPoster(): Buffer {
   ctx.fillStyle = warm
   ctx.fillRect(0, 0, W, H)
 
-  // Motifs on the right: a soft gold warmth behind the pagoda roof and the tiffin, then the
-  // pagoda, lotus at its feet, the tiffin carrier and ansom.
-  for (const [x, y, r] of [[812, 300, 190], [615, 450, 90]] as const) {
-    const warmth = ctx.createRadialGradient(x, y, 0, x, y, r)
+  // Motifs on the right, under the header: a soft gold warmth behind the pagoda roof and the
+  // tiffin, then the pagoda, lotus at its feet, the tiffin carrier and ansom.
+  const base = 520
+  for (const [x, yy, r] of [[812, base - 190, 190], [615, base - 60, 90]] as const) {
+    const warmth = ctx.createRadialGradient(x, yy, 0, x, yy, r)
     warmth.addColorStop(0, "rgba(251,191,36,0.20)")
     warmth.addColorStop(1, "rgba(251,191,36,0)")
     ctx.fillStyle = warmth
-    ctx.fillRect(x - r, y - r, r * 2, r * 2)
+    ctx.fillRect(x - r, yy - r, r * 2, r * 2)
   }
-  pagoda(ctx, 812, 488, 1)
-  lotus(ctx, 690, 508, 0.95)
-  lotus(ctx, 940, 508, 0.8)
-  tiffin(ctx, 615, 512, 0.95)
-  ansom(ctx, 990, 512, 0.75)
+  pagoda(ctx, 812, base, 1)
+  lotus(ctx, 690, base + 20, 0.95)
+  lotus(ctx, 940, base + 20, 0.8)
+  tiffin(ctx, 615, base + 24, 0.95)
+  ansom(ctx, 990, base + 24, 0.75)
 
-  // Mark: the ៛ tile with "លុយឆ្លាត" over "LuyChlat".
-  const mark = 64
-  const top = 64
-  roundRect(ctx, PAD, top, mark, mark, 18)
-  ctx.fillStyle = "rgba(16,185,129,0.16)"
-  ctx.fill()
-  ctx.lineWidth = 2
-  ctx.strokeStyle = "rgba(52,211,153,0.6)"
-  ctx.stroke()
-  ctx.fillStyle = "#ffffff"
-  ctx.textAlign = "center"
-  ctx.textBaseline = "middle"
-  ctx.font = `700 40px ${FAMILIES}`
-  ctx.fillText("៛", PAD + mark / 2, top + mark / 2 + 2)
+  // The standard header: logo left, the pill right (with a lotus).
+  drawHeader(ctx, { text: c.pill, icon: (cx, cy) => lotus(ctx, cx, cy + 10, 0.34) })
+
+  // Title: the reverent lead, then "ភ្ជុំបិណ្ឌ" large in gold — kept apart so the lead never meets its upper vowels.
   ctx.textAlign = "left"
   ctx.textBaseline = "alphabetic"
-  ctx.font = `700 34px ${FAMILIES}`
-  const nameX = PAD + mark + 18
-  ctx.fillText("លុយឆ្លាត", nameX, top + 32)
-  const nameW = ctx.measureText("លុយឆ្លាត").width
-  ctx.font = `500 20px ${FAMILIES}`
-  ctx.fillStyle = "rgba(209,250,229,0.75)"
-  drawSpread(ctx, "LuyChlat", nameX, top + 58, nameW)
-
-  // Pill with a small lotus.
-  ctx.font = `600 28px ${FAMILIES}`
-  const pillTop = 166
-  const pillW = ctx.measureText(c.pill).width + 82
-  roundRect(ctx, PAD, pillTop, pillW, 56, 28)
-  ctx.fillStyle = "rgba(251,191,36,0.12)"
-  ctx.fill()
-  ctx.strokeStyle = "rgba(251,191,36,0.6)"
-  ctx.stroke()
-  lotus(ctx, PAD + 32, pillTop + 40, 0.36)
-  ctx.fillStyle = "#fde68a"
-  ctx.fillText(c.pill, PAD + 58, pillTop + 38)
-
-  // Title: the reverent lead, then "ភ្ជុំបិណ្ឌ" large in gold.
   ctx.font = `600 44px ${FAMILIES}`
   ctx.fillStyle = CREAM
-  // Kept well above the big title so it never meets "ភ្ជុំបិណ្ឌ"'s upper vowels.
-  ctx.fillText(c.lead, PAD, 296)
+  ctx.fillText(c.lead, PAD, 262)
   ctx.font = `700 112px ${FAMILIES}`
-  const gold = ctx.createLinearGradient(PAD, 340, PAD + 420, 440)
+  const gold = ctx.createLinearGradient(PAD, 300, PAD + 420, 400)
   gold.addColorStop(0, "#fde68a")
   gold.addColorStop(0.5, GOLD)
   gold.addColorStop(1, GOLD_DEEP)
   ctx.fillStyle = gold
-  ctx.fillText(c.title, PAD, 438)
+  ctx.fillText(c.title, PAD, 408)
 
   // Date pill.
   ctx.font = `600 27px ${FAMILIES}`
-  const dTop = 520
+  const dTop = 492
   const dW = ctx.measureText(c.date).width + 48
   roundRect(ctx, PAD, dTop, dW, 52, 26)
   ctx.fillStyle = "rgba(16,185,129,0.18)"
@@ -270,56 +253,89 @@ export function pchumBenPoster(): Buffer {
   rule.addColorStop(0.5, "rgba(251,191,36,0.75)")
   rule.addColorStop(1, "rgba(251,191,36,0)")
   ctx.fillStyle = rule
-  ctx.fillRect(PAD, 614, W - 2 * PAD, 2)
+  ctx.fillRect(PAD, 592, W - 2 * PAD, 2)
   ctx.font = `400 34px ${FAMILIES}`
   ctx.fillStyle = CREAM
-  const lines = wrap(ctx, c.blessing, W - 2 * PAD, 5)
-  lines.forEach((line, i) => ctx.fillText(line, PAD, 688 + i * 66))
+  const lines = wrap(ctx, c.blessing, W - 2 * PAD, 4)
+  lines.forEach((line, i) => ctx.fillText(line, PAD, 666 + i * 66))
 
-  // Footer, app-first (no bot username), two compact lines with drawn gold icons, no pill or button:
-  //   📱 កត់ត្រាចំណូល-ចំណាយ ជាមួយអែប លុយឆ្លាត
-  //   ✈️ សហគមន៍ លុយឆ្លាត   •   🌐 luy.ibmserp.com
-  const fTop = H - 150
-  ctx.fillStyle = "rgba(52,211,153,0.28)"
-  ctx.fillRect(PAD, fTop, W - 2 * PAD, 1.5)
-  ctx.textAlign = "left"
-  const line1 = fTop + 58
-  drawIcon(ctx, "phone", PAD + 14, line1 - 10)
-  ctx.font = `600 27px ${FAMILIES}`
-  ctx.fillStyle = "#ffffff"
-  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយអែប លុយឆ្លាត", PAD + 44, line1)
-  const line2 = fTop + 106
-  ctx.font = `500 26px ${FAMILIES}`
-  ctx.fillStyle = "#d1fae5"
-  drawIcon(ctx, "plane", PAD + 14, line2 - 10)
-  const community = "សហគមន៍ លុយឆ្លាត"
-  ctx.fillText(community, PAD + 44, line2)
-  let x = PAD + 44 + ctx.measureText(community).width + 26
-  ctx.fillStyle = "rgba(209,250,229,0.55)"
-  ctx.fillText("•", x, line2)
-  x += ctx.measureText("•").width + 26
-  drawIcon(ctx, "globe", x + 14, line2 - 10)
-  ctx.fillStyle = "#d1fae5"
-  ctx.fillText("luy.ibmserp.com", x + 44, line2)
-
+  drawFooter(ctx)
   return canvas.toBuffer("image/png")
 }
 
+/** Today in Cambodia (YYYY-MM-DD). */
+const ppDay = () => new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)
+
+/** The approved artwork for a poster: its saved file in public/posters, else a fresh render. */
+function artwork(key: FestivalPosterKey): Buffer {
+  const p = FESTIVAL_POSTERS[key]
+  try {
+    return readFileSync(path.join(process.cwd(), "public", "posters", p.file))
+  } catch {
+    return p.render()
+  }
+}
+
+async function sendPhoto(chatId: number | string, png: Buffer, caption: string, replyMarkup?: unknown) {
+  const token = botToken()
+  if (!token) return { ok: false, description: "bot token missing" } as { ok: boolean; description?: string; result?: { message_id: number } }
+  const form = new FormData()
+  form.append("chat_id", String(chatId))
+  form.append("photo", new Blob([new Uint8Array(png)], { type: "image/png" }), "poster.png")
+  form.append("caption", caption)
+  if (replyMarkup) form.append("reply_markup", JSON.stringify(replyMarkup))
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
+  return ((await res?.json().catch(() => null)) ?? { ok: false, description: "no answer" }) as { ok: boolean; description?: string; result?: { message_id: number } }
+}
+
+const windowText = (w: readonly [string, string]) => {
+  const d = (iso: string) => String(Number(iso.slice(8, 10))).replace(/\d/g, (x) => "០១២៣៤៥៦៧៨៩"[Number(x)])
+  return `ថ្ងៃទី ${d(w[0])}–${d(w[1])}`
+}
+
 /**
- * "/poster <name>" from an admin's chat (checked in the webhook): render the
- * festival poster and send it there as a preview. Nothing is posted publicly.
+ * "/poster <name>" from an admin's chat (checked in the webhook): the approved
+ * artwork as a preview, with a one-tap button to broadcast it to the community
+ * channel (only inside its window, once).
  */
 export async function sendFestivalPoster(chatId: number, name: string | undefined): Promise<string | null> {
   const key = (name ?? "").toLowerCase().replace(/[^a-z]/g, "") as FestivalPosterKey
-  const render = FESTIVAL_POSTERS[key]
-  if (!render) return `🎨 /poster <name> — ${Object.keys(FESTIVAL_POSTERS).map((k) => `/poster ${k}`).join(", ")}`
-  const token = botToken()
-  if (!token) return "bot token missing"
-  const form = new FormData()
-  form.append("chat_id", String(chatId))
-  form.append("photo", new Blob([new Uint8Array(render())], { type: "image/png" }), `${key}.png`)
-  form.append("caption", `🎨 ${key} · 1080×1080 · preview (មិនទាន់ផ្សាយទេ)`)
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
-  const json = (await res?.json().catch(() => null)) as { ok?: boolean; description?: string } | null
-  return json?.ok ? null : `⚠️ ${json?.description ?? "send failed"}`
+  const p = FESTIVAL_POSTERS[key]
+  if (!p) return `🎨 /poster <name> — ${Object.keys(FESTIVAL_POSTERS).map((k) => `/poster ${k}`).join(", ")}`
+  const caption = `🎨 ${key} · 1080×1080 · មើលជាមុន\n📢 អាចផ្សាយទៅ Community បាន ${windowText(p.window)} ខែតុលា (ម្ដងប៉ុណ្ណោះ)`
+  const sent = await sendPhoto(chatId, artwork(key), caption, { inline_keyboard: [[{ text: "📢 ផ្សាយទៅ @LuyChlatCommunity", callback_data: `pf:${key}` }]] })
+  return sent.ok ? null : `⚠️ ${sent.description ?? "send failed"}`
+}
+
+export const isPosterCallback = (data: string | undefined) => Boolean(data?.startsWith("pf:"))
+
+type Callback = { id: string; data?: string; message?: { message_id: number; chat: { id: number; type: string } } }
+
+/** 📢 under a preview: an admin's chat, inside the window, once — then the saved artwork goes to the channel. */
+export async function handlePosterCallback(cb: Callback) {
+  const answer = (text: string, alert = true) => tg("answerCallbackQuery", { callback_query_id: cb.id, text: text.slice(0, 190), show_alert: alert })
+  const chatId = cb.message?.chat.id
+  const key = (cb.data ?? "").slice(3) as FestivalPosterKey
+  const p = FESTIVAL_POSTERS[key]
+  if (!chatId || cb.message?.chat.type !== "private" || !p) return answer("…", false)
+  const db = botDb()
+  const { data: admins } = await db.rpc("bot_admin_chats", { p_key: botKey() })
+  if (!((admins as { chat_id: number }[] | null) ?? []).some((a) => Number(a.chat_id) === chatId)) return answer("សម្រាប់ Admin ប៉ុណ្ណោះ។")
+  const today = ppDay()
+  if (today < p.window[0] || today > p.window[1]) return answer(`អាចផ្សាយបានតែ ${windowText(p.window)} ខែតុលា ប៉ុណ្ណោះ។`)
+  const channel = (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim()
+  if (!channel) return answer("មិនទាន់កំណត់ Community channel ទេ។")
+  // Once per poster, even if tapped twice or from two admins' previews.
+  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `poster-${key}`, p_day: p.window[0] })
+  if (claimed !== true) return answer("បានផ្សាយរួចហើយ។")
+  const url = await appUrl()
+  const sent = await sendPhoto(channel, artwork(key), p.caption, url ? { inline_keyboard: [[{ text: "📱 បើកកម្មវិធី លុយឆ្លាត", url }]] } : undefined)
+  if (!sent.ok) {
+    logEvent("error", "poster", `Broadcast of ${key} failed: ${sent.description ?? "unknown"}`)
+    return answer(`មិនអាចផ្សាយបានទេ៖ ${sent.description ?? ""}`)
+  }
+  await db.rpc("bot_admin_audit", { p_key: botKey(), p_chat_id: chatId, p_action: "POSTER_BROADCAST", p_note: `${key} → ${channel}` })
+  logEvent("info", "poster", `${key} broadcast to ${channel}`)
+  await answer("📢 បានផ្សាយរួចរាល់!", false)
+  await tg("editMessageCaption", { chat_id: chatId, message_id: cb.message!.message_id, caption: `📢 ${key} បានផ្សាយទៅ ${channel} រួចហើយ។` }).catch(() => null)
 }
