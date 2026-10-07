@@ -1,4 +1,4 @@
-// Server only: the daily tip poster (1080 × 1350 PNG, 4:5 for Telegram) — open
+// Server only: the daily tip poster (1080 × 1080 PNG, square) — open
 // typography on an emerald gradient (no boxed card): the LuyChlat mark, the
 // tip's title large, a gold accent, the explanation in light text, and every
 // number ("$730/ឆ្នាំ", "៥០%", "២០,០០០៛") picked out in bold gold. Drawn with
@@ -13,8 +13,8 @@ import { createCanvas, GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas"
 import { longDate } from "@/lib/dates"
 
 const W = 1080
-const H = 1350
-const PAD = 90
+const H = 1080
+const PAD = 84
 const GOLD = "#fcd34d"
 const FAMILIES =
   process.env.POSTER_FONT === "kantumruy"
@@ -111,6 +111,24 @@ function roundRect(ctx: SKRSContext2D, x: number, y: number, w: number, h: numbe
   ctx.closePath()
 }
 
+/** The body's lead (all but the last sentence) and its takeaway (the last sentence), for the accent box. */
+export function splitTakeaway(body: string): { lead: string; takeaway: string | null } {
+  const sentences =
+    body
+      .trim()
+      .match(/[^។!?.]+[។!?.]+|[^។!?.]+$/g)
+      ?.map((x) => x.trim())
+      .filter(Boolean) ?? []
+  if (sentences.length < 2) return { lead: body.trim(), takeaway: null }
+  return { lead: sentences.slice(0, -1).join(" "), takeaway: sentences[sentences.length - 1] }
+}
+
+/**
+ * Layout, top to bottom: mark · tag pill · date · headline + gold accent ·
+ * the explanation · the takeaway in its own gold-edged box · footer (two lines
+ * left, LUYCHLAT badge right). The middle block is centred between the
+ * headline and the footer, so a short tip never leaves the bottom empty.
+ */
 export function tipPoster(tip: { title: string; body: string }, day: string): Buffer {
   loadFonts()
   const canvas = createCanvas(W, H)
@@ -133,16 +151,16 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
   warm.addColorStop(1, "rgba(252,211,77,0)")
   ctx.fillStyle = warm
   ctx.fillRect(0, 0, W, H)
-  // A large faint ៛ as a watermark.
-  ctx.font = `700 900px ${FAMILIES}`
-  ctx.fillStyle = "rgba(255,255,255,0.045)"
+  ctx.font = `700 760px ${FAMILIES}`
+  ctx.fillStyle = "rgba(255,255,255,0.04)"
   ctx.textAlign = "right"
   ctx.textBaseline = "alphabetic"
-  ctx.fillText("៛", W + 60, H - 120)
+  ctx.fillText("៛", W + 50, H - 150)
 
   // Mark: the rounded ៛ tile, then the name.
-  const mark = 92
-  roundRect(ctx, PAD, PAD, mark, mark, 26)
+  const mark = 80
+  const markTop = PAD - 10
+  roundRect(ctx, PAD, markTop, mark, mark, 22)
   ctx.fillStyle = "rgba(255,255,255,0.14)"
   ctx.fill()
   ctx.lineWidth = 3
@@ -151,61 +169,115 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
   ctx.fillStyle = "#ffffff"
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
-  ctx.font = `700 58px ${FAMILIES}`
-  ctx.fillText("៛", PAD + mark / 2, PAD + mark / 2 + 4)
+  ctx.font = `700 50px ${FAMILIES}`
+  ctx.fillText("៛", PAD + mark / 2, markTop + mark / 2 + 3)
   ctx.textAlign = "left"
-  ctx.font = `700 42px ${FAMILIES}`
-  ctx.fillText("លុយឆ្លាត · LuyChlat", PAD + mark + 26, PAD + mark / 2 - 4)
+  ctx.font = `700 38px ${FAMILIES}`
+  ctx.fillText("លុយឆ្លាត · LuyChlat", PAD + mark + 22, markTop + mark / 2 - 3)
   ctx.textBaseline = "alphabetic"
 
-  // Tag pill, the date under it, then the title.
+  // Tag pill (a gold bulb dot in place of 💡 — the server has no emoji font), then the date.
   const label = "គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ"
-  ctx.font = `600 32px ${FAMILIES}`
-  const pillW = ctx.measureText(label).width + 52
-  roundRect(ctx, PAD, 262, pillW, 64, 32)
+  ctx.font = `600 30px ${FAMILIES}`
+  const pillTop = 196
+  const pillW = ctx.measureText(label).width + 84
+  roundRect(ctx, PAD, pillTop, pillW, 58, 29)
   ctx.fillStyle = "rgba(252,211,77,0.16)"
   ctx.fill()
   ctx.lineWidth = 2
   ctx.strokeStyle = "rgba(252,211,77,0.55)"
   ctx.stroke()
+  ctx.beginPath()
+  ctx.arc(PAD + 30, pillTop + 29, 9, 0, Math.PI * 2)
   ctx.fillStyle = GOLD
-  ctx.fillText(label, PAD + 26, 306)
+  ctx.fill()
+  ctx.fillText(label, PAD + 52, pillTop + 40)
   const [yy, mm, dd] = day.split("-").map(Number)
-  ctx.font = `400 30px ${FAMILIES}`
-  ctx.fillStyle = "rgba(254,243,199,0.85)"
-  ctx.fillText(longDate(new Date(yy, mm - 1, dd, 12), "km"), PAD, 378)
-  ctx.font = `700 80px ${FAMILIES}`
-  const titleLines = wrap(ctx, tip.title, W - 2 * PAD, 3)
-  let y = 500
+  ctx.font = `400 28px ${FAMILIES}`
+  ctx.fillStyle = "rgba(254,243,199,0.78)"
+  ctx.fillText(longDate(new Date(yy, mm - 1, dd, 12), "km"), PAD, pillTop + 108)
+
+  // Headline (larger), then the gold accent.
+  ctx.font = `700 86px ${FAMILIES}`
+  const titleLines = wrap(ctx, tip.title, W - 2 * PAD, 2)
+  let y = pillTop + 230
   for (const line of titleLines) {
-    drawRich(ctx, line, PAD, y, 82, { weight: 700, color: "#ffffff" })
-    y += 118
+    drawRich(ctx, line, PAD, y, 86, { weight: 700, color: "#ffffff" })
+    y += 112
   }
-  // Gold accent bar.
-  roundRect(ctx, PAD, y - 40, 120, 10, 5)
+  roundRect(ctx, PAD, y - 64, 120, 10, 5)
   ctx.fillStyle = GOLD
   ctx.fill()
 
-  // The explanation, open on the background.
-  ctx.font = `400 42px ${FAMILIES}`
-  const lineH = 74
-  const top = y + 60
-  const maxBody = Math.max(1, Math.floor((H - 260 - top) / lineH))
-  let by = top
-  for (const line of wrap(ctx, tip.body, W - 2 * PAD, maxBody)) {
-    drawRich(ctx, line, PAD, by, 42, { weight: 400, color: "#ecfdf5" })
-    by += lineH
+  // Middle block: the explanation, then the takeaway box — centred in the space left.
+  const { lead, takeaway } = splitTakeaway(tip.body)
+  const footerTop = H - 196
+  const regionTop = y - 10
+  const bodySize = 40
+  const bodyLineH = 66
+  const boxPadX = 40
+  const boxSize = 38
+  const boxLineH = 62
+  const boxWidth = W - 2 * PAD - 2 * boxPadX - 12
+  const gap = 44
+  ctx.font = `400 ${bodySize}px ${FAMILIES}`
+  let leadLines = wrap(ctx, lead, W - 2 * PAD, 6)
+  ctx.font = `600 ${boxSize}px ${FAMILIES}`
+  let boxLines = takeaway ? wrap(ctx, takeaway, boxWidth, 3) : []
+  const blockH = () => leadLines.length * bodyLineH + (boxLines.length ? gap + boxLines.length * boxLineH + 52 : 0)
+  const room = footerTop - regionTop - 30
+  // Too tall: fewer explanation lines first, then fewer takeaway lines.
+  while (blockH() > room && leadLines.length > 1) {
+    ctx.font = `400 ${bodySize}px ${FAMILIES}`
+    leadLines = wrap(ctx, lead, W - 2 * PAD, leadLines.length - 1)
+  }
+  while (blockH() > room && boxLines.length > 1) {
+    ctx.font = `600 ${boxSize}px ${FAMILIES}`
+    boxLines = wrap(ctx, takeaway!, boxWidth, boxLines.length - 1)
+  }
+  let by = regionTop + Math.max(30, (footerTop - regionTop - blockH()) / 2) + bodySize
+  for (const line of leadLines) {
+    drawRich(ctx, line, PAD, by, bodySize, { weight: 400, color: "#ecfdf5" })
+    by += bodyLineH
+  }
+  if (boxLines.length) {
+    const boxTop = by - bodySize + gap - 22
+    const boxH = boxLines.length * boxLineH + 52
+    roundRect(ctx, PAD, boxTop, W - 2 * PAD, boxH, 26)
+    ctx.fillStyle = "rgba(6,78,59,0.45)"
+    ctx.fill()
+    ctx.lineWidth = 2
+    ctx.strokeStyle = "rgba(252,211,77,0.45)"
+    ctx.stroke()
+    roundRect(ctx, PAD, boxTop, 10, boxH, 5)
+    ctx.fillStyle = GOLD
+    ctx.fill()
+    let ty = boxTop + 26 + boxSize
+    for (const line of boxLines) {
+      drawRich(ctx, line, PAD + boxPadX + 12, ty, boxSize, { weight: 600, color: "#fef3c7" })
+      ty += boxLineH
+    }
   }
 
-  // Footer, left-aligned: record with the bot, join the community.
-  ctx.fillStyle = "rgba(255,255,255,0.25)"
-  ctx.fillRect(PAD, H - 200, W - 2 * PAD, 2)
-  ctx.font = `600 32px ${FAMILIES}`
+  // Footer: two lines left, the LUYCHLAT badge right.
+  ctx.fillStyle = "rgba(255,255,255,0.22)"
+  ctx.fillRect(PAD, footerTop, W - 2 * PAD, 2)
+  ctx.textAlign = "left"
+  ctx.font = `600 30px ${FAMILIES}`
   ctx.fillStyle = "#ffffff"
-  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", PAD, H - 136)
-  ctx.font = `400 30px ${FAMILIES}`
+  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", PAD, footerTop + 64)
+  ctx.font = `400 28px ${FAMILIES}`
   ctx.fillStyle = "#a7f3d0"
-  ctx.fillText("ចូលរួមសហគមន៍ លុយឆ្លាត @LuyChlatCommunity", PAD, H - 84)
+  ctx.fillText("ចូលរួមសហគមន៍ លុយឆ្លាត @LuyChlatCommunity", PAD, footerTop + 112)
+  ctx.font = `700 26px ${FAMILIES}`
+  const badge = "LUYCHLAT"
+  const bw = ctx.measureText(badge).width + 44
+  roundRect(ctx, W - PAD - bw, footerTop + 52, bw, 50, 25)
+  ctx.fillStyle = GOLD
+  ctx.fill()
+  ctx.fillStyle = "#064e3b"
+  ctx.textAlign = "center"
+  ctx.fillText(badge, W - PAD - bw / 2, footerTop + 86)
 
   return canvas.toBuffer("image/png")
 }
