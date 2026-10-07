@@ -3184,6 +3184,9 @@ const km = {
   "nw.title": "ចាំបាច់ និង ចំណង់",
   "nw.hint": "កំណត់ ចាំបាច់/ចំណង់ ពេលកត់ត្រា ឬចុចប៊ូតុងក្រោមវិក្កយបត្រក្នុង Telegram។",
   "nw.mealsTitle": "ម្ហូបអាហារ តាមពេល",
+  "bot.slipWalletUnsure": "មិនទាន់ជ្រើសរើស",
+  "bot.slipWhichWallet": "👛 កាបូប {bank} {currency} មួយណា? ចុចជ្រើសរើសខាងក្រោម (មិនទាន់កត់ត្រាទេ)។",
+  "bot.slipPickWalletFirst": "សូមជ្រើសរើសកាបូបជាមុនសិន។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6357,6 +6360,9 @@ const en: Record<MessageKey, string> = {
   "nw.title": "Needs vs wants",
   "nw.hint": "Mark entries as Need or Want when you record them, or tap the buttons under a slip in Telegram.",
   "nw.mealsTitle": "Food by meal",
+  "bot.slipWalletUnsure": "not chosen yet",
+  "bot.slipWhichWallet": "👛 Which {bank} {currency} wallet? Tap one below (nothing is recorded yet).",
+  "bot.slipPickWalletFirst": "Please choose the wallet first.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

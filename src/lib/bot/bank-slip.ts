@@ -3,6 +3,8 @@
 // one-tap category buttons. The server side is src/lib/server/slip-bot.ts.
 import type { Meal } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { providerForName, walletInstitution } from "@/lib/wallets/providers"
+
 import type { BotCategory, BotWallet } from "./parse-entry"
 
 export type Slip = {
@@ -112,32 +114,73 @@ const BANK_WORDS: [RegExp, string[]][] = [
   [/true ?money/i, ["truemoney", "true money"]],
 ]
 
+/** The wallet for a slip, or the wallets to ask about. Never a guess between two. */
+export type WalletPick = { wallet: BotWallet } | { choices: BotWallet[] }
+
+/** At most this many "which wallet?" buttons. */
+const MAX_CHOICES = 8
+
+/** Is this wallet at the slip's bank (by the bank picked for it, or by its name)? */
+function atBank(w: BotWallet, bank: string | null): boolean {
+  if (!bank) return false
+  const slipBank = providerForName(bank)
+  if (slipBank && slipBank.key !== "other" && walletInstitution({ icon: w.icon ?? null, name: w.name }).key === slipBank.key) return true
+  const words = BANK_WORDS.find(([re]) => re.test(bank))?.[1] ?? [bank.toLowerCase()]
+  return words.some((x) => w.name.toLowerCase().includes(x))
+}
+
 /**
- * The wallet for the slip. First by account number: the wallet(s) whose number
- * best matches the slip's (in the slip's currency first — a "$ + ៛" pair shares
- * one number). Only when no number matches: one named after its bank (in the
- * slip's currency first), else one in that currency, else the first. Credit
- * cards only when the bank or the number matches.
+ * The wallet a slip belongs to — only when it is certain:
+ * 1. By account number: exactly one wallet in the slip's currency matches the
+ *    slip's number (every visible digit agrees). Two that match ("***4222" on
+ *    078…4222 and 016…4222) → the one at the slip's bank if just one is,
+ *    else ask between them.
+ * 2. Else (no number on the slip, or one that matches no wallet): the one
+ *    wallet at the slip's bank in its currency, unless its recorded number
+ *    differs from the slip's. None or several → ask (that bank's wallets in the
+ *    currency, else the currency's, else all) — a USD wallet is never picked
+ *    for a riel slip, nor another bank's wallet for this bank's slip.
+ * Credit cards only when their number matches.
  */
-export function pickWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pick<Slip, "account">>, wallets: BotWallet[]): BotWallet | null {
+export function resolveWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pick<Slip, "account">>, wallets: BotWallet[]): WalletPick | null {
   if (!wallets.length) return null
-  if (slip.account) {
-    const scored = wallets.map((w) => ({ w, score: accountScore(slip.account!, w.account_no) })).filter((x) => x.score >= 4)
-    const best = Math.max(0, ...scored.map((x) => x.score))
-    const top = scored.filter((x) => x.score === best).map((x) => x.w)
-    const byNumber = top.find((w) => w.currency === slip.currency) ?? top[0]
+  const account = slip.account ?? null
+  const decide = (pool: BotWallet[]): WalletPick | null =>
+    pool.length === 1 ? { wallet: pool[0] } : pool.length > 1 ? { choices: pool.slice(0, MAX_CHOICES) } : null
+
+  if (account) {
+    const matched = wallets.filter((w) => accountScore(account, w.account_no) >= 4)
+    const inCurrency = matched.filter((w) => w.currency === slip.currency)
+    const pool = inCurrency.length ? inCurrency : matched
+    // One number on two banks' wallets (e.g. a phone number): the slip's bank settles it.
+    const atSlipBank = pool.filter((w) => atBank(w, slip.bank))
+    const byNumber = decide(pool.length > 1 && atSlipBank.length === 1 ? atSlipBank : pool)
     if (byNumber) return byNumber
   }
-  const words = slip.bank ? (BANK_WORDS.find(([re]) => re.test(slip.bank!))?.[1] ?? [slip.bank.toLowerCase()]) : []
-  const named = wallets.filter((w) => words.some((x) => w.name.toLowerCase().includes(x)))
+  // Without a number match, book only the one obvious wallet: the only one at the slip's bank in its
+  // currency (and not recorded with a different number) — or, for a slip naming no bank, the only
+  // wallet in its currency. Anything else is a question, never a guess.
   const plain = wallets.filter((w) => w.kind !== "CREDIT_CARD")
-  return (
-    named.find((w) => w.currency === slip.currency) ??
-    named[0] ??
-    plain.find((w) => w.currency === slip.currency) ??
-    plain[0] ??
-    wallets[0]
-  )
+  const sameCurrency = plain.filter((w) => w.currency === slip.currency)
+  const atBankCurrency = sameCurrency.filter((w) => atBank(w, slip.bank))
+  const differs = (w: BotWallet) => Boolean(account && w.account_no && accountScore(account, w.account_no) === 0)
+  const obvious = slip.bank ? atBankCurrency.filter((w) => !differs(w)) : sameCurrency.filter((w) => !differs(w))
+  if (obvious.length === 1) return { wallet: obvious[0] }
+  const ask = [atBankCurrency, sameCurrency, plain, wallets].find((list) => list.length > 0) ?? []
+  return ask.length ? { choices: ask.slice(0, MAX_CHOICES) } : null
+}
+
+/** "016824222" → "016***4222" (as the app shows it); short numbers as they are. */
+export function maskedAccount(account: string | null | undefined): string | null {
+  const d = (account ?? "").replace(/\D/g, "")
+  if (!d) return null
+  return d.length > 7 ? `${d.slice(0, 3)}***${d.slice(-4)}` : d
+}
+
+/** "ACLEDA KHR · 016***4222" — the account number unless the name already shows it. */
+export function walletLabel(w: Pick<BotWallet, "name" | "account_no">): string {
+  const masked = maskedAccount(w.account_no)
+  return masked && !w.name.includes(masked) ? `${w.name} · ${masked}` : w.name
 }
 
 /** A one-tap button: the category (by preset, with fallbacks) and a note tag for the finer ones. */

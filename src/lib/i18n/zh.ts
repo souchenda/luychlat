@@ -3137,4 +3137,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nw.title": "必需与想要",
   "nw.hint": "记账时标记必需或想要，或在 Telegram 的单据下方点按按钮。",
   "nw.mealsTitle": "按餐次的餐饮",
+  "bot.slipWalletUnsure": "尚未选择",
+  "bot.slipWhichWallet": "👛 哪个 {bank} {currency} 钱包？请在下方选择（尚未记账）。",
+  "bot.slipPickWalletFirst": "请先选择钱包。",
 }
