@@ -2472,17 +2472,17 @@ const km = {
   "ev.log": "កត់ត្រា",
   "ev.logged": "បានកត់ត្រាការសាក",
   "ev.invalid": "kWh មិនត្រឹមត្រូវ (១–៥០០)",
-  "fuel.title": "⛽ តម្លៃប្រេងឥន្ធនៈ & ហ្កាស (MoC {range})៖",
-  "fuel.section": "តម្លៃប្រេងឥន្ធនៈ & ហ្កាស",
+  "fuel.title": "⛽ តម្លៃប្រេងឥន្ធនៈ & ហ្គាស (MoC {range})៖",
+  "fuel.section": "តម្លៃប្រេងឥន្ធនៈ & ហ្គាស",
   "fuel.regular": "សាំងធម្មតា (EA92)",
-  "fuel.super": "សាំងស៊ុបពែរ (Super)",
-  "fuel.diesel": "ប្រេងម៉ាស៊ូត (Diesel)",
-  "fuel.lpg": "ហ្កាស (LPG)",
+  "fuel.super": "សាំងស៊ុបពែរ (EA95)",
+  "fuel.diesel": "ម៉ាស៊ូត (Diesel)",
+  "fuel.lpg": "ហ្គាស (LPG)",
   "fuel.stale": "(វដ្ដមុន — តម្លៃថ្មីមិនទាន់បញ្ចូល)",
   "fuel.none": "⛽ តម្លៃប្រេងមិនទាន់មាននៅឡើយទេ។",
-  "fuelAdmin.title": "តម្លៃប្រេង & ហ្កាស (ក្រសួងពាណិជ្ជកម្ម)",
+  "fuelAdmin.title": "តម្លៃប្រេង & ហ្គាស (ក្រសួងពាណិជ្ជកម្ម)",
   "fuelAdmin.current": "ឥឡូវ៖ វដ្ដ {from} – {to}",
-  "fuelAdmin.lpgUnit": "ឯកតាហ្កាស",
+  "fuelAdmin.lpgUnit": "ឯកតាហ្គាស",
   "fuelAdmin.from": "ពីថ្ងៃ",
   "fuelAdmin.to": "ដល់ថ្ងៃ",
   "fuelAdmin.saved": "បានរក្សាទុកតម្លៃប្រេង",
@@ -3187,6 +3187,7 @@ const km = {
   "bot.slipWalletUnsure": "មិនទាន់ជ្រើសរើស",
   "bot.slipWhichWallet": "👛 កាបូប {bank} {currency} មួយណា? ចុចជ្រើសរើសខាងក្រោម (មិនទាន់កត់ត្រាទេ)។",
   "bot.slipPickWalletFirst": "សូមជ្រើសរើសកាបូបជាមុនសិន។",
+  "fuel.pending": "(កំពុងរង់ចាំតម្លៃផ្លូវការពីក្រសួងពាណិជ្ជកម្មសម្រាប់វដ្ដនេះ)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -5651,7 +5652,7 @@ const en: Record<MessageKey, string> = {
   "fuel.title": "⛽ Fuel & gas prices (MoC {range}):",
   "fuel.section": "Fuel & gas prices",
   "fuel.regular": "Regular gasoline (EA92)",
-  "fuel.super": "Super gasoline",
+  "fuel.super": "Super gasoline (EA95)",
   "fuel.diesel": "Diesel",
   "fuel.lpg": "LPG gas",
   "fuel.stale": "(previous cycle — the new prices aren't in yet)",
@@ -6363,6 +6364,7 @@ const en: Record<MessageKey, string> = {
   "bot.slipWalletUnsure": "not chosen yet",
   "bot.slipWhichWallet": "👛 Which {bank} {currency} wallet? Tap one below (nothing is recorded yet).",
   "bot.slipPickWalletFirst": "Please choose the wallet first.",
+  "fuel.pending": "(awaiting the Ministry of Commerce prices for this cycle)",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

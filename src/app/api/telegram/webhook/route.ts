@@ -143,7 +143,7 @@ async function setFuelReply(text: string, chatId: number) {
   if (!input) {
     const fuel = (await currentMarket())?.fuel
     return [
-      "⛽ /setfuel <សាំងធម្មតា> <សាំងស៊ុបពែរ> <ម៉ាស៊ូត> [<ហ្កាស>kg|L] [<ពីថ្ងៃ> <ដល់ថ្ងៃ>]",
+      "⛽ /setfuel <សាំងធម្មតា> <សាំងស៊ុបពែរ> <ម៉ាស៊ូត> [<ហ្គាស>kg|L] [<ពីថ្ងៃ> <ដល់ថ្ងៃ>]",
       "ឧ. /setfuel 4150 4500 3950 3800kg  (វដ្ដ ១០ ថ្ងៃបច្ចុប្បន្ន)",
       "ឧ. /setfuel 4150 4500 3950 3800kg 11-10-2026 20-10-2026",
       ...(fuel ? ["", ...fuelLines(fuel, (k, p) => tr("km", k, p), today, "km")] : []),

@@ -2,11 +2,11 @@
  * Fuel and gas prices (MoC, per 10-day cycle) as chat text — for /fuel, /gas,
  * the community bulletin and /market. Pure. In Khmer, numbers use Khmer digits:
  *
- *   ⛽ តម្លៃប្រេងឥន្ធនៈ & ហ្កាស (MoC ០១–១០ តុលា)៖
+ *   ⛽ តម្លៃប្រេងឥន្ធនៈ & ហ្គាស (MoC ០១–១០ តុលា)៖
  *   • សាំងធម្មតា (EA92) ៖ ៤,១៥០ ៛/លីត្រ
  */
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
-import type { FuelPrices } from "@/lib/market-calc"
+import { fuelCycle, type FuelPrices } from "@/lib/market-calc"
 
 type T = (key: MessageKey, params?: Record<string, string | number>) => string
 
@@ -42,4 +42,21 @@ export function fuelLines(fuel: FuelPrices, t: T, today: string, locale: Locale)
   // An older cycle is still shown, labelled, until the new prices are entered.
   if (fuel.to < today) lines.push(t("fuel.stale"))
   return lines
+}
+
+/**
+ * The fuel section when no prices have been entered yet: the same four lines
+ * with "—" and a note — never made-up numbers, never a missing section.
+ */
+export function fuelPendingLines(t: T, today: string, locale: Locale): string[] {
+  const cycle = fuelCycle(today)
+  const sep = locale === "km" ? " ៖" : ":"
+  return [
+    t("fuel.title", { range: cycleText(cycle.from, cycle.to, locale) }),
+    `• ${t("fuel.regular")}${sep} —`,
+    `• ${t("fuel.super")}${sep} —`,
+    `• ${t("fuel.diesel")}${sep} —`,
+    `• ${t("fuel.lpg")}${sep} —`,
+    t("fuel.pending"),
+  ]
 }
