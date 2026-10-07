@@ -3141,4 +3141,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.slipWhichWallet": "👛 哪个 {bank} {currency} 钱包？请在下方选择（尚未记账）。",
   "bot.slipPickWalletFirst": "请先选择钱包。",
   "fuel.pending": "（等待商务部公布本期价格）",
+  "bot.eveningCheckin": "晚上 8 点记账提醒",
+  "bot.eveningCheckinHint": "晚上 8 点，如果当天还没有记录任何账目，机器人会温和提醒。已记录则不打扰。",
+  "bot.eveningNudge": "🌙 晚上好！今天您还没有记录任何收入或支出。📝\n\n👉 直接发送语音或文字（例如「卖了 120$」或「晚饭 25,000៛」），LuyChlat 立即为您记账。\n\n（可在 设置 › 官方机器人 中关闭此提醒）",
+  "bot.eveningOpenApp": "📱 打开应用",
 }

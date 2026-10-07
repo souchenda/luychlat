@@ -5,6 +5,7 @@ import { duePrayer } from "@/lib/prayer-alerts"
 
 import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "./telegram-bot"
 import { sendCommunityBulletin } from "@/lib/server/community-bulletin"
+import { communityRoutineTick } from "@/lib/server/community-routine"
 import { watchdogTick } from "@/lib/server/health-watchdog"
 import { maybeRefreshLocalGold, maybeRefreshNbc, syncMarket } from "@/lib/server/market-sync"
 import { logEvent } from "@/lib/server/events"
@@ -77,6 +78,7 @@ export async function dispatchOnce() {
     await maybeRefreshLocalGold()
     await maybeRefreshNbc()
     await sendCommunityBulletin()
+    await communityRoutineTick()
     await weeklyDigestTick()
     await holyDayTick()
     await festivalTick()

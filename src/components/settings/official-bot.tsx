@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BellIcon, BotIcon, ChartColumnIcon, CheckCircle2Icon, CrownIcon, Loader2Icon, MessageSquarePlusIcon, MoonStarIcon, SendIcon, UnlinkIcon } from "lucide-react"
+import { BellIcon, BotIcon, ChartColumnIcon, CheckCircle2Icon, CrownIcon, Loader2Icon, MessageSquarePlusIcon, MoonStarIcon, NotebookPenIcon, SendIcon, UnlinkIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -31,6 +31,7 @@ type Link = {
   ai_numbers?: boolean
   /** Buddhist holy days (ថ្ងៃសីល), the evening before. */
   holy_day_alerts: boolean
+  evening_checkin?: boolean
   prayer_alerts: boolean
   prayer_province: string | null
   commands_enabled: boolean
@@ -68,7 +69,7 @@ export function useTelegramLink() {
     enabled: Boolean(userId),
     queryFn: async () => {
       // Before the bot migration the table is missing: treat as "not linked".
-      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, weekly_digest, ai_numbers, holy_day_alerts, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
+      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, weekly_digest, ai_numbers, holy_day_alerts, evening_checkin, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
       return error ? null : (data as Link | null)
     },
   })
@@ -222,6 +223,14 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                 <span className="block text-xs text-muted-foreground">{t("bot.holyDayAlertsHint")}</span>
               </span>
               <Switch checked={Boolean(linked.holy_day_alerts)} onCheckedChange={(v) => update.mutate({ holy_day_alerts: v })} aria-label={t("bot.holyDayAlerts")} />
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <NotebookPenIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">{t("bot.eveningCheckin")}</span>
+                <span className="block text-xs text-muted-foreground">{t("bot.eveningCheckinHint")}</span>
+              </span>
+              <Switch checked={Boolean(linked.evening_checkin)} onCheckedChange={(v) => update.mutate({ evening_checkin: v })} aria-label={t("bot.eveningCheckin")} />
             </label>
             {(islamic || linked.prayer_alerts) && (
               <label className="flex items-center gap-3 text-sm">

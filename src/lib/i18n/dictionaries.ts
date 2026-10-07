@@ -3188,6 +3188,10 @@ const km = {
   "bot.slipWhichWallet": "👛 កាបូប {bank} {currency} មួយណា? ចុចជ្រើសរើសខាងក្រោម (មិនទាន់កត់ត្រាទេ)។",
   "bot.slipPickWalletFirst": "សូមជ្រើសរើសកាបូបជាមុនសិន។",
   "fuel.pending": "(កំពុងរង់ចាំតម្លៃផ្លូវការពីក្រសួងពាណិជ្ជកម្មសម្រាប់វដ្ដនេះ)",
+  "bot.eveningCheckin": "រំលឹកកត់ត្រាម៉ោង ៨ យប់",
+  "bot.eveningCheckinHint": "ម៉ោង ៨ យប់ Bot រំលឹកបន្ទន់ៗ ប្រសិនបើថ្ងៃនោះ បងមិនទាន់បានកត់ត្រាអ្វីសោះ។ បើកត់ត្រារួចហើយ មិនរំខានទេ។",
+  "bot.eveningNudge": "🌙 រាត្រីសួស្តី! ថ្ងៃនេះ បងមិនទាន់បានកត់ត្រាចំណូល-ចំណាយនៅឡើយទេ។ 📝\n\n👉 គ្រាន់តែផ្ញើសារសំឡេង ឬវាយប្រាប់មក (ឧ. «លក់បាន 120$» ឬ «បាយល្ងាច ២៥,០០០៛») លុយឆ្លាតនឹងកត់ត្រាជូនភ្លាម!\n\n(បិទការរំលឹកនេះបាន៖ ការកំណត់ › Bot ផ្លូវការ)",
+  "bot.eveningOpenApp": "📱 បើកកម្មវិធី",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6365,6 +6369,10 @@ const en: Record<MessageKey, string> = {
   "bot.slipWhichWallet": "👛 Which {bank} {currency} wallet? Tap one below (nothing is recorded yet).",
   "bot.slipPickWalletFirst": "Please choose the wallet first.",
   "fuel.pending": "(awaiting the Ministry of Commerce prices for this cycle)",
+  "bot.eveningCheckin": "8 PM check-in reminder",
+  "bot.eveningCheckinHint": "At 8 PM the bot gives a gentle reminder — only on days you haven't recorded anything yet.",
+  "bot.eveningNudge": "🌙 Good evening! You haven't recorded any income or spending today yet. 📝\n\n👉 Just send a voice note or type it here (e.g. \"sold 120$\" or \"dinner 25,000៛\") and LuyChlat records it right away.\n\n(Turn this off in Settings › Official bot)",
+  "bot.eveningOpenApp": "📱 Open the app",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

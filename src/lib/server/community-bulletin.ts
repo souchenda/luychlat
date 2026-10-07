@@ -18,9 +18,10 @@ import { logEvent } from "@/lib/server/events"
  * and buttons to calculate with the bot and to open the app. Market data only
  * — no tips (founder's rule; tips stay in the app and the weekly digest).
  *
- * Timing: from 08:30 (Cambodia) it posts as soon as today's local gold prices
+ * Timing: from 09:30 (Cambodia) it posts as soon as today's local gold prices
  * are in (shops publish around 09:00); at 10:30 it posts anyway, with the
- * world reference price and a note. In the evening (17:00–19:30), once NBC's
+ * world reference price and a note. (07:00 morning tip and 20:00 check-in:
+ * community-routine.ts.) In the evening (17:00–19:30), once NBC's
  * rate for the next working day is in, a short rates post follows. Skipped
  * when no channel is set. bot_claim_daily makes each once a day, also across
  * restarts.
@@ -28,7 +29,7 @@ import { logEvent } from "@/lib/server/events"
 
 const JOB = "community-bulletin"
 const EVENING_JOB = "community-nbc-evening"
-const FROM = { hour: 8, minute: 30 }
+const FROM = { hour: 9, minute: 30 }
 /** Post without local prices from 10:30. */
 const DEADLINE = { hour: 10, minute: 30 }
 /** Never after 11:00 (e.g. the server was down all morning). */
