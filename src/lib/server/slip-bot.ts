@@ -32,14 +32,18 @@ function slipAllowed(chatId: number) {
 }
 
 const PROMPT = [
-  "This photo should be a Cambodian bank transfer or payment slip / receipt (ACLEDA, ABA, Wing, Bakong / KHQR, Canadia, Prince, etc.), possibly a phone screenshot.",
+  "This photo should be a Cambodian bank receipt (ACLEDA, ABA, Wing, Bakong / KHQR, Canadia, Prince, etc.), possibly a phone screenshot:",
+  "a transfer, a KHQR / merchant payment, OR a bill payment / mobile top-up (Smart, Cellcard, Metfone, EDC, water, internet, PIN-less top-up). All of these are valid slips.",
   "Read it and answer JSON only:",
-  '{"is_slip": boolean, "amount": number, "currency": "USD" | "KHR", "direction": "OUT" | "IN", "bank": string, "date": "YYYY-MM-DD" | null, "time": "HH:MM" | null, "party": string | null, "account": string | null}',
-  "amount: the transferred / paid amount only (not fees, not a balance). Riel (៛, KHR) has no decimals.",
-  "direction: OUT if the slip owner sent or paid money (Transfer to, Paid to, Payment), IN if they received it.",
-  "bank: the app or bank that issued the slip. date: the transaction date. time: the transaction time, 24-hour (convert AM/PM). party: the recipient (OUT) or sender (IN) name as printed.",
+  '{"is_slip": boolean, "amount": number, "currency": "USD" | "KHR", "direction": "OUT" | "IN", "bank": string, "date": "YYYY-MM-DD" | null, "time": "HH:MM" | null, "party": string | null, "account": string | null, "account_name": string | null, "consumer": string | null}',
+  "amount: the transferred / paid amount only (not fees, not a balance), always positive — \"-5.00 USD\" or \"Original amount: 5.00 USD\" is 5.00. Riel (៛, KHR) has no decimals.",
+  "direction: OUT if the slip owner sent or paid money (Transfer to, Paid to, Payment, Bill payment, Top-up, a minus sign), IN if they received it.",
+  "bank: the app or bank that issued the slip. date: the transaction date. time: the transaction time, 24-hour (convert AM/PM).",
+  "party: the recipient (OUT) or sender (IN) name as printed; for a bill payment or top-up, the biller / service without extras (\"Smart Mobile (PIN-less)\" → \"Smart Mobile\").",
   "account: the slip owner's OWN account number — the account money was paid FROM (OUT) or received INTO (IN), never the other party's. Copy it as printed, keeping masking such as *** or xxx; null if not shown.",
-  'If it is not a slip or the amount is unreadable, answer {"is_slip": false}.',
+  "account_name: the name or label printed with that own account, if any (\"DL USD (016 824 222)\" → \"DL USD\"); null otherwise.",
+  "consumer: for a bill payment / top-up, the consumer ID or phone number paid for, as printed; null otherwise.",
+  'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
 type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" }
@@ -56,7 +60,7 @@ export async function readSlip(fileId: string): Promise<ReadResult> {
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         contents: [{ parts: [{ inline_data: { mime_type: file.type, data: Buffer.from(file.bytes).toString("base64") } }, { text: PROMPT }] }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 320, thinkingConfig: { thinkingBudget: 0 } },
+        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 400, thinkingConfig: { thinkingBudget: 0 } },
       }),
       cache: "no-store",
       signal: AbortSignal.timeout(45_000),
@@ -75,6 +79,8 @@ export async function readSlip(fileId: string): Promise<ReadResult> {
     const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
     const text = (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("")
     const slip = cleanSlip(JSON.parse(text.replace(/^```(?:json)?|```$/g, "").trim()))
+    // Logged without the slip's content: why a photo was turned down, so a failure is never invisible.
+    if (!slip) logEvent("warn", "slips", `Slip not accepted: ${/"is_slip"\s*:\s*false/.test(text) ? "Gemini: not a bank receipt" : "amount / currency unreadable"}`, { fold: true })
     return slip ? { slip } : { error: "unreadable" }
   } catch {
     return { error: "unreadable" }
@@ -164,7 +170,10 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   const time = slip.time ?? (!slip.date || slip.date === now.day ? `${String(now.hour).padStart(2, "0")}:${String(now.minute).padStart(2, "0")}` : null)
   // The caption (what was bought / for whom) first, then the slip's own "🧾 bank → payee".
   const userNote = cleanNote(caption)
-  const slipNote = ["🧾", slip.bank, slip.party ? `${slip.direction === "IN" ? "←" : "→"} ${slip.party}` : null].filter(Boolean).join(" ").slice(0, 200)
+  const slipNote = ["🧾", slip.bank, slip.party ? `${slip.direction === "IN" ? "←" : "→"} ${slip.party}` : null, slip.consumer ? `(${slip.consumer})` : null]
+    .filter(Boolean)
+    .join(" ")
+    .slice(0, 200)
   const note = [userNote, slipNote].filter(Boolean).join(" · ")
   const info: SlipInfo = { kind, amount: slip.amount, currency: slip.currency, bank: slip.bank, party: slip.party, date: slip.date, time: slip.time, note: userNote }
   const action = {

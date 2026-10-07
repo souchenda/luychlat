@@ -24,6 +24,10 @@ export type Slip = {
    * "*" for each masked run ("016*4222"); null when the slip shows none.
    */
   account: string | null
+  /** The name printed with the slip owner's account ("DL USD"), if any. */
+  accountName?: string | null
+  /** A bill payment / top-up's consumer ID or phone number, if any. */
+  consumer?: string | null
 }
 
 /**
@@ -54,6 +58,8 @@ export function cleanSlip(raw: unknown): Slip | null {
     time,
     party: text(r.party, 60),
     account: cleanAccount(r.account),
+    accountName: text(r.account_name, 40),
+    consumer: text(r.consumer, 30),
   }
 }
 
@@ -142,8 +148,16 @@ function atBank(w: BotWallet, bank: string | null): boolean {
  *    for a riel slip, nor another bank's wallet for this bank's slip.
  * Credit cards only when their number matches.
  */
-export function resolveWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pick<Slip, "account">>, wallets: BotWallet[]): WalletPick | null {
+export function resolveWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pick<Slip, "account" | "accountName">>, wallets: BotWallet[]): WalletPick | null {
   if (!wallets.length) return null
+  // The slip prints the account's own name ("DL USD (016 824 222)"): a wallet with exactly that name, in the slip's currency.
+  const printed = slip.accountName?.trim().toLowerCase()
+  if (printed) {
+    const named = wallets.filter((w) => w.name.trim().toLowerCase() === printed)
+    const one = named.filter((w) => w.currency === slip.currency)
+    if (one.length === 1) return { wallet: one[0] }
+    if (named.length === 1) return { wallet: named[0] }
+  }
   const account = slip.account ?? null
   const decide = (pool: BotWallet[]): WalletPick | null =>
     pool.length === 1 ? { wallet: pool[0] } : pool.length > 1 ? { choices: pool.slice(0, MAX_CHOICES) } : null

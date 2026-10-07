@@ -79,7 +79,11 @@ export async function handleGroupSlip(chatId: number, photo: Photo): Promise<boo
   const slip: Slip = read.slip
   const kind = slip.direction === "IN" ? "INCOME" : "EXPENSE"
   const category = bizCategory(kind, [slip.party, photo.caption].filter(Boolean).join(" "), ctx.categories)
-  const note = [photo.caption?.trim() || null, ["🧾", slip.bank, slip.party ? `${kind === "INCOME" ? "←" : "→"} ${slip.party}` : null].filter(Boolean).join(" "), `👤 ${photo.fromName}`]
+  const note = [
+    photo.caption?.trim() || null,
+    ["🧾", slip.bank, slip.party ? `${kind === "INCOME" ? "←" : "→"} ${slip.party}` : null, slip.consumer ? `(${slip.consumer})` : null].filter(Boolean).join(" "),
+    `👤 ${photo.fromName}`,
+  ]
     .filter(Boolean)
     .join(" · ")
     .slice(0, 300)
