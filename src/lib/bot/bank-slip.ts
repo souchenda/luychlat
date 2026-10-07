@@ -224,10 +224,15 @@ const CAFE = /caf[eé]|coffee|kopi|espresso|starbucks|amazon|brown|tube|costa
 /**
  * The meal from the payment time (Cambodia, HH:MM): 06:00–10:30 breakfast,
  * 11:00–14:00 lunch, 17:00–21:00 dinner, any other hour (or a café) snack.
+ * A meal named in the words ("បាយល្ងាច", "lunch") wins over the time.
  * Null when there is no time to go by.
  */
 export function mealFor(time: string | null, party: string | null): Meal | null {
   if (party && CAFE.test(party)) return "snack"
+  // A meal named in the words wins over the clock ("បាយល្ងាច" logged the next morning is still dinner).
+  if (party && /បាយព្រឹក|អាហារពេលព្រឹក|breakfast/i.test(party)) return "breakfast"
+  if (party && /បាយថ្ងៃ|ថ្ងៃត្រង់|អាហារថ្ងៃត្រង់|lunch/i.test(party)) return "lunch"
+  if (party && /បាយល្ងាច|អាហារពេលល្ងាច|dinner/i.test(party)) return "dinner"
   const m = time ? /^(\d{2}):(\d{2})$/.exec(time) : null
   if (!m) return null
   const minutes = Number(m[1]) * 60 + Number(m[2])

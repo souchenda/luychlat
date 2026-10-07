@@ -3,7 +3,10 @@ import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
 import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
 import { isEvHome, kwhOf, parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
+import { mealFor, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale } from "@/lib/i18n/dictionaries"
+import { defaultNeedWant } from "@/lib/need-want"
+import { MEAL_KEY, savedCard, tagTransaction, taggedFrom, type TaggedRow } from "@/lib/server/entry-card"
 import { DEFAULT_ABOUT } from "@/lib/app-info"
 import { convert, formatMoney } from "@/lib/money"
 import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
@@ -99,8 +102,18 @@ function failureText(parsed: Extract<ParsedEntry, { ok: false }>, ws: Workspace,
 
 const WS_ICON: Record<Workspace["type"], string> = { PERSONAL: "👤", BUSINESS: "🏪", FAMILY: "👨‍👩‍👧" }
 
+/** An expense's meal (food: from the time now and the words) and Need / Want default, as for bank slips. */
+type EntryTags = { meal: Meal | null; needWant: "NEED" | "WANT" | null }
+function entryTags(parsed: Parsed, text: string): EntryTags {
+  if (parsed.kind !== "EXPENSE") return { meal: null, needWant: null }
+  const preset = parsed.category?.preset_key ?? null
+  const now = phnomPenhToday()
+  const meal = preset === "food" ? mealFor(`${String(now.hour).padStart(2, "0")}:${String(now.minute).padStart(2, "0")}`, text) : null
+  return { meal, needWant: defaultNeedWant({ preset, meal, text }) }
+}
+
 /** The confirmation card's text and buttons (with the workspace switcher when routing). */
-function card(lang: Locale, parsed: Parsed, ws: Workspace, pendingId: string, opts: { heard?: string; switcher?: Workspace[] }) {
+function card(lang: Locale, parsed: Parsed, ws: Workspace, pendingId: string, opts: { heard?: string; switcher?: Workspace[]; tags?: EntryTags }) {
   const money = formatMoney(parsed.amount, parsed.currency)
   const fromWallet =
     parsed.wallet.currency === parsed.currency
@@ -118,7 +131,8 @@ function card(lang: Locale, parsed: Parsed, ws: Workspace, pendingId: string, op
           tr(lang, parsed.kind === "INCOME" ? "bot.cardIncome" : "bot.cardExpense"),
           `💵 ${money}`,
           fromWallet,
-          `🏷️ ${parsed.category?.name ?? tr(lang, "bot.cardUncategorized")}`,
+          `🏷️ ${parsed.category?.name ?? tr(lang, "bot.cardUncategorized")}${opts.tags?.meal ? ` · ${tr(lang, MEAL_KEY[opts.tags.meal])}` : ""}`,
+          ...(opts.tags?.needWant ? [tr(lang, opts.tags.needWant === "NEED" ? "bot.need" : "bot.want")] : []),
         ]
   if (opts.switcher) lines.push(tr(lang, "bot.cardWorkspace", { name: `${WS_ICON[ws.type]} ${ws.name}` }))
   if (opts.heard) lines.unshift(tr(lang, "bot.voiceHeard", { text: opts.heard }))
@@ -141,11 +155,21 @@ function card(lang: Locale, parsed: Parsed, ws: Workspace, pendingId: string, op
 }
 
 /** Saves the proposal in the database (it checks the plan and workspace) and returns its id. */
-async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { text: string; heard?: string; route: boolean }) {
+async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { text: string; heard?: string; route: boolean; tags?: EntryTags }) {
   const base =
     parsed.kind === "REPAY"
       ? { kind: "REPAY", debt_id: parsed.debt.id, wallet_id: parsed.wallet.id, amount: parsed.amount, note: parsed.note }
-      : { kind: parsed.kind, wallet_id: parsed.wallet.id, category_id: parsed.category?.id ?? null, amount: parsed.amount, currency: parsed.currency, note: parsed.note }
+      : {
+          kind: parsed.kind,
+          wallet_id: parsed.wallet.id,
+          category_id: parsed.category?.id ?? null,
+          amount: parsed.amount,
+          currency: parsed.currency,
+          note: parsed.note,
+          // Stored by bot_confirm (expenses): the meal and the Need / Want default.
+          subcategory: extra.tags?.meal ?? null,
+          need_want: extra.tags?.needWant ?? null,
+        }
   // The parsed text (and transcript) are kept so the card can be re-done for another workspace.
   const action = { ...base, text: extra.text, heard: extra.heard ?? null, ...(extra.route ? { workspace_id: ws.id } : {}) }
   const { data, error } = await botDb().rpc("bot_propose", { p_key: botKey(), p_chat_id: chatId, p_action: action })
@@ -184,9 +208,10 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
     return reply(failureText(parsed, ws, lang))
   }
 
-  const pendingId = await propose(chatId, parsed, ws, { text: input, heard, route })
+  const tags = entryTags(parsed, input)
+  const pendingId = await propose(chatId, parsed, ws, { text: input, heard, route, tags })
   if (!pendingId) return reply(tr(lang, "bot.saveFailed"))
-  const { text: body, reply_markup } = card(lang, parsed, ws, pendingId, { heard, switcher: route ? all : undefined })
+  const { text: body, reply_markup } = card(lang, parsed, ws, pendingId, { heard, switcher: route ? all : undefined, tags })
   return sendText(chatId, body, { reply_markup })
 }
 
@@ -345,9 +370,10 @@ async function switchWorkspace(cb: Callback, chatId: number, pendingId: string, 
   if (!parsed.ok) return answer(`${WS_ICON[target.type]} ${target.name}: ${failureText(parsed, target, lang)}`, true)
   const heard = action.heard ?? undefined
   // A new proposal replaces the old one (one open card per chat).
-  const newId = await propose(chatId, parsed, target, { text: action.text, heard, route: true })
+  const tags = entryTags(parsed, action.text)
+  const newId = await propose(chatId, parsed, target, { text: action.text, heard, route: true, tags })
   if (!newId) return answer(tr(lang, "bot.saveFailed"), true)
-  const { text, reply_markup } = card(lang, parsed, target, newId, { heard, switcher: all })
+  const { text, reply_markup } = card(lang, parsed, target, newId, { heard, switcher: all, tags })
   await answer(tr(lang, "bot.switched", { name: target.name }))
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(text), reply_markup })
 }
@@ -356,6 +382,7 @@ type Confirmed = {
   ok: boolean
   reason?: string
   kind?: string
+  tx_id?: string
   wallet?: string
   balance?: number
   wallet_currency?: "USD" | "KHR"
@@ -392,6 +419,7 @@ export async function handleCallback(cb: Callback) {
   const lang = contextLocale(ctx)
   const db = botDb()
   let outcome: string
+  let savedTx: { id: string; workspace: string | null } | null = null
   if (verb === "no") {
     await db.rpc("bot_cancel", { p_key: botKey(), p_chat_id: chatId, p_pending_id: id })
     outcome = tr(lang, "bot.cancelled")
@@ -417,9 +445,20 @@ export async function handleCallback(cb: Callback) {
           : tr(lang, "bot.saved", { wallet: r.wallet ?? "" })
       // With several workspaces, say which one it went to.
       if (isRouting(ctx) && r.workspace) outcome += ` · 🏢 ${r.workspace}`
+      if (r.kind === "EXPENSE" && r.tx_id) savedTx = { id: r.tx_id, workspace: isRouting(ctx) ? (r.workspace ?? null) : null }
     }
   }
   await tg("answerCallbackQuery", { callback_query_id: cb.id })
+  // A saved expense: the same card as a bank slip — ✓ on its meal and Need / Want, one tap to switch, 📝 note.
+  if (verb === "ok" && savedTx) {
+    const { data: row } = await tagTransaction(chatId, savedTx.id, null, null)
+    if ((row as { ok?: boolean } | null)?.ok) {
+      const saved = savedCard(lang, savedTx.id, taggedFrom(lang, row as TaggedRow))
+      const text = savedTx.workspace ? `${saved.text}\n🏢 ${savedTx.workspace}` : saved.text
+      await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(text).slice(0, 4000), reply_markup: saved.reply_markup })
+      return
+    }
+  }
   // Keep the card's details, drop the question and buttons, add the outcome.
   const details = (cb.message?.text ?? "").split("\n\n")[0]
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(`${details}\n\n${outcome}`).slice(0, 4000) })
