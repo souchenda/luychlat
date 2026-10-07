@@ -4,6 +4,9 @@
 // number ("$730/ឆ្នាំ", "៥០%", "២០,០០០៛") picked out in bold gold. Drawn with
 // Skia (@napi-rs/canvas), whose HarfBuzz shaping gets Khmer right; lines break
 // at Khmer word boundaries (Intl.Segmenter), never inside a cluster.
+// Typeface: Kantumruy Pro, the app's brand font (public/fonts, SIL OFL).
+import path from "node:path"
+
 import { createCanvas, GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas"
 
 import { longDate } from "@/lib/dates"
@@ -12,12 +15,14 @@ const W = 1080
 const H = 1350
 const PAD = 90
 const GOLD = "#fcd34d"
-const FAMILIES = `"Noto Sans Khmer", "Khmer UI", "Noto Sans", sans-serif`
+const FAMILIES = `"Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", sans-serif`
 
 let fontsLoaded = false
 function loadFonts() {
   if (fontsLoaded) return
   fontsLoaded = true
+  // The brand font first (shipped in public/), system fonts only as a fallback.
+  for (const weight of [400, 600, 700]) GlobalFonts.registerFromPath(path.join(process.cwd(), "public", "fonts", `KantumruyPro-${weight}.ttf`), "Kantumruy Pro")
   for (const dir of ["/usr/share/fonts", "C:/Windows/Fonts"]) GlobalFonts.loadFontsFromDir(dir)
 }
 
@@ -147,13 +152,25 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
   ctx.fillText("លុយឆ្លាត · LuyChlat", PAD + mark + 26, PAD + mark / 2 - 4)
   ctx.textBaseline = "alphabetic"
 
-  // Label in gold, then the title.
-  ctx.font = `600 34px ${FAMILIES}`
+  // Tag pill, the date under it, then the title.
+  const label = "គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ"
+  ctx.font = `600 32px ${FAMILIES}`
+  const pillW = ctx.measureText(label).width + 52
+  roundRect(ctx, PAD, 262, pillW, 64, 32)
+  ctx.fillStyle = "rgba(252,211,77,0.16)"
+  ctx.fill()
+  ctx.lineWidth = 2
+  ctx.strokeStyle = "rgba(252,211,77,0.55)"
+  ctx.stroke()
   ctx.fillStyle = GOLD
-  ctx.fillText("គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", PAD, 330)
-  ctx.font = `700 82px ${FAMILIES}`
+  ctx.fillText(label, PAD + 26, 306)
+  const [yy, mm, dd] = day.split("-").map(Number)
+  ctx.font = `400 30px ${FAMILIES}`
+  ctx.fillStyle = "rgba(254,243,199,0.85)"
+  ctx.fillText(longDate(new Date(yy, mm - 1, dd, 12), "km"), PAD, 378)
+  ctx.font = `700 80px ${FAMILIES}`
   const titleLines = wrap(ctx, tip.title, W - 2 * PAD, 3)
-  let y = 450
+  let y = 500
   for (const line of titleLines) {
     drawRich(ctx, line, PAD, y, 82, { weight: 700, color: "#ffffff" })
     y += 118
@@ -167,25 +184,22 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
   ctx.font = `400 42px ${FAMILIES}`
   const lineH = 74
   const top = y + 60
-  const maxBody = Math.max(1, Math.floor((H - 250 - top) / lineH))
+  const maxBody = Math.max(1, Math.floor((H - 260 - top) / lineH))
   let by = top
   for (const line of wrap(ctx, tip.body, W - 2 * PAD, maxBody)) {
     drawRich(ctx, line, PAD, by, 42, { weight: 400, color: "#ecfdf5" })
     by += lineH
   }
 
-  // Footer: a thin rule, the call to action, the date and the channel.
+  // Footer, left-aligned: record with the bot, join the community.
   ctx.fillStyle = "rgba(255,255,255,0.25)"
-  ctx.fillRect(PAD, H - 190, W - 2 * PAD, 2)
+  ctx.fillRect(PAD, H - 200, W - 2 * PAD, 2)
   ctx.font = `600 32px ${FAMILIES}`
   ctx.fillStyle = "#ffffff"
-  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", PAD, H - 128)
-  const [yy, mm, dd] = day.split("-").map(Number)
-  ctx.font = `400 28px ${FAMILIES}`
+  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", PAD, H - 136)
+  ctx.font = `400 30px ${FAMILIES}`
   ctx.fillStyle = "#a7f3d0"
-  ctx.fillText(longDate(new Date(yy, mm - 1, dd, 12), "km"), PAD, H - 78)
-  ctx.textAlign = "right"
-  ctx.fillText("@LuyChlatCommunity", W - PAD, H - 78)
+  ctx.fillText("ចូលរួមសហគមន៍ លុយឆ្លាត @LuyChlatCommunity", PAD, H - 84)
 
   return canvas.toBuffer("image/png")
 }
