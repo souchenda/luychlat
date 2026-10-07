@@ -4,12 +4,12 @@
 // blessing, not a money lecture. The motifs (pagoda spire, lotus, tiffin
 // carrier and ansom) are drawn in gold line art — the server has no emoji font.
 // Dates: the official national holiday, Sat 10 – Mon 12 Oct 2026 (Pchum Thom
-// Sun 11 Oct, lib/holidays.ts). Footer: two
+// Sun 11 Oct, lib/holidays.ts). Footer: app · community · website, with drawn icons. Footer: two
 // left-aligned lines, no badge. Admins preview with "/poster pchumben".
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 
 import { botToken } from "./telegram-bot"
-import { FAMILIES, drawSpread, loadFonts, roundRect, wrap } from "./tip-poster"
+import { FAMILIES, drawIcon, drawSpread, loadFonts, roundRect, wrap, type Icon } from "./tip-poster"
 
 const W = 1080
 const H = 1080
@@ -274,16 +274,22 @@ export function pchumBenPoster(): Buffer {
   const lines = wrap(ctx, c.blessing, W - 2 * PAD, 5)
   lines.forEach((line, i) => ctx.fillText(line, PAD, 688 + i * 66))
 
-  // Footer: two clean lines, left-aligned (no second brand mark).
-  const fTop = H - 132
+  // Footer: the approved three items, each with a drawn gold icon, left-aligned (no pill or button).
+  const fTop = H - 196
   ctx.fillStyle = "rgba(52,211,153,0.28)"
   ctx.fillRect(PAD, fTop, W - 2 * PAD, 1.5)
-  ctx.font = `600 26px ${FAMILIES}`
-  ctx.fillStyle = "#ffffff"
-  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", PAD, fTop + 48)
-  ctx.font = `500 25px ${FAMILIES}`
-  ctx.fillStyle = "#a7f3d0"
-  ctx.fillText("ចូលរួមសហគមន៍ លុយឆ្លាត @LuyChlatCommunity", PAD, fTop + 90)
+  const items: [Icon, string, number, string][] = [
+    ["phone", "កត់ត្រាចំណូល-ចំណាយ ជាមួយ @luychlat_bot", 600, "#ffffff"],
+    ["plane", "សហគមន៍ លុយឆ្លាត", 500, "#d1fae5"],
+    ["globe", "luy.ibmserp.com", 500, "#d1fae5"],
+  ]
+  items.forEach(([kind, text, weight, color], i) => {
+    const baseline = fTop + 58 + i * 46
+    drawIcon(ctx, kind, PAD + 14, baseline - 10)
+    ctx.font = `${weight} 26px ${FAMILIES}`
+    ctx.fillStyle = color
+    ctx.fillText(text, PAD + 44, baseline)
+  })
 
   return canvas.toBuffer("image/png")
 }

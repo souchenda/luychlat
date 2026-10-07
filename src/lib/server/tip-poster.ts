@@ -127,9 +127,9 @@ export function drawSpread(ctx: SKRSContext2D, text: string, x: number, y: numbe
   }
 }
 
-type Icon = "phone" | "plane" | "globe"
+export type Icon = "phone" | "plane" | "globe"
 /** Small gold line icons centred on (cx, cy): a phone, Telegram's paper plane, a globe. */
-function drawIcon(ctx: SKRSContext2D, icon: Icon, cx: number, cy: number) {
+export function drawIcon(ctx: SKRSContext2D, icon: Icon, cx: number, cy: number) {
   ctx.save()
   ctx.strokeStyle = GOLD
   ctx.fillStyle = GOLD
