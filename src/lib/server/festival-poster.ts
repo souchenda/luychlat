@@ -3,8 +3,8 @@
 // the founder's religious-wording rules: "សូមអនុមោទនា…", never "រីករាយ"; a
 // blessing, not a money lecture. The motifs (pagoda spire, lotus, tiffin
 // carrier and ansom) are drawn in gold line art — the server has no emoji font.
-// Dates as set by the founder: 10–13 Oct 2026 (Pchum Thom Sun 11 Oct; the
-// official schedule lists the public holiday as 10–12 Oct). Footer: two
+// Dates: the official national holiday, Sat 10 – Mon 12 Oct 2026 (Pchum Thom
+// Sun 11 Oct, lib/holidays.ts). Footer: two
 // left-aligned lines, no badge. Admins preview with "/poster pchumben".
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 
@@ -153,8 +153,8 @@ const PCHUM_BEN_2026 = {
   pill: "ពិធីបុណ្យប្រពៃណីជាតិ",
   lead: "សូមអនុមោទនាពិធីបុណ្យ",
   title: "ភ្ជុំបិណ្ឌ",
-  // As set by the founder (the official schedule lists the public holiday as 10–12 Oct).
-  date: "ថ្ងៃទី ១០ ដល់ ១៣ ខែតុលា ឆ្នាំ២០២៦",
+  // The official national holiday (Sat 10 – Mon 12 Oct 2026).
+  date: "ថ្ងៃទី ១០ ដល់ ១២ ខែតុលា ឆ្នាំ២០២៦",
   blessing:
     "សូមឧទ្ទិសកុសលផលបុណ្យជូនដល់បុព្វការីជនដែលបានចែកឋាន និងសូមជូនពរលោកអ្នកព្រមទាំងក្រុមគ្រួសារ ជួបតែសេចក្តីសុខ សុភមង្គល និងសុវត្ថិភាពក្នុងការធ្វើដំណើរទៅស្រុកកំណើតជួបជុំបងប្អូន។",
 }
