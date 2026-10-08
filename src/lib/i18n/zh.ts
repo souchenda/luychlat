@@ -3332,4 +3332,10 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "kids.count": "{n} 笔",
   "kids.hint": "在机器人卡片上点「👶 为孩子」，或在备注写「孩子」「学校」",
   "pool.khqrPosted": "📲 已将 KHQR 发到 Telegram 群",
+  "bills.scan": "📷 拍摄电费 / 水费账单",
+  "bills.scanReading": "正在识别账单…",
+  "bills.scanFilled": "✨ 已根据账单填写——保存前请核对",
+  "bills.scanNone": "无法识别此照片中的账单——请拍清晰些或手动填写",
+  "bills.scanBusy": "账单识别繁忙——请重试",
+  "bills.history": "用量与账单记录",
 }

@@ -11,6 +11,43 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
  * with reminders N days before each due date (app notifications and Telegram,
  * see run_bill_alerts). "Paid" covers one due date at a time (paid_until).
  */
+import type { UtilityBill } from "@/lib/utility-bill"
+
+/** One month's paper bill under a recurring bill (public.bill_statements). */
+export type BillStatement = {
+  id: string
+  bill_id: string
+  due_date: string | null
+  amount: number
+  currency: "KHR" | "USD"
+  usage: number | null
+  rate: number | null
+  invoice_no: string | null
+  status: "PENDING" | "PAID"
+  created_at: string
+}
+
+/** A bill's statements, newest first (the usage history). */
+export function useBillStatements(billId: string | null | undefined) {
+  const { scope } = useRepo()
+  return useQuery({
+    queryKey: ["bill-statements", scope, billId ?? ""],
+    enabled: Boolean(billId),
+    queryFn: async () => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) return [] as BillStatement[]
+      const { data, error } = await supabase
+        .from("bill_statements")
+        .select("id, bill_id, due_date, amount, currency, usage, rate, invoice_no, status, created_at")
+        .eq("bill_id", billId!)
+        .order("due_date", { ascending: false, nullsFirst: false })
+        .limit(12)
+      if (error) return [] as BillStatement[]
+      return ((data ?? []) as BillStatement[]).map((s) => ({ ...s, amount: Number(s.amount), usage: s.usage == null ? null : Number(s.usage), rate: s.rate == null ? null : Number(s.rate) }))
+    },
+  })
+}
+
 export type BillKind = "ELECTRICITY" | "WATER" | "INTERNET" | "RENT" | "WASTE" | "LOAN" | "NSSF" | "OTHER"
 export type BillFrequency = "MONTHLY" | "YEARLY"
 export type NssfType = "self_employed_monthly" | "self_employed_yearly" | "enterprise"
@@ -140,14 +177,43 @@ export function useBillMutations(workspaceId: string | undefined) {
     return supabase
   }
   return {
+    /** Saves the bill; returns its id (for a scanned bill's statement). */
     save: useMutation({
-      mutationFn: async ({ id, input }: { id?: string; input: BillInput }) => {
-        const { error } = id
-          ? await client().from("recurring_bills").update(input).eq("id", id)
-          : await client().from("recurring_bills").insert({ workspace_id: workspaceId, ...input })
+      mutationFn: async ({ id, input }: { id?: string; input: BillInput }): Promise<string> => {
+        if (id) {
+          const { error } = await client().from("recurring_bills").update(input).eq("id", id)
+          if (error) throw error
+          return id
+        }
+        const { data, error } = await client().from("recurring_bills").insert({ workspace_id: workspaceId, ...input }).select("id").single()
         if (error) throw error
+        return (data as { id: string }).id
       },
       onSuccess: done,
+    }),
+    /** This month's scanned paper bill under its recurring bill (a re-scan of the same invoice is ignored). */
+    addStatement: useMutation({
+      mutationFn: async ({ billId, s }: { billId: string; s: UtilityBill }) => {
+        const { error } = await client().from("bill_statements").upsert(
+          {
+            bill_id: billId,
+            workspace_id: workspaceId,
+            due_date: s.dueDate,
+            amount: s.amount,
+            currency: s.currency,
+            usage: s.usage,
+            rate: s.rate,
+            invoice_no: s.invoiceNo,
+            customer_id: s.customerId,
+            customer_name: s.customerName,
+            location: s.location,
+            provider: s.provider,
+          },
+          { onConflict: "bill_id,invoice_no", ignoreDuplicates: true },
+        )
+        if (error) throw error
+      },
+      onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["bill-statements", scope] }),
     }),
     remove: useMutation({
       mutationFn: async (id: string) => {

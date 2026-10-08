@@ -3379,6 +3379,12 @@ const km = {
   "kids.count": "{n} ចំណាយ",
   "kids.hint": "ចុច «👶 សម្រាប់កូន» លើកាតក្នុង Bot ឬសរសេរ «កូន» «សាលា» ក្នុងចំណាំ",
   "pool.khqrPosted": "📲 បានផ្ញើ KHQR ទៅក្រុម Telegram រួចហើយ",
+  "bills.scan": "📷 ថតវិក្កយបត្រភ្លើង / ទឹក",
+  "bills.scanReading": "កំពុងអានវិក្កយបត្រ…",
+  "bills.scanFilled": "✨ បានបំពេញពីវិក្កយបត្រ — សូមពិនិត្យមុនរក្សាទុក",
+  "bills.scanNone": "អានវិក្កយបត្រពីរូបនេះមិនបានទេ — សូមថតឱ្យច្បាស់ ឬវាយបញ្ចូលដោយដៃ",
+  "bills.scanBusy": "សេវាអានវិក្កយបត្ររវល់បន្តិច — សូមសាកម្ដងទៀត",
+  "bills.history": "ប្រវត្តិប្រើប្រាស់ និងវិក្កយបត្រ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6747,6 +6753,12 @@ const en: Record<MessageKey, string> = {
   "kids.count": "{n} expenses",
   "kids.hint": "Tap «👶 For my child» on the bot's card, or write «child» / «school» in the note",
   "pool.khqrPosted": "📲 KHQR posted in the Telegram group",
+  "bills.scan": "📷 Scan an electricity / water bill",
+  "bills.scanReading": "Reading the bill…",
+  "bills.scanFilled": "✨ Filled in from the bill — please check before saving",
+  "bills.scanNone": "Couldn't read a bill in this photo — take a sharper one, or type it in",
+  "bills.scanBusy": "Bill reading is busy — please try again",
+  "bills.history": "Usage and bill history",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
