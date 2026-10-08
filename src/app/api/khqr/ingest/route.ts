@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 
 import { parseMerchantPayment } from "@/lib/bot/merchant-khqr"
 import { logEvent } from "@/lib/server/events"
-import { announce, recordedText, transferText, type TransferResult } from "@/lib/server/biz-group-bot"
+import { notifyOwner, ownerText, transferText, type TransferResult } from "@/lib/server/biz-group-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 
@@ -31,20 +31,6 @@ import { botDb, botKey } from "@/lib/server/telegram-bot"
  * 402 plan required · 403 not allowed · 422 not a payment / no wallet · 429 too many.
  */
 export const runtime = "nodejs"
-
-type LinkedGroup = { chat_id: number | string; title: string | null }
-
-const BANK_TITLES: Record<string, RegExp> = { ACLEDA: /acleda|អេស៊ីលីដា/i, ABA: /(^|[^a-z])aba([^a-z]|$)/i }
-
-/**
- * Where a payment is announced: the groups whose title names its bank ("DL ABA KHQR");
- * if none does, the groups that name no bank — never another bank's group.
- */
-function groupsForBank(groups: LinkedGroup[], bank: string): LinkedGroup[] {
-  const banksIn = (g: LinkedGroup) => Object.keys(BANK_TITLES).filter((b) => BANK_TITLES[b].test(g.title ?? ""))
-  const own = groups.filter((g) => banksIn(g).includes(bank.toUpperCase()))
-  return own.length ? own : groups.filter((g) => banksIn(g).length === 0)
-}
 
 // lck_… a business's key (Sales income); lcp_… a shared pool's key (asks its group which share paid).
 const KEY = /^lc[kp]_[a-f0-9]{64}$/
@@ -138,19 +124,15 @@ export async function POST(request: Request) {
   const status = http[r.status] ?? 500
   const message =
     r.status === "ok" && r.amount !== undefined && r.currency
-      ? await recordedText(r, "km", pay.bank)
+      ? await ownerText(r, pay.payer)
       : r.status === "transfer" && r.amount !== undefined && r.currency
         ? transferText(r as TransferResult)
         : null
 
   if (r.status === "ok" || r.status === "transfer") {
     logEvent("info", "khqr", `KHQR ${r.bank} ${r.status === "transfer" ? "own transfer" : "payment"} pushed by API (${r.workspace})`, { fold: true })
-    // Optional: say so in the business's linked Telegram group for this bank.
-    if (body.notify_group === true && message && r.workspace_id) {
-      const { data: groups } = await botDb().rpc("bot_biz_groups_of", { p_key: botKey(), p_workspace_id: r.workspace_id })
-      // One retry; a failure is logged (a dropped confirmation used to leave no trace).
-      for (const g of groupsForBank((groups as LinkedGroup[] | null) ?? [], r.bank ?? pay.bank)) await announce(Number(g.chat_id), message)
-    }
+    // The bank groups stay clean: the business owner is told privately (their chat with the bot).
+    if (message && r.workspace_id) await notifyOwner({ workspaceId: r.workspace_id }, message)
   }
 
   return NextResponse.json(

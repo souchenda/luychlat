@@ -30,6 +30,8 @@ export type Slip = {
   owner?: string | null
   /** A bill payment / top-up's consumer ID or phone number, if any. */
   consumer?: string | null
+  /** The account the money went TO (digits, "*" for masked runs), if printed. */
+  toAccount?: string | null
 }
 
 /**
@@ -45,6 +47,9 @@ export function cleanSlip(raw: unknown): Slip | null {
   const cur = String(r.currency ?? "").toUpperCase()
   const currency = cur === "USD" || cur === "$" ? "USD" : cur === "KHR" || cur === "៛" || cur === "RIEL" ? "KHR" : null
   if (!currency || !Number.isFinite(amount) || amount <= 0 || amount >= 1e12) return null
+  const timeAmount = typeof r.time === "string" ? /(\d{1,2}):(\d{2})/.exec(r.time) : null
+  // "11:27 AM" read as $11 — a small amount equal to the slip's hour or minute is a misread, not a payment.
+  if (timeAmount && amount < 60 && (amount === Number(timeAmount[1]) || amount === Number(timeAmount[2]))) return null
   const date = typeof r.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.date) && !Number.isNaN(Date.parse(`${r.date}T00:00:00Z`)) ? r.date : null
   // "19:05", "7:05 PM", "07:05:33 am" → "19:05" / "07:05".
   const hm = typeof r.time === "string" ? /^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?[Mm]?\.?$/.exec(r.time.trim()) : null
@@ -56,7 +61,8 @@ export function cleanSlip(raw: unknown): Slip | null {
     amount: currency === "KHR" ? Math.round(amount) : Math.round(amount * 100) / 100,
     currency,
     direction: String(r.direction ?? "").toUpperCase() === "IN" ? "IN" : "OUT",
-    bank: text(r.bank, 40),
+    // No bank printed but a 3-3-3 account ("001 879 507"): ABA's format.
+    bank: text(r.bank, 40) ?? (typeof r.account === "string" && /^\s*\d{3} \d{3} \d{3}\s*$/.test(r.account) ? "ABA" : null),
     date,
     time,
     party: text(r.party, 60),
@@ -64,6 +70,7 @@ export function cleanSlip(raw: unknown): Slip | null {
     accountName: text(r.account_name, 40),
     owner: text(r.owner, 60),
     consumer: text(r.consumer, 30),
+    toAccount: cleanAccount(r.to_account),
   }
 }
 

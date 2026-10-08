@@ -13,12 +13,13 @@
 // certain, the group gets one button per candidate (only admins can tap). The
 // category comes from the payee (telecom / EDC / water → utilities, fuel →
 // delivery, tax → tax, else other) and is shown, so it can be fixed in the app.
-import { resolveWallet, walletLabel, type Slip } from "@/lib/bot/bank-slip"
+import { accountScore, resolveWallet, walletLabel, type Slip } from "@/lib/bot/bank-slip"
 import type { BotCategory, BotWallet } from "@/lib/bot/parse-entry"
 import { formatMoney } from "@/lib/money"
 import { walletInstitution } from "@/lib/wallets/providers"
 
 import { logEvent } from "./events"
+import { notifyOwner } from "./biz-group-bot"
 import { readSlip } from "./slip-bot"
 import { botDb, botKey, maskNumbers, tg } from "./telegram-bot"
 
@@ -68,15 +69,21 @@ export async function handleGroupSlip(chatId: number, photo: Photo): Promise<boo
   // Admins only — anyone else's photo (a customer's screenshot…) is left alone.
   if (!(await isGroupAdmin(chatId, photo.fromId))) return true
 
+  // Only the "which wallet?" buttons are posted in the group (admins tap them there);
+  // everything else goes to the business owner privately — the bank group stays clean.
   const reply = (text: string, extra: Record<string, unknown> = {}) =>
     tg("sendMessage", { chat_id: chatId, text, reply_to_message_id: photo.messageId, allow_sending_without_reply: true, ...extra })
-  await tg("sendChatAction", { chat_id: chatId, action: "typing" })
+  const tell = (text: string) => notifyOwner({ group: chatId }, text)
   const read = await readSlip(photo.fileId)
   if ("error" in read) {
-    await reply(read.error === "busy" ? "⚠️ មិនអាចអានវិក្កយបត្របានឥឡូវនេះ — សូមផ្ញើម្ដងទៀតបន្តិចក្រោយ។" : "⚠️ រូបនេះមិនមែនជាវិក្កយបត្រធនាគារ ឬអានមិនច្បាស់ទេ។")
+    await tell(read.error === "busy" ? "⚠️ មិនអាចអានវិក្កយបត្រក្នុងក្រុមបានឥឡូវនេះ — សូមផ្ញើម្ដងទៀតបន្តិចក្រោយ។" : "⚠️ រូបក្នុងក្រុមមិនមែនជាវិក្កយបត្រធនាគារ ឬអានមិនច្បាស់ទេ។")
     return true
   }
   const slip: Slip = read.slip
+  // Money sent TO one of the business's own accounts is the business's income — a customer's
+  // slip shows "-867,700 KHR" because it is the customer's debit. Then it goes into that wallet.
+  const intoBusiness = slip.direction === "OUT" && slip.toAccount ? ctx.wallets.filter((w) => accountScore(slip.toAccount!, w.account_no) >= 6) : []
+  if (intoBusiness.length) Object.assign(slip, { direction: "IN" as const, account: slip.toAccount, accountName: null })
   const kind = slip.direction === "IN" ? "INCOME" : "EXPENSE"
   const category = bizCategory(kind, [slip.party, photo.caption].filter(Boolean).join(" "), ctx.categories)
   const note = [
@@ -101,7 +108,7 @@ export async function handleGroupSlip(chatId: number, photo: Photo): Promise<boo
 
   const pick = resolveWallet(slip, ctx.wallets)
   if (!pick) {
-    await reply(`⚠️ ${ctx.name} មិនទាន់មានកាបូបទេ។`)
+    await tell(`⚠️ ${ctx.name} មិនទាន់មានកាបូបទេ។`)
     return true
   }
   if ("choices" in pick) {
@@ -119,12 +126,12 @@ export async function handleGroupSlip(chatId: number, photo: Photo): Promise<boo
   const r = rec as Recorded | null
   if (error || !r) {
     logEvent("error", "biz-slip", `Group slip failed: ${error?.message ?? "no result"}`, { fold: true })
-    await reply("⚠️ មិនអាចកត់ត្រាបានទេ។ សូមសាកម្ដងទៀត។")
+    await tell("⚠️ វិក្កយបត្រក្នុងក្រុម៖ មិនអាចកត់ត្រាបានទេ។ សូមសាកម្ដងទៀត។")
   } else if (r.status === "ok") {
     logEvent("info", "biz-slip", `Group slip recorded (${r.workspace}, by a group admin)`, { fold: true })
-    await reply(recordedText(r, photo.fromName))
+    await tell(recordedText(r, photo.fromName))
   } else if (r.status === "duplicate") {
-    await reply("ℹ️ វិក្កយបត្រនេះបានកត់ត្រារួចហើយ។")
+    await tell("ℹ️ វិក្កយបត្រនេះបានកត់ត្រារួចហើយ។")
   }
   return true
 }

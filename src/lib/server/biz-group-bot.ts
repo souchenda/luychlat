@@ -31,6 +31,42 @@ export async function recordedText(r: Recorded, lang: Locale, fallbackBank: stri
   return d ? `${head}\n${tr(lang, "biz.today", { total: formatMoney(Number(d.total), d.currency), count: d.count })}` : head
 }
 
+/**
+ * The owner's private note for a recorded payment — bank groups stay clean (only the
+ * banks' own notifications); LuyChlat tells the business owner in their chat with the bot:
+ *   💵 +1,275,000៛ បានកត់ត្រាជោគជ័យ!
+ *   🏢 អាជីវកម្ម៖ DL MEAT SUPPLY · ABA DL KHR
+ *   👤 អតិថិជន៖ Chien Sivutha
+ *   📊 ថ្ងៃនេះ៖ 2,994,000៛ • 2 ប្រតិបត្តិការ
+ */
+export async function ownerText(r: Recorded, payer: string | null | undefined): Promise<string> {
+  const currency = r.currency ?? "USD"
+  const lines = [
+    `💵 +${formatMoney(Number(r.amount), currency)} បានកត់ត្រាជោគជ័យ!`,
+    `🏢 អាជីវកម្ម៖ ${[r.workspace, r.wallet].filter(Boolean).join(" · ")}`,
+    ...(payer?.trim() ? [`👤 អតិថិជន៖ ${payer.replace(/\s*\(\*\d+\)\s*$/, "").trim()}`] : []),
+  ]
+  if (r.transaction_id) {
+    const { data } = await botDb().rpc("bot_khqr_today", { p_key: botKey(), p_transaction_id: r.transaction_id })
+    const d = data as { total: number; count: number; currency: "USD" | "KHR" } | null
+    if (d) lines.push(`📊 ថ្ងៃនេះ៖ ${formatMoney(Number(d.total), d.currency)} • ${d.count} ប្រតិបត្តិការ`)
+  }
+  return lines.join("\n")
+}
+
+/** Tell the business owner privately (their linked chat with the bot); by the business or one of its groups. */
+export async function notifyOwner(where: { workspaceId?: string | null; group?: number | null }, text: string): Promise<boolean> {
+  const { data } = await botDb().rpc("bot_biz_owner_chats", { p_key: botKey(), p_workspace_id: where.workspaceId ?? null, p_group: where.group ?? null })
+  const chats = (data as { chat_id: number }[] | null) ?? []
+  if (!chats.length) {
+    logEvent("warn", "khqr", "Business owner has no linked Telegram chat — confirmation not sent", { fold: true })
+    return false
+  }
+  let sent = false
+  for (const c of chats) sent = (await announce(Number(c.chat_id), text)) || sent
+  return sent
+}
+
 /** Post a confirmation in a group: one retry, and a failure is logged — never silent. */
 export async function announce(chatId: number, text: string): Promise<boolean> {
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -79,14 +115,15 @@ export async function handleKhqrGroupMessage(chatId: number, text: string, lang:
   }
   if (r.status === "ok") {
     logEvent("info", "khqr", `KHQR ${pay.bank} payment recorded (${r.workspace})`, { fold: true })
-    await announce(chatId, await recordedText({ ...r, currency: r.currency ?? pay.currency }, lang, pay.bank))
+    // The group stays clean: the owner hears about it privately.
+    await notifyOwner({ group: chatId }, await ownerText({ ...r, currency: r.currency ?? pay.currency }, pay.payer))
   } else if (r.status === "transfer") {
     logEvent("info", "khqr", `KHQR ${pay.bank} own transfer recorded (${r.workspace})`, { fold: true })
-    await announce(chatId, transferText(r as TransferResult))
+    await notifyOwner({ group: chatId }, transferText(r as TransferResult))
   } else if (r.status === "no_wallet") {
-    await sendText(chatId, tr(lang, "biz.noWallet", { workspace: r.workspace ?? "" }))
+    await notifyOwner({ group: chatId }, tr(lang, "biz.noWallet", { workspace: r.workspace ?? "" }))
   } else if (r.status === "plan_required") {
-    await sendText(chatId, tr(lang, "pool.bot.planRequired"))
+    await notifyOwner({ group: chatId }, tr(lang, "pool.bot.planRequired"))
   }
   // duplicate / not_linked / invalid: stay quiet (retries, or a group that isn't linked).
   return true

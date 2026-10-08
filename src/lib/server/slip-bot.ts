@@ -39,8 +39,9 @@ const PROMPT = [
   "This photo should be a Cambodian bank receipt (ACLEDA, ABA, Wing, Bakong / KHQR, Canadia, Prince, etc.), possibly a phone screenshot:",
   "a transfer, a KHQR / merchant payment, a card / POS purchase (ABA \"Purchase\" with \"Seller:\", \"Purchase #\", \"APV\", \"Trx. ID\"), OR a bill payment / mobile top-up (Smart, Cellcard, Metfone, EDC, water, internet, PIN-less top-up). All of these are valid slips.",
   "Read it and answer JSON only:",
-  '{"is_slip": boolean, "amount": number, "currency": "USD" | "KHR", "direction": "OUT" | "IN", "bank": string, "date": "YYYY-MM-DD" | null, "time": "HH:MM" | null, "party": string | null, "account": string | null, "account_name": string | null, "owner": string | null, "consumer": string | null}',
+  '{"is_slip": boolean, "amount": number, "currency": "USD" | "KHR", "direction": "OUT" | "IN", "bank": string, "date": "YYYY-MM-DD" | null, "time": "HH:MM" | null, "party": string | null, "account": string | null, "account_name": string | null, "owner": string | null, "consumer": string | null, "to_account": string | null}',
   "amount: the transferred / paid amount only (not fees, not a balance), always positive (drop any minus sign) — \"-5.00 USD\" or \"Original amount: 5.00 USD\" is 5.00. Riel (៛, KHR) has no decimals.",
+  "The amount is the large figure at the top of the slip, written with its currency (\"-867,700 KHR\" → 867700 KHR) — even on themed slips with pictures. NEVER take a number from a time (\"11:27 AM\"), a date, a reference or an account number as the amount.",
   "direction: OUT if the slip owner sent or paid money (Transfer to, Paid to, Payment, Purchase, Bill payment, Top-up, a minus sign), IN if they received it.",
   "bank: the app or bank that issued the slip. date: the transaction date. time: the transaction time, 24-hour (convert AM/PM).",
   "party: the recipient (OUT) or sender (IN) name as printed — for a purchase, the Seller / Merchant (\"Seller: HUAT HUAT RESTAURANT BK\" → \"HUAT HUAT RESTAURANT BK\"); for a bill payment or top-up, the biller / service without extras (\"Smart Mobile (PIN-less)\" → \"Smart Mobile\").",
@@ -48,6 +49,7 @@ const PROMPT = [
   "account_name: the label printed with that own account, if any (\"DL USD (016 824 222)\" → \"DL USD\"); null when it is just the holder's name (\"From account: SOK DARA (012 345 678)\" → account \"012 345 678\", owner \"SOK DARA\", account_name null).",
   "owner: the slip owner's account holder name as printed (who paid, for OUT; who received, for IN); null if not shown.",
   "consumer: for a bill payment / top-up, the consumer ID or phone number paid for, as printed; null otherwise.",
+  "to_account: the account or phone number the money went TO (\"To account\", \"ទៅគណនី\", the recipient's number), as printed; null if not shown.",
   'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
