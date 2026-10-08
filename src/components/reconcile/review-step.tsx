@@ -33,6 +33,8 @@ import { showUpgrade } from "@/lib/plan"
 import {
   ensureOwnerCategory,
   importErrorReason,
+  importErrorText,
+  reportImportError,
   importStatement,
   knownFingerprints,
   type ImportPayloadLine,
@@ -274,7 +276,16 @@ export function ReviewStep({
     onError: (error) => {
       const reason = importErrorReason(error)
       if (reason === "plan_required") return showUpgrade("reconcile")
-      toast.error(t(`recon.error.${reason}`))
+      // Anything unexpected: the database's words under the message, and the admins are told.
+      if (reason === "generic" || reason === "changed") {
+        reportImportError(error, {
+          lines: freshLines.length,
+          created: freshLines.filter((l) => decisions[l.line_no]?.action === "create").length,
+          matched: freshLines.filter((l) => decisions[l.line_no]?.action === "match").length,
+          align: align && diff !== null && diff !== 0,
+        })
+      }
+      toast.error(t(`recon.error.${reason}`), reason === "generic" ? { description: importErrorText(error), duration: 15_000 } : undefined)
     },
   })
 

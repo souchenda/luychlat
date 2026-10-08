@@ -124,10 +124,31 @@ export async function deleteImport(importId: string): Promise<void> {
 }
 
 /** Maps a database error to an i18n reason. */
-export function importErrorReason(error: unknown): "already_imported" | "plan_required" | "changed" | "generic" {
+export type ImportErrorReason = "already_imported" | "plan_required" | "changed" | "goal_wallet" | "personal_wallet" | "outside_period" | "category" | "generic"
+
+export function importErrorReason(error: unknown): ImportErrorReason {
   const message = String((error as { message?: string })?.message ?? error)
   if (/already_imported/.test(message)) return "already_imported"
   if (/plan_required/.test(message)) return "plan_required"
   if (/match_/.test(message)) return "changed"
+  if (/goal_transfers_only/.test(message)) return "goal_wallet"
+  if (/personal_wallet/.test(message)) return "personal_wallet"
+  if (/outside the statement period/.test(message)) return "outside_period"
+  if (/category type does not match/.test(message)) return "category"
   return "generic"
+}
+
+/** The database's own words, short — shown under the generic message and sent to the admin log. */
+export function importErrorText(error: unknown): string {
+  const e = error as { message?: string; code?: string } | null
+  return [e?.code, e?.message ?? String(error)].filter(Boolean).join(" ").replace(/\s+/g, " ").trim().slice(0, 300)
+}
+
+/** Tells the admins why a save failed on this phone (the error only, never the statement). */
+export function reportImportError(error: unknown, counts: { lines: number; created: number; matched: number; align: boolean }) {
+  void fetch("/api/client-error", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source: "reconcile", message: `${importErrorText(error)} · lines ${counts.lines}, create ${counts.created}, match ${counts.matched}, align ${counts.align}` }),
+  }).catch(() => null)
 }
