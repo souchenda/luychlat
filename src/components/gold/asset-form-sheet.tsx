@@ -11,18 +11,24 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { stepUp } from "@/components/security/step-up"
-import { ASSET_EMOJI, ASSET_KINDS, type AssetKind, type PhysicalAsset } from "@/lib/assets"
+import { ASSET_EMOJI, ASSET_KINDS, DEFAULT_LIFE_YEARS, LIFE_YEARS, depreciation, type AssetKind, type PhysicalAsset } from "@/lib/assets"
 import { usePhysicalAssetMutations } from "@/lib/assets-data"
 import type { Currency, Debt } from "@/lib/data/types"
+import { khmerDigits } from "@/lib/dates"
 import { debtStatus, remaining } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { useLocaleStore } from "@/stores/locale-store"
 
 const NO_LOAN = "none"
 
-/** Add or edit land, a house, a vehicle…: estimated value, and the bank loan that financed it (optional). */
+/**
+ * Add or edit land, a house, a vehicle, a laptop…: either an estimated value, or — with a
+ * useful life — the purchase cost depreciated straight-line (book value shown live);
+ * and the bank loan that financed it (optional).
+ */
 export function AssetFormSheet({
   open,
   onOpenChange,
@@ -45,6 +51,10 @@ export function AssetFormSheet({
   const [date, setDate] = useState("")
   const [price, setPrice] = useState("")
   const [loanId, setLoanId] = useState(NO_LOAN)
+  // Useful life in years ("0" = no depreciation).
+  const [life, setLife] = useState("0")
+  const locale = useLocaleStore((s) => s.locale)
+  const num = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
   // Loans we owe that are still open (plus the one already linked).
   const loans = debts.filter((d) => d.type === "PAYABLE" && (debtStatus(d) !== "SETTLED" || d.id === asset?.debt_id))
 
@@ -57,16 +67,29 @@ export function AssetFormSheet({
     setDate(asset?.purchase_date ?? "")
     setPrice(asset?.purchase_price != null ? String(asset.purchase_price) : "")
     setLoanId(asset?.debt_id ?? NO_LOAN)
+    setLife(asset ? String(asset.useful_life_months ? Math.round(asset.useful_life_months / 12) : 0) : String(DEFAULT_LIFE_YEARS.HOUSE ?? 0))
   }, [open, asset])
+
+  const pickKind = (k: AssetKind) => {
+    setKind(k)
+    // A new asset takes the usual life for its kind (a laptop 3 years, land none); an existing one keeps its own.
+    if (!asset) setLife(String(DEFAULT_LIFE_YEARS[k] ?? 0))
+  }
+  const lifeMonths = Number(life) > 0 ? Number(life) * 12 : null
+  const cost = price.trim() ? parseAmount(price) : null
+  // The live schedule (once cost and date are in).
+  const schedule = lifeMonths && cost != null && cost >= 0 && date ? depreciation({ purchase_price: cost, purchase_date: date, useful_life_months: lifeMonths, currency }) : null
 
   const busy = add.isPending || update.isPending
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    const estimate = parseAmount(value)
     const bought = price.trim() ? parseAmount(price) : null
     if (!name.trim()) return void toast.error(t("gold.nameRequired"))
-    if (!(estimate >= 0)) return void toast.error(t("walletForm.amountInvalid"))
     if (bought !== null && !(bought >= 0)) return void toast.error(t("walletForm.amountInvalid"))
+    // Depreciating: the cost and date are what the schedule is computed from; the stored value is today's book value.
+    if (lifeMonths && (bought === null || !date)) return void toast.error(t("assets.costRequired"))
+    const estimate = schedule ? schedule.bookValue : parseAmount(value)
+    if (!(estimate >= 0)) return void toast.error(t("walletForm.amountInvalid"))
     const input = {
       kind,
       name: name.trim(),
@@ -76,6 +99,7 @@ export function AssetFormSheet({
       purchase_price: bought === null ? null : roundMoney(bought, currency),
       debt_id: loanId === NO_LOAN ? null : loanId,
       note: null,
+      useful_life_months: lifeMonths,
     }
     const opts = {
       onSuccess: () => {
@@ -102,12 +126,12 @@ export function AssetFormSheet({
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={t(asset ? "assets.edit" : "assets.add")}>
       <form onSubmit={submit} className="space-y-4">
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {ASSET_KINDS.map((k) => (
             <button
               key={k}
               type="button"
-              onClick={() => setKind(k)}
+              onClick={() => pickKind(k)}
               aria-pressed={kind === k}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[11px] leading-tight",
@@ -128,34 +152,92 @@ export function AssetFormSheet({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="asset-value">{t("assets.estimatedValue")}</Label>
-          <div className="flex gap-2">
-            <Input id="asset-value" inputMode="decimal" placeholder="0" className="h-11 min-w-0 flex-1 text-base tabular-nums" value={value} onChange={(e) => setValue(e.target.value)} />
-            <div className="w-28 shrink-0">
-              <Segmented
-                aria-label={t("walletForm.currency")}
-                value={currency}
-                onChange={(v) => setCurrency(v as Currency)}
-                options={[
-                  { value: "USD", label: "$" },
-                  { value: "KHR", label: "៛" },
-                ]}
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">{t("assets.valueHint")}</p>
+          <Label>{t("assets.life")}</Label>
+          <Segmented
+            aria-label={t("assets.life")}
+            value={life}
+            onChange={setLife}
+            options={[
+              { value: "0", label: t("assets.lifeNone") },
+              ...LIFE_YEARS.map((y) => ({ value: String(y), label: t("assets.lifeYears", { n: num(y) }) })),
+            ]}
+          />
+          <p className="text-xs text-muted-foreground">{t(lifeMonths ? "assets.lifeHint" : "assets.lifeNoneHint")}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="asset-date">{t("gold.purchaseDate")}</Label>
-            <Input id="asset-date" type="date" max="9999-12-31" className="h-11" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="asset-price">{t("assets.purchasePrice")}</Label>
-            <Input id="asset-price" inputMode="decimal" placeholder="0" className="h-11 tabular-nums" value={price} onChange={(e) => setPrice(e.target.value)} />
-          </div>
-        </div>
+        {lifeMonths ? (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-price">{t("assets.purchaseCost")}</Label>
+              <div className="flex gap-2">
+                <Input id="asset-price" inputMode="decimal" placeholder="0" className="h-11 min-w-0 flex-1 text-base tabular-nums" value={price} onChange={(e) => setPrice(e.target.value)} />
+                <div className="w-28 shrink-0">
+                  <Segmented
+                    aria-label={t("walletForm.currency")}
+                    value={currency}
+                    onChange={(v) => setCurrency(v as Currency)}
+                    options={[
+                      { value: "USD", label: "$" },
+                      { value: "KHR", label: "៛" },
+                    ]}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-date">{t("gold.purchaseDate")}</Label>
+              <Input id="asset-date" type="date" max="9999-12-31" className="h-11" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            {schedule && (
+              <div className="space-y-1 rounded-xl border bg-muted/40 px-3 py-2.5 text-sm">
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{t("assets.monthly")}</span>
+                  <span className="tabular-nums">−{formatMoney(schedule.monthly, currency)}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-muted-foreground">{t("assets.elapsed")}</span>
+                  <span className="tabular-nums">{t("assets.monthsOf", { done: num(schedule.elapsed), total: num(schedule.life) })}</span>
+                </div>
+                <div className="flex justify-between gap-2 font-semibold">
+                  <span>{t("assets.bookValueToday")}</span>
+                  <span className="tabular-nums text-primary">{formatMoney(schedule.bookValue, currency)}</span>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="asset-value">{t("assets.estimatedValue")}</Label>
+              <div className="flex gap-2">
+                <Input id="asset-value" inputMode="decimal" placeholder="0" className="h-11 min-w-0 flex-1 text-base tabular-nums" value={value} onChange={(e) => setValue(e.target.value)} />
+                <div className="w-28 shrink-0">
+                  <Segmented
+                    aria-label={t("walletForm.currency")}
+                    value={currency}
+                    onChange={(v) => setCurrency(v as Currency)}
+                    options={[
+                      { value: "USD", label: "$" },
+                      { value: "KHR", label: "៛" },
+                    ]}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">{t("assets.valueHint")}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="asset-date">{t("gold.purchaseDate")}</Label>
+                <Input id="asset-date" type="date" max="9999-12-31" className="h-11" value={date} onChange={(e) => setDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="asset-price">{t("assets.purchasePrice")}</Label>
+                <Input id="asset-price" inputMode="decimal" placeholder="0" className="h-11 tabular-nums" value={price} onChange={(e) => setPrice(e.target.value)} />
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="space-y-1.5">
           <Label>{t("assets.loan")}</Label>

@@ -11,7 +11,7 @@ import { InvestmentsTab } from "@/components/gold/investments-tab"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ASSET_EMOJI, assetEquity, type PhysicalAsset } from "@/lib/assets"
+import { ASSET_EMOJI, assetEquity, depreciation, type PhysicalAsset } from "@/lib/assets"
 import { usePhysicalAssets } from "@/lib/assets-data"
 import { canWrite, useActiveWorkspace, useDebts } from "@/lib/data/hooks"
 import { formatWeight, HUN_PER_CHI, HUN_PER_DAMLUNG, holdingPnl, hunToGrams, PLATINUM_GRADES, portfolio, rateFor, type GoldKind, type PlatinumGrade } from "@/lib/gold"
@@ -21,6 +21,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { khmerDigits } from "@/lib/dates"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -55,6 +56,8 @@ function Pnl({ profit, percent, hidden, className }: { profit: number; percent: 
 export default function AssetsPage() {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
+  // Month counts in Khmer digits for Khmer ("១២/៣៦ ខែ").
+  const num = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
   const { khrPerUsd, hideBalances } = usePrefsStore()
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id
@@ -290,6 +293,8 @@ export default function AssetsPage() {
               {assets.map((a) => {
                 const loan = debts.find((d) => d.id === a.debt_id)
                 const eq = assetEquity(a, loan, khrPerUsd)
+                // Depreciating (a laptop, a car): today's book value, not the estimate.
+                const dep = depreciation(a)
                 const fmt = (n: number) => formatMoney(n, a.currency, { hidden: hideBalances })
                 return (
                   <li key={a.id}>
@@ -307,10 +312,30 @@ export default function AssetsPage() {
                             </p>
                           </div>
                           <span className="shrink-0 text-right">
-                            <span className="block font-semibold tabular-nums">{fmt(a.estimated_value)}</span>
-                            <span className="block text-[11px] text-muted-foreground">{t("assets.estimated")}</span>
+                            <span className="block font-semibold tabular-nums">{fmt(dep ? dep.bookValue : a.estimated_value)}</span>
+                            <span className="block text-[11px] text-muted-foreground">{t(dep ? "assets.bookValue" : "assets.estimated")}</span>
                           </span>
                         </div>
+                        {dep && (
+                          <div className="space-y-1.5 border-t pt-2 text-xs">
+                            <div className="flex justify-between gap-2 text-muted-foreground">
+                              <span className="truncate">
+                                {dep.done ? t("assets.fullyDepreciated") : t("assets.perMonth", { amount: fmt(dep.monthly) })}
+                              </span>
+                              <span className="shrink-0 tabular-nums">{t("assets.monthsOf", { done: num(dep.elapsed), total: num(dep.life) })}</span>
+                            </div>
+                            <div
+                              className="h-1.5 overflow-hidden rounded-full bg-muted"
+                              role="progressbar"
+                              aria-valuenow={Math.round((dep.elapsed / dep.life) * 100)}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-label={t("assets.monthsOf", { done: num(dep.elapsed), total: num(dep.life) })}
+                            >
+                              <div className="h-full rounded-full bg-amber-500/80" style={{ width: `${(dep.elapsed / dep.life) * 100}%` }} />
+                            </div>
+                          </div>
+                        )}
                         {loan && (
                           <div className="space-y-1.5 border-t pt-2 text-xs">
                             <div className="flex justify-between gap-2 text-muted-foreground">
