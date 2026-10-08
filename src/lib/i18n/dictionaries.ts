@@ -3354,6 +3354,18 @@ const km = {
   "pool.khqrWhere": "KHQR នេះបង្ហាញលើតំណសាធារណៈ និងក្នុងក្រុម Telegram ដើម្បីឱ្យគ្រួសារស្កេនបង់បានភ្លាម។",
   "pool.khqrSaved": "បានរក្សាទុក KHQR របស់បេឡា",
   "pool.khqrUnreadable": "អានរូប KHQR មិនបានទេ។ សូមប្រើរូបថតអេក្រង់ KHQR ពីកម្មវិធីធនាគារ (ឱ្យឃើញ QR ច្បាស់)។",
+  "pool.editFamily": "កែគ្រួសារ",
+  "pool.editMember": "កែសមាជិក",
+  "pool.shareAmount": "ចំណែកត្រូវបង់ ({currency})",
+  "pool.alreadyPaid": "បានបង់រួច {amount}",
+  "pool.memberSaved": "បានរក្សាទុក — គោលដៅបេឡាត្រូវបានគណនាឡើងវិញ",
+  "pool.removeFamily": "🗑️ ដកគ្រួសារនេះចេញ",
+  "pool.removeMember": "🗑️ ដកសមាជិកនេះចេញ",
+  "pool.removePaidConfirm": "សមាជិកនេះបានបង់ប្រាក់ {amount} រួចហើយ។ តើអ្នកចង់ដកចេញ និងប្រគល់ប្រាក់នេះវិញពីបេឡា (Refund) ឬទេ?",
+  "pool.removeAndRefund": "ដកចេញ និងប្រគល់វិញ",
+  "pool.memberRemoved": "បានដក {name} ចេញ — គោលដៅត្រូវបានគណនាឡើងវិញ",
+  "pool.memberRefunded": "បានដក {name} ចេញ និងប្រគល់ {amount} វិញ",
+  "pool.refundTooLow": "បេឡាមិនមានប្រាក់គ្រប់គ្រាន់សម្រាប់ប្រគល់វិញទេ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6697,6 +6709,18 @@ const en: Record<MessageKey, string> = {
   "pool.khqrWhere": "This KHQR shows on the public link and in the Telegram group, so families can scan and pay right away.",
   "pool.khqrSaved": "Pool KHQR saved",
   "pool.khqrUnreadable": "Couldn't read a KHQR in that image. Use a screenshot of the KHQR from your bank app (QR clearly visible).",
+  "pool.editFamily": "Edit family",
+  "pool.editMember": "Edit member",
+  "pool.shareAmount": "Share to pay ({currency})",
+  "pool.alreadyPaid": "Already paid {amount}",
+  "pool.memberSaved": "Saved — the pool target was updated",
+  "pool.removeFamily": "🗑️ Remove this family",
+  "pool.removeMember": "🗑️ Remove this member",
+  "pool.removePaidConfirm": "This member already paid {amount}. Remove them and refund it from the pool?",
+  "pool.removeAndRefund": "Remove and refund",
+  "pool.memberRemoved": "{name} removed — the target was updated",
+  "pool.memberRefunded": "{name} removed and {amount} refunded",
+  "pool.refundTooLow": "The pool doesn't hold enough to refund this",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

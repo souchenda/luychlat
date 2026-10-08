@@ -25,6 +25,7 @@ import { poolEmoji, type PoolMember, type PoolSettleMode, type PoolSnapshot } fr
 import { usePool, usePoolMutations } from "@/lib/pools"
 import { takesBlessing } from "@/lib/pool-blessing"
 import { ClosingBlessing, PendingPayments, PoolKhqr, PoolProgress } from "@/components/pools/pool-extras"
+import { MemberSheet } from "@/components/pools/member-sheet"
 import { cn } from "@/lib/utils"
 import { khmerDigits } from "@/lib/dates"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -144,25 +145,13 @@ function AddMemberSheet({ pool, open, onOpenChange }: { pool: PoolSnapshot; open
  * One member: tap the name to rename it in place; one tap on "បង់ $50" records what they
  * still owe (Undo in the toast); paid in full shows "✓ បានបង់ $50".
  */
-function MemberRow({ pool, m, editable }: { pool: PoolSnapshot; m: PoolMember; editable: boolean }) {
+function MemberRow({ pool, m, editable, onEdit }: { pool: PoolSnapshot; m: PoolMember; editable: boolean; onEdit: (m: PoolMember) => void }) {
   const t = useT()
   const money = useMoney()
-  const { markPaid, undoPaid, rename } = usePoolMutations()
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(m.name)
+  const { markPaid, undoPaid } = usePoolMutations()
   const owed = roundMoney(m.pledged - m.paid, pool.currency)
   const full = m.pledged > 0 && owed <= 0
   const open = pool.status === "active"
-
-  const saveName = () => {
-    setEditing(false)
-    const clean = name.trim().replace(/\s+/g, " ").slice(0, 60)
-    if (!clean || clean === m.name) return setName(m.name)
-    rename.mutate({ memberId: m.id!, name: clean }, { onSuccess: () => toast.success(t("pool.renamed")), onError: () => {
-        setName(m.name)
-        toast.error(t("common.error"))
-      } })
-  }
 
   const pay = () =>
     markPaid.mutate(
@@ -179,34 +168,16 @@ function MemberRow({ pool, m, editable }: { pool: PoolSnapshot; m: PoolMember; e
   return (
     <div className="flex min-h-14 items-center gap-3 px-4 py-2">
       <div className="min-w-0 flex-1">
-        {editing ? (
-          <Input
-            autoFocus
-            className="h-9"
-            maxLength={60}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={saveName}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur()
-              if (e.key === "Escape") {
-                setName(m.name)
-                setEditing(false)
-              }
-            }}
-            aria-label={t("pool.tapToRename")}
-          />
-        ) : (
-          <button
-            type="button"
-            disabled={!editable}
-            onClick={() => setEditing(true)}
-            className="block max-w-full truncate text-left text-sm font-medium decoration-dotted underline-offset-4 enabled:hover:underline"
-            title={editable ? t("pool.tapToRename") : undefined}
-          >
-            {name}
-          </button>
-        )}
+        {/* Tap the name: edit the name and share, or remove the member (refunded if they paid). */}
+        <button
+          type="button"
+          disabled={!editable || !open}
+          onClick={() => onEdit(m)}
+          className="block max-w-full truncate text-left text-sm font-medium decoration-dotted underline-offset-4 enabled:hover:underline"
+          title={editable ? t("pool.tapToRename") : undefined}
+        >
+          {m.name}
+        </button>
         {m.pledged > 0 && !full && m.paid > 0 && (
           <span className="block text-xs text-muted-foreground tabular-nums">
             {money(m.paid, pool.currency)} / {money(m.pledged, pool.currency)}
@@ -323,6 +294,7 @@ export default function PoolPage() {
   const [contributeOpen, setContributeOpen] = useState(false)
   const [settleOpen, setSettleOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
+  const [editMember, setEditMember] = useState<PoolMember | null>(null)
   const locale = useLocaleStore((s) => s.locale)
   // Counts in Khmer digits for Khmer ("សមាជិក (៥)").
   const num = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
@@ -458,7 +430,7 @@ export default function PoolPage() {
         </div>
         <Card className="gap-0 divide-y overflow-hidden py-0">
           {members.map((m) => (
-            <MemberRow key={m.id} pool={pool} m={m} editable={editable} />
+            <MemberRow key={m.id} pool={pool} m={m} editable={editable} onEdit={setEditMember} />
           ))}
           {active && editable && (
             <button type="button" onClick={() => setAddOpen(true)} className="flex w-full items-center gap-2 px-4 py-3 text-sm text-primary hover:bg-muted/50">
@@ -586,6 +558,7 @@ export default function PoolPage() {
           }} workspaceId={workspace.id} wallets={wallet} type="EXPENSE" />}
       {active && <ContributeSheet key={pool.members.length} pool={pool} open={contributeOpen} onOpenChange={setContributeOpen} />}
       {active && <SettleSheet pool={pool} open={settleOpen} onOpenChange={setSettleOpen} />}
+      {active && <MemberSheet pool={pool} member={editMember} onOpenChange={(v) => !v && setEditMember(null)} />}
       {active && <AddMemberSheet key={`add-${pool.members.length}`} pool={pool} open={addOpen} onOpenChange={setAddOpen} />}
     </div>
   )

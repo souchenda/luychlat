@@ -158,6 +158,18 @@ export function usePoolMutations() {
         (await rpc("pool_payment_assign", { p_pending: v.pendingId, p_member_id: v.memberId })) as { status: string; member?: string },
       onSuccess: () => done(true),
     }),
+    // A member's name and share; the pool's target follows the shares (database trigger).
+    updateMember: useMutation({
+      mutationFn: (v: { memberId: string; name: string; pledged: number }) =>
+        rpc("pool_member_update", { p_member_id: v.memberId, p_name: v.name, p_pledged: v.pledged }),
+      onSuccess: () => done(),
+    }),
+    /** Remove a member; one who paid comes back as { status: "paid" } unless refund is true. */
+    removeMember: useMutation({
+      mutationFn: async (v: { memberId: string; refund: boolean }) =>
+        (await rpc("pool_member_remove", { p_member_id: v.memberId, p_refund: v.refund })) as { status: "ok" | "paid"; paid?: number; refunded?: number; currency?: "USD" | "KHR" },
+      onSuccess: () => done(true),
+    }),
     // The KHQR members pay into (its text; null = the keeper's profile KHQR).
     setKhqr: useMutation({
       mutationFn: (v: { poolId: string; payload: string | null }) => rpc("pool_set_khqr", { p_pool_id: v.poolId, p_payload: v.payload }),
