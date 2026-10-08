@@ -28,7 +28,8 @@ import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { handlePosterCallback, isPosterCallback, sendFestivalPoster } from "@/lib/server/festival-poster"
 import { handleGroupSlip, handleGroupSlipCallback, isGroupSlipCallback } from "@/lib/server/biz-slip-bot"
-import { handleBillKhqrCallback, isBillKhqrCallback } from "@/lib/server/bill-bot"
+import { handleBillKhqrCallback, handleEacNotice, isBillKhqrCallback } from "@/lib/server/bill-bot"
+import { parseEacNotice } from "@/lib/eac"
 import { handlePoolFlowCallback, handlePoolSlip, handlePoolSpendText, isPoolFlowCallback } from "@/lib/server/pool-flow"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
@@ -532,17 +533,21 @@ export async function POST(request: Request) {
       const locale = contextLocale(ctx)
       // Gifts in testing: for everyone else a gift-like message is simply an entry to log.
       const giftText = isGiftMessage(plain) && featureOk(await botFeatures(chatId), "gifts")
+      // An EAC electricity notice forwarded from the EAC bot: a new bill, or the bill paid.
+      const eac = parseEacNotice(plain)
       // A bank alert forwarded (or pasted) to the bot: saved at once, with ↩️ Undo.
-      const alert = parseBankAlert(plain)
+      const alert = eac ? null : parseBankAlert(plain)
       // Calculators first ("how much is 100$ in riel?" has an exact answer), then questions for LuyChlat AI
       // (PRO: free accounts keep the privacy pointer for balance questions), then an entry to log.
       const calc = alert ? null : await marketAnswer(plain, locale)
       const toAi =
+        !eac &&
         !alert &&
         !giftText &&
         !calc &&
         (isAiQuestion(plain) || asksWhoOwesMe(plain) || (ctx.pro && asksForBalance(plain)) || (ctx.pro && (await awaitingAiQuestion(chatId))))
-      if (alert) await handleBankAlert(chatId, alert, plain, locale)
+      if (eac) await handleEacNotice(chatId, eac, ctx)
+      else if (alert) await handleBankAlert(chatId, alert, plain, locale)
       else if (giftText) await handleGiftMessage(chatId, plain, locale)
       else if (calc) await sendText(chatId, calc)
       else if (toAi) after(() => handleAiQuestion(chatId, plain.slice(0, 1000), locale))

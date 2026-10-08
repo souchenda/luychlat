@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk"
 import { NextResponse } from "next/server"
 
 import { advisorRequestSchema, type AdvisorRequest } from "@/lib/advisor/payload"
+import { isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
 import { guardRequest, readJson } from "@/lib/server/guard"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -122,6 +123,8 @@ export async function POST(request: Request) {
   const parsed = advisorRequestSchema.safeParse(await readJson(request, MAX_BYTES))
   if (!parsed.success) return NextResponse.json({ error: "invalid_input" }, { status: 400 })
   const req = parsed.data
+  // Guardrail layer 1: not about money → the fixed reply, no model call, no quota used.
+  if (isOffTopic(req.question)) return NextResponse.json({ text: OFF_TOPIC_REPLY })
 
   if (req.provider === "luysmart") return askLuyChlat(req)
 

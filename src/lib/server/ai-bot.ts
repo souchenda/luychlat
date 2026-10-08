@@ -6,6 +6,7 @@
 // when the chat switched "AI can see my numbers" on (off by default: the
 // no-balances-in-chat rule). References in the answer are turned back into the
 // user's names here, after the AI. "Who owes me" is answered from the database.
+import { isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
 import { parseAmountText } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
 import type { Locale } from "@/lib/i18n/dictionaries"
@@ -226,6 +227,11 @@ async function sendDebtors(chatId: number, lang: Locale) {
 export async function handleAiQuestion(chatId: number, question: string, lang: Locale) {
   const q = question.trim().slice(0, 1000)
   if (!q) return startAiPrompt(chatId, lang)
+  // Guardrail layer 1: stories, code, homework, politics, chitchat… get the fixed reply — no Gemini call, no quota.
+  if (isOffTopic(q)) {
+    await botDb().rpc("bot_ai_await", { p_key: botKey(), p_chat_id: chatId, p_on: false })
+    return sendText(chatId, OFF_TOPIC_REPLY)
+  }
   if (!process.env.GEMINI_API_KEY) return sendText(chatId, tr(lang, "bot.aiUnavailable"))
   const ctx = await context(chatId)
   if (!ctx || ctx.status !== "ok") return sendText(chatId, statusText(ctx, lang))

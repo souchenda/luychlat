@@ -5,6 +5,7 @@
 // the bill, redrawn sharp) and [✅ បានបង់រួច] (the bill reminders' own "paid").
 import QRCode from "qrcode"
 
+import type { EacNotice } from "@/lib/eac"
 import { dueDayOf, providerShort, utilityBillTitle } from "@/lib/utility-bill"
 import { formatMoney } from "@/lib/money"
 import type { Context } from "@/lib/server/bot-commands"
@@ -86,4 +87,63 @@ export async function handleBillKhqrCallback(cb: Callback) {
   form.append("photo", new Blob([new Uint8Array(png)], { type: "image/png" }), "khqr.png")
   form.append("caption", "📲 ស្កេន KHQR នេះពី App ធនាគារដើម្បីបង់វិក្កយបត្រ — រួចចុច «💵 កត់ថាបង់រួច»។")
   await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
+}
+
+const riel = (n: number) => new Intl.NumberFormat("en-US").format(n)
+
+/**
+ * An EAC notice forwarded to the bot. New bill: saved (or this month's statement of the
+ * same customer's bill) as unpaid, with its reminder. Paid: that customer's unpaid
+ * statement is marked paid and the expense recorded — once (forwarding it again does nothing).
+ */
+export async function handleEacNotice(chatId: number, n: EacNotice, ctx: Context) {
+  const who = `📍 ${n.customerName ? `${n.customerName} ` : ""}(${n.customerId})`
+  if (n.type === "NEW_BILL") {
+    const ws = workspacesOf(ctx)[0]
+    const { data, error } = await botDb().rpc("bot_bill_scan", {
+      p_key: botKey(),
+      p_chat_id: chatId,
+      p_workspace_id: ws.id,
+      p_bill: {
+        kind: "ELECTRICITY",
+        provider: "EAC",
+        title: `ថ្លៃភ្លើង ${n.customerName ?? n.customerId}`.slice(0, 80),
+        customer_id: n.customerId,
+        customer_name: n.customerName,
+        invoice_no: `EAC ${n.billDate ?? new Date().toISOString().slice(0, 10)}`,
+        amount: n.amount,
+        currency: "KHR",
+      },
+    })
+    const r = data as Scan | null
+    if (error || r?.status !== "ok") {
+      logEvent("error", "bills", `EAC bill not saved: ${error?.message ?? r?.status ?? "no result"}`, { fold: true })
+      return sendText(chatId, r?.status === "not_writable" ? "⚠️ អ្នកមិនមានសិទ្ធិកត់ត្រាក្នុងកាបូបនេះទេ។" : "⚠️ មិនអាចរក្សាទុកវិក្កយបត្របានទេ។ សូមសាកម្ដងទៀត។")
+    }
+    logEvent("info", "bills", "EAC new bill saved from a forwarded notice", { fold: true })
+    return sendText(chatId, ["💡 វិក្កយបត្រអគ្គិសនីថ្មី (EAC) ត្រូវបានកត់ត្រា!", `📍 អតិថិជន៖ ${n.customerName ? `${n.customerName} ` : ""}(${n.customerId})`, `💵 ទឹកប្រាក់ត្រូវទូទាត់៖ ${riel(n.amount)} ៛`].join("\n"))
+  }
+
+  const { data, error } = await botDb().rpc("bot_eac_paid", {
+    p_key: botKey(),
+    p_chat_id: chatId,
+    p_customer_id: n.customerId,
+    p_amount: n.amount,
+    p_paid_on: n.paidDate,
+  })
+  const r = data as { status: string; logged?: boolean } | null
+  if (error || !r) {
+    logEvent("error", "bills", `EAC payment not recorded: ${error?.message ?? "no result"}`, { fold: true })
+    return sendText(chatId, "⚠️ មិនអាចកត់ត្រាការបង់ប្រាក់បានទេ។ សូមសាកម្ដងទៀត។")
+  }
+  if (r.status === "no_bill")
+    return sendText(chatId, `🤔 រកមិនឃើញវិក្កយបត្រភ្លើងរបស់អតិថិជន ${n.customerId} ទេ — សូមបញ្ជូនសារ «វិក្កយបត្រថ្មី» ពី EAC ឬថតវិក្កយបត្រជាមុនសិន។`)
+  if (r.status === "already") return sendText(chatId, `✅ វិក្កយបត្រនេះបានកត់ថាបង់រួចហើយ។\n${who}`)
+  if (r.status === "not_writable") return sendText(chatId, "⚠️ អ្នកមិនមានសិទ្ធិកត់ត្រាក្នុងកាបូបនេះទេ។")
+  if (r.status !== "paid") return sendText(chatId, "⚠️ មិនអាចកត់ត្រាការបង់ប្រាក់បានទេ។ សូមសាកម្ដងទៀត។")
+  logEvent("info", "bills", `EAC bill marked paid from a forwarded notice${r.logged ? " (expense recorded)" : ""}`, { fold: true })
+  return sendText(
+    chatId,
+    ["✅ ការបង់ថ្លៃអគ្គិសនីជោគជ័យ!", who, `💵 បានបង់៖ ${riel(n.amount)} ៛`, r.logged ? "ប្រព័ន្ធបានកត់ត្រាជាការចំណាយរួចរាល់។" : "បានកត់ថាវិក្កយបត្របង់រួច (កញ្ចប់ FREE មិនកត់ជាការចំណាយដោយស្វ័យប្រវត្តិទេ)។"].join("\n"),
+  )
 }
