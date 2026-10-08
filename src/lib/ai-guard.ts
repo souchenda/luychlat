@@ -9,6 +9,31 @@
 export const OFF_TOPIC_REPLY =
   "ខ្ញុំគឺជាជំនួយការហិរញ្ញវត្ថុ លុយឆ្លាត។ ខ្ញុំមានតួនាទីជួយបងកត់ត្រាចំណូល-ចំណាយ តាមដានបេឡា និងវិក្កយបត្រប៉ុណ្ណោះ។ សូមសួរសំណួរដែលទាក់ទងនឹងការគ្រប់គ្រងលុយកាក់!"
 
+/** Layer 2: the first lines of every advisor system prompt (bot and app). */
+export const DOMAIN_RULE = [
+  "You are strictly LuyChlat Financial Assistant, a dedicated advisor for personal and SME financial management in Cambodia.",
+  "You MUST politely refuse any requests outside financial management, bookkeeping, budgeting, debt tracking, and business cash flow.",
+  "Never roleplay, write fictional stories, generate poetry, or discuss non-financial topics.",
+].join("\n")
+
+/** Layer 3: the FREE plan's daily allowance of freeform AI questions is used up. */
+export const DAILY_QUOTA_REPLY =
+  "បងបានប្រើប្រាស់កូតាសួរយោបល់ AI សម្រាប់ថ្ងៃនេះអស់ហើយ (១០/១០ សំណួរ)។ មុខងារកត់ត្រាចំណូល-ចំណាយ និងស្កេនស្លីបនៅតែអាចប្រើប្រាស់បានដោយមិនកំណត់!"
+
+/**
+ * Layer 4: with a refusal (off-topic or quota), one tap to what the app does do.
+ * They open the app — the bot itself never shows balances.
+ */
+export const guidedButtons = (site: string) => ({
+  inline_keyboard: [
+    [
+      { text: "📊 របាយការណ៍ថ្ងៃនេះ", url: `${site}/reports` },
+      { text: "👛 មើលកាបូប", url: `${site}/wallets` },
+      { text: "💡 វិក្កយបត្រ", url: `${site}/bills` },
+    ],
+  ],
+})
+
 /** Money words: if any is present the question is on-topic, whatever else it says. */
 const MONEY =
   /លុយ|ប្រាក់|ចំណូល|ចំណាយ|សន្សំ|កាបូប|ធនាគារ|វិក្កយបត្រ|ថ្លៃ|តម្លៃ|បំណុល|កម្ចី|ការប្រាក់|ពន្ធ|ប្រាក់ខែ|អាជីវកម្ម|លក់|ទិញ|ចំណេញ|ខាត|ថវិកា|បេឡា|តុងទីន|មាស|អត្រា|ប្តូរប្រាក់|ប្ដូរប្រាក់|ហាង|ស្តុក|វិនិយោគ|ភាគហ៊ុន|គ្រីបតូ|ធានារ៉ាប់រង|ប\.ស\.ស|ប្រេង|៛|\$|\b(?:money|cash|income|expenses?|spend(?:ing)?|sav(?:e|ing|ings)|budget|wallets?|banks?|bills?|invoices?|debts?|loans?|interest|tax(?:es)?|salary|business|sales?|profit|loss|price|cost|gold|rate|exchange|invest(?:ment|ing)?|stocks?|crypto|insurance|nssf|khqr|aba|acleda|wing|fuel|riel|usd|dollars?|finance|financial|accounting|cash ?flow|net ?worth)\b/i

@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk"
 import { NextResponse } from "next/server"
 
 import { advisorRequestSchema, type AdvisorRequest } from "@/lib/advisor/payload"
-import { isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
+import { DOMAIN_RULE, isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
 import { guardRequest, readJson } from "@/lib/server/guard"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -22,6 +22,7 @@ const CLAUDE_MODEL = "claude-opus-5-5"
 function systemPrompt(req: AdvisorRequest) {
   const language = req.language === "km" ? "Khmer (ភាសាខ្មែរ)" : "English"
   return [
+    DOMAIN_RULE,
     "You are LuyChlat's financial advisor for people and small businesses in Cambodia.",
     `Always answer in ${language}. Keep answers short and practical for a phone screen: a one-line summary, then at most 5 bullet points.`,
     "Base every number on the JSON data below; never invent figures. Amounts are USD equivalents; khrPerUsd converts to riel (៛).",
@@ -86,7 +87,7 @@ async function askOpenAI(req: AdvisorRequest): Promise<string> {
   return data?.choices?.[0]?.message?.content?.trim() ?? ""
 }
 
-type Quota = { ok: boolean; reason?: "plan_required" | "quota_exceeded"; used: number; limit: number }
+type Quota = { ok: boolean; reason?: "plan_required" | "quota_exceeded" | "daily_quota"; used: number; limit: number; daily?: boolean }
 
 /**
  * Pro AI: LuyChlat's own Anthropic key (server-only ANTHROPIC_API_KEY). The
@@ -104,6 +105,8 @@ async function askLuyChlat(req: AdvisorRequest) {
   const check = await supabase.rpc("use_ai_query", { p_commit: false })
   if (check.error) return NextResponse.json({ error: "provider_error" }, { status: 502 })
   const quota = check.data as Quota
+  // The FREE daily allowance is for the Telegram bot (Gemini Flash); in the app LuyChlat AI stays PRO.
+  if (quota.daily) return NextResponse.json({ error: "plan_required", quota }, { status: 402 })
   if (!quota.ok) return NextResponse.json({ error: quota.reason, quota }, { status: 402 })
 
   try {

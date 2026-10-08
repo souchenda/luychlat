@@ -545,7 +545,7 @@ export async function POST(request: Request) {
         !alert &&
         !giftText &&
         !calc &&
-        (isAiQuestion(plain) || asksWhoOwesMe(plain) || (ctx.pro && asksForBalance(plain)) || (ctx.pro && (await awaitingAiQuestion(chatId))))
+        (isAiQuestion(plain) || asksWhoOwesMe(plain) || (ctx.pro && asksForBalance(plain)) || (await awaitingAiQuestion(chatId)))
       if (eac) await handleEacNotice(chatId, eac, ctx)
       else if (alert) await handleBankAlert(chatId, alert, plain, locale)
       else if (giftText) await handleGiftMessage(chatId, plain, locale)

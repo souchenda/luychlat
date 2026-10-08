@@ -6,7 +6,8 @@
 // when the chat switched "AI can see my numbers" on (off by default: the
 // no-balances-in-chat rule). References in the answer are turned back into the
 // user's names here, after the AI. "Who owes me" is answered from the database.
-import { isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
+import { DAILY_QUOTA_REPLY, DOMAIN_RULE, guidedButtons, isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
+import { DEFAULT_ABOUT } from "@/lib/app-info"
 import { parseAmountText } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
 import type { Locale } from "@/lib/i18n/dictionaries"
@@ -27,7 +28,7 @@ type Figures = {
   debts: { owed_to_you_usd: number; owed_to_you_count: number; you_owe_usd: number; you_owe_count: number; overdue_owed_to_you: number; overdue_you_owe: number }
 }
 type Context = {
-  status: "ok" | "not_linked" | "plan_required" | "quota_exceeded"
+  status: "ok" | "not_linked" | "plan_required" | "quota_exceeded" | "daily_quota"
   quota?: { used: number; limit: number }
   numbers?: boolean
   awaiting?: boolean
@@ -103,6 +104,7 @@ const LANGUAGE: Record<Locale, string> = { km: "Khmer (ភាសាខ្មែ�
 
 function systemPrompt(locale: Locale, data: Record<string, unknown> | null) {
   return [
+    DOMAIN_RULE,
     "You are “ទីប្រឹក្សា AI លុយឆ្លាត” (LuyChlat AI advisor), a friendly, humble and encouraging money coach for people and small businesses in Cambodia, chatting in Telegram.",
     `Always answer in ${LANGUAGE[locale]}, whatever language the question is in.`,
     "Format for a phone chat: plain text only — no Markdown, no asterisks, no headings, no tables. Short paragraphs or “• ” bullets. At most about 120 words unless the user asks for detail.",
@@ -193,9 +195,18 @@ export async function awaitingAiQuestion(chatId: number): Promise<boolean> {
 /** /ai alone or the 🤖 button: ask what they'd like to know (the next message is the question). */
 export async function startAiPrompt(chatId: number, lang: Locale) {
   const ctx = await context(chatId)
-  if (!ctx || ctx.status !== "ok") return sendText(chatId, statusText(ctx, lang))
+  if (!ctx || ctx.status !== "ok") return sendStatus(chatId, ctx, lang)
   await botDb().rpc("bot_ai_await", { p_key: botKey(), p_chat_id: chatId, p_on: true })
   return sendText(chatId, tr(lang, ctx.numbers ? "bot.aiPrompt" : "bot.aiPromptGeneral"))
+}
+
+/** Not answered: the reason — and, for the FREE daily quota (layer 3), the guided buttons (layer 4). No model call. */
+async function sendStatus(chatId: number, ctx: Context | null, lang: Locale) {
+  if (ctx?.status === "daily_quota") {
+    await botDb().rpc("bot_ai_await", { p_key: botKey(), p_chat_id: chatId, p_on: false })
+    return sendText(chatId, DAILY_QUOTA_REPLY, { reply_markup: guidedButtons(DEFAULT_ABOUT.website) })
+  }
+  return sendText(chatId, statusText(ctx, lang))
 }
 
 function statusText(ctx: Context | null, lang: Locale) {
@@ -230,11 +241,11 @@ export async function handleAiQuestion(chatId: number, question: string, lang: L
   // Guardrail layer 1: stories, code, homework, politics, chitchat… get the fixed reply — no Gemini call, no quota.
   if (isOffTopic(q)) {
     await botDb().rpc("bot_ai_await", { p_key: botKey(), p_chat_id: chatId, p_on: false })
-    return sendText(chatId, OFF_TOPIC_REPLY)
+    return sendText(chatId, OFF_TOPIC_REPLY, { reply_markup: guidedButtons(DEFAULT_ABOUT.website) })
   }
   if (!process.env.GEMINI_API_KEY) return sendText(chatId, tr(lang, "bot.aiUnavailable"))
   const ctx = await context(chatId)
-  if (!ctx || ctx.status !== "ok") return sendText(chatId, statusText(ctx, lang))
+  if (!ctx || ctx.status !== "ok") return sendStatus(chatId, ctx, lang)
   if (asksWhoOwesMe(q)) {
     await botDb().rpc("bot_ai_await", { p_key: botKey(), p_chat_id: chatId, p_on: false })
     return sendDebtors(chatId, lang)
