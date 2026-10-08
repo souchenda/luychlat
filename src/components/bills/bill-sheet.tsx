@@ -87,7 +87,7 @@ export function BillSheet({
 }) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
-  const { save, remove, addStatement } = useBillMutations(workspaceId)
+  const { save, remove, addStatement, removeStatement } = useBillMutations(workspaceId)
   const [form, setForm] = useState<Form>(EMPTY)
   // A photographed paper bill (electricity / water): fills the form, and is kept as this month's statement.
   const [scanned, setScanned] = useState<UtilityBill | null>(null)
@@ -182,6 +182,18 @@ export function BillSheet({
       if (scanned) await addStatement.mutateAsync({ billId: id, s: scanned }).catch(() => null)
       toast.success(t("bills.saved"))
       onOpenChange(false)
+    } catch {
+      toast.error(t("common.error"))
+    }
+  }
+
+  /** 🗑️ One statement of the history (a duplicate or a misread scan), after a confirm. */
+  const dropStatement = async (st: (typeof statements)[number]) => {
+    const label = [st.invoice_no, formatMoney(st.amount, st.currency)].filter(Boolean).join(" · ")
+    if (!window.confirm(t("bills.statementRemoveConfirm", { name: label }))) return
+    try {
+      await removeStatement.mutateAsync(st.id)
+      toast.success(t("bills.statementRemoved"))
     } catch {
       toast.error(t("common.error"))
     }
@@ -366,6 +378,16 @@ export function BillSheet({
                 <span className="text-muted-foreground">{st.usage !== null ? `${st.usage} ${form.kind === "WATER" ? "m³" : "kWh"}` : ""}</span>
                 <span>{formatMoney(st.amount, st.currency)}</span>
                 <span>{st.status === "PAID" ? "✅" : "⏳"}</span>
+                <button
+                  type="button"
+                  className="-mr-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                  aria-label={t("bills.statementRemove")}
+                  title={t("bills.statementRemove")}
+                  disabled={removeStatement.isPending}
+                  onClick={() => void dropStatement(st)}
+                >
+                  <Trash2Icon className="size-3.5" />
+                </button>
               </div>
             ))}
           </div>

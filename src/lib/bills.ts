@@ -215,6 +215,14 @@ export function useBillMutations(workspaceId: string | undefined) {
       },
       onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["bill-statements", scope] }),
     }),
+    /** One statement of the history (a duplicate or a misread scan); the bill itself stays. */
+    removeStatement: useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await client().from("bill_statements").delete().eq("id", id).eq("workspace_id", workspaceId!)
+        if (error) throw error
+      },
+      onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["bill-statements", scope] }),
+    }),
     remove: useMutation({
       mutationFn: async (id: string) => {
         const { error } = await client().from("recurring_bills").delete().eq("id", id)
