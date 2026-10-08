@@ -114,7 +114,8 @@ export function classifyLine(
   }
   if (BILL_PATTERN.test(d)) {
     const telco = TELCO_PATTERN.test(d)
-    return { group: "BILLS", preset: ctx.business ? "utilities" : telco ? "phone" : "housing" }
+    // A business: EDC / water are utilities, telecom (Smart, Cellcard, Metfone, Ezecom…) is an operating expense.
+    return { group: "BILLS", preset: ctx.business ? (telco ? "operating" : "utilities") : telco ? "phone" : "housing" }
   }
   const merchant = merchantPreset(counterparty(d) ?? d)
   if (merchant) return { group: "EXPENSE", preset: ctx.business ? "other_expense" : merchant }

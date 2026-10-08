@@ -11,7 +11,7 @@
 //
 // Others' photos are ignored. The wallet is never guessed: when it isn't
 // certain, the group gets one button per candidate (only admins can tap). The
-// category comes from the payee (telecom / EDC / water → utilities, fuel →
+// category comes from the payee (EDC / water → utilities, telecom → operating, fuel →
 // delivery, tax → tax, else other) and is shown, so it can be fixed in the app.
 import { accountScore, resolveWallet, walletLabel, type Slip } from "@/lib/bot/bank-slip"
 import type { BotCategory, BotWallet } from "@/lib/bot/parse-entry"
@@ -37,7 +37,9 @@ export function bizCategory(kind: "EXPENSE" | "INCOME", text: string, categories
   const own = categories.filter((c) => c.type === kind)
   const by = (...presets: string[]) => presets.map((p) => own.find((c) => c.preset_key === p)).find(Boolean) ?? null
   if (kind === "INCOME") return by("sales", "services", "other_income")
-  if (/\b(smart|cellcard|metfone|seatel|yes ?seatel|ezecom|opennet|sinet)\b|ទូរស័ព្ទ|អ៊ីនធឺណិត|EDC|អគ្គិសនី|ភ្លើង|ទឹកស្អាត|ទឹកប្រើប្រាស់|PPWSA/i.test(text)) return by("utilities", "other_expense")
+  // Telecom top-ups and internet are operating expenses — never utilities (EDC and water only), never "other".
+  if (/\b(smart|cellcard|metfone|seatel|yes ?seatel|ezecom|opennet|sinet|top ?-?up)\b|ទូរស័ព្ទ|អ៊ីនធឺណិត|កាតទូរស័ព្ទ/i.test(text)) return by("operating", "other_expense")
+  if (/\bEDC\b|អគ្គិសនី|ភ្លើង|ទឹកស្អាត|ទឹកប្រើប្រាស់|PPWSA/i.test(text)) return by("utilities", "other_expense")
   if (/\b(tela|caltex|ptt|total|sokimex|petronas|lhr|champa)\b|សាំង|ប្រេង/i.test(text)) return by("delivery", "other_expense")
   if (/\b(gdt|tax)\b|ពន្ធ/i.test(text)) return by("tax", "other_expense")
   if (/ជួល|\brent\b/i.test(text)) return by("rent", "other_expense")

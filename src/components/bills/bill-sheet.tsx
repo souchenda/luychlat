@@ -401,7 +401,7 @@ export function BillSheet({
 const CATEGORY_FOR: Record<BillKind, string[]> = {
   ELECTRICITY: ["utilities", "housing"],
   WATER: ["utilities", "housing"],
-  INTERNET: ["phone", "utilities"],
+  INTERNET: ["phone", "operating", "utilities"],
   RENT: ["rent", "housing"],
   WASTE: ["utilities", "housing"],
   LOAN: ["debt_repayment"],

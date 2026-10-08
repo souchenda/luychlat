@@ -45,8 +45,10 @@ const BASE_PRESETS: Record<Exclude<WorkspaceType, "FAMILY">, CategoryPreset[]> =
   BUSINESS: [
     { key: "inventory", type: "EXPENSE", icon: "package", color: "#f97316", name: { km: "ទិញស្តុកទំនិញ", en: "Inventory purchase" } },
     { key: "rent", type: "EXPENSE", icon: "store", color: "#8b5cf6", name: { km: "ជួលទីតាំង", en: "Rent" } },
-    { key: "payroll", type: "EXPENSE", icon: "users", color: "#0ea5e9", name: { km: "ប្រាក់បៀវត្សបុគ្គលិក", en: "Staff payroll" } },
+    { key: "payroll", type: "EXPENSE", icon: "users", color: "#0ea5e9", name: { km: "ប្រាក់បៀវត្ស និងអត្ថប្រយោជន៍", en: "Payroll & benefits" } },
+    // Utilities are EDC and water only; telecom top-ups and other running costs are operating expenses.
     { key: "utilities", type: "EXPENSE", icon: "zap", color: "#eab308", name: { km: "ទឹកភ្លើង", en: "Utilities" } },
+    { key: "operating", type: "EXPENSE", icon: "briefcase", color: "#0891b2", name: { km: "ចំណាយប្រតិបត្តិការ", en: "Operating expenses" } },
     { key: "marketing", type: "EXPENSE", icon: "megaphone", color: "#ec4899", name: { km: "ផ្សព្វផ្សាយ", en: "Marketing" } },
     { key: "delivery", type: "EXPENSE", icon: "truck", color: "#14b8a6", name: { km: "ដឹកជញ្ជូន", en: "Delivery" } },
     { key: "equipment", type: "EXPENSE", icon: "wrench", color: "#6366f1", name: { km: "សម្ភារៈ/ជួសជុល", en: "Equipment & repairs" } },

@@ -92,6 +92,8 @@ const KEYWORDS: { preset: string; words: string[] }[] = [
   { preset: "food", words: ["បាយព្រឹក", "បាយថ្ងៃត្រង់", "បាយល្ងាច", "អាហារពេលព្រឹក", "អាហារថ្ងៃត្រង់", "អាហារពេលល្ងាច", "នំប៉័ង", "នំបញ្ចុក", "ទឹកសុទ្ធ", "ទឹកដប", "ទឹកកក", "បបរ", "ស៊ុប", "សាច់អាំង", "ភីហ្សា", "កាហ្វេ", "បាយ", "ញ៉ាំ", "ម្ហូប", "អាហារ", "ភេសជ្ជៈ", "នំ", "ទឹកក្រូច", "គុយទាវ", "coffee", "lunch", "dinner", "breakfast", "food", "eat", "drink", "meal", "restaurant", "snack", "咖啡", "早餐", "早饭", "午餐", "午饭", "晚餐", "晚饭", "吃饭", "饭", "餐", "奶茶", "饮料", "外卖", "水果"] },
   { preset: "transport", words: ["សាកឡាន", "សាកភ្លើង", "សាកថ្ម", "ev", "charging", "充电", "ល្បឿនលឿន", "expressway", "anpr", "toll", "高速", "សាំង", "ប្រេង", "តុកតុក", "ម៉ូតូ", "ឡាន", "ធ្វើដំណើរ", "ចតឡាន", "grab", "passapp", "tuk", "taxi", "fuel", "gas", "petrol", "bus", "parking", "油费", "汽油", "加油", "打车", "出租车", "停车", "车费", "嘟嘟车"] },
   { preset: "phone", words: ["កាតទូរស័ព្ទ", "ទូរស័ព្ទ", "អ៊ីនធឺណិត", "smart", "cellcard", "metfone", "internet", "phone", "topup", "top up", "话费", "手机", "网费", "流量", "充值"] },
+  // A business has no "phone" category: its telecom is an operating expense.
+  { preset: "operating", words: ["កាតទូរស័ព្ទ", "ទូរស័ព្ទ", "អ៊ីនធឺណិត", "smart", "cellcard", "metfone", "ezecom", "internet", "phone", "topup", "top up", "话费", "网费", "充值"] },
   { preset: "utilities", words: ["ទឹកភ្លើង", "អគ្គិសនី", "electric", "electricity", "edc", "water", "电费", "水费", "水电"] },
   { preset: "housing", words: ["ទឹកភ្លើង", "អគ្គិសនី", "ជួលផ្ទះ", "ផ្ទះ", "rent", "electric", "electricity", "edc", "water", "房租", "电费", "水费", "水电"] },
   { preset: "rent", words: ["ជួល", "rent", "租金", "店租"] },
