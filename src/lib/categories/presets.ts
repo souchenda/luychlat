@@ -43,7 +43,7 @@ const BASE_PRESETS: Record<Exclude<WorkspaceType, "FAMILY">, CategoryPreset[]> =
     TONTINE_CATEGORY_PRESETS.COLLECT,
   ],
   BUSINESS: [
-    { key: "inventory", type: "EXPENSE", icon: "package", color: "#f97316", name: { km: "ថ្លៃទំនិញ/ស្តុក", en: "Inventory & stock" } },
+    { key: "inventory", type: "EXPENSE", icon: "package", color: "#f97316", name: { km: "ទិញស្តុកទំនិញ", en: "Inventory purchase" } },
     { key: "rent", type: "EXPENSE", icon: "store", color: "#8b5cf6", name: { km: "ជួលទីតាំង", en: "Rent" } },
     { key: "payroll", type: "EXPENSE", icon: "users", color: "#0ea5e9", name: { km: "ប្រាក់បៀវត្សបុគ្គលិក", en: "Staff payroll" } },
     { key: "utilities", type: "EXPENSE", icon: "zap", color: "#eab308", name: { km: "ទឹកភ្លើង", en: "Utilities" } },

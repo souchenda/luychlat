@@ -3277,7 +3277,7 @@ const km = {
   "bizValue.cash": "សាច់ប្រាក់ និងធនាគារ",
   "bizValue.equipment": "ឧបករណ៍ (ក្រោយរំលស់)",
   "bizValue.stock": "ស្តុកទំនិញ",
-  "bizValue.overdraft": "ឥណទានលើសសមតុល្យ និងកាត",
+  "bizValue.overdraft": "ឥណទានលើសសមតុល្យ (Overdraft / OD)",
   "bizValue.loans": "កម្ចីនៅជំពាក់",
   "bizValue.hint": "បន្ថែម ឬកែឧបករណ៍ និងស្តុក",
   "fa.cat.BUILDINGS_LEASEHOLD": "អគារ និងការកែលម្អទីតាំងជួល",
@@ -3344,6 +3344,13 @@ const km = {
   "pool.namePeople": "ដាក់ឈ្មោះសមាជិក (ស្រេចចិត្ត)",
   "biz.recordedWallet": "✅ {amount} បានកត់ត្រា ({wallet})",
   "biz.today": "📊 ថ្ងៃនេះ៖ {total} • {count} ប្រតិបត្តិការ",
+  "bizValue.stockCounted": "រាប់ស្តុកថ្ងៃ {date} + ទិញថ្មី",
+  "bizValue.stockSince": "ទិញចាប់ពី {date} (មិនទាន់រាប់ស្តុក)",
+  "fa.stockCount": "កត់ត្រាស្តុកជាក់ស្តែង",
+  "fa.stockCountHint": "ចុងខែ",
+  "fa.stockCountDesc": "តម្លៃទំនិញដែលនៅក្នុងស្តុកពិតប្រាកដ (តាមថ្លៃដើម)។ បន្ទាប់ពីនេះ ការទិញស្តុកថ្មីនឹងបូកបន្ថែមដោយស្វ័យប្រវត្តិ។",
+  "fa.stockCountValue": "តម្លៃស្តុកដែលរាប់បាន",
+  "fa.stockCountDate": "ថ្ងៃរាប់ស្តុក",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6610,7 +6617,7 @@ const en: Record<MessageKey, string> = {
   "bizValue.cash": "Cash & bank",
   "bizValue.equipment": "Equipment (depreciated)",
   "bizValue.stock": "Stock on hand",
-  "bizValue.overdraft": "Overdraft & cards owed",
+  "bizValue.overdraft": "Overdraft (OD)",
   "bizValue.loans": "Loans outstanding",
   "bizValue.hint": "Add or update equipment and stock",
   "fa.cat.BUILDINGS_LEASEHOLD": "Buildings & leasehold improvements",
@@ -6677,6 +6684,13 @@ const en: Record<MessageKey, string> = {
   "pool.namePeople": "Name the members (optional)",
   "biz.recordedWallet": "✅ {amount} recorded ({wallet})",
   "biz.today": "📊 Today: {total} • {count} payments",
+  "bizValue.stockCounted": "counted {date} + bought since",
+  "bizValue.stockSince": "bought since {date} (no count yet)",
+  "fa.stockCount": "Stock count",
+  "fa.stockCountHint": "month-end",
+  "fa.stockCountDesc": "What the goods physically in stock are worth (at cost). After this, new inventory purchases are added automatically.",
+  "fa.stockCountValue": "Counted stock value",
+  "fa.stockCountDate": "Count date",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

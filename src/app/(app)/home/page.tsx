@@ -175,7 +175,7 @@ export default function HomePage() {
 
 
       {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}
-      {workspace?.type === "BUSINESS" && <BusinessValueCard workspaceId={ws} wallets={walletsQuery.data} debts={debtsQuery.data} />}
+      {workspace?.type === "BUSINESS" && <BusinessValueCard workspaceId={ws} wallets={walletsQuery.data} debts={debtsQuery.data} transactions={txQuery.data} categories={categoriesQuery.data} />}
 
       <BirthdayCard />
 

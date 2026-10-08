@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, UserIcon, UsersIcon } from "lucide-react"
+import { walletDisplayName } from "@/lib/wallet-name"
 
 import { Amount } from "@/components/money/amount"
 import { Card } from "@/components/ui/card"
@@ -47,7 +48,7 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted, hide
           <>
             <WalletAvatar icon={wallet.icon} color={wallet.color} name={wallet.name} />
             <span className="min-w-0 flex-1 text-left">
-              <span className="block truncate text-sm font-medium">{wallet.name}</span>
+              <span className="block truncate text-sm font-medium" title={wallet.name}>{walletDisplayName(wallet)}</span>
               <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                 {family && (
                   <span

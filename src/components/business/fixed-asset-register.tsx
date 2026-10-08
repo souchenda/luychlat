@@ -55,6 +55,7 @@ export function FixedAssetRegister({ workspaceId, editable }: { workspaceId: str
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<PhysicalAsset | null>(null)
   const [detail, setDetail] = useState<PhysicalAsset | null>(null)
+  const [countOpen, setCountOpen] = useState(false)
 
   const register = all.filter((a) => isFixedAssetCategory(a.kind))
   const stock = all.filter((a) => a.kind === "STOCK")
@@ -88,6 +89,13 @@ export function FixedAssetRegister({ workspaceId, editable }: { workspaceId: str
           </Card>
         ))}
       </div>
+
+      {editable && (
+        <Button variant="outline" className="h-10 w-full justify-between" onClick={() => setCountOpen(true)}>
+          <span>🏷️ {t("fa.stockCount")}</span>
+          <span className="text-xs text-muted-foreground">{t("fa.stockCountHint")}</span>
+        </Button>
+      )}
 
       <div className="flex items-center gap-2">
         <Select value={category} onValueChange={setCategory}>
@@ -170,8 +178,83 @@ export function FixedAssetRegister({ workspaceId, editable }: { workspaceId: str
       <p className="px-1 text-[11px] text-muted-foreground">{t("fa.footnote")}</p>
 
       <FixedAssetFormSheet open={formOpen} onOpenChange={setFormOpen} workspaceId={workspaceId} asset={editing} />
+      <StockCountSheet open={countOpen} onOpenChange={setCountOpen} workspaceId={workspaceId} stock={stock} />
       <FixedAssetDetailSheet asset={detail} onOpenChange={(v) => !v && setDetail(null)} workspaceId={workspaceId} editable={editable} onEdit={openForm} />
     </div>
+  )
+}
+
+/**
+ * Month-end stock count (កត់ត្រាស្តុកជាក់ស្តែង): the value of what is physically in stock,
+ * on a date. From then on, stock on hand = this count + the inventory bought after it.
+ */
+function StockCountSheet({ open, onOpenChange, workspaceId, stock }: { open: boolean; onOpenChange: (v: boolean) => void; workspaceId: string | undefined; stock: PhysicalAsset[] }) {
+  const t = useT()
+  const { add, update } = usePhysicalAssetMutations(workspaceId)
+  const main = stock.find((a) => a.status !== "DISPOSED") ?? null
+  const [value, setValue] = useState("")
+  const [currency, setCurrency] = useState<Currency>("USD")
+  const [date, setDate] = useState(localToday())
+  useEffect(() => {
+    if (!open) return
+    setValue(main ? String(main.estimated_value) : "")
+    setCurrency(main?.currency ?? "USD")
+    setDate(localToday())
+  }, [open, main])
+  const busy = add.isPending || update.isPending
+  const save = (e: React.FormEvent) => {
+    e.preventDefault()
+    const v = parseAmount(value)
+    if (!(v >= 0) || !date) return void toast.error(t("walletForm.amountInvalid"))
+    const input: PhysicalAssetInput = {
+      kind: "STOCK",
+      name: main?.name ?? t("fa.cat.STOCK"),
+      estimated_value: roundMoney(v, currency),
+      currency,
+      // The count's date: inventory bought after it is added on top.
+      purchase_date: date,
+      purchase_price: null,
+      debt_id: null,
+      note: null,
+      useful_life_months: null,
+      location: null,
+      area_m2: null,
+      salvage_value: 0,
+    }
+    const opts = { onSuccess: () => (toast.success(t("gold.saved")), onOpenChange(false)), onError: () => toast.error(t("common.error")) }
+    if (main) update.mutate({ id: main.id, input }, opts)
+    else add.mutate(input, opts)
+  }
+  return (
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("fa.stockCount")} description={t("fa.stockCountDesc")}>
+      <form onSubmit={save} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="sc-value">{t("fa.stockCountValue")}</Label>
+          <div className="flex gap-2">
+            <Input id="sc-value" inputMode="decimal" placeholder="0" className="h-11 min-w-0 flex-1 text-base tabular-nums" value={value} onChange={(e) => setValue(e.target.value)} />
+            <div className="w-28 shrink-0">
+              <Segmented
+                aria-label={t("walletForm.currency")}
+                value={currency}
+                onChange={(v) => setCurrency(v as Currency)}
+                options={[
+                  { value: "USD", label: "$" },
+                  { value: "KHR", label: "៛" },
+                ]}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="sc-date">{t("fa.stockCountDate")}</Label>
+          <Input id="sc-date" type="date" max={localToday()} className="h-11" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <Button type="submit" className="h-12 w-full text-base" disabled={busy}>
+          {busy && <Loader2Icon className="animate-spin" />}
+          {t("common.save")}
+        </Button>
+      </form>
+    </BottomSheet>
   )
 }
 

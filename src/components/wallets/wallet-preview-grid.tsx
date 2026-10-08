@@ -1,6 +1,7 @@
 "use client"
 
 import { PlusIcon } from "lucide-react"
+import { walletDisplayName } from "@/lib/wallet-name"
 import Link from "next/link"
 
 import { Amount } from "@/components/money/amount"
@@ -37,7 +38,7 @@ export function WalletPreviewGrid({ wallets, onAdd }: { wallets: Wallet[]; onAdd
           >
             <span className="flex min-w-0 items-center gap-2">
               <WalletAvatar icon={w.icon} color={w.color} name={w.name} />
-              <span className="min-w-0 truncate text-sm font-medium">{w.name}</span>
+              <span className="min-w-0 truncate text-sm font-medium" title={w.name}>{walletDisplayName(w)}</span>
             </span>
             <span className="min-w-0">
               <Amount value={w.balance} currency={w.currency} className={`block font-bold tracking-tight whitespace-nowrap tabular-nums ${balanceSize(w)}`} />
