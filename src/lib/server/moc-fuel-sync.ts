@@ -114,7 +114,7 @@ export function newPricesText(fuel: Pick<FuelPrices, "regular" | "diesel" | "fro
     `• ម៉ាស៊ូត (Diesel) ៖ ${riel(fuel.diesel)} ៛/លីត្រ${change(fuel.diesel, previous?.diesel)}`,
     "",
     `ℹ️ ប្រភព៖ សេចក្តីជូនដំណឹងក្រសួងពាណិជ្ជកម្ម · t.me/${CHANNEL}/${postId}`,
-    "✨ ចុះឈ្មោះប្រើកម្មវិធីដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត!",
+    "✨ ចុះឈ្មោះប្រើកម្មវិធីដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត! 👇👇",
   ].join("\n")
 }
 

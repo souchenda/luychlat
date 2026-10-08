@@ -70,7 +70,7 @@ const html = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").repla
 /** The approved rate block: flags and aligned columns in a monospaced block (Telegram HTML). */
 function ratesBlock(nbc: NonNullable<MarketLive["nbc"]>): string {
   const rows: string[] = []
-  for (const code of ["USD", "THB", "CNY", "EUR", "VND"]) {
+  for (const code of ["USD", "CNY", "EUR", "VND", "MYR", "THB"]) {
     const v = nbc.khr_per[code]
     if (!v) continue
     const unit = v < 1 ? 1000 : v < 10 ? 100 : 1
@@ -81,7 +81,7 @@ function ratesBlock(nbc: NonNullable<MarketLive["nbc"]>): string {
   return `<pre>${rows.join("\n")}</pre>`
 }
 
-const SIGNUP = "✨ ចុះឈ្មោះប្រើកម្មវិធីដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត!"
+const SIGNUP = "✨ ចុះឈ្មោះប្រើកម្មវិធីដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត! 👇👇"
 
 /**
  * 09:30 daily market post — the channel's one market template (Telegram HTML), the
@@ -108,7 +108,7 @@ export function bulletinText(date: Date, market: MarketLive | null, updatedAt?: 
 }
 
 /** Evening: NBC's rate for the next working day (published ~16:30). */
-const FLAGS: Record<string, string> = { USD: "🇺🇸", THB: "🇹🇭", CNY: "🇨🇳", EUR: "🇪🇺", VND: "🇻🇳" }
+const FLAGS: Record<string, string> = { USD: "🇺🇸", CNY: "🇨🇳", EUR: "🇪🇺", VND: "🇻🇳", MYR: "🇲🇾", THB: "🇹🇭" }
 
 /**
  * Evening: NBC's rate for the next working day (published ~16:30), as Telegram
@@ -315,7 +315,7 @@ export function marketSnapshotText(market: MarketLive | null, locale: Locale, to
   const nbc = market?.nbc
   if (nbc) {
     lines.push("", t("bot.marketNbc", { date: d(nbc.date.split("-").reverse().join("/")) }))
-    for (const code of ["USD", "THB", "VND", "CNY", "EUR"]) {
+    for (const code of ["USD", "CNY", "EUR", "VND", "MYR", "THB"]) {
       const v = nbc.khr_per[code]
       if (v) lines.push(rateLine(code, v))
     }
