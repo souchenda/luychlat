@@ -18,6 +18,7 @@ import { parseAmountText, toLatinDigits } from "@/lib/bot/parse-entry"
 import type { Slip } from "@/lib/bot/bank-slip"
 import { formatMoney } from "@/lib/money"
 import { poolEmoji, toSnapshot, type PoolSnapshot } from "@/lib/pool"
+import { CLOSING_BLESSING, takesBlessing } from "@/lib/pool-blessing"
 
 import { isGroupAdmin } from "./biz-slip-bot"
 import { appUrl } from "./community-bulletin"
@@ -245,12 +246,7 @@ export async function handlePoolFlowCallback(cb: Callback) {
   } else await tg("sendMessage", { chat_id: chatId, text })
 }
 
-/** The heartfelt closing for family / festival pools. */
-export const CLOSING_BLESSING = [
-  "🙏 សូមអរគុណគ្រប់គ្រួសារ ដែលបានរួមចំណែកដោយសាមគ្គីភាព ធ្វើឱ្យបុណ្យកុសលនេះបានសម្រេច និងទទួលបានផលបុណ្យស្មើៗគ្នា។",
-  "សូមជូនពរគ្រប់គ្រួសារ រកទទួលទានមានបាន ចម្រុងចម្រើន មានសុខភាពល្អ និងសុខសាន្តជានិច្ច។ សង្ឃឹមថានឹងបានជួបជុំគ្នាម្ដងទៀត ក្នុងពិធីបុណ្យឆ្នាំក្រោយ។",
-  "ប្រសិនបើមានការខ្វះខាតណាមួយក្នុងការចាត់ចែង ដោយអចេតនា សូមមេត្តាអភ័យទោស និងខន្តីផងចុះ។",
-].join("\n\n")
+export { CLOSING_BLESSING }
 
 /** The closing post: summary text (by category, refund per share), the card image, and the blessing. */
 export async function postClosing(chatId: number, p: PoolSnapshot) {
@@ -269,7 +265,7 @@ export async function postClosing(chatId: number, p: PoolSnapshot) {
     lines.push("", amounts.size === 1 ? `↩️ ${head}៖ ${formatMoney(s.shares[0].amount, p.currency)} ក្នុងមួយ${unitWord(p)}` : `↩️ ${head}៖`)
     if (amounts.size > 1) for (const x of s.shares) lines.push(`   • ${x.name} — ${formatMoney(x.amount, p.currency)}`)
   } else if (s?.mode === "ROLLOVER") lines.push("", "🔁 ប្រាក់នៅសល់ ផ្ទេរទៅបេឡាលើកក្រោយ។")
-  const festive = p.unit === "FAMILY" || p.kind === "FESTIVAL" || p.template === "pchumben"
+  const festive = takesBlessing(p)
   const token = botToken()
   try {
     if (token) {

@@ -23,6 +23,8 @@ import { useT } from "@/lib/i18n/use-t"
 import { parseAmount, roundMoney } from "@/lib/money"
 import { poolEmoji, type PoolMember, type PoolSettleMode, type PoolSnapshot } from "@/lib/pool"
 import { usePool, usePoolMutations } from "@/lib/pools"
+import { takesBlessing } from "@/lib/pool-blessing"
+import { ClosingBlessing, PendingPayments, PoolKhqr, PoolProgress } from "@/components/pools/pool-extras"
 import { cn } from "@/lib/utils"
 import { khmerDigits } from "@/lib/dates"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -211,6 +213,7 @@ function MemberRow({ pool, m, editable }: { pool: PoolSnapshot; m: PoolMember; e
           </span>
         )}
         {m.pledged === 0 && m.paid > 0 && <span className="block text-xs text-muted-foreground tabular-nums">{money(m.paid, pool.currency)}</span>}
+        {m.pledged > 0 && m.paid === 0 && <span className="block text-xs text-amber-700 dark:text-amber-400">{t("pool.waiting")}</span>}
       </div>
       {full ? (
         <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-emerald-700 tabular-nums dark:text-emerald-400">
@@ -403,6 +406,7 @@ export default function PoolPage() {
             </p>
           )}
         </div>
+        <PoolProgress pool={pool} />
         {active && pool.pooled === 0 && <p className="rounded-xl bg-muted/60 px-3 py-2 text-sm leading-relaxed text-muted-foreground">{t("pool.emptyHint")}</p>}
         {active && pool.topup_per_member !== null && (
           <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
@@ -423,6 +427,9 @@ export default function PoolPage() {
         )}
       </Card>
 
+      <PendingPayments pool={pool} editable={editable} />
+      <PoolKhqr pool={pool} />
+
       {pool.settlement && (
         <Card className="gap-2 px-4 py-4">
           <p className="text-sm font-semibold">{t(`pool.settled.${pool.settlement.mode}` as MessageKey, { amount: money(Math.abs(pool.settlement.remaining), pool.currency) })}</p>
@@ -434,6 +441,8 @@ export default function PoolPage() {
           ))}
         </Card>
       )}
+
+      {!active && takesBlessing(pool) && <ClosingBlessing pool={pool} />}
 
       <section className="space-y-2">
         <div className="flex items-end justify-between gap-2 px-1">

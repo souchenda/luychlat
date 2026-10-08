@@ -36,6 +36,8 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
   const [split, setSplit] = useState<"EQUAL" | "CUSTOM">("EQUAL")
   const [count, setCount] = useState("5")
   const [each, setEach] = useState("")
+  // Optional names for equal shares ("គ្រួសារបងធំ"); an empty one keeps "គ្រួសារទី N".
+  const [names, setNames] = useState<string[]>([])
   const [rows, setRows] = useState<Row[]>([{ name: "", amount: "" }, { name: "", amount: "" }])
   const [start, setStart] = useState("")
   const [end, setEnd] = useState("")
@@ -55,12 +57,13 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
     setRecordPaid(true)
     setUnit("FAMILY")
     setTemplate(true)
+    setNames([])
   }, [open])
 
   const members =
     split === "EQUAL"
       ? Array.from({ length: Math.min(100, Math.max(0, Math.floor(parseAmount(count) || 0))) }, (_, i) => ({
-          name: t(unit === "FAMILY" ? "pool.familyN" : "pool.memberN", { n: i + 1 }),
+          name: names[i]?.trim().replace(/\s+/g, " ").slice(0, 60) || t(unit === "FAMILY" ? "pool.familyN" : "pool.memberN", { n: i + 1 }),
           pledged: roundMoney(parseAmount(each) || 0, currency),
         }))
       : rows.filter((r) => r.name.trim()).map((r) => ({ name: r.name.trim().slice(0, 60), pledged: roundMoney(parseAmount(r.amount) || 0, currency) }))
@@ -187,6 +190,28 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
               <Label htmlFor="pool-each">{t(unit === "FAMILY" ? "pool.perFamily" : "pool.perMember", { currency: currency === "USD" ? "$" : "៛" })}</Label>
               <Input id="pool-each" className="h-11 tabular-nums" inputMode="decimal" value={each} onChange={(e) => setEach(e.target.value)} />
             </div>
+            {members.length > 0 && members.length <= 30 && (
+              <details className="col-span-2 rounded-xl border px-3 py-2">
+                <summary className="cursor-pointer text-sm font-medium">{t(unit === "FAMILY" ? "pool.nameFamilies" : "pool.namePeople")}</summary>
+                <div className="mt-2 space-y-1.5">
+                  {members.map((_, i) => (
+                    <Input
+                      key={i}
+                      className="h-10"
+                      maxLength={60}
+                      placeholder={t(unit === "FAMILY" ? "pool.familyN" : "pool.memberN", { n: i + 1 })}
+                      value={names[i] ?? ""}
+                      onChange={(e) => setNames((list) => {
+                        const next = [...list]
+                        next[i] = e.target.value
+                        return next
+                      })}
+                      aria-label={t(unit === "FAMILY" ? "pool.familyN" : "pool.memberN", { n: i + 1 })}
+                    />
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         ) : (
           <div className="space-y-2">

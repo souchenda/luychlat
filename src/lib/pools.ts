@@ -65,6 +65,24 @@ export function usePool(poolId: string | null | undefined) {
   })
 }
 
+/** A bank payment waiting for "whose share?" (a slip in the pool's group, or KHQR via AUTOBOK). */
+export type PendingPoolPayment = { id: string; amount: number; currency: "USD" | "KHR"; payer: string | null; source: "slip" | "khqr"; created_at: string }
+
+/** The pool's unassigned bank payments (keeper / writers; empty for others). */
+export function usePendingPoolPayments(poolId: string | null | undefined, enabled: boolean) {
+  const { scope } = useRepo()
+  return useQuery({
+    queryKey: ["pools", scope, "pending", poolId ?? ""],
+    enabled: Boolean(poolId) && enabled,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await client().rpc("pool_pending_payments", { p_pool_id: poolId })
+      if (error) return [] as PendingPoolPayment[]
+      return ((data as PendingPoolPayment[] | null) ?? []).map((x) => ({ ...x, amount: Number(x.amount) }))
+    },
+  })
+}
+
 export function usePoolMutations() {
   const queryClient = useQueryClient()
   const done = (money = false) => {
@@ -146,6 +164,12 @@ export function usePoolMutations() {
       mutationFn: async (poolId: string) => (await rpc("pool_telegram_code", { p_pool_id: poolId })) as string,
     }),
     // AUTOBOK → this pool: a new key (shown once; makes any older key stop working).
+    // A waiting bank payment → this share (one tap on the pool page).
+    assignPayment: useMutation({
+      mutationFn: async (v: { pendingId: string; memberId: string }) =>
+        (await rpc("pool_payment_assign", { p_pending: v.pendingId, p_member_id: v.memberId })) as { status: string; member?: string },
+      onSuccess: () => done(true),
+    }),
     khqrKey: useMutation({
       mutationFn: async (poolId: string) => (await rpc("pool_khqr_key_create", { p_pool_id: poolId })) as string,
     }),
