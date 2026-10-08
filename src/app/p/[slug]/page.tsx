@@ -75,7 +75,7 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
           <span aria-hidden>{poolEmoji(pool.kind)}</span>
           {pool.title}
         </h1>
-        {pool.keeper && <p className="text-sm text-muted-foreground">អ្នករក្សាលុយ · Keeper: {pool.keeper}</p>}
+        {pool.keeper && <p className="text-sm text-muted-foreground">អ្នកកាន់បេឡា · Keeper: {pool.keeper}</p>}
         {charity && (
           // What the page really offers: every entry in the open. Not a verification of the cause by LuyChlat.
           <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
@@ -140,10 +140,10 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
           {charity && pool.status === "active" ? (
             <>
               <p className="text-base font-bold">🤲 បើកទទួលការបរិច្ចាគ · Open for donations</p>
-              <p className="text-xs text-muted-foreground">ស្កេន KHQR ដើម្បីបរិច្ចាគជូន {pool.keeper || "អ្នករក្សាលុយ"} · Scan to donate to the keeper</p>
+              <p className="text-xs text-muted-foreground">ស្កេន KHQR ដើម្បីបរិច្ចាគជូន {pool.keeper || "អ្នកកាន់បេឡា"} · Scan to donate to the keeper</p>
             </>
           ) : (
-            <p className="text-sm font-semibold">ស្កេនបង់ជូនអ្នករក្សាលុយ · Scan to pay the keeper</p>
+            <p className="text-sm font-semibold">ស្កេនបង់ជូនអ្នកកាន់បេឡា · Scan to pay the keeper</p>
           )}
           <div className="mx-auto w-56 rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: khqrSvg }} />
           <p className="text-xs text-muted-foreground">KHQR</p>

@@ -10,7 +10,7 @@ import { parseAmountText, toLatinDigits } from "@/lib/bot/parse-entry"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
 import { GAUGE_EMOJI, poolEmoji, toSnapshot, type PoolSnapshot } from "@/lib/pool"
-import { introducePool, postClosing, postProgress } from "@/lib/server/pool-flow"
+import { KHQR_BUTTON, introducePool, postClosing, postProgress, progressText } from "@/lib/server/pool-flow"
 import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
 
 const khmerDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
@@ -34,14 +34,17 @@ function lowLine(p: PoolSnapshot, lang: Locale) {
     : tr(lang, "pool.bot.lowNoHint", { remaining: formatMoney(p.remaining, p.currency) })
 }
 
-/** /pool: everything at a glance. */
+/** /pool: everything at a glance. A pool with shares leads with the same progress as the live message. */
 function snapshotText(p: PoolSnapshot, lang: Locale) {
-  const lines = [
-    `${poolEmoji(p.kind)} ${p.title}${p.status === "settled" ? ` · ${tr(lang, "pool.bot.closed")}` : ""}`,
-    tr(lang, "pool.bot.pooled", { amount: formatMoney(p.pooled, p.currency) }),
-    tr(lang, "pool.bot.spent", { amount: formatMoney(p.spent, p.currency) }),
-    balanceLine(p, lang),
-  ]
+  const shares = p.status === "active" && p.members.some((m) => m.pledged > 0)
+  const lines = shares
+    ? [progressText(p)]
+    : [
+        `${poolEmoji(p.kind)} ${p.title}${p.status === "settled" ? ` · ${tr(lang, "pool.bot.closed")}` : ""}`,
+        tr(lang, "pool.bot.pooled", { amount: formatMoney(p.pooled, p.currency) }),
+        tr(lang, "pool.bot.spent", { amount: formatMoney(p.spent, p.currency) }),
+        balanceLine(p, lang),
+      ]
   if (p.top.length) {
     lines.push("", tr(lang, "pool.bot.top"))
     for (const x of p.top) lines.push(`• ${x.note ?? "—"} — ${formatMoney(x.amt, p.currency)}`)
@@ -162,7 +165,8 @@ export async function handlePoolGroupCommand(chatId: number, fromId: number | un
   const lang = asLocale((snap as { language?: string }).language ?? fallback)
 
   if (name !== "/spend") {
-    await sendText(chatId, snapshotText(pool, lang))
+    // With the pool's KHQR one tap away.
+    await sendText(chatId, snapshotText(pool, lang), pool.khqr && pool.status === "active" ? { reply_markup: { inline_keyboard: [[{ text: KHQR_BUTTON, callback_data: `pq:${pool.id}` }]] } } : {})
     return true
   }
 

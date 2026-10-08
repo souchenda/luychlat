@@ -14,11 +14,11 @@ const POINTS: { km: string; en: string }[] = [
     en: "LuyChlat never touches, holds in escrow, keeps or manages any money.",
   },
   {
-    km: "ការបរិច្ចាគតាម KHQR គឺជាការផ្ទេរប្រាក់ផ្ទាល់ពីអ្នកបរិច្ចាគទៅអ្នករក្សាលុយ។",
+    km: "ការបរិច្ចាគតាម KHQR គឺជាការផ្ទេរប្រាក់ផ្ទាល់ពីអ្នកបរិច្ចាគទៅអ្នកកាន់បេឡា។",
     en: "Donations by KHQR go directly from the donor to the pool keeper.",
   },
   {
-    km: "សូមផ្ទៀងផ្ទាត់កម្មវិធី និងអត្តសញ្ញាណអ្នករក្សាលុយដោយខ្លួនឯង មុនពេលផ្ញើប្រាក់។",
+    km: "សូមផ្ទៀងផ្ទាត់កម្មវិធី និងអត្តសញ្ញាណអ្នកកាន់បេឡាដោយខ្លួនឯង មុនពេលផ្ញើប្រាក់។",
     en: "Check the campaign and the keeper's identity yourself before you send money.",
   },
 ]

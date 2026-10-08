@@ -41,8 +41,10 @@ export function poolPreset(text: string): "pool_offering" | "pool_travel" | "poo
 
 /** "📊 5/10 គ្រួសារបានបង់ ($500 / $1,000)\n[██████████░░░░░░░░░░] ៥០%" */
 export function progressText(p: PoolSnapshot): string {
-  const paid = p.members.filter((m) => m.pledged > 0 && m.paid >= m.pledged).length
-  const total = p.members.length
+  // Shares only (a name with no share isn't one to count), against the target — the single source for every pool message.
+  const shares = p.members.filter((m) => m.pledged > 0)
+  const paid = shares.filter((m) => m.paid >= m.pledged).length
+  const total = shares.length || p.members.length
   const target = p.target > 0 ? p.target : p.pooled
   const pct = target > 0 ? Math.min(100, Math.round((p.pooled / target) * 100)) : 0
   const filled = Math.round(pct / 5)
@@ -56,7 +58,10 @@ export function progressText(p: PoolSnapshot): string {
 
 async function progressKeyboard(p: PoolSnapshot) {
   const url = await appUrl()
-  const rows: { text: string; callback_data?: string; url?: string }[][] = [[{ text: "🔔 រំលឹកអ្នកមិនទាន់បង់", callback_data: `pr:${p.id}` }]]
+  const rows: { text: string; callback_data?: string; url?: string }[][] = [
+    ...(p.khqr ? [[{ text: KHQR_BUTTON, callback_data: `pq:${p.id}` }]] : []),
+    [{ text: "🔔 រំលឹកអ្នកមិនទាន់បង់", callback_data: `pr:${p.id}` }],
+  ]
   if (url && p.id) rows.push([{ text: "🏁 បិទ និងទូទាត់ (ក្នុងកម្មវិធី)", url: `${url}/pools/${p.id}` }])
   return { inline_keyboard: rows }
 }
@@ -184,7 +189,11 @@ export async function handlePoolSpendText(chatId: number, fromId: number, text: 
   return true
 }
 
-export const isPoolFlowCallback = (data: string | undefined) => /^p[pr]:/.test(data ?? "")
+export const isPoolFlowCallback = (data: string | undefined) => /^p[prq]:/.test(data ?? "")
+
+/** The button that shows the pool's KHQR to anyone in the group. */
+export const KHQR_BUTTON = "💳 ស្កេនបង់ប្រាក់ KHQR"
+const khqrShownAt = new Map<string, number>()
 
 type Callback = { id: string; data?: string; from?: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } }
 
@@ -214,6 +223,17 @@ export async function handlePoolFlowCallback(cb: Callback) {
     }).catch(() => null)
     const p = await groupSnapshot(chatId)
     if (p) await postProgress(chatId, p)
+    return
+  }
+
+  // pq:<pool> — anyone: the pool's KHQR image to scan and pay (at most every 2 minutes per pool).
+  if (cb.data?.startsWith("pq:")) {
+    const p = await groupSnapshot(chatId)
+    if (!p?.id || !p.khqr) return answer("បេឡានេះមិនទាន់មាន KHQR ទេ — អ្នកកាន់បេឡាអាចដាក់វាក្នុងកម្មវិធី។", true)
+    if (Date.now() - (khqrShownAt.get(p.id) ?? 0) < 2 * 60_000) return answer("KHQR ទើបតែផ្ញើខាងលើ 👆")
+    khqrShownAt.set(p.id, Date.now())
+    await answer("📲")
+    await sendWithKhqr(chatId, p, `📲 ${p.title}\nសូមស្កេន KHQR ដើម្បីបង់ចំណែក (${p.keeper || "អ្នកកាន់បេឡា"}) ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ — លុយឆ្លាតនឹងកត់ត្រាជូន។ 🙏`)
     return
   }
 
