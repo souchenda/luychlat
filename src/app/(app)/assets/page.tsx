@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ASSET_EMOJI, assetEquity, depreciation, type PhysicalAsset } from "@/lib/assets"
 import { usePhysicalAssets } from "@/lib/assets-data"
+import { khanOf } from "@/lib/land-prices"
 import { canWrite, useActiveWorkspace, useDebts } from "@/lib/data/hooks"
 import { formatWeight, HUN_PER_CHI, HUN_PER_DAMLUNG, holdingPnl, hunToGrams, PLATINUM_GRADES, portfolio, rateFor, type GoldKind, type PlatinumGrade } from "@/lib/gold"
 import { useGoldHoldings, useGoldRates, type GoldHolding } from "@/lib/gold-data"
@@ -308,6 +309,8 @@ export default function AssetsPage() {
                             <p className="truncate font-semibold">{a.name}</p>
                             <p className="text-xs text-muted-foreground">
                               {t(`assets.kind.${a.kind}` as MessageKey)}
+                              {khanOf(a.location) ? ` · ${locale === "km" ? khanOf(a.location)!.km : khanOf(a.location)!.en}` : ""}
+                              {a.area_m2 ? ` · ${num(a.area_m2)} m²` : ""}
                               {a.purchase_date ? ` · ${format(parseISO(a.purchase_date), "yyyy")}` : ""}
                             </p>
                           </div>

@@ -11,18 +11,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { stepUp } from "@/components/security/step-up"
-import { ASSET_EMOJI, ASSET_KINDS, DEFAULT_LIFE_YEARS, LIFE_YEARS, depreciation, type AssetKind, type PhysicalAsset } from "@/lib/assets"
+import { ASSET_EMOJI, ASSET_KINDS, DEFAULT_LIFE_YEARS, LIFE_YEARS, depreciation, hasPlot, type AssetKind, type PhysicalAsset } from "@/lib/assets"
 import { usePhysicalAssetMutations } from "@/lib/assets-data"
 import type { Currency, Debt } from "@/lib/data/types"
 import { khmerDigits } from "@/lib/dates"
 import { debtStatus, remaining } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { LAND_PRICE_SOURCE, PHNOM_PENH_KHANS, PROVINCE, landReference } from "@/lib/land-prices"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 
 const NO_LOAN = "none"
+const NO_LOCATION = "none"
 
 /**
  * Add or edit land, a house, a vehicle, a laptop…: either an estimated value, or — with a
@@ -53,6 +55,9 @@ export function AssetFormSheet({
   const [loanId, setLoanId] = useState(NO_LOAN)
   // Useful life in years ("0" = no depreciation).
   const [life, setLife] = useState("0")
+  // Land / house: the Khan (or a province) and the plot size, for the area price reference.
+  const [location, setLocation] = useState(NO_LOCATION)
+  const [area, setArea] = useState("")
   const locale = useLocaleStore((s) => s.locale)
   const num = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
   // Loans we owe that are still open (plus the one already linked).
@@ -68,6 +73,8 @@ export function AssetFormSheet({
     setPrice(asset?.purchase_price != null ? String(asset.purchase_price) : "")
     setLoanId(asset?.debt_id ?? NO_LOAN)
     setLife(asset ? String(asset.useful_life_months ? Math.round(asset.useful_life_months / 12) : 0) : String(DEFAULT_LIFE_YEARS.HOUSE ?? 0))
+    setLocation(asset?.location ?? NO_LOCATION)
+    setArea(asset?.area_m2 != null ? String(asset.area_m2) : "")
   }, [open, asset])
 
   const pickKind = (k: AssetKind) => {
@@ -79,6 +86,11 @@ export function AssetFormSheet({
   const cost = price.trim() ? parseAmount(price) : null
   // The live schedule (once cost and date are in).
   const schedule = lifeMonths && cost != null && cost >= 0 && date ? depreciation({ purchase_price: cost, purchase_date: date, useful_life_months: lifeMonths, currency }) : null
+  const plot = hasPlot(kind)
+  const areaM2 = area.trim() ? parseAmount(area) : null
+  const reference = plot ? landReference(location, areaM2) : null
+  const usd = (n: number) => formatMoney(n, "USD")
+  const khanName = (k: { km: string; en: string }) => (locale === "km" ? k.km : k.en)
 
   const busy = add.isPending || update.isPending
   const submit = (e: React.FormEvent) => {
@@ -90,6 +102,7 @@ export function AssetFormSheet({
     if (lifeMonths && (bought === null || !date)) return void toast.error(t("assets.costRequired"))
     const estimate = schedule ? schedule.bookValue : parseAmount(value)
     if (!(estimate >= 0)) return void toast.error(t("walletForm.amountInvalid"))
+    if (plot && areaM2 !== null && !(areaM2 > 0)) return void toast.error(t("walletForm.amountInvalid"))
     const input = {
       kind,
       name: name.trim(),
@@ -100,6 +113,8 @@ export function AssetFormSheet({
       debt_id: loanId === NO_LOAN ? null : loanId,
       note: null,
       useful_life_months: lifeMonths,
+      location: plot && location !== NO_LOCATION ? location : null,
+      area_m2: plot && areaM2 ? Math.round(areaM2 * 100) / 100 : null,
     }
     const opts = {
       onSuccess: () => {
@@ -207,6 +222,59 @@ export function AssetFormSheet({
           </>
         ) : (
           <>
+            {plot && (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <Label>{t("assets.location")}</Label>
+                    <Select value={location} onValueChange={setLocation}>
+                      <SelectTrigger className="h-11 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_LOCATION}>{t("assets.locationNone")}</SelectItem>
+                        {PHNOM_PENH_KHANS.map((k) => (
+                          <SelectItem key={k.key} value={k.key}>
+                            {t("assets.khan", { name: khanName(k) })}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value={PROVINCE}>{t("assets.province")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="asset-area">{t("assets.area")}</Label>
+                    <Input id="asset-area" inputMode="decimal" placeholder="0" className="h-11 tabular-nums" value={area} onChange={(e) => setArea(e.target.value)} />
+                  </div>
+                </div>
+                {reference ? (
+                  <div className="space-y-1 rounded-xl border bg-muted/40 px-3 py-2.5 text-sm">
+                    <p className="font-medium">{t("assets.refTitle")}</p>
+                    <p className="tabular-nums">
+                      {t("assets.refPerM2", { name: khanName(reference.khan), low: usd(reference.khan.min), high: usd(reference.khan.max) })}
+                      {reference.low !== null && reference.high !== null && (
+                        <>
+                          {" → "}
+                          <span className="font-semibold">{t("assets.refTotal", { area: area.trim(), low: usd(reference.low), high: usd(reference.high) })}</span>
+                        </>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {kind === "HOUSE" ? `${t("assets.refHouse")} ` : ""}
+                      {t("assets.refAdvisory")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("assets.refSource", { period: LAND_PRICE_SOURCE.period })}{" "}
+                      <a href={LAND_PRICE_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                        {LAND_PRICE_SOURCE.credit}
+                      </a>
+                    </p>
+                  </div>
+                ) : (
+                  location === PROVINCE && <p className="rounded-xl border border-dashed px-3 py-2.5 text-xs text-muted-foreground">{t("assets.refProvince")}</p>
+                )}
+              </>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="asset-value">{t("assets.estimatedValue")}</Label>
               <div className="flex gap-2">

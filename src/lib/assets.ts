@@ -45,11 +45,17 @@ export type PhysicalAsset = {
   note: string | null
   /** Straight-line depreciation over this many months; null = none. */
   useful_life_months: number | null
+  /** Land / house: a Phnom Penh Khan key or "province" (src/lib/land-prices.ts), and the plot size. */
+  location: string | null
+  area_m2: number | null
   created_at: string
 }
+
+/** Kinds that take a location and plot size (for the area price reference). */
+export const hasPlot = (kind: AssetKind) => kind === "LAND" || kind === "HOUSE"
 export type PhysicalAssetInput = Pick<
   PhysicalAsset,
-  "kind" | "name" | "estimated_value" | "currency" | "purchase_date" | "purchase_price" | "debt_id" | "note" | "useful_life_months"
+  "kind" | "name" | "estimated_value" | "currency" | "purchase_date" | "purchase_price" | "debt_id" | "note" | "useful_life_months" | "location" | "area_m2"
 >
 
 type Depreciable = Pick<PhysicalAsset, "purchase_price" | "purchase_date" | "useful_life_months" | "currency">

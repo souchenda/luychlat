@@ -3256,6 +3256,18 @@ const km = {
   "assets.bookValue": "តម្លៃនៅសល់ (រំលស់)",
   "assets.perMonth": "រំលស់ −{amount}/ខែ",
   "assets.fullyDepreciated": "រំលស់អស់ហើយ",
+  "assets.location": "ទីតាំង",
+  "assets.locationNone": "មិនបញ្ជាក់",
+  "assets.khan": "ខណ្ឌ{name}",
+  "assets.province": "ខេត្ត (ក្រៅភ្នំពេញ)",
+  "assets.area": "ទំហំដី (m²)",
+  "assets.refTitle": "តម្លៃយោងតាមតំបន់",
+  "assets.refPerM2": "{name}៖ {low}–{high}/m²",
+  "assets.refTotal": "{area} m² ≈ {low}–{high}",
+  "assets.refHouse": "សម្រាប់ដីប៉ុណ្ណោះ មិនរាប់បញ្ចូលតម្លៃអគារ។",
+  "assets.refAdvisory": "ជាតម្លៃយោងប៉ុណ្ណោះ — តម្លៃប៉ាន់ស្មានរបស់អ្នកខាងក្រោម ទើបជាតម្លៃដែលគិតក្នុងទ្រព្យសម្បត្តិសុទ្ធ។",
+  "assets.refSource": "ប្រភព៖ {period} ·",
+  "assets.refProvince": "មិនទាន់មានទិន្នន័យតម្លៃយោងសម្រាប់ខេត្តនៅឡើយទេ។ សូមបញ្ចូលតម្លៃប៉ាន់ស្មានរបស់អ្នក។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6501,6 +6513,18 @@ const en: Record<MessageKey, string> = {
   "assets.bookValue": "Book value",
   "assets.perMonth": "−{amount}/month",
   "assets.fullyDepreciated": "Fully depreciated",
+  "assets.location": "Location",
+  "assets.locationNone": "Not set",
+  "assets.khan": "{name}",
+  "assets.province": "Province (outside Phnom Penh)",
+  "assets.area": "Land area (m²)",
+  "assets.refTitle": "Area price reference",
+  "assets.refPerM2": "{name}: {low}–{high}/m²",
+  "assets.refTotal": "{area} m² ≈ {low}–{high}",
+  "assets.refHouse": "Land only — the building is not included.",
+  "assets.refAdvisory": "For reference only — your estimate below is what counts in net worth.",
+  "assets.refSource": "Source: {period} ·",
+  "assets.refProvince": "No reference data for the provinces yet — enter your own estimate.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
