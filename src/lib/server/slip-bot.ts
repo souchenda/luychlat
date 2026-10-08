@@ -370,7 +370,9 @@ async function handleWalletCallback(cb: Callback) {
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, ...card }).catch(() => null)
 }
 
-const TAG_CODES: Record<string, { meal?: Meal; needWant?: "NEED" | "WANT" }> = {
+const TAG_CODES: Record<string, { meal?: Meal; needWant?: "NEED" | "WANT"; forChild?: boolean }> = {
+  K1: { forChild: true },
+  K0: { forChild: false },
   b: { meal: "breakfast" },
   l: { meal: "lunch" },
   d: { meal: "dinner" },
@@ -391,14 +393,16 @@ async function handleTagCallback(cb: Callback) {
   if (!ctx?.linked) return answer(tr(lang, "bot.notLinked"), true)
   if (code === "T") return askForNote(chatId, txId, cb.message!.message_id, lang, answer)
 
-  const { data, error } = await tagTransaction(chatId, txId, tag.meal ?? null, tag.needWant ?? null)
+  const { data, error } = await tagTransaction(chatId, txId, tag.meal ?? null, tag.needWant ?? null, tag.forChild ?? null)
   if (error) {
     const msg = error.message ?? ""
     const why = /plan_required/.test(msg) ? "bot.cmdPro" : /commands_off/.test(msg) ? "bot.cmdOff" : /not_writable/.test(msg) ? "bot.cmdReadonly" : "bot.saveFailed"
     return answer(tr(lang, why), true)
   }
   if (!data?.ok) return answer(tr(lang, "bot.expired"), true)
-  await answer(tag.meal ? tr(lang, MEAL_KEY[tag.meal]) : tr(lang, tag.needWant === "NEED" ? "bot.need" : "bot.want"))
+  await answer(
+    tag.meal ? tr(lang, MEAL_KEY[tag.meal]) : tag.forChild !== undefined ? tr(lang, tag.forChild ? "bot.forChildOn" : "bot.forChild") : tr(lang, tag.needWant === "NEED" ? "bot.need" : "bot.want"),
+  )
   const card = savedCard(lang, txId, taggedFrom(lang, data as TaggedRow))
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, ...card }).catch(() => null)
 }

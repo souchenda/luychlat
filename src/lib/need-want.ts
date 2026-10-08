@@ -9,10 +9,10 @@
 import type { Meal, NeedWant } from "@/lib/data/types"
 
 const NEED_WORDS =
-  /សាំង|ប្រេង(?:ឥន្ធនៈ|សាំង|ម៉ាស៊ូត)|ម៉ាស៊ូត|\b(?:fuel|petrol|gasoline|diesel)\b|ថ្លៃផ្ទះ|ជួលផ្ទះ|\brent\b|ទឹកភ្លើង|អគ្គិសនី|\bedc\b|ទឹកស្អាត|ថ្លៃទឹក|ថ្លៃភ្លើង|សំរាម|\b(?:electricity|water bill|garbage)\b|ថ្នាំ|ពេទ្យ|គ្លីនិក|ឱសថ|\b(?:hospital|clinic|pharmacy|medicine|doctor)\b|សាលា|សិក្សា|ថ្លៃរៀន|\b(?:tuition|school)\b|រំលស់|បង់កម្ចី|\b(?:loan|installment)\b/i
+  /សាំង|ប្រេង(?:ឥន្ធនៈ|សាំង|ម៉ាស៊ូត)|ម៉ាស៊ូត|\b(?:fuel|petrol|gasoline|diesel)\b|ថ្លៃផ្ទះ|ជួលផ្ទះ|\brent\b|ទឹកភ្លើង|អគ្គិសនី|\bedc\b|ទឹកស្អាត|ថ្លៃទឹក|ថ្លៃភ្លើង|សំរាម|\b(?:electricity|water bill|garbage)\b|ថ្នាំ|ពេទ្យ|គ្លីនិក|ឱសថ|\b(?:hospital|clinic|pharmacy|medicine|doctor)\b|សាលា|សិក្សា|ថ្លៃរៀន|\b(?:tuition|school)\b|រំលស់|បង់កម្ចី|\b(?:loan|installment)\b|កូន|ទឹកដោះគោ|ក្រណាត់កន្ទប|\b(?:diapers?|formula|baby)\b|ផ្សារ|គ្រឿងទេស|បន្លែ|\b(?:groceries|market)\b/i
 
 const WANT_WORDS =
-  /កាហ្វេ|\b(?:coffee|cafe|café|starbucks|amazon|brown|chatime|koi)\b|តែក្រឡុក|តែគុជ|\bmilk ?tea\b|\bbubble ?tea\b|ភេសជ្ជៈ|ស្រាបៀរ|\bbeer\b|\bwine\b|ជប់លៀង|\bparty\b|ខារ៉ាអូខេ|\bkaraoke\b|កម្សាន្ត|ភាពយន្ត|\b(?:cinema|movie|game)\b|ហ្គេម|ខោអាវ|\b(?:clothes|fashion)\b|គ្រឿងតុបតែង|គ្រឿងសំអាង|\b(?:cosmetics?|makeup)\b/i
+  /កាហ្វេ|\b(?:coffee|cafe|café|starbucks|amazon|brown|chatime|koi)\b|តែក្រឡុក|តែគុជ|\bmilk ?tea\b|\bbubble ?tea\b|ភេសជ្ជៈ|ស្រាបៀរ|\bbeer\b|\bwine\b|ជប់លៀង|\bparty\b|ខារ៉ាអូខេ|\bkaraoke\b|កម្សាន្ត|ភាពយន្ត|\b(?:cinema|movie|game)\b|ហ្គេម|ខោអាវ|\b(?:clothes|fashion)\b|គ្រឿងតុបតែង|គ្រឿងសំអាង|\b(?:cosmetics?|makeup)\b|បង្អែម|នំផ្អែម|ការ៉េម|\b(?:snacks?|desserts?|boba|ice ?cream)\b/i
 
 /** Categories that are needs (essentials and running costs) or wants (discretionary). */
 const NEED_PRESETS = new Set([
@@ -39,8 +39,9 @@ export function defaultNeedWant(input: { preset: string | null | undefined; meal
   if (NEED_WORDS.test(text)) return "NEED"
   if (WANT_WORDS.test(text)) return "WANT"
   const preset = input.preset ?? ""
-  // Food: the three meals (and groceries without a meal) are needs; coffee / snacks are wants.
-  if (preset === "food") return input.meal === "snack" ? "WANT" : "NEED"
+  // Food is a need — meals, groceries, a child's lunch — even at an in-between hour; coffee, tea and sweets
+  // were caught as wants by their words above, so a "snack" guessed from the clock alone stays a need.
+  if (preset === "food") return "NEED"
   if (NEED_PRESETS.has(preset)) return "NEED"
   if (WANT_PRESETS.has(preset)) return "WANT"
   return null

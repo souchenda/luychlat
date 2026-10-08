@@ -27,6 +27,7 @@ import { useToday } from "@/hooks/use-today"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HeroAction, NetWorthCard } from "@/components/wallets/net-worth-card"
 import { BusinessValueCard } from "@/components/business/business-value-card"
+import { KidsCard } from "@/components/home/kids-card"
 import { personalTransactions } from "@/lib/pool-ledger"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
@@ -176,6 +177,9 @@ export default function HomePage() {
 
       {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}
       {workspace?.type === "BUSINESS" && <BusinessValueCard workspaceId={ws} wallets={walletsQuery.data} debts={debtsQuery.data} transactions={txQuery.data} categories={categoriesQuery.data} />}
+
+      {/* 👶 Spending on the children this month (personal and family), once there is any. */}
+      {workspace?.type !== "BUSINESS" && <KidsCard transactions={personalTransactions(transactions, walletsQuery.data ?? [])} />}
 
       <BirthdayCard />
 

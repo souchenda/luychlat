@@ -40,6 +40,7 @@ import { profitAndLoss } from "@/lib/reports/pl"
 import { formatRange, presetRange, rangeToFilter, type DateRange, type RangePreset } from "@/lib/reports/ranges"
 import { accountSummary, inCurrency, percentOf, spendingSplit, type Native } from "@/lib/reports/summary"
 import { NeedsWants } from "@/components/reports/needs-wants"
+import { KidsCard } from "@/components/home/kids-card"
 import { showUpgrade, useIsPro } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -376,6 +377,8 @@ export default function ReportsPage() {
       </section>
 
       {!loading && split && <NeedsWants split={split} currency={currency} khrPerUsd={khrPerUsd} />}
+      {/* 👶 Spending on the children in this period (not for a business). */}
+      {!loading && periodTx && workspace?.type !== "BUSINESS" && <KidsCard transactions={periodTx} period />}
 
       {/* Statement (also the printable / PDF view) */}
       <Card id="statement" className="scroll-mt-20 gap-0 overflow-hidden py-0 print:border-0 print:shadow-none">

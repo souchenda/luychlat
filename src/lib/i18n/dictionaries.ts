@@ -3169,7 +3169,7 @@ const km = {
   "bot.meal.breakfast": "🌅 ព្រឹក",
   "bot.meal.lunch": "☀️ ថ្ងៃ",
   "bot.meal.dinner": "🌙 ល្ងាច",
-  "bot.meal.snack": "☕ កាហ្វេ/សម្រន់",
+  "bot.meal.snack": "☕ កាហ្វេ/តែ",
   "bot.need": "🎯 ចាំបាច់",
   "bot.want": "✨ ចំណង់",
   "meal.breakfast": "បាយព្រឹក",
@@ -3371,6 +3371,13 @@ const km = {
   "nssf.ocrVerified": "✅ បានបំពេញពីកាត ហើយលេខត្រូវនឹង QR — សូមពិនិត្យមុនរក្សាទុក",
   "nssf.ocrNone": "អានព័ត៌មានពីរូបនេះមិនបានទេ — សូមវាយបញ្ចូលដោយដៃ ឬថតឱ្យច្បាស់ជាងនេះ",
   "nssf.ocrBusy": "សេវាអានកាតរវល់បន្តិច — រូបត្រូវបានរក្សាទុក សូមវាយបញ្ចូលព័ត៌មាន ឬសាកម្ដងទៀត",
+  "bot.forChild": "👶 សម្រាប់កូន",
+  "bot.forChildOn": "👶 ចំណាយលើកូន",
+  "kids.title": "👶 ចំណាយលើកូនខែនេះ",
+  "kids.titlePeriod": "👶 ចំណាយលើកូន",
+  "kids.lastMonth": "ខែមុន {amount}",
+  "kids.count": "{n} ចំណាយ",
+  "kids.hint": "ចុច «👶 សម្រាប់កូន» លើកាតក្នុង Bot ឬសរសេរ «កូន» «សាលា» ក្នុងចំណាំ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6529,7 +6536,7 @@ const en: Record<MessageKey, string> = {
   "bot.meal.breakfast": "🌅 Breakfast",
   "bot.meal.lunch": "☀️ Lunch",
   "bot.meal.dinner": "🌙 Dinner",
-  "bot.meal.snack": "☕ Snack/coffee",
+  "bot.meal.snack": "☕ Coffee/tea",
   "bot.need": "🎯 Need",
   "bot.want": "✨ Want",
   "meal.breakfast": "Breakfast",
@@ -6731,6 +6738,13 @@ const en: Record<MessageKey, string> = {
   "nssf.ocrVerified": "✅ Filled in from the card; the number matches its QR — please check before saving",
   "nssf.ocrNone": "Couldn't read the card from this photo — type the details, or take a sharper photo",
   "nssf.ocrBusy": "Card reading is busy — the photo is saved; type the details or try again",
+  "bot.forChild": "👶 For my child",
+  "bot.forChildOn": "👶 Spending on my child",
+  "kids.title": "👶 Spent on my children this month",
+  "kids.titlePeriod": "👶 Spent on my children",
+  "kids.lastMonth": "Last month {amount}",
+  "kids.count": "{n} expenses",
+  "kids.hint": "Tap «👶 For my child» on the bot's card, or write «child» / «school» in the note",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

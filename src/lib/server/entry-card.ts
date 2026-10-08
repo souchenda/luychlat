@@ -17,6 +17,8 @@ export type Tagged = {
   food: boolean
   subcategory: Meal | null
   need_want: "NEED" | "WANT" | null
+  /** Spending on the children (👶 សម្រាប់កូន). */
+  for_child?: boolean
   /** The user's own words (without the slip's "🧾 …" part). */
   note?: string | null
 }
@@ -41,6 +43,7 @@ export function savedCard(lang: Locale, txId: string, t: Tagged) {
     `👛 ${t.wallet}`,
     `🏷️ ${t.label}${t.food && t.subcategory ? ` · ${tr(lang, MEAL_KEY[t.subcategory])}` : ""}`,
     ...(t.need_want ? [tr(lang, t.need_want === "NEED" ? "bot.need" : "bot.want")] : []),
+    ...(t.for_child ? [tr(lang, "bot.forChildOn")] : []),
     ...(t.note ? [`📝 ${t.note}`] : []),
   ].join("\n")
   const mark = (on: boolean, label: string) => (on ? `✓ ${label}` : label)
@@ -51,16 +54,19 @@ export function savedCard(lang: Locale, txId: string, t: Tagged) {
     { text: mark(t.need_want === "NEED", tr(lang, "bot.need")), callback_data: `st:${txId}:N` },
     { text: mark(t.need_want === "WANT", tr(lang, "bot.want")), callback_data: `st:${txId}:W` },
   ])
-  keyboard.push([{ text: tr(lang, t.note ? "bot.noteBtnEdit" : "bot.noteBtn"), callback_data: `st:${txId}:T` }])
+  keyboard.push([
+    { text: mark(Boolean(t.for_child), tr(lang, "bot.forChild")), callback_data: `st:${txId}:${t.for_child ? "K0" : "K1"}` },
+    { text: tr(lang, t.note ? "bot.noteBtnEdit" : "bot.noteBtn"), callback_data: `st:${txId}:T` },
+  ])
   return { text: maskNumbers(text), reply_markup: { inline_keyboard: keyboard } }
 }
 
-export async function tagTransaction(chatId: number, txId: string, meal: Meal | null, needWant: "NEED" | "WANT" | null) {
-  const { data, error } = await botDb().rpc("bot_tx_tag", { p_key: botKey(), p_chat_id: chatId, p_tx_id: txId, p_subcategory: meal, p_need_want: needWant })
+export async function tagTransaction(chatId: number, txId: string, meal: Meal | null, needWant: "NEED" | "WANT" | null, forChild: boolean | null = null) {
+  const { data, error } = await botDb().rpc("bot_tx_tag", { p_key: botKey(), p_chat_id: chatId, p_tx_id: txId, p_subcategory: meal, p_need_want: needWant, p_for_child: forChild })
   return { data: data as ({ ok?: boolean; category?: string | null; preset?: string | null; account_no?: string | null } & Partial<Tagged>) | null, error }
 }
 
-export type TaggedRow = { amount?: number; currency?: "USD" | "KHR"; wallet?: string; account_no?: string | null; category?: string | null; preset?: string | null; subcategory?: Meal | null; need_want?: "NEED" | "WANT" | null; note?: string | null }
+export type TaggedRow = { amount?: number; currency?: "USD" | "KHR"; wallet?: string; account_no?: string | null; category?: string | null; preset?: string | null; subcategory?: Meal | null; need_want?: "NEED" | "WANT" | null; note?: string | null; for_child?: boolean }
 /** The saved card's data from a row returned by bot_tx_tag / bot_tx_note. */
 export function taggedFrom(lang: Locale, d: TaggedRow): Tagged {
   const food = d.preset === "food"
@@ -72,6 +78,7 @@ export function taggedFrom(lang: Locale, d: TaggedRow): Tagged {
     food,
     subcategory: d.subcategory ?? null,
     need_want: d.need_want ?? null,
+    for_child: Boolean(d.for_child),
     note: userPart(d.note),
   }
 }

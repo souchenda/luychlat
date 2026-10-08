@@ -113,6 +113,8 @@ export type Transaction = {
 export type SpendingTags = {
   subcategory?: Meal | null
   need_want?: NeedWant | null
+  /** Spending on the children (👶 សម្រាប់កូន). */
+  for_child?: boolean
 }
 export type Meal = "breakfast" | "lunch" | "dinner" | "snack"
 export type NeedWant = "NEED" | "WANT"
