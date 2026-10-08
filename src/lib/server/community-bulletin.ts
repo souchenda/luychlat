@@ -15,9 +15,10 @@ import { logEvent } from "@/lib/server/events"
  * (e.g. "@LuyChlatCommunity"; the bot must be an admin of the channel): date
  * and festival, NBC official rates with their "As of" day, Phnom Penh gold
  * counter prices per damlung and per chi (CSNJ via Oknha News, or an admin's
- * /setgold), MoC fuel & gas prices (always: "—" until an admin enters them),
- * and buttons to calculate with the bot and to open the app. Market data only
- * — no tips (founder's rule; tips stay in the app and the weekly digest).
+ * /setgold) and buttons to calculate with the bot and to open the app. Market data only
+ * — no tips (founder's rule; tips stay in the app and the weekly digest), and no fuel
+ * (founder's rule, 08/10): new MoC prices get their own post when they come out
+ * (moc-fuel-sync.ts), and /fuel and the app's Market page always show the current ones.
  *
  * Timing: from 09:30 (Cambodia) it posts as soon as today's local gold prices
  * are in (shops publish around 09:00); at 10:30 it posts anyway, with the
@@ -205,7 +206,6 @@ export async function sendCommunityBulletin(): Promise<boolean> {
 
   // Fresh rates if the stored ones are older than 2 hours.
   if (!market || Date.now() - Date.parse(market.fetched_at) > 2 * 3_600_000) market = (await syncMarket(true)) ?? market
-  await nudgeFuelPrices(market, now.day)
   const res = await postReplacing(chat, {
     text: bulletinText(now.date, market).slice(0, 4000),
     parse_mode: "HTML",
@@ -215,28 +215,6 @@ export async function sendCommunityBulletin(): Promise<boolean> {
   if (!res.ok) console.error("[bulletin] send failed:", res.description)
   logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Daily bulletin sent to ${chat}${hasLocalToday(market) ? "" : " (no local gold prices yet)"}` : `Daily bulletin failed: ${res.description ?? "unknown"}`)
   return res.ok
-}
-
-/**
- * No fuel prices for the current 10-day cycle: tell the admins (their linked
- * chats), once a day, so the bulletin's fuel section gets real numbers.
- */
-async function nudgeFuelPrices(market: MarketLive | null, day: string) {
-  const fuel = market?.fuel
-  if (fuel && fuel.to >= day) return
-  const db = botDb()
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: "fuel-nudge", p_day: day })
-  if (claimed !== true) return
-  const { data: chats } = await db.rpc("bot_admin_chats", { p_key: botKey() })
-  const text = [
-    fuel ? "⛽ តម្លៃប្រេងក្នុង Bulletin ជាវដ្ដមុន — សូមបញ្ចូលតម្លៃថ្មីរបស់ក្រសួងពាណិជ្ជកម្ម។" : "⛽ មិនទាន់មានតម្លៃប្រេងក្នុង Bulletin ទេ — សូមបញ្ចូលតម្លៃរបស់ក្រសួងពាណិជ្ជកម្ម។",
-    "ឧ. /setfuel 4150 4500 3950 3800kg",
-    "",
-    fuel ? "⛽ The bulletin's fuel prices are from the previous cycle — please enter MoC's new prices." : "⛽ The bulletin has no fuel prices yet — please enter MoC's prices.",
-    "/setfuel <EA92> <EA95> <diesel> <LPG>kg  (or Admin › Fuel prices)",
-  ].join("\n")
-  for (const c of (chats as { chat_id: number }[] | null) ?? []) await tg("sendMessage", { chat_id: Number(c.chat_id), text }).catch(() => null)
-  logEvent("warn", "bulletin", fuel ? "Fuel prices are from a previous cycle — admins reminded" : "No fuel prices entered — admins reminded", { fold: true })
 }
 
 type PostedRecord = { chat?: string; message_id?: number; at?: string; kind?: "bulletin" | "evening"; day?: string; sig?: string }
