@@ -6,6 +6,7 @@ import { fuelLines, fuelPendingLines } from "@/lib/bot/fuel"
 import type { MarketLive } from "@/lib/market-calc"
 import { currentMarket, hasLocalToday, syncMarket } from "@/lib/server/market-sync"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
+import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { logEvent } from "@/lib/server/events"
 
 /**
@@ -62,7 +63,8 @@ const asOf = (iso: string) => kmDigits(iso.split("-").reverse().join("/"))
 const CTA = "🧮 គណនាផ្ទាល់ជាមួយ @luychlat_bot៖ ផ្ញើ «/rate 100 usd» ឬ «/gold 2 ជី»"
 
 /** "🔄 ធ្វើបច្ចុប្បន្នភាព៖ ម៉ោង ១០:៥១" — on a post edited after fresher data came in. */
-const updatedLine = (at: Date) => `🔄 ធ្វើបច្ចុប្បន្នភាព៖ ម៉ោង ${kmDigits(new Date(at.getTime() + 7 * 3_600_000).toISOString().slice(11, 16))}`
+const PP_TIME = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Phnom_Penh", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+const updatedLine = (at: Date) => `🔄 ធ្វើបច្ចុប្បន្នភាព៖ ម៉ោង ${kmDigits(PP_TIME.format(at))}`
 
 export function bulletinText(date: Date, market: MarketLive | null, today = ymd(date), updatedAt?: Date): string {
   const lines: string[] = ["📊 ព័ត៌មានទីផ្សារប្រចាំថ្ងៃ · LuyChlat", `📅 ${longDate(date, "km")}`]
@@ -134,10 +136,23 @@ export function eveningRatesText(market: MarketLive, updatedAt?: Date): string |
     "",
     `<pre>${rows.join("\n")}</pre>`,
     "ℹ️ អត្រាចេញផ្សាយដោយ ធនាគារជាតិនៃកម្ពុជា",
-    "✨ ចុះឈ្មោះប្រើអេប Free ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត!",
+    // Local anchor beside the rates: today's kilo gold (CSNJ / admin), when recent.
+    ...goldLine(market),
+    "",
+    "✨ ចុះឈ្មោះប្រើកម្មវិធីដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត!",
     ...(updatedAt ? ["", updatedLine(updatedAt)] : []),
   ]
   return lines.join("\n")
+}
+
+/** "🪙 មាសគីឡូ (០៧/១០)៖ $5,030 / តម្លឹង" — the local selling price per damlung, if from the last 3 days. */
+function goldLine(market: MarketLive): string[] {
+  const g = market.local_gold
+  if (!g?.kilo?.sell) return []
+  const age = (Date.now() - Date.parse(`${g.date}T12:00:00+07:00`)) / 86_400_000
+  if (!(age < 3)) return []
+  const [, m, d] = g.date.split("-")
+  return [`🪙 មាសគីឡូ (${kmDigits(`${d}/${m}`)})៖ $${fmt(g.kilo.sell)} / តម្លឹង`]
 }
 
 /**
@@ -169,17 +184,6 @@ async function postReplacing(chat: string, payload: Record<string, unknown>, kin
   return res
 }
 
-/**
- * Buttons under a post: calculate with the bot, and open the app. The evening
- * NBC post leads with signing up: [📱 ចុះឈ្មោះ / បើកកម្មវិធី] [🤖 គណនាជាមួយ Bot].
- */
-async function postButtons(kind: "bulletin" | "evening" = "bulletin") {
-  const [url, me] = await Promise.all([appUrl(), tg<{ username?: string }>("getMe", {})])
-  const bot = me.result?.username ? [{ text: "🤖 គណនាជាមួយ Bot", url: `https://t.me/${me.result.username}` }] : []
-  const app = url ? [{ text: kind === "evening" ? "📱 ចុះឈ្មោះ / បើកកម្មវិធី" : "📱 បើកកម្មវិធី", url }] : []
-  const row = kind === "evening" ? [...app, ...bot] : [...bot, ...app]
-  return row.length ? { reply_markup: { inline_keyboard: [row] } } : {}
-}
 
 /** The app's public address: PUBLIC_URL, else the origin of the bot's webhook. */
 export async function appUrl(): Promise<string | null> {
@@ -212,7 +216,7 @@ export async function sendCommunityBulletin(): Promise<boolean> {
   const res = await postReplacing(chat, {
     text: bulletinText(now.date, market, now.day).slice(0, 4000),
     disable_web_page_preview: true,
-    ...(await postButtons()),
+    ...(await getChannelPostButtons()),
   })
   if (!res.ok) console.error("[bulletin] send failed:", res.description)
   logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Daily bulletin sent to ${chat}${hasLocalToday(market) ? "" : " (no local gold prices yet)"}` : `Daily bulletin failed: ${res.description ?? "unknown"}`)
@@ -273,7 +277,7 @@ export async function syncCommunityPost(): Promise<"edited" | "same" | "none"> {
     text,
     disable_web_page_preview: true,
     ...(kind === "evening" ? { parse_mode: "HTML" } : {}),
-    ...(await postButtons(kind)),
+    ...(await getChannelPostButtons()),
   })
   // "message is not modified" also means it already shows this.
   if (!res.ok && !/not modified/i.test(res.description ?? "")) {
@@ -299,7 +303,7 @@ async function maybeSendEveningRates(chat: string, now: ReturnType<typeof phnomP
   if (!text) return
   const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: EVENING_JOB, p_day: now.day })
   if (claimed !== true) return
-  const res = await postReplacing(chat, { text, parse_mode: "HTML", disable_web_page_preview: true, ...(await postButtons("evening")) }, "evening")
+  const res = await postReplacing(chat, { text, parse_mode: "HTML", disable_web_page_preview: true, ...(await getChannelPostButtons()) }, "evening")
   logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Evening NBC rates sent to ${chat} (as of ${market.nbc.date})` : `Evening NBC post failed: ${res.description ?? "unknown"}`)
 }
 

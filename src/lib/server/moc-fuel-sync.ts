@@ -18,6 +18,7 @@ import { cycleText } from "@/lib/bot/fuel"
 import type { FuelPrices } from "@/lib/market-calc"
 import { channelPosts, cleanNoticePrices, isFuelNotice, parseNoticePeriod, pricesAgree, type ChannelPost, type NoticePrices } from "@/lib/moc-fuel"
 
+import { getChannelPostButtons } from "./channel-buttons"
 import { logEvent } from "./events"
 import { currentMarket, setFuelPrices } from "./market-sync"
 import { askGemini, askGroq, type Answer } from "./slip-bot"
@@ -113,7 +114,7 @@ export function newPricesText(fuel: Pick<FuelPrices, "regular" | "diesel" | "fro
     `• ម៉ាស៊ូត (Diesel) ៖ ${riel(fuel.diesel)} ៛/លីត្រ${change(fuel.diesel, previous?.diesel)}`,
     "",
     `ℹ️ ប្រភព៖ សេចក្តីជូនដំណឹងក្រសួងពាណិជ្ជកម្ម · t.me/${CHANNEL}/${postId}`,
-    "✨ ចុះឈ្មោះប្រើអេប Free ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត!",
+    "✨ ចុះឈ្មោះប្រើកម្មវិធីដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត!",
   ].join("\n")
 }
 
@@ -184,7 +185,7 @@ async function applyNotice(day: string, notice: ChannelPost, period: { from: str
   const chat = communityChat()
   if (chat && (await claim(`moc-fuel-post-${notice.id}`, day))) {
     const prev = previous && previous.to <= period.from ? previous : null
-    await tg("sendMessage", { chat_id: chat, text: newPricesText(saved.fuel, prev, notice.id), disable_web_page_preview: true }).catch(() => null)
+    await tg("sendMessage", { chat_id: chat, text: newPricesText(saved.fuel, prev, notice.id), disable_web_page_preview: true, ...(await getChannelPostButtons()) }).catch(() => null)
   }
   await toSuperAdmins(
     `✅ [តម្លៃប្រេង] បានធ្វើបច្ចុប្បន្នភាពដោយស្វ័យប្រវត្តិពីក្រសួងពាណិជ្ជកម្ម (${cycleText(period.from, period.to, "km")})៖ សាំង ${riel(reading.prices.regular)}៛ · ម៉ាស៊ូត ${riel(reading.prices.diesel)}៛\n• ពិនិត្យ៖ ${link}\n• បើខុស៖ /setfuel ដើម្បីកែ`,

@@ -12,7 +12,7 @@ import path from "node:path"
 
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 
-import { appUrl } from "./community-bulletin"
+import { getChannelPostButtons } from "./channel-buttons"
 import { logEvent } from "./events"
 import { FAMILIES, FRAME, drawFooter, drawHeader, loadFonts, roundRect, wrap } from "./poster-kit"
 import { botDb, botKey, botToken, tg } from "./telegram-bot"
@@ -328,8 +328,7 @@ export async function handlePosterCallback(cb: Callback) {
   // Once per poster, even if tapped twice or from two admins' previews.
   const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `poster-${key}`, p_day: p.window[0] })
   if (claimed !== true) return answer("បានផ្សាយរួចហើយ។")
-  const url = await appUrl()
-  const sent = await sendPhoto(channel, artwork(key), p.caption, url ? { inline_keyboard: [[{ text: "📱 បើកកម្មវិធី លុយឆ្លាត", url }]] } : undefined)
+  const sent = await sendPhoto(channel, artwork(key), p.caption, (await getChannelPostButtons()).reply_markup)
   if (!sent.ok) {
     logEvent("error", "poster", `Broadcast of ${key} failed: ${sent.description ?? "unknown"}`)
     return answer(`មិនអាចផ្សាយបានទេ៖ ${sent.description ?? ""}`)

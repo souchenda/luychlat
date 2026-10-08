@@ -18,7 +18,7 @@
 // Buttons carry the version they were shown with: a tap on an older preview
 // (after an edit here or in the app) refreshes it instead of approving.
 import { TIP_BODY_MAX, TIP_TITLE_MAX, defaultTip, nextTip } from "@/lib/daily-tip"
-import { appUrl } from "@/lib/server/community-bulletin"
+import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, botToken, tg } from "@/lib/server/telegram-bot"
@@ -111,6 +111,10 @@ async function posterFor(t: DailyTip): Promise<Buffer> {
 }
 
 /** sendPhoto / editMessageMedia with an uploaded PNG; returns the message id. */
+export async function sendPosterPhoto(chatId: number | string, png: Buffer, caption: string, opts: { messageId?: number; reply_markup?: unknown } = {}) {
+  return photo(chatId, png, caption, opts)
+}
+
 async function photo(chatId: number | string, png: Buffer, caption: string, opts: { messageId?: number; reply_markup?: unknown } = {}) {
   const token = botToken()
   if (!token) return null
@@ -228,12 +232,7 @@ export async function dailyTipTick() {
   const { data } = await db.rpc("bot_tip_claim_post", { p_key: botKey() })
   const t = data as DailyTip | null
   if (!t?.day) return
-  const [url, me] = await Promise.all([appUrl(), tg<{ username?: string }>("getMe", {})])
-  const row = [
-    ...(me.result?.username ? [{ text: "🤖 កត់ត្រាជាមួយ Bot", url: `https://t.me/${me.result.username}` }] : []),
-    ...(url ? [{ text: "📱 បើកកម្មវិធី", url }] : []),
-  ]
-  const msg = await photo(chat, await posterFor(t), tipCaption(t), row.length ? { reply_markup: { inline_keyboard: [row] } } : {})
+  const msg = await photo(chat, await posterFor(t), tipCaption(t), await getChannelPostButtons())
   if (!msg) {
     await db.rpc("bot_tip_post_failed", { p_key: botKey(), p_day: t.day })
     logEvent("error", "daily-tip", "Posting the approved tip failed — will retry next minute (until 13:00)", { fold: true })

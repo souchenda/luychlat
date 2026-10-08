@@ -37,7 +37,7 @@ export function splitTakeaway(body: string): { lead: string; takeaway: string | 
  * explanation (primary) and its takeaway (secondary, soft gold) as one clean
  * hierarchy, centred between headline and footer · the standard footer.
  */
-export function tipPoster(tip: { title: string; body: string }, day: string): Buffer {
+export function tipPoster(tip: { title: string; body: string }, day: string, opts: { tag?: string } = {}): Buffer {
   loadFonts()
   const canvas = createCanvas(W, H)
   const ctx = canvas.getContext("2d")
@@ -77,7 +77,7 @@ export function tipPoster(tip: { title: string; body: string }, day: string): Bu
   drawIcon(ctx, "bulb", PAD + 12, tagY - 11)
   ctx.font = `600 30px ${FAMILIES}`
   ctx.fillStyle = "#fde68a"
-  ctx.fillText("គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", PAD + 36, tagY)
+  ctx.fillText(opts.tag ?? "គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", PAD + 36, tagY)
   ctx.font = `700 86px ${FAMILIES}`
   const titleLines = wrap(ctx, tip.title, W - 2 * PAD, 2)
   let y = tagY + 104

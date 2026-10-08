@@ -12,6 +12,9 @@
 // window so a late server start still sends it — never hours late. These posts
 // are plain messages: they don't replace (or get replaced by) the market posts.
 import { appUrl } from "@/lib/server/community-bulletin"
+import { getChannelPostButtons } from "@/lib/server/channel-buttons"
+import { sendPosterPhoto } from "@/lib/server/tip-bot"
+import { tipPoster } from "@/lib/server/tip-poster"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
@@ -51,14 +54,13 @@ export function eveningText(): string {
   ].join("\n")
 }
 
-/** [ 🤖 កត់ត្រាជាមួយ Bot ] [ 📱 បើកកម្មវិធី ] */
-async function recordButtons() {
-  const [url, me] = await Promise.all([appUrl(), tg<{ username?: string }>("getMe", {})])
-  const row = [
-    ...(me.result?.username ? [{ text: "🤖 កត់ត្រាជាមួយ Bot", url: `https://t.me/${me.result.username}` }] : []),
-    ...(url ? [{ text: "📱 បើកកម្មវិធី", url }] : []),
-  ]
-  return row.length ? { reply_markup: { inline_keyboard: [row] } } : {}
+/** [ 🤖 កត់ត្រាជាមួយ Bot ] [ 📱 បើកកម្មវិធី ] — the channel's standard row. */
+const recordButtons = getChannelPostButtons
+
+/** The morning quote on the v3 poster frame (same design as the daily tip, its own tag). */
+export function morningPoster(day: string): Buffer {
+  const quote = QUOTE.replace(/[«»]/g, "")
+  return tipPoster({ title: "អរុណសួស្តីថ្ងៃថ្មី", body: quote }, day, { tag: "ថាមពលហិរញ្ញវត្ថុពេលព្រឹក" })
 }
 
 /** Once a day inside the window: claim it, then send. */
@@ -99,8 +101,11 @@ export async function communityRoutineTick() {
   const chat = communityChat()
 
   if (due === "morning" && chat && (await claim(MORNING.job, now.day))) {
-    const res = await tg("sendMessage", { chat_id: chat, text: morningText(), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })
-    logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Morning post sent to ${chat}` : `Morning post failed: ${res.description ?? "unknown"}`)
+    // The poster with the text as its caption; plain text only if the image can't be sent.
+    const buttons = await recordButtons()
+    const id = await sendPosterPhoto(chat, morningPoster(now.day), morningText(), { reply_markup: buttons.reply_markup })
+    const res = id ? { ok: true as const, description: undefined } : await tg("sendMessage", { chat_id: chat, text: morningText(), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
+    logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Morning post sent to ${chat}${id ? " (poster)" : " (text — poster failed)"}` : `Morning post failed: ${res.description ?? "unknown"}`)
   }
 
   if (due === "evening" && (await claim(EVENING.job, now.day))) {
