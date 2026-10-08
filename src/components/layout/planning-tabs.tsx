@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Segmented } from "@/components/common/segmented"
 import { useT } from "@/lib/i18n/use-t"
 
-/** Budgets and saving goals are one menu section ("ផែនការថវិកា & សន្សំ"): a switch on top of both pages. */
+/** Budgets and saving goals are one menu section ("ផែនការថវិកា និងសន្សំ"): a switch on top of both pages. */
 export function PlanningTabs({ active }: { active: "budgets" | "goals" }) {
   const t = useT()
   const router = useRouter()

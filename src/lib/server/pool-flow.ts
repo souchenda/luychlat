@@ -56,7 +56,7 @@ export function progressText(p: PoolSnapshot): string {
 async function progressKeyboard(p: PoolSnapshot) {
   const url = await appUrl()
   const rows: { text: string; callback_data?: string; url?: string }[][] = [[{ text: "🔔 រំលឹកអ្នកមិនទាន់បង់", callback_data: `pr:${p.id}` }]]
-  if (url && p.id) rows.push([{ text: "🏁 បិទ & ទូទាត់ (ក្នុងកម្មវិធី)", url: `${url}/pools/${p.id}` }])
+  if (url && p.id) rows.push([{ text: "🏁 បិទ និងទូទាត់ (ក្នុងកម្មវិធី)", url: `${url}/pools/${p.id}` }])
   return { inline_keyboard: rows }
 }
 

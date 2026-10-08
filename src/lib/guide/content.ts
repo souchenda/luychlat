@@ -157,7 +157,7 @@ export const GUIDE: GuideSection[] = [
   },
   {
     id: "plans",
-    title: { km: "៥. គម្រោង Free vs PRO & ការណែនាំមិត្តភក្តិ", en: "5. Free vs PRO & Refer a Friend" },
+    title: { km: "៥. គម្រោង Free vs PRO និងការណែនាំមិត្តភក្តិ", en: "5. Free vs PRO & Refer a Friend" },
     items: [
       {
         q: { km: "Free និង PRO ខុសគ្នាអ្វីខ្លះ?", en: "What's the difference between Free and PRO?" },

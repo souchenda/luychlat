@@ -35,10 +35,14 @@ const RATE_ROWS: { kind: GoldKind; grade: PlatinumGrade | null }[] = [
   { kind: "GOLD_18K", grade: null },
   ...PLATINUM_GRADES.map((grade) => ({ kind: "PLATINUM" as GoldKind, grade })),
 ]
+/**
+ * Local order (what Cambodian households and SMEs mostly hold): property, vehicles and
+ * equipment first — the default — then gold and jewelry; stocks and crypto always last.
+ */
 const TABS: { key: TabKey; label: MessageKey; emoji: string }[] = [
-  { key: "gold", label: "assets.tab.gold", emoji: "🪙" },
-  { key: "invest", label: "assets.tab.invest", emoji: "📈" },
   { key: "property", label: "assets.tab.property", emoji: "🏠" },
+  { key: "gold", label: "assets.tab.gold", emoji: "💎" },
+  { key: "invest", label: "assets.tab.invest", emoji: "📈" },
 ]
 
 /** "+$200.00 (+5%)" in green, "-$200.00 (-6.7%)" in red. */
@@ -76,9 +80,9 @@ export default function AssetsPage() {
   // Same total as net worth on Home (gold, diamonds at resale value, investments, property).
   const all = useAssetsTotal(ws)
   const [active, setActive] = useState<TabKey>(() => {
-    if (typeof window === "undefined") return "gold"
+    if (typeof window === "undefined") return "property"
     const hash = window.location.hash.slice(1)
-    return hash === "invest" || hash === "property" ? hash : "gold"
+    return hash === "gold" || hash === "invest" ? hash : "property"
   })
   const [assetOpen, setAssetOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<PhysicalAsset | null>(null)
@@ -119,7 +123,7 @@ export default function AssetsPage() {
         <p className="text-sm text-muted-foreground">{t("assets.total")}</p>
         <p className="text-3xl font-bold tabular-nums">{money(all.totalUsd)}</p>
         <p className="text-xs text-muted-foreground">
-          🪙 {money(all.goldUsd)} · 💎 {money(all.diamondUsd)} · 📈 {money(all.investUsd)} · 🏠 {money(all.propertyUsd)} — {t("assets.inNetWorth")}
+          🏠 {money(all.propertyUsd)} · 💎 {money(all.goldUsd + all.diamondUsd)} · 📈 {money(all.investUsd)} — {t("assets.inNetWorth")}
         </p>
       </Card>
 
@@ -299,6 +303,7 @@ export default function AssetsPage() {
               </Button>
             )}
           </div>
+          <p className="-mt-2 px-1 text-xs text-muted-foreground">{t("assets.propertyIntro")}</p>
           {assetsQuery.isLoading ? (
             <Skeleton className="h-24 w-full rounded-xl" />
           ) : assets.length === 0 ? (
