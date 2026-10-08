@@ -30,6 +30,8 @@ docker-compose.yml
 deploy
 docs
 supabase
+# …except the migrations: the financial-integrity tests read them (SQL only, not copied into the image).
+!supabase/migrations
 
 # Android app (Capacitor): not part of the web image.
 android

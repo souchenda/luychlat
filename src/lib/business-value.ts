@@ -1,6 +1,7 @@
 import { currentValue, type PhysicalAsset } from "@/lib/assets"
 import type { Debt, Wallet } from "@/lib/data/types"
 import { remaining } from "@/lib/debts"
+import { personalWallets } from "@/lib/pool-ledger"
 import { convert, roundMoney } from "@/lib/money"
 
 /**
@@ -15,14 +16,15 @@ import { convert, roundMoney } from "@/lib/money"
  * Money customers owe (receivables) is not counted. Pure.
  */
 export function businessValue(
-  wallets: Pick<Wallet, "balance" | "currency" | "archived_at">[],
+  wallets: Pick<Wallet, "balance" | "currency" | "archived_at" | "icon">[],
   assets: PhysicalAsset[],
   debts: Pick<Debt, "type" | "total_amount" | "paid_amount" | "currency">[],
   khrPerUsd: number,
   today?: string,
 ) {
   const usd = (n: number, currency: "USD" | "KHR") => convert(n, currency, "USD", khrPerUsd)
-  const live = wallets.filter((w) => !w.archived_at)
+  // A shared pool's wallet holds the group's money, not the business's.
+  const live = personalWallets(wallets).filter((w) => !w.archived_at)
   const cash = live.reduce((s, w) => s + (w.balance > 0 ? usd(w.balance, w.currency) : 0), 0)
   // Overdraft and cards owed: every balance below zero.
   const overdraft = live.reduce((s, w) => s + (w.balance < 0 ? usd(-w.balance, w.currency) : 0), 0)

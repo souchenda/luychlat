@@ -41,7 +41,6 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
   const [rows, setRows] = useState<Row[]>([{ name: "", amount: "" }, { name: "", amount: "" }])
   const [start, setStart] = useState("")
   const [end, setEnd] = useState("")
-  const [recordPaid, setRecordPaid] = useState(true)
   // Festival pools count families by default ("គ្រួសារទី ១") and get the Pchum Ben categories.
   const [unit, setUnit] = useState<"PERSON" | "FAMILY">("FAMILY")
   const [template, setTemplate] = useState(true)
@@ -54,7 +53,6 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
     setRows([{ name: "", amount: "" }, { name: "", amount: "" }])
     setStart("")
     setEnd("")
-    setRecordPaid(true)
     setUnit("FAMILY")
     setTemplate(true)
     setNames([])
@@ -85,7 +83,6 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
           target: null,
           start: start || null,
           end: end || null,
-          recordPaid,
           unit,
           template: kind === "FESTIVAL" && template ? "pchumben" : null,
         },
@@ -250,14 +247,6 @@ function CreatePoolSheet({ open, onOpenChange, workspaceId }: { open: boolean; o
           </div>
         </div>
         <p className="-mt-2 text-xs text-muted-foreground">{t("pool.datesHint")}</p>
-
-        <label className="flex items-start gap-3 rounded-xl border p-3 text-sm">
-          <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]" checked={recordPaid} onChange={(e) => setRecordPaid(e.target.checked)} />
-          <span>
-            <span className="block font-medium">{t("pool.recordPaid")}</span>
-            <span className="block text-xs text-muted-foreground">{t("pool.recordPaidHint")}</span>
-          </span>
-        </label>
 
         <Button className="h-12 w-full text-base" onClick={() => void submit()} disabled={create.isPending}>
           {create.isPending ? <Loader2Icon className="animate-spin" /> : <PlusIcon />}

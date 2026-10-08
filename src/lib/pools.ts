@@ -1,6 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { createPoolArgs } from "@/lib/pool-ledger"
 
 import { useRepo } from "@/lib/data/hooks"
 import type { Currency } from "@/lib/data/types"
@@ -17,7 +18,6 @@ export type NewPool = {
   target: number | null
   start: string | null
   end: string | null
-  recordPaid: boolean
   /** Shares are people or families ("គ្រួសារទី ១"). */
   unit?: "PERSON" | "FAMILY"
   /** "pchumben": adds the offerings / travel / food categories. */
@@ -99,20 +99,8 @@ export function usePoolMutations() {
   return {
     create: useMutation({
       mutationFn: async (v: { workspaceId: string; pool: NewPool }) =>
-        (await rpc("create_pool", {
-          p_workspace_id: v.workspaceId,
-          p_kind: v.pool.kind,
-          p_title: v.pool.title,
-          p_currency: v.pool.currency,
-          p_split: v.pool.split,
-          p_members: v.pool.members,
-          p_target: v.pool.target,
-          p_start: v.pool.start,
-          p_end: v.pool.end,
-          p_record_paid: v.pool.recordPaid,
-          p_unit: v.pool.unit ?? "PERSON",
-          p_template: v.pool.template ?? null,
-        })) as string,
+        // The target is a plan: the call carries shares only, never a payment (src/lib/pool-ledger.ts).
+        (await rpc("create_pool", createPoolArgs(v.workspaceId, v.pool))) as string,
       onSuccess: () => done(true),
     }),
     contribute: useMutation({

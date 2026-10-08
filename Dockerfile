@@ -36,6 +36,9 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_BIOMETRIC_MOCK=$NEXT_PUBLIC_BIOMETRIC_MOCK \
     NEXT_TELEMETRY_DISABLED=1
 
+# Financial-integrity and engine tests (npm test): a failure stops the image, so the
+# running version stays live (deploy/update.sh is set -e).
+RUN npm test
 RUN npm run build
 
 # ---- 3. Runtime (only the standalone server, static assets and public/) -------

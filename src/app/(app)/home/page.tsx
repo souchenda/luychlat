@@ -27,6 +27,7 @@ import { useToday } from "@/hooks/use-today"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HeroAction, NetWorthCard } from "@/components/wallets/net-worth-card"
 import { BusinessValueCard } from "@/components/business/business-value-card"
+import { personalTransactions } from "@/lib/pool-ledger"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { cashFlow } from "@/lib/analytics"
@@ -88,9 +89,10 @@ export default function HomePage() {
     () => transactions.filter((tx) => monthKey(new Date(tx.transaction_date)) === thisMonth),
     [transactions, thisMonth],
   )
+  // This month's income / spending: the owner's own wallets — a shared pool's contributions are the group's money.
   const flow = useMemo(
-    () => cashFlow(monthTransactions, khrPerUsd, adjustmentCategoryIds(categoriesQuery.data ?? [])),
-    [monthTransactions, khrPerUsd, categoriesQuery.data],
+    () => cashFlow(personalTransactions(monthTransactions, walletsQuery.data ?? []), khrPerUsd, adjustmentCategoryIds(categoriesQuery.data ?? [])),
+    [monthTransactions, walletsQuery.data, khrPerUsd, categoriesQuery.data],
   )
   // The display name from Settings, once the user has set one.
   // Cambodian names are family name first ("ស៊ូ ចិន្តា"): greet by the given name, the last word.

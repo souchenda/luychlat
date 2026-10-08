@@ -8,11 +8,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { convert, roundMoney } from "@/lib/money"
+import { personalWallets } from "@/lib/pool-ledger"
 import { usePrefsStore } from "@/stores/prefs-store"
 
-/** Wallet totals, plus assets (gold at market rate + land, house, vehicles…) in USD when given. */
+/**
+ * Wallet totals, plus assets (gold at market rate + land, house, vehicles…) in USD when given.
+ * Shared pool wallets hold the group's money in custody: not the owner's net worth.
+ */
 export function computeTotals(wallets: Wallet[], khrPerUsd: number, assetsUsd = 0) {
-  const active = wallets.filter((w) => !w.archived_at)
+  const active = personalWallets(wallets).filter((w) => !w.archived_at)
   const sum = (currency: "USD" | "KHR") =>
     roundMoney(
       active.filter((w) => w.currency === currency).reduce((acc, w) => acc + w.balance, 0),
