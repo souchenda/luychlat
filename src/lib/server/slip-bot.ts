@@ -8,6 +8,7 @@
 // transcribes voice notes); wallets and categories are matched here. The card is plain text and
 // passes through maskNumbers (account numbers on the slip never echo back).
 import { categoryFor, cleanSlip, isFoodChoice, mealFor, resolveWallet, slipChoices, walletLabel, type Meal, type Slip } from "@/lib/bot/bank-slip"
+import { handleBillPhoto } from "@/lib/server/bill-bot"
 import type { BotWallet } from "@/lib/bot/parse-entry"
 import { defaultNeedWant } from "@/lib/need-want"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
@@ -50,10 +51,11 @@ const PROMPT = [
   "owner: the slip owner's account holder name as printed (who paid, for OUT; who received, for IN); null if not shown.",
   "consumer: for a bill payment / top-up, the consumer ID or phone number paid for, as printed; null otherwise.",
   "to_account: the account or phone number the money went TO (\"To account\", \"ទៅគណនី\", the recipient's number), as printed; null if not shown.",
+  'A PAPER UTILITY BILL to be paid (electricity / water: EDC, AKISANI KOUR SROV, PPWSA — an invoice with an amount due and a due date, not a receipt of a payment) is not a slip: answer {"is_slip": false, "utility_bill": true}.',
   'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
-type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" }
+type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" }
 
 export type Answer = { text: string } | { fail: string }
 
@@ -136,6 +138,8 @@ export async function readSlip(fileId: string): Promise<ReadResult> {
       logEvent("warn", "slips", `Slip read: ${name} answered without JSON`, { fold: true })
       continue
     }
+    // A paper electricity / water bill, not a payment: the bill reader takes it (bill-bot.ts).
+    if ((raw as { utility_bill?: unknown })?.utility_bill === true) return { error: "utility_bill" }
     const slip = cleanSlip(raw)
     if (slip) return { slip }
     // A definite answer ("not a receipt" / no amount): the photo is the problem, not the reader.
@@ -213,6 +217,7 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   } finally {
     clearInterval(keepTyping)
   }
+  if ("error" in read && read.error === "utility_bill") return handleBillPhoto(chatId, fileId, ctx)
   if ("error" in read) return sendText(chatId, tr(lang, read.error === "busy" ? "bot.slipBusy" : "bot.slipUnreadable"))
   const slip = read.slip
 

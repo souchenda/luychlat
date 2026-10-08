@@ -28,6 +28,7 @@ import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { handlePosterCallback, isPosterCallback, sendFestivalPoster } from "@/lib/server/festival-poster"
 import { handleGroupSlip, handleGroupSlipCallback, isGroupSlipCallback } from "@/lib/server/biz-slip-bot"
+import { handleBillKhqrCallback, isBillKhqrCallback } from "@/lib/server/bill-bot"
 import { handlePoolFlowCallback, handlePoolSlip, handlePoolSpendText, isPoolFlowCallback } from "@/lib/server/pool-flow"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
@@ -319,6 +320,8 @@ export async function POST(request: Request) {
       await handlePosterCallback(update.callback_query)
     } else if (isGroupSlipCallback(update.callback_query.data)) {
       await handleGroupSlipCallback(update.callback_query)
+    } else if (isBillKhqrCallback(update.callback_query.data)) {
+      await handleBillKhqrCallback(update.callback_query)
     } else if (isPoolFlowCallback(update.callback_query.data)) {
       await handlePoolFlowCallback(update.callback_query)
     } else if (isInvoiceCallback(update.callback_query.data)) {
