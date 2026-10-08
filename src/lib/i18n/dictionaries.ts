@@ -3342,6 +3342,8 @@ const km = {
   "pool.cardShare": "ចែករំលែក",
   "pool.nameFamilies": "ដាក់ឈ្មោះគ្រួសារ (ស្រេចចិត្ត)",
   "pool.namePeople": "ដាក់ឈ្មោះសមាជិក (ស្រេចចិត្ត)",
+  "biz.recordedWallet": "✅ {amount} បានកត់ត្រា ({wallet})",
+  "biz.today": "📊 ថ្ងៃនេះ៖ {total} • {count} ប្រតិបត្តិការ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6673,6 +6675,8 @@ const en: Record<MessageKey, string> = {
   "pool.cardShare": "Share",
   "pool.nameFamilies": "Name the families (optional)",
   "pool.namePeople": "Name the members (optional)",
+  "biz.recordedWallet": "✅ {amount} recorded ({wallet})",
+  "biz.today": "📊 Today: {total} • {count} payments",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

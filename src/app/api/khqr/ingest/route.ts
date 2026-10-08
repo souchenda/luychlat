@@ -2,11 +2,10 @@ import { createHash } from "crypto"
 import { NextResponse } from "next/server"
 
 import { parseMerchantPayment } from "@/lib/bot/merchant-khqr"
-import { formatMoney } from "@/lib/money"
 import { logEvent } from "@/lib/server/events"
-import { transferText, type TransferResult } from "@/lib/server/biz-group-bot"
+import { announce, recordedText, transferText, type TransferResult } from "@/lib/server/biz-group-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
-import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
+import { botDb, botKey } from "@/lib/server/telegram-bot"
 
 /**
  * KHQR ingest API — a merchant's own tool (e.g. AUTOBOK) pushes each bank
@@ -139,7 +138,7 @@ export async function POST(request: Request) {
   const status = http[r.status] ?? 500
   const message =
     r.status === "ok" && r.amount !== undefined && r.currency
-      ? tr("km", "biz.recorded", { amount: `+${formatMoney(Number(r.amount), r.currency)}`, workspace: r.workspace ?? "", bank: r.bank ?? pay.bank })
+      ? await recordedText(r, "km", pay.bank)
       : r.status === "transfer" && r.amount !== undefined && r.currency
         ? transferText(r as TransferResult)
         : null
@@ -149,7 +148,8 @@ export async function POST(request: Request) {
     // Optional: say so in the business's linked Telegram group for this bank.
     if (body.notify_group === true && message && r.workspace_id) {
       const { data: groups } = await botDb().rpc("bot_biz_groups_of", { p_key: botKey(), p_workspace_id: r.workspace_id })
-      for (const g of groupsForBank((groups as LinkedGroup[] | null) ?? [], r.bank ?? pay.bank)) await sendText(Number(g.chat_id), message).catch(() => null)
+      // One retry; a failure is logged (a dropped confirmation used to leave no trace).
+      for (const g of groupsForBank((groups as LinkedGroup[] | null) ?? [], r.bank ?? pay.bank)) await announce(Number(g.chat_id), message)
     }
   }
 

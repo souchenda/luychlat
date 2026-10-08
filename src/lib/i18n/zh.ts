@@ -3295,4 +3295,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "pool.cardShare": "分享",
   "pool.nameFamilies": "填写各户名称（可选）",
   "pool.namePeople": "填写成员名称（可选）",
+  "biz.recordedWallet": "✅ {amount} 已记录（{wallet}）",
+  "biz.today": "📊 今日：{total} • {count} 笔",
 }
