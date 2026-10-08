@@ -1,6 +1,6 @@
 "use client"
 
-import { DownloadIcon, Loader2Icon, QrCodeIcon, Share2Icon } from "lucide-react"
+import { DownloadIcon, Loader2Icon, QrCodeIcon, Share2Icon, UploadIcon } from "lucide-react"
 import QRCode from "qrcode"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -8,6 +8,10 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { khmerDigits } from "@/lib/dates"
+import { isKhqr } from "@/lib/khqr"
+import { decodeKhqr } from "@/lib/khqr-decode"
+import { useMyKhqr } from "@/lib/profile"
+import { cn } from "@/lib/utils"
 import { useT } from "@/lib/i18n/use-t"
 import { roundMoney } from "@/lib/money"
 import type { PoolSnapshot } from "@/lib/pool"
@@ -95,9 +99,16 @@ export function PendingPayments({ pool, editable }: { pool: PoolSnapshot; editab
   )
 }
 
-/** The pool's KHQR (the keeper's), to scan and pay in. */
-export function PoolKhqr({ pool }: { pool: PoolSnapshot }) {
+/**
+ * The pool's receiving KHQR, to scan and pay in. The treasurer sets it here — their
+ * profile KHQR, or an uploaded bank-app QR image (read on the device) — and the same
+ * code shows on the public link and in the Telegram group.
+ */
+export function PoolKhqr({ pool, editable = false }: { pool: PoolSnapshot; editable?: boolean }) {
   const t = useT()
+  const mine = useMyKhqr()
+  const { setKhqr } = usePoolMutations()
+  const [reading, setReading] = useState(false)
   const [src, setSrc] = useState<string | null>(null)
   useEffect(() => {
     let live = true
@@ -110,16 +121,60 @@ export function PoolKhqr({ pool }: { pool: PoolSnapshot }) {
       live = false
     }
   }, [pool.khqr])
-  if (!pool.khqr || pool.status !== "active" || !src) return null
+  const manage = editable && pool.status === "active"
+  if (pool.status !== "active" || (!manage && (!pool.khqr || !src))) return null
+
+  const save = (payload: string | null) =>
+    setKhqr.mutate({ poolId: pool.id!, payload }, { onSuccess: () => toast.success(t("pool.khqrSaved")), onError: () => toast.error(t("common.error")) })
+  const upload = async (file: File | undefined) => {
+    if (!file) return
+    setReading(true)
+    try {
+      const text = await decodeKhqr(file)
+      if (!text || !isKhqr(text)) return void toast.error(t("pool.khqrUnreadable"))
+      save(text)
+    } finally {
+      setReading(false)
+    }
+  }
+
   return (
     <Card className="items-center gap-2 px-4 py-4 text-center">
       <p className="flex items-center gap-1.5 text-sm font-semibold">
         <QrCodeIcon className="size-4 text-primary" aria-hidden />
-        {t("pool.khqrTitle")}
+        {t(manage ? "pool.khqrReceive" : "pool.khqrTitle")}
       </p>
-      {/* eslint-disable-next-line @next/next/no-img-element -- a generated data URL */}
-      <img src={src} alt={t("pool.khqrTitle")} className="size-52 rounded-xl bg-white p-2" />
-      <p className="text-xs text-muted-foreground">{t("pool.khqrHint", { keeper: pool.keeper || t("pool.keeperDefault") })}</p>
+      {pool.khqr && src ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a generated data URL */}
+          <img src={src} alt={t("pool.khqrTitle")} className="size-52 rounded-xl bg-white p-2" />
+          <p className="text-xs text-muted-foreground">
+            {manage && !pool.khqr_own ? t("pool.khqrFromProfile", { keeper: pool.keeper || t("pool.keeperDefault") }) : t("pool.khqrHint", { keeper: pool.keeper || t("pool.keeperDefault") })}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">{t("pool.khqrNone")}</p>
+      )}
+      {manage && (
+        <div className="grid w-full gap-2 pt-1">
+          <label className={cn("flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border text-sm font-medium hover:bg-muted", (reading || setKhqr.isPending) && "pointer-events-none opacity-60")}>
+            {reading || setKhqr.isPending ? <Loader2Icon className="size-4 animate-spin" /> : <UploadIcon className="size-4" />}
+            {t("pool.khqrUpload")}
+            <input type="file" accept="image/*" className="sr-only" onChange={(e) => void upload(e.target.files?.[0])} />
+          </label>
+          {mine.payload && mine.payload !== pool.khqr && (
+            <Button variant="outline" className="h-10" disabled={setKhqr.isPending} onClick={() => save(mine.payload)}>
+              {t("pool.khqrUseMine")}
+            </Button>
+          )}
+          {pool.khqr_own && (
+            <Button variant="ghost" className="h-9 text-muted-foreground" disabled={setKhqr.isPending} onClick={() => save(null)}>
+              {t("pool.khqrRemove")}
+            </Button>
+          )}
+          <p className="text-[11px] text-muted-foreground">{t("pool.khqrWhere")}</p>
+        </div>
+      )}
     </Card>
   )
 }

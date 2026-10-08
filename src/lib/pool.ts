@@ -48,6 +48,8 @@ export type PoolSnapshot = {
   keeper: string
   /** The keeper's KHQR text (when collecting, or when funds are low). */
   khqr: string | null
+  /** The pool has its own KHQR (set by the treasurer), not the keeper's profile one. */
+  khqr_own?: boolean
   members: PoolMember[]
   members_hidden: boolean
   entries: PoolEntry[]

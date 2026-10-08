@@ -158,8 +158,10 @@ export function usePoolMutations() {
         (await rpc("pool_payment_assign", { p_pending: v.pendingId, p_member_id: v.memberId })) as { status: string; member?: string },
       onSuccess: () => done(true),
     }),
-    khqrKey: useMutation({
-      mutationFn: async (poolId: string) => (await rpc("pool_khqr_key_create", { p_pool_id: poolId })) as string,
+    // The KHQR members pay into (its text; null = the keeper's profile KHQR).
+    setKhqr: useMutation({
+      mutationFn: (v: { poolId: string; payload: string | null }) => rpc("pool_set_khqr", { p_pool_id: v.poolId, p_payload: v.payload }),
+      onSuccess: () => done(),
     }),
     telegramUnlink: useMutation({
       mutationFn: (poolId: string) => rpc("pool_telegram_unlink", { p_pool_id: poolId }),

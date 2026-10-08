@@ -57,6 +57,14 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
   // (when the pool has targets at all — a rolled-over pool starts with none). Same rule as the app.
   const hasTargets = pool.members.some((m) => m.pledged > 0)
   const members = hasTargets ? pool.members.filter((m) => m.pledged > 0 || m.paid > 0) : pool.members
+  // An open family pool leads with its KHQR, the share per family and the families' progress.
+  const familyOpen = pool.unit === "FAMILY" && pool.status === "active"
+  const shares = pool.members.filter((m) => m.pledged > 0)
+  const sharesDone = shares.filter((m) => m.paid >= m.pledged).length
+  const sharesTarget = shares.reduce((s, m) => s + m.pledged, 0)
+  const sharesPaid = shares.reduce((s, m) => s + Math.min(m.paid, m.pledged), 0)
+  const shareEach = shares.length && new Set(shares.map((m) => m.pledged)).size === 1 ? shares[0].pledged : null
+  const pct = sharesTarget > 0 ? Math.min(100, Math.round((sharesPaid / sharesTarget) * 100)) : 0
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-lg space-y-4 bg-background px-4 py-6">
@@ -75,6 +83,30 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
           </p>
         )}
       </header>
+
+      {familyOpen && (
+        <section className="space-y-3 rounded-2xl border-2 border-emerald-500/40 bg-card p-4 text-center">
+          {khqrSvg && (
+            <>
+              <p className="text-base font-bold">📲 ស្កេន KHQR ដើម្បីបង់ចំណែក · Scan to pay your share</p>
+              <div className="mx-auto w-60 rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: khqrSvg }} />
+              <p className="text-xs text-muted-foreground">
+                {pool.keeper ? `${pool.keeper} · ` : ""}KHQR{shareEach !== null ? ` · ${money(shareEach)} / គ្រួសារ · per family` : ""}
+              </p>
+            </>
+          )}
+          {shares.length > 0 && (
+            <div className="space-y-1.5 text-left">
+              <p className="text-sm font-medium tabular-nums">
+                📊 {sharesDone}/{shares.length} គ្រួសារបានចូលរួចរាល់ <span className="text-muted-foreground">({money(sharesPaid)} / {money(sharesTarget)})</span>
+              </p>
+              <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="rounded-2xl border bg-card p-4">
         <PoolGauge pool={pool} labels={{ status: GAUGE[pool.gauge], pooled: "លុយរួម · Pooled", spent: "បានចាយ · Spent", remaining: "នៅសល់ · Remaining", collecting: "កំពុងប្រមូលលុយ · Collecting" }} />
@@ -103,7 +135,7 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
         </section>
       )}
 
-      {khqrSvg && (
+      {khqrSvg && !familyOpen && (
         <section className={charity ? "space-y-2 rounded-2xl border-2 border-emerald-500/40 bg-card p-4 text-center" : "space-y-2 rounded-2xl border bg-card p-4 text-center"}>
           {charity && pool.status === "active" ? (
             <>
@@ -124,7 +156,10 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
           <div className="divide-y rounded-2xl border bg-card">
             {members.map((m, i) => (
               <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                <span>{m.name}</span>
+                <span>
+                  {familyOpen && m.pledged > 0 ? (m.paid >= m.pledged ? "✅ " : "⏳ ") : ""}
+                  {m.name}
+                </span>
                 <span className="tabular-nums">
                   {money(m.paid)}
                   {m.pledged > 0 && <span className="text-muted-foreground"> / {money(m.pledged)}</span>}

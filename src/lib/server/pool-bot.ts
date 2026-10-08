@@ -10,7 +10,7 @@ import { parseAmountText, toLatinDigits } from "@/lib/bot/parse-entry"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
 import { GAUGE_EMOJI, poolEmoji, toSnapshot, type PoolSnapshot } from "@/lib/pool"
-import { postClosing, postProgress } from "@/lib/server/pool-flow"
+import { introducePool, postClosing, postProgress } from "@/lib/server/pool-flow"
 import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
 
 const khmerDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
@@ -148,6 +148,8 @@ export async function handlePoolGroupCommand(chatId: number, fromId: number | un
             ? tr(fallback, "pool.bot.planRequired")
             : tr(fallback, "pool.bot.badCode")
     await sendText(chatId, reply)
+    // The pool introduced in the group, with its KHQR to scan.
+    if (r?.status === "ok") await introducePool(chatId).catch(() => null)
     return true
   }
 

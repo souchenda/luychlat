@@ -234,16 +234,50 @@ export async function handlePoolFlowCallback(cb: Callback) {
     "",
     p.khqr ? `សូមស្កេន KHQR ខាងក្រោមដើម្បីបង់ (${p.keeper || "អ្នកកាន់បេឡា"}) ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ។ 🙏` : "សូមបង់ទៅអ្នកកាន់បេឡា ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ។ 🙏",
   ]
-  const text = lines.join("\n").slice(0, 1000)
+  await sendWithKhqr(chatId, p, lines.join("\n"))
+}
+
+/** A message with the pool's KHQR as a scannable image (plain text when the pool has none). */
+async function sendWithKhqr(chatId: number, p: PoolSnapshot, text: string) {
+  const caption = text.slice(0, 1000)
   const token = botToken()
   if (p.khqr && token) {
     const png = await QRCode.toBuffer(p.khqr, { width: 640, margin: 2, errorCorrectionLevel: "M" })
     const form = new FormData()
     form.append("chat_id", String(chatId))
     form.append("photo", new Blob([new Uint8Array(png)], { type: "image/png" }), "khqr.png")
-    form.append("caption", text)
-    await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
-  } else await tg("sendMessage", { chat_id: chatId, text })
+    form.append("caption", caption)
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
+    if (res?.ok) return
+    logEvent("warn", "pool", "Pool KHQR photo not sent — sending the text", { fold: true })
+  }
+  await tg("sendMessage", { chat_id: chatId, text: caption })
+}
+
+/**
+ * Right after a group is linked: the pool introduced — what each share is, the target,
+ * and the pool's KHQR to scan — then the live progress message.
+ */
+export async function introducePool(chatId: number) {
+  const p = await groupSnapshot(chatId)
+  if (!p?.id || p.status !== "active") return
+  const shares = p.members.filter((m) => m.pledged > 0)
+  const each = new Set(shares.map((m) => m.pledged))
+  const target = shares.reduce((s, m) => s + m.pledged, 0)
+  const lines = [
+    `${poolEmoji(p.kind)} ${p.title}`,
+    ...(shares.length && each.size === 1
+      ? [`${shares.length} ${unitWord(p)} × ${formatMoney(shares[0].pledged, p.currency)} = ${formatMoney(target, p.currency)}`]
+      : target > 0
+        ? [`គោលដៅ៖ ${formatMoney(target, p.currency)}`]
+        : []),
+    "",
+    p.khqr
+      ? `📲 សូមស្កេន KHQR ខាងក្រោមដើម្បីបង់ចំណែក (${p.keeper || "អ្នកកាន់បេឡា"}) ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ — លុយឆ្លាតនឹងកត់ត្រាជូន។ 🙏`
+      : "📲 សូមបង់ទៅអ្នកកាន់បេឡា ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ — លុយឆ្លាតនឹងកត់ត្រាជូន។ 🙏",
+  ]
+  await sendWithKhqr(chatId, p, lines.join("\n"))
+  await postProgress(chatId, p).catch(() => null)
 }
 
 export { CLOSING_BLESSING }
