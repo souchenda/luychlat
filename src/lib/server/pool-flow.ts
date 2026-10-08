@@ -193,6 +193,7 @@ export const isPoolFlowCallback = (data: string | undefined) => /^p[prq]:/.test(
 
 /** The button that shows the pool's KHQR to anyone in the group. */
 export const KHQR_BUTTON = "💳 ស្កេនបង់ប្រាក់ KHQR"
+const NO_KHQR = "⚠️ បេឡាមិនទាន់បានអាប់ឡូតរូបភាព KHQR នៅឡើយទេ។ សូមចូលទៅកាន់កម្មវិធីដើម្បីអាប់ឡូត KHQR ទទួលប្រាក់។"
 const khqrShownAt = new Map<string, number>()
 
 type Callback = { id: string; data?: string; from?: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } }
@@ -229,11 +230,11 @@ export async function handlePoolFlowCallback(cb: Callback) {
   // pq:<pool> — anyone: the pool's KHQR image to scan and pay (at most every 2 minutes per pool).
   if (cb.data?.startsWith("pq:")) {
     const p = await groupSnapshot(chatId)
-    if (!p?.id || !p.khqr) return answer("បេឡានេះមិនទាន់មាន KHQR ទេ — អ្នកកាន់បេឡាអាចដាក់វាក្នុងកម្មវិធី។", true)
+    if (!p?.id || !p.khqr) return answer(NO_KHQR, true)
     if (Date.now() - (khqrShownAt.get(p.id) ?? 0) < 2 * 60_000) return answer("KHQR ទើបតែផ្ញើខាងលើ 👆")
     khqrShownAt.set(p.id, Date.now())
     await answer("📲")
-    await sendWithKhqr(chatId, p, `📲 ${p.title}\nសូមស្កេន KHQR ដើម្បីបង់ចំណែក (${p.keeper || "អ្នកកាន់បេឡា"}) ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ — លុយឆ្លាតនឹងកត់ត្រាជូន។ 🙏`)
+    await sendWithKhqr(chatId, p, khqrCaption(p))
     return
   }
 
@@ -246,15 +247,49 @@ export async function handlePoolFlowCallback(cb: Callback) {
   remindedAt.set(p.id, Date.now())
   const unpaid = p.members.filter((m) => m.pledged > 0 && m.paid < m.pledged)
   if (!unpaid.length) return answer("🎉 គ្រប់គ្នាបានបង់រួចហើយ!", true)
-  await answer("🔔")
-  const lines = [
-    `🔔 សូមរំលឹកដោយក្ដីគោរព — ${p.title}`,
-    `${unitWord(p)}ដែលមិនទាន់បង់៖`,
-    ...unpaid.map((m) => `• ${m.name} — ${formatMoney(m.pledged - m.paid, p.currency)}`),
-    "",
-    p.khqr ? `សូមស្កេន KHQR ខាងក្រោមដើម្បីបង់ (${p.keeper || "អ្នកកាន់បេឡា"}) ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ។ 🙏` : "សូមបង់ទៅអ្នកកាន់បេឡា ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ។ 🙏",
-  ]
-  await sendWithKhqr(chatId, p, lines.join("\n"))
+  // No KHQR yet: the admin is told where to add it (the reminder still goes out, as text).
+  await answer(p.khqr ? "🔔" : NO_KHQR, !p.khqr)
+  await sendWithKhqr(chatId, p, `🔔 សូមរំលឹកដោយក្ដីគោរព\n${khqrCaption(p)}`)
+}
+
+/**
+ * The caption under the pool's KHQR in the group (owner's format):
+ *   🪷 បេឡារួម៖ ភ្ជុំបិណ្ឌ 2026 ផ្ទះម៉ែ
+ *   🎯 ចំណែកក្នុង ១ គ្រួសារ៖ $100.00 (ឬ ៤០០,០០០ ៛)
+ *
+ *   📊 វឌ្ឍនភាព៖ ៥/៦ គ្រួសារបានចូលរួចរាល់ ($500.00 / $600.00)
+ *   ⏳ នៅរង់ចាំ៖ គ្រួសារធឿន ($100.00)
+ *
+ *   👉 សូមរក្សាទុករូបភាព KHQR ខាងលើនេះ ដើម្បីស្កេនបង់ប្រាក់ពី App ធនាគារ!
+ */
+export function khqrCaption(p: PoolSnapshot): string {
+  const shares = p.members.filter((m) => m.pledged > 0)
+  const done = shares.filter((m) => m.paid >= m.pledged)
+  const waiting = shares.filter((m) => m.paid < m.pledged)
+  const target = shares.reduce((s, m) => s + m.pledged, 0)
+  const paid = shares.reduce((s, m) => s + Math.min(m.paid, m.pledged), 0)
+  const each = shares.length && new Set(shares.map((m) => m.pledged)).size === 1 ? shares[0].pledged : null
+  const riel = (usd: number) => `${kmDigits(new Intl.NumberFormat("en-US").format(Math.round(usd * (p.khr_per_usd || 4000))))} ៛`
+  const lines = [`${poolEmoji(p.kind)} បេឡារួម៖ ${p.title}`]
+  if (each !== null) lines.push(`🎯 ចំណែកក្នុង ១ ${unitWord(p)}៖ ${formatMoney(each, p.currency)}${p.currency === "USD" ? ` (ឬ ${riel(each)})` : ""}`)
+  if (shares.length) {
+    lines.push("", `📊 វឌ្ឍនភាព៖ ${kmDigits(`${done.length}/${shares.length}`)} ${unitWord(p)}បានចូលរួចរាល់ (${formatMoney(paid, p.currency)} / ${formatMoney(target, p.currency)})`)
+    lines.push(
+      waiting.length
+        ? `⏳ នៅរង់ចាំ៖ ${waiting.slice(0, 12).map((m) => `${m.name} (${formatMoney(m.pledged - m.paid, p.currency)})`).join(", ")}${waiting.length > 12 ? " …" : ""}`
+        : `🎉 គ្រប់${unitWord(p)}បានបង់រួចរាល់ — សូមអរគុណ!`,
+    )
+  }
+  lines.push("", "👉 សូមរក្សាទុករូបភាព KHQR ខាងលើនេះ ដើម្បីស្កេនបង់ប្រាក់ពី App ធនាគារ!")
+  return lines.join("\n")
+}
+
+/** The pool's KHQR with the caption, in its group (after the treasurer sets or changes it in the app). */
+export async function announcePoolKhqr(chatId: number): Promise<boolean> {
+  const p = await groupSnapshot(chatId)
+  if (!p?.id || !p.khqr || p.status !== "active") return false
+  await sendWithKhqr(chatId, p, khqrCaption(p))
+  return true
 }
 
 /** A message with the pool's KHQR as a scannable image (plain text when the pool has none). */
@@ -281,22 +316,8 @@ async function sendWithKhqr(chatId: number, p: PoolSnapshot, text: string) {
 export async function introducePool(chatId: number) {
   const p = await groupSnapshot(chatId)
   if (!p?.id || p.status !== "active") return
-  const shares = p.members.filter((m) => m.pledged > 0)
-  const each = new Set(shares.map((m) => m.pledged))
-  const target = shares.reduce((s, m) => s + m.pledged, 0)
-  const lines = [
-    `${poolEmoji(p.kind)} ${p.title}`,
-    ...(shares.length && each.size === 1
-      ? [`${shares.length} ${unitWord(p)} × ${formatMoney(shares[0].pledged, p.currency)} = ${formatMoney(target, p.currency)}`]
-      : target > 0
-        ? [`គោលដៅ៖ ${formatMoney(target, p.currency)}`]
-        : []),
-    "",
-    p.khqr
-      ? `📲 សូមស្កេន KHQR ខាងក្រោមដើម្បីបង់ចំណែក (${p.keeper || "អ្នកកាន់បេឡា"}) ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ — លុយឆ្លាតនឹងកត់ត្រាជូន។ 🙏`
-      : "📲 សូមបង់ទៅអ្នកកាន់បេឡា ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ — លុយឆ្លាតនឹងកត់ត្រាជូន។ 🙏",
-  ]
-  await sendWithKhqr(chatId, p, lines.join("\n"))
+  if (p.khqr) await sendWithKhqr(chatId, p, khqrCaption(p))
+  else await tg("sendMessage", { chat_id: chatId, text: `${khqrCaption(p).split("\n👉")[0]}\n\n📲 សូមបង់ទៅអ្នកកាន់បេឡា ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ — លុយឆ្លាតនឹងកត់ត្រាជូន។ 🙏` })
   await postProgress(chatId, p).catch(() => null)
 }
 

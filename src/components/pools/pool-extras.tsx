@@ -125,7 +125,20 @@ export function PoolKhqr({ pool, editable = false }: { pool: PoolSnapshot; edita
   if (pool.status !== "active" || (!manage && (!pool.khqr || !src))) return null
 
   const save = (payload: string | null) =>
-    setKhqr.mutate({ poolId: pool.id!, payload }, { onSuccess: () => toast.success(t("pool.khqrSaved")), onError: () => toast.error(t("common.error")) })
+    setKhqr.mutate(
+      { poolId: pool.id!, payload },
+      {
+        onSuccess: async () => {
+          toast.success(t("pool.khqrSaved"))
+          // A new KHQR goes straight to the pool's Telegram group, with who is still waiting.
+          if (!payload || !pool.tg_linked) return
+          const res = await fetch(`/api/pools/${pool.id}/khqr-announce`, { method: "POST" }).catch(() => null)
+          const json = (await res?.json().catch(() => null)) as { sent?: boolean } | null
+          if (json?.sent) toast.success(t("pool.khqrPosted"))
+        },
+        onError: () => toast.error(t("common.error")),
+      },
+    )
   const upload = async (file: File | undefined) => {
     if (!file) return
     setReading(true)

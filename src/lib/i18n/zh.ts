@@ -3331,4 +3331,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "kids.lastMonth": "上月 {amount}",
   "kids.count": "{n} 笔",
   "kids.hint": "在机器人卡片上点「👶 为孩子」，或在备注写「孩子」「学校」",
+  "pool.khqrPosted": "📲 已将 KHQR 发到 Telegram 群",
 }

@@ -3378,6 +3378,7 @@ const km = {
   "kids.lastMonth": "ខែមុន {amount}",
   "kids.count": "{n} ចំណាយ",
   "kids.hint": "ចុច «👶 សម្រាប់កូន» លើកាតក្នុង Bot ឬសរសេរ «កូន» «សាលា» ក្នុងចំណាំ",
+  "pool.khqrPosted": "📲 បានផ្ញើ KHQR ទៅក្រុម Telegram រួចហើយ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6745,6 +6746,7 @@ const en: Record<MessageKey, string> = {
   "kids.lastMonth": "Last month {amount}",
   "kids.count": "{n} expenses",
   "kids.hint": "Tap «👶 For my child» on the bot's card, or write «child» / «school» in the note",
+  "pool.khqrPosted": "📲 KHQR posted in the Telegram group",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

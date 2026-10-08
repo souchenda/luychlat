@@ -50,6 +50,8 @@ export type PoolSnapshot = {
   khqr: string | null
   /** The pool has its own KHQR (set by the treasurer), not the keeper's profile one. */
   khqr_own?: boolean
+  /** The workspace's riel rate (a share's ៛ equivalent in the group). */
+  khr_per_usd?: number
   members: PoolMember[]
   members_hidden: boolean
   entries: PoolEntry[]
