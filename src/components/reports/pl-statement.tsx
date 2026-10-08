@@ -9,6 +9,7 @@ import type { WorkspaceType } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import type { PlLine, ProfitAndLoss } from "@/lib/reports/pl"
+import { roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 
@@ -68,8 +69,14 @@ function Row({
   )
 }
 
-/** Cash-basis P&L. Business shows COGS and gross profit; Personal is a simple income statement. */
-export function PlStatement({ pl, workspaceType }: { pl: ProfitAndLoss; workspaceType: WorkspaceType }) {
+/** Depreciation charged in the period (non-cash), from the business's fixed assets. */
+export type PlDepreciation = { total: DualTotal; lines: { id: string; name: string; currency: "USD" | "KHR"; amount: number }[] }
+
+/**
+ * Cash-basis P&L. Business shows COGS and gross profit; Personal is a simple income statement.
+ * A business with depreciating equipment also gets the non-cash depreciation and its net operating profit.
+ */
+export function PlStatement({ pl, workspaceType, depreciation }: { pl: ProfitAndLoss; workspaceType: WorkspaceType; depreciation?: PlDepreciation | null }) {
   const t = useT()
   const business = workspaceType === "BUSINESS"
   const loss = pl.netProfit.usd < 0
@@ -96,6 +103,45 @@ export function PlStatement({ pl, workspaceType }: { pl: ProfitAndLoss; workspac
         </span>
         <Money total={pl.netProfit} strong />
       </div>
+      {business && depreciation && depreciation.total.usd > 0 && (
+        <>
+          <details className="group" open>
+            <summary className="cursor-pointer list-none">
+              <div className="flex items-start justify-between gap-3 px-4 py-3">
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1 text-sm font-medium">
+                    {t("pl.depreciation")}
+                    <ChevronDownIcon className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180 print:hidden" />
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">{t("pl.depreciationNote")}</span>
+                </span>
+                <Money total={depreciation.total} negative />
+              </div>
+            </summary>
+            <div className="space-y-1 pb-2">
+              {depreciation.lines.map((line) => (
+                <div key={line.id} className="flex items-center justify-between gap-3 px-4 pl-8 text-xs text-muted-foreground">
+                  <span className="truncate">{line.name}</span>
+                  <Amount value={-line.amount} currency={line.currency} />
+                </div>
+              ))}
+            </div>
+          </details>
+          {(() => {
+            const operating = { usd: roundMoney(pl.netProfit.usd - depreciation.total.usd, "USD"), khr: roundMoney(pl.netProfit.khr - depreciation.total.khr, "KHR") }
+            const opLoss = operating.usd < 0
+            return (
+              <div className={cn("flex items-center justify-between gap-3 px-4 py-4", opLoss ? "bg-red-500/10" : "bg-emerald-500/10")}>
+                <span className="flex items-center gap-2">
+                  {opLoss ? <TrendingDownIcon className="size-5 text-red-600" /> : <TrendingUpIcon className="size-5 text-emerald-600" />}
+                  <span className="block text-sm font-bold">{t(opLoss ? "pl.operatingLoss" : "pl.operatingProfit")}</span>
+                </span>
+                <Money total={operating} strong />
+              </div>
+            )
+          })()}
+        </>
+      )}
     </div>
   )
 }

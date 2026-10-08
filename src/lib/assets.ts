@@ -7,8 +7,10 @@ import { convert, roundMoney } from "@/lib/money"
  * an estimated market value, or — with a useful life — a book value that
  * depreciates straight-line from the purchase cost.
  */
-export type AssetKind = "LAND" | "HOUSE" | "VEHICLE" | "MACHINERY" | "ELECTRONICS" | "FURNITURE" | "OTHER"
+export type AssetKind = "LAND" | "HOUSE" | "VEHICLE" | "MACHINERY" | "ELECTRONICS" | "FURNITURE" | "COLD_STORAGE" | "FIXTURES" | "STOCK" | "OTHER"
 export const ASSET_KINDS: AssetKind[] = ["LAND", "HOUSE", "VEHICLE", "MACHINERY", "ELECTRONICS", "FURNITURE", "OTHER"]
+/** A business's kinds, equipment first; MACHINERY / VEHICLE / HOUSE read as processing machinery, delivery vehicles, building. */
+export const BUSINESS_ASSET_KINDS: AssetKind[] = ["COLD_STORAGE", "MACHINERY", "VEHICLE", "FIXTURES", "ELECTRONICS", "FURNITURE", "STOCK", "HOUSE", "LAND", "OTHER"]
 export const ASSET_EMOJI: Record<AssetKind, string> = {
   LAND: "🏞️",
   HOUSE: "🏠",
@@ -16,8 +18,14 @@ export const ASSET_EMOJI: Record<AssetKind, string> = {
   MACHINERY: "🚜",
   ELECTRONICS: "💻",
   FURNITURE: "🪑",
+  COLD_STORAGE: "🧊",
+  FIXTURES: "🏪",
+  STOCK: "🏷️",
   OTHER: "📦",
 }
+/** The label key for a kind; a business names some differently ("ម៉ាស៊ីនកែច្នៃ", "យានដឹកជញ្ជូន"). */
+export const assetKindKey = (kind: AssetKind, business: boolean) =>
+  business && (kind === "MACHINERY" || kind === "VEHICLE" || kind === "HOUSE") ? `assets.kindBiz.${kind}` : `assets.kind.${kind}`
 
 /** Useful-life choices in the form (years); null = no depreciation (the estimate is the value). */
 export const LIFE_YEARS = [2, 3, 5, 10] as const
@@ -29,6 +37,10 @@ export const DEFAULT_LIFE_YEARS: Record<AssetKind, number | null> = {
   MACHINERY: 5,
   ELECTRONICS: 3,
   FURNITURE: 5,
+  COLD_STORAGE: 5,
+  FIXTURES: 5,
+  // Stock on hand is the owner's figure for what's in store, not equipment that wears out.
+  STOCK: null,
   OTHER: null,
 }
 
@@ -106,6 +118,29 @@ export function assetEquity(asset: Depreciable & Pick<PhysicalAsset, "estimated_
   // Share of the asset already owned (0–100).
   const ownedPercent = value > 0 ? Math.max(0, Math.min(100, Math.round((equity / value) * 1000) / 10)) : 0
   return { owed, equity, ownedPercent }
+}
+
+const dayBefore = (day: string) => {
+  const d = new Date(`${day}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Depreciation charged in a period (non-cash): for each depreciating asset, how much its
+ * book value fell between the day before `from` and `to`. By currency, largest first.
+ */
+export function depreciationForPeriod(assets: (Depreciable & Pick<PhysicalAsset, "id" | "name">)[], from: string, to: string) {
+  const lines = assets
+    .map((a) => {
+      const end = depreciation(a, to)
+      const start = depreciation(a, dayBefore(from))
+      return end && start ? { id: a.id, name: a.name, currency: a.currency, amount: roundMoney(end.depreciated - start.depreciated, a.currency) } : null
+    })
+    .filter((l): l is NonNullable<typeof l> => l !== null && l.amount > 0)
+  const usd = roundMoney(lines.filter((l) => l.currency === "USD").reduce((s, l) => s + l.amount, 0), "USD")
+  const khr = roundMoney(lines.filter((l) => l.currency === "KHR").reduce((s, l) => s + l.amount, 0), "KHR")
+  return { usd, khr, lines }
 }
 
 /** Total current value of physical assets in USD (book value for depreciating ones) — what net worth counts. */

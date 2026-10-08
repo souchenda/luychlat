@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button"
 import { useToday } from "@/hooks/use-today"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HeroAction, NetWorthCard } from "@/components/wallets/net-worth-card"
+import { BusinessValueCard } from "@/components/business/business-value-card"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { cashFlow } from "@/lib/analytics"
@@ -170,6 +171,9 @@ export default function HomePage() {
         }
       />
 
+
+      {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}
+      {workspace?.type === "BUSINESS" && <BusinessValueCard workspaceId={ws} wallets={walletsQuery.data} debts={debtsQuery.data} />}
 
       <BirthdayCard />
 

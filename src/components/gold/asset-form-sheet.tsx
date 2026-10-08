@@ -11,7 +11,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { stepUp } from "@/components/security/step-up"
-import { ASSET_EMOJI, ASSET_KINDS, DEFAULT_LIFE_YEARS, LIFE_YEARS, depreciation, hasPlot, type AssetKind, type PhysicalAsset } from "@/lib/assets"
+import {
+  ASSET_EMOJI,
+  ASSET_KINDS,
+  BUSINESS_ASSET_KINDS,
+  DEFAULT_LIFE_YEARS,
+  LIFE_YEARS,
+  assetKindKey,
+  depreciation,
+  hasPlot,
+  type AssetKind,
+  type PhysicalAsset,
+} from "@/lib/assets"
 import { usePhysicalAssetMutations } from "@/lib/assets-data"
 import type { Currency, Debt } from "@/lib/data/types"
 import { khmerDigits } from "@/lib/dates"
@@ -37,12 +48,15 @@ export function AssetFormSheet({
   workspaceId,
   asset,
   debts,
+  business = false,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   workspaceId: string | undefined
   asset?: PhysicalAsset | null
   debts: Debt[]
+  /** A business workspace: its equipment kinds (cold storage, fixtures & POS, stock…). */
+  business?: boolean
 }) {
   const t = useT()
   const { add, update, remove } = usePhysicalAssetMutations(workspaceId)
@@ -65,17 +79,17 @@ export function AssetFormSheet({
 
   useEffect(() => {
     if (!open) return
-    setKind(asset?.kind ?? "HOUSE")
+    setKind(asset?.kind ?? (business ? "COLD_STORAGE" : "HOUSE"))
     setName(asset?.name ?? "")
     setValue(asset ? String(asset.estimated_value) : "")
     setCurrency(asset?.currency ?? "USD")
     setDate(asset?.purchase_date ?? "")
     setPrice(asset?.purchase_price != null ? String(asset.purchase_price) : "")
     setLoanId(asset?.debt_id ?? NO_LOAN)
-    setLife(asset ? String(asset.useful_life_months ? Math.round(asset.useful_life_months / 12) : 0) : String(DEFAULT_LIFE_YEARS.HOUSE ?? 0))
+    setLife(asset ? String(asset.useful_life_months ? Math.round(asset.useful_life_months / 12) : 0) : String(DEFAULT_LIFE_YEARS[business ? "COLD_STORAGE" : "HOUSE"] ?? 0))
     setLocation(asset?.location ?? NO_LOCATION)
     setArea(asset?.area_m2 != null ? String(asset.area_m2) : "")
-  }, [open, asset])
+  }, [open, asset, business])
 
   const pickKind = (k: AssetKind) => {
     setKind(k)
@@ -141,8 +155,8 @@ export function AssetFormSheet({
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={t(asset ? "assets.edit" : "assets.add")}>
       <form onSubmit={submit} className="space-y-4">
-        <div className="grid grid-cols-4 gap-1.5">
-          {ASSET_KINDS.map((k) => (
+        <div className={cn("grid gap-1.5", business ? "grid-cols-5" : "grid-cols-4")}>
+          {(business ? BUSINESS_ASSET_KINDS : ASSET_KINDS).map((k) => (
             <button
               key={k}
               type="button"
@@ -156,7 +170,7 @@ export function AssetFormSheet({
               <span className="text-xl" aria-hidden>
                 {ASSET_EMOJI[k]}
               </span>
-              <span className="line-clamp-2 text-center">{t(`assets.kind.${k}` as MessageKey)}</span>
+              <span className="line-clamp-2 text-center">{t(assetKindKey(k, business) as MessageKey)}</span>
             </button>
           ))}
         </div>

@@ -20,6 +20,9 @@ import { toast } from "sonner"
 import { CategoryIcon } from "@/components/categories/category-icon"
 import { Amount } from "@/components/money/amount"
 import { PlStatement } from "@/components/reports/pl-statement"
+import { dualTotal } from "@/lib/analytics"
+import { depreciationForPeriod } from "@/lib/assets"
+import { usePhysicalAssets } from "@/lib/assets-data"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -140,6 +143,13 @@ export default function ReportsPage() {
   const spentTotal = summary ? inCurrency(summary.cashOut, currency, khrPerUsd) : 0
   const split = useMemo(() => (periodTx ? spendingSplit(periodTx, categories, walletId) : null), [periodTx, categories, walletId])
   const pl = useMemo(() => (periodTx ? profitAndLoss(periodTx, categories, khrPerUsd) : null), [periodTx, categories, khrPerUsd])
+  // Business: the period's depreciation of its equipment (non-cash) for net operating profit.
+  const physical = usePhysicalAssets(workspace?.type === "BUSINESS" ? workspace.id : undefined).data
+  const depreciation = useMemo(() => {
+    if (!physical?.length || !validRange) return null
+    const d = depreciationForPeriod(physical, from, to)
+    return d.lines.length ? { total: dualTotal(d.usd, d.khr, khrPerUsd), lines: d.lines } : null
+  }, [physical, from, to, validRange, khrPerUsd])
   const walletName = walletId ? wallets.find((w) => w.id === walletId)?.name : undefined
   const business = workspace?.type === "BUSINESS"
   const suffix = `${range.from}_${range.to}`
@@ -380,7 +390,7 @@ export default function ReportsPage() {
         {!pl || txQuery.isLoading ? (
           <Skeleton className="m-4 h-64" />
         ) : (
-          <PlStatement pl={pl} workspaceType={workspace?.type ?? "PERSONAL"} />
+          <PlStatement pl={pl} workspaceType={workspace?.type ?? "PERSONAL"} depreciation={depreciation} />
         )}
         {pl && (
           <div className="space-y-0.5 border-t px-4 py-3 text-[11px] text-muted-foreground">
