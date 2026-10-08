@@ -109,6 +109,9 @@ function NssfGuide() {
   )
 }
 
+/** The last due date was paid within the past month — the card shows "✅ បង់រួច" until the next one comes up. */
+const recentlyPaid = (bill: Bill) => Boolean(bill.paid_until && daysUntil(bill.paid_until) >= -31 && daysUntil(bill.paid_until) <= 31)
+
 export default function BillsPage() {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
@@ -187,6 +190,13 @@ export default function BillsPage() {
                         status === "overdue" ? "font-medium text-rose-600 dark:text-rose-400" : status === "today" || status === "soon" ? "font-medium text-amber-600" : "text-muted-foreground",
                       )}
                     >
+                      {/* Unpaid vs paid, never confused: "⏳ មិនទាន់បង់" until it is marked paid, then "✅ បង់រួច". */}
+                      {status !== "off" && (
+                        <span className={cn("font-medium", recentlyPaid(bill) && status === "later" ? "text-emerald-700 dark:text-emerald-400" : "")}>
+                          {t(recentlyPaid(bill) && status === "later" ? "bills.paidBadge" : "bills.unpaidBadge")}
+                          {" · "}
+                        </span>
+                      )}
                       {status === "off"
                         ? t("bills.paused")
                         : status === "overdue"
@@ -224,8 +234,8 @@ export default function BillsPage() {
                   </Button>
                 )}
                 {editable && bill.is_active && (
+                  // An action, not a state: no ✓ and no past tense on a bill that is still to pay.
                   <Button size="sm" variant={status === "later" ? "outline" : "default"} onClick={() => setPaying({ bill, due })}>
-                    <CheckIcon />
                     {t("bills.paid")}
                   </Button>
                 )}

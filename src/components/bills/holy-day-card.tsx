@@ -19,8 +19,10 @@ import { formatChhankitek, formatLunar, nextHolyDay } from "@/lib/khmer-lunar"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useLocaleStore } from "@/stores/locale-store"
 
-/** Festivals / offering days listed (today's first, then the soonest). */
-const UPCOMING = 6
+/** By default only what is close (within NEAR_DAYS, at most NEAR_MAX) — the bills below stay in view; the full year on tap. */
+const NEAR_DAYS = 14
+const NEAR_MAX = 2
+const YEAR_MAX = 12
 
 const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
 const EN_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -59,6 +61,7 @@ export function HolyDayCard() {
   const queryClient = useQueryClient()
   // The date comes from this device after mounting (no server/client mismatch around midnight).
   const [today, setToday] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
   useEffect(() => setToday(todayDate()), [])
 
   const toggle = useMutation({
@@ -77,7 +80,10 @@ export function HolyDayCard() {
   if (!today) return null
   const next = nextHolyDay(today)
   const running = culturalDayOn(today)
-  const coming = [...(running ? [running] : []), ...upcomingCulturalDays(today)].slice(0, UPCOMING)
+  const all = [...(running ? [running] : []), ...upcomingCulturalDays(today)].slice(0, YEAR_MAX)
+  const near = all.filter((d) => daysUntil(today, d.start) <= NEAR_DAYS).slice(0, NEAR_MAX)
+  // Nothing within two weeks: just the next one.
+  const coming = showAll ? all : near.length ? near : all.slice(0, 1)
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-amber-200/80 bg-linear-to-br from-amber-50 via-orange-50/70 to-yellow-50 p-4 shadow-sm dark:border-amber-900/50 dark:from-amber-500/10 dark:via-orange-500/5 dark:to-yellow-500/10">
@@ -136,6 +142,11 @@ export function HolyDayCard() {
               )
             })}
           </ul>
+          {all.length > coming.length || showAll ? (
+            <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 text-xs font-medium text-amber-800 hover:underline dark:text-amber-300">
+              {t(showAll ? "holyDay.showLess" : "holyDay.showYear")}
+            </button>
+          ) : null}
         </div>
       )}
 

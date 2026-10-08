@@ -59,7 +59,7 @@ export async function handleBillPhoto(chatId: number, fileId: string, ctx: Conte
   ].join("\n")
   const row = [
     ...(khqr && r.statement_id ? [{ text: "💳 ស្កេនបង់ប្រាក់", callback_data: `bq:${r.statement_id}` }] : []),
-    { text: "✅ បានបង់រួច", callback_data: `bp:${r.bill_id}:${r.next_due ?? ""}` },
+    { text: "💵 កត់ថាបង់រួច", callback_data: `bp:${r.bill_id}:${r.next_due ?? ""}` },
   ]
   await sendText(chatId, text, { reply_markup: { inline_keyboard: [row] } })
   logEvent("info", "bills", `Utility bill saved from a Telegram photo${khqr ? " (with its KHQR)" : ""}`, { fold: true })
@@ -84,6 +84,6 @@ export async function handleBillKhqrCallback(cb: Callback) {
   const form = new FormData()
   form.append("chat_id", String(chatId))
   form.append("photo", new Blob([new Uint8Array(png)], { type: "image/png" }), "khqr.png")
-  form.append("caption", "📲 ស្កេន KHQR នេះពី App ធនាគារដើម្បីបង់វិក្កយបត្រ — រួចចុច «✅ បានបង់រួច»។")
+  form.append("caption", "📲 ស្កេន KHQR នេះពី App ធនាគារដើម្បីបង់វិក្កយបត្រ — រួចចុច «💵 កត់ថាបង់រួច»។")
   await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
 }
