@@ -11,7 +11,8 @@ import { InvestmentsTab } from "@/components/gold/investments-tab"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ASSET_EMOJI, assetEquity, assetKindKey, depreciation, type PhysicalAsset } from "@/lib/assets"
+import { FixedAssetRegister } from "@/components/business/fixed-asset-register"
+import { ASSET_EMOJI, assetEquity, depreciation, type PhysicalAsset } from "@/lib/assets"
 import { usePhysicalAssets } from "@/lib/assets-data"
 import { khanOf } from "@/lib/land-prices"
 import { canWrite, useActiveWorkspace, useDebts } from "@/lib/data/hooks"
@@ -79,9 +80,6 @@ export default function AssetsPage() {
     const hash = window.location.hash.slice(1)
     return hash === "invest" || hash === "property" ? hash : "gold"
   })
-  // A business has fixed assets (equipment, stock, premises) only — no gold or investments tabs.
-  const business = workspace?.type === "BUSINESS"
-  const tab: TabKey = business ? "property" : active
   const [assetOpen, setAssetOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<PhysicalAsset | null>(null)
   const openAsset = (a: PhysicalAsset | null) => {
@@ -95,6 +93,19 @@ export default function AssetsPage() {
     setFormOpen(true)
   }
 
+  // A business: its fixed asset register (equipment, vehicles, premises, stock) — no gold or investments.
+  if (workspace?.type === "BUSINESS") {
+    return (
+      <div className="space-y-4">
+        <h1 className="flex items-center gap-2 text-xl font-bold">
+          <LandmarkIcon className="size-5 text-primary" aria-hidden />
+          {t("nav.bizAssets")}
+        </h1>
+        <FixedAssetRegister workspaceId={ws} editable={editable} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -105,15 +116,15 @@ export default function AssetsPage() {
       </div>
 
       <Card className="gap-1 px-4 py-4">
-        <p className="text-sm text-muted-foreground">{t(business ? "assets.bizTotal" : "assets.total")}</p>
-        <p className="text-3xl font-bold tabular-nums">{money(business ? all.propertyUsd : all.totalUsd)}</p>
+        <p className="text-sm text-muted-foreground">{t("assets.total")}</p>
+        <p className="text-3xl font-bold tabular-nums">{money(all.totalUsd)}</p>
         <p className="text-xs text-muted-foreground">
-          {business ? t("assets.bizTotalHint") : `🪙 ${money(all.goldUsd)} · 💎 ${money(all.diamondUsd)} · 📈 ${money(all.investUsd)} · 🏠 ${money(all.propertyUsd)} — ${t("assets.inNetWorth")}`}
+          🪙 {money(all.goldUsd)} · 💎 {money(all.diamondUsd)} · 📈 {money(all.investUsd)} · 🏠 {money(all.propertyUsd)} — {t("assets.inNetWorth")}
         </p>
       </Card>
 
       {/* Tabs: gold · stocks & crypto · real estate & vehicles */}
-      <div role="tablist" aria-label={t("assets.pageTitle")} className={cn("grid grid-cols-3 gap-1 rounded-2xl bg-muted p-1", business && "hidden")}>
+      <div role="tablist" aria-label={t("assets.pageTitle")} className="grid grid-cols-3 gap-1 rounded-2xl bg-muted p-1">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -134,7 +145,7 @@ export default function AssetsPage() {
         ))}
       </div>
 
-      {tab === "gold" && (
+      {active === "gold" && (
         <>
           <div className="flex items-center justify-between gap-2 px-1 pt-1">
             <h2 className="flex items-center gap-1.5 font-semibold">
@@ -271,15 +282,15 @@ export default function AssetsPage() {
         </>
       )}
 
-      {tab === "invest" && <InvestmentsTab workspaceId={ws} editable={editable} />}
+      {active === "invest" && <InvestmentsTab workspaceId={ws} editable={editable} />}
 
-      {tab === "property" && (
+      {active === "property" && (
         <>
           {/* Land, houses, vehicles, machinery */}
           <div className="flex items-center justify-between gap-2 px-1 pt-2">
             <h2 className="flex items-center gap-1.5 font-semibold">
               <HouseIcon className="size-4 text-primary" aria-hidden />
-              {t(business ? "assets.bizPhysical" : "assets.physical")}
+              {t("assets.physical")}
             </h2>
             {editable && (
               <Button size="sm" variant="outline" onClick={() => openAsset(null)}>
@@ -311,7 +322,7 @@ export default function AssetsPage() {
                           <div className="min-w-0 flex-1">
                             <p className="truncate font-semibold">{a.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {t(assetKindKey(a.kind, business) as MessageKey)}
+                              {t(`assets.kind.${a.kind}` as MessageKey)}
                               {khanOf(a.location) ? ` · ${locale === "km" ? khanOf(a.location)!.km : khanOf(a.location)!.en}` : ""}
                               {a.area_m2 ? ` · ${num(a.area_m2)} m²` : ""}
                               {a.purchase_date ? ` · ${format(parseISO(a.purchase_date), "yyyy")}` : ""}
@@ -378,7 +389,7 @@ export default function AssetsPage() {
       )}
 
       <GoldFormSheet open={formOpen} onOpenChange={setFormOpen} workspaceId={ws} holding={editing} rates={rates} />
-      <AssetFormSheet open={assetOpen} onOpenChange={setAssetOpen} workspaceId={ws} asset={editingAsset} debts={debts} business={business} />
+      <AssetFormSheet open={assetOpen} onOpenChange={setAssetOpen} workspaceId={ws} asset={editingAsset} debts={debts} />
     </div>
   )
 }

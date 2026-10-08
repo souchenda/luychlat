@@ -12,6 +12,7 @@ const toAsset = (row: PhysicalAsset): PhysicalAsset => ({
   purchase_price: row.purchase_price == null ? null : Number(row.purchase_price),
   useful_life_months: row.useful_life_months == null ? null : Number(row.useful_life_months),
   area_m2: row.area_m2 == null ? null : Number(row.area_m2),
+  salvage_value: Number(row.salvage_value ?? 0),
 })
 
 export function usePhysicalAssets(workspaceId: string | undefined) {

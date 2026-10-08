@@ -1,16 +1,19 @@
 import type { Currency, Debt } from "@/lib/data/types"
 import { remaining } from "@/lib/debts"
+import { dayBefore, depreciationBetween, schedule, type FixedAssetCategory } from "@/lib/fixed-assets"
 import { convert, roundMoney } from "@/lib/money"
+
+export { monthsBetween } from "@/lib/fixed-assets"
 
 /**
  * Land, house, vehicles, machinery, electronics, furniture… (table physical_assets):
  * an estimated market value, or — with a useful life — a book value that
- * depreciates straight-line from the purchase cost.
+ * depreciates straight-line from the purchase cost (src/lib/fixed-assets.ts).
+ * A business's register uses the standard categories (FixedAssetCategory) and STOCK.
  */
-export type AssetKind = "LAND" | "HOUSE" | "VEHICLE" | "MACHINERY" | "ELECTRONICS" | "FURNITURE" | "COLD_STORAGE" | "FIXTURES" | "STOCK" | "OTHER"
-export const ASSET_KINDS: AssetKind[] = ["LAND", "HOUSE", "VEHICLE", "MACHINERY", "ELECTRONICS", "FURNITURE", "OTHER"]
-/** A business's kinds, equipment first; MACHINERY / VEHICLE / HOUSE read as processing machinery, delivery vehicles, building. */
-export const BUSINESS_ASSET_KINDS: AssetKind[] = ["COLD_STORAGE", "MACHINERY", "VEHICLE", "FIXTURES", "ELECTRONICS", "FURNITURE", "STOCK", "HOUSE", "LAND", "OTHER"]
+export type PersonalAssetKind = "LAND" | "HOUSE" | "VEHICLE" | "MACHINERY" | "ELECTRONICS" | "FURNITURE" | "OTHER"
+export type AssetKind = PersonalAssetKind | Exclude<FixedAssetCategory, "OTHER"> | "STOCK"
+export const ASSET_KINDS: PersonalAssetKind[] = ["LAND", "HOUSE", "VEHICLE", "MACHINERY", "ELECTRONICS", "FURNITURE", "OTHER"]
 export const ASSET_EMOJI: Record<AssetKind, string> = {
   LAND: "🏞️",
   HOUSE: "🏠",
@@ -18,29 +21,25 @@ export const ASSET_EMOJI: Record<AssetKind, string> = {
   MACHINERY: "🚜",
   ELECTRONICS: "💻",
   FURNITURE: "🪑",
-  COLD_STORAGE: "🧊",
-  FIXTURES: "🏪",
-  STOCK: "🏷️",
   OTHER: "📦",
+  BUILDINGS_LEASEHOLD: "🏢",
+  MACHINERY_EQUIPMENT: "⚙️",
+  VEHICLES: "🚚",
+  FURNITURE_FIXTURES: "🪑",
+  IT_ELECTRONICS: "💻",
+  STOCK: "🏷️",
 }
-/** The label key for a kind; a business names some differently ("ម៉ាស៊ីនកែច្នៃ", "យានដឹកជញ្ជូន"). */
-export const assetKindKey = (kind: AssetKind, business: boolean) =>
-  business && (kind === "MACHINERY" || kind === "VEHICLE" || kind === "HOUSE") ? `assets.kindBiz.${kind}` : `assets.kind.${kind}`
 
-/** Useful-life choices in the form (years); null = no depreciation (the estimate is the value). */
+/** Useful-life choices in the personal form (years); null = no depreciation (the estimate is the value). */
 export const LIFE_YEARS = [2, 3, 5, 10] as const
-/** A new asset's useful life by kind: things that wear out depreciate by default; land and homes don't. */
-export const DEFAULT_LIFE_YEARS: Record<AssetKind, number | null> = {
+/** A new personal asset's useful life by kind: things that wear out depreciate by default; land and homes don't. */
+export const DEFAULT_LIFE_YEARS: Record<PersonalAssetKind, number | null> = {
   LAND: null,
   HOUSE: null,
   VEHICLE: 5,
   MACHINERY: 5,
   ELECTRONICS: 3,
   FURNITURE: 5,
-  COLD_STORAGE: 5,
-  FIXTURES: 5,
-  // Stock on hand is the owner's figure for what's in store, not equipment that wears out.
-  STOCK: null,
   OTHER: null,
 }
 
@@ -57,6 +56,13 @@ export type PhysicalAsset = {
   note: string | null
   /** Straight-line depreciation over this many months; null = none. */
   useful_life_months: number | null
+  /** Book value the asset depreciates down to (0 by default). */
+  salvage_value: number
+  /** Business register: asset tag or serial number. */
+  serial_or_reference: string | null
+  /** ACTIVE or DISPOSED (FULLY_DEPRECIATED is derived — see schedule()). */
+  status: "ACTIVE" | "DISPOSED"
+  disposed_on: string | null
   /** Land / house: a Phnom Penh Khan key or "province" (src/lib/land-prices.ts), and the plot size. */
   location: string | null
   area_m2: number | null
@@ -68,16 +74,11 @@ export const hasPlot = (kind: AssetKind) => kind === "LAND" || kind === "HOUSE"
 export type PhysicalAssetInput = Pick<
   PhysicalAsset,
   "kind" | "name" | "estimated_value" | "currency" | "purchase_date" | "purchase_price" | "debt_id" | "note" | "useful_life_months" | "location" | "area_m2"
->
+> &
+  Partial<Pick<PhysicalAsset, "salvage_value" | "serial_or_reference" | "status" | "disposed_on">>
 
-type Depreciable = Pick<PhysicalAsset, "purchase_price" | "purchase_date" | "useful_life_months" | "currency">
-
-/** Whole months from one YYYY-MM-DD to another (a month counts once its day is reached). */
-export function monthsBetween(from: string, to: string): number {
-  const [fy, fm, fd] = from.split("-").map(Number)
-  const [ty, tm, td] = to.split("-").map(Number)
-  return (ty - fy) * 12 + (tm - fm) - (td < fd ? 1 : 0)
-}
+type Depreciable = Pick<PhysicalAsset, "purchase_price" | "purchase_date" | "useful_life_months" | "currency"> &
+  Partial<Pick<PhysicalAsset, "salvage_value" | "status" | "disposed_on">>
 
 /** Today as YYYY-MM-DD in the device's time zone. */
 export const localToday = () => {
@@ -86,24 +87,20 @@ export const localToday = () => {
 }
 
 /**
- * Straight-line depreciation as of `today`: the same amount each month, from the
- * purchase cost down to 0 at the end of the useful life. $1,350 over 3 years →
- * $37.50 a month; after 12 months the book value is $900. Null when the asset
- * doesn't depreciate (no useful life, cost or purchase date).
+ * Straight-line depreciation as of `today` (src/lib/fixed-assets.ts): the same amount each
+ * month, from the purchase cost down to the salvage value at the end of the useful life.
+ * $1,350 over 3 years → $37.50 a month; after 12 months the book value is $900. Null when
+ * the asset doesn't depreciate (no useful life, cost or purchase date).
  */
 export function depreciation(asset: Depreciable, today: string = localToday()) {
-  const life = asset.useful_life_months
-  if (!life || life <= 0 || asset.purchase_price == null || !asset.purchase_date) return null
-  const cost = asset.purchase_price
-  const monthly = roundMoney(cost / life, asset.currency)
-  const elapsed = Math.max(0, Math.min(life, monthsBetween(asset.purchase_date, today)))
-  // The last month takes the rounding remainder, so the book value ends at exactly 0.
-  const bookValue = elapsed >= life ? 0 : Math.max(0, roundMoney(cost - (cost / life) * elapsed, asset.currency))
-  return { monthly, elapsed, life, bookValue, depreciated: roundMoney(cost - bookValue, asset.currency), done: elapsed >= life }
+  const s = schedule(asset, today)
+  if (!s) return null
+  return { monthly: s.monthly, elapsed: s.elapsed, life: s.life, bookValue: s.netBookValue, depreciated: s.accumulated, done: s.status === "FULLY_DEPRECIATED" }
 }
 
-/** What an asset is worth now: its depreciated book value, else the owner's estimate. */
+/** What an asset is worth now: its depreciated book value, else the owner's estimate; nothing once disposed of. */
 export function currentValue(asset: Depreciable & Pick<PhysicalAsset, "estimated_value">, today?: string): number {
+  if (asset.status === "DISPOSED") return 0
   return depreciation(asset, today)?.bookValue ?? asset.estimated_value
 }
 
@@ -120,28 +117,22 @@ export function assetEquity(asset: Depreciable & Pick<PhysicalAsset, "estimated_
   return { owed, equity, ownedPercent }
 }
 
-const dayBefore = (day: string) => {
-  const d = new Date(`${day}T00:00:00Z`)
-  d.setUTCDate(d.getUTCDate() - 1)
-  return d.toISOString().slice(0, 10)
-}
-
 /**
  * Depreciation charged in a period (non-cash): for each depreciating asset, how much its
- * book value fell between the day before `from` and `to`. By currency, largest first.
+ * book value fell between `from` and `to` (stopping at a disposal). Stock never depreciates.
  */
-export function depreciationForPeriod(assets: (Depreciable & Pick<PhysicalAsset, "id" | "name">)[], from: string, to: string) {
+export function depreciationForPeriod(assets: (Depreciable & Pick<PhysicalAsset, "id" | "name" | "kind">)[], from: string, to: string) {
   const lines = assets
-    .map((a) => {
-      const end = depreciation(a, to)
-      const start = depreciation(a, dayBefore(from))
-      return end && start ? { id: a.id, name: a.name, currency: a.currency, amount: roundMoney(end.depreciated - start.depreciated, a.currency) } : null
-    })
-    .filter((l): l is NonNullable<typeof l> => l !== null && l.amount > 0)
+    .filter((a) => a.kind !== "STOCK")
+    .map((a) => ({ id: a.id, name: a.name, currency: a.currency, amount: depreciationBetween(a, from, to) }))
+    .filter((l) => l.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
   const usd = roundMoney(lines.filter((l) => l.currency === "USD").reduce((s, l) => s + l.amount, 0), "USD")
   const khr = roundMoney(lines.filter((l) => l.currency === "KHR").reduce((s, l) => s + l.amount, 0), "KHR")
   return { usd, khr, lines }
 }
+
+export { dayBefore }
 
 /** Total current value of physical assets in USD (book value for depreciating ones) — what net worth counts. */
 export function assetsTotalUsd(assets: (Depreciable & Pick<PhysicalAsset, "estimated_value">)[], khrPerUsd: number): number {
