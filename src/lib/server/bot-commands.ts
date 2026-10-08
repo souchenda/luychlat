@@ -1,6 +1,7 @@
 // Server only: chat logging for the official bot (Phase C part 2).
 import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
 import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
+import { carReportText, parseTopUp, topUpCard, walletBalancesText, type CarReport, type WalletBalance } from "@/lib/bot/prepaid"
 import { isEvHome, kwhOf, parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
 import { mealFor, type Meal } from "@/lib/bot/bank-slip"
@@ -195,12 +196,28 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
   const said = heard ? `${tr(lang, "bot.voiceHeard", { text: heard })}\n` : ""
   const reply = (message: string) => sendText(chatId, said + message)
 
-  // EV charging at home: a usage log, never an expense (it's paid in the electricity bill).
-  if (isEvHome(text)) return reply(await logEvHome(chatId, text, lang))
-
   const all = workspacesOf(ctx)
   const route = isRouting(ctx)
   const { workspace: ws, text: input } = route ? routeWorkspace(text, all, ctx.workspace_id ?? all[0].id) : { workspace: all[0], text }
+
+  // "ថប់អាប់សាកឡាន 50$ ABA": a transfer into the prepaid wallet (✅ to confirm), not an expense.
+  const topUp = parseTopUp(input, ws.wallets)
+  if (topUp) {
+    if (!topUp.ok) return reply(failureText({ ok: false, reason: topUp.reason }, ws, lang))
+    const { data, error } = await botDb().rpc("bot_propose", {
+      p_key: botKey(),
+      p_chat_id: chatId,
+      p_action: { kind: "TOPUP", prepaid: topUp.type, wallet_id: topUp.source.id, amount: topUp.amount, currency: topUp.currency, note: topUp.note, text: input, ...(route ? { workspace_id: ws.id } : {}) },
+    })
+    if (error || typeof data !== "string") return reply(tr(lang, "bot.saveFailed"))
+    return sendText(chatId, said + topUpCard(topUp), {
+      reply_markup: { inline_keyboard: [[{ text: tr(lang, "bot.confirm"), callback_data: `ok:${data}` }, { text: tr(lang, "bot.cancel"), callback_data: `no:${data}` }]] },
+    })
+  }
+
+  // EV charging at home: a usage log, never an expense (it's paid in the electricity bill).
+  if (isEvHome(text)) return reply(await logEvHome(chatId, text, lang))
+
   const parsed = parseEntry(input, { wallets: ws.wallets, categories: ws.categories, debts: ws.debts, rate: ws.rate })
   if (!parsed.ok) {
     // A voice note without an amount: say exactly what was heard instead of the general hint.
@@ -288,7 +305,11 @@ export async function marketAnswer(text: string, lang: Locale): Promise<string |
   return marketQueryReply(query, await currentMarket(), lang, phnomPenhToday().day, (key, params) => tr(lang, key, params))
 }
 
-function sendBalanceLock(chatId: number, lang: Locale) {
+async function sendBalanceLock(chatId: number, lang: Locale) {
+  // Opted in («ឱ្យ AI មើលលេខរបស់ខ្ញុំ», off by default — the same switch as the AI's numbers): the balances.
+  const { data } = await botDb().rpc("bot_wallet_balances", { p_key: botKey(), p_chat_id: chatId })
+  const r = data as { status: string; wallets?: WalletBalance[] } | null
+  if (r?.status === "ok") return sendText(chatId, walletBalancesText(r.wallets ?? []))
   return sendText(chatId, tr(lang, "bot.balanceLocked"), {
     reply_markup: { inline_keyboard: [[{ text: tr(lang, "bot.openApp"), url: `${DEFAULT_ABOUT.website}/wallets` }]] },
   })
@@ -390,6 +411,7 @@ type Confirmed = {
   debt_currency?: "USD" | "KHR"
   party?: string
   workspace?: string
+  from?: string
 }
 
 /** ✅ / ❌ (and ULTRA's workspace buttons) on a card: save, drop or re-target it. */
@@ -434,13 +456,17 @@ export async function handleCallback(cb: Callback) {
           ? tr(lang, "bot.cmdOff")
           : /not_writable/.test(msg)
             ? tr(lang, "bot.cmdReadonly")
-            : tr(lang, "bot.saveFailed")
+            : /insufficient_balance/.test(msg)
+              ? "⚠️ សមតុល្យក្នុងកាបូបប្រភពមិនគ្រប់គ្រាន់សម្រាប់ការផ្ទេរនេះទេ។"
+              : tr(lang, "bot.saveFailed")
     } else if (!r?.ok) {
       outcome = tr(lang, "bot.expired")
     } else {
       // The wallet's balance is not shown (no-data-leak rule, see BALANCE_QUESTION).
       outcome =
-        r.kind === "REPAY"
+        r.kind === "TOPUP"
+          ? `✅ បានថប់អាប់ «${r.wallet ?? ""}» ពី ${r.from ?? ""} (ផ្ទេរប្រាក់)។`
+          : r.kind === "REPAY"
           ? tr(lang, "bot.savedRepay", { party: r.party ?? "", remaining: formatMoney(Number(r.remaining), r.debt_currency ?? "USD"), wallet: r.wallet ?? "" })
           : tr(lang, "bot.saved", { wallet: r.wallet ?? "" })
       // With several workspaces, say which one it went to.
@@ -462,4 +488,17 @@ export async function handleCallback(cb: Callback) {
   // Keep the card's details, drop the question and buttons, add the outcome.
   const details = (cb.message?.text ?? "").split("\n\n")[0]
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(`${details}\n\n${outcome}`).slice(0, 4000) })
+}
+
+const MONTH_KM = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
+
+/** /car, /ev: this month's home charging (kWh), public charging, tolls and the prepaid balances (opt-in). */
+export async function sendCarReport(chatId: number, lang: Locale) {
+  const { data, error } = await botDb().rpc("bot_car_report", { p_key: botKey(), p_chat_id: chatId })
+  const r = data as CarReport | null
+  if (error || !r) return sendText(chatId, tr(lang, "bot.saveFailed"))
+  if (r.status !== "ok") return sendText(chatId, tr(lang, "bot.notLinked"))
+  const now = new Date(Date.now() + 7 * 3_600_000)
+  const month = `ខែ${MONTH_KM[now.getUTCMonth()]} ${now.getUTCFullYear()}`
+  return sendText(chatId, carReportText(r, month))
 }

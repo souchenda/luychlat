@@ -27,11 +27,11 @@ export function WalletAvatar({
   name?: string
   className?: string
 }) {
-  // Savings goals show their emoji (🏠, 🚗, 🐑…), shared pools theirs (🪷, 🏕️…).
-  if (icon?.startsWith("goal_") || icon?.startsWith("pool_")) {
+  // Savings goals show their emoji (🏠, 🚗, 🐑…), shared pools theirs (🪷, 🏕️…), prepaid service wallets ⚡ / 🛣️.
+  if (icon?.startsWith("goal_") || icon?.startsWith("pool_") || icon?.startsWith("prepaid_")) {
     return (
       <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-lg", className)} aria-hidden>
-        {icon.startsWith("pool_") ? poolEmoji(icon.slice(5)) : goalEmoji(icon)}
+        {icon.startsWith("pool_") ? poolEmoji(icon.slice(5)) : icon.startsWith("prepaid_") ? (icon === "prepaid_toll" ? "🛣️" : "⚡") : goalEmoji(icon)}
       </span>
     )
   }

@@ -18,6 +18,8 @@
 
 import { convert, roundMoney } from "@/lib/money"
 
+import { PREPAID_ICON, prepaidTypeOf, TOLL_TAG } from "./prepaid-kind"
+
 type Currency = "USD" | "KHR"
 export type BotWallet = { id: string; name: string; currency: Currency; kind?: string | null; account_no?: string | null; icon?: string | null }
 export type BotCategory = { id: string; name: string; type: "INCOME" | "EXPENSE"; preset_key: string | null }
@@ -88,7 +90,7 @@ const KEYWORDS: { preset: string; words: string[] }[] = [
   { preset: "gift_received", words: ["អំណោយ", "gift"] },
   { preset: "side_income", words: ["ចំណូលបន្ថែម", "freelance"] },
   { preset: "food", words: ["បាយព្រឹក", "បាយថ្ងៃត្រង់", "បាយល្ងាច", "អាហារពេលព្រឹក", "អាហារថ្ងៃត្រង់", "អាហារពេលល្ងាច", "នំប៉័ង", "នំបញ្ចុក", "ទឹកសុទ្ធ", "ទឹកដប", "ទឹកកក", "បបរ", "ស៊ុប", "សាច់អាំង", "ភីហ្សា", "កាហ្វេ", "បាយ", "ញ៉ាំ", "ម្ហូប", "អាហារ", "ភេសជ្ជៈ", "នំ", "ទឹកក្រូច", "គុយទាវ", "coffee", "lunch", "dinner", "breakfast", "food", "eat", "drink", "meal", "restaurant", "snack", "咖啡", "早餐", "早饭", "午餐", "午饭", "晚餐", "晚饭", "吃饭", "饭", "餐", "奶茶", "饮料", "外卖", "水果"] },
-  { preset: "transport", words: ["សាកឡាន", "សាកភ្លើង", "សាកថ្ម", "ev", "charging", "充电", "សាំង", "ប្រេង", "តុកតុក", "ម៉ូតូ", "ឡាន", "ធ្វើដំណើរ", "ចតឡាន", "grab", "passapp", "tuk", "taxi", "fuel", "gas", "petrol", "bus", "parking", "油费", "汽油", "加油", "打车", "出租车", "停车", "车费", "嘟嘟车"] },
+  { preset: "transport", words: ["សាកឡាន", "សាកភ្លើង", "សាកថ្ម", "ev", "charging", "充电", "ល្បឿនលឿន", "expressway", "anpr", "toll", "高速", "សាំង", "ប្រេង", "តុកតុក", "ម៉ូតូ", "ឡាន", "ធ្វើដំណើរ", "ចតឡាន", "grab", "passapp", "tuk", "taxi", "fuel", "gas", "petrol", "bus", "parking", "油费", "汽油", "加油", "打车", "出租车", "停车", "车费", "嘟嘟车"] },
   { preset: "phone", words: ["កាតទូរស័ព្ទ", "ទូរស័ព្ទ", "អ៊ីនធឺណិត", "smart", "cellcard", "metfone", "internet", "phone", "topup", "top up", "话费", "手机", "网费", "流量", "充值"] },
   { preset: "utilities", words: ["ទឹកភ្លើង", "អគ្គិសនី", "electric", "electricity", "edc", "water", "电费", "水费", "水电"] },
   { preset: "housing", words: ["ទឹកភ្លើង", "អគ្គិសនី", "ជួលផ្ទះ", "ផ្ទះ", "rent", "electric", "electricity", "edc", "water", "房租", "电费", "水费", "水电"] },
@@ -143,7 +145,7 @@ export function parseAmountText(raw: string): Amount | null {
 }
 
 /** The wallet named in the message (longest match wins). */
-function findWallet(text: string, wallets: BotWallet[]): BotWallet | null {
+export function findWallet(text: string, wallets: BotWallet[]): BotWallet | null {
   let best: { wallet: BotWallet; score: number } | null = null
   for (const w of wallets) {
     const name = w.name.toLowerCase().trim()
@@ -219,7 +221,9 @@ export function parseEntry(message: string, ctx: BotContext): ParsedEntry {
   if (!ctx.wallets.length) return { ok: false, reason: "no_wallet" }
   const typed = message.replace(/\s+/g, " ").trim()
   // Public EV charging is tagged so it stands out under Transport.
-  const note = (isEvCharge(message) && !typed.includes(EV_TAG) ? `${EV_TAG} · ${typed}` : typed).slice(0, 200)
+  const prepaid = prepaidTypeOf(text)
+  const tag = prepaid === "TOLL" ? TOLL_TAG : isEvCharge(message) ? EV_TAG : null
+  const note = (tag && !typed.includes(tag) ? `${tag} · ${typed}` : typed).slice(0, 200)
   const named = findWallet(text, ctx.wallets)
 
   if (REPAY.test(text)) {
@@ -236,7 +240,9 @@ export function parseEntry(message: string, ctx: BotContext): ParsedEntry {
   const kind = text.startsWith("+") || hasAny(text, INCOME_WORDS) ? "INCOME" : "EXPENSE"
   const usable = ctx.wallets.filter((w) => kind === "EXPENSE" || w.kind !== "CREDIT_CARD")
   const pool = usable.length ? usable : ctx.wallets
-  const wallet = named ?? (amount.currency && pool.find((w) => w.currency === amount.currency)) ?? pool[0]
+  // Public charging / a toll: out of its prepaid wallet when there is one ("សាកឡានក្រៅ 8.5$", "កាត់ល្បឿនលឿន 12$").
+  const prepaidWallet = kind === "EXPENSE" && prepaid ? pool.find((w) => w.icon === PREPAID_ICON[prepaid]) : undefined
+  const wallet = named ?? prepaidWallet ?? (amount.currency && pool.find((w) => w.currency === amount.currency)) ?? pool[0]
   const currency = amount.currency ?? wallet.currency
   const { category, guessed } = findCategory(text, kind, ctx.categories)
   return {

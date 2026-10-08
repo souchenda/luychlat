@@ -3,7 +3,7 @@ import { timingSafeEqual } from "crypto"
 import { after, NextResponse } from "next/server"
 
 import type { Locale } from "@/lib/i18n/dictionaries"
-import { asksForBalance, botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting, marketAnswer } from "@/lib/server/bot-commands"
+import { asksForBalance, botContext, contextLocale, handleCallback, handleEntryMessage, handleVoiceMessage, isRouting, marketAnswer, sendCarReport } from "@/lib/server/bot-commands"
 import { botDb, botKey, sendText, SIGNATURE, tg, tr, webhookSecret } from "@/lib/server/telegram-bot"
 import { currentMarket, phnomPenhToday, setFuelPrices, setManualGold, setManualRate } from "@/lib/server/market-sync"
 import { parseSetFuel, parseSetRate } from "@/lib/market-calc"
@@ -474,6 +474,10 @@ export async function POST(request: Request) {
   } else if (command === "/menuclose") {
     const ctx = await botContext(chatId)
     await sendText(chatId, tr(ctx?.linked ? contextLocale(ctx) : lang, "bot.menuClosed"), KEYBOARD_OFF)
+  } else if (/^\/(car|ev)(@\w+)?$/i.test(command)) {
+    const ctx = await botContext(chatId)
+    if (!ctx?.linked) await sendText(chatId, tr(contextLocale(ctx), "bot.notLinked"))
+    else await sendCarReport(chatId, contextLocale(ctx))
   } else if (/^\/nssf(@\w+)?$/i.test(command)) {
     // NSSF basics, and the account's own cards with copy buttons.
     const ctx = await botContext(chatId)
