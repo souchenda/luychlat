@@ -13,6 +13,7 @@ import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
 import { readFileSync } from "fs"
 import { festivalTick, holyDayTick } from "@/lib/server/holy-days"
+import { posterTick } from "@/lib/server/festival-poster"
 import { groupSweepTick } from "@/lib/server/group-guard"
 import { devEodTick } from "@/lib/server/dev-eod"
 import { flushPoolPosts } from "@/lib/server/pool-bot"
@@ -84,6 +85,7 @@ export async function dispatchOnce() {
     await weeklyDigestTick()
     await holyDayTick()
     await festivalTick()
+    await posterTick()
     await flushPoolPosts()
     await flushSignupAlerts()
     await birthdayTick()

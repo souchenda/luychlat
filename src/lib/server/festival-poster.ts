@@ -173,6 +173,8 @@ export const FESTIVAL_POSTERS = {
     render: () => pchumBenPoster(),
     file: "pchum-ben-2026.png",
     window: ["2026-10-10", "2026-10-12"] as const,
+    /** Published on its own on the window's first day at this Cambodia time (founder, 08/10); /poster stays as the fallback. */
+    autoAt: "07:00",
     caption: "🪷 សូមអនុមោទនាពិធីបុណ្យភ្ជុំបិណ្ឌ\n\nសូមឧទ្ទិសកុសលផលបុណ្យជូនដល់បុព្វការីជន និងសូមជូនពរលោកអ្នកព្រមទាំងក្រុមគ្រួសារ ធ្វើដំណើរទៅស្រុកកំណើតដោយសុខសុវត្ថិភាព។\n\n— លុយឆ្លាត · LuyChlat",
   },
 } as const
@@ -302,9 +304,64 @@ export async function sendFestivalPoster(chatId: number, name: string | undefine
   const key = (name ?? "").toLowerCase().replace(/[^a-z]/g, "") as FestivalPosterKey
   const p = FESTIVAL_POSTERS[key]
   if (!p) return `🎨 /poster <name> — ${Object.keys(FESTIVAL_POSTERS).map((k) => `/poster ${k}`).join(", ")}`
-  const caption = `🎨 ${key} · 1080×1080 · មើលជាមុន\n📢 អាចផ្សាយទៅ Community បាន ${windowText(p.window)} ខែតុលា (ម្ដងប៉ុណ្ណោះ)`
+  const auto = "autoAt" in p && p.autoAt ? `\n⏰ ផ្សាយដោយស្វ័យប្រវត្តិ ${windowText([p.window[0], p.window[0]]).replace(/–.*/, "")} ខែតុលា ម៉ោង ${p.autoAt}` : ""
+  const caption = `🎨 ${key} · 1080×1080 · មើលជាមុន\n📢 អាចផ្សាយទៅ Community បាន ${windowText(p.window)} ខែតុលា (ម្ដងប៉ុណ្ណោះ)${auto}`
   const sent = await sendPhoto(chatId, artwork(key), caption, { inline_keyboard: [[{ text: "📢 ផ្សាយទៅ @LuyChlatCommunity", callback_data: `pf:${key}` }]] })
   return sent.ok ? null : `⚠️ ${sent.description ?? "send failed"}`
+}
+
+/** The single button under an automatically published poster. */
+export const POSTER_APP_BUTTON = "📱 បើកកម្មវិធី លុយឆ្លាត"
+const POSTER_APP_URL = "https://luy.ibmserp.com"
+
+/** Until when (Cambodia time) a missed 07:00 slot is still made up — a holiday poster at night would be odd. */
+const AUTO_LATEST_HOUR = 12
+
+/** Is it time for this poster's automatic broadcast? (Cambodia day and "HH:MM"; pure.) */
+export function posterDue(p: { window: readonly [string, string]; autoAt?: string }, day: string, hhmm: string): boolean {
+  return Boolean(p.autoAt && day === p.window[0] && hhmm >= p.autoAt && hhmm < `${String(AUTO_LATEST_HOUR).padStart(2, "0")}:00`)
+}
+
+/**
+ * Every minute (bot-dispatch): a poster whose time has come goes to the community channel
+ * by itself — once, sharing the claim with the admins' 📢 button, so it is never posted
+ * twice. A failed send gives the claim back (the next minute or /poster tries again) and
+ * the super admins are told once.
+ */
+export async function posterTick() {
+  const now = new Date(Date.now() + 7 * 3_600_000) // Asia/Phnom_Penh is UTC+7 all year
+  const day = now.toISOString().slice(0, 10)
+  const hhmm = now.toISOString().slice(11, 16)
+  for (const [key, p] of Object.entries(FESTIVAL_POSTERS) as [FestivalPosterKey, (typeof FESTIVAL_POSTERS)[FestivalPosterKey]][]) {
+    if (!posterDue(p, day, hhmm)) continue
+    const channel = (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim()
+    if (!channel) continue
+    const db = botDb()
+    const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `poster-${key}`, p_day: p.window[0] })
+    if (claimed !== true) continue // already broadcast (automatically or by an admin)
+    const sent = await sendPhoto(channel, artwork(key), p.caption, { inline_keyboard: [[{ text: POSTER_APP_BUTTON, url: POSTER_APP_URL }]] })
+    if (!sent.ok) {
+      await db.rpc("bot_release_daily", { p_key: botKey(), p_job: `poster-${key}`, p_day: p.window[0] })
+      logEvent("error", "poster", `Automatic broadcast of ${key} failed: ${sent.description ?? "unknown"}`, { fold: true })
+      const { data: first } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `poster-fail-${key}`, p_day: day })
+      if (first === true) await toSuperAdmins(`⚠️ [Poster] ផ្សាយ ${key} ដោយស្វ័យប្រវត្តិមិនបាន (${sent.description ?? "unknown"}) — Bot នឹងសាកម្ដងទៀតរៀងរាល់នាទី ឬផ្សាយដោយដៃ៖ /poster ${key}`)
+      continue
+    }
+    await db.rpc("bot_system_audit", {
+      p_key: botKey(),
+      p_action: "AUTO_POSTER_BROADCAST",
+      p_note: `${key} → ${channel} at ${hhmm}`,
+      p_ref: sent.result?.message_id ? String(sent.result.message_id) : null,
+      p_metadata: { key, file: p.file, channel, message_id: sent.result?.message_id ?? null },
+    })
+    logEvent("info", "poster", `${key} broadcast to ${channel} automatically at ${hhmm}`)
+    await toSuperAdmins(`📢 [Poster] ${key} បានផ្សាយទៅ ${channel} ដោយស្វ័យប្រវត្តិ ម៉ោង ${hhmm}។`)
+  }
+}
+
+async function toSuperAdmins(text: string) {
+  const { data: chats } = await botDb().rpc("bot_super_admin_chats", { p_key: botKey() })
+  for (const c of (chats as { chat_id: number }[] | null) ?? []) await tg("sendMessage", { chat_id: Number(c.chat_id), text }).catch(() => null)
 }
 
 export const isPosterCallback = (data: string | undefined) => Boolean(data?.startsWith("pf:"))
