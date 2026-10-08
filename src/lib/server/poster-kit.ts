@@ -3,7 +3,7 @@
 //
 //   HEADER  left:  emerald ៛ tile + "លុយឆ្លាត" over "LuyChlat" (spread to the same width)
 //           right: the poster's category pill ("គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", "ពិធីបុណ្យប្រពៃណីជាតិខ្មែរ"…)
-//   FOOTER  📱 កត់ត្រាចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត
+//   FOOTER  📱 កត់ត្រាចំណូលចំណាយ រហ័សជាមួយ អេប លុយឆ្លាត
 //           ✈️ សហគមន៍ លុយឆ្លាត   •   🌐 luy.ibmserp.com
 //           app-first (no bot username), left-aligned, never a button or pill on the right
 //
@@ -262,7 +262,7 @@ export function drawFooter(ctx: SKRSContext2D) {
   drawIcon(ctx, "phone", PAD + 14, line1 - 10)
   ctx.font = `600 27px ${FAMILIES}`
   ctx.fillStyle = "#ffffff"
-  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត", PAD + 44, line1)
+  ctx.fillText("កត់ត្រាចំណូលចំណាយ រហ័សជាមួយ អេប លុយឆ្លាត", PAD + 44, line1)
   const line2 = footerTop + 106
   ctx.font = `500 26px ${FAMILIES}`
   drawIcon(ctx, "plane", PAD + 14, line2 - 10)
