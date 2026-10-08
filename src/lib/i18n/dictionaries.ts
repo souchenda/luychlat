@@ -3366,6 +3366,11 @@ const km = {
   "pool.memberRemoved": "បានដក {name} ចេញ — គោលដៅត្រូវបានគណនាឡើងវិញ",
   "pool.memberRefunded": "បានដក {name} ចេញ និងប្រគល់ {amount} វិញ",
   "pool.refundTooLow": "បេឡាមិនមានប្រាក់គ្រប់គ្រាន់សម្រាប់ប្រគល់វិញទេ",
+  "nssf.ocrReading": "កំពុងអានកាត…",
+  "nssf.ocrFilled": "✨ បានបំពេញពីកាតដោយស្វ័យប្រវត្តិ — សូមពិនិត្យម្ដងទៀតមុនរក្សាទុក",
+  "nssf.ocrVerified": "✅ បានបំពេញពីកាត ហើយលេខត្រូវនឹង QR — សូមពិនិត្យមុនរក្សាទុក",
+  "nssf.ocrNone": "អានព័ត៌មានពីរូបនេះមិនបានទេ — សូមវាយបញ្ចូលដោយដៃ ឬថតឱ្យច្បាស់ជាងនេះ",
+  "nssf.ocrBusy": "សេវាអានកាតរវល់បន្តិច — រូបត្រូវបានរក្សាទុក សូមវាយបញ្ចូលព័ត៌មាន ឬសាកម្ដងទៀត",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6721,6 +6726,11 @@ const en: Record<MessageKey, string> = {
   "pool.memberRemoved": "{name} removed — the target was updated",
   "pool.memberRefunded": "{name} removed and {amount} refunded",
   "pool.refundTooLow": "The pool doesn't hold enough to refund this",
+  "nssf.ocrReading": "Reading the card…",
+  "nssf.ocrFilled": "✨ Filled in from the card — please check before saving",
+  "nssf.ocrVerified": "✅ Filled in from the card; the number matches its QR — please check before saving",
+  "nssf.ocrNone": "Couldn't read the card from this photo — type the details, or take a sharper photo",
+  "nssf.ocrBusy": "Card reading is busy — the photo is saved; type the details or try again",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

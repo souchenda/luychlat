@@ -3319,4 +3319,9 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "pool.memberRemoved": "已移除 {name}——目标已更新",
   "pool.memberRefunded": "已移除 {name} 并退还 {amount}",
   "pool.refundTooLow": "基金余额不足以退款",
+  "nssf.ocrReading": "正在识别卡片…",
+  "nssf.ocrFilled": "✨ 已根据卡片自动填写——保存前请核对",
+  "nssf.ocrVerified": "✅ 已根据卡片填写，号码与二维码一致——保存前请核对",
+  "nssf.ocrNone": "无法从此照片识别卡片——请手动填写或拍得更清晰",
+  "nssf.ocrBusy": "识别服务繁忙——照片已保存，请手动填写或稍后重试",
 }

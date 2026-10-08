@@ -16,6 +16,9 @@ import { NSSF_MONTHLY_PER_MEMBER, useNssfMembers, useNssfMutations, useNssfPhoto
 import { compressImage, MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
+import { useProfile } from "@/lib/data/hooks"
+import { decodeQrText } from "@/lib/khqr-decode"
+import { cardName, guessRelationship, qrConfirmsId, type NssfCard } from "@/lib/nssf-card"
 import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -30,7 +33,20 @@ function Photo({ path, label, onOpen }: { path: string; label: string; onOpen: (
   )
 }
 
-function PhotoPicker({ label, path, onChange }: { label: string; path: string | null; onChange: (path: string | null) => void }) {
+function PhotoPicker({
+  label,
+  path,
+  onChange,
+  onPicked,
+  scanning = false,
+}: {
+  label: string
+  path: string | null
+  onChange: (path: string | null) => void
+  /** The new photo (front of the card): read it to fill in the form. */
+  onPicked?: (image: Blob) => void
+  scanning?: boolean
+}) {
   const t = useT()
   const { uploadPhoto, removePhoto } = useNssfMutations()
   const input = useRef<HTMLInputElement>(null)
@@ -42,7 +58,9 @@ function PhotoPicker({ label, path, onChange }: { label: string; path: string | 
     if (file.size > MAX_RECEIPT_INPUT_BYTES || !file.type.startsWith("image/")) return void toast.error(t("nssf.photoInvalid"))
     setBusy(true)
     try {
-      const next = await uploadPhoto(await compressImage(file, 1600, 0.85))
+      const image = await compressImage(file, 1600, 0.85)
+      onPicked?.(image)
+      const next = await uploadPhoto(image)
       if (path) await removePhoto(path)
       onChange(next)
     } catch {
@@ -74,13 +92,14 @@ function PhotoPicker({ label, path, onChange }: { label: string; path: string | 
             </Button>
           </>
         ) : (
-          <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => input.current?.click()}>
-            {busy ? <Loader2Icon className="animate-spin" /> : <CameraIcon />}
+          <Button type="button" variant="outline" size="sm" disabled={busy || scanning} onClick={() => input.current?.click()}>
+            {busy || scanning ? <Loader2Icon className="animate-spin" /> : <CameraIcon />}
             {t("nssf.addPhoto")}
           </Button>
         )}
         <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} />
       </div>
+      {scanning && <p className="text-[11px] text-muted-foreground">{t("nssf.ocrReading")}</p>}
       <Dialog open={viewing !== null} onOpenChange={(v) => !v && setViewing(null)}>
         <DialogContent className="max-w-lg p-2">
           <DialogTitle className="sr-only">{label}</DialogTitle>
@@ -99,6 +118,32 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
   const { save, remove } = useNssfMutations()
   const [form, setForm] = useState<Form>({ name: "", relationship: "self", nssfId: "", front: null, back: null, active: true })
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }))
+  const profileName = useProfile().data?.display_name
+  const [scanning, setScanning] = useState(false)
+
+  // The front of the card: Vision reads name, ID, birth date (and the card's QR, if any, confirms the ID).
+  const scan = async (image: Blob) => {
+    setScanning(true)
+    try {
+      const body = new FormData()
+      body.append("image", image, "card.jpg")
+      const [res, qr] = await Promise.all([fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null), decodeQrText(image).catch(() => null)])
+      const json = (await res?.json().catch(() => null)) as { card?: NssfCard; error?: string } | null
+      const card = json?.card
+      if (!card) return void toast.info(t(json?.error === "busy" || !res ? "nssf.ocrBusy" : "nssf.ocrNone"))
+      const today = new Date().toISOString().slice(0, 10)
+      setForm((f) => ({
+        ...f,
+        name: cardName(card) || f.name,
+        nssfId: card.idNumber ?? f.nssfId,
+        // An existing member keeps their relationship; a new one gets the smart guess.
+        relationship: member ? f.relationship : (guessRelationship(card, profileName, today) ?? f.relationship),
+      }))
+      toast.success(t(qrConfirmsId(qr, card.idNumber) ? "nssf.ocrVerified" : "nssf.ocrFilled"))
+    } finally {
+      setScanning(false)
+    }
+  }
 
   useEffect(() => {
     setForm(
@@ -146,13 +191,14 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
             id="nssf-id"
             value={form.nssfId}
             maxLength={40}
-            inputMode="numeric"
-            onChange={(e) => set({ nssfId: e.target.value.replace(/[^A-Za-z0-9 ./-]/g, "") })}
+            // A text keyboard: some card numbers end in a Khmer letter ("…-ឈ").
+            inputMode="text"
+            onChange={(e) => set({ nssfId: e.target.value.replace(/[^A-Za-z0-9\u1780-\u17FF ./-]/g, "") })}
             className="h-11 font-mono"
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <PhotoPicker label={t("nssf.front")} path={form.front} onChange={(front) => set({ front })} />
+          <PhotoPicker label={t("nssf.front")} path={form.front} onChange={(front) => set({ front })} onPicked={(image) => void scan(image)} scanning={scanning} />
           <PhotoPicker label={t("nssf.back")} path={form.back} onChange={(back) => set({ back })} />
         </div>
         <label className="flex items-center justify-between gap-3 text-sm">
