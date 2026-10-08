@@ -33,8 +33,9 @@ export const MOC_SLOTS = ["11:45", "12:00", "12:15", "12:30", "12:45", "13:00", 
 const PROMPT = [
   "This image should be a Cambodian Ministry of Commerce notice (សេចក្តីជូនដំណឹង) of retail fuel prices at stations.",
   "Answer JSON only:",
-  '{"is_fuel_notice": boolean, "regular": number | null, "diesel": number | null, "regular_usd": number | null, "diesel_usd": number | null, "from": "YYYY-MM-DD" | null, "to": "YYYY-MM-DD" | null}',
+  '{"is_fuel_notice": boolean, "regular": number | null, "super": number | null, "diesel": number | null, "regular_usd": number | null, "diesel_usd": number | null, "from": "YYYY-MM-DD" | null, "to": "YYYY-MM-DD" | null}',
   "regular: the retail price in RIEL per litre for Gasoline 92 (ប្រេងសាំង); diesel: for Gasoil 10ppm (ប្រេងម៉ាស៊ូត).",
+  "super: for Gasoline 95 (ប្រេងសាំងស៊ុបពែរ / EA95) ONLY if the table has its own column for it — otherwise null; never copy another column.",
   "Take them from the table's LAST row, \"ថ្លៃដែលត្រូវដាក់លក់រាយ/លីត្រ (គិតជារៀល)\" — e.g. \"៥ ១៥០ រៀល\" is 5150.",
   "regular_usd / diesel_usd: the row just above it, \"ថ្លៃដែលត្រូវដាក់លក់រាយ/លីត្រ (គិតជាដុល្លារ)\" — e.g. \"១,២៧ ដុល្លារ\" is 1.27 (the comma is the decimal point).",
   "Khmer digits: ០=0 ១=1 ២=2 ៣=3 ៤=4 ៥=5 ៦=6 ៧=7 ៨=8 ៩=9.",
@@ -104,13 +105,14 @@ function change(now: number, before: number | null | undefined) {
 }
 
 /** The community channel post for a new notice. */
-export function newPricesText(fuel: Pick<FuelPrices, "regular" | "diesel" | "from" | "to">, previous: Pick<FuelPrices, "regular" | "diesel"> | null, postId: number): string {
+export function newPricesText(fuel: Pick<FuelPrices, "regular" | "diesel" | "from" | "to"> & { super?: number | null }, previous: Pick<FuelPrices, "regular" | "diesel"> & { super?: number | null } | null, postId: number): string {
   const year = kmDigits(fuel.to.slice(0, 4))
   return [
     "⛽ តម្លៃប្រេងឥន្ធនៈថ្មី — ក្រសួងពាណិជ្ជកម្ម",
     `📅 អនុវត្តចាប់ពីម៉ោង ១ រសៀល · ${cycleText(fuel.from, fuel.to, "km")} ${year}`,
     "",
     `• សាំងធម្មតា (EA92) ៖ ${riel(fuel.regular)} ៛/លីត្រ${change(fuel.regular, previous?.regular)}`,
+    ...(fuel.super ? [`• សាំងស៊ុបពែរ (EA95) ៖ ${riel(fuel.super)} ៛/លីត្រ${change(fuel.super, previous?.super)}`] : []),
     `• ម៉ាស៊ូត (Diesel) ៖ ${riel(fuel.diesel)} ៛/លីត្រ${change(fuel.diesel, previous?.diesel)}`,
     "",
     `ℹ️ ប្រភព៖ សេចក្តីជូនដំណឹងក្រសួងពាណិជ្ជកម្ម · t.me/${CHANNEL}/${postId}`,
@@ -163,7 +165,7 @@ async function applyNotice(day: string, notice: ChannelPost, period: { from: str
           `⚠️ [តម្លៃប្រេង] សេចក្តីជូនដំណឹងថ្មី (${cycleText(period.from, period.to, "km")}) — ការអានមិនទាន់ប្រាកដ (${reading.reader}${datesAgree ? "" : ", កាលបរិច្ឆេទមិនត្រូវគ្នា"}${consistent ? "" : ", តម្លៃរៀល/ដុល្លារមិនត្រូវគ្នា"}) មិនទាន់ផ្សាយទេ។`,
           `• អានបាន៖ សាំង ${riel(reading.prices.regular)}៛ · ម៉ាស៊ូត ${riel(reading.prices.diesel)}៛`,
           `• ពិនិត្យរូប៖ ${link}`,
-          `• បើត្រឹមត្រូវ៖ /setfuel ${reading.prices.regular} ${previous?.super ?? reading.prices.regular} ${reading.prices.diesel} ${from} ${to}`,
+          `• បើត្រឹមត្រូវ៖ /setfuel ${reading.prices.regular} ${reading.prices.super ?? previous?.super ?? reading.prices.regular} ${reading.prices.diesel} ${from} ${to}`,
         ]
       : [`⚠️ [តម្លៃប្រេង] សេចក្តីជូនដំណឹងថ្មី (${cycleText(period.from, period.to, "km")}) — អានតម្លៃពីរូបមិនបាន (Gemini / Groq)។`, `• ពិនិត្យរូប៖ ${link}`, `• បញ្ចូលដោយដៃ៖ /setfuel <សាំង> <ស៊ុបពែរ> <ម៉ាស៊ូត> ${from} ${to}`]
     await toSuperAdmins(lines.join("\n"))
@@ -172,14 +174,24 @@ async function applyNotice(day: string, notice: ChannelPost, period: { from: str
   }
 
   const saved = await setFuelPrices(
-    { regular: reading.prices.regular, super: null, diesel: reading.prices.diesel, lpg: null, lpg_unit: "kg", from: period.from, to: period.to, post: notice.id },
+    { regular: reading.prices.regular, super: reading.prices.super, diesel: reading.prices.diesel, lpg: null, lpg_unit: "kg", from: period.from, to: period.to, post: notice.id },
     "moc",
   )
   if (!saved?.fuel) {
     logEvent("error", "moc-fuel", `Fuel notice ${notice.id}: storing the prices failed`)
     return
   }
-  logEvent("info", "moc-fuel", `MoC fuel prices applied from ${link}: EA92 ${reading.prices.regular}, diesel ${reading.prices.diesel} (${period.from}–${period.to})`)
+  logEvent("info", "moc-fuel", `MoC fuel prices applied from ${link}: EA92 ${reading.prices.regular}${reading.prices.super ? `, EA95 ${reading.prices.super}` : ""}, diesel ${reading.prices.diesel} (${period.from}–${period.to})`)
+  // The same audit trail as an admin's /setfuel, with no human actor.
+  await botDb()
+    .rpc("bot_system_audit", {
+      p_key: botKey(),
+      p_action: "AUTO_SET_FUEL_PRICES",
+      p_note: `${reading.prices.regular}/${reading.prices.super ?? "—"}/${reading.prices.diesel} · ${period.from}–${period.to} · ${reading.reader}`,
+      p_ref: link,
+      p_metadata: { post: notice.id, reader: reading.reader, prices: reading.prices },
+    })
+    .then(({ error }) => error && logEvent("warn", "moc-fuel", `Fuel audit not written: ${error.message}`, { fold: true }))
 
   // The community channel: once per notice.
   const chat = communityChat()

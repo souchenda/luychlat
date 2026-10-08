@@ -72,6 +72,8 @@ export function channelPosts(html: string, channel: string): ChannelPost[] {
 
 export type NoticePrices = {
   regular: number
+  /** Gasoline 95 (EA95), when the notice lists it (the usual notice caps only EA92 and diesel). */
+  super: number | null
   diesel: number
   /** The same prices in dollars (the notice's row above): an independent check of the riel figures. */
   regularUsd: number | null
@@ -96,7 +98,9 @@ export function cleanNoticePrices(raw: unknown): NoticePrices | null {
   const diesel = price(r.diesel)
   if (!regular || !diesel) return null
   const usd = (v: unknown) => (typeof v === "number" && v > 0.3 && v < 6 ? v : null)
-  return { regular, diesel, regularUsd: usd(r.regular_usd), dieselUsd: usd(r.diesel_usd), from: isoDay(r.from), to: isoDay(r.to) }
+  // EA95 costs more than EA92; anything else is a misread row.
+  const sup = price(r.super)
+  return { regular, super: sup && sup > regular ? sup : null, diesel, regularUsd: usd(r.regular_usd), dieselUsd: usd(r.diesel_usd), from: isoDay(r.from), to: isoDay(r.to) }
 }
 
 /**
