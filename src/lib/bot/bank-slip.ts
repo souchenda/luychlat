@@ -49,7 +49,11 @@ export function cleanSlip(raw: unknown): Slip | null {
   if (!currency || !Number.isFinite(amount) || amount <= 0 || amount >= 1e12) return null
   const timeAmount = typeof r.time === "string" ? /(\d{1,2}):(\d{2})/.exec(r.time) : null
   // "11:27 AM" read as $11 — a small amount equal to the slip's hour or minute is a misread, not a payment.
-  if (timeAmount && amount < 60 && (amount === Number(timeAmount[1]) || amount === Number(timeAmount[2]))) return null
+  // Not when the amount was read with its cents ("-5.00") or the slip names a phone / customer number
+  // (a bill payment or top-up): a time is never read that way, and a $5 top-up at 5 PM is real.
+  const withCents = typeof r.amount === "string" && /\.\d{2}(?!\d)/.test(r.amount)
+  const billOrTopUp = typeof r.consumer === "string" && /\d{3}/.test(r.consumer)
+  if (timeAmount && !withCents && !billOrTopUp && amount < 60 && (amount === Number(timeAmount[1]) || amount === Number(timeAmount[2]))) return null
   const date = typeof r.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.date) && !Number.isNaN(Date.parse(`${r.date}T00:00:00Z`)) ? r.date : null
   // "19:05", "7:05 PM", "07:05:33 am" → "19:05" / "07:05".
   const hm = typeof r.time === "string" ? /^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?[Mm]?\.?$/.exec(r.time.trim()) : null
