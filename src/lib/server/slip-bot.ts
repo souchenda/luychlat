@@ -14,7 +14,7 @@ import { categoryFor, cleanSlip, isFoodChoice, mealFor, resolveWallet, slipChoic
 import { autoDecision, choiceIndex, choiceKey, merchantKey, type Remembered } from "@/lib/bot/slip-auto"
 import type { BotCategory } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
-import { handleBillPhoto } from "@/lib/server/bill-bot"
+import { handleBillPhoto, settleBillFromPayment } from "@/lib/server/bill-bot"
 import type { BotWallet } from "@/lib/bot/parse-entry"
 import { defaultNeedWant } from "@/lib/need-want"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
@@ -169,6 +169,8 @@ type SlipInfo = {
   time: string | null
   /** The photo's caption — what was bought / for whom ("ទិញសម្ភារៈសិក្សាឱ្យកូន"). */
   note?: string | null
+  /** A bill payment's customer ID / phone number (a recurring bill is settled by it). */
+  consumer?: string | null
 }
 type Keyboard = { text: string; callback_data: string }[][]
 
@@ -245,7 +247,7 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
     .join(" ")
     .slice(0, 200)
   const note = [userNote, slipNote].filter(Boolean).join(" · ")
-  const info: SlipInfo = { kind, amount: slip.amount, currency: slip.currency, bank: slip.bank, party: slip.party, date: slip.date, time: slip.time, note: userNote }
+  const info: SlipInfo = { kind, amount: slip.amount, currency: slip.currency, bank: slip.bank, party: slip.party, date: slip.date, time: slip.time, note: userNote, consumer: slip.consumer ?? null }
   const action = {
     kind,
     // Unsure: a placeholder that bot_confirm refuses (wallet_pending) until one of wallet_choices is picked.
@@ -330,6 +332,7 @@ async function autoSaveSlip(
   const card = autoCard(lang, r.tx_id, { amount: info.amount, currency: info.currency, label, needWant, wallet: walletLabel(wallet), party: info.party, note: info.note ?? null, food })
   await sendText(chatId, card.text, { reply_markup: card.reply_markup })
   logEvent("info", "slips", `Slip saved without a tap (${decision.source === "memory" ? "user's habit" : "payee rule"})`, { fold: true })
+  await settleBillFromPayment(chatId, r.tx_id, info.consumer, info.party)
   return true
 }
 
@@ -358,6 +361,7 @@ async function saveWithoutCategory(chatId: number, lang: Locale, pendingId: stri
   rows.push([{ text: tr(lang, "bot.autoDelete"), callback_data: `sa:${r.tx_id}:x` }])
   await sendText(chatId, maskNumbers(text), { reply_markup: { inline_keyboard: rows } })
   logEvent("info", "slips", "Slip saved without a category (asked to pick one)", { fold: true })
+  await settleBillFromPayment(chatId, r.tx_id, info.consumer, info.party)
   return true
 }
 
@@ -544,6 +548,7 @@ export async function handleSlipCallback(cb: Callback) {
       ? savedCard(lang, r.tx_id, tagged)
       : { text: maskNumbers([tr(lang, "bot.slipSaved"), `💵 ${formatMoney(tagged.amount, tagged.currency)}`, `👛 ${tagged.wallet}`, `🏷️ ${label}`].join("\n")) }
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, ...card })
+  if (action.kind === "EXPENSE") await settleBillFromPayment(chatId, r.tx_id, action.slip?.consumer, action.slip?.party)
 }
 
 /** A "which wallet?" button: set that wallet on the pending slip, then show the category buttons. */

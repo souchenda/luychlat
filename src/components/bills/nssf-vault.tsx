@@ -19,6 +19,7 @@ import { formatMoney } from "@/lib/money"
 import { useProfile } from "@/lib/data/hooks"
 import { decodeQrText } from "@/lib/khqr-decode"
 import { cardName, guessRelationship, qrConfirmsId, type NssfCard } from "@/lib/nssf-card"
+import { cropCardImage } from "@/lib/card-crop-browser"
 import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -37,14 +38,14 @@ function PhotoPicker({
   label,
   path,
   onChange,
-  onPicked,
+  prepare,
   scanning = false,
 }: {
   label: string
   path: string | null
   onChange: (path: string | null) => void
-  /** The new photo (front of the card): read it to fill in the form. */
-  onPicked?: (image: Blob) => void
+  /** The new photo → what is stored: read (front), then cut to just the card when its corners are clear. */
+  prepare?: (image: Blob) => Promise<Blob>
   scanning?: boolean
 }) {
   const t = useT()
@@ -64,8 +65,9 @@ function PhotoPicker({
     setPreview(local)
     try {
       const image = await compressImage(file, 1600, 0.85)
-      onPicked?.(image)
-      const next = await uploadPhoto(image)
+      // Only the clean card is kept (the table and the background are cut away).
+      const stored = prepare ? await prepare(image) : image
+      const next = await uploadPhoto(stored)
       if (path) await removePhoto(path)
       onChange(next)
     } catch {
@@ -140,16 +142,21 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
   const profileName = useProfile().data?.display_name
   const [scanning, setScanning] = useState(false)
 
-  // The front of the card: Vision reads name, ID, birth date (and the card's QR, if any, confirms the ID).
-  const scan = async (image: Blob) => {
+  // The front of the card: Vision reads name, ID, birth date (and the card's QR, if any, confirms the ID),
+  // and where the card is in the photo — the photo kept is the card alone, straightened.
+  const scan = async (image: Blob): Promise<Blob> => {
     setScanning(true)
     try {
       const body = new FormData()
       body.append("image", image, "card.jpg")
       const [res, qr] = await Promise.all([fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null), decodeQrText(image).catch(() => null)])
-      const json = (await res?.json().catch(() => null)) as { card?: NssfCard; error?: string } | null
+      const json = (await res?.json().catch(() => null)) as { card?: NssfCard; corners?: unknown; error?: string } | null
+      const cropped = json?.corners ? await cropCardImage(image, json.corners) : null
       const card = json?.card
-      if (!card) return void toast.info(t(json?.error === "busy" || !res ? "nssf.ocrBusy" : "nssf.ocrNone"))
+      if (!card) {
+        toast.info(t(json?.error === "busy" || !res ? "nssf.ocrBusy" : "nssf.ocrNone"))
+        return cropped ?? image
+      }
       const today = new Date().toISOString().slice(0, 10)
       setForm((f) => ({
         ...f,
@@ -159,9 +166,20 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
         relationship: member ? f.relationship : (guessRelationship(card, profileName, today) ?? f.relationship),
       }))
       toast.success(t(qrConfirmsId(qr, card.idNumber) ? "nssf.ocrVerified" : "nssf.ocrFilled"))
+      return cropped ?? image
     } finally {
       setScanning(false)
     }
+  }
+
+  /** The back: only cut out (nothing to read). */
+  const cropBack = async (image: Blob): Promise<Blob> => {
+    const body = new FormData()
+    body.append("image", image, "card-back.jpg")
+    body.append("side", "back")
+    const res = await fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null)
+    const json = (await res?.json().catch(() => null)) as { corners?: unknown } | null
+    return (json?.corners ? await cropCardImage(image, json.corners) : null) ?? image
   }
 
   useEffect(() => {
@@ -217,8 +235,8 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <PhotoPicker label={t("nssf.front")} path={form.front} onChange={(front) => set({ front })} onPicked={(image) => void scan(image)} scanning={scanning} />
-          <PhotoPicker label={t("nssf.back")} path={form.back} onChange={(back) => set({ back })} />
+          <PhotoPicker label={t("nssf.front")} path={form.front} onChange={(front) => set({ front })} prepare={scan} scanning={scanning} />
+          <PhotoPicker label={t("nssf.back")} path={form.back} onChange={(back) => set({ back })} prepare={cropBack} />
         </div>
         <label className="flex items-center justify-between gap-3 text-sm">
           <span>

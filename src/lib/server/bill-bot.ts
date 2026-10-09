@@ -147,3 +147,18 @@ export async function handleEacNotice(chatId: number, n: EacNotice, ctx: Context
     ["✅ ការបង់ថ្លៃអគ្គិសនីជោគជ័យ!", who, `💵 បានបង់៖ ${riel(n.amount)} ៛`, r.logged ? "ប្រព័ន្ធបានកត់ត្រាជាការចំណាយរួចរាល់។" : "បានកត់ថាវិក្កយបត្របង់រួច (កញ្ចប់ FREE មិនកត់ជាការចំណាយដោយស្វ័យប្រវត្តិទេ)។"].join("\n"),
   )
 }
+
+/**
+ * After a payment is saved (a slip, a bank alert): if it pays a recurring bill — its customer
+ * number, or the one EDC / water / internet bill of that amount that is due — the bill is marked
+ * «បង់រួច» for this cycle, and the user is told in one line. Never guessed (bot_bill_settle).
+ */
+export async function settleBillFromPayment(chatId: number, txId: string | null | undefined, customer: string | null | undefined, party: string | null | undefined) {
+  if (!txId || !(customer || party)) return
+  const { data, error } = await botDb().rpc("bot_bill_settle", { p_key: botKey(), p_chat_id: chatId, p_tx_id: txId, p_customer: customer ?? null, p_party: party ?? null })
+  const r = data as { settled?: boolean; title?: string; due?: string } | null
+  if (error) return logEvent("warn", "bills", `Bill settle check failed: ${error.message}`, { fold: true })
+  if (!r?.settled || !r.title) return
+  await sendText(chatId, `🧾 «${r.title}» ✅ បង់រួច (${ddmmyyyy(r.due ?? "")}) — កត់ដោយស្វ័យប្រវត្តិពីការបង់ប្រាក់នេះ។`)
+  logEvent("info", "bills", "Bill marked paid automatically from a payment", { fold: true })
+}

@@ -1,6 +1,7 @@
 // Server only: bank alerts forwarded to the bot (private chat) are saved at once
 // into the wallet named with the account's last digits, with ↩️ Undo. The same
 // alert twice is skipped. The balance shows only with the AI-numbers opt-in.
+import { settleBillFromPayment } from "@/lib/server/bill-bot"
 import { createHash } from "crypto"
 
 import type { BankAlert } from "@/lib/bot/bank-alert"
@@ -72,9 +73,12 @@ export async function handleBankAlert(chatId: number, alert: BankAlert, raw: str
     // Only with "Let LuyChlat AI see my numbers" on (no balances in chat otherwise).
     ...(r.balance != null ? [tr(lang, "bank.balance", { amount: formatMoney(Number(r.balance), r.wallet_currency ?? "USD") })] : []),
   ]
-  return sendText(chatId, lines.join("\n"), {
+  const sent = await sendText(chatId, lines.join("\n"), {
     reply_markup: { inline_keyboard: [[{ text: tr(lang, "bank.undo"), callback_data: `bu:${r.transaction_id}` }]] },
   })
+  // Paying EDC / water / internet: the matching recurring bill is marked paid (↩️ Undo makes it unpaid again).
+  if (r.type === "EXPENSE") await settleBillFromPayment(chatId, r.transaction_id, null, alert.party)
+  return sent
 }
 
 type Callback = { id: string; data?: string; message?: { message_id: number; text?: string; chat: { id: number; type: string } } }
