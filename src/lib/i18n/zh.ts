@@ -3371,4 +3371,11 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "holyDay.showLess": "只显示近期 ‹",
   "bills.unpaidBadge": "⏳ 未付",
   "bills.paidBadge": "✅ 已付",
+  "bills.unpay": "未付款",
+  "bills.unpayConfirm": "将“{name}”改回未付款？",
+  "bills.unpaidDone": "已改回未付款",
+  "bills.unpaidDoneExpense": "已改回未付款，付款时记录的支出已删除",
+  "bills.unpaidDoneKept": "已改回未付款，如已记录支出，请在交易中删除",
+  "nssf.takePhoto": "拍照",
+  "nssf.fromGallery": "从相册选择",
 }

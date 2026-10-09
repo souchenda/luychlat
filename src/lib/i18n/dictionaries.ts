@@ -2425,12 +2425,12 @@ const km = {
   "bills.dueToday": "ដល់ថ្ងៃកំណត់ថ្ងៃនេះ",
   "bills.dueIn": "{duration} · {date}",
   "bills.inDays": "{duration}",
-  "bills.paid": "កត់ថាបង់រួច",
+  "bills.paid": "បង់រួច",
   "bills.payTitle": "បង់ {name}",
   "bills.payFor": "សម្រាប់ថ្ងៃកំណត់ {date}",
   "bills.payFrom": "កត់ត្រាចំណាយពីកាបូប",
   "bills.noLog": "កុំកត់ត្រាចំណាយ",
-  "bills.markPaid": "កត់ថាបង់រួច",
+  "bills.markPaid": "បង់រួច",
   "bills.paidDone": "✅ បង់រួច · ថ្ងៃកំណត់បន្ទាប់ {date}",
   "bills.nssfGuideTitle": "អំពី ប.ស.ស. (បេឡាជាតិរបបសន្តិសុខសង្គម)",
   "bills.nssfGuide1": "ប.ស.ស. គ្រប់គ្រងរបបសន្តិសុខសង្គមនៅកម្ពុជា រួមទាំងរបបថែទាំសុខភាព។",
@@ -3418,6 +3418,13 @@ const km = {
   "holyDay.showLess": "បង្ហាញតែបុណ្យខាងមុខ ‹",
   "bills.unpaidBadge": "⏳ មិនទាន់បង់",
   "bills.paidBadge": "✅ បង់រួច",
+  "bills.unpay": "មិនទាន់បង់",
+  "bills.unpayConfirm": "ត្រឡប់ «{name}» ទៅ «មិនទាន់បង់» វិញ?",
+  "bills.unpaidDone": "បានត្រឡប់ទៅ «មិនទាន់បង់»",
+  "bills.unpaidDoneExpense": "បានត្រឡប់ទៅ «មិនទាន់បង់» — ការចំណាយដែលបានកត់ពេលបង់ ត្រូវបានលុប",
+  "bills.unpaidDoneKept": "បានត្រឡប់ទៅ «មិនទាន់បង់» — បើមានការចំណាយបានកត់រួច សូមលុបវាក្នុង «ប្រតិបត្តិការ»",
+  "nssf.takePhoto": "ថតរូបផ្ទាល់",
+  "nssf.fromGallery": "រើសពីរូបភាព",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6825,6 +6832,13 @@ const en: Record<MessageKey, string> = {
   "holyDay.showLess": "Show only what's coming ‹",
   "bills.unpaidBadge": "⏳ Unpaid",
   "bills.paidBadge": "✅ Paid",
+  "bills.unpay": "Not paid",
+  "bills.unpayConfirm": "Set “{name}” back to unpaid?",
+  "bills.unpaidDone": "Back to unpaid",
+  "bills.unpaidDoneExpense": "Back to unpaid — the expense recorded with that payment was removed",
+  "bills.unpaidDoneKept": "Back to unpaid — if an expense was recorded for it, delete it in Transactions",
+  "nssf.takePhoto": "Take photo",
+  "nssf.fromGallery": "From gallery",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

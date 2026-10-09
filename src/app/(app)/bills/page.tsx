@@ -1,7 +1,7 @@
 "use client"
 
 import { formatDuration, formatOverdue } from "@/lib/format"
-import { CheckIcon, ChevronDownIcon, ExternalLinkIcon, Loader2Icon, PlusIcon, ReceiptIcon, ShieldCheckIcon } from "lucide-react"
+import { CheckIcon, ChevronDownIcon, ExternalLinkIcon, Loader2Icon, PlusIcon, ReceiptIcon, ShieldCheckIcon, Undo2Icon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -124,7 +124,17 @@ export default function BillsPage() {
   const [sheet, setSheet] = useState<{ open: boolean; bill: Bill | null }>({ open: false, bill: null })
   const [paying, setPaying] = useState<{ bill: Bill; due: string } | null>(null)
   const nssfMembers = (useNssfMembers().data ?? []).filter((m) => m.is_active).length
-  const { save } = useBillMutations(ws)
+  const { save, unmarkPaid } = useBillMutations(ws)
+  /** «មិនទាន់បង់»: a bill marked paid by mistake goes back to unpaid (after a confirm). */
+  const undoPaid = async (bill: Bill) => {
+    if (!window.confirm(t("bills.unpayConfirm", { name: bill.title }))) return
+    try {
+      const r = await unmarkPaid.mutateAsync(bill.id)
+      toast.success(t(r.expense_removed ? "bills.unpaidDoneExpense" : r.expense_kept ? "bills.unpaidDoneKept" : "bills.unpaidDone"))
+    } catch {
+      toast.error(t("common.error"))
+    }
+  }
   /** The NSSF bill's amount no longer matches the active members: offer to update it. */
   const nssfSuggestion = (bill: Bill) =>
     bill.kind === "NSSF" && bill.currency === "KHR" && nssfMembers > 0 && nssfAmountFor(nssfMembers, bill.frequency) !== bill.amount ? nssfAmountFor(nssfMembers, bill.frequency) : null
@@ -233,12 +243,19 @@ export default function BillsPage() {
                     {t("nssf.updateBill", { count: nssfMembers, amount: formatMoney(nssfSuggestion(bill)!, "KHR") })}
                   </Button>
                 )}
-                {editable && bill.is_active && (
-                  // An action, not a state: no ✓ and no past tense on a bill that is still to pay.
-                  <Button size="sm" variant={status === "later" ? "outline" : "default"} onClick={() => setPaying({ bill, due })}>
-                    {t("bills.paid")}
-                  </Button>
-                )}
+                {editable && bill.is_active &&
+                  (recentlyPaid(bill) && status === "later" ? (
+                    // Paid ("✅ បង់រួច" above): the only action is to undo a mistake.
+                    <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={unmarkPaid.isPending} onClick={() => void undoPaid(bill)}>
+                      <Undo2Icon />
+                      {t("bills.unpay")}
+                    </Button>
+                  ) : (
+                    // Unpaid: one plain action — «បង់រួច».
+                    <Button size="sm" variant={status === "later" ? "outline" : "default"} onClick={() => setPaying({ bill, due })}>
+                      {t("bills.paid")}
+                    </Button>
+                  ))}
               </div>
             )
           })}

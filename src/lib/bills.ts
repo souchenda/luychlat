@@ -230,6 +230,15 @@ export function useBillMutations(workspaceId: string | undefined) {
       },
       onSuccess: done,
     }),
+    /** «↩️ មិនទាន់បង់»: back to unpaid (and that payment's own expense removed, when it is known). */
+    unmarkPaid: useMutation({
+      mutationFn: async (id: string) => {
+        const { data, error } = await client().rpc("unmark_bill_paid", { p_bill_id: id })
+        if (error) throw error
+        return data as { status: string; expense_removed?: boolean; expense_kept?: boolean }
+      },
+      onSuccess: done,
+    }),
     /** Marks the next due date paid; with a wallet, also logs the expense there. */
     markPaid: useMutation({
       mutationFn: async (v: { id: string; walletId?: string | null; amount?: number | null }) => {

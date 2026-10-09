@@ -1,6 +1,6 @@
 "use client"
 
-import { CameraIcon, CopyIcon, IdCardIcon, Loader2Icon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
+import { CameraIcon, ImageIcon, CopyIcon, IdCardIcon, Loader2Icon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -49,14 +49,19 @@ function PhotoPicker({
 }) {
   const t = useT()
   const { uploadPhoto, removePhoto } = useNssfMutations()
-  const input = useRef<HTMLInputElement>(null)
+  const camera = useRef<HTMLInputElement>(null)
+  const gallery = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [viewing, setViewing] = useState<string | null>(null)
+  // The photo just taken, shown at once while it uploads (and is read).
+  const [preview, setPreview] = useState<string | null>(null)
 
   const pick = async (file: File | undefined) => {
     if (!file) return
     if (file.size > MAX_RECEIPT_INPUT_BYTES || !file.type.startsWith("image/")) return void toast.error(t("nssf.photoInvalid"))
     setBusy(true)
+    const local = URL.createObjectURL(file)
+    setPreview(local)
     try {
       const image = await compressImage(file, 1600, 0.85)
       onPicked?.(image)
@@ -67,7 +72,9 @@ function PhotoPicker({
       toast.error(t("common.error"))
     } finally {
       setBusy(false)
-      if (input.current) input.current.value = ""
+      setPreview(null)
+      URL.revokeObjectURL(local)
+      for (const el of [camera.current, gallery.current]) if (el) el.value = ""
     }
   }
 
@@ -75,7 +82,10 @@ function PhotoPicker({
     <div className="space-y-1">
       <p className="text-xs text-muted-foreground">{label}</p>
       <div className="flex items-center gap-2">
-        {path ? (
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a local preview of the photo just taken
+          <img src={preview} alt={label} className="size-16 rounded-lg object-cover ring-1 ring-border" />
+        ) : path ? (
           <>
             <Photo path={path} label={label} onOpen={setViewing} />
             <Button
@@ -92,12 +102,21 @@ function PhotoPicker({
             </Button>
           </>
         ) : (
-          <Button type="button" variant="outline" size="sm" disabled={busy || scanning} onClick={() => input.current?.click()}>
-            {busy || scanning ? <Loader2Icon className="animate-spin" /> : <CameraIcon />}
-            {t("nssf.addPhoto")}
-          </Button>
+          <>
+            {/* The phone's camera opens straight away (capture); the second button picks a saved photo. */}
+            <Button type="button" variant="outline" size="sm" disabled={busy || scanning} onClick={() => camera.current?.click()}>
+              {busy || scanning ? <Loader2Icon className="animate-spin" /> : <CameraIcon />}
+              {t("nssf.takePhoto")}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" disabled={busy || scanning} onClick={() => gallery.current?.click()}>
+              <ImageIcon />
+              {t("nssf.fromGallery")}
+            </Button>
+          </>
         )}
-        <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} />
+        {busy && preview && <Loader2Icon className="size-4 animate-spin text-muted-foreground" aria-hidden />}
+        <input ref={camera} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} />
+        <input ref={gallery} type="file" accept="image/*" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} />
       </div>
       {scanning && <p className="text-[11px] text-muted-foreground">{t("nssf.ocrReading")}</p>}
       <Dialog open={viewing !== null} onOpenChange={(v) => !v && setViewing(null)}>
