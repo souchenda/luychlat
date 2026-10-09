@@ -116,7 +116,7 @@ export type Box = { x: number; y: number; w: number; h: number }
  * plausible card area (≥ 8% of the photo). The fallback when the corners aren't certain: a plain
  * rectangular crop to the card's outer edges — never the whole photo with the table.
  */
-export function cleanBox(raw: unknown, width: number, height: number): Box | null {
+export function cleanBox(raw: unknown, width: number, height: number, inset = 0.02): Box | null {
   if (!Array.isArray(raw) || raw.length !== 4) return null
   const [ymin, xmin, ymax, xmax] = raw.map(Number)
   if (![ymin, xmin, ymax, xmax].every((v) => Number.isFinite(v) && v >= -20 && v <= 1020)) return null
@@ -126,7 +126,10 @@ export function cleanBox(raw: unknown, width: number, height: number): Box | nul
   const w = Math.round(c(xmax) * width) - x
   const h = Math.round(c(ymax) * height) - y
   if (w <= 0 || h <= 0 || w * h < 0.08 * width * height) return null
-  return { x, y, w, h }
+  // Tightened inward on every side (2% by default): no sliver of table at the edges or corners.
+  const dx = Math.round(w * inset)
+  const dy = Math.round(h * inset)
+  return { x: x + dx, y: y + dy, w: w - 2 * dx, h: h - 2 * dy }
 }
 
 /** The rectangle cut out of the photo's pixels. */

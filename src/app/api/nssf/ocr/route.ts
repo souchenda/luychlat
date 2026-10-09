@@ -23,9 +23,9 @@ const CORNERS = [
   "corners: the card's 4 outer corners — top-left, top-right, bottom-right, bottom-left as they appear in the image — each as [y, x] on the same 0–1000 scale; null if a corner is hidden or unclear (box_2d is still given).",
 ].join("\n")
 
-/** The back of a card: only where it is, to crop it. */
+/** Only where the card is, to crop it: the back of a card, or a stored photo cropped again. */
 const BACK_PROMPT = [
-  "This image should be the BACK of a Cambodian NSSF (ប.ស.ស.) member card or a Khmer national ID card, possibly photographed on a table.",
+  "This image should show one card — a Cambodian NSSF (ប.ស.ស.) member card, a Khmer national ID card or a bank card, front or back — possibly photographed on a table or a bed.",
   "Answer JSON only:",
   '{"is_card": boolean, "box_2d": [ymin, xmin, ymax, xmax] | null, "corners": [[y, x], [y, x], [y, x], [y, x]] | null}',
   CORNERS,
@@ -55,7 +55,8 @@ export async function POST(request: Request) {
     const form = await request.formData()
     const v = form.get("image")
     file = v instanceof File ? v : null
-    back = form.get("side") === "back"
+    // "back" and "crop": corners only (the back of a card; a stored photo cropped again).
+    back = form.get("side") === "back" || form.get("side") === "crop"
   } catch {
     file = null
   }

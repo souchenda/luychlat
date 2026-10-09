@@ -1,6 +1,6 @@
 "use client"
 
-import { CameraIcon, ImageIcon, CopyIcon, IdCardIcon, Loader2Icon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
+import { CameraIcon, ImageIcon, CopyIcon, IdCardIcon, Loader2Icon, PlusIcon, ScissorsIcon, Trash2Icon, XIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { NSSF_MONTHLY_PER_MEMBER, useNssfMembers, useNssfMutations, useNssfPhotoUrl, type NssfMember, type NssfRelationship } from "@/lib/bills"
+import { NSSF_MONTHLY_PER_MEMBER, signedPhotoUrl, useNssfMembers, useNssfMutations, useNssfPhotoUrl, type NssfMember, type NssfRelationship } from "@/lib/bills"
 import { compressImage, MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
@@ -39,13 +39,16 @@ function PhotoPicker({
   path,
   onChange,
   prepare,
+  recrop,
   scanning = false,
 }: {
   label: string
   path: string | null
   onChange: (path: string | null) => void
-  /** The new photo → what is stored: read (front), then cut to just the card when its corners are clear. */
-  prepare?: (image: Blob) => Promise<Blob>
+  /** The new photo → what is stored: the card alone (null: no card found — nothing is stored). */
+  prepare?: (image: Blob) => Promise<Blob | null>
+  /** A stored photo → the card alone, cut out again (null: no card found). */
+  recrop?: (image: Blob) => Promise<Blob | null>
   scanning?: boolean
 }) {
   const t = useT()
@@ -65,8 +68,9 @@ function PhotoPicker({
     setPreview(local)
     try {
       const image = await compressImage(file, 1600, 0.85)
-      // Only the clean card is kept (the table and the background are cut away).
+      // Only the clean card is kept (the table and the background are cut away) — never the raw photo.
       const stored = prepare ? await prepare(image) : image
+      if (!stored) return void toast.error(t("nssf.cropFailed"))
       const next = await uploadPhoto(stored)
       if (path) await removePhoto(path)
       onChange(next)
@@ -80,6 +84,27 @@ function PhotoPicker({
     }
   }
 
+  /** «កាត់រូបម្ដងទៀត»: the stored photo, cut to the card and stored in its place. */
+  const cropAgain = async (current: string) => {
+    if (!recrop) return
+    setBusy(true)
+    try {
+      const url = await signedPhotoUrl(current)
+      const res = url ? await fetch(url, { cache: "no-store" }) : null
+      if (!res?.ok) return void toast.error(t("common.error"))
+      const card = await recrop(await res.blob())
+      if (!card) return void toast.error(t("nssf.cropFailed"))
+      const next = await uploadPhoto(card)
+      await removePhoto(current)
+      onChange(next)
+      toast.success(t("nssf.recropped"))
+    } catch {
+      toast.error(t("common.error"))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-1">
       <p className="text-xs text-muted-foreground">{label}</p>
@@ -90,6 +115,12 @@ function PhotoPicker({
         ) : path ? (
           <>
             <Photo path={path} label={label} onOpen={setViewing} />
+            {recrop && (
+              <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => void cropAgain(path)}>
+                {busy ? <Loader2Icon className="animate-spin" /> : <ScissorsIcon />}
+                {t("nssf.recrop")}
+              </Button>
+            )}
             <Button
               type="button"
               size="icon"
@@ -144,7 +175,7 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
 
   // The front of the card: Vision reads name, ID, birth date (and the card's QR, if any, confirms the ID),
   // and where the card is in the photo — the photo kept is the card alone, straightened.
-  const scan = async (image: Blob): Promise<Blob> => {
+  const scan = async (image: Blob): Promise<Blob | null> => {
     setScanning(true)
     try {
       const body = new FormData()
@@ -153,11 +184,11 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
       const json = (await res?.json().catch(() => null)) as { card?: NssfCard; corners?: unknown; box?: unknown; error?: string } | null
       const crop = await cropCardImage(image, json?.corners, json?.box)
       if (!crop.blob) reportCrop("front", crop.why)
-      const cropped = crop.blob
+      const cropped = crop.blob ?? null
       const card = json?.card
       if (!card) {
         toast.info(t(json?.error === "busy" || !res ? "nssf.ocrBusy" : "nssf.ocrNone"))
-        return cropped ?? image
+        return cropped
       }
       const today = new Date().toISOString().slice(0, 10)
       setForm((f) => ({
@@ -168,22 +199,22 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
         relationship: member ? f.relationship : (guessRelationship(card, profileName, today) ?? f.relationship),
       }))
       toast.success(t(qrConfirmsId(qr, card.idNumber) ? "nssf.ocrVerified" : "nssf.ocrFilled"))
-      return cropped ?? image
+      return cropped
     } finally {
       setScanning(false)
     }
   }
 
-  /** The back: only cut out (nothing to read). */
-  const cropBack = async (image: Blob): Promise<Blob> => {
+  /** Only cut out (nothing to read): the back of a card, or a stored photo cropped again. */
+  const cropOnly = (side: "back" | "crop") => async (image: Blob): Promise<Blob | null> => {
     const body = new FormData()
-    body.append("image", image, "card-back.jpg")
-    body.append("side", "back")
+    body.append("image", image, "card.jpg")
+    body.append("side", side)
     const res = await fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null)
     const json = (await res?.json().catch(() => null)) as { corners?: unknown; box?: unknown } | null
     const crop = await cropCardImage(image, json?.corners, json?.box)
-    if (!crop.blob) reportCrop("back", crop.why)
-    return crop.blob ?? image
+    if (!crop.blob) reportCrop(side, crop.why)
+    return crop.blob
   }
 
   useEffect(() => {
@@ -239,8 +270,8 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <PhotoPicker label={t("nssf.front")} path={form.front} onChange={(front) => set({ front })} prepare={scan} scanning={scanning} />
-          <PhotoPicker label={t("nssf.back")} path={form.back} onChange={(back) => set({ back })} prepare={cropBack} />
+          <PhotoPicker label={t("nssf.front")} path={form.front} onChange={(front) => set({ front })} prepare={scan} recrop={cropOnly("crop")} scanning={scanning} />
+          <PhotoPicker label={t("nssf.back")} path={form.back} onChange={(back) => set({ back })} prepare={cropOnly("back")} recrop={cropOnly("crop")} />
         </div>
         <label className="flex items-center justify-between gap-3 text-sm">
           <span>

@@ -3428,6 +3428,9 @@ const km = {
   "bills.unpaidDoneKept": "បានត្រឡប់ទៅ «មិនទាន់បង់» — បើមានការចំណាយបានកត់រួច សូមលុបវាក្នុង «ប្រតិបត្តិការ»",
   "nssf.takePhoto": "ថតរូបផ្ទាល់",
   "nssf.fromGallery": "រើសពីរូបភាព",
+  "nssf.cropFailed": "រកគែមកាតមិនឃើញ — សូមថតម្ដងទៀត ឱ្យឃើញកាតទាំងមូល លើផ្ទៃរាបស្មើ (មិនរក្សាទុករូបដែលមានផ្ទៃខាងក្រោយទេ)។",
+  "nssf.recrop": "កាត់រូបម្ដងទៀត",
+  "nssf.recropped": "បានកាត់រូប — នៅសល់តែកាតប៉ុណ្ណោះ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -6845,6 +6848,9 @@ const en: Record<MessageKey, string> = {
   "bills.unpaidDoneKept": "Back to unpaid — if an expense was recorded for it, delete it in Transactions",
   "nssf.takePhoto": "Take photo",
   "nssf.fromGallery": "From gallery",
+  "nssf.cropFailed": "Couldn't find the card's edges — please take it again with the whole card in view (a photo with background is not kept).",
+  "nssf.recrop": "Crop again",
+  "nssf.recropped": "Cropped — just the card now",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

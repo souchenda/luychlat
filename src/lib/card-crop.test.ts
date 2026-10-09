@@ -26,8 +26,10 @@ describe("NSSF card auto-crop", () => {
     assert.deepEqual(card?.[0], [440, 315])
   })
   it("[x, y] points too — the bounding box settles which reading is the card", () => {
-    const box = cleanBox([180, 200, 790, 830], 2000, 1500)
+    const box = cleanBox([180, 200, 790, 830], 2000, 1500, 0)
     assert.deepEqual(box, { x: 400, y: 270, w: 1260, h: 915 })
+    // The crop itself is tightened 2% inward on every side: no table at the edges.
+    assert.deepEqual(cleanBox([180, 200, 790, 830], 2000, 1500), { x: 425, y: 288, w: 1210, h: 879 })
     const card = cleanCorners([[220, 210], [800, 180], [830, 760], [200, 790]], 2000, 1500, box)
     assert.deepEqual(card?.[0], [440, 315])
     // Corners that don't match the box at all are not trusted (the box crop is used instead).

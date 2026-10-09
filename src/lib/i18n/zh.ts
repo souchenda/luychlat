@@ -3381,4 +3381,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bills.unpaidDoneKept": "已改回未付款，如已记录支出，请在交易中删除",
   "nssf.takePhoto": "拍照",
   "nssf.fromGallery": "从相册选择",
+  "nssf.cropFailed": "未能找到卡片边缘，请重新拍摄完整卡片（带背景的照片不会保存）。",
+  "nssf.recrop": "重新裁剪",
+  "nssf.recropped": "已裁剪，只保留卡片",
 }

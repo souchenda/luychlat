@@ -289,6 +289,12 @@ export function useNssfMembers() {
 }
 
 /** A short-lived link to a card photo (private bucket). */
+/** A short-lived link to a stored card photo (to show it, or to crop it again). */
+export async function signedPhotoUrl(path: string): Promise<string | null> {
+  const { data } = (await getSupabaseBrowserClient()?.storage.from(NSSF_BUCKET).createSignedUrl(path, 5 * 60)) ?? { data: null }
+  return data?.signedUrl ?? null
+}
+
 export function useNssfPhotoUrl(path: string | null) {
   return useQuery({
     queryKey: ["nssf-photo", path],
