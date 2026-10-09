@@ -6,6 +6,7 @@
  * (ev-summary.test.ts).
  */
 
+import { roundToNearest100KHR } from "@/lib/currency"
 import { formatMoney } from "@/lib/money"
 
 /** Riel per kWh when no electricity bill with a rate has been scanned yet. */
@@ -26,7 +27,8 @@ export type HomeCharge = {
   photo?: boolean
 }
 
-export const homeCost = (kwh: number, rate: number) => Math.round(kwh * rate)
+/** Riel to the nearest 100៛ (the smallest note): 45.2 kWh × 730៛ = 32,996 → 33,000៛. */
+export const homeCost = (kwh: number, rate: number) => roundToNearest100KHR(kwh * rate)
 
 /** ⚡ … បានកត់ត្រា! — the session's cost and the month's home charging so far. */
 export function homeChargeText(h: HomeCharge): string {

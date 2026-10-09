@@ -4,6 +4,7 @@
  * the charging / toll is deducted. Pure (prepaid.test.ts).
  */
 
+import { roundToNearest100KHR } from "@/lib/currency"
 import { formatMoney } from "@/lib/money"
 
 import { findWallet, parseAmountText, toLatinDigits, type BotWallet } from "./parse-entry"
@@ -68,7 +69,7 @@ const kwhText = (n: number) => new Intl.NumberFormat("en-US", { maximumFractionD
 /** /car, /ev — this month. Money lines only when the user opted in to numbers in Telegram. */
 export function carReportText(r: CarReport, monthLabel: string): string {
   const kwh = Number(r.home_kwh ?? 0)
-  const home = `⚡ ភ្លើងសាកនៅផ្ទះ៖ ${kwhText(kwh)} kWh${r.numbers && r.home_khr != null ? ` (≈ ${formatMoney(Number(r.home_khr), "KHR")})` : ""}`
+  const home = `⚡ ភ្លើងសាកនៅផ្ទះ៖ ${kwhText(kwh)} kWh${r.numbers && r.home_khr != null ? ` (≈ ${formatMoney(roundToNearest100KHR(Number(r.home_khr)), "KHR")})` : ""}`
   const lines = [`🚗 ចំណាយលើឡាន · ${monthLabel}`, "", home]
   if (!r.numbers) {
     lines.push("", "🔒 ចំនួនទឹកប្រាក់ និងសមតុល្យមិនបង្ហាញក្នុង Telegram ទេ — បើក «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» ក្នុងកម្មវិធី › ការកំណត់ › Telegram ដើម្បីមើលនៅទីនេះ។")
