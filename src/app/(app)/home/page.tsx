@@ -1,5 +1,6 @@
 "use client"
 
+import { PushInviteCard } from "@/components/notifications/push-prompt"
 import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, MinusIcon, PlusIcon, ReceiptTextIcon, SparklesIcon, TargetIcon, WalletIcon } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
@@ -144,6 +145,7 @@ export default function HomePage() {
         {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
         <BusinessTrialTag workspace={workspace} className="mt-1.5" />
       </header>
+      <PushInviteCard />
 
       {/* Festivals and Khmer-Chinese offering days: a wish on the day, closable. */}
       <FestivalBanner />

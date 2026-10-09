@@ -37,6 +37,39 @@ self.addEventListener("activate", (event) => {
   )
 })
 
+// Push notifications (the 07:00 morning message): shown as sent; a tap opens LuyChlat
+// (an open window is focused instead of opening a second one).
+self.addEventListener("push", (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = { body: event.data ? event.data.text() : "" }
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "លុយឆ្លាត · LuyChlat", {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: data.tag || "luychlat",
+      renotify: false,
+      data: { url: data.url || "/" },
+    }),
+  )
+})
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close()
+  const target = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin)
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((w) => new URL(w.url).origin === target.origin)
+      if (open) return open.focus().then((w) => (w && w.navigate && target.href !== w.url ? w.navigate(target.href) : w))
+      return self.clients.openWindow(target.href)
+    }),
+  )
+})
+
 self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)

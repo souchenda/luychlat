@@ -6,6 +6,8 @@ import { AlarmClockIcon, BellIcon, BellOffIcon, TriangleAlertIcon } from "lucide
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
+import { MORNING_QUOTE, morningCard } from "@/lib/morning"
+
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { MemberAvatar } from "@/components/family/member-avatar"
 import { Button } from "@/components/ui/button"
@@ -32,6 +34,13 @@ export function NotificationBell() {
   const [unreadAtOpen, setUnreadAtOpen] = useState<Set<string>>(new Set())
 
   const unread = notifications.filter((n) => !n.is_read).length
+  // ☀️ The day's positive start — the same quote as the 07:00 Telegram post and push. Not counted
+  // in the red badge: the badge stays for what needs action (due dates, family activity).
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (open) setNow(Date.now())
+  }, [open])
+  const morning = morningCard(now)
 
   // The home-screen icon badge follows the real unread count (never a stale "1").
   useEffect(() => {
@@ -83,12 +92,26 @@ export function NotificationBell() {
       </Button>
 
       <BottomSheet open={open} onOpenChange={onOpenChange} title={t("notifications.title")}>
-        {notifications.length === 0 ? (
+        {morning && (
+          <div className="-mx-4 flex gap-3 border-b bg-amber-500/5 px-4 py-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-lg" aria-hidden>
+              ☀️
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">{t("notifications.morningTitle")}</span>
+              <span className="block text-xs text-muted-foreground">{MORNING_QUOTE}</span>
+              <span className="mt-1 block text-[11px] text-muted-foreground">
+                {formatDistanceToNow(new Date(morning.at), { addSuffix: true, locale: locale === "km" ? km : enUS })}
+              </span>
+            </span>
+          </div>
+        )}
+        {notifications.length === 0 && !morning ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
             <BellOffIcon className="size-8" />
             {t("notifications.empty")}
           </div>
-        ) : (
+        ) : notifications.length === 0 ? null : (
           <ul className="-mx-4 divide-y">
             {notifications.map((n) => {
               const { title, body } = content(n)

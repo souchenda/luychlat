@@ -45,6 +45,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       # Server-only, optional: Gemini transcribes Khmer voice notes (much better at Khmer than Whisper).
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # Optional: phone push notifications (07:00 morning message). The private key is server-only.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       # Optional: daily market posts to the community channel / group (bot must be its admin).
       TELEGRAM_COMMUNITY_CHAT_ID: ${TELEGRAM_COMMUNITY_CHAT_ID:-}
       TELEGRAM_COMMUNITY_CHANNEL_ID: ${TELEGRAM_COMMUNITY_CHANNEL_ID:-}

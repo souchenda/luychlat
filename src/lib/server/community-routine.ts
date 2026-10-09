@@ -2,7 +2,9 @@
 // bulletin (community-bulletin.ts):
 //
 //   07:00  ☀️ morning: a short motivation (no tip — tips go out at 12:00, and
-//          only after the Super Admin approves them: tip-bot.ts)
+//          only after the Super Admin approves them: tip-bot.ts); the same quote
+//          goes to subscribed phones as a push notification (web-push.ts) and is
+//          the morning card in the app's bell (src/lib/morning.ts)
 //   09:30  📊 market bulletin (community-bulletin.ts)
 //   20:00  🌙 evening check-in: "did you record today?" — in the channel, and as
 //          a gentle nudge in the bot to users who switched it on (Settings ›
@@ -16,6 +18,8 @@ import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { sendPosterPhoto } from "@/lib/server/tip-bot"
 import { tipPoster } from "@/lib/server/tip-poster"
 import { logEvent } from "@/lib/server/events"
+import { MORNING_QUOTE } from "@/lib/morning"
+import { sendMorningPush } from "@/lib/server/web-push"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
 import type { Locale } from "@/lib/i18n/dictionaries"
@@ -26,7 +30,7 @@ const EVENING = { job: "community-evening", from: 20 * 60, until: 21 * 60 + 30 }
 const communityChat = () => (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim() || null
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
-const QUOTE = "«ស្រឡាញ់លុយ លុយនឹងស្រឡាញ់អ្នកវិញ! ចាប់ផ្តើមថ្ងៃថ្មីដោយភាពឆ្លាតវៃ និងកត់ត្រារាល់ចំណូល-ចំណាយឱ្យបានត្រឹមត្រូវ។»"
+const QUOTE = `«${MORNING_QUOTE}»`
 
 /** 07:00 — title and the core quote (Telegram HTML). The tip goes out at 12:00, approved first (tip-bot.ts). */
 export function morningText(): string {
@@ -107,6 +111,8 @@ export async function communityRoutineTick() {
     const res = id ? { ok: true as const, description: undefined } : await tg("sendMessage", { chat_id: chat, text: morningText(), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
     logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Morning post sent to ${chat}${id ? " (poster)" : " (text — poster failed)"}` : `Morning post failed: ${res.description ?? "unknown"}`)
   }
+  // Phones that turned on notifications: the same quote, once a day (its own claim, so a channel problem never blocks it).
+  if (due === "morning" && (await claim("push-morning", now.day))) await sendMorningPush()
 
   if (due === "evening" && (await claim(EVENING.job, now.day))) {
     if (chat) {

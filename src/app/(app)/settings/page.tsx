@@ -12,6 +12,7 @@ import { AboutSheet, SettingsFooter } from "@/components/settings/about"
 import { GuestImportRow } from "@/components/settings/guest-import"
 import { useOfficialBot, useTelegramLink } from "@/components/settings/official-bot"
 import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
+import { PushSettingsRow } from "@/components/notifications/push-prompt"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -208,6 +209,7 @@ export default function SettingsPage() {
           </div>
         </SettingsRow>
         <IslamicToolsRow />
+        <PushSettingsRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
           {bot.data && telegram.data ? (
             <StatusBadge tone="success">
