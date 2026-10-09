@@ -74,6 +74,8 @@ export function TransactionList({ transactions, wallets, categories, onSelect, g
         <CategoryIcon category={category} transfer={isTransfer} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium">{title}</span>
+          {/* A slip saved before its category was picked: a quiet reminder until it is. */}
+          {tx.type === "EXPENSE" && !category && <span className="block text-[11px] text-amber-700 dark:text-amber-400">{t("tx.missingCategory")}</span>}
           <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
             {tx.reconciled_at && <CircleCheckIcon className="size-3 shrink-0 text-emerald-600" aria-label={t("recon.verified")} />}
             {tx.receipt_url && <PaperclipIcon className="size-3 shrink-0" aria-label={t("entry.receipt")} />}

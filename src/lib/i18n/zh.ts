@@ -3030,6 +3030,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.autoDelete": "🗑️ 删除",
   "bot.autoDeleted": "已删除",
   "bot.autoLearned": "已更改，下次会记住",
+  "bot.missingCategory": "⚠️ 缺少支出信息：请选择分类",
+  "tx.missingCategory": "⚠️ 缺少支出信息",
   "bot.slipCat.food": "🍲 餐饮",
   "bot.slipCat.coffee": "☕ 咖啡/饮料",
   "bot.slipCat.fuel": "⛽ 加油",

@@ -268,6 +268,9 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
 
   // Zero-click: a known payee and a certain wallet → saved now, with override buttons.
   if (wallet && kind === "EXPENSE" && (await autoSaveSlip(chatId, lang, pendingId, ws, wallet, info, action.meal, time))) return
+  // An unknown payee: saved now all the same (nothing is lost if no one taps), flagged
+  // "⚠️ ខ្វះព័ត៌មានចំណាយ" with the six categories; a tap fills it in (and is learned).
+  if (wallet && kind === "EXPENSE" && (await saveWithoutCategory(chatId, lang, pendingId, wallet, info))) return
 
   const card = slipCard(lang, pendingId, info, wallet, choices, ws.rate)
   return sendText(chatId, card.text, { reply_markup: card.reply_markup })
@@ -330,6 +333,34 @@ async function autoSaveSlip(
   return true
 }
 
+/** The six category buttons under a saved slip (sa:<tx>:c<i>), two per row. */
+function categoryRows(lang: Locale, txId: string) {
+  const buttons = SLIP_OUT.map((c, i) => ({ text: tr(lang, c.label as MessageKey), callback_data: `sa:${txId}:c${i}` }))
+  const rows: { text: string; callback_data: string }[][] = []
+  for (let i = 0; i < buttons.length; i += 2) rows.push(buttons.slice(i, i + 2))
+  return rows
+}
+
+/** Saved with no category: the recorded card, "⚠️ ខ្វះព័ត៌មានចំណាយ ៖ សូមជ្រើសរើសប្រភេទ" and the categories. */
+async function saveWithoutCategory(chatId: number, lang: Locale, pendingId: string, wallet: BotWallet, info: SlipInfo): Promise<boolean> {
+  const { data: result, error } = await botDb().rpc("bot_confirm", { p_key: botKey(), p_chat_id: chatId, p_pending_id: pendingId })
+  const r = result as { ok?: boolean; tx_id?: string } | null
+  if (error || !r?.ok || !r.tx_id) return false
+  const text = [
+    `✅ ${tr(lang, "bot.autoSaved")} ${formatMoney(info.amount, info.currency)}`,
+    `👛 ${walletLabel(wallet)}`,
+    ...(info.party ? [`📍 ${info.party}`] : []),
+    ...(info.note ? [`📝 ${info.note}`] : []),
+    "",
+    tr(lang, "bot.missingCategory"),
+  ].join("\n")
+  const rows = categoryRows(lang, r.tx_id)
+  rows.push([{ text: tr(lang, "bot.autoDelete"), callback_data: `sa:${r.tx_id}:x` }])
+  await sendText(chatId, maskNumbers(text), { reply_markup: { inline_keyboard: rows } })
+  logEvent("info", "slips", "Slip saved without a category (asked to pick one)", { fold: true })
+  return true
+}
+
 /**
  * ✅ បានកត់ត្រា 11,500៛ (☕ កាហ្វេ/ភេសជ្ជៈ · ✨ ចំណង់)
  * 👛 អេស៊ីលីដា •••• 4222 KHR
@@ -377,9 +408,7 @@ async function handleAutoCallback(cb: Callback) {
   }
   if (op === "o") {
     // The category buttons, in place of the overrides (plus delete).
-    const buttons = SLIP_OUT.map((c, i) => ({ text: tr(lang, c.label as MessageKey), callback_data: `sa:${txId}:c${i}` }))
-    const keyboard: { text: string; callback_data: string }[][] = []
-    for (let i = 0; i < buttons.length; i += 2) keyboard.push(buttons.slice(i, i + 2))
+    const keyboard = categoryRows(lang, txId) as { text: string; callback_data: string }[][]
     keyboard.push([{ text: tr(lang, "bot.autoDelete"), callback_data: `sa:${txId}:x` }])
     await answer()
     return tg("editMessageReplyMarkup", { chat_id: chatId, message_id: cb.message!.message_id, reply_markup: { inline_keyboard: keyboard } }).catch(() => null)
@@ -408,9 +437,16 @@ async function handleAutoCallback(cb: Callback) {
   await answer(tr(lang, "bot.autoLearned"))
   // The card says what it is now; the overrides stay (another change is one tap away).
   const old = (cb.message as { text?: string } | undefined)?.text ?? ""
-  const rest = old.split("\n").slice(1).join("\n")
+  // The "⚠️ ខ្វះព័ត៌មានចំណាយ" line (and the blank line above it) goes once a category is set.
+  const rest = old
+    .split("\n")
+    .slice(1)
+    .filter((l) => !l.startsWith("⚠️"))
+    .join("\n")
+    .trim()
   const nw = needWant ? ` · ${tr(lang, needWant === "NEED" ? "bot.need" : "bot.want")}` : ""
-  const amount = /\(([^)]*)\)/.exec(old.split("\n")[0] ?? "") ? old.split("\n")[0].replace(/\([^)]*\)\s*$/, `(${label}${nw})`) : old.split("\n")[0]
+  const first = old.split("\n")[0] ?? ""
+  const amount = /\([^)]*\)\s*$/.test(first) ? first.replace(/\([^)]*\)\s*$/, `(${label}${nw})`) : `${first} (${label}${nw})`
   const row = [
     ...(food ? [] : [{ text: tr(lang, "bot.autoToFood"), callback_data: `sa:${txId}:f` }]),
     { text: tr(lang, "bot.autoOther"), callback_data: `sa:${txId}:o` },
