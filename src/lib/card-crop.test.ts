@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { applyH, CARD_H, CARD_W, cleanCorners, homography, orderCorners, sharpen, warpCard, type Quad } from "./card-crop"
+import { applyH, CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, homography, orderCorners, sharpen, warpCard, type Quad } from "./card-crop"
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`)
 
@@ -20,11 +20,32 @@ describe("NSSF card auto-crop", () => {
       [120, 700],
     ])
   })
-  it("a tilted card photographed on a table: accepted; a sliver, a tall shape or bad data: refused", () => {
+  it("Gemini's own [y, x] points: a tilted card on a table is accepted", () => {
     // 0–1000 scale on a 2000 × 1500 photo: a card covering the middle, slightly in perspective.
-    const card = cleanCorners([[220, 210], [800, 180], [830, 760], [200, 790]], 2000, 1500)
-    assert.ok(card)
-    assert.deepEqual(card![0], [440, 315])
+    const card = cleanCorners([[210, 220], [180, 800], [760, 830], [790, 200]], 2000, 1500)
+    assert.deepEqual(card?.[0], [440, 315])
+  })
+  it("[x, y] points too — the bounding box settles which reading is the card", () => {
+    const box = cleanBox([180, 200, 790, 830], 2000, 1500)
+    assert.deepEqual(box, { x: 400, y: 270, w: 1260, h: 915 })
+    const card = cleanCorners([[220, 210], [800, 180], [830, 760], [200, 790]], 2000, 1500, box)
+    assert.deepEqual(card?.[0], [440, 315])
+    // Corners that don't match the box at all are not trusted (the box crop is used instead).
+    assert.equal(cleanCorners([[50, 50], [50, 400], [300, 400], [300, 50]], 2000, 1500, box), null)
+  })
+  it("a card photographed sideways is turned so its long edge is the top", () => {
+    const q = cleanCorners([[100, 300], [100, 700], [900, 700], [900, 300]], 1000, 1500)
+    assert.ok(q)
+    assert.ok(Math.hypot(q![1][0] - q![0][0], q![1][1] - q![0][1]) > Math.hypot(q![3][0] - q![0][0], q![3][1] - q![0][1]))
+  })
+  it("the box fallback crops to the card, never the whole photo", () => {
+    const src = new Uint8ClampedArray(10 * 8 * 4).map((_, i) => i % 256)
+    const out = cropBox(src, 10, { x: 2, y: 3, w: 4, h: 2 })
+    assert.equal(out.length, 4 * 2 * 4)
+    assert.deepEqual([...out.subarray(0, 4)], [...src.subarray((3 * 10 + 2) * 4, (3 * 10 + 2) * 4 + 4)])
+    assert.equal(cleanBox([0, 0, 100, 100], 1000, 1000), null) // 1%: not a card in the photo
+  })
+  it("a sliver, a tall shape or bad data: refused", () => {
     assert.equal(cleanCorners([[400, 400], [450, 400], [450, 430], [400, 430]], 2000, 1500), null) // too small
     assert.equal(cleanCorners([[400, 100], [600, 100], [600, 900], [400, 900]], 1000, 1000), null) // not a card's shape
     assert.equal(cleanCorners([[0, 0], [1, 1]], 1000, 1000), null)

@@ -49,32 +49,98 @@ function convex(q: Quad): boolean {
   return true
 }
 
-/**
- * Vision's corners ([[x, y] × 4] on a 0–1000 scale of the image) → pixel corners, or null
- * when they don't describe a card clearly in the photo: all inside the image, a convex
- * shape covering at least 8% of it, with a card's proportions (landscape, ±25%).
- */
-export function cleanCorners(raw: unknown, width: number, height: number): Quad | null {
+/** Four points on the 0–1000 scale → pixels, read as [x, y] or as Gemini's own [y, x]. */
+function toPixels(raw: unknown, width: number, height: number, yFirst: boolean): Pt[] | null {
   if (!Array.isArray(raw) || raw.length !== 4) return null
   const pts: Pt[] = []
   for (const p of raw) {
-    if (!Array.isArray(p) || p.length !== 2) return null
-    const [x, y] = p.map(Number)
+    const pair = Array.isArray(p) && p.length === 2 ? p.map(Number) : p && typeof p === "object" ? [Number((p as { x?: unknown }).x), Number((p as { y?: unknown }).y)] : null
+    if (!pair) return null
+    const [a, b] = pair
+    const [x, y] = yFirst && Array.isArray(p) ? [b, a] : [a, b]
     if (!Number.isFinite(x) || !Number.isFinite(y) || x < -20 || x > 1020 || y < -20 || y > 1020) return null
     pts.push([(Math.min(1000, Math.max(0, x)) / 1000) * width, (Math.min(1000, Math.max(0, y)) / 1000) * height])
   }
+  return pts
+}
+
+/** A clear card shape: convex, at least 8% of the photo, a card's proportions — landscape, or sideways (then turned). */
+function asCard(pts: Pt[], width: number, height: number): { q: Quad; sideways: boolean } | null {
   const q = orderCorners(pts)
-  if (!convex(q)) return null
-  if (area(q) < 0.08 * width * height) return null
+  if (!convex(q) || area(q) < 0.08 * width * height) return null
   const w = (dist(q[0], q[1]) + dist(q[3], q[2])) / 2
   const h = (dist(q[0], q[3]) + dist(q[1], q[2])) / 2
   const ratio = w / h
-  if (ratio < CARD_RATIO * 0.75 || ratio > CARD_RATIO * 1.25) return null
-  return q
+  if (ratio >= CARD_RATIO * 0.75 && ratio <= CARD_RATIO * 1.25) return { q, sideways: false }
+  // Photographed sideways: start at the next corner so the long edge is the top.
+  if (1 / ratio >= CARD_RATIO * 0.75 && 1 / ratio <= CARD_RATIO * 1.25) return { q: [q[3], q[0], q[1], q[2]], sideways: true }
+  return null
 }
 
-/** Pushes each corner ~0.8% away from the centre: a slightly loose crop never cuts the card's edge. */
-export function loosen(q: Quad, width: number, height: number, by = 0.008): Quad {
+/** How much of the quad's bounding rectangle lies inside the box (0–1). */
+function overlap(q: Quad, b: Box): number {
+  const xs = q.map((p) => p[0])
+  const ys = q.map((p) => p[1])
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
+  const ix = Math.max(0, Math.min(x1, b.x + b.w) - Math.max(x0, b.x))
+  const iy = Math.max(0, Math.min(y1, b.y + b.h) - Math.max(y0, b.y))
+  const union = (x1 - x0) * (y1 - y0) + b.w * b.h - ix * iy
+  return union > 0 ? (ix * iy) / union : 0
+}
+
+/**
+ * Vision's corners (4 points on a 0–1000 scale of the image) → pixel corners, or null when they
+ * don't describe a card clearly in the photo. Gemini writes points as [y, x]; others [x, y] — both
+ * readings are tried. When both make a card shape, the one matching the bounding box wins (else
+ * the landscape one); with a box, corners that don't match it at all are not trusted.
+ */
+export function cleanCorners(raw: unknown, width: number, height: number, box?: Box | null): Quad | null {
+  const found = [true, false]
+    .map((yFirst) => {
+      const pts = toPixels(raw, width, height, yFirst)
+      return pts ? asCard(pts, width, height) : null
+    })
+    .filter((c): c is { q: Quad; sideways: boolean } => c !== null)
+  if (!found.length) return null
+  if (box) {
+    const scored = found.map((c) => ({ c, s: overlap(c.q, box) })).sort((a, b) => b.s - a.s)
+    return scored[0].s >= 0.5 ? scored[0].c.q : null
+  }
+  return (found.find((c) => !c.sideways) ?? found[0]).q
+}
+
+export type Box = { x: number; y: number; w: number; h: number }
+
+/**
+ * Gemini's box_2d [ymin, xmin, ymax, xmax] (0–1000) → a pixel rectangle, or null when it isn't a
+ * plausible card area (≥ 8% of the photo). The fallback when the corners aren't certain: a plain
+ * rectangular crop to the card's outer edges — never the whole photo with the table.
+ */
+export function cleanBox(raw: unknown, width: number, height: number): Box | null {
+  if (!Array.isArray(raw) || raw.length !== 4) return null
+  const [ymin, xmin, ymax, xmax] = raw.map(Number)
+  if (![ymin, xmin, ymax, xmax].every((v) => Number.isFinite(v) && v >= -20 && v <= 1020)) return null
+  const c = (v: number) => Math.min(1000, Math.max(0, v)) / 1000
+  const x = Math.round(c(xmin) * width)
+  const y = Math.round(c(ymin) * height)
+  const w = Math.round(c(xmax) * width) - x
+  const h = Math.round(c(ymax) * height) - y
+  if (w <= 0 || h <= 0 || w * h < 0.08 * width * height) return null
+  return { x, y, w, h }
+}
+
+/** The rectangle cut out of the photo's pixels. */
+export function cropBox(src: Uint8ClampedArray, sw: number, box: Box): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(box.w * box.h * 4)
+  for (let y = 0; y < box.h; y++) out.set(src.subarray(((box.y + y) * sw + box.x) * 4, ((box.y + y) * sw + box.x + box.w) * 4), y * box.w * 4)
+  return out
+}
+
+/**
+ * Moves each corner by `by` of the way from the centre: negative trims inward. The default trims
+ * 0.4% so not a hair of the table stays on the card (founder, 09/10: the card only).
+ */
+export function loosen(q: Quad, width: number, height: number, by = -0.004): Quad {
   const cx = q.reduce((s, p) => s + p[0], 0) / 4
   const cy = q.reduce((s, p) => s + p[1], 0) / 4
   return q.map(([x, y]) => [Math.min(width - 1, Math.max(0, x + (x - cx) * by * 2)), Math.min(height - 1, Math.max(0, y + (y - cy) * by * 2))]) as Quad

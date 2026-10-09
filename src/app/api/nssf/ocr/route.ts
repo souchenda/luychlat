@@ -18,21 +18,23 @@ export const runtime = "nodejs"
 const MAX_BYTES = 5_000_000
 
 /** For the auto-crop: where the physical card is in the photo. */
-const CORNERS =
-  "corners: the 4 corners of the physical card itself (not the photo, not the printed frame) — top-left, top-right, bottom-right, bottom-left — each as [x, y] on a 0–1000 scale of the image width and height (x from the left, y from the top). null if any edge of the card is cut off or unclear."
+const CORNERS = [
+  "box_2d: the bounding box of the physical card itself (its outer edges, not the photo, not the table) as [ymin, xmin, ymax, xmax] on a 0–1000 scale of the image height and width.",
+  "corners: the card's 4 outer corners — top-left, top-right, bottom-right, bottom-left as they appear in the image — each as [y, x] on the same 0–1000 scale; null if a corner is hidden or unclear (box_2d is still given).",
+].join("\n")
 
 /** The back of a card: only where it is, to crop it. */
 const BACK_PROMPT = [
   "This image should be the BACK of a Cambodian NSSF (ប.ស.ស.) member card or a Khmer national ID card, possibly photographed on a table.",
   "Answer JSON only:",
-  '{"is_card": boolean, "corners": [[x, y], [x, y], [x, y], [x, y]] | null}',
+  '{"is_card": boolean, "box_2d": [ymin, xmin, ymax, xmax] | null, "corners": [[y, x], [y, x], [y, x], [y, x]] | null}',
   CORNERS,
 ].join("\n")
 
 const PROMPT = [
   "This image should be the FRONT of a Cambodian NSSF (ប.ស.ស. / បេឡាជាតិរបស់សន្តិសុខសង្គម) member card, or a Khmer national ID card.",
   "Answer JSON only:",
-  '{"is_card": boolean, "name_kh": string | null, "name_en": string | null, "id_number": string | null, "dob": "YYYY-MM-DD" | null, "gender": "MALE" | "FEMALE" | null, "corners": [[x, y], [x, y], [x, y], [x, y]] | null}',
+  '{"is_card": boolean, "name_kh": string | null, "name_en": string | null, "id_number": string | null, "dob": "YYYY-MM-DD" | null, "gender": "MALE" | "FEMALE" | null, "box_2d": [ymin, xmin, ymax, xmax] | null, "corners": [[y, x], [y, x], [y, x], [y, x]] | null}',
   CORNERS,
   "name_kh: the full name in Khmer script exactly as printed (e.g. \"ស៊ូ ចិន្តា\"). name_en: the full name in Latin letters as printed (e.g. \"SOU CHENDA\").",
   "id_number: the NSSF / card number as printed, keeping dashes and any Khmer letter at the end (e.g. \"1870219-1998577-ឈ\").",
@@ -77,9 +79,10 @@ export async function POST(request: Request) {
       const raw = JSON.parse(got.text.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/^\s*```(?:json)?|```\s*$/g, "").trim()) as Record<string, unknown>
       // Corners only from Gemini (checked again on the phone before any crop).
       const corners = name === "Gemini" && Array.isArray(raw?.corners) ? raw.corners : null
-      if (back) return NextResponse.json({ corners }, { status: 200 })
+      const box = name === "Gemini" && Array.isArray(raw?.box_2d) ? raw.box_2d : null
+      if (back) return NextResponse.json({ corners, box }, { status: 200 })
       const card = cleanNssfCard(raw)
-      return NextResponse.json(card ? { card, corners, reader: name } : { error: "not_a_card", corners }, { status: card ? 200 : 422 })
+      return NextResponse.json(card ? { card, corners, box, reader: name } : { error: "not_a_card", corners, box }, { status: card ? 200 : 422 })
     } catch {
       logEvent("warn", "nssf", `Card read: ${name} answered without JSON`, { fold: true })
     }

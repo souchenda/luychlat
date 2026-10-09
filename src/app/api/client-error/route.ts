@@ -10,7 +10,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
  * log. Signed-in users only, a few per minute; never any statement content —
  * the client sends only the error code / message and counts.
  */
-const SOURCES = new Set(["reconcile"])
+const SOURCES = new Set(["reconcile", "nssf-crop"])
 
 export async function POST(request: Request) {
   const blocked = guardRequest(request, { name: "client-error", limit: 6, windowMs: 60_000, maxBytes: 2_000 })

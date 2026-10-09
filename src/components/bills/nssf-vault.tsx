@@ -19,7 +19,7 @@ import { formatMoney } from "@/lib/money"
 import { useProfile } from "@/lib/data/hooks"
 import { decodeQrText } from "@/lib/khqr-decode"
 import { cardName, guessRelationship, qrConfirmsId, type NssfCard } from "@/lib/nssf-card"
-import { cropCardImage } from "@/lib/card-crop-browser"
+import { cropCardImage, reportCrop } from "@/lib/card-crop-browser"
 import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -150,8 +150,10 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
       const body = new FormData()
       body.append("image", image, "card.jpg")
       const [res, qr] = await Promise.all([fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null), decodeQrText(image).catch(() => null)])
-      const json = (await res?.json().catch(() => null)) as { card?: NssfCard; corners?: unknown; error?: string } | null
-      const cropped = json?.corners ? await cropCardImage(image, json.corners) : null
+      const json = (await res?.json().catch(() => null)) as { card?: NssfCard; corners?: unknown; box?: unknown; error?: string } | null
+      const crop = await cropCardImage(image, json?.corners, json?.box)
+      if (!crop.blob) reportCrop("front", crop.why)
+      const cropped = crop.blob
       const card = json?.card
       if (!card) {
         toast.info(t(json?.error === "busy" || !res ? "nssf.ocrBusy" : "nssf.ocrNone"))
@@ -178,8 +180,10 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
     body.append("image", image, "card-back.jpg")
     body.append("side", "back")
     const res = await fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null)
-    const json = (await res?.json().catch(() => null)) as { corners?: unknown } | null
-    return (json?.corners ? await cropCardImage(image, json.corners) : null) ?? image
+    const json = (await res?.json().catch(() => null)) as { corners?: unknown; box?: unknown } | null
+    const crop = await cropCardImage(image, json?.corners, json?.box)
+    if (!crop.blob) reportCrop("back", crop.why)
+    return crop.blob ?? image
   }
 
   useEffect(() => {
