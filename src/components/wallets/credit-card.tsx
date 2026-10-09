@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { AlertTriangleIcon, CalendarClockIcon } from "lucide-react"
 
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
-import { cardSummary, lastStatementDate } from "@/lib/credit-card"
+import { cardSummary, lastStatementDate, safeUse } from "@/lib/credit-card"
 import { useRepo } from "@/lib/data/hooks"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
@@ -24,6 +24,7 @@ export function CardMeter({ wallet, compact }: { wallet: Wallet; compact?: boole
   if (!s) return null
   const pct = Math.min(100, Math.round(s.utilization * 100))
   const money = (n: number) => formatMoney(n, wallet.currency)
+  const safe = safeUse(s)
   return (
     <div className={cn("space-y-1.5", compact ? "text-[11px]" : "text-xs")}>
       <div className="flex items-baseline justify-between gap-2">
@@ -55,6 +56,24 @@ export function CardMeter({ wallet, compact }: { wallet: Wallet; compact?: boole
           </span>
         )}
       </div>
+      {/* The card's own page: the 30% rule, under the bar (the compact list stays short). */}
+      {!compact && (
+        <div
+          className={cn(
+            "rounded-xl border px-3 py-2 leading-relaxed",
+            safe.over ? "border-amber-500/30 bg-amber-500/5 text-amber-900 dark:text-amber-200" : "border-emerald-500/30 bg-emerald-500/5 text-emerald-900 dark:text-emerald-200",
+          )}
+        >
+          {safe.over ? (
+            <>
+              <p>{t("card.safeRule", { safe: money(safe.safeLimit) })}</p>
+              <p className="mt-1 font-medium">{t("card.safeOver", { excess: money(safe.excess), safe: money(safe.safeLimit) })}</p>
+            </>
+          ) : (
+            <p>{t("card.safeOk", { safe: money(safe.safeLimit) })}</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -51,7 +51,9 @@ import { ReconcileSheet } from "./reconcile-sheet"
 import { WalletAvatar } from "./wallet-avatar"
 
 /** A typed amount, or nothing (then 0). */
-const amountOrEmpty = (v: string) => !v.trim() || !Number.isNaN(parseAmount(v))
+/** An opening balance may be below zero (an overdrawn account): "-120.50". */
+const signedAmount = (v: string) => (v.trim().startsWith("-") ? -parseAmount(v.trim().slice(1)) : parseAmount(v))
+const signedOrEmpty = (v: string) => !v.trim() || !Number.isNaN(signedAmount(v))
 
 const schema = z.object({
   icon: z.string(),
@@ -59,8 +61,8 @@ const schema = z.object({
   // BOTH (new bank wallets only): a USD and a KHR wallet in one go, as Cambodian bank accounts come in pairs.
   currency: z.enum(["USD", "KHR", "BOTH"]),
   // Empty = 0 (the KHR one is only on screen for "$ + ៛"; an empty hidden field must never block Save).
-  balance: z.string().refine(amountOrEmpty, "walletForm.amountInvalid"),
-  balanceKhr: z.string().refine(amountOrEmpty, "walletForm.amountInvalid"),
+  balance: z.string().refine(signedOrEmpty, "walletForm.amountInvalid"),
+  balanceKhr: z.string().refine(signedOrEmpty, "walletForm.amountInvalid"),
   // Bank account numbers (digits, spaces, dashes); the KHR ones are for "$ + ៛".
   accountNo: z.string().trim().regex(/^([0-9][0-9 -]{2,29})?$/, "walletForm.accountInvalid"),
   accountNoKhr: z.string().trim().regex(/^([0-9][0-9 -]{2,29})?$/, "walletForm.accountInvalid"),
@@ -204,7 +206,8 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           icon: wallet.icon ?? "other",
           name: wallet.name,
           currency: wallet.currency,
-          balance: String(wallet.balance),
+          // Not edited here (it changes through entries and Reconcile): a card's "-1901.43" must never block a rename.
+          balance: "",
           balanceKhr: "",
           accountNo: wallet.account_no ?? "",
           accountNoKhr: "",
@@ -289,7 +292,7 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
     const od = parseAmount(values.odLimit || "0")
     if (!isCardForm && (Number.isNaN(od) || od < 0)) return void toast.error(t("walletForm.amountInvalid"))
     const odFields = isCardForm ? {} : { od_limit: od > 0 ? roundMoney(od, currency) : null, account_no: values.accountNo.trim() || null }
-    const amount = roundMoney(parseAmount(values.balance || "0"), currency)
+    const amount = roundMoney(signedAmount(values.balance || "0"), currency)
     const input = {
       name: values.name.trim(),
       icon: values.icon,
@@ -334,13 +337,13 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
     const pair = [
       {
         currency: "USD" as const,
-        balance: roundMoney(parseAmount(values.balance || "0"), "USD"),
+        balance: roundMoney(signedAmount(values.balance || "0"), "USD"),
         od_limit: odUsd > 0 ? roundMoney(odUsd, "USD") : null,
         account_no: values.accountNo.trim() || null,
       },
       {
         currency: "KHR" as const,
-        balance: roundMoney(parseAmount(values.balanceKhr || "0"), "KHR"),
+        balance: roundMoney(signedAmount(values.balanceKhr || "0"), "KHR"),
         od_limit: odKhr > 0 ? roundMoney(odKhr, "KHR") : null,
         account_no: khrNo || null,
       },

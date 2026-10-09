@@ -56,6 +56,16 @@ export type CardSummary = {
   daysLeft: number | null
 }
 
+/** The safe share of a card's limit to use (the "30% rule" — also what credit scores reward). */
+export const SAFE_UTILIZATION = 0.3
+
+/** What is safe to owe on this card, and how much of what is owed is above it. */
+export function safeUse(s: Pick<CardSummary, "owed" | "limit">): { safeLimit: number; excess: number; over: boolean } {
+  const safeLimit = Math.round(s.limit * SAFE_UTILIZATION * 100) / 100
+  const excess = Math.max(0, Math.round((s.owed - safeLimit) * 100) / 100)
+  return { safeLimit, excess, over: excess > 0 }
+}
+
 export function cardSummary(w: Wallet, today: string): CardSummary | null {
   if (!isCard(w) || !w.credit_limit || !w.statement_day || !w.due_day) return null
   const owed = Math.max(0, -w.balance)
