@@ -19,7 +19,7 @@ import { formatMoney } from "@/lib/money"
 import { useProfile } from "@/lib/data/hooks"
 import { decodeQrText } from "@/lib/khqr-decode"
 import { cardName, guessRelationship, qrConfirmsId, type NssfCard } from "@/lib/nssf-card"
-import { cropCardImage, reportCrop } from "@/lib/card-crop-browser"
+import { cropCardImage, cropCardPhoto, reportCrop } from "@/lib/card-crop-browser"
 import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -206,16 +206,7 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
   }
 
   /** Only cut out (nothing to read): the back of a card, or a stored photo cropped again. */
-  const cropOnly = (side: "back" | "crop") => async (image: Blob): Promise<Blob | null> => {
-    const body = new FormData()
-    body.append("image", image, "card.jpg")
-    body.append("side", side)
-    const res = await fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null)
-    const json = (await res?.json().catch(() => null)) as { corners?: unknown; box?: unknown } | null
-    const crop = await cropCardImage(image, json?.corners, json?.box)
-    if (!crop.blob) reportCrop(side, crop.why)
-    return crop.blob
-  }
+  const cropOnly = (side: "back" | "crop") => (image: Blob) => cropCardPhoto(image, side)
 
   useEffect(() => {
     setForm(
@@ -231,7 +222,17 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
     try {
       await save.mutateAsync({
         id: member?.id,
-        input: { name: form.name.trim(), relationship: form.relationship, nssf_id: form.nssfId.trim() || null, front_path: form.front, back_path: form.back, is_active: form.active },
+        input: {
+          name: form.name.trim(),
+          relationship: form.relationship,
+          nssf_id: form.nssfId.trim() || null,
+          front_path: form.front,
+          back_path: form.back,
+          is_active: form.active,
+          // A photo set here was cropped (nothing else is stored); an untouched one keeps its flag.
+          front_cropped: Boolean(form.front) && (form.front !== member?.front_path || Boolean(member?.front_cropped)),
+          back_cropped: Boolean(form.back) && (form.back !== member?.back_path || Boolean(member?.back_cropped)),
+        },
       })
       toast.success(t("bills.saved"))
       onClose()
@@ -308,10 +309,65 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
 }
 
 /** /bills › NSSF cards: members, IDs with 1-tap copy, card photos; the count drives the NSSF bill suggestion. */
+/**
+ * Photos stored before cards were cropped (09/10): cropped now, on the owner's own phone (the
+ * photos are private — only their session can read them), replaced, and marked done. One try
+ * per side per visit; a photo where no card is found is left as it is (and reported).
+ */
+function useCropBackfill(members: NssfMember[]) {
+  const { save, uploadPhoto, removePhoto } = useNssfMutations()
+  const t = useT()
+  const tried = useRef(new Set<string>())
+  useEffect(() => {
+    const todo = members.flatMap((m) =>
+      (["front", "back"] as const).flatMap((side) => {
+        const path = side === "front" ? m.front_path : m.back_path
+        const done = side === "front" ? m.front_cropped : m.back_cropped
+        return path && !done && !tried.current.has(`${m.id}:${side}`) ? [{ m, side, path }] : []
+      }),
+    )
+    if (!todo.length) return
+    for (const { m, side } of todo) tried.current.add(`${m.id}:${side}`)
+    void (async () => {
+      let cropped = 0
+      for (const { m, side, path } of todo) {
+        try {
+          const url = await signedPhotoUrl(path)
+          const res = url ? await fetch(url, { cache: "no-store" }) : null
+          if (!res?.ok) continue
+          const card = await cropCardPhoto(await res.blob(), "crop")
+          if (!card) continue
+          const next = await uploadPhoto(card)
+          await save.mutateAsync({
+            id: m.id,
+            input: {
+              name: m.name,
+              relationship: m.relationship,
+              nssf_id: m.nssf_id,
+              front_path: side === "front" ? next : m.front_path,
+              back_path: side === "back" ? next : m.back_path,
+              is_active: m.is_active,
+              front_cropped: side === "front" ? true : Boolean(m.front_cropped),
+              back_cropped: side === "back" ? true : Boolean(m.back_cropped),
+            },
+          })
+          await removePhoto(path)
+          cropped += 1
+        } catch {
+          reportCrop(`backfill ${side}`, "failed")
+        }
+      }
+      if (cropped) toast.success(t("nssf.backfilled", { count: cropped }))
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs when the members change; `tried` keeps it to one try each
+  }, [members])
+}
+
 export function NssfVault() {
   const t = useT()
   const hidden = usePrefsStore((s) => s.hideBalances)
   const members = useNssfMembers().data ?? []
+  useCropBackfill(members)
   const [editing, setEditing] = useState<NssfMember | null | "new">(null)
   const [viewing, setViewing] = useState<string | null>(null)
   const active = members.filter((m) => m.is_active).length

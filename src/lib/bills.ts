@@ -262,10 +262,14 @@ export type NssfMember = {
   nssf_id: string | null
   front_path: string | null
   back_path: string | null
+  /** The stored photo is the card alone (cropped); older photos are cropped again by the owner's app. */
+  front_cropped?: boolean
+  back_cropped?: boolean
   is_active: boolean
   created_at: string
 }
-export type NssfMemberInput = Pick<NssfMember, "name" | "relationship" | "nssf_id" | "front_path" | "back_path" | "is_active">
+export type NssfMemberInput = Pick<NssfMember, "name" | "relationship" | "nssf_id" | "front_path" | "back_path" | "is_active"> &
+  Partial<Pick<NssfMember, "front_cropped" | "back_cropped">>
 
 /** Default self-employed contribution per member (editable on the bill). */
 export const NSSF_MONTHLY_PER_MEMBER = 15600
@@ -288,7 +292,6 @@ export function useNssfMembers() {
   })
 }
 
-/** A short-lived link to a card photo (private bucket). */
 /** A short-lived link to a stored card photo (to show it, or to crop it again). */
 export async function signedPhotoUrl(path: string): Promise<string | null> {
   const { data } = (await getSupabaseBrowserClient()?.storage.from(NSSF_BUCKET).createSignedUrl(path, 5 * 60)) ?? { data: null }

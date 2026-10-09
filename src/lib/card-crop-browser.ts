@@ -46,3 +46,15 @@ export async function cropCardImage(image: Blob, corners: unknown, box?: unknown
 export function reportCrop(side: string, why: string) {
   void fetch("/api/client-error", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: "nssf-crop", message: `${side}: ${why}` }) }).catch(() => null)
 }
+
+/** Vision finds the card in the photo (no reading of its text), then it is cut out. */
+export async function cropCardPhoto(image: Blob, side: "back" | "crop"): Promise<Blob | null> {
+  const body = new FormData()
+  body.append("image", image, "card.jpg")
+  body.append("side", side)
+  const res = await fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null)
+  const json = (await res?.json().catch(() => null)) as { corners?: unknown; box?: unknown } | null
+  const crop = await cropCardImage(image, json?.corners, json?.box)
+  if (!crop.blob) reportCrop(side, crop.why)
+  return crop.blob
+}

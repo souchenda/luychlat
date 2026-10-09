@@ -3384,4 +3384,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nssf.cropFailed": "未能找到卡片边缘，请重新拍摄完整卡片（带背景的照片不会保存）。",
   "nssf.recrop": "重新裁剪",
   "nssf.recropped": "已裁剪，只保留卡片",
+  "nssf.backfilled": "✂️ 已裁剪 {count} 张社保卡照片，只保留卡片",
 }
