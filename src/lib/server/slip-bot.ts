@@ -347,7 +347,7 @@ async function saveWithoutCategory(chatId: number, lang: Locale, pendingId: stri
   const r = result as { ok?: boolean; tx_id?: string } | null
   if (error || !r?.ok || !r.tx_id) return false
   const text = [
-    `✅ ${tr(lang, "bot.autoSaved")} ${formatMoney(info.amount, info.currency)}`,
+    `✅ ${tr(lang, "bot.autoSaved")} ${formatMoney(info.amount, info.currency)} ${tr(lang, "bot.savedToWallet")}`,
     `👛 ${walletLabel(wallet)}`,
     ...(info.party ? [`📍 ${info.party}`] : []),
     ...(info.note ? [`📝 ${info.note}`] : []),
