@@ -3,7 +3,8 @@ import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
 import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
 import { carReportText, parseTopUp, topUpCard, walletBalancesText, type CarReport, type WalletBalance } from "@/lib/bot/prepaid"
 import { isEvUsage } from "@/lib/bot/photo-route"
-import { kwhOf, parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
+import { homeChargeText, publicChargeSummary } from "@/lib/bot/ev-summary"
+import { EV_TAG, kwhOf, parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
 import { mealFor, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale } from "@/lib/i18n/dictionaries"
@@ -263,12 +264,20 @@ export async function logEvHome(chatId: number, text: string, lang: Locale, opts
     const msg = error.message ?? ""
     return /plan_required/.test(msg) ? tr(lang, "bot.cmdPro") : /commands_off/.test(msg) ? tr(lang, "bot.cmdOff") : /not_writable/.test(msg) ? tr(lang, "bot.cmdReadonly") : tr(lang, "bot.saveFailed")
   }
-  const r = data as { status: string; month_kwh: number; month_count: number }
+  const r = data as { status: string; month_kwh: number; month_count: number; rate?: number; khr_per_usd?: number }
   const month = tr(lang, "bot.evMonth", { count: r.month_count, total: Number(r.month_kwh) > 0 ? ` · ${Number(r.month_kwh)} kWh` : "" })
   if (r.status === "duplicate") return `${tr(lang, "bot.evDuplicate", { kwh: kwh ?? "" })}\n${month}`
   if (r.status !== "ok") return tr(lang, "bot.help")
-  // From a photo (a captioned photo or a car / charger screenshot): the short confirmation.
-  if (opts.photo && kwh) return `${tr(lang, "bot.evPhotoLogged", { kwh })}\n${month}`
+  // With the kWh: this session's cost and the month so far, at the electricity rate (an estimate — no wallet touched).
+  if (kwh)
+    return homeChargeText({
+      kwh,
+      rate: Number(r.rate ?? 0),
+      mtdKwh: Number(r.month_kwh),
+      mtdCount: Number(r.month_count),
+      khrPerUsd: Number(r.khr_per_usd ?? 4000),
+      photo: Boolean(opts.photo),
+    })
   return tr(lang, "bot.evHomeLogged", {
     kwh: kwh ? ` · ${kwh} kWh` : "",
     count: r.month_count,
@@ -495,6 +504,9 @@ export async function handleCallback(cb: Callback) {
       const saved = savedCard(lang, savedTx.id, taggedFrom(lang, row as TaggedRow))
       const text = savedTx.workspace ? `${saved.text}\n🏢 ${savedTx.workspace}` : saved.text
       await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(text).slice(0, 4000), reply_markup: saved.reply_markup })
+      // Public charging: this session and the month's vehicle energy (money lines only with numbers on).
+      const t = row as TaggedRow
+      if (t.note?.includes(EV_TAG) && t.amount) await sendPublicChargeSummary(chatId, { amount: Number(t.amount), currency: t.currency ?? "USD" })
       return
     }
   }
@@ -514,4 +526,22 @@ export async function sendCarReport(chatId: number, lang: Locale) {
   const now = new Date(Date.now() + 7 * 3_600_000)
   const month = `ខែ${MONTH_KM[now.getUTCMonth()]} ${now.getUTCFullYear()}`
   return sendText(chatId, carReportText(r, month))
+}
+
+/** After a public charge is saved: the session and the month's vehicle energy (bot_car_report keeps the numbers rule). */
+async function sendPublicChargeSummary(chatId: number, session: { amount: number; currency: "USD" | "KHR" }) {
+  const { data } = await botDb().rpc("bot_car_report", { p_key: botKey(), p_chat_id: chatId })
+  const r = data as (CarReport & { rate?: number; khr_per_usd?: number }) | null
+  if (!r || r.status !== "ok") return
+  await sendText(
+    chatId,
+    publicChargeSummary(session, {
+      numbers: Boolean(r.numbers),
+      publicUsd: Number(r.public_usd ?? 0),
+      homeKwh: Number(r.home_kwh ?? 0),
+      rate: Number(r.rate ?? 0),
+      khrPerUsd: Number(r.khr_per_usd ?? 4000),
+      evBalance: r.ev_balance == null ? null : Number(r.ev_balance),
+    }),
+  )
 }
