@@ -2,7 +2,8 @@
 import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
 import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
 import { carReportText, parseTopUp, topUpCard, walletBalancesText, type CarReport, type WalletBalance } from "@/lib/bot/prepaid"
-import { isEvHome, kwhOf, parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
+import { isEvUsage } from "@/lib/bot/photo-route"
+import { kwhOf, parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
 import { mealFor, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale } from "@/lib/i18n/dictionaries"
@@ -156,7 +157,7 @@ function card(lang: Locale, parsed: Parsed, ws: Workspace, pendingId: string, op
 }
 
 /** Saves the proposal in the database (it checks the plan and workspace) and returns its id. */
-async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { text: string; heard?: string; route: boolean; tags?: EntryTags }) {
+async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { text: string; heard?: string; route: boolean; tags?: EntryTags; receipt?: string }) {
   const base =
     parsed.kind === "REPAY"
       ? { kind: "REPAY", debt_id: parsed.debt.id, wallet_id: parsed.wallet.id, amount: parsed.amount, note: parsed.note }
@@ -172,7 +173,8 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
           need_want: extra.tags?.needWant ?? null,
         }
   // The parsed text (and transcript) are kept so the card can be re-done for another workspace.
-  const action = { ...base, text: extra.text, heard: extra.heard ?? null, ...(extra.route ? { workspace_id: ws.id } : {}) }
+  // A photo sent with the entry as its caption: kept as the entry's receipt (bot_confirm stores it).
+  const action = { ...base, text: extra.text, heard: extra.heard ?? null, ...(extra.receipt ? { receipt: extra.receipt } : {}), ...(extra.route ? { workspace_id: ws.id } : {}) }
   const { data, error } = await botDb().rpc("bot_propose", { p_key: botKey(), p_chat_id: chatId, p_action: action })
   return error || typeof data !== "string" ? null : data
 }
@@ -183,7 +185,7 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
  * user can see what was understood. ULTRA chats with routing on go to the
  * workspace named in the message (default Personal) and get a switcher.
  */
-export async function handleEntryMessage(chatId: number, text: string, ctx: Context, heard?: string) {
+export async function handleEntryMessage(chatId: number, text: string, ctx: Context, heard?: string, receipt?: string) {
   const lang = contextLocale(ctx)
   // A spoken question goes to LuyChlat AI (PRO); typed ones are routed in the webhook.
   if (heard && ctx.pro && (isAiQuestion(heard) || asksWhoOwesMe(heard) || asksForBalance(heard))) return handleAiQuestion(chatId, heard, lang)
@@ -216,7 +218,7 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
   }
 
   // EV charging at home: a usage log, never an expense (it's paid in the electricity bill).
-  if (isEvHome(text)) return reply(await logEvHome(chatId, text, lang))
+  if (isEvUsage(text)) return reply(await logEvHome(chatId, text, lang, receipt ? { photo: receipt } : {}))
 
   const parsed = parseEntry(input, { wallets: ws.wallets, categories: ws.categories, debts: ws.debts, rate: ws.rate })
   if (!parsed.ok) {
@@ -226,7 +228,7 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
   }
 
   const tags = entryTags(parsed, input)
-  const pendingId = await propose(chatId, parsed, ws, { text: input, heard, route, tags })
+  const pendingId = await propose(chatId, parsed, ws, { text: input, heard, route, tags, receipt })
   if (!pendingId) return reply(tr(lang, "bot.saveFailed"))
   const { text: body, reply_markup } = card(lang, parsed, ws, pendingId, { heard, switcher: route ? all : undefined, tags })
   return sendText(chatId, body, { reply_markup })

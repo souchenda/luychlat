@@ -19,7 +19,7 @@ import { sendNssfInfo } from "@/lib/server/nssf-bot"
 import { bestPhoto, handlePoolGroupCommand, handlePoolPhotoReply } from "@/lib/server/pool-bot"
 import { handleBankAlert, handleBankUndoCallback, isBankUndo } from "@/lib/server/bank-alert-bot"
 import { parseBankAlert } from "@/lib/bot/bank-alert"
-import { isEvHome } from "@/lib/bot/parse-entry"
+import { photoRoute } from "@/lib/bot/photo-route"
 import { isGiftMessage } from "@/lib/bot/parse-gift"
 import { handleGiftCallback, handleGiftLookup, handleGiftMessage, isGiftCallback } from "@/lib/server/gift-bot"
 import { botFeatures, featureOk, KEYBOARD_OFF, menuCommand, menuFor } from "@/lib/server/bot-menu"
@@ -370,7 +370,7 @@ export async function POST(request: Request) {
       const ctx = await botContext(chatId)
       if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
       // A home-charging caption ("សាកឡាននៅផ្ទះ 56.9kwh") isn't a bank slip: logged even where slips are still off.
-      else if (!(message.caption && isEvHome(message.caption)) && !featureOk(await botFeatures(chatId), "bank_slips")) await sendText(chatId, tr(contextLocale(ctx), "bot.featureSoon"))
+      else if (photoRoute(message.caption) === "slip" && !featureOk(await botFeatures(chatId), "bank_slips")) await sendText(chatId, tr(contextLocale(ctx), "bot.featureSoon"))
       else await handlePrivatePhoto(chatId, slipPhoto, message.caption)
     })
     return NextResponse.json({ ok: true })

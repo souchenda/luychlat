@@ -20,7 +20,8 @@ import { defaultNeedWant } from "@/lib/need-want"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
 import { convert, formatMoney } from "@/lib/money"
 import { blocked, botContext, contextLocale, handleEntryMessage, logEvHome, workspacesOf, type Context } from "@/lib/server/bot-commands"
-import { isEvHome, kwhOf, parseAmountText } from "@/lib/bot/parse-entry"
+import { parseAmountText } from "@/lib/bot/parse-entry"
+import { photoRoute } from "@/lib/bot/photo-route"
 import { MEAL_KEY, cleanNote, savedCard, tagTransaction, taggedFrom, type Tagged, type TaggedRow } from "@/lib/server/entry-card"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
@@ -678,14 +679,19 @@ export async function handleNoteReply(chatId: number, replyTo: number, text: str
 /** Webhook entry: a private photo from a linked chat (its caption becomes the note). */
 export async function handlePrivatePhoto(chatId: number, fileId: string, caption?: string | null) {
   const ctx = await botContext(chatId)
-  // The caption first: "សាកឡាននៅផ្ទះ 56.9kwh" on a photo logs the charge (the photo kept as evidence) —
-  // a charger screen is not a bank slip, so it must never end in "can't read this slip".
-  if (caption && isEvHome(caption) && kwhOf(caption)) {
+  // The human first: a caption says what the photo is for, so it is followed before the picture is
+  // read — the photo is then its evidence. Never "can't read this slip" for a clear caption.
+  const route = photoRoute(caption)
+  if (route !== "slip" && caption) {
     const lang = contextLocale(ctx)
     if (!ctx?.linked) return sendText(chatId, tr(lang, "bot.notLinked"))
-    const stop = blocked(ctx, lang)
-    if (stop) return sendText(chatId, stop)
-    return sendText(chatId, await logEvHome(chatId, caption, lang, { photo: fileId }))
+    // Home charging: logged now. An entry ("កាហ្វេ 2$"): its ✅ card, with the photo as the receipt.
+    if (route === "ev") {
+      const stop = blocked(ctx, lang)
+      if (stop) return sendText(chatId, stop)
+      return sendText(chatId, await logEvHome(chatId, caption, lang, { photo: fileId }))
+    }
+    return handleEntryMessage(chatId, caption.slice(0, 300), ctx, undefined, fileId)
   }
   return handleSlipPhoto(chatId, fileId, ctx, caption)
 }
