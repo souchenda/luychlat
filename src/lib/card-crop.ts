@@ -228,3 +228,66 @@ export function sharpen(px: Uint8ClampedArray, w: number, h: number, amount = 0.
   }
   return out
 }
+
+/**
+ * The card found on the phone itself, without Vision (when it is busy): the background's colour
+ * is read from the photo's border, and the card is the large region that differs from it — a card
+ * on a table, a desk or a bed sheet. Returns its box (tightened like Vision's), or null when no
+ * single card-shaped region stands out. Works on a ≤ 400 px sample, so it is quick.
+ */
+export function localCardBox(px: Uint8ClampedArray, width: number, height: number, inset = 0.02): Box | null {
+  const step = Math.max(1, Math.ceil(Math.max(width, height) / 400))
+  const cols = Math.floor(width / step)
+  const rows = Math.floor(height / step)
+  if (cols < 20 || rows < 20) return null
+  const at = (cx: number, cy: number) => ((cy * step) * width + cx * step) * 4
+  // The background: the median colour of the outer 4% frame.
+  const frame: number[][] = []
+  const edge = Math.max(1, Math.round(Math.min(cols, rows) * 0.04))
+  for (let cy = 0; cy < rows; cy++)
+    for (let cx = 0; cx < cols; cx++)
+      if (cx < edge || cy < edge || cx >= cols - edge || cy >= rows - edge) {
+        const i = at(cx, cy)
+        frame.push([px[i], px[i + 1], px[i + 2]])
+      }
+  const median = (k: number) => frame.map((c) => c[k]).sort((a, b) => a - b)[frame.length >> 1]
+  const bg = [median(0), median(1), median(2)]
+  // How far each sample is from the background, and a threshold above the frame's own spread.
+  const far = (i: number) => Math.hypot(px[i] - bg[0], px[i + 1] - bg[1], px[i + 2] - bg[2])
+  const spread = frame.map((c) => Math.hypot(c[0] - bg[0], c[1] - bg[1], c[2] - bg[2])).sort((a, b) => a - b)[Math.floor(frame.length * 0.9)]
+  const threshold = Math.max(45, spread * 1.5)
+  const colCount = new Array<number>(cols).fill(0)
+  const rowCount = new Array<number>(rows).fill(0)
+  for (let cy = 0; cy < rows; cy++)
+    for (let cx = 0; cx < cols; cx++)
+      if (far(at(cx, cy)) > threshold) {
+        colCount[cx]++
+        rowCount[cy]++
+      }
+  // The card's span: the longest run of columns / rows well covered by "not background".
+  const span = (counts: number[], other: number): [number, number] | null => {
+    const need = other * 0.25
+    let best: [number, number] | null = null
+    let start = -1
+    for (let i = 0; i <= counts.length; i++) {
+      if (i < counts.length && counts[i] >= need) {
+        if (start < 0) start = i
+      } else if (start >= 0) {
+        if (!best || i - start > best[1] - best[0]) best = [start, i]
+        start = -1
+      }
+    }
+    return best
+  }
+  const xs = span(colCount, rows)
+  const ys = span(rowCount, cols)
+  if (!xs || !ys) return null
+  const box = { x: xs[0] * step, y: ys[0] * step, w: (xs[1] - xs[0]) * step, h: (ys[1] - ys[0]) * step }
+  if (box.w * box.h < 0.08 * width * height || box.w * box.h > 0.97 * width * height) return null
+  const ratio = box.w / box.h
+  const cardish = (r: number) => r >= CARD_RATIO * 0.7 && r <= CARD_RATIO * 1.3
+  if (!cardish(ratio) && !cardish(1 / ratio)) return null
+  const dx = Math.round(box.w * inset)
+  const dy = Math.round(box.h * inset)
+  return { x: box.x + dx, y: box.y + dy, w: box.w - 2 * dx, h: box.h - 2 * dy }
+}

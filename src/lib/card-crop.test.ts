@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { applyH, CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, homography, orderCorners, sharpen, warpCard, type Quad } from "./card-crop"
+import { applyH, CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, homography, localCardBox, orderCorners, sharpen, warpCard, type Quad } from "./card-crop"
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`)
 
@@ -84,5 +84,33 @@ describe("NSSF card auto-crop", () => {
     const out = sharpen(px, 5, 5)
     assert.equal(out[(2 * 5 + 2) * 4], 100)
     assert.equal(out[(2 * 5 + 2) * 4 + 3], 100)
+  })
+})
+
+describe("NSSF card crop without Vision (when it is busy)", () => {
+  // A 600 × 450 photo: an orange table with light grain, a pale card from (150, 110) to (450, 300).
+  const W = 600
+  const H = 450
+  const photo = new Uint8ClampedArray(W * H * 4)
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4
+      const inCard = x >= 150 && x < 450 && y >= 110 && y < 300
+      const grain = (y % 9 < 4 ? 12 : 0) + ((x * 7) % 5)
+      photo.set(inCard ? [235, 242, 236, 255] : [200 - grain, 100 - grain / 2, 42, 255], i)
+    }
+  it("finds the card on the table and crops inside it", () => {
+    const box = localCardBox(photo, W, H)
+    assert.ok(box, "card found")
+    assert.ok(box!.x >= 150 && box!.y >= 110 && box!.x + box!.w <= 450 && box!.y + box!.h <= 300, JSON.stringify(box))
+    assert.ok(box!.w > 270 && box!.h > 170, JSON.stringify(box))
+    const out = cropBox(photo, W, box!)
+    let table = 0
+    for (let i = 0; i < out.length; i += 4) if (out[i + 2] < 100) table++
+    assert.equal(table, 0, "no table pixel left")
+  })
+  it("a photo with no card standing out: nothing", () => {
+    const plain = new Uint8ClampedArray(W * H * 4).fill(180)
+    assert.equal(localCardBox(plain, W, H), null)
   })
 })

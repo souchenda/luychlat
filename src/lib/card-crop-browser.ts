@@ -1,8 +1,8 @@
 "use client"
 
-import { CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, loosen, sharpen, warpCard } from "@/lib/card-crop"
+import { CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, localCardBox, loosen, sharpen, warpCard } from "@/lib/card-crop"
 
-export type CropResult = { blob: Blob; how: "warp" | "box" } | { blob: null; why: string }
+export type CropResult = { blob: Blob; how: "warp" | "box" | "local" } | { blob: null; why: string }
 
 /**
  * The card cut out of a photo as a JPEG: straightened from its 4 corners when they are clear,
@@ -13,13 +13,6 @@ export async function cropCardImage(image: Blob, corners: unknown, box?: unknown
   try {
     const bitmap = await createImageBitmap(image)
     const { width, height } = bitmap
-    const boxPx = cleanBox(box, width, height)
-    const quad = cleanCorners(corners, width, height, boxPx)
-    const rect = quad ? null : boxPx
-    if (!quad && !rect) {
-      bitmap.close()
-      return { blob: null, why: `no usable corners${corners ? "" : " (none)"} / box${box ? "" : " (none)"} on ${width}x${height}` }
-    }
     const canvas = document.createElement("canvas")
     canvas.width = width
     canvas.height = height
@@ -28,6 +21,12 @@ export async function cropCardImage(image: Blob, corners: unknown, box?: unknown
     ctx.drawImage(bitmap, 0, 0)
     bitmap.close()
     const src = ctx.getImageData(0, 0, width, height)
+    const boxPx = cleanBox(box, width, height)
+    const quad = cleanCorners(corners, width, height, boxPx)
+    // Vision's box; else (Vision busy, or no box) the card found on the phone from the background's colour.
+    const local = quad || boxPx ? null : localCardBox(src.data, width, height)
+    const rect = quad ? null : (boxPx ?? local)
+    if (!quad && !rect) return { blob: null, why: `no usable corners${corners ? "" : " (none)"} / box${box ? "" : " (none)"} / no card found locally on ${width}x${height}` }
     const [px, w, h] = quad
       ? [sharpen(warpCard(src.data, width, height, loosen(quad, width, height)), CARD_W, CARD_H), CARD_W, CARD_H]
       : [sharpen(cropBox(src.data, width, rect!), rect!.w, rect!.h), rect!.w, rect!.h]
@@ -36,7 +35,7 @@ export async function cropCardImage(image: Blob, corners: unknown, box?: unknown
     out.height = h
     out.getContext("2d")!.putImageData(new ImageData(new Uint8ClampedArray(px), w, h), 0, 0)
     const blob = await new Promise<Blob | null>((resolve) => out.toBlob((b) => resolve(b), "image/jpeg", 0.92))
-    return blob ? { blob, how: quad ? "warp" : "box" } : { blob: null, why: "encode failed" }
+    return blob ? { blob, how: quad ? "warp" : local ? "local" : "box" } : { blob: null, why: "encode failed" }
   } catch (e) {
     return { blob: null, why: (e as Error).message?.slice(0, 80) || "crop failed" }
   }
