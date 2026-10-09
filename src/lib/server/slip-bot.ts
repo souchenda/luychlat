@@ -2,12 +2,18 @@
 // amount, currency, bank and date → a card with one-tap category buttons →
 // one tap saves it (with the slip's date and time, and the photo kept as the receipt).
 // The saved card then offers the meal (food, guessed from the time) and Need / Want.
+// Zero-click (founder, 09/10): when the payee is one the user has categorised before, or an
+// unmistakable café / restaurant / fuel station / mart, and the wallet is certain, the slip is
+// saved at once with [🍲 ប្តូរជាម្ហូបអាហារ] [🔄 ប្រភេទផ្សេង] [🗑️ លុប] — every choice is learned.
 //
 // Privacy: only the slip photo goes to Gemini (the same server key as voice
 // notes) — or, while Gemini is overloaded, to Groq's vision model (Groq already
 // transcribes voice notes); wallets and categories are matched here. The card is plain text and
 // passes through maskNumbers (account numbers on the slip never echo back).
-import { categoryFor, cleanSlip, isFoodChoice, mealFor, resolveWallet, slipChoices, walletLabel, type Meal, type Slip } from "@/lib/bot/bank-slip"
+import { categoryFor, cleanSlip, isFoodChoice, mealFor, resolveWallet, slipChoices, SLIP_OUT, walletLabel, type Meal, type Slip, type SlipChoice } from "@/lib/bot/bank-slip"
+import { autoDecision, choiceIndex, choiceKey, merchantKey, type Remembered } from "@/lib/bot/slip-auto"
+import type { BotCategory } from "@/lib/bot/parse-entry"
+import { categoryLabel } from "@/lib/categories/presets"
 import { handleBillPhoto } from "@/lib/server/bill-bot"
 import type { BotWallet } from "@/lib/bot/parse-entry"
 import { defaultNeedWant } from "@/lib/need-want"
@@ -260,13 +266,162 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   const { data: pendingId, error } = await botDb().rpc("bot_propose", { p_key: botKey(), p_chat_id: chatId, p_action: action })
   if (error || typeof pendingId !== "string") return sendText(chatId, tr(lang, "bot.saveFailed"))
 
+  // Zero-click: a known payee and a certain wallet → saved now, with override buttons.
+  if (wallet && kind === "EXPENSE" && (await autoSaveSlip(chatId, lang, pendingId, ws, wallet, info, action.meal, time))) return
+
   const card = slipCard(lang, pendingId, info, wallet, choices, ws.rate)
   return sendText(chatId, card.text, { reply_markup: card.reply_markup })
 }
 
+/** Tags that ride on a note ("☕ កាហ្វេ/ភេសជ្ជៈ · …"), in every language — taken off when the category changes. */
+const NOTE_TAGS = SLIP_OUT.filter((c) => c.tag).flatMap((c) => (["km", "en", "zh"] as Locale[]).map((l) => tr(l, c.label as MessageKey)))
+
+/** The category a choice means in this workspace (the user's remembered one wins). */
+function categoryOf(choice: SlipChoice | null, ws: { categories: BotCategory[] }, rememberedId?: string): BotCategory | null {
+  if (rememberedId) return ws.categories.find((c) => c.id === rememberedId && c.type === "EXPENSE") ?? null
+  return choice ? categoryFor(choice, "EXPENSE", ws.categories) : null
+}
+
+/**
+ * Zero-click save of a slip whose payee is known (memory, else payee rules). False = not
+ * sure (or the save failed): the usual card with category buttons is shown instead.
+ */
+async function autoSaveSlip(
+  chatId: number,
+  lang: Locale,
+  pendingId: string,
+  ws: { id: string; categories: BotCategory[] },
+  wallet: BotWallet,
+  info: SlipInfo,
+  slipMeal: Meal | null,
+  time: string | null,
+): Promise<boolean> {
+  const key = merchantKey(info.party)
+  const recalled = key ? ((await botDb().rpc("bot_merchant_recall", { p_key: botKey(), p_chat_id: chatId, p_merchant: key, p_workspace_id: ws.id })).data as Remembered | null) : null
+  const decision = autoDecision(info.party, time, recalled)
+  if (!decision) return false
+  const key2 = decision.source === "memory" ? decision.remembered.choice : decision.choice
+  const choice = key2 && choiceIndex(key2) >= 0 ? SLIP_OUT[choiceIndex(key2)] : null
+  const category = categoryOf(choice, ws, decision.source === "memory" ? decision.remembered.category_id : undefined)
+  if (!category) return false
+  const label = choice ? tr(lang, choice.label as MessageKey) : categoryLabel(category, lang)
+  const { data: result, error } = await botDb().rpc("bot_confirm_category", {
+    p_key: botKey(),
+    p_chat_id: chatId,
+    p_pending_id: pendingId,
+    p_category_id: category.id,
+    p_note_tag: choice?.tag ? label : null,
+  })
+  const r = result as { ok?: boolean; tx_id?: string } | null
+  if (error || !r?.ok || !r.tx_id) return false
+
+  const food = choice ? isFoodChoice(choice) : category.preset_key === "food"
+  const meal: Meal | null = food ? (choice?.tag ? "snack" : slipMeal) : null
+  const needWant =
+    (decision.source === "memory" ? decision.remembered.need_want : null) ??
+    defaultNeedWant({ preset: category.preset_key, meal, text: [label, info.party, info.note].filter(Boolean).join(" ") })
+  if (meal || needWant) await tagTransaction(chatId, r.tx_id, meal, needWant)
+  // Learned from the rules too: next time it's the user's own habit (and an override replaces it).
+  if (key) await botDb().rpc("bot_merchant_learn", { p_key: botKey(), p_chat_id: chatId, p_merchant: key, p_category_id: category.id, p_choice: key2 ?? null, p_need_want: needWant })
+
+  const card = autoCard(lang, r.tx_id, { amount: info.amount, currency: info.currency, label, needWant, wallet: walletLabel(wallet), party: info.party, note: info.note ?? null, food })
+  await sendText(chatId, card.text, { reply_markup: card.reply_markup })
+  logEvent("info", "slips", `Slip saved without a tap (${decision.source === "memory" ? "user's habit" : "payee rule"})`, { fold: true })
+  return true
+}
+
+/**
+ * ✅ បានកត់ត្រា 11,500៛ (☕ កាហ្វេ/ភេសជ្ជៈ · ✨ ចំណង់)
+ * 👛 អេស៊ីលីដា •••• 4222 KHR
+ * 📍 360 DEGREE COFFEE
+ * [🍲 ប្តូរជាម្ហូបអាហារ] [🔄 ប្រភេទផ្សេង] [🗑️ លុប]
+ */
+function autoCard(
+  lang: Locale,
+  txId: string,
+  t: { amount: number; currency: "USD" | "KHR"; label: string; needWant: "NEED" | "WANT" | null; wallet: string; party: string | null; note: string | null; food: boolean },
+) {
+  const nw = t.needWant ? ` · ${tr(lang, t.needWant === "NEED" ? "bot.need" : "bot.want")}` : ""
+  const text = [
+    `✅ ${tr(lang, "bot.autoSaved")} ${formatMoney(t.amount, t.currency)} (${t.label}${nw})`,
+    `👛 ${t.wallet}`,
+    ...(t.party ? [`📍 ${t.party}`] : []),
+    ...(t.note ? [`📝 ${t.note}`] : []),
+  ].join("\n")
+  const row = [
+    ...(t.food ? [] : [{ text: tr(lang, "bot.autoToFood"), callback_data: `sa:${txId}:f` }]),
+    { text: tr(lang, "bot.autoOther"), callback_data: `sa:${txId}:o` },
+    { text: tr(lang, "bot.autoDelete"), callback_data: `sa:${txId}:x` },
+  ]
+  return { text: maskNumbers(text), reply_markup: { inline_keyboard: [row] } }
+}
+
+/** sa:<tx>:f (to food) · o (show categories) · c<i> (that category) · x (delete) — on a zero-click card. */
+async function handleAutoCallback(cb: Callback) {
+  const answer = (text?: string, alert = false) => tg("answerCallbackQuery", { callback_query_id: cb.id, ...(text ? { text: text.slice(0, 190), show_alert: alert } : {}) })
+  const [, txId, op] = (cb.data ?? "").split(":", 3)
+  const chatId = cb.message?.chat.id
+  if (!chatId || cb.message?.chat.type !== "private" || !UUID.test(txId ?? "") || !/^(f|o|x|c\d)$/.test(op ?? "")) return answer()
+  const ctx = await botContext(chatId)
+  const lang: Locale = contextLocale(ctx)
+  if (!ctx?.linked) return answer(tr(lang, "bot.notLinked"), true)
+  const edit = (text: string, reply_markup?: unknown) =>
+    tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(text), ...(reply_markup ? { reply_markup } : {}) }).catch(() => null)
+
+  if (op === "x") {
+    const { data, error } = await botDb().rpc("bot_slip_delete", { p_key: botKey(), p_chat_id: chatId, p_tx_id: txId })
+    const r = data as { ok?: boolean; amount?: number; currency?: "USD" | "KHR" } | null
+    if (error || !r?.ok) return answer(tr(lang, error ? "bot.saveFailed" : "bot.expired"), true)
+    await answer(tr(lang, "bot.autoDeleted"))
+    return edit(`🗑️ ${tr(lang, "bot.autoDeleted")} ${formatMoney(Number(r.amount), r.currency ?? "USD")}`)
+  }
+  if (op === "o") {
+    // The category buttons, in place of the overrides (plus delete).
+    const buttons = SLIP_OUT.map((c, i) => ({ text: tr(lang, c.label as MessageKey), callback_data: `sa:${txId}:c${i}` }))
+    const keyboard: { text: string; callback_data: string }[][] = []
+    for (let i = 0; i < buttons.length; i += 2) keyboard.push(buttons.slice(i, i + 2))
+    keyboard.push([{ text: tr(lang, "bot.autoDelete"), callback_data: `sa:${txId}:x` }])
+    await answer()
+    return tg("editMessageReplyMarkup", { chat_id: chatId, message_id: cb.message!.message_id, reply_markup: { inline_keyboard: keyboard } }).catch(() => null)
+  }
+
+  const choice = op === "f" ? SLIP_OUT[choiceIndex("food")] : SLIP_OUT[Number(op.slice(1))]
+  const ws = workspacesOf(ctx)[0]
+  const category = choice ? categoryOf(choice, ws) : null
+  if (!choice || !category) return answer(tr(lang, "bot.saveFailed"), true)
+  const label = tr(lang, choice.label as MessageKey)
+  const food = isFoodChoice(choice)
+  const needWant = defaultNeedWant({ preset: category.preset_key, meal: food ? "lunch" : null, text: label })
+  const { data, error } = await botDb().rpc("bot_slip_recategorize", {
+    p_key: botKey(),
+    p_chat_id: chatId,
+    p_tx_id: txId,
+    p_category_id: category.id,
+    p_note_tag: choice.tag ? label : null,
+    p_strip_tags: NOTE_TAGS,
+    p_subcategory: food ? (choice.tag ? "snack" : "auto") : null,
+    p_need_want: needWant,
+    p_choice: choiceKey(choice.label),
+  })
+  const r = data as { ok?: boolean; merchant?: string | null } | null
+  if (error || !r?.ok) return answer(tr(lang, error ? "bot.saveFailed" : "bot.expired"), true)
+  await answer(tr(lang, "bot.autoLearned"))
+  // The card says what it is now; the overrides stay (another change is one tap away).
+  const old = (cb.message as { text?: string } | undefined)?.text ?? ""
+  const rest = old.split("\n").slice(1).join("\n")
+  const nw = needWant ? ` · ${tr(lang, needWant === "NEED" ? "bot.need" : "bot.want")}` : ""
+  const amount = /\(([^)]*)\)/.exec(old.split("\n")[0] ?? "") ? old.split("\n")[0].replace(/\([^)]*\)\s*$/, `(${label}${nw})`) : old.split("\n")[0]
+  const row = [
+    ...(food ? [] : [{ text: tr(lang, "bot.autoToFood"), callback_data: `sa:${txId}:f` }]),
+    { text: tr(lang, "bot.autoOther"), callback_data: `sa:${txId}:o` },
+    { text: tr(lang, "bot.autoDelete"), callback_data: `sa:${txId}:x` },
+  ]
+  return edit([amount, rest].filter(Boolean).join("\n"), { inline_keyboard: [row] })
+}
+
 // sw:<pending>:<i> picks the wallet when unsure; sc:<pending>:<choice> saves a slip;
-// st:<transaction>:<b|l|d|s|N|W> re-tags it from the saved card.
-export const isSlipCallback = (data: string | undefined) => /^s[wct]:/.test(data ?? "")
+// st:<transaction>:<b|l|d|s|N|W> re-tags it from the saved card; sa:<transaction>:… overrides a zero-click save.
+export const isSlipCallback = (data: string | undefined) => /^s[wcta]:/.test(data ?? "")
 
 type Callback = { id: string; data?: string; message?: { message_id: number; chat: { id: number; type: string } } }
 type Pending = {
@@ -284,6 +439,7 @@ type Pending = {
 /** A category button under a slip card: save with that category, then show the result on the card. */
 export async function handleSlipCallback(cb: Callback) {
   if (cb.data?.startsWith("st:")) return handleTagCallback(cb)
+  if (cb.data?.startsWith("sa:")) return handleAutoCallback(cb)
   if (cb.data?.startsWith("sw:")) return handleWalletCallback(cb)
   const answer = (text?: string, alert = false) => tg("answerCallbackQuery", { callback_query_id: cb.id, ...(text ? { text: text.slice(0, 190), show_alert: alert } : {}) })
   const [, pendingId, index] = (cb.data ?? "").split(":", 3)
@@ -332,6 +488,10 @@ export async function handleSlipCallback(cb: Callback) {
   // Need vs Want pre-selected (meals, fuel, rent… are needs; coffee, entertainment… wants); one tap switches it.
   const needWant = action.kind === "EXPENSE" ? defaultNeedWant({ preset: category.preset_key, meal, text: [action.slip?.party, action.slip?.note].filter(Boolean).join(" ") }) : null
   if ((meal || needWant) && r.tx_id) await tagTransaction(chatId, r.tx_id, meal, needWant)
+  // A tap teaches the bot: next time this payee is saved without asking.
+  const merchant = merchantKey(action.slip?.party)
+  if (merchant && action.kind === "EXPENSE")
+    await botDb().rpc("bot_merchant_learn", { p_key: botKey(), p_chat_id: chatId, p_merchant: merchant, p_category_id: category.id, p_choice: choiceKey(choice.label), p_need_want: needWant })
   const booked = ws?.wallets.find((w) => w.id === action.wallet_id)
   const tagged: Tagged = {
     amount: Number(action.amount),
