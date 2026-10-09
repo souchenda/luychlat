@@ -64,8 +64,8 @@ const GENERIC = new Set(["bank", "account", "wallet", "card", "usd", "khr", "the
 // at a public station it is a transport expense tagged "⚡ សាកភ្លើង EV".
 const EV_WORDS = ["សាកឡាន", "សាកភ្លើង", "សាកថ្ម", "សាកនៅផ្ទះ", "ev", "charging", "充电"]
 const HOME_WORDS = ["នៅផ្ទះ", "ផ្ទះ", "home", "在家", "家里", "家充"]
-/** kWh figures ("30kwh", "30 គីឡូវ៉ាត់", "30度") — never read as money. */
-const KWH = /(\d+(?:[.,]\d+)?)\s*(kwh|kw\/h|គីឡូវ៉ាត់(?:ម៉ោង)?|度)/i
+/** kWh figures ("30kwh", "56.9 kW·h", "30 គីឡូវ៉ាត់", "30度") — never read as money. */
+const KWH = /(\d+(?:[.,]\d+)?)\s*(kwh|kw\/h|kw[·.\-]h|គីឡូវ៉ាត់(?:ម៉ោង)?|度)/i
 export const EV_TAG = "⚡ សាកភ្លើង EV"
 
 export const isEvCharge = (message: string) => hasAny(toLatinDigits(message).toLowerCase(), EV_WORDS)

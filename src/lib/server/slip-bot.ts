@@ -19,7 +19,8 @@ import type { BotWallet } from "@/lib/bot/parse-entry"
 import { defaultNeedWant } from "@/lib/need-want"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
 import { convert, formatMoney } from "@/lib/money"
-import { blocked, botContext, contextLocale, workspacesOf, type Context } from "@/lib/server/bot-commands"
+import { blocked, botContext, contextLocale, handleEntryMessage, logEvHome, workspacesOf, type Context } from "@/lib/server/bot-commands"
+import { isEvHome, kwhOf, parseAmountText } from "@/lib/bot/parse-entry"
 import { MEAL_KEY, cleanNote, savedCard, tagTransaction, taggedFrom, type Tagged, type TaggedRow } from "@/lib/server/entry-card"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
@@ -58,11 +59,12 @@ const PROMPT = [
   "consumer: for a bill payment / top-up, the consumer ID or phone number paid for, as printed; null otherwise.",
   "ref: the slip's own transaction ID / reference / hash as printed (\"Trx. ID\", \"Reference #\", \"Hash\", \"លេខយោង\"), e.g. \"000234726282C4VF\"; null if not shown.",
   "to_account: the account or phone number the money went TO (\"To account\", \"ទៅគណនី\", the recipient's number), as printed; null if not shown.",
+  'An EV CHARGING SCREEN (a car or charger app — e.g. "MG Marvel R", "Charging complete", "kW·h" / "kWh", a daily energy history) is not a slip: answer {"is_slip": false, "ev_charge": true, "kwh": number, "date": "YYYY-MM-DD" | null} — kwh: the energy charged on the latest (or highlighted) day; date: that day.',
   'A PAPER UTILITY BILL to be paid (electricity / water: EDC, AKISANI KOUR SROV, PPWSA — an invoice with an amount due and a due date, not a receipt of a payment) is not a slip: answer {"is_slip": false, "utility_bill": true}.',
   'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
-type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" }
+type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" } | { error: "ev_charge"; kwh: number; date: string | null }
 
 export type Answer = { text: string } | { fail: string }
 
@@ -147,6 +149,16 @@ export async function readSlip(fileId: string): Promise<ReadResult> {
     }
     // A paper electricity / water bill, not a payment: the bill reader takes it (bill-bot.ts).
     if ((raw as { utility_bill?: unknown })?.utility_bill === true) return { error: "utility_bill" }
+    // An EV charging screenshot: its day's kWh goes to the home charging log.
+    const ev = raw as { ev_charge?: unknown; kwh?: unknown; date?: unknown }
+    if (ev?.ev_charge === true) {
+      const kwh = Number(ev.kwh)
+      if (Number.isFinite(kwh) && kwh > 0 && kwh <= 500) {
+        const date = typeof ev.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(ev.date) ? ev.date : null
+        return { error: "ev_charge", kwh: Math.round(kwh * 100) / 100, date }
+      }
+      return { error: "unreadable" }
+    }
     const slip = cleanSlip(raw)
     if (slip) return { slip }
     // A definite answer ("not a receipt" / no amount): the photo is the problem, not the reader.
@@ -227,6 +239,11 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
     clearInterval(keepTyping)
   }
   if ("error" in read && read.error === "utility_bill") return handleBillPhoto(chatId, fileId, ctx)
+  if ("error" in read && read.error === "ev_charge") {
+    return sendText(chatId, await logEvHome(chatId, `⚡ ${read.kwh} kWh · screenshot`, lang, { photo: fileId, day: read.date, kwh: read.kwh }))
+  }
+  // Not a readable slip, but the caption is an entry ("កាហ្វេ 2$"): record it as typed instead of failing.
+  if ("error" in read && read.error === "unreadable" && caption && parseAmountText(caption)) return handleEntryMessage(chatId, caption.slice(0, 300), ctx)
   if ("error" in read) return sendText(chatId, tr(lang, read.error === "busy" ? "bot.slipBusy" : "bot.slipUnreadable"))
   const slip = read.slip
 
@@ -661,5 +678,14 @@ export async function handleNoteReply(chatId: number, replyTo: number, text: str
 /** Webhook entry: a private photo from a linked chat (its caption becomes the note). */
 export async function handlePrivatePhoto(chatId: number, fileId: string, caption?: string | null) {
   const ctx = await botContext(chatId)
+  // The caption first: "សាកឡាននៅផ្ទះ 56.9kwh" on a photo logs the charge (the photo kept as evidence) —
+  // a charger screen is not a bank slip, so it must never end in "can't read this slip".
+  if (caption && isEvHome(caption) && kwhOf(caption)) {
+    const lang = contextLocale(ctx)
+    if (!ctx?.linked) return sendText(chatId, tr(lang, "bot.notLinked"))
+    const stop = blocked(ctx, lang)
+    if (stop) return sendText(chatId, stop)
+    return sendText(chatId, await logEvHome(chatId, caption, lang, { photo: fileId }))
+  }
   return handleSlipPhoto(chatId, fileId, ctx, caption)
 }

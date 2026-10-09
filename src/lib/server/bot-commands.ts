@@ -247,15 +247,26 @@ export function asksForBalance(text: string) {
 }
 
 /** "សាកឡាននៅផ្ទះ 30kwh": logs the charge (kWh), not money, and says this month's total. */
-async function logEvHome(chatId: number, text: string, lang: Locale): Promise<string> {
-  const kwh = kwhOf(text)
-  const { data, error } = await botDb().rpc("bot_log_ev_home", { p_key: botKey(), p_chat_id: chatId, p_kwh: kwh, p_note: text.slice(0, 200) })
+export async function logEvHome(chatId: number, text: string, lang: Locale, opts: { photo?: string; day?: string | null; kwh?: number | null } = {}): Promise<string> {
+  const kwh = opts.kwh ?? kwhOf(text)
+  const { data, error } = await botDb().rpc("bot_log_ev_home", {
+    p_key: botKey(),
+    p_chat_id: chatId,
+    p_kwh: kwh,
+    p_note: text.slice(0, 200),
+    p_photo: opts.photo ?? null,
+    p_day: opts.day ?? null,
+  })
   if (error) {
     const msg = error.message ?? ""
     return /plan_required/.test(msg) ? tr(lang, "bot.cmdPro") : /commands_off/.test(msg) ? tr(lang, "bot.cmdOff") : /not_writable/.test(msg) ? tr(lang, "bot.cmdReadonly") : tr(lang, "bot.saveFailed")
   }
   const r = data as { status: string; month_kwh: number; month_count: number }
+  const month = tr(lang, "bot.evMonth", { count: r.month_count, total: Number(r.month_kwh) > 0 ? ` · ${Number(r.month_kwh)} kWh` : "" })
+  if (r.status === "duplicate") return `${tr(lang, "bot.evDuplicate", { kwh: kwh ?? "" })}\n${month}`
   if (r.status !== "ok") return tr(lang, "bot.help")
+  // From a photo (a captioned photo or a car / charger screenshot): the short confirmation.
+  if (opts.photo && kwh) return `${tr(lang, "bot.evPhotoLogged", { kwh })}\n${month}`
   return tr(lang, "bot.evHomeLogged", {
     kwh: kwh ? ` · ${kwh} kWh` : "",
     count: r.month_count,
