@@ -6,6 +6,7 @@
 // to the group by the dispatcher. Only the pool's own wallet is ever shown.
 // Receipt photos: /spend as a photo caption, or a photo sent as a reply to an
 // expense card; kept on Telegram (<keeper>/tg/<file id>), shown through the app.
+import { duplicateSlipText } from "./pool-flow"
 import { parseAmountText, toLatinDigits } from "@/lib/bot/parse-entry"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
@@ -187,8 +188,10 @@ export async function handlePoolGroupCommand(chatId: number, fromId: number | un
     p_note: note || null,
     p_photo: photoId,
   })
-  const r = data as { status: string; pool_id?: string } | null
+  const r = data as { status: string; pool_id?: string; amount?: number; currency?: "USD" | "KHR"; note?: string | null; balance?: number; balance_currency?: "USD" | "KHR" } | null
   if (r?.status === "ok") await flushPoolPosts(r.pool_id)
+  // The same slip photo twice: nothing spent again.
+  else if (r?.status === "duplicate") await sendText(chatId, duplicateSlipText(r, null))
   else await sendText(chatId, tr(lang, r?.status === "not_keeper" ? "pool.bot.notKeeper" : r?.status === "no_pool" ? "pool.bot.closedNoSpend" : "pool.bot.spendHelp"))
   return true
 }

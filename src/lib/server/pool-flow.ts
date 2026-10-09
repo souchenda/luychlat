@@ -119,6 +119,16 @@ const sameName = (a: string | null | undefined, b: string | null | undefined) =>
  * question; a slip of the keeper paying someone else → spent from the pool.
  * Photos that aren't bank slips (family pictures…) are left alone.
  */
+/** "⚠️ ស្លីបនេះបានកត់ត្រារួចហើយ! (មិនកាត់ប្រាក់ស្ទួនឡើយ)" — with what it was and what is left. */
+export function duplicateSlipText(r: { amount?: number; currency?: "USD" | "KHR"; note?: string | null; balance?: number; balance_currency?: "USD" | "KHR" }, party: string | null | undefined): string {
+  const payee = party || r.note || "—"
+  return [
+    "⚠️ ស្លីបនេះបានកត់ត្រារួចហើយ! (មិនកាត់ប្រាក់ស្ទួនឡើយ)",
+    `🧾 ចំណាយ៖ ${payee} (${formatMoney(Number(r.amount ?? 0), r.currency ?? "USD")})`,
+    `💰 នៅសល់ក្នុងបេឡា៖ ${formatMoney(Number(r.balance ?? 0), r.balance_currency ?? r.currency ?? "USD")}`,
+  ].join("\n")
+}
+
 export async function handlePoolSlip(chatId: number, photo: { fileId: string; fileUniqueId: string | null; messageId: number; fromId: number; caption: string | null }): Promise<boolean> {
   const p = await groupSnapshot(chatId)
   if (!p || p.status !== "active") return false
@@ -142,7 +152,15 @@ export async function handlePoolSlip(chatId: number, photo: { fileId: string; fi
       p_note: note,
       p_photo: photo.fileId,
       p_preset: poolPreset(`${note ?? ""}`),
+      // The same slip twice (its Trx ID, or the same photo) is never spent twice.
+      p_ref: slip.ref ?? null,
+      p_unique: photo.fileUniqueId,
     })
+    const spent = data as { status?: string; amount?: number; currency?: "USD" | "KHR"; note?: string | null; balance?: number; balance_currency?: "USD" | "KHR" } | null
+    if (spent?.status === "duplicate") {
+      await tg("sendMessage", { chat_id: chatId, text: duplicateSlipText(spent, slip.party), reply_to_message_id: photo.messageId })
+      return true
+    }
     if ((data as { status?: string } | null)?.status === "ok") {
       const { flushPoolPosts } = await import("./pool-bot")
       await flushPoolPosts((data as { pool_id: string }).pool_id)

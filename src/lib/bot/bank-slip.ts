@@ -32,12 +32,22 @@ export type Slip = {
   consumer?: string | null
   /** The account the money went TO (digits, "*" for masked runs), if printed. */
   toAccount?: string | null
+  /** The slip's own transaction ID / reference ("000234726282C4VF"), letters and digits only. */
+  ref?: string | null
 }
 
 /**
  * What Gemini returned, checked: a slip with a positive amount in USD or KHR,
  * a real calendar date (else none), short text fields. Null when it isn't a slip.
  */
+/** "Trx. ID: 0002 3472 6282 C4VF" → "000234726282C4VF"; too short to identify a payment → null. */
+export function slipRef(v: unknown): string | null {
+  // A label read along with it ("Trx. ID:", "Reference #", "Hash.", "លេខយោង ៖") is not part of the ID.
+  const raw = typeof v === "string" ? v.replace(/^\s*(?:trx\.?\s*id|transaction\s*id|ref(?:erence)?(?:\s*(?:no|number))?|hash|លេខយោង)\.?\s*[:#៖.]?\s*/i, "") : ""
+  const ref = raw.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 40)
+  return ref.length >= 6 ? ref : null
+}
+
 export function cleanSlip(raw: unknown): Slip | null {
   if (!raw || typeof raw !== "object") return null
   const r = raw as Record<string, unknown>
@@ -75,6 +85,7 @@ export function cleanSlip(raw: unknown): Slip | null {
     owner: text(r.owner, 60),
     consumer: text(r.consumer, 30),
     toAccount: cleanAccount(r.to_account),
+    ref: slipRef(r.ref),
   }
 }
 
