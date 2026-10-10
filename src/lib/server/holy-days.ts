@@ -1,12 +1,15 @@
-// Server only: the eve reminder (holy days, festivals, Khmer-Chinese offering
-// days) for chats that switched it on, and one festival wish to every linked chat.
+// Server only: the 07:00 holy-day reminders — the eve (with festivals and Khmer-Chinese offering
+// days) and the day itself — for chats that switched them on and the channel, and one festival
+// wish to every linked chat.
 import { culturalDayOn, NO_EVE_REMINDER, type CulturalKey } from "@/lib/cultural-calendar"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
-import { formatLunar, isSilDay, khmerLunarDate } from "@/lib/khmer-lunar"
+import { formatLunar, khmerLunarDate } from "@/lib/khmer-lunar"
+import { HOLY_DAY_MINUTE, holyDayStages, silDayText, silEveText } from "@/lib/holy-day-alerts"
+import { getChannelPostButtons } from "./channel-buttons"
 
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
-import { botDb, botKey, sendText, SIGNATURE, tr } from "./telegram-bot"
+import { botDb, botKey, sendText, SIGNATURE, tg, tr } from "./telegram-bot"
 
 const JOB = "holy-day-eve"
 
@@ -24,24 +27,41 @@ const EMOJI: Record<CulturalKey, string> = {
 }
 
 /**
- * Called every minute by the dispatcher. From 18:00 Cambodia time, when
- * tomorrow is a holy day (ថ្ងៃសីល) and/or the first day of a festival or
- * offering day, each subscribed chat gets one message covering both (claimed
- * once per day, so restarts don't repeat it). Offering days ask families to buy
- * offerings and set a budget; festivals to budget for the celebration.
+ * Called every minute by the dispatcher, 07:00–11:59 Cambodia time (founder, 10/10), in two stages:
+ *   eve — tomorrow is a holy day (ថ្ងៃសីល) and/or the first day of a festival or offering day:
+ *         buy lotus, fruit and offerings ahead of time (festivals: budget for the celebration);
+ *   day — today is a holy day: the morning blessing.
+ * Each goes once a day (claimed) to the chats that switched the reminder on, and to the
+ * community channel (holy days only, with the standard buttons).
  */
 export async function holyDayTick() {
   const now = phnomPenhToday()
-  if (now.hour < 18) return
+  if (now.hour * 60 + now.minute < HOLY_DAY_MINUTE || now.hour >= 12) return
   const tomorrow = new Date(Date.parse(`${now.day}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
   const lunar = khmerLunarDate(tomorrow)
-  const sil = isSilDay(lunar)
+  const stages = holyDayStages(now.day)
   const starting = culturalDayOn(tomorrow)
   const culture = starting && starting.start === tomorrow && !NO_EVE_REMINDER.has(starting.key) ? starting : null
-  if (!sil && !culture) return
 
+  if (stages.eve || culture)
+    await sendStage(JOB, now.day, (lang) => {
+      const lines: string[] = []
+      if (culture) {
+        const name = tr(lang, `cultural.${culture.key}.name` as MessageKey)
+        lines.push(tr(lang, culture.kind === "offering" ? "bot.offeringTomorrow" : "bot.festivalTomorrow", { emoji: EMOJI[culture.key], name }))
+      }
+      if (stages.eve) lines.push(lang === "km" ? silEveText(stages.eve) : tr(lang, "bot.silTomorrow", { lunar: formatLunar(lunar, lang) }))
+      return lines.join("\n\n")
+    }, stages.eve ? silEveText(stages.eve) : null, [culture?.key, stages.eve && "holy day eve"].filter(Boolean).join(" + "))
+
+  if (stages.today)
+    await sendStage("holy-day-today", now.day, (lang) => (lang === "km" ? silDayText(stages.today!) : tr(lang, "bot.silToday", { lunar: formatLunar(khmerLunarDate(now.day), lang) })), silDayText(stages.today), "holy day")
+}
+
+/** One stage: the subscribed chats (in their language) and the channel, each once a day. */
+async function sendStage(job: string, day: string, text: (lang: Locale) => string, channelText: string | null, what: string) {
   const db = botDb()
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: JOB, p_day: now.day })
+  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: job, p_day: day })
   if (claimed !== true) return
   const { data, error } = await db.rpc("bot_holy_day_subscribers", { p_key: botKey() })
   if (error) {
@@ -50,21 +70,19 @@ export async function holyDayTick() {
   }
   let sent = 0
   for (const s of (data as { chat_id: number; language: Locale }[] | null) ?? []) {
-    const lines: string[] = []
-    if (culture) {
-      const name = tr(s.language, `cultural.${culture.key}.name` as MessageKey)
-      lines.push(tr(s.language, culture.kind === "offering" ? "bot.offeringTomorrow" : "bot.festivalTomorrow", { emoji: EMOJI[culture.key], name }))
-    }
-    if (sil) lines.push(tr(s.language, "bot.silTomorrow", { lunar: formatLunar(lunar, s.language) }))
     try {
-      const r = await sendText(s.chat_id, lines.join("\n\n") + SIGNATURE)
+      const r = await sendText(s.chat_id, text(s.language) + SIGNATURE)
       if (r.ok) sent += 1
     } catch (e) {
       logEvent("error", "holy-days", `Reminder for one chat failed: ${(e as Error).message}`, { fold: true })
     }
   }
-  const what = [culture?.key, sil && "holy day"].filter(Boolean).join(" + ")
-  if (sent) logEvent("info", "holy-days", `Eve reminder (${what}) sent to ${sent} chat${sent === 1 ? "" : "s"}`, { fold: true })
+  if (sent) logEvent("info", "holy-days", `${what} sent to ${sent} chat${sent === 1 ? "" : "s"}`, { fold: true })
+  const channel = (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim()
+  if (channelText && channel) {
+    const r = await tg("sendMessage", { chat_id: channel, text: channelText, ...(await getChannelPostButtons()) }).catch(() => null)
+    logEvent(r?.ok ? "info" : "error", "holy-days", r?.ok ? `${what} posted to ${channel}` : `${what} channel post failed`, { fold: true })
+  }
 }
 
 /**
