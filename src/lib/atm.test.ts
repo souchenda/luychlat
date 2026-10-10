@@ -31,6 +31,7 @@ describe("ATM locator — reading OpenStreetMap", () => {
     assert.equal(typeOf({ amenity: "atm", cash_in: "yes" }), "CRM")
     assert.equal(typeOf({ amenity: "atm" }), "ATM")
     assert.equal(typeOf({ amenity: "bank" }), "BRANCH")
+    assert.equal(typeOf({ amenity: "bank", name: "Atm ABA" }), "ATM")
   })
   it("an element becomes a row: its town, currencies, 24/7", () => {
     const row = toAtmRow({ type: "node", id: 42, lat: 10.99, lon: 104.79, tags: { amenity: "atm", brand: "ABA Bank", "name:km": "ABA ATM - ផ្សារតាកែវ", "currency:USD": "yes", "currency:KHR": "yes", opening_hours: "24/7" } }, towns)

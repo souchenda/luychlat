@@ -44,7 +44,8 @@ export function bankOf(tags: Record<string, string>): BankCode | null {
 
 /** An ATM that takes deposits (cash_in=yes) is a CRM; a bank office is a branch. */
 export function typeOf(tags: Record<string, string>): AtmType | null {
-  if (tags.amenity === "bank") return "BRANCH"
+  // Some ATMs are mapped as "bank" but named for what they are ("Atm ABA", "ATM Canadia").
+  if (tags.amenity === "bank") return /\batm\b/i.test([tags.name, tags["name:en"]].filter(Boolean).join(" ")) ? (tags.cash_in === "yes" ? "CRM" : "ATM") : "BRANCH"
   if (tags.amenity === "atm") return tags.cash_in === "yes" ? "CRM" : "ATM"
   return null
 }
