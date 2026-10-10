@@ -25,6 +25,7 @@ import {
   ReceiptIcon,
   ScrollTextIcon,
   UsersRoundIcon,
+  Volume2Icon,
   WalletIcon,
   type LucideIcon,
 } from "lucide-react"
@@ -125,6 +126,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
             items: [
               { href: "/home", label: "nav.home", icon: LayoutDashboardIcon },
               { href: "/invoices", label: "nav.invoicesKhqr", icon: ScrollTextIcon },
+              { href: "/soundbox", label: "soundbox.title", icon: Volume2Icon },
               { href: "/wallets", label: "nav.bizWallets", icon: WalletIcon },
               { href: "/transactions", label: "nav.bizTransactions", icon: ArrowLeftRightIcon },
             ],

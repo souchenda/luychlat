@@ -6,6 +6,7 @@ import { logEvent } from "@/lib/server/events"
 import { notifyOwner, ownerText, transferText, type TransferResult } from "@/lib/server/biz-group-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
+import { shouldEmit } from "@/lib/soundbox"
 
 /**
  * KHQR ingest API — a merchant's own tool (e.g. AUTOBOK) pushes each bank
@@ -133,6 +134,12 @@ export async function POST(request: Request) {
     logEvent("info", "khqr", `KHQR ${r.bank} ${r.status === "transfer" ? "own transfer" : "payment"} pushed by API (${r.workspace})`, { fold: true })
     // The bank groups stay clean: the business owner is told privately (their chat with the bot).
     if (message && r.workspace_id) await notifyOwner({ workspaceId: r.workspace_id }, message)
+  }
+  // SoundBox (/soundbox): a customer's payment only — never an own-account transfer. The database
+  // checks again (INCOME, bank reference, Sales) and members get it live through Supabase Realtime.
+  if (shouldEmit(r.status) && r.transaction_id) {
+    const { error: soundError } = await botDb().rpc("bot_soundbox_emit", { p_key: botKey(), p_transaction_id: r.transaction_id, p_payer: pay.payer ?? null })
+    if (soundError) logEvent("warn", "soundbox", `SoundBox event not emitted: ${soundError.message}`, { fold: true })
   }
 
   return NextResponse.json(
