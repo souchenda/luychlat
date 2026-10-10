@@ -16,6 +16,7 @@ import { festivalTick, holyDayTick } from "@/lib/server/holy-days"
 import { posterTick } from "@/lib/server/festival-poster"
 import { groupSweepTick } from "@/lib/server/group-guard"
 import { devEodTick } from "@/lib/server/dev-eod"
+import { atmSyncTick } from "@/lib/server/atm-sync"
 import { flushPoolPosts } from "@/lib/server/pool-bot"
 import { birthdayTick, dormancyTick, flushSignupAlerts } from "@/lib/server/member-events"
 
@@ -92,6 +93,7 @@ export async function dispatchOnce() {
     await dormancyTick()
     await groupSweepTick()
     await devEodTick()
+    await atmSyncTick()
     await watchdogTick()
   } catch (error) {
     console.error("[bot] dispatch failed:", (error as Error).message)

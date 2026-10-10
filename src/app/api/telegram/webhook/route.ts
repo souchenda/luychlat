@@ -34,6 +34,7 @@ import { parseEacNotice } from "@/lib/eac"
 import { handlePoolFlowCallback, handlePoolSlip, handlePoolSpendText, isPoolFlowCallback } from "@/lib/server/pool-flow"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
+import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -69,6 +70,8 @@ type Update = {
     document?: { file_name?: string; mime_type?: string; file_size?: number }
     /** Shared with the "📱 Share my number" button (password reset). */
     contact?: { phone_number: string; user_id?: number }
+    /** Shared with the "📍 my location" button (/atm). */
+    location?: { latitude: number; longitude: number }
     chat: { id: number; type: string; title?: string }
     from?: { id?: number; username?: string; first_name?: string; last_name?: string; language_code?: string }
   }
@@ -131,6 +134,10 @@ async function handleGroupMessage(
   if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
     const answer = await marketAnswer(text, lang)
     if (answer) await sendText(chatId, answer)
+    return
+  }
+  if (/^\/atm(@\w+)?$/i.test(command)) {
+    await handleAtmCommand(chatId, text.trim().replace(/^\S+\s*/, ""))
     return
   }
   if (/^\/market(@\w+)?$/i.test(command)) {
@@ -391,6 +398,11 @@ export async function POST(request: Request) {
     else await sendText(chatId, tr(lang, r?.status === "mismatch" ? "bot.resetMismatch" : "bot.resetExpired"), done)
     return NextResponse.json({ ok: true })
   }
+  // A location (the /atm button): the nearest ATMs and branches.
+  if (message.location) {
+    await handleAtmLocation(message.chat.id, message.location)
+    return NextResponse.json({ ok: true })
+  }
   if (message.document) {
     await handleDocument(message.chat.id, message.document, message.from?.language_code)
     return NextResponse.json({ ok: true })
@@ -476,6 +488,9 @@ export async function POST(request: Request) {
   } else if (command === "/menuclose") {
     const ctx = await botContext(chatId)
     await sendText(chatId, tr(ctx?.linked ? contextLocale(ctx) : lang, "bot.menuClosed"), KEYBOARD_OFF)
+  } else if (/^\/atm(@\w+)?$/i.test(command)) {
+    // The nearest ATMs and branches: a location button, or a province / town name. Public data.
+    await handleAtmCommand(chatId, text.trim().replace(/^\S+\s*/, ""))
   } else if (/^\/(car|ev)(@\w+)?$/i.test(command)) {
     const ctx = await botContext(chatId)
     if (!ctx?.linked) await sendText(chatId, tr(contextLocale(ctx), "bot.notLinked"))
