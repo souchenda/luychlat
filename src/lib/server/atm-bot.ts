@@ -1,6 +1,6 @@
 // Server only: /atm — the nearest ATMs and branches, from a shared location (private chat) or a place
 // name ("/atm តាកែវ", "/atm aba សៀមរាប", in groups too). Public data: no account needed.
-import { BANKS, nearest, nearestText, placeFrom, type BankCode } from "@/lib/atm"
+import { BANKS, GOOGLE_BUTTON, googleMapsSearchUrl, nearest, nearestText, placeFrom, type BankCode } from "@/lib/atm"
 import { PROVINCES, TOWNS } from "@/lib/kh-towns"
 
 import { loadAtms } from "./atm-sync"
@@ -27,7 +27,8 @@ async function answer(chatId: number, from: { lat: number; lng: number }, bank: 
     text: title && rows.length ? text.replace("ដែលនៅជិតបងបំផុត៖", `នៅ${esc(title)}៖`) : text,
     parse_mode: "HTML",
     disable_web_page_preview: true,
-    ...(chatId > 0 ? { reply_markup: { remove_keyboard: true } } : {}),
+    // Always one tap to Google Maps' live ATMs around the same point (the location keyboard was one-time).
+    reply_markup: { inline_keyboard: [[{ text: GOOGLE_BUTTON, url: googleMapsSearchUrl(bank, from.lat, from.lng) }]] },
   })
 }
 

@@ -2459,6 +2459,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "ev.petrolBasis": "按商务部汽油价 {price}៛/升 · 燃油车平均 {lper} 升/百公里",
   "ev.addDistanceHint": "输入里程表读数（或单次行程）即可查看每公里成本及与燃油车相比节省的金额。",
   "ev.invalid": "kWh 无效（1–500）",
+  "atm.googleMaps": "🗺️ 直接在 Google 地图搜索 ↗",
+  "atm.sparse": "此地区的数据可能不完整。点击「直接在 Google 地图搜索」查看附近所有 ATM。",
   "cards.title": "卡片与证件",
   "cards.hint": "实体卡照片才是凭证——识别出的信息只用于查找。仅您的账户可见。",
   "cards.add": "添加卡片",

@@ -1,6 +1,6 @@
 "use client"
 
-import { ListIcon, Loader2Icon, LocateFixedIcon, MapIcon, NavigationIcon } from "lucide-react"
+import { ExternalLinkIcon, InfoIcon, ListIcon, Loader2Icon, LocateFixedIcon, MapIcon, NavigationIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { BANKS, directionsUrl, nearest, type BankCode, type Near } from "@/lib/atm"
+import { BANKS, directionsUrl, googleMapsSearchUrl, nearest, SPARSE_RESULTS, type BankCode, type Near } from "@/lib/atm"
 import { useBankAtms } from "@/lib/atms-query"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -146,6 +146,20 @@ export default function AtmsPage() {
         />
       </div>
       <p className="px-1 text-xs text-muted-foreground">{t("atm.within", { place: from.label })}</p>
+
+      {/* OpenStreetMap lists only part of the country's ATMs: Google Maps' own search around the same point, one tap. */}
+      <Button asChild variant="outline" className="h-11 w-full border-primary/40 font-semibold text-primary">
+        <a href={googleMapsSearchUrl(bank === "ALL" ? null : bank, from.lat, from.lng)} target="_blank" rel="noopener noreferrer">
+          <ExternalLinkIcon />
+          {t("atm.googleMaps")}
+        </a>
+      </Button>
+      {!isLoading && rows.length < SPARSE_RESULTS && (
+        <p className="flex items-start gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-2.5 text-sm text-sky-900 dark:text-sky-200">
+          <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {t("atm.sparse")}
+        </p>
+      )}
 
       {view === "MAP" && (
         <div className="space-y-2">

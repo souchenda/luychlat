@@ -3,7 +3,7 @@ import { describe, it } from "node:test"
 
 import { distanceKm } from "@/lib/prayer"
 
-import { bankOf, directionsUrl, nearest, nearestText, toAtmRow, typeOf, type BankAtm } from "./atm"
+import { bankOf, directionsUrl, googleMapsSearchUrl, nearest, nearestText, SPARSE_HINT, toAtmRow, typeOf, type BankAtm } from "./atm"
 
 const towns = [
   { en: "Phnom Penh", km: "ភ្នំពេញ", lat: 11.5564, lng: 104.9282 },
@@ -89,5 +89,17 @@ describe("ATM locator — a place by name", () => {
     assert.equal(placeFrom("kampong som", PROVINCES, TOWNS)?.name, "ព្រះសីហនុ")
     assert.ok(placeFrom("Kampong Trach", PROVINCES, TOWNS))
     assert.equal(placeFrom("Bangkok", PROVINCES, TOWNS), null)
+  })
+})
+
+describe("ATM locator — Google Maps for what OpenStreetMap lacks", () => {
+  it("a search link around the point: one bank, or every ATM", () => {
+    assert.equal(googleMapsSearchUrl("ABA", 10.9908, 104.785), "https://www.google.com/maps/search/ABA+ATM/@10.990800,104.785000,14z")
+    assert.equal(googleMapsSearchUrl(null, 10.9908, 104.785), "https://www.google.com/maps/search/ATM/@10.990800,104.785000,14z")
+  })
+  it("fewer than 3 nearby, or none: the hint to search Google Maps", () => {
+    const one: BankAtm = { osm_ref: "n1", bank_code: "SATHAPANA", type: "ATM", name_kh: null, name_en: "Sathapana", address: null, province: "Takeo", province_km: "តាកែវ", latitude: 10.99, longitude: 104.79, currencies: null, is_24h: true }
+    assert.ok(nearestText(nearest([one], { lat: 10.99, lng: 104.78 }), (s) => s).includes(SPARSE_HINT))
+    assert.ok(nearestText([], (s) => s).includes(SPARSE_HINT))
   })
 })

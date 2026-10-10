@@ -95,6 +95,23 @@ export function toAtmRow(e: OsmElement, towns: Town[]): BankAtm | null {
 
 export const directionsUrl = (lat: number, lng: number) => `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
 
+/**
+ * Google Maps' own search around a point ("ABA ATM", or every ATM) — a plain link, no API and no
+ * cost. OpenStreetMap lists only part of Cambodia's ATMs (sparse in the provinces), so this shows
+ * the rest live.
+ */
+export function googleMapsSearchUrl(bank: BankCode | null | undefined, lat: number, lng: number): string {
+  const label = bank ? BANKS.find((b) => b.code === bank)?.label : null
+  const query = label ? `${encodeURIComponent(label)}+ATM` : "ATM"
+  return `https://www.google.com/maps/search/${query}/@${lat.toFixed(6)},${lng.toFixed(6)},14z`
+}
+
+/** Fewer than this many found nearby: the area's data may be incomplete — point to Google Maps. */
+export const SPARSE_RESULTS = 3
+
+export const SPARSE_HINT = "ℹ️ ក្នុងតំបន់នេះ ទិន្នន័យមូលដ្ឋានអាចនៅខ្វះចន្លោះ។ បងអាចចុច «🗺️ រកលើ Google Maps ផ្ទាល់» ដើម្បីមើលទូ ATM ទាំងអស់ជុំវិញទីនេះ។"
+export const GOOGLE_BUTTON = "🗺️ រកលើ Google Maps ផ្ទាល់ ↗"
+
 export type Near = BankAtm & { distance_km: number }
 
 /** Sorted by distance (km), filtered by bank and type, within `radiusKm`. */
@@ -114,7 +131,9 @@ export const kmText = (km: number) => (km < 1 ? `${Math.round(km * 1000)} ម៉
 
 /** The bot's answer (Telegram HTML): the nearest, each with a directions link. */
 export function nearestText(rows: Near[], esc: (s: string) => string): string {
-  if (!rows.length) return "🏧 រកមិនឃើញទូ ATM ឬសាខាក្នុងរង្វង់ ១០ គ.ម ទេ។ សូមសាកទីតាំងផ្សេង ឬវាយ «/atm តាកែវ»។"
+  if (!rows.length) return `🏧 រកមិនឃើញទូ ATM ឬសាខាក្នុងរង្វង់ ១០ គ.ម ក្នុងទិន្នន័យរបស់យើងទេ។
+
+${SPARSE_HINT}`
   const lines = ["🏧 <b>ទូ ATM ដែលនៅជិតបងបំផុត៖</b>", ""]
   rows.forEach((r, i) => {
     const bank = BANKS.find((b) => b.code === r.bank_code)!
@@ -125,6 +144,7 @@ export function nearestText(rows: Near[], esc: (s: string) => string): string {
     lines.push(`   📍 ${esc(where || "—")} · ${TYPE_KM[r.type]}${cur}${r.is_24h ? " · 24/7" : ""}`)
     lines.push(`   👉 <a href="${directionsUrl(r.latitude, r.longitude)}">🗺️ បើកផែនទីនាំផ្លូវ</a>`, "")
   })
+  if (rows.length < SPARSE_RESULTS) lines.push(SPARSE_HINT, "")
   lines.push("<i>ទិន្នន័យ៖ © OpenStreetMap contributors</i>")
   return lines.join("\n")
 }
