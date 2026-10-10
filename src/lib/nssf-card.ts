@@ -46,8 +46,11 @@ export function cleanNssfCard(raw: unknown): NssfCard | null {
   return card.nameKh || card.nameEn || card.idNumber ? card : null
 }
 
-/** "ស៊ូ ចិន្តា (SOU CHENDA)" — both names when the card shows both. */
-export const cardName = (c: NssfCard) => (c.nameKh && c.nameEn ? `${c.nameKh} (${c.nameEn})` : (c.nameKh ?? c.nameEn ?? ""))
+/**
+ * The member's name: the Khmer name as printed ("ស៊ូ ចិន្តា"), never with the Latin one appended (the
+ * members table has no Latin-name field); the Latin name only when the card shows no Khmer one.
+ */
+export const cardName = (c: NssfCard) => c.nameKh ?? c.nameEn ?? ""
 
 /** Whole years from a date of birth to `today` (YYYY-MM-DD). */
 export function ageOn(dob: string, today: string): number {

@@ -11,7 +11,16 @@ describe("NSSF card OCR", () => {
     assert.equal(c.nameEn, "SOU CHENDA")
     assert.equal(c.idNumber, "1870219-1998577-ឈ")
     assert.equal(c.gender, "MALE")
-    assert.equal(cardName(c), "ស៊ូ ចិន្តា (SOU CHENDA)")
+    // The member name is the Khmer name only; the Latin name stays on the card reading.
+    assert.equal(cardName(c), "ស៊ូ ចិន្តា")
+    assert.equal(cardName({ ...c, nameKh: null }), "SOU CHENDA")
+  })
+  it("a dependent child's card: the verbatim Khmer name, never «(LATIN)» appended", () => {
+    const c = cleanNssfCard({ is_card: true, name_kh: "ចិន្តា យូរ៉ាវីដ", name_en: "CHENDA YOURAVID", id_number: "1160926-5297628-7", dob: "2016-01-20", gender: "MALE" })!
+    assert.equal(cardName(c), "ចិន្តា យូរ៉ាវីដ")
+    assert.equal(c.nameEn, "CHENDA YOURAVID")
+    assert.equal(c.idNumber, "1160926-5297628-7")
+    assert.equal(guessRelationship(c, "SOU CHENDA", "2026-10-10"), "child")
   })
   it("Khmer digits in the ID and date become Latin; junk is dropped", () => {
     assert.equal(cleanNssfId("១៨៧០២១៩-១៩៩៨៥៧៧"), "1870219-1998577")
