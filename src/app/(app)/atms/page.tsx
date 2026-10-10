@@ -1,9 +1,10 @@
 "use client"
 
-import { ExternalLinkIcon, InfoIcon, ListIcon, Loader2Icon, LocateFixedIcon, MapIcon, NavigationIcon } from "lucide-react"
+import { ExternalLinkIcon, InfoIcon, ListIcon, Loader2Icon, LocateFixedIcon, MapIcon, MapPinPlusIcon, NavigationIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { ReportAtmSheet } from "@/components/atms/report-atm-sheet"
 import { Segmented } from "@/components/common/segmented"
 import { locateDevice } from "@/components/islamic/location-picker"
 import { OsmMap, type MapMarker } from "@/components/islamic/osm-map"
@@ -34,6 +35,7 @@ export default function AtmsPage() {
   const [view, setView] = useState<"LIST" | "MAP">("LIST")
   const [locating, setLocating] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
+  const [reporting, setReporting] = useState(false)
 
   const rows = useMemo(
     () => nearest(data ?? [], from, { bank: bank === "ALL" ? null : bank, type: kind === "ALL" ? null : kind, radiusKm: 10, limit: 30 }),
@@ -193,6 +195,13 @@ export default function AtmsPage() {
             ))}
           </ul>
         ))}
+
+      {/* A missing ATM, reported from the spot; it appears once an admin approves it. */}
+      <Button type="button" variant="ghost" className="h-11 w-full" onClick={() => setReporting(true)}>
+        <MapPinPlusIcon />
+        {t("atm.report.button")}
+      </Button>
+      <ReportAtmSheet open={reporting} onOpenChange={setReporting} defaultBank={bank === "ALL" ? null : bank} />
 
       <p className="px-1 text-center text-[11px] text-muted-foreground">{t("atm.attribution")}</p>
     </div>

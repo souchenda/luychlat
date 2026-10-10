@@ -15,6 +15,11 @@ out center tags;`
 
 let cache: { at: number; rows: BankAtm[] } | null = null
 
+/** A newly approved ATM shows at once. */
+export const clearAtmCache = () => {
+  cache = null
+}
+
 /** All ATMs and branches (cached for an hour; the last good copy when the database can't be read). */
 export async function loadAtms(): Promise<BankAtm[]> {
   if (cache && Date.now() - cache.at < 3_600_000) return cache.rows

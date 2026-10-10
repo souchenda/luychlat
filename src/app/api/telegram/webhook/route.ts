@@ -35,6 +35,7 @@ import { handlePoolFlowCallback, handlePoolSlip, handlePoolSpendText, isPoolFlow
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
+import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -313,7 +314,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
   if (update.callback_query) {
-    if (isGiftCallback(update.callback_query.data)) {
+    if (isAtmReportCallback(update.callback_query.data)) {
+      await handleAtmReportCallback(update.callback_query)
+    } else if (isGiftCallback(update.callback_query.data)) {
       const ctx = update.callback_query.message ? await botContext(update.callback_query.message.chat.id) : null
       const chat = update.callback_query.message?.chat.id
       if (chat && !featureOk(await botFeatures(chat), "gifts")) await soon(update.callback_query.id, contextLocale(ctx))
@@ -400,7 +403,8 @@ export async function POST(request: Request) {
   }
   // A location (the /atm button): the nearest ATMs and branches.
   if (message.location) {
-    await handleAtmLocation(message.chat.id, message.location)
+    // A missing-ATM report waiting for its location; else the nearest ATMs.
+    if (!(await handleReportLocation(message.chat.id, message.location.latitude, message.location.longitude))) await handleAtmLocation(message.chat.id, message.location)
     return NextResponse.json({ ok: true })
   }
   if (message.document) {
@@ -410,6 +414,8 @@ export async function POST(request: Request) {
   if (!message.text) return NextResponse.json({ ok: true })
 
   const chatId = message.chat.id
+  // A missing-ATM report waiting for its short note.
+  if (!menuCommand(message.text) && (await handleReportNote(chatId, message.text))) return NextResponse.json({ ok: true })
   // Replies: to a slip's "add a note" prompt → that note; a super admin's to a daily-tip preview → edits it.
   if (message.reply_to_message && message.chat.type === "private") {
     const replyTo = message.reply_to_message.message_id

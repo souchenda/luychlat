@@ -3,6 +3,7 @@
 import { BANKS, GOOGLE_BUTTON, googleMapsSearchUrl, nearest, nearestText, placeFrom, type BankCode } from "@/lib/atm"
 import { PROVINCES, TOWNS } from "@/lib/kh-towns"
 
+import { REPORT_BUTTON } from "./atm-report"
 import { loadAtms } from "./atm-sync"
 import { sendText, tg } from "./telegram-bot"
 
@@ -28,7 +29,8 @@ async function answer(chatId: number, from: { lat: number; lng: number }, bank: 
     parse_mode: "HTML",
     disable_web_page_preview: true,
     // Always one tap to Google Maps' live ATMs around the same point (the location keyboard was one-time).
-    reply_markup: { inline_keyboard: [[{ text: GOOGLE_BUTTON, url: googleMapsSearchUrl(bank, from.lat, from.lng) }]] },
+    // «ប្រាប់ទូ ATM ដែលខ្វះ» in private chats (it asks for the location there).
+    reply_markup: { inline_keyboard: [[{ text: GOOGLE_BUTTON, url: googleMapsSearchUrl(bank, from.lat, from.lng) }], ...(chatId > 0 ? [[REPORT_BUTTON]] : [])] },
   })
 }
 
