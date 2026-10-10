@@ -27,6 +27,7 @@ export async function deleteMyAccount(supabase: SupabaseClient, userId: string) 
     await remove("receipts", await listAll("receipts", userId))
     await remove("profile-images", await listAll("profile-images", `user/${userId}`))
     await remove("nssf-cards", await listAll("nssf-cards", userId))
+    await remove("id-cards", await listAll("id-cards", userId))
     const { data: owned } = await supabase.from("workspaces").select("id").eq("user_id", userId)
     const ids = (owned ?? []).map((w) => w.id as string)
     if (ids.length) {

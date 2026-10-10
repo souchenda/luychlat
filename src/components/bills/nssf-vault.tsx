@@ -1,6 +1,6 @@
 "use client"
 
-import { CameraIcon, ImageIcon, CopyIcon, IdCardIcon, Loader2Icon, PlusIcon, QrCodeIcon, ScissorsIcon, Trash2Icon, TriangleAlertIcon, XIcon } from "lucide-react"
+import { CameraIcon, ImageIcon, CopyIcon, IdCardIcon, Loader2Icon, PlusIcon, QrCodeIcon, ScissorsIcon, Trash2Icon, XIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -17,9 +17,11 @@ import { compressImage, MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { useProfile } from "@/lib/data/hooks"
-import { decodeQrText } from "@/lib/khqr-decode"
+import { decodeCardCode } from "@/lib/card-code"
+import { hasUnread } from "@/lib/id-card"
 import { cardName, guessRelationship, identityFromQr, mergeQrIdentity, qrConfirmsId, type NssfCard } from "@/lib/nssf-card"
-import { NssfCardViewer, type CardSide } from "@/components/bills/nssf-card-viewer"
+import { CardLightbox, type CardSide } from "@/components/cards/card-lightbox"
+import { CardCheckPhoto, UnverifiedMark, VerifyBanner } from "@/components/cards/verify-panel"
 import { cropCardImage, cropCardPhoto, reportCrop } from "@/lib/card-crop-browser"
 import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
@@ -68,7 +70,8 @@ function PhotoPicker({
     const local = URL.createObjectURL(file)
     setPreview(local)
     try {
-      const image = await compressImage(file, 1600, 0.85)
+      // Full resolution: the stored card (cut out of this) must stay legible letter by letter when zoomed.
+      const image = await compressImage(file, 3200, 0.95)
       // Only the clean card is kept (the table and the background are cut away) — never the raw photo.
       const stored = prepare ? await prepare(image) : image
       if (!stored) return void toast.error(t("nssf.cropFailed"))
@@ -185,6 +188,8 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }))
   const profileName = useProfile().data?.display_name
   const [scanning, setScanning] = useState(false)
+  // A "?" the reader couldn't make out: corrected from the card before saving.
+  const unread = hasUnread(form.name, form.nameEn, form.nssfId)
 
   // The front of the card. QR first: the card's own QR (decoded on the phone, no AI) is the
   // authority for whatever it states; Vision reads the rest (verbatim Khmer name, ID, birth date)
@@ -193,8 +198,9 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
     setScanning(true)
     try {
       const body = new FormData()
-      body.append("image", image, "card.jpg")
-      const [res, qr] = await Promise.all([fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null), decodeQrText(image).catch(() => null)])
+      // The card's own code is read on the phone at full resolution; the reader gets a lighter copy.
+      body.append("image", await compressImage(new File([image], "card.jpg", { type: "image/jpeg" }), 1800, 0.88), "card.jpg")
+      const [res, qr] = await Promise.all([fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null), decodeCardCode(image)])
       const json = (await res?.json().catch(() => null)) as { card?: NssfCard; corners?: unknown; box?: unknown; error?: string } | null
       const crop = await cropCardImage(image, json?.corners, json?.box)
       if (!crop.blob) reportCrop("front", crop.why)
@@ -233,7 +239,7 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
 
   /** The back: its QR (when the card has it there) is read on the phone before the card is cut out. */
   const scanBack = async (image: Blob): Promise<Blob | null> => {
-    const qr = await decodeQrText(image).catch(() => null)
+    const qr = await decodeCardCode(image)
     const identity = identityFromQr(qr)
     if (qr) set({ qrText: qr })
     if (identity) {
@@ -266,7 +272,7 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name.trim()) return
+    if (!form.name.trim() || unread) return
     try {
       await save.mutateAsync({
         id: member?.id,
@@ -281,6 +287,9 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
           front_path: form.front,
           back_path: form.back,
           is_active: form.active,
+          // Saved from this form, with the warning and the card photo in view: checked by the user.
+          verified_by_user: true,
+          is_uncertain: false,
           // A photo set here was cropped (nothing else is stored); an untouched one keeps its flag.
           front_cropped: Boolean(form.front) && (form.front !== member?.front_path || Boolean(member?.front_cropped)),
           back_cropped: Boolean(form.back) && (form.back !== member?.back_path || Boolean(member?.back_cropped)),
@@ -296,11 +305,10 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
   return (
     <BottomSheet open onOpenChange={(v) => !v && onClose()} title={member ? t("nssf.editTitle") : t("nssf.newTitle")} description={t("nssf.privateNote")}>
       <form onSubmit={submit} className="space-y-4">
-        {/* Zero-error identity: what is saved must match the physical card exactly. */}
-        <p className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm font-medium text-amber-900 dark:text-amber-200">
-          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t("nssf.verifyWarning")}
-        </p>
+        {/* Zero-error identity: what is saved must match the physical card exactly — the card photo
+            sits right above the fields read from it. */}
+        <VerifyBanner uncertain={unread} />
+        <CardCheckPhoto bucket="nssf-cards" front={form.front} back={form.back} title={form.name || t("nssf.newTitle")} />
         <div className="space-y-2">
           <Label htmlFor="nssf-name">{t("nssf.name")}</Label>
           <Input id="nssf-name" value={form.name} maxLength={80} onChange={(e) => set({ name: e.target.value })} className="h-11" />
@@ -384,7 +392,7 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
               <Trash2Icon />
             </Button>
           )}
-          <Button type="submit" className="h-12 flex-1 text-base" disabled={!form.name.trim() || save.isPending}>
+          <Button type="submit" className="h-12 flex-1 text-base" disabled={!form.name.trim() || unread || save.isPending}>
             {save.isPending && <Loader2Icon className="animate-spin" />}
             {t("common.save")}
           </Button>
@@ -495,6 +503,7 @@ export function NssfVault() {
             <div key={m.id} className={cn("space-y-2 px-4 py-3", !m.is_active && "opacity-60")}>
               <button type="button" onClick={() => setEditing(m)} className="flex w-full items-center gap-2 text-left">
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{m.name}</span>
+                {!m.verified_by_user && <UnverifiedMark />}
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{t(`nssf.rel.${m.relationship}`)}</span>
               </button>
               {m.nssf_id && (
@@ -532,7 +541,13 @@ export function NssfVault() {
       )}
       {editing && <MemberSheet member={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
       {viewing && viewed && (
-        <NssfCardViewer member={viewed} side={viewing.side} onSide={(side) => setViewing({ id: viewed.id, side })} onClose={() => setViewing(null)} onQrFound={(qr) => keepQr(viewed, qr)} />
+        <CardLightbox
+          card={{ id: viewed.id, title: viewed.name, number: viewed.nssf_id, bucket: "nssf-cards", front: viewed.front_path, back: viewed.back_path, qrText: viewed.qr_text ?? null }}
+          side={viewing.side}
+          onSide={(side) => setViewing({ id: viewed.id, side })}
+          onClose={() => setViewing(null)}
+          onQrFound={(qr) => keepQr(viewed, qr)}
+        />
       )}
     </section>
   )

@@ -36,7 +36,7 @@ export async function cropCardImage(image: Blob, corners: unknown, box?: unknown
     out.width = w
     out.height = h
     out.getContext("2d")!.putImageData(new ImageData(new Uint8ClampedArray(px), w, h), 0, 0)
-    const blob = await new Promise<Blob | null>((resolve) => out.toBlob((b) => resolve(b), "image/jpeg", 0.92))
+    const blob = await new Promise<Blob | null>((resolve) => out.toBlob((b) => resolve(b), "image/jpeg", 0.95))
     return blob ? { blob, how: quad ? "warp" : local ? "local" : "box" } : { blob: null, why: "encode failed" }
   } catch (e) {
     return { blob: null, why: (e as Error).message?.slice(0, 80) || "crop failed" }

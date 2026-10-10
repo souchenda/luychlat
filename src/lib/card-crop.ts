@@ -11,7 +11,8 @@ export type Quad = [Pt, Pt, Pt, Pt]
 
 /** An ID-1 card (NSSF, national ID): 85.6 × 54 mm. */
 export const CARD_RATIO = 85.6 / 54
-export const CARD_W = 1012
+// The straightened card at full resolution (≈ 480 dpi): every letter stays legible when zoomed.
+export const CARD_W = 2024
 export const CARD_H = Math.round(CARD_W / CARD_RATIO)
 
 const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1])

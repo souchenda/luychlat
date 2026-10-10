@@ -3,6 +3,8 @@ import { NextResponse } from "next/server"
 import { cleanNssfCard } from "@/lib/nssf-card"
 import { logEvent } from "@/lib/server/events"
 import { guardRequest } from "@/lib/server/guard"
+import { CARD_KINDS, cleanIdCard, type CardKind } from "@/lib/id-card"
+import { cardPrompt, CORNERS, KHMER_VERBATIM } from "@/lib/server/card-prompts"
 import { askGemini, askGroq, type Answer } from "@/lib/server/slip-bot"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -17,15 +19,9 @@ export const runtime = "nodejs"
 
 const MAX_BYTES = 5_000_000
 
-/** For the auto-crop: where the physical card is in the photo. */
-const CORNERS = [
-  "box_2d: the bounding box of the physical card itself (its outer edges, not the photo, not the table) as [ymin, xmin, ymax, xmax] on a 0–1000 scale of the image height and width.",
-  "corners: the card's 4 outer corners — top-left, top-right, bottom-right, bottom-left as they appear in the image — each as [y, x] on the same 0–1000 scale; null if a corner is hidden or unclear (box_2d is still given).",
-].join("\n")
-
 /** Only where the card is, to crop it: the back of a card, or a stored photo cropped again. */
 const BACK_PROMPT = [
-  "This image should show one card — a Cambodian NSSF (ប.ស.ស.) member card, a Khmer national ID card or a bank card, front or back — possibly photographed on a table or a bed.",
+  "This image should show one card — a Cambodian NSSF (ប.ស.ស.) member card, a national ID card, a driving licence, a vehicle registration card, an insurance card or a bank card, front or back — possibly photographed on a table or a bed.",
   "Answer JSON only:",
   '{"is_card": boolean, "box_2d": [ymin, xmin, ymax, xmax] | null, "corners": [[y, x], [y, x], [y, x], [y, x]] | null}',
   CORNERS,
@@ -34,14 +30,14 @@ const BACK_PROMPT = [
 const PROMPT = [
   "This image should be the FRONT of a Cambodian NSSF (ប.ស.ស. / បេឡាជាតិរបស់សន្តិសុខសង្គម) member card, or a Khmer national ID card.",
   "Answer JSON only:",
-  '{"is_card": boolean, "name_kh": string | null, "name_en": string | null, "id_number": string | null, "dob": "YYYY-MM-DD" | null, "gender": "MALE" | "FEMALE" | null, "box_2d": [ymin, xmin, ymax, xmax] | null, "corners": [[y, x], [y, x], [y, x], [y, x]] | null}',
+  '{"is_card": boolean, "name_kh": string | null, "name_en": string | null, "id_number": string | null, "dob": "YYYY-MM-DD" | null, "gender": "MALE" | "FEMALE" | null, "is_uncertain": boolean, "box_2d": [ymin, xmin, ymax, xmax] | null, "corners": [[y, x], [y, x], [y, x], [y, x]] | null}',
   CORNERS,
   "name_kh: the line after \"គោត្តនាម និងនាម :\" transcribed VERBATIM, character by character, exactly as printed (e.g. \"ស៊ូ ចិន្តា\").",
-  "Copy every consonant, subscript consonant (្ + consonant, e.g. ន្ត in ចិន្តា), vowel and sign (៉ ៊ ់ ិ ា …) as it appears on the card. NEVER transliterate or rebuild the Khmer name from the Latin name — Khmer spellings are not phonetic (CHENDA is printed ចិន្តា, never ឈិនដា). If a Khmer character is unclear, answer null for name_kh rather than guess.",
+  KHMER_VERBATIM,
   "name_en: the full name in Latin letters as printed (e.g. \"SOU CHENDA\"), on its own — never inside name_kh.",
   "id_number: the NSSF / card number as printed, keeping dashes and any Khmer letter at the end (e.g. \"1870219-1998577-ឈ\").",
   "dob: the date of birth (Khmer digits ០-៩ → 0-9). gender: ប្រុស = MALE, ស្រី = FEMALE.",
-  'Use null for anything not clearly readable — never guess. If it is not such a card, answer {"is_card": false}.',
+  'Use null for a field that is not there at all. If it is not such a card, answer {"is_card": false}.',
 ].join("\n")
 
 export async function POST(request: Request) {
@@ -53,12 +49,16 @@ export async function POST(request: Request) {
 
   let file: File | null = null
   let back = false
+  // The card vault's other kinds (national ID, licence, vehicle, insurance, bank card); none = NSSF.
+  let kind: CardKind | null = null
   try {
     const form = await request.formData()
     const v = form.get("image")
     file = v instanceof File ? v : null
     // "back" and "crop": corners only (the back of a card; a stored photo cropped again).
     back = form.get("side") === "back" || form.get("side") === "crop"
+    const k = form.get("kind")
+    kind = typeof k === "string" && (CARD_KINDS as string[]).includes(k) ? (k as CardKind) : null
   } catch {
     file = null
   }
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   const gemini = process.env.GEMINI_API_KEY?.trim()
   const groq = process.env.GROQ_API_KEY?.trim()
   const readers: [string, () => Promise<Answer>][] = []
-  const prompt = back ? BACK_PROMPT : PROMPT
+  const prompt = back ? BACK_PROMPT : kind ? cardPrompt(kind) : PROMPT
   if (gemini) readers.push(["Gemini", () => askGemini(gemini, file.type, image, prompt)])
   // Corners need a careful reader: Groq (weaker at locating) only reads the front's text.
   if (groq && !back) readers.push(["Groq", () => askGroq(groq, file.type, image, prompt)])
@@ -84,6 +84,10 @@ export async function POST(request: Request) {
       const corners = name === "Gemini" && Array.isArray(raw?.corners) ? raw.corners : null
       const box = name === "Gemini" && Array.isArray(raw?.box_2d) ? raw.box_2d : null
       if (back) return NextResponse.json({ corners, box }, { status: 200 })
+      if (kind) {
+        const read = cleanIdCard(raw, kind)
+        return NextResponse.json(read ? { read, corners, box, reader: name } : { error: "not_a_card", corners, box }, { status: read ? 200 : 422 })
+      }
       const card = cleanNssfCard(raw)
       return NextResponse.json(card ? { card, corners, box, reader: name } : { error: "not_a_card", corners, box }, { status: card ? 200 : 422 })
     } catch {

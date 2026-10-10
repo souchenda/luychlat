@@ -10,6 +10,8 @@ export type NssfCard = {
   /** YYYY-MM-DD */
   dob: string | null
   gender: "MALE" | "FEMALE" | null
+  /** A character couldn't be read ("?" in its place) — the form won't save until it is corrected. */
+  uncertain?: boolean
 }
 
 const KH = /[ក-៿]/
@@ -22,7 +24,8 @@ const latin = (s: string) => s.replace(/[០-៩]/g, (d) => String("០១២៣
 export function cleanNssfId(v: unknown): string | null {
   const s = text(v, 60)
   if (!s) return null
-  const clean = latin(s).replace(/[^A-Za-z0-9ក-៿ ./-]/g, "").trim().slice(0, 40)
+  // "?" stays: it marks a digit the reader couldn't make out (the form asks for it).
+  const clean = latin(s).replace(/[^A-Za-z0-9ក-៿ ./?-]/g, "").trim().slice(0, 40)
   return /\d{4,}/.test(clean) ? clean : null
 }
 
@@ -38,11 +41,12 @@ export function cleanNssfCard(raw: unknown): NssfCard | null {
   const g = String(r.gender ?? "").toUpperCase()
   const card: NssfCard = {
     nameKh: kh && KH.test(kh) ? kh : null,
-    nameEn: en && /^[A-Za-z][A-Za-z .'-]*$/.test(en) ? en.toUpperCase() : null,
+    nameEn: en && /^[A-Za-z?][A-Za-z .'?-]*$/.test(en) ? en.toUpperCase() : null,
     idNumber: cleanNssfId(r.id_number),
     dob,
     gender: g === "MALE" || g === "M" ? "MALE" : g === "FEMALE" || g === "F" ? "FEMALE" : null,
   }
+  card.uncertain = r.is_uncertain === true || [card.nameKh, card.nameEn, card.idNumber].some((v) => v?.includes("?"))
   return card.nameKh || card.nameEn || card.idNumber ? card : null
 }
 

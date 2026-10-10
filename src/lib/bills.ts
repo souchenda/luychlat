@@ -273,11 +273,15 @@ export type NssfMember = {
   gender?: "MALE" | "FEMALE" | null
   /** The card's own QR text (read on the phone), redrawn full-screen for staff to scan. */
   qr_text?: string | null
+  /** The user checked it against the physical card and saved. */
+  verified_by_user?: boolean
+  /** The reader left a "?" it couldn't make out. */
+  is_uncertain?: boolean
   is_active: boolean
   created_at: string
 }
 export type NssfMemberInput = Pick<NssfMember, "name" | "relationship" | "nssf_id" | "front_path" | "back_path" | "is_active"> &
-  Partial<Pick<NssfMember, "front_cropped" | "back_cropped" | "name_en" | "dob" | "gender" | "qr_text">>
+  Partial<Pick<NssfMember, "front_cropped" | "back_cropped" | "name_en" | "dob" | "gender" | "qr_text" | "verified_by_user" | "is_uncertain">>
 
 /** Default self-employed contribution per member (editable on the bill). */
 export const NSSF_MONTHLY_PER_MEMBER = 15600
