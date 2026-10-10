@@ -53,6 +53,8 @@ describe("loan schedule — reading the CLC schedule", () => {
         nextDue: "2026-10-13",
         nextAmount: 244,
         outstanding: 8241,
+        dueDates: null,
+        paidThrough: null,
       },
     )
   })
@@ -65,8 +67,13 @@ describe("loan schedule — reading the CLC schedule", () => {
     assert.equal(plan.paidCount, 8)
     assert.equal(plan.paidUntil, "2026-09-10")
     assert.equal(plan.next?.n, 9)
-    // Our balance after #8 is within a few dollars of the printed $8,241 (the lender counts actual days).
-    assert.ok(Math.abs(9599 - plan.paidAmount - 8241) < 10, String(9599 - plan.paidAmount))
+    // The printed balance after #8 is kept exactly (the formula's $2.89 drift is absorbed by #8),
+    // and #9 is on its printed date, 13/10.
+    assert.deepEqual(plan.input.anchor, { n: 8, balance: 8241 })
+    assert.equal(plan.paidAmount, 1358)
+    assert.equal(plan.schedule.rows[7].balance, 8241)
+    assert.equal(plan.next?.date, "2026-10-13")
+    assert.equal(plan.next?.payment, 244)
     assert.deepEqual(plan.shown, { installment: 244, outstanding: 8241, nextDue: "2026-10-13", nextAmount: 244 })
   })
   it("without the next number: months from the first due date to the next date; without either, by today", () => {
@@ -74,13 +81,31 @@ describe("loan schedule — reading the CLC schedule", () => {
     assert.equal(importPlan({ ...read, nextNo: null, nextDue: null }, "2026-10-10").paidCount, 8)
     assert.equal(importPlan({ ...read, nextNo: null, nextDue: null }, "2026-10-11").paidCount, 9)
   })
+  it("the 10/10 bug: a misread «next is #11» never marks future rows paid — 8 paid, #9 next", () => {
+    const plan = importPlan({ ...read, nextNo: 11, nextDue: "2026-12-10", outstanding: 7883.77 }, "2026-10-10")
+    assert.equal(plan.paidCount, 8)
+    assert.equal(plan.paidUntil, "2026-09-10")
+    assert.equal(plan.next?.n, 9)
+    // A balance that isn't row #8's (it is #10's) is not used as the anchor.
+    assert.equal(plan.input.anchor, null)
+  })
+  it("printed dates are followed (13/10, not 10/10); a stamped «paid» row counts even when due later", () => {
+    const dates = Array.from({ length: 48 }, (_, i) => (i === 8 ? "2026-10-13" : null))
+    const plan = importPlan({ ...read, nextNo: null, nextDue: null, dueDates: dates }, "2026-10-12")
+    assert.equal(plan.paidCount, 8) // #9 is printed 13/10: not before 12/10
+    assert.equal(plan.next?.date, "2026-10-13")
+    assert.equal(importPlan({ ...read, paidThrough: 9 }, "2026-10-10").paidCount, 9)
+  })
   it("what bot_import_loan saves", () => {
     const p = loanPayload(read, importPlan(read, "2026-10-10"))
     assert.deepEqual(
       { party: p.party_name, note: p.note, method: p.method, rate: p.interest_rate, start: p.start_date, total: p.total_amount, payment: p.payment, count: p.count, first: p.first_due, due: p.due_date, paidDate: p.paid_date, bill: p.bill_amount },
       { party: "Cambodian Labor Care PLC", note: "កុង 994-005084-01-4 · 📑 ពីរូបថតតារាងកាលវិភាគ", method: "BANK", rate: 0.82, start: "2026-01-12", total: 9599, payment: 244, count: 48, first: "2026-02-10", due: "2030-01-10", paidDate: "2026-09-10", bill: 244 },
     )
-    assert.ok(p.paid_amount > 1300 && p.paid_amount < 1400, String(p.paid_amount))
+    assert.equal(p.paid_amount, 1358)
+    assert.equal(p.anchor_n, 8)
+    assert.equal(p.anchor_balance, 8241)
+    assert.equal(p.due_dates?.[8], "2026-10-13")
   })
   it("the bot's confirmation", () => {
     assert.equal(

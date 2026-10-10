@@ -173,6 +173,11 @@ export type DebtExtras = {
   schedule_principal?: number | null
   /** Bank loan: monthly fee / insurance added to each installment. */
   schedule_fee?: number | null
+  /** The lender's printed due dates (null elements: first due + months). */
+  schedule_due_dates?: (string | null)[] | null
+  /** The printed balance after installment n (the formula's drift absorbed there). */
+  schedule_anchor_n?: number | null
+  schedule_anchor_balance?: number | null
 }
 
 /** Optional loan insurance (e.g. credit life insurance the bank requires). */

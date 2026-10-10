@@ -68,6 +68,8 @@ export type Bill = {
   paid_until: string | null
   /** A loan's monthly bill (from a schedule photo): paid through the loan, reminded by it. */
   debt_id?: string | null
+  /** A loan's bill: the loan's next installment date (printed, e.g. the 13th). */
+  next_due?: string | null
   is_active: boolean
   created_at: string
 }
@@ -118,7 +120,8 @@ export const cambodiaToday = () => new Date(Date.now() + 7 * 3_600_000).toISOStr
  * occurrence after paid_until, or for a new bill the first on or after the day
  * it was created. May be in the past (overdue).
  */
-export function nextDue(bill: Pick<Bill, "frequency" | "due_day" | "due_date" | "paid_until" | "created_at">): string {
+export function nextDue(bill: Pick<Bill, "frequency" | "due_day" | "due_date" | "paid_until" | "created_at"> & { debt_id?: string | null; next_due?: string | null }): string {
+  if (bill.debt_id && bill.next_due) return bill.next_due
   const created = new Date(Date.parse(bill.created_at) + 7 * 3_600_000).toISOString().slice(0, 10)
   const after = bill.paid_until ?? new Date(Date.parse(`${created}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
   const [ay, am] = after.split("-").map(Number)

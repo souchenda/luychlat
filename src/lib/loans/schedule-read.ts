@@ -29,6 +29,10 @@ export type ScheduleRead = {
   nextDue: string | null
   nextAmount: number | null
   outstanding: number | null
+  /** Each installment's printed date, in order (null where unreadable). */
+  dueDates: (string | null)[] | null
+  /** The highest installment the document itself marks as paid (a stamp / tick), else null. */
+  paidThrough: number | null
 }
 
 /** The vision prompt; today's date lets it pick the next installment and the current balance. */
@@ -36,12 +40,14 @@ export function schedulePrompt(today: string): string {
   return [
     "This photo should be a Cambodian bank or microfinance LOAN REPAYMENT SCHEDULE (តារាងកាលវិភាគសងប្រាក់ / Repayment Schedule): a header with the loan's terms and a table of installments (No., date, principal, interest, total, balance).",
     "Read it and answer JSON only:",
-    '{"is_schedule": boolean, "lender": string, "account": string | null, "currency": "USD" | "KHR", "principal": number, "rate": number | null, "rate_period": "MONTH" | "YEAR", "months": number, "installment": number, "method": "ANNUITY" | "FLAT" | null, "disbursed": "YYYY-MM-DD" | null, "first_due": "YYYY-MM-DD", "next_no": number | null, "next_due": "YYYY-MM-DD" | null, "next_amount": number | null, "outstanding": number | null}',
+    '{"is_schedule": boolean, "lender": string, "account": string | null, "currency": "USD" | "KHR", "principal": number, "rate": number | null, "rate_period": "MONTH" | "YEAR", "months": number, "installment": number, "method": "ANNUITY" | "FLAT" | null, "disbursed": "YYYY-MM-DD" | null, "first_due": "YYYY-MM-DD", "next_no": number | null, "next_due": "YYYY-MM-DD" | null, "next_amount": number | null, "outstanding": number | null, "due_dates": ["YYYY-MM-DD", ...] | null, "paid_through": number | null}',
     "lender: the institution's name as printed (e.g. \"Cambodian Labor Care PLC\"). account: the loan account number as printed (e.g. \"994-005084-01-4\").",
     "principal: the amount disbursed / loan amount. rate: the interest rate as printed (0.82 for \"0.82%\"); rate_period: MONTH for a monthly rate, YEAR for a yearly one. months: the number of installments (term).",
     "installment: the regular total installment (principal + interest) — the amount repeated on most rows. method: ANNUITY when the total installment is equal every month (declining balance), FLAT when the interest is the same every month; null if unclear.",
     "disbursed: the disbursement / loan date. first_due: the date of installment No. 1.",
     `Today is ${today}. next_no / next_due / next_amount: the first row dated on or after today (its number, date and total). outstanding: the remaining principal balance after the last row dated before today (the principal itself when no row is before today).`,
+    "due_dates: the date of EVERY installment row in order (No. 1 first), exactly as printed — lenders move dates off weekends and holidays, so never compute them; null for a row whose date is unreadable.",
+    "paid_through: the highest installment number the document itself marks as PAID (a stamp, tick, «បានបង់» / «PAID»); null when no row is marked. Never infer payment from dates.",
     "Amounts are numbers without separators (\"9,599.00\" → 9599). Riel has no decimals. Dates as YYYY-MM-DD (read dd/mm/yyyy as day first).",
     'If it is not a loan repayment schedule, or the principal, term or installment is unreadable, answer {"is_schedule": false}.',
   ].join("\n")
@@ -85,6 +91,8 @@ export function cleanScheduleRead(raw: unknown): ScheduleRead | null {
     nextDue: date(r.next_due),
     nextAmount: num(r.next_amount),
     outstanding: num(r.outstanding),
+    dueDates: Array.isArray(r.due_dates) && r.due_dates.length ? r.due_dates.slice(0, months).map(date) : null,
+    paidThrough: Number.isInteger(r.paid_through) && (r.paid_through as number) >= 0 ? Math.min(r.paid_through as number, months) : null,
   }
 }
 
@@ -119,13 +127,16 @@ export type ImportPlan = {
 }
 
 /**
- * The loan to create. The installments before the next one count as paid: the printed next number,
- * else the months from the first due date to the printed next date, else the rows dated before today.
+ * The loan to create, following the printed table (dates; the balance at the import point).
+ * An installment counts as paid ONLY when the document marks it paid, or its due date is strictly
+ * before today — a future row (13/10 when today is 10/10) is never paid, whatever the reading says
+ * about the next row.
  */
 export function importPlan(read: ScheduleRead, today: string): ImportPlan {
   const flat = read.method === "FLAT"
   const rate = read.monthlyRate ?? (flat ? roundMoney(((read.installment * read.months - read.principal) / read.principal / read.months) * 100, "USD") : solveMonthlyRate(read.principal, read.months, read.installment))
-  const input: LoanInput = {
+  const dueDates: (string | null)[] = Array.from({ length: read.months }, (_, i) => read.dueDates?.[i] ?? null)
+  const base: LoanInput = {
     principal: read.principal,
     currency: read.currency,
     rate,
@@ -137,17 +148,21 @@ export function importPlan(read: ScheduleRead, today: string): ImportPlan {
     startDate: read.disbursed ?? format(addMonths(parseISO(read.firstDue), -1), "yyyy-MM-dd"),
     fee: 0,
     payment: read.installment,
+    dueDates,
   }
+  const draft = computeSchedule(base)
+  const byDate = draft.rows.filter((row) => row.date < today).length
+  const claimed = read.nextNo !== null ? read.nextNo - 1 : read.nextDue ? monthIndex(read.nextDue) - monthIndex(read.firstDue) : byDate
+  const paidCount = Math.max(0, Math.min(read.months, read.paidThrough ?? Math.min(claimed, byDate)))
+  // The printed next date for the next row, when the reading names that same row.
+  if (read.nextDue && read.nextNo === paidCount + 1 && paidCount < read.months && !dueDates[paidCount] && read.nextDue >= today) dueDates[paidCount] = read.nextDue
+  // The printed balance after the last paid row, when it is that row's (within 0.5% of ours).
+  const ourBalance = paidCount ? draft.rows[paidCount - 1].balance : read.principal
+  const anchored = !flat && paidCount > 0 && paidCount < read.months && read.outstanding !== null && Math.abs(read.outstanding - ourBalance) <= read.principal * 0.005
+  const input: LoanInput = { ...base, dueDates: dueDates.some(Boolean) ? dueDates : null, anchor: anchored ? { n: paidCount, balance: read.outstanding! } : null }
   const schedule = computeSchedule(input)
-  const byDate = schedule.rows.filter((row) => row.date < today).length
-  const paidCount = Math.max(
-    0,
-    Math.min(read.months, read.nextNo !== null ? read.nextNo - 1 : read.nextDue ? monthIndex(read.nextDue) - monthIndex(read.firstDue) : byDate),
-  )
-  const paidRows = schedule.rows.slice(0, paidCount)
-  const paidAmount = roundMoney(paidRows.reduce((a, row) => a + (flat ? row.payment : row.principal), 0), read.currency)
+  const paidAmount = roundMoney(schedule.rows.slice(0, paidCount).reduce((a, row) => a + (flat ? row.payment : row.principal), 0), read.currency)
   const next = schedule.rows[paidCount] ?? null
-  const ourOutstanding = paidCount ? schedule.rows[paidCount - 1].balance : read.principal
   return {
     input,
     schedule,
@@ -157,9 +172,9 @@ export function importPlan(read: ScheduleRead, today: string): ImportPlan {
     next,
     shown: {
       installment: read.installment,
-      outstanding: read.outstanding ?? ourOutstanding,
-      nextDue: read.nextDue ?? next?.date ?? null,
-      nextAmount: read.nextAmount ?? next?.payment ?? null,
+      outstanding: paidCount ? schedule.rows[paidCount - 1].balance : read.principal,
+      nextDue: next?.date ?? null,
+      nextAmount: next?.payment ?? null,
     },
   }
 }
@@ -209,5 +224,8 @@ export function loanPayload(read: ScheduleRead, plan: ImportPlan) {
     paid_date: plan.paidUntil,
     paid_note: plan.paidCount ? `លើកទី 1–${plan.paidCount} បង់រួចមុនពេលកត់ត្រា (តាមតារាងកាលវិភាគ)` : null,
     bill_amount: plan.schedule.monthlyPayment,
+    due_dates: plan.input.dueDates ?? null,
+    anchor_n: plan.input.anchor?.n ?? null,
+    anchor_balance: plan.input.anchor?.balance ?? null,
   }
 }

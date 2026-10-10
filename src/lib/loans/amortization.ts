@@ -28,6 +28,13 @@ export type LoanInput = {
    * $242.72); a stated amount within 10% but more than 0.5% off the formula is used as the EMI.
    */
   payment?: number | null
+  /** The lender's printed due dates by installment (a null / missing one: first payment date + months). */
+  dueDates?: (string | null)[] | null
+  /**
+   * BANK: the printed balance after installment `n`. A lender counting actual days drifts a few
+   * dollars from the formula; that row's principal absorbs it and later rows run from the paper.
+   */
+  anchor?: { n: number; balance: number } | null
 }
 
 export type ScheduleRow = {
@@ -94,7 +101,7 @@ export function computeSchedule(input: LoanInput): LoanSchedule {
     balance = round(balance - principalPart)
     rows.push({
       n: i,
-      date: format(step(parseISO(input.firstPaymentDate), i - 1), "yyyy-MM-dd"),
+      date: input.dueDates?.[i - 1] ?? format(step(parseISO(input.firstPaymentDate), i - 1), "yyyy-MM-dd"),
       payment: round(principalPart + interest),
       principal: principalPart,
       interest,
@@ -157,11 +164,13 @@ function computeBankSchedule(input: LoanInput): LoanSchedule {
       principalPart = round(emi - interest)
     }
     if (i === n || principalPart > balance) principalPart = round(balance)
+    // The printed balance after this row: its principal takes up the difference.
+    if (input.anchor && i === input.anchor.n && i < n && input.anchor.balance <= balance) principalPart = round(balance - input.anchor.balance)
     if (principalPart < 0) principalPart = 0
     balance = round(balance - principalPart)
     rows.push({
       n: i,
-      date: format(addMonths(parseISO(input.firstPaymentDate), i - 1), "yyyy-MM-dd"),
+      date: input.dueDates?.[i - 1] ?? format(addMonths(parseISO(input.firstPaymentDate), i - 1), "yyyy-MM-dd"),
       payment: round(principalPart + interest + fee),
       principal: principalPart,
       interest,

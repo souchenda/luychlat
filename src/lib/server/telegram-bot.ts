@@ -35,10 +35,22 @@ export async function tg<T = unknown>(method: string, payload: Record<string, un
       body: JSON.stringify(payload),
       cache: "no-store",
     })
-    return (await res.json()) as { ok: boolean; result?: T; description?: string }
+    const body = (await res.json()) as { ok: boolean; result?: T; description?: string }
+    if (!body.ok) reportFailure(method, body.description)
+    return body
   } catch {
+    reportFailure(method, "network")
     return { ok: false, description: "network" }
   }
+}
+
+/**
+ * A message that didn't reach the chat is never silent: the method and Telegram's reason go to the
+ * admin log (never the message itself). Blocked / deleted chats are normal and not reported.
+ */
+function reportFailure(method: string, description: string | undefined) {
+  if (!/^send|^edit/.test(method) || /blocked|chat not found|deactivated|message is not modified/i.test(description ?? "")) return
+  void import("./events").then(({ logEvent }) => logEvent("error", "telegram", `Telegram ${method} failed: ${(description ?? "unknown").slice(0, 160)}`, { fold: true })).catch(() => null)
 }
 
 /** Dates written with dashes (05-10-2026, 2026-10-05) look like 8-digit numbers. */

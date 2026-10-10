@@ -21,8 +21,9 @@ export async function readLoanSchedule(fileId: string): Promise<ScheduleRead | n
   const image = Buffer.from(file.bytes).toString("base64")
   const prompt = schedulePrompt(phnomPenhToday().day)
   const readers: [string, () => Promise<Answer>][] = []
-  if (gemini) readers.push(["Gemini", () => askGemini(gemini, file.type, image, prompt)])
-  if (groq) readers.push(["Groq", () => askGroq(groq, file.type, image, prompt)])
+  // Room for every printed row date (48 dates and more).
+  if (gemini) readers.push(["Gemini", () => askGemini(gemini, file.type, image, prompt, 2500)])
+  if (groq) readers.push(["Groq", () => askGroq(groq, file.type, image, prompt, 2500)])
   for (const [name, ask] of readers) {
     const got = await ask()
     if ("fail" in got) {
@@ -66,6 +67,12 @@ export async function handleLoanSchedulePhoto(chatId: number, fileId: string) {
   if (r.status === "plan") return sendText(chatId, "📑 កាលវិភាគបង់រំលស់កម្ចី ជាមុខងារ PRO។ សូមដំឡើងគម្រោង ដើម្បីឱ្យប្រព័ន្ធកត់ត្រាតារាងកាលវិភាគដោយស្វ័យប្រវត្តិ។", openDebts)
   if (r.status === "duplicate") return sendText(chatId, `📑 កម្ចី ${read.lender} នេះ បានកត់ត្រារួចហើយ — មិនបានបង្កើតម្ដងទៀតទេ។`, openDebts)
   if (r.status !== "ok") return sendText(chatId, "📑 សូមភ្ជាប់គណនីជាមុនសិន ដោយប្រើ /start។")
-  logEvent("info", "loans", `Loan schedule imported (${read.months} months, ${plan.paidCount} paid)`, { fold: true })
-  return sendText(chatId, importedText(read, plan), openDebts)
+  logEvent("info", "loans", `Loan schedule imported (${read.months} months, ${plan.paidCount} paid, next #${plan.next?.n ?? "-"} ${plan.next?.date ?? ""})`, { fold: true })
+  // Plain text (no Markdown / HTML to break on "." "-" "$" "(" ")"); a failed send is logged and
+  // retried once without the button, so the saved loan is never left unconfirmed.
+  const text = importedText(read, plan)
+  const sent = await sendText(chatId, text, openDebts)
+  if (sent.ok) return sent
+  logEvent("error", "loans", `Loan confirmation not delivered: ${sent.description ?? "unknown"}`)
+  return sendText(chatId, `${text}\n\n👉 ${DEFAULT_ABOUT.website}/debts`, { reply_markup: { remove_keyboard: true } })
 }

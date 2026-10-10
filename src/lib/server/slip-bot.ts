@@ -73,14 +73,14 @@ type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bil
 export type Answer = { text: string } | { fail: string }
 
 /** Gemini Vision's raw answer (retrying brief overloads). */
-export async function askGemini(key: string, type: string, image: string, prompt: string = PROMPT): Promise<Answer> {
+export async function askGemini(key: string, type: string, image: string, prompt: string = PROMPT, maxTokens = 600): Promise<Answer> {
   const request = () =>
     fetch(GEMINI_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         contents: [{ parts: [{ inline_data: { mime_type: type, data: image } }, { text: prompt }] }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } },
+        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } },
       }),
       cache: "no-store",
       signal: AbortSignal.timeout(20_000),
@@ -101,7 +101,7 @@ export async function askGemini(key: string, type: string, image: string, prompt
   }
 }
 
-export async function askGroq(key: string, type: string, image: string, prompt: string = PROMPT): Promise<Answer> {
+export async function askGroq(key: string, type: string, image: string, prompt: string = PROMPT, maxTokens = 600): Promise<Answer> {
   try {
     const res = await fetch(GROQ_URL, {
       method: "POST",
@@ -109,7 +109,7 @@ export async function askGroq(key: string, type: string, image: string, prompt: 
       body: JSON.stringify({
         model: GROQ_VISION,
         temperature: 0,
-        max_completion_tokens: 600,
+        max_completion_tokens: maxTokens,
         response_format: { type: "json_object" },
         messages: [{ role: "user", content: [{ type: "image_url", image_url: { url: `data:${type};base64,${image}` } }, { type: "text", text: prompt }] }],
       }),

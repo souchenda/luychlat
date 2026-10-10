@@ -47,6 +47,8 @@ export function debtSchedule(d: Debt): LoanSchedule | null {
     startDate: d.start_date,
     fee: d.schedule_fee ?? 0,
     payment: d.schedule_payment,
+    dueDates: d.schedule_due_dates,
+    anchor: d.schedule_anchor_n != null && d.schedule_anchor_balance != null ? { n: d.schedule_anchor_n, balance: Number(d.schedule_anchor_balance) } : null,
   })
 }
 
