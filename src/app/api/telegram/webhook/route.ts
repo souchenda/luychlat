@@ -453,6 +453,13 @@ export async function POST(request: Request) {
     // Admins only: preview a festival poster here (/poster pchumben); nothing is posted publicly.
     const problem = await sendFestivalPoster(chatId, payload)
     if (problem) await sendText(chatId, problem)
+  } else if (/^\/fuelsync(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
+    // Admins only: check the MoC channel now (a late notice), instead of waiting for the next slot.
+    await sendText(chatId, "⛽ កំពុងពិនិត្យ t.me/mocnewsfeed …")
+    const { checkMocFuel } = await import("@/lib/server/moc-fuel-sync")
+    const result = await checkMocFuel(phnomPenhToday().day, false)
+    const fuel = (await currentMarket())?.fuel
+    await sendText(chatId, [`⛽ /fuelsync៖ ${result}`, ...(fuel ? ["", ...fuelLines(fuel, (k, p) => tr("km", k, p), phnomPenhToday().day, "km")] : [])].join("\n"))
   } else if (/^\/setfuel(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: MoC fuel and gas prices for a 10-day cycle (others get the normal help).
     await sendText(chatId, await setFuelReply(text, chatId))

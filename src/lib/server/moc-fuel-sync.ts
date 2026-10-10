@@ -27,8 +27,12 @@ import { botDb, botKey, tg } from "./telegram-bot"
 const CHANNEL = "mocnewsfeed"
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 
-/** When the channel is checked (Cambodia time): every 15 minutes around the usual noon post, and twice later. */
-export const MOC_SLOTS = ["11:45", "12:00", "12:15", "12:30", "12:45", "13:00", "13:15", "13:30", "14:00", "14:30", "15:00", "17:00", "20:00"]
+/**
+ * When the channel is checked (Cambodia time): from 06:30 (a notice published early is in by
+ * breakfast), every 15 minutes around the usual noon post, and twice later. A check is one page
+ * fetch; the notice image is read only once, when a new one appears.
+ */
+export const MOC_SLOTS = ["06:30", "07:00", "08:00", "09:00", "10:00", "11:00", "11:45", "12:00", "12:15", "12:30", "12:45", "13:00", "13:15", "13:30", "14:00", "14:30", "15:00", "17:00", "20:00"]
 
 const PROMPT = [
   "This image should be a Cambodian Ministry of Commerce notice (សេចក្តីជូនដំណឹង) of retail fuel prices at stations.",
@@ -56,13 +60,23 @@ async function toSuperAdmins(text: string) {
   for (const c of (chats as { chat_id: number }[] | null) ?? []) await tg("sendMessage", { chat_id: Number(c.chat_id), text, disable_web_page_preview: true }).catch(() => null)
 }
 
-/** The newest fuel notice on the channel's public page, or null (page unreadable / none on it). */
+/**
+ * The newest fuel notice on the channel's public page, or null (none on it). The page shows only
+ * the latest ~20 posts: on a busy news day the notice can scroll off, so one older page is read too.
+ */
 async function latestNotice(): Promise<ChannelPost | null | "unreachable"> {
   try {
-    const res = await fetch(`https://t.me/s/${CHANNEL}`, { headers: { "User-Agent": UA }, cache: "no-store", signal: AbortSignal.timeout(20_000) })
-    if (!res.ok) return "unreachable"
-    const notices = channelPosts(await res.text(), CHANNEL).filter((p) => isFuelNotice(p.text) && p.image)
-    return notices.sort((a, b) => a.id - b.id).at(-1) ?? null
+    const page = async (before?: number) => {
+      const res = await fetch(`https://t.me/s/${CHANNEL}${before ? `?before=${before}` : ""}`, { headers: { "User-Agent": UA }, cache: "no-store", signal: AbortSignal.timeout(20_000) })
+      return res.ok ? channelPosts(await res.text(), CHANNEL) : null
+    }
+    const first = await page()
+    if (!first) return "unreachable"
+    const newest = (posts: ChannelPost[]) => posts.filter((p) => isFuelNotice(p.text) && p.image).sort((a, b) => a.id - b.id).at(-1) ?? null
+    const found = newest(first)
+    if (found || !first.length) return found
+    const oldest = Math.min(...first.map((p) => p.id))
+    return newest((await page(oldest)) ?? [])
   } catch {
     return "unreachable"
   }
@@ -104,16 +118,27 @@ function change(now: number, before: number | null | undefined) {
   return ` (${now > before ? "▲" : "▼"} ${riel(Math.abs(now - before))})`
 }
 
+const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
+
+/** «សម្រាប់ថ្ងៃទី ១១ ដល់ ២១ ខែតុលា ឆ្នាំ ២០២៦» — the period exactly as the notice states it. */
+export function periodLine(from: string, to: string): string {
+  const [fy, fm, fd] = from.split("-").map(Number)
+  const [ty, tm, td] = to.split("-").map(Number)
+  const day = (n: number) => kmDigits(String(n).padStart(2, "0"))
+  const start = fm === tm && fy === ty ? `${day(fd)}` : `${day(fd)} ខែ${KM_MONTHS[fm - 1]}${fy === ty ? "" : ` ឆ្នាំ ${kmDigits(String(fy))}`}`
+  return `សម្រាប់ថ្ងៃទី ${start} ដល់ ${day(td)} ខែ${KM_MONTHS[tm - 1]} ឆ្នាំ ${kmDigits(String(ty))}`
+}
+
 /** The community channel post for a new notice. */
 export function newPricesText(fuel: Pick<FuelPrices, "regular" | "diesel" | "from" | "to"> & { super?: number | null }, previous: Pick<FuelPrices, "regular" | "diesel"> & { super?: number | null } | null, postId: number): string {
-  const year = kmDigits(fuel.to.slice(0, 4))
   return [
-    "⛽ តម្លៃប្រេងឥន្ធនៈថ្មី — ក្រសួងពាណិជ្ជកម្ម",
-    `📅 អនុវត្តចាប់ពីម៉ោង ១ រសៀល · ${cycleText(fuel.from, fuel.to, "km")} ${year}`,
+    "⛽ តម្លៃលក់រាយប្រេងឥន្ធនៈផ្លូវការ (ក្រសួងពាណិជ្ជកម្ម)",
+    `📅 ${periodLine(fuel.from, fuel.to)} (អនុវត្តចាប់ពីម៉ោង ១ រសៀល)`,
     "",
     `• សាំងធម្មតា (EA92) ៖ ${riel(fuel.regular)} ៛/លីត្រ${change(fuel.regular, previous?.regular)}`,
+    // EA95 only when the notice lists it — never a placeholder.
     ...(fuel.super ? [`• សាំងស៊ុបពែរ (EA95) ៖ ${riel(fuel.super)} ៛/លីត្រ${change(fuel.super, previous?.super)}`] : []),
-    `• ម៉ាស៊ូត (Diesel) ៖ ${riel(fuel.diesel)} ៛/លីត្រ${change(fuel.diesel, previous?.diesel)}`,
+    `• ប្រេងម៉ាស៊ូត (Diesel) ៖ ${riel(fuel.diesel)} ៛/លីត្រ${change(fuel.diesel, previous?.diesel)}`,
     "",
     `ℹ️ ប្រភព៖ សេចក្តីជូនដំណឹងក្រសួងពាណិជ្ជកម្ម · t.me/${CHANNEL}/${postId}`,
     "✨ ចុះឈ្មោះប្រើកម្មវិធីដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត! 👇👇",
@@ -125,12 +150,12 @@ export function newPricesText(fuel: Pick<FuelPrices, "regular" | "diesel" | "fro
  * check — when the current prices end today and no new notice has come, the super
  * admins are told once.
  */
-export async function checkMocFuel(day: string, lastSlot: boolean): Promise<void> {
+export async function checkMocFuel(day: string, lastSlot: boolean): Promise<string> {
   const fuel = (await currentMarket())?.fuel ?? null
   const notice = await latestNotice()
   if (notice === "unreachable") {
     logEvent("warn", "moc-fuel", "t.me/s/mocnewsfeed unreachable — fuel notice not checked", { fold: true })
-    return
+    return "unreachable"
   }
   const period = notice ? parseNoticePeriod(notice.text) : null
   // Already in: this notice, or an admin's prices for the same or a later period.
@@ -143,9 +168,12 @@ export async function checkMocFuel(day: string, lastSlot: boolean): Promise<void
 
   const current = (await currentMarket())?.fuel ?? null
   if (lastSlot && current && current.to <= day && !(period && period.to > day) && (await claim("moc-fuel-missing", day))) {
-    await toSuperAdmins(`⚠️ [តម្លៃប្រេង] តម្លៃបច្ចុប្បន្នផុតកំណត់ថ្ងៃនេះ ប៉ុន្តែក្រសួងពាណិជ្ជកម្មមិនទាន់ផ្សាយតម្លៃថ្មីនៅ t.me/${CHANNEL} ទេ (ពិនិត្យរហូតដល់ម៉ោង ៣ រសៀល)។\n• Bot នឹងពិនិត្យម្ដងទៀតម៉ោង ៥ និង ៨ យប់\n• ឬបញ្ចូលដោយដៃ៖ /setfuel`)
+    await toSuperAdmins(`⚠️ [តម្លៃប្រេង] តម្លៃបច្ចុប្បន្នផុតកំណត់ថ្ងៃនេះ ប៉ុន្តែក្រសួងពាណិជ្ជកម្មមិនទាន់ផ្សាយតម្លៃថ្មីនៅ t.me/${CHANNEL} ទេ (ពិនិត្យរហូតដល់ម៉ោង ៣ រសៀល)។\n• Bot នឹងពិនិត្យម្ដងទៀតម៉ោង ៥ និង ៨ យប់\n• ឬពិនិត្យភ្លាមៗ៖ /fuelsync · ឬបញ្ចូលដោយដៃ៖ /setfuel`)
     logEvent("warn", "moc-fuel", `No new MoC fuel notice by 15:00 although the prices end ${current.to}`)
   }
+  if (!notice) return "no fuel notice on the channel's latest pages"
+  if (!period) return `notice ${notice.id}: period not readable`
+  return current?.post === notice.id ? `applied: notice ${notice.id} (${period.from} → ${period.to})` : covered ? `already in: ${current?.from} → ${current?.to}` : `notice ${notice.id} (${period.from} → ${period.to}) found — not published (see the note above)`
 }
 
 async function applyNotice(day: string, notice: ChannelPost, period: { from: string; to: string }, previous: FuelPrices | null) {
