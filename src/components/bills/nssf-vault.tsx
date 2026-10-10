@@ -1,6 +1,6 @@
 "use client"
 
-import { CameraIcon, ImageIcon, CopyIcon, IdCardIcon, Loader2Icon, PlusIcon, ScissorsIcon, Trash2Icon, XIcon } from "lucide-react"
+import { CameraIcon, ImageIcon, CopyIcon, IdCardIcon, Loader2Icon, PlusIcon, QrCodeIcon, ScissorsIcon, Trash2Icon, TriangleAlertIcon, XIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -18,7 +18,8 @@ import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { useProfile } from "@/lib/data/hooks"
 import { decodeQrText } from "@/lib/khqr-decode"
-import { cardName, guessRelationship, qrConfirmsId, type NssfCard } from "@/lib/nssf-card"
+import { cardName, guessRelationship, identityFromQr, mergeQrIdentity, qrConfirmsId, type NssfCard } from "@/lib/nssf-card"
+import { NssfCardViewer, type CardSide } from "@/components/bills/nssf-card-viewer"
 import { cropCardImage, cropCardPhoto, reportCrop } from "@/lib/card-crop-browser"
 import { cn } from "@/lib/utils"
 import { usePrefsStore } from "@/stores/prefs-store"
@@ -163,17 +164,30 @@ function PhotoPicker({
   )
 }
 
-type Form = { name: string; relationship: NssfRelationship; nssfId: string; front: string | null; back: string | null; active: boolean }
+type Form = {
+  name: string
+  nameEn: string
+  dob: string
+  gender: "MALE" | "FEMALE" | null
+  relationship: NssfRelationship
+  nssfId: string
+  qrText: string | null
+  front: string | null
+  back: string | null
+  active: boolean
+}
+const EMPTY: Form = { name: "", nameEn: "", dob: "", gender: null, relationship: "self", nssfId: "", qrText: null, front: null, back: null, active: true }
 
 function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: () => void }) {
   const t = useT()
   const { save, remove } = useNssfMutations()
-  const [form, setForm] = useState<Form>({ name: "", relationship: "self", nssfId: "", front: null, back: null, active: true })
+  const [form, setForm] = useState<Form>(EMPTY)
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }))
   const profileName = useProfile().data?.display_name
   const [scanning, setScanning] = useState(false)
 
-  // The front of the card: Vision reads name, ID, birth date (and the card's QR, if any, confirms the ID),
+  // The front of the card. QR first: the card's own QR (decoded on the phone, no AI) is the
+  // authority for whatever it states; Vision reads the rest (verbatim Khmer name, ID, birth date)
   // and where the card is in the photo — the photo kept is the card alone, straightened.
   const scan = async (image: Blob): Promise<Blob | null> => {
     setScanning(true)
@@ -185,34 +199,68 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
       const crop = await cropCardImage(image, json?.corners, json?.box)
       if (!crop.blob) reportCrop("front", crop.why)
       const cropped = crop.blob ?? null
-      const card = json?.card
+      const merged = mergeQrIdentity(json?.card ?? null, identityFromQr(qr))
+      const card = merged.card
+      if (qr) set({ qrText: qr })
       if (!card) {
         toast.info(t(json?.error === "busy" || !res ? "nssf.ocrBusy" : "nssf.ocrNone"))
         return cropped
       }
-      const today = new Date().toISOString().slice(0, 10)
-      setForm((f) => ({
-        ...f,
-        name: cardName(card) || f.name,
-        nssfId: card.idNumber ?? f.nssfId,
-        // An existing member keeps their relationship; a new one gets the smart guess.
-        relationship: member ? f.relationship : (guessRelationship(card, profileName, today) ?? f.relationship),
-      }))
-      toast.success(t(qrConfirmsId(qr, card.idNumber) ? "nssf.ocrVerified" : "nssf.ocrFilled"))
+      applyCard(card)
+      toast.success(t(merged.idCorrected ? "nssf.qrCorrected" : qrConfirmsId(qr, card.idNumber) ? "nssf.ocrVerified" : "nssf.ocrFilled"))
       return cropped
     } finally {
       setScanning(false)
     }
   }
 
+  /** The card's reading into the form (an existing member keeps their relationship; a new one gets the smart guess). */
+  const applyCard = (card: NssfCard) => {
+    const today = new Date().toISOString().slice(0, 10)
+    setForm((f) => ({
+      ...f,
+      name: cardName(card) || f.name,
+      nameEn: card.nameEn ?? f.nameEn,
+      dob: card.dob ?? f.dob,
+      gender: card.gender ?? f.gender,
+      nssfId: card.idNumber ?? f.nssfId,
+      relationship: member ? f.relationship : (guessRelationship(card, profileName, today) ?? f.relationship),
+    }))
+  }
+
   /** Only cut out (nothing to read): the back of a card, or a stored photo cropped again. */
   const cropOnly = (side: "back" | "crop") => (image: Blob) => cropCardPhoto(image, side)
+
+  /** The back: its QR (when the card has it there) is read on the phone before the card is cut out. */
+  const scanBack = async (image: Blob): Promise<Blob | null> => {
+    const qr = await decodeQrText(image).catch(() => null)
+    const identity = identityFromQr(qr)
+    if (qr) set({ qrText: qr })
+    if (identity) {
+      const current: NssfCard = { nameKh: form.name || null, nameEn: form.nameEn || null, idNumber: form.nssfId || null, dob: form.dob || null, gender: form.gender }
+      const merged = mergeQrIdentity(current, identity)
+      if (merged.card) applyCard(merged.card)
+      toast.success(t(merged.idCorrected ? "nssf.qrCorrected" : "nssf.qrRead"))
+    }
+    return cropCardPhoto(image, "back")
+  }
 
   useEffect(() => {
     setForm(
       member
-        ? { name: member.name, relationship: member.relationship, nssfId: member.nssf_id ?? "", front: member.front_path, back: member.back_path, active: member.is_active }
-        : { name: "", relationship: "self", nssfId: "", front: null, back: null, active: true },
+        ? {
+            name: member.name,
+            nameEn: member.name_en ?? "",
+            dob: member.dob ?? "",
+            gender: member.gender ?? null,
+            relationship: member.relationship,
+            nssfId: member.nssf_id ?? "",
+            qrText: member.qr_text ?? null,
+            front: member.front_path,
+            back: member.back_path,
+            active: member.is_active,
+          }
+        : EMPTY,
     )
   }, [member])
 
@@ -226,6 +274,10 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
           name: form.name.trim(),
           relationship: form.relationship,
           nssf_id: form.nssfId.trim() || null,
+          name_en: form.nameEn.trim().toUpperCase() || null,
+          dob: form.dob || null,
+          gender: form.gender,
+          qr_text: form.qrText,
           front_path: form.front,
           back_path: form.back,
           is_active: form.active,
@@ -244,9 +296,43 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
   return (
     <BottomSheet open onOpenChange={(v) => !v && onClose()} title={member ? t("nssf.editTitle") : t("nssf.newTitle")} description={t("nssf.privateNote")}>
       <form onSubmit={submit} className="space-y-4">
+        {/* Zero-error identity: what is saved must match the physical card exactly. */}
+        <p className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm font-medium text-amber-900 dark:text-amber-200">
+          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {t("nssf.verifyWarning")}
+        </p>
         <div className="space-y-2">
           <Label htmlFor="nssf-name">{t("nssf.name")}</Label>
           <Input id="nssf-name" value={form.name} maxLength={80} onChange={(e) => set({ name: e.target.value })} className="h-11" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="nssf-name-en">{t("nssf.nameEn")}</Label>
+          <Input
+            id="nssf-name-en"
+            value={form.nameEn}
+            maxLength={80}
+            autoCapitalize="characters"
+            onChange={(e) => set({ nameEn: e.target.value.replace(/[^A-Za-z .'-]/g, "") })}
+            className="h-11 uppercase"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="nssf-dob">{t("nssf.dob")}</Label>
+            <Input id="nssf-dob" type="date" value={form.dob} max={new Date().toISOString().slice(0, 10)} onChange={(e) => set({ dob: e.target.value })} className="h-11" />
+          </div>
+          <div className="space-y-2">
+            <Label>{t("nssf.gender")}</Label>
+            <Segmented<"MALE" | "FEMALE" | "">
+              aria-label={t("nssf.gender")}
+              value={form.gender ?? ""}
+              onChange={(v) => set({ gender: v || null })}
+              options={[
+                { value: "MALE", label: t("nssf.male") },
+                { value: "FEMALE", label: t("nssf.female") },
+              ]}
+            />
+          </div>
         </div>
         <Segmented
           aria-label={t("nssf.relationship")}
@@ -272,7 +358,7 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
         </div>
         <div className="grid grid-cols-2 gap-3">
           <PhotoPicker label={t("nssf.front")} path={form.front} onChange={(front) => set({ front })} prepare={scan} recrop={cropOnly("crop")} scanning={scanning} />
-          <PhotoPicker label={t("nssf.back")} path={form.back} onChange={(back) => set({ back })} prepare={cropOnly("back")} recrop={cropOnly("crop")} />
+          <PhotoPicker label={t("nssf.back")} path={form.back} onChange={(back) => set({ back })} prepare={scanBack} recrop={cropOnly("crop")} />
         </div>
         <label className="flex items-center justify-between gap-3 text-sm">
           <span>
@@ -369,7 +455,15 @@ export function NssfVault() {
   const members = useNssfMembers().data ?? []
   useCropBackfill(members)
   const [editing, setEditing] = useState<NssfMember | null | "new">(null)
-  const [viewing, setViewing] = useState<string | null>(null)
+  const [viewing, setViewing] = useState<{ id: string; side: CardSide } | null>(null)
+  const { save } = useNssfMutations()
+  const viewed = viewing ? members.find((m) => m.id === viewing.id) : undefined
+  /** A QR found later in a stored photo is kept, so it shows at once next time. */
+  const keepQr = (m: NssfMember, qr: string) =>
+    void save.mutateAsync({
+      id: m.id,
+      input: { name: m.name, relationship: m.relationship, nssf_id: m.nssf_id, front_path: m.front_path, back_path: m.back_path, is_active: m.is_active, qr_text: qr.slice(0, 1000) },
+    })
   const active = members.filter((m) => m.is_active).length
 
   const copy = async (id: string) => {
@@ -412,10 +506,15 @@ export function NssfVault() {
                   </Button>
                 </div>
               )}
-              {(m.front_path || m.back_path) && (
-                <div className="flex gap-2">
-                  {m.front_path && <Photo path={m.front_path} label={t("nssf.front")} onOpen={setViewing} />}
-                  {m.back_path && <Photo path={m.back_path} label={t("nssf.back")} onOpen={setViewing} />}
+              {(m.front_path || m.back_path || m.qr_text) && (
+                <div className="flex items-center gap-2">
+                  {m.front_path && <Photo path={m.front_path} label={t("nssf.front")} onOpen={() => setViewing({ id: m.id, side: "FRONT" })} />}
+                  {m.back_path && <Photo path={m.back_path} label={t("nssf.back")} onOpen={() => setViewing({ id: m.id, side: "BACK" })} />}
+                  {/* The card's QR, full screen for hospital staff to scan from the phone. */}
+                  <Button type="button" variant="outline" className="h-14 flex-1 flex-col gap-0.5 text-xs" onClick={() => setViewing({ id: m.id, side: "QR" })}>
+                    <QrCodeIcon className="size-5" />
+                    {t("nssf.showQr")}
+                  </Button>
                 </div>
               )}
             </div>
@@ -432,13 +531,9 @@ export function NssfVault() {
         </p>
       )}
       {editing && <MemberSheet member={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
-      <Dialog open={viewing !== null} onOpenChange={(v) => !v && setViewing(null)}>
-        <DialogContent className="max-w-lg p-2">
-          <DialogTitle className="sr-only">{t("nssf.vaultTitle")}</DialogTitle>
-          {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL */}
-          {viewing && <img src={viewing} alt="" className="max-h-[80dvh] w-full rounded-lg object-contain" />}
-        </DialogContent>
-      </Dialog>
+      {viewing && viewed && (
+        <NssfCardViewer member={viewed} side={viewing.side} onSide={(side) => setViewing({ id: viewed.id, side })} onClose={() => setViewing(null)} onQrFound={(qr) => keepQr(viewed, qr)} />
+      )}
     </section>
   )
 }

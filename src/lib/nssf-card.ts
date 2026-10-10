@@ -80,3 +80,71 @@ export function qrConfirmsId(qr: string | null, id: string | null): boolean {
   const digits = id.replace(/\D/g, "")
   return digits.length >= 6 && qr.replace(/\D/g, "").includes(digits)
 }
+
+export type QrIdentity = { idNumber: string | null; nameKh: string | null; nameEn: string | null; dob: string | null }
+
+const QR_KEYS = {
+  id: /^(?:id|nssf_?id|card_?(?:no|number|id)|member_?(?:no|id)|no|number)$/i,
+  nameKh: /^(?:name_?(?:kh|km)|khmer_?name|full_?name_?(?:kh|km))$/i,
+  nameEn: /^(?:name_?en|latin_?name|english_?name|full_?name_?en)$/i,
+  name: /^(?:name|full_?name)$/i,
+  dob: /^(?:dob|birth_?date|date_?of_?birth)$/i,
+}
+
+/** "11609265297628" (+ an optional check digit) → "1160926-5297628(-7)", the card's printed form. */
+const idFromDigits = (digits: string) => (digits.length === 14 || digits.length === 15 ? [digits.slice(0, 7), digits.slice(7, 14), digits.slice(14)].filter(Boolean).join("-") : null)
+
+/**
+ * The identity a card's own QR carries — read on the phone, before any AI. Whatever shape it has
+ * (a verification URL with query parameters, JSON, or plain text), only what it states is taken:
+ * named fields, else a 14–15 digit run as the ID. Nothing is guessed; null when it carries nothing.
+ */
+export function identityFromQr(qr: string | null): QrIdentity | null {
+  if (!qr) return null
+  const fields = new Map<string, string>()
+  try {
+    const json = JSON.parse(qr) as unknown
+    if (json && typeof json === "object") for (const [k, v] of Object.entries(json)) if (typeof v === "string" || typeof v === "number") fields.set(k, String(v))
+  } catch {
+    try {
+      const url = new URL(qr.trim())
+      url.searchParams.forEach((v, k) => fields.set(k, v))
+    } catch {
+      // plain text
+    }
+  }
+  const field = (re: RegExp) => [...fields].find(([k]) => re.test(k))?.[1]?.trim() || null
+  const named = field(QR_KEYS.name)
+  const nameKh = field(QR_KEYS.nameKh) ?? (named && KH.test(named) ? named : null)
+  const nameEn = field(QR_KEYS.nameEn) ?? (named && !KH.test(named) ? named : null)
+  const rawId = cleanNssfId(field(QR_KEYS.id))
+  const idField = rawId && /^\d{14,15}$/.test(rawId) ? idFromDigits(rawId) : rawId
+  const run = latin(qr).match(/(?<!\d)\d{14,15}(?!\d)/)?.[0] ?? null
+  const dobField = field(QR_KEYS.dob)
+  const identity: QrIdentity = {
+    idNumber: idField ?? (run ? idFromDigits(run) : null),
+    nameKh: nameKh && KH.test(nameKh) ? nameKh.normalize("NFC").slice(0, 80) : null,
+    nameEn: nameEn && /^[A-Za-z][A-Za-z .'-]*$/.test(nameEn) ? nameEn.toUpperCase().slice(0, 80) : null,
+    dob: dobField && /^\d{4}-\d{2}-\d{2}$/.test(latin(dobField)) ? latin(dobField) : null,
+  }
+  return identity.idNumber || identity.nameKh || identity.nameEn ? identity : null
+}
+
+const idDigits = (id: string | null) => (id ?? "").replace(/\D/g, "")
+
+/**
+ * The QR first, the AI second: every field the QR states replaces the AI's reading. An AI-read ID
+ * whose digits agree with the QR's keeps its printed form (its last letter, e.g. "-ឈ"); when they
+ * differ, the QR's ID is taken and `idCorrected` says so.
+ */
+export function mergeQrIdentity(card: NssfCard | null, qr: QrIdentity | null): { card: NssfCard | null; fromQr: boolean; idCorrected: boolean } {
+  if (!qr) return { card, fromQr: false, idCorrected: false }
+  const base: NssfCard = card ?? { nameKh: null, nameEn: null, idNumber: null, dob: null, gender: null }
+  const agree = Boolean(qr.idNumber && base.idNumber && idDigits(base.idNumber).startsWith(idDigits(qr.idNumber).slice(0, 14)))
+  const idNumber = qr.idNumber ? (agree ? base.idNumber : qr.idNumber) : base.idNumber
+  return {
+    card: { ...base, idNumber, nameKh: qr.nameKh ?? base.nameKh, nameEn: qr.nameEn ?? base.nameEn, dob: qr.dob ?? base.dob },
+    fromQr: true,
+    idCorrected: Boolean(qr.idNumber && base.idNumber && !agree),
+  }
+}

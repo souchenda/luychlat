@@ -267,11 +267,17 @@ export type NssfMember = {
   /** The stored photo is the card alone (cropped); older photos are cropped again by the owner's app. */
   front_cropped?: boolean
   back_cropped?: boolean
+  /** As printed on the card, kept apart from the Khmer `name`. */
+  name_en?: string | null
+  dob?: string | null
+  gender?: "MALE" | "FEMALE" | null
+  /** The card's own QR text (read on the phone), redrawn full-screen for staff to scan. */
+  qr_text?: string | null
   is_active: boolean
   created_at: string
 }
 export type NssfMemberInput = Pick<NssfMember, "name" | "relationship" | "nssf_id" | "front_path" | "back_path" | "is_active"> &
-  Partial<Pick<NssfMember, "front_cropped" | "back_cropped">>
+  Partial<Pick<NssfMember, "front_cropped" | "back_cropped" | "name_en" | "dob" | "gender" | "qr_text">>
 
 /** Default self-employed contribution per member (editable on the bill). */
 export const NSSF_MONTHLY_PER_MEMBER = 15600

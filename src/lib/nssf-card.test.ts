@@ -43,3 +43,31 @@ describe("NSSF card OCR", () => {
     assert.ok(!qrConfirmsId("https://example.com", "1870219-1998577"))
   })
 })
+
+describe("NSSF card QR — read first, trusted over the AI", () => {
+  it("a verification URL, JSON or plain digits", async () => {
+    const { identityFromQr } = await import("./nssf-card")
+    assert.equal(identityFromQr("https://verify.nssf.gov.kh/card?id=11609265297628")?.idNumber, "1160926-5297628")
+    assert.equal(identityFromQr("116092652976287")?.idNumber, "1160926-5297628-7")
+    assert.deepEqual(identityFromQr(JSON.stringify({ name_kh: "ចិន្តា យូរ៉ាវីដ", name_en: "Chenda Youravid", id: "1160926-5297628-7", dob: "2016-01-20" })), {
+      idNumber: "1160926-5297628-7",
+      nameKh: "ចិន្តា យូរ៉ាវីដ",
+      nameEn: "CHENDA YOURAVID",
+      dob: "2016-01-20",
+    })
+    assert.equal(identityFromQr("https://example.com"), null)
+    assert.equal(identityFromQr(null), null)
+  })
+  it("the QR corrects a misread ID and name; an agreeing ID keeps its printed form", async () => {
+    const { identityFromQr, mergeQrIdentity } = await import("./nssf-card")
+    const misread = cleanNssfCard({ is_card: true, name_kh: "ឈិនដា យូរាវីដ", name_en: "CHENDA YOURAVID", id_number: "2160926-5297631-7", dob: "2016-01-20", gender: "MALE" })!
+    const fixed = mergeQrIdentity(misread, identityFromQr(JSON.stringify({ name_kh: "ចិន្តា យូរ៉ាវីដ", id: "1160926-5297628-7" })))
+    assert.equal(fixed.card?.nameKh, "ចិន្តា យូរ៉ាវីដ")
+    assert.equal(fixed.card?.idNumber, "1160926-5297628-7")
+    assert.equal(fixed.idCorrected, true)
+    const agree = mergeQrIdentity(cleanNssfCard({ is_card: true, name_kh: "ស៊ូ ចិន្តា", id_number: "1870219-1998577-ឈ" })!, identityFromQr("18702191998577"))
+    assert.equal(agree.card?.idNumber, "1870219-1998577-ឈ")
+    assert.equal(agree.idCorrected, false)
+    assert.deepEqual(mergeQrIdentity(misread, null), { card: misread, fromQr: false, idCorrected: false })
+  })
+})
