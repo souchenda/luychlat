@@ -10,6 +10,7 @@
 // notes) — or, while Gemini is overloaded, to Groq's vision model (Groq already
 // transcribes voice notes); wallets and categories are matched here. The card is plain text and
 // passes through maskNumbers (account numbers on the slip never echo back).
+import { DEFAULT_ABOUT } from "@/lib/app-info"
 import { categoryFor, cleanSlip, isFoodChoice, mealFor, resolveWallet, slipChoices, SLIP_OUT, walletLabel, type Meal, type Slip, type SlipChoice } from "@/lib/bot/bank-slip"
 import { autoDecision, choiceIndex, choiceKey, merchantKey, type Remembered } from "@/lib/bot/slip-auto"
 import type { BotCategory } from "@/lib/bot/parse-entry"
@@ -245,7 +246,10 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   }
   // Not a readable slip, but the caption is an entry ("កាហ្វេ 2$"): record it as typed instead of failing.
   if ("error" in read && read.error === "unreadable" && caption && parseAmountText(caption)) return handleEntryMessage(chatId, caption.slice(0, 300), ctx)
-  if ("error" in read) return sendText(chatId, tr(lang, read.error === "busy" ? "bot.slipBusy" : "bot.slipUnreadable"))
+  if ("error" in read && read.error === "busy") return sendText(chatId, tr(lang, "bot.slipBusy"))
+  // Unreadable: a polite reply, and the manual form one tap away (camera-first, never camera-only).
+  if ("error" in read)
+    return sendText(chatId, tr(lang, "bot.slipUnreadable"), { reply_markup: { inline_keyboard: [[{ text: tr(lang, "bot.manualEntry"), url: `${DEFAULT_ABOUT.website}/transactions` }]] } })
   const slip = read.slip
 
   // The default workspace (Personal unless the user chose another for the bot).

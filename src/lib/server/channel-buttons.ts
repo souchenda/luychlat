@@ -2,12 +2,12 @@
 // bulletin, evening NBC rates, morning / evening routine, daily tip, festival
 // posters, fuel prices) — same wording, same order, everywhere:
 //
-//   [ 🤖 កត់ត្រាជាមួយ Bot ]  [ 📱 បើកកម្មវិធី ]
+//   [ 🤖 កត់ត្រាតាម Telegram ↗ ]  [ 📱 បើកកម្មវិធី ↗ ]
 import { appUrl } from "./community-bulletin"
 import { tg } from "./telegram-bot"
 
-export const CHANNEL_BOT_BUTTON = "🤖 កត់ត្រាជាមួយ Bot"
-export const CHANNEL_APP_BUTTON = "📱 បើកកម្មវិធី"
+export const CHANNEL_BOT_BUTTON = "🤖 កត់ត្រាតាម Telegram ↗"
+export const CHANNEL_APP_BUTTON = "📱 បើកកម្មវិធី ↗"
 
 /** The standard row as Telegram's inline_keyboard (empty when neither link is known). */
 export async function channelButtonRow(): Promise<{ text: string; url: string }[]> {

@@ -58,7 +58,7 @@ export function eveningText(): string {
   ].join("\n")
 }
 
-/** [ 🤖 កត់ត្រាជាមួយ Bot ] [ 📱 បើកកម្មវិធី ] — the channel's standard row. */
+/** [ 🤖 កត់ត្រាតាម Telegram ↗ ] [ 📱 បើកកម្មវិធី ↗ ] — the channel's standard row. */
 const recordButtons = getChannelPostButtons
 
 /** The morning quote on the v3 poster frame (same design as the daily tip, its own tag). */
