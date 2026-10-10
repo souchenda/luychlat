@@ -16,6 +16,7 @@ import { autoDecision, choiceIndex, choiceKey, merchantKey, type Remembered } fr
 import type { BotCategory } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
 import { handleBillPhoto, settleBillFromPayment } from "@/lib/server/bill-bot"
+import { handleLoanSchedulePhoto } from "@/lib/server/loan-schedule-bot"
 import type { BotWallet } from "@/lib/bot/parse-entry"
 import { defaultNeedWant } from "@/lib/need-want"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
@@ -62,11 +63,12 @@ const PROMPT = [
   "ref: the slip's own transaction ID / reference / hash as printed (\"Trx. ID\", \"Reference #\", \"Hash\", \"លេខយោង\"), e.g. \"000234726282C4VF\"; null if not shown.",
   "to_account: the account or phone number the money went TO (\"To account\", \"ទៅគណនី\", the recipient's number), as printed; null if not shown.",
   'An EV CHARGING SCREEN (a car or charger app — e.g. "MG Marvel R", "Charging complete", "kW·h" / "kWh", a daily energy history) is not a slip: answer {"is_slip": false, "ev_charge": true, "kwh": number, "date": "YYYY-MM-DD" | null} — kwh: the energy charged on the latest (or highlighted) day; date: that day.',
+  'A LOAN REPAYMENT SCHEDULE (តារាងកាលវិភាគសងប្រាក់ / "Repayment Schedule": a bank or microfinance table of installments with dates, principal, interest and balance) is not a slip: answer {"is_slip": false, "loan_schedule": true}.',
   'A PAPER UTILITY BILL to be paid (electricity / water: EDC, AKISANI KOUR SROV, PPWSA — an invoice with an amount due and a due date, not a receipt of a payment) is not a slip: answer {"is_slip": false, "utility_bill": true}.',
   'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
-type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" } | { error: "ev_charge"; kwh: number; date: string | null }
+type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" } | { error: "ev_charge"; kwh: number; date: string | null }
 
 export type Answer = { text: string } | { fail: string }
 
@@ -151,6 +153,8 @@ export async function readSlip(fileId: string): Promise<ReadResult> {
     }
     // A paper electricity / water bill, not a payment: the bill reader takes it (bill-bot.ts).
     if ((raw as { utility_bill?: unknown })?.utility_bill === true) return { error: "utility_bill" }
+    // A loan repayment schedule: the loan reader takes it (loan-schedule-bot.ts).
+    if ((raw as { loan_schedule?: unknown })?.loan_schedule === true) return { error: "loan_schedule" }
     // An EV charging screenshot: its day's kWh goes to the home charging log.
     const ev = raw as { ev_charge?: unknown; kwh?: unknown; date?: unknown }
     if (ev?.ev_charge === true) {
@@ -241,6 +245,7 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
     clearInterval(keepTyping)
   }
   if ("error" in read && read.error === "utility_bill") return handleBillPhoto(chatId, fileId, ctx)
+  if ("error" in read && read.error === "loan_schedule") return handleLoanSchedulePhoto(chatId, fileId)
   if ("error" in read && read.error === "ev_charge") {
     return sendText(chatId, await logEvHome(chatId, `⚡ ${read.kwh} kWh · screenshot`, lang, { photo: fileId, day: read.date, kwh: read.kwh }))
   }
@@ -690,6 +695,11 @@ export async function handlePrivatePhoto(chatId: number, fileId: string, caption
     const lang = contextLocale(ctx)
     if (!ctx?.linked) return sendText(chatId, tr(lang, "bot.notLinked"))
     // Home charging: logged now. An entry ("កាហ្វេ 2$"): its ✅ card, with the photo as the receipt.
+    if (route === "loan") {
+      const stop = blocked(ctx, lang)
+      if (stop) return sendText(chatId, stop)
+      return handleLoanSchedulePhoto(chatId, fileId)
+    }
     if (route === "ev") {
       const stop = blocked(ctx, lang)
       if (stop) return sendText(chatId, stop)

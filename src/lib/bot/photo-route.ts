@@ -3,6 +3,7 @@
  * so it is followed before any reading of the picture; the picture is then its evidence.
  *   ev     "សាកឡាននៅផ្ទះ 56.9kwh", "សាកឡាន 56.9 kwh": home charging (no money in it)
  *   entry  "កាហ្វេ 2$", "លក់បាន 120$": that entry, with the photo as its receipt
+ *   loan   "តារាងកាលវិភាគកម្ចី", "repayment schedule" (no amount): a loan schedule to read and save
  *   slip   no caption, or a caption that only describes ("ទិញសម្ភារៈសិក្សាឱ្យកូន"): the photo is read
  *          (bank slip · EV screen · paper bill), the caption kept as the note
  * Pure (photo-route.test.ts).
@@ -19,12 +20,16 @@ export function isEvUsage(text: string): boolean {
   return !parseAmountText(withoutKwh)
 }
 
-export type PhotoRoute = "ev" | "entry" | "slip"
+export type PhotoRoute = "ev" | "entry" | "loan" | "slip"
+
+/** A caption naming a loan repayment schedule (an amount makes it a repayment entry instead). */
+const LOAN_SCHEDULE = /កាលវិភាគ|តារាង.*(?:កម្ចី|សង|បង់)|repayment|schedule|amorti[sz]ation|还款计划/i
 
 export function photoRoute(caption: string | null | undefined): PhotoRoute {
   const text = caption?.trim() ?? ""
   if (!text) return "slip"
   if (isEvUsage(text)) return "ev"
   if (parseAmountText(toLatinDigits(text))) return "entry"
+  if (LOAN_SCHEDULE.test(text)) return "loan"
   return "slip"
 }

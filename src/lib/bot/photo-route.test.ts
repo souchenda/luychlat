@@ -23,4 +23,10 @@ describe("a photo: the caption first, then the picture", () => {
     assert.equal(photoRoute("   "), "slip")
     assert.equal(photoRoute("ទិញសម្ភារៈសិក្សាឱ្យកូន"), "slip")
   })
+  it("a loan schedule by its caption — with an amount it is a repayment entry", () => {
+    assert.equal(photoRoute("តារាងកាលវិភាគកម្ចី"), "loan")
+    assert.equal(photoRoute("កាលវិភាគសងប្រាក់ CLC"), "loan")
+    assert.equal(photoRoute("Repayment schedule"), "loan")
+    assert.equal(photoRoute("សងកម្ចី 244$"), "entry")
+  })
 })

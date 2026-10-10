@@ -66,6 +66,8 @@ export type Bill = {
   remind_days: number[]
   category_id: string | null
   paid_until: string | null
+  /** A loan's monthly bill (from a schedule photo): paid through the loan, reminded by it. */
+  debt_id?: string | null
   is_active: boolean
   created_at: string
 }

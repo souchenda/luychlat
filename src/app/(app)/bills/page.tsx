@@ -2,6 +2,7 @@
 
 import { formatDuration, formatOverdue } from "@/lib/format"
 import { CheckIcon, ChevronDownIcon, ExternalLinkIcon, Loader2Icon, PlusIcon, ReceiptIcon, ShieldCheckIcon, Undo2Icon } from "lucide-react"
+import Link from "next/link"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -243,7 +244,12 @@ export default function BillsPage() {
                     {t("nssf.updateBill", { count: nssfMembers, amount: formatMoney(nssfSuggestion(bill)!, "KHR") })}
                   </Button>
                 )}
-                {editable && bill.is_active &&
+                {editable && bill.is_active && bill.debt_id ? (
+                  // A loan's bill is paid on the loan (each installment), which keeps this one in step.
+                  <Button asChild size="sm" variant={status === "later" ? "outline" : "default"}>
+                    <Link href="/debts?tab=PAYABLE">{t("bills.payOnLoan")}</Link>
+                  </Button>
+                ) : editable && bill.is_active &&
                   (recentlyPaid(bill) && status === "later" ? (
                     // Paid ("✅ បង់រួច" above): the only action is to undo a mistake.
                     <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={unmarkPaid.isPending} onClick={() => void undoPaid(bill)}>

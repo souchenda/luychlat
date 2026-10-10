@@ -23,6 +23,11 @@ export type LoanInput = {
   startDate?: string
   /** BANK: fixed monthly fee / insurance added to every installment. */
   fee?: number
+  /**
+   * BANK: the installment the lender states (schedule_payment). Some round the EMI up (CLC: $244 for
+   * $242.72); a stated amount within 10% but more than 0.5% off the formula is used as the EMI.
+   */
+  payment?: number | null
 }
 
 export type ScheduleRow = {
@@ -112,9 +117,16 @@ export function computeSchedule(input: LoanInput): LoanSchedule {
 
 const dayCount = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
 
+/** The lender's stated installment when it is a rounded EMI (more than 0.5%, at most 10% off the formula); else null. */
+export function statedEmi(payment: number | null | undefined, formula: number): number | null {
+  if (!payment || !(formula > 0)) return null
+  const off = Math.abs(payment - formula) / formula
+  return off > 0.005 && off <= 0.1 ? payment : null
+}
+
 /**
  * Bank loan (កម្ចីបង់រំលស់ធនាគារ), the same arithmetic as public.bank_loan_rows:
- * - EMI = P·r / (1 − (1+r)^−n), r = yearly ÷ 12.
+ * - EMI = P·r / (1 − (1+r)^−n), r = yearly ÷ 12 — or the lender's stated, rounded installment (statedEmi).
  * - #1: interest = P · yearly · days ÷ 360 (disbursement → first due date);
  *   principal = EMI − P·r with the exact EMI.
  * - #2…: interest = balance · r; principal = EMI − interest (equal installments).
@@ -128,7 +140,8 @@ function computeBankSchedule(input: LoanInput): LoanSchedule {
   const r = yearly / 12
   const fee = round(input.fee ?? 0)
   const emiExact = r === 0 ? P / n : (P * r) / (1 - Math.pow(1 + r, -n))
-  const emi = round(emiExact)
+  const stated = statedEmi(input.payment, round(emiExact))
+  const emi = stated ?? round(emiExact)
   const days = input.startDate ? dayCount(input.startDate, input.firstPaymentDate) : 0
 
   const rows: ScheduleRow[] = []
@@ -138,7 +151,7 @@ function computeBankSchedule(input: LoanInput): LoanSchedule {
     let principalPart: number
     if (i === 1) {
       interest = round(days > 0 ? (P * yearly * days) / 360 : P * r)
-      principalPart = round(emiExact - P * r)
+      principalPart = round((stated ?? emiExact) - P * r)
     } else {
       interest = round(balance * r)
       principalPart = round(emi - interest)

@@ -2459,6 +2459,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "ev.petrolBasis": "按商务部汽油价 {price}៛/升 · 燃油车平均 {lper} 升/百公里",
   "ev.addDistanceHint": "输入里程表读数（或单次行程）即可查看每公里成本及与燃油车相比节省的金额。",
   "ev.invalid": "kWh 无效（1–500）",
+  "bills.payOnLoan": "在贷款中还款",
   "atm.title": "ATM 与银行网点",
   "atm.useLocation": "查找附近",
   "atm.myLocation": "我的位置",

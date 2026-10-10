@@ -46,6 +46,7 @@ export function debtSchedule(d: Debt): LoanSchedule | null {
     firstPaymentDate: d.schedule_first_due,
     startDate: d.start_date,
     fee: d.schedule_fee ?? 0,
+    payment: d.schedule_payment,
   })
 }
 
