@@ -1,8 +1,8 @@
 "use client"
 
-import { CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, localCardBox, loosen, sharpen, warpCard } from "@/lib/card-crop"
+import { CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, isCardFrame, localCardBox, loosen, sharpen, warpCard } from "@/lib/card-crop"
 
-export type CropResult = { blob: Blob; how: "warp" | "box" | "local" } | { blob: null; why: string }
+export type CropResult = { blob: Blob; how: "warp" | "box" | "local" | "already" } | { blob: null; why: string }
 
 /**
  * The card cut out of a photo as a JPEG: straightened from its 4 corners when they are clear,
@@ -26,6 +26,8 @@ export async function cropCardImage(image: Blob, corners: unknown, box?: unknown
     // Vision's box; else (Vision busy, or no box) the card found on the phone from the background's colour.
     const local = quad || boxPx ? null : localCardBox(src.data, width, height)
     const rect = quad ? null : (boxPx ?? local)
+    // Nothing found inside, but the photo itself is card-shaped: it is already just the card.
+    if (!quad && !rect && isCardFrame(width, height)) return { blob: image, how: "already" }
     if (!quad && !rect) return { blob: null, why: `no usable corners${corners ? "" : " (none)"} / box${box ? "" : " (none)"} / no card found locally on ${width}x${height}` }
     const [px, w, h] = quad
       ? [sharpen(warpCard(src.data, width, height, loosen(quad, width, height)), CARD_W, CARD_H), CARD_W, CARD_H]

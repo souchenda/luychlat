@@ -112,6 +112,16 @@ export function cleanCorners(raw: unknown, width: number, height: number, box?: 
 export type Box = { x: number; y: number; w: number; h: number }
 
 /**
+ * A photo that is itself card-shaped (within 12%, either way up) with no edges found inside it is
+ * already just the card — e.g. cropped on the phone: it is kept as it is, not refused.
+ */
+export function isCardFrame(width: number, height: number): boolean {
+  const r = width / height
+  const near = (x: number) => x >= CARD_RATIO * 0.88 && x <= CARD_RATIO * 1.12
+  return near(r) || near(1 / r)
+}
+
+/**
  * Gemini's box_2d [ymin, xmin, ymax, xmax] (0–1000) → a pixel rectangle, or null when it isn't a
  * plausible card area (≥ 8% of the photo). The fallback when the corners aren't certain: a plain
  * rectangular crop to the card's outer edges — never the whole photo with the table.

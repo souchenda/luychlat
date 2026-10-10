@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { applyH, CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, homography, localCardBox, orderCorners, sharpen, warpCard, type Quad } from "./card-crop"
+import { applyH, CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, homography, isCardFrame, localCardBox, orderCorners, sharpen, warpCard, type Quad } from "./card-crop"
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`)
 
@@ -112,5 +112,14 @@ describe("NSSF card crop without Vision (when it is busy)", () => {
   it("a photo with no card standing out: nothing", () => {
     const plain = new Uint8ClampedArray(W * H * 4).fill(180)
     assert.equal(localCardBox(plain, W, H), null)
+  })
+})
+
+describe("a photo that is already just the card", () => {
+  it("1060 × 660 (the stored photo of 10/10) is card-shaped; a normal phone photo is not", () => {
+    assert.equal(isCardFrame(1060, 660), true)
+    assert.equal(isCardFrame(660, 1060), true)
+    assert.equal(isCardFrame(1200, 1600), false)
+    assert.equal(isCardFrame(1600, 1200), false)
   })
 })
