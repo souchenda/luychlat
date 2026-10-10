@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { MORNING_QUOTE, morningCard } from "@/lib/morning"
+import { holyDayCard } from "@/lib/holy-day-alerts"
+import { useIslamicEnabled } from "@/lib/islamic-settings"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { MemberAvatar } from "@/components/family/member-avatar"
@@ -41,6 +43,9 @@ export function NotificationBell() {
     if (open) setNow(Date.now())
   }, [open])
   const morning = morningCard(now)
+  // 🪷 ថ្ងៃសីល: the eve reminder and the day's blessing, as on Telegram (not with Islamic Mode on).
+  const islamic = useIslamicEnabled()
+  const holy = islamic ? null : holyDayCard(now)
 
   // The home-screen icon badge follows the real unread count (never a stale "1").
   useEffect(() => {
@@ -106,7 +111,21 @@ export function NotificationBell() {
             </span>
           </div>
         )}
-        {notifications.length === 0 && !morning ? (
+        {holy && (
+          <div className="-mx-4 flex gap-3 border-b bg-emerald-500/5 px-4 py-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-lg" aria-hidden>
+              🪷
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">{holy.title}</span>
+              <span className="block text-xs whitespace-pre-line text-muted-foreground">{holy.message}</span>
+              <span className="mt-1 block text-[11px] text-muted-foreground">
+                {formatDistanceToNow(new Date(holy.at), { addSuffix: true, locale: locale === "km" ? km : enUS })}
+              </span>
+            </span>
+          </div>
+        )}
+        {notifications.length === 0 && !morning && !holy ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
             <BellOffIcon className="size-8" />
             {t("notifications.empty")}

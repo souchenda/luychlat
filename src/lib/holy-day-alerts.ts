@@ -23,6 +23,25 @@ export function holyDayStages(day: string): { eve: string | null; today: string 
   }
 }
 
+export type HolyDayCard = { stage: "eve" | "day"; title: string; message: string; at: string }
+
+/**
+ * The bell's 🪷 card for this moment: from 07:00 Cambodia time, the blessing on a holy day, else
+ * the eve reminder the day before. Null otherwise (or before 07:00). Its time is that day's 07:00.
+ */
+export function holyDayCard(now: number): HolyDayCard | null {
+  const t = new Date(now + 7 * 3_600_000)
+  const day = t.toISOString().slice(0, 10)
+  if (t.getUTCHours() * 60 + t.getUTCMinutes() < HOLY_DAY_MINUTE) return null
+  const stages = holyDayStages(day)
+  const at = new Date(Date.parse(`${day}T07:00:00+07:00`)).toISOString()
+  // The message is the reminder / blessing line under the title (the title already says which day).
+  const body = (text: string) => text.split("\n").slice(1).join("\n")
+  if (stages.today) return { stage: "day", title: "🪷 ថ្ងៃនេះជាថ្ងៃសីល!", message: `${body(silDayText(stages.today))} (${stages.today})`, at }
+  if (stages.eve) return { stage: "eve", title: "🪷 ថ្ងៃស្អែកជាថ្ងៃសីល!", message: `${body(silEveText(stages.eve))} (${stages.eve})`, at }
+  return null
+}
+
 export const silEveText = (lunar: string) =>
   `🪷 រំលឹក៖ ថ្ងៃស្អែកជាថ្ងៃសីល! (${lunar})\n🙏 សូមកុំភ្លេចរៀបចំទិញផ្កាឈូក ផ្លែឈើ និងគ្រឿងសែនព្រេនទុកជាមុន។`
 
