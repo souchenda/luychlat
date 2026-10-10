@@ -4,6 +4,7 @@ import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
 import { carReportText, parseTopUp, topUpCard, walletBalancesText, type CarReport, type WalletBalance } from "@/lib/bot/prepaid"
 import { isEvUsage } from "@/lib/bot/photo-route"
 import { homeChargeText, publicChargeSummary } from "@/lib/bot/ev-summary"
+import { benchmarkPetrol, parseDistance, type DistanceEntry } from "@/lib/ev-economics"
 import { EV_TAG, kwhOf, parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
 import { mealFor, type Meal } from "@/lib/bot/bank-slip"
@@ -220,6 +221,9 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
 
   // EV charging at home: a usage log, never an expense (it's paid in the electricity bill).
   if (isEvUsage(text)) return reply(await logEvHome(chatId, text, lang, receipt ? { photo: receipt } : {}))
+  // The car's distance: "គីឡូឡាន 15200" (odometer) / "ចម្ងាយ 120 គម" (a trip) — for cost per km in /car.
+  const distance = parseDistance(text)
+  if (distance) return reply(await logDistance(chatId, distance, text))
 
   const parsed = parseEntry(input, { wallets: ws.wallets, categories: ws.categories, debts: ws.debts, rate: ws.rate })
   if (!parsed.ok) {
@@ -525,7 +529,9 @@ export async function sendCarReport(chatId: number, lang: Locale) {
   if (r.status !== "ok") return sendText(chatId, tr(lang, "bot.notLinked"))
   const now = new Date(Date.now() + 7 * 3_600_000)
   const month = `ខែ${MONTH_KM[now.getUTCMonth()]} ${now.getUTCFullYear()}`
-  return sendText(chatId, carReportText(r, month))
+  // The petrol benchmark: the live MoC price (EA95 when the notice lists it, else EA92).
+  const petrol = benchmarkPetrol((await currentMarket())?.fuel)
+  return sendText(chatId, carReportText(r, month, petrol))
 }
 
 /** After a public charge is saved: the session and the month's vehicle energy (bot_car_report keeps the numbers rule). */
@@ -544,4 +550,16 @@ async function sendPublicChargeSummary(chatId: number, session: { amount: number
       evBalance: r.ev_balance == null ? null : Number(r.ev_balance),
     }),
   )
+}
+
+/** "គីឡូឡាន 15200" / "ចម្ងាយ 120 គម": the car's distance (no money); /car turns it into cost per km. */
+async function logDistance(chatId: number, d: DistanceEntry, text: string): Promise<string> {
+  const { data, error } = await botDb().rpc("bot_log_distance", { p_key: botKey(), p_chat_id: chatId, p_kind: d.kind, p_km: d.km, p_note: text.slice(0, 200) })
+  const r = data as { status: string; month_km?: number; last_km?: number } | null
+  if (error) return /plan_required/.test(error.message) ? tr("km", "bot.cmdPro") : tr("km", "bot.saveFailed")
+  const km = (n: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(n)
+  if (r?.status === "lower") return `⚠️ លេខកុងទ័រ ${km(d.km)} គ.ម តិចជាងលើកមុន (${km(Number(r.last_km))} គ.ម) — សូមពិនិត្យម្ដងទៀត។`
+  if (r?.status !== "ok") return tr("km", "bot.saveFailed")
+  const what = d.kind === "ODOMETER" ? `លេខកុងទ័រ ${km(d.km)} គ.ម` : `ចម្ងាយ ${km(d.km)} គ.ម`
+  return [`🛣️ បានកត់ត្រា${what}!`, `📊 ចម្ងាយបើកបរខែនេះ៖ ${km(Number(r.month_km ?? 0))} គ.ម`, "👉 /car — ថ្លៃដើមក្នុងមួយគីឡូម៉ែត្រ និងប្រាក់សន្សំធៀបនឹងឡានសាំង"].join("\n")
 }

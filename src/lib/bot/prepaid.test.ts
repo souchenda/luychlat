@@ -79,3 +79,20 @@ describe("/car", () => {
     assert.doesNotMatch(on, /កាបូបល្បឿនលឿន/)
   })
 })
+
+describe("/car — distance, cost per km, against petrol", () => {
+  const month = { status: "ok", numbers: true, home_kwh: 205.3, home_khr: 149869, public_usd: 25.5, toll_usd: 0, ev_balance: null, toll_balance: null, rate: 730, khr_per_usd: 4060, month_km: 1250 }
+  it("with numbers on: the month's energy cost, cost per km and the saving (live 5,150៛/L)", () => {
+    const text = carReportText(month, "ខែតុលា 2026", 5150)
+    assert.match(text, /🛣️ ចម្ងាយបើកបរខែនេះ៖ 1,250 គីឡូម៉ែត្រ/)
+    assert.match(text, /💵 ថ្លៃថាមពលសរុបខែនេះ៖ 253,400 ៛ \(≈ \$62\.41\)/)
+    assert.match(text, /🎯 ថ្លៃដើមជិះជាក់ស្តែង៖ 202\.7 ៛ \/ គីឡូម៉ែត្រ \(≈ \$0\.050 \/ km\)/)
+    assert.match(text, /🏆 ធៀបនឹងឡានសាំង៖ បងសន្សំលុយបានប្រហែល \$72\.36 ក្នុងខែនេះ! \(293,800 ៛\)/)
+    assert.match(text, /5,150៛\/លីត្រ/)
+  })
+  it("numbers off: the kilometres, no money", () => {
+    const text = carReportText({ ...month, numbers: false }, "ខែតុលា 2026", 5150)
+    assert.match(text, /1,250 គីឡូម៉ែត្រ/)
+    assert.doesNotMatch(text, /253,400|72\.36/)
+  })
+})

@@ -395,3 +395,32 @@ export function useEvMutations(workspaceId: string | undefined) {
     }),
   }
 }
+
+// EV driving economics: the month's figures (public.car_month) and the car's distance log.
+export type CarMonth = { home_kwh: number; rate: number; public_usd: number; khr_per_usd: number; month_km: number }
+
+export function useCarMonth(workspaceId: string | undefined) {
+  return useQuery({
+    queryKey: ["car-month", workspaceId ?? ""],
+    enabled: Boolean(workspaceId),
+    queryFn: async (): Promise<CarMonth | null> => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) return null
+      const { data, error } = await supabase.rpc("car_month", { p_ws: workspaceId })
+      if (error) return null
+      const d = data as Record<string, unknown>
+      return { home_kwh: Number(d.home_kwh), rate: Number(d.rate), public_usd: Number(d.public_usd), khr_per_usd: Number(d.khr_per_usd), month_km: Number(d.month_km) }
+    },
+  })
+}
+
+export function useLogDistance(workspaceId: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ kind, km }: { kind: "ODOMETER" | "TRIP"; km: number }) => {
+      const { error } = await getSupabaseBrowserClient()!.from("vehicle_distance_logs").insert({ workspace_id: workspaceId, kind, km })
+      if (error) throw error
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["car-month"] }),
+  })
+}

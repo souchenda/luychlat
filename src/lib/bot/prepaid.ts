@@ -5,6 +5,7 @@
  */
 
 import { roundToNearest100KHR } from "@/lib/currency"
+import { evEconomics, PETROL_L_PER_100KM } from "@/lib/ev-economics"
 import { formatMoney } from "@/lib/money"
 
 import { findWallet, parseAmountText, toLatinDigits, type BotWallet } from "./parse-entry"
@@ -62,15 +63,27 @@ export type CarReport = {
   toll_usd?: number
   ev_balance?: number | null
   toll_balance?: number | null
+  rate?: number
+  khr_per_usd?: number
+  month_km?: number
 }
+
+const riel = (n: number) => new Intl.NumberFormat("en-US").format(Math.round(n))
+const km1 = (n: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(n)
 
 const kwhText = (n: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(n)
 
-/** /car, /ev — this month. Money lines only when the user opted in to numbers in Telegram. */
-export function carReportText(r: CarReport, monthLabel: string): string {
+/**
+ * /car, /ev — this month. Kilometres always; money lines only when the user opted in to numbers in
+ * Telegram: the energy cost, cost per km and the saving against a petrol car (`petrol`: the live
+ * MoC price per litre, EA95 when listed, else EA92).
+ */
+export function carReportText(r: CarReport, monthLabel: string, petrol: number | null = null): string {
   const kwh = Number(r.home_kwh ?? 0)
+  const km = Number(r.month_km ?? 0)
   const home = `⚡ ភ្លើងសាកនៅផ្ទះ៖ ${kwhText(kwh)} kWh${r.numbers && r.home_khr != null ? ` (≈ ${formatMoney(roundToNearest100KHR(Number(r.home_khr)), "KHR")})` : ""}`
   const lines = [`🚗 ចំណាយលើឡាន · ${monthLabel}`, "", home]
+  lines.push(km > 0 ? `🛣️ ចម្ងាយបើកបរខែនេះ៖ ${km1(km)} គីឡូម៉ែត្រ` : "🛣️ ចម្ងាយ៖ វាយ «គីឡូឡាន 15200» (លេខកុងទ័រ) ឬ «ចម្ងាយ 120 គម» ដើម្បីគណនាថ្លៃដើមក្នុងមួយគីឡូម៉ែត្រ")
   if (!r.numbers) {
     lines.push("", "🔒 ចំនួនទឹកប្រាក់ និងសមតុល្យមិនបង្ហាញក្នុង Telegram ទេ — បើក «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» ក្នុងកម្មវិធី › ការកំណត់ › Telegram ដើម្បីមើលនៅទីនេះ។")
     return lines.join("\n")
@@ -78,6 +91,18 @@ export function carReportText(r: CarReport, monthLabel: string): string {
   lines.push(`🔌 សាកនៅក្រៅ៖ ${formatMoney(Number(r.public_usd ?? 0), "USD")}`, `🛣️ ថ្លៃផ្លូវល្បឿនលឿន៖ ${formatMoney(Number(r.toll_usd ?? 0), "USD")}`)
   if (r.ev_balance != null) lines.push(`💳 សមតុល្យសល់ក្នុងកាបូបសាកឡាន៖ ${formatMoney(Number(r.ev_balance), "USD")}`)
   if (r.toll_balance != null) lines.push(`💳 សមតុល្យសល់ក្នុងកាបូបល្បឿនលឿន៖ ${formatMoney(Number(r.toll_balance), "USD")}`)
+  // Driving economics: the energy total, cost per km, and against a petrol car.
+  const e = evEconomics({ homeKwh: kwh, rate: Number(r.rate ?? 730), publicUsd: Number(r.public_usd ?? 0), khrPerUsd: Number(r.khr_per_usd ?? 4000), km, petrolPerLitre: petrol })
+  lines.push("", `💵 ថ្លៃថាមពលសរុបខែនេះ៖ ${riel(e.totalKhr)} ៛ (≈ ${formatMoney(e.totalUsd, "USD")})`)
+  if (e.perKmKhr !== null && e.perKmUsd !== null) lines.push(`🎯 ថ្លៃដើមជិះជាក់ស្តែង៖ ${km1(e.perKmKhr)} ៛ / គីឡូម៉ែត្រ (≈ $${e.perKmUsd.toFixed(3)} / km)`)
+  if (e.savingsKhr !== null && e.savingsUsd !== null && petrol) {
+    lines.push(
+      e.savingsKhr >= 0
+        ? `🏆 ធៀបនឹងឡានសាំង៖ បងសន្សំលុយបានប្រហែល ${formatMoney(e.savingsUsd, "USD")} ក្នុងខែនេះ! (${riel(e.savingsKhr)} ៛)`
+        : `ℹ️ ធៀបនឹងឡានសាំង៖ ខែនេះចំណាយលើសប្រហែល ${formatMoney(-e.savingsUsd, "USD")}`,
+      `(គណនាតាមតម្លៃសាំង ${riel(petrol)}៛/លីត្រ របស់ក្រសួងពាណិជ្ជកម្ម · ឡានសាំងមធ្យម ${PETROL_L_PER_100KM}L/100km)`,
+    )
+  }
   return lines.join("\n")
 }
 
