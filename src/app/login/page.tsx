@@ -123,7 +123,16 @@ export default function LoginPage() {
         <div className="flex flex-1 flex-col md:grid md:grid-cols-[minmax(0,1fr)_26rem] md:items-center md:gap-14">
         {/* Brand: logo, then title, then the card — each a beat after the last. */}
         <div className="mb-2.5 flex flex-col items-center text-center md:mb-0 md:items-start md:text-left">
-          <BrandMark priority className="size-24 rounded-3xl shadow-xl shadow-emerald-500/20 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none [@media(max-height:700px)]:size-14 [@media(max-height:700px)]:rounded-2xl" />
+          {/* The mascot floats gently, its glow breathes (transform / opacity only, on the GPU); a tap gives a little bounce. */}
+          <div className="relative animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+            <span aria-hidden className="absolute inset-1 animate-aura rounded-3xl bg-emerald-400/40 blur-xl will-change-transform motion-reduce:animate-none" />
+            <div className="relative animate-bob will-change-transform motion-reduce:animate-none">
+              <BrandMark
+                priority
+                className="size-24 cursor-pointer rounded-3xl shadow-xl shadow-emerald-500/25 transition-transform duration-300 select-none hover:scale-105 active:scale-95 [@media(max-height:700px)]:size-14 [@media(max-height:700px)]:rounded-2xl"
+              />
+            </div>
+          </div>
           <h1 className="mt-2 text-2xl font-bold md:mt-4 md:text-4xl [@media(max-height:700px)]:mt-1 [@media(max-height:700px)]:text-xl delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "អេប លុយឆ្លាត"}</h1>
           <p className="mt-0.5 max-w-[19rem] text-[13px] leading-snug md:mt-2 md:max-w-md md:text-base md:leading-relaxed text-balance text-neutral-500 delay-75 dark:text-neutral-400 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated && <KeepTogether text={t("app.tagline")} keep={TAGLINE_KEEP} />}</p>
           {hydrated && <Features className="mt-6 hidden justify-start md:flex" />}

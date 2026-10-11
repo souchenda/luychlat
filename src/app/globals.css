@@ -20,6 +20,17 @@
   --animate-breathe: breathe 6s ease-in-out infinite;
   --animate-drift: drift 8s ease-in-out infinite;
   --animate-shimmer: shimmer 3.6s ease-in-out 1s infinite;
+  /* Login mascot: floats 5 px up and down; its glow breathes. */
+  --animate-bob: bob 3.5s ease-in-out infinite;
+  --animate-aura: aura 3.5s ease-in-out infinite;
+  @keyframes bob {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -5px, 0); }
+  }
+  @keyframes aura {
+    0%, 100% { transform: scale(0.92); opacity: 0.45; }
+    50% { transform: scale(1.06); opacity: 0.8; }
+  }
   @keyframes breathe {
     0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.85; }
     50% { transform: translate3d(0, -12px, 0) scale(1.08); opacity: 1; }
