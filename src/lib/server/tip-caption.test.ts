@@ -16,6 +16,6 @@ describe("daily tip caption & the channel's buttons (poster branding)", () => {
   })
   it("the buttons", () => {
     assert.equal(CHANNEL_BOT_BUTTON, "🤖 កត់ត្រាតាម Telegram ↗")
-    assert.equal(CHANNEL_APP_BUTTON, "📱 បើកអេប លុយឆ្លាត ↗")
+    assert.equal(CHANNEL_APP_BUTTON, "📱 បើកក្នុងអេប លុយឆ្លាត ↗")
   })
 })

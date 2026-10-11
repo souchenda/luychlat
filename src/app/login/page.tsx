@@ -103,7 +103,7 @@ export default function LoginPage() {
         </div>
 
         {hydrated && (
-          <section className="rounded-3xl border border-white/60 bg-white/85 px-5 py-5 shadow-2xl shadow-emerald-500/10 backdrop-blur-2xl delay-150 dark:border-emerald-500/20 dark:bg-zinc-900/85 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+          <section className="rounded-3xl border border-white/60 bg-white/85 px-5 py-5 shadow-2xl shadow-emerald-500/10 backdrop-blur-xl delay-150 dark:border-emerald-500/20 dark:bg-zinc-900/85 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
             <div className="flex flex-col gap-3">
               {/* Trust line at the top of the card. */}
               <p className="mx-auto flex max-w-full items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] px-3 py-1 text-center text-[11px] leading-snug font-medium text-emerald-800 dark:text-emerald-300">

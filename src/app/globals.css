@@ -16,9 +16,9 @@
   /* Login hero: a soft light drifting across the emerald, and a gently floating mark. */
   --animate-aurora: aurora 14s ease-in-out infinite alternate;
   --animate-float: float 6s ease-in-out infinite;
-  /* Login: ambient orbs that breathe and drift (6–9s), and a light sweeping across the sign-in button. */
+  /* Login: ambient orbs that breathe and drift (6–8s), and a light sweeping across the sign-in button. */
   --animate-breathe: breathe 6s ease-in-out infinite;
-  --animate-drift: drift 9s ease-in-out infinite;
+  --animate-drift: drift 8s ease-in-out infinite;
   --animate-shimmer: shimmer 3.6s ease-in-out 1s infinite;
   @keyframes breathe {
     0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.85; }

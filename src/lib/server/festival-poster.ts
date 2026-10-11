@@ -311,7 +311,7 @@ export async function sendFestivalPoster(chatId: number, name: string | undefine
 }
 
 /** The single button under an automatically published poster. */
-export const POSTER_APP_BUTTON = "📱 បើកអេប លុយឆ្លាត"
+export const POSTER_APP_BUTTON = "📱 បើកក្នុងអេប លុយឆ្លាត"
 const POSTER_APP_URL = "https://app.luychlat.com"
 
 /** Until when (Cambodia time) a missed 07:00 slot is still made up — a holiday poster at night would be odd. */
