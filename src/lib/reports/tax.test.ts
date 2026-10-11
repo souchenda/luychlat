@@ -32,13 +32,23 @@ describe("GDT tax estimate — small taxpayer", () => {
     assert.equal(e.rentWhtKhr, 200_000)
   })
   it("the reserve: both, plus 1/12 of the 400,000 ៛ patent tax", () => {
-    assert.equal(e.patentShareKhr, 33_333)
-    assert.equal(e.reserveKhr, 283_333)
+    assert.equal(e.patentShareKhr, 33_300)
+    assert.equal(e.reserveKhr, 283_300)
   })
   it("no sales, no rent: only the patent share", () => {
     const empty = taxEstimate([], CATS, 4000, "2026-10-11")
     assert.equal(empty.minimumTaxKhr + empty.rentWhtKhr, 0)
-    assert.equal(empty.reserveKhr, 33_333)
+    assert.equal(empty.reserveKhr, 33_300)
+  })
+})
+
+describe("Cambodian 100 ៛ rounding", () => {
+  it("odd riel from conversions and percentages round to the nearest 100 ៛", () => {
+    // $123.45 sales at 4,100 = 506,145 ៛ → 506,100 ៛; 1% = 5,061 ៛ → 5,100 ៛.
+    const e = taxEstimate([tx("sales", "INCOME", 123.45, "USD")], CATS, 4100, "2026-10-11")
+    assert.equal(e.salesKhr, 506_100)
+    assert.equal(e.minimumTaxKhr, 5_100)
+    for (const v of [e.salesKhr, e.rentKhr, e.minimumTaxKhr, e.rentWhtKhr, e.patentShareKhr, e.reserveKhr]) assert.equal(v % 100, 0)
   })
 })
 

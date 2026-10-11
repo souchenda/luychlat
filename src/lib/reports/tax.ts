@@ -5,10 +5,10 @@
  *   • Minimum tax (ពន្ធលើប្រាក់ចំណូលអប្បបរមា): 1% of the month's gross sales;
  *   • Withholding tax on rent (ពន្ធកាត់ទុកថ្លៃជួល): 10% of the month's premises / warehouse rent;
  *   • Patent tax (ពន្ធប៉ាតង់): 400,000 ៛ a year, due by 31 March — set aside 1/12 each month.
- * Everything in riel (tax is filed in riel). Pure (tax.test.ts).
+ * Everything in riel (tax is filed in riel), rounded to the nearest 100 ៛. Pure (tax.test.ts).
  */
 import { profitAndLoss } from "@/lib/reports/pl"
-import { roundMoney } from "@/lib/money"
+import { roundRiel } from "@/lib/money"
 import type { Category, Transaction } from "@/lib/data/types"
 
 export const MINIMUM_TAX_RATE = 0.01
@@ -45,17 +45,18 @@ export function taxEstimate(
   today: string,
   rentBillCategoryIds: (string | null)[] = [],
 ): TaxEstimate {
-  const salesKhr = Math.max(0, profitAndLoss(transactions, categories, khrPerUsd).revenue.khr)
+  const salesKhr = roundRiel(Math.max(0, profitAndLoss(transactions, categories, khrPerUsd).revenue.khr))
   const rentIds = rentCategoryIds(categories, rentBillCategoryIds)
   let rentKhr = 0
   for (const tx of transactions) {
     if (tx.type !== "EXPENSE" || !tx.category_id || !rentIds.has(tx.category_id)) continue
     rentKhr += tx.currency === "KHR" ? tx.amount : tx.amount * khrPerUsd
   }
-  rentKhr = roundMoney(rentKhr, "KHR")
-  const minimumTaxKhr = roundMoney(salesKhr * MINIMUM_TAX_RATE, "KHR")
-  const rentWhtKhr = roundMoney(rentKhr * RENT_WHT_RATE, "KHR")
-  const patentShareKhr = Math.round(PATENT_TAX_KHR / 12)
+  rentKhr = roundRiel(rentKhr)
+  // Cambodian rounding: every riel figure the estimate computes, to the nearest 100 ៛.
+  const minimumTaxKhr = roundRiel(salesKhr * MINIMUM_TAX_RATE)
+  const rentWhtKhr = roundRiel(rentKhr * RENT_WHT_RATE)
+  const patentShareKhr = roundRiel(PATENT_TAX_KHR / 12)
   return {
     salesKhr,
     rentKhr,

@@ -15,7 +15,7 @@ import type { Currency } from "@/lib/data/types"
 import { dayDate } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
+import { formatMoney, parseAmount, roundMoney, roundRiel } from "@/lib/money"
 import { COST_HINT, daysLeft, docStatus, renewedExpiry, VEHICLE_DOC_TYPES, type VehicleDoc, type VehicleDocType } from "@/lib/vehicle-docs"
 import { useVehicleDocMutations, useVehicleDocs } from "@/lib/vehicle-docs-data"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -174,7 +174,8 @@ function VehicleDocSheet({ open, onOpenChange, workspaceId, doc, vehicles }: { o
           doc_type: form.type,
           provider: form.type === "INSURANCE" ? form.provider.trim() || null : null,
           expires_on: form.expiresOn,
-          cost: value === null ? null : roundMoney(value, form.currency),
+          // An estimate: riel to the nearest 100 ៛.
+          cost: value === null ? null : form.currency === "KHR" ? roundRiel(value) : roundMoney(value, "USD"),
           currency: form.currency,
           notes: doc?.notes ?? null,
         },

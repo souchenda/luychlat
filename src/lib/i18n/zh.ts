@@ -3611,4 +3611,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "tax.patentLate": "营业执照税已过 3 月 31 日，请尽快缴纳",
   "tax.export": "导出给会计的汇总（Excel）",
   "tax.disclaimer": "仅为估算（最低税 1% · 租金预扣税 10% · 营业执照税 400,000 瑞尔），基于应用中记录的销售与租金。申报前请与会计或税务总局确认。",
+  "vdoc.carTitle": "我的车",
+  "vdoc.personalOnly": "车辆证件仅在个人空间中，请切换到个人空间。",
 }

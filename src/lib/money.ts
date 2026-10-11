@@ -11,6 +11,13 @@ export function roundMoney(amount: number, currency: Currency): number {
   return currency === "KHR" ? Math.round(amount) : Math.round(amount * 100) / 100
 }
 
+/**
+ * Cambodian cash rounding for riel the app calculates or estimates (taxes, conversions, cost
+ * estimates): to the nearest 100 ៛ — the smallest note in use (founder, 11/10/2026). Amounts a
+ * person types or a bank states are kept exactly as given.
+ */
+export const roundRiel = (amount: number) => Math.round(amount / 100) * 100
+
 export function convert(amount: number, from: Currency, to: Currency, khrPerUsd: number): number {
   if (from === to) return amount
   return roundMoney(from === "USD" ? amount * khrPerUsd : amount / khrPerUsd, to)
