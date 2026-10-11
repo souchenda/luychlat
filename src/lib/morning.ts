@@ -9,7 +9,7 @@ export const MORNING_QUOTE = "ស្រឡាញ់លុយ លុយនឹង�
 /** 07:00 Cambodia time (UTC+7 all year). */
 export const MORNING_MINUTE = 7 * 60
 
-export const APP_URL = "https://luychlat.com"
+export const APP_URL = "https://app.luychlat.com"
 
 /** The phone notification. */
 export function morningPush(): { title: string; body: string; url: string; tag: string } {

@@ -6,7 +6,7 @@
  */
 
 /** The public address of the app (bot buttons and links). */
-export const SITE_URL = "https://luychlat.com"
+export const SITE_URL = "https://app.luychlat.com"
 
 export type AboutInfo = {
   /** "Powered by: …" */
