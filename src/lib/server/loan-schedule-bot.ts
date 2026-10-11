@@ -1,7 +1,7 @@
 // Server only: a photo of a loan repayment schedule → the loan, its installments already paid and a
 // monthly LOAN bill, saved in one go (bot_import_loan), then the confirmation. Pure part:
 // src/lib/loans/schedule-read.ts.
-import { DEFAULT_ABOUT } from "@/lib/app-info"
+import { DEFAULT_ABOUT } from "@/lib/app-site"
 import { cleanScheduleRead, importedText, importPlan, loanPayload, schedulePrompt, type ScheduleRead } from "@/lib/loans/schedule-read"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"

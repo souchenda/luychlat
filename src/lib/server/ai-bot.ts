@@ -7,7 +7,7 @@
 // no-balances-in-chat rule). References in the answer are turned back into the
 // user's names here, after the AI. "Who owes me" is answered from the database.
 import { DAILY_QUOTA_REPLY, DOMAIN_RULE, guidedButtons, isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
-import { DEFAULT_ABOUT } from "@/lib/app-info"
+import { DEFAULT_ABOUT } from "@/lib/app-site"
 import { parseAmountText } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
 import type { Locale } from "@/lib/i18n/dictionaries"

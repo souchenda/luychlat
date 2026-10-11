@@ -18,27 +18,8 @@ export function copyrightYears(now: Date = new Date()): string {
   return year > COPYRIGHT_SINCE ? `${COPYRIGHT_SINCE}–${year}` : String(COPYRIGHT_SINCE)
 }
 
-export type AboutInfo = {
-  /** "Powered by: …" */
-  developer: string
-  /** Founders & developers, one per line, e.g. "Sou Chenda — Founder". */
-  credits: string
-  mission_km: string
-  mission_en: string
-  website: string
-  email: string
-  facebook: string
-}
-
-export const DEFAULT_ABOUT: AboutInfo = {
-  developer: "iBMS",
-  credits: "",
-  mission_km: "កម្មវិធីគ្រប់គ្រងហិរញ្ញវត្ថុ និងបំណុលឆ្លាតវៃ សម្រាប់ប្រជាជនកម្ពុជា។",
-  mission_en: "A smart money and debt manager made for the people of Cambodia.",
-  website: "https://luy.ibmserp.com",
-  email: "",
-  facebook: "",
-}
+export { DEFAULT_ABOUT, SITE_URL, type AboutInfo } from "@/lib/app-site"
+import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-site"
 
 export function useAboutInfo(): AboutInfo {
   const { data } = useQuery({

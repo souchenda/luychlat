@@ -1,6 +1,6 @@
 // Server only: the opt-in weekly digest — Sunday evening for every opted-in
 // chat, and on demand with /digest (see src/lib/bot/digest.ts).
-import { DEFAULT_ABOUT } from "@/lib/app-info"
+import { DEFAULT_ABOUT } from "@/lib/app-site"
 import { buildDigest, weekStartOf, type DigestRow } from "@/lib/bot/digest"
 import type { Locale } from "@/lib/i18n/dictionaries"
 
