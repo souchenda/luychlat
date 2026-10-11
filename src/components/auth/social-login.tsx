@@ -1,9 +1,13 @@
 "use client"
 
 import type { Provider } from "@supabase/supabase-js"
+import { useQuery } from "@tanstack/react-query"
+import { Loader2Icon } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { authMethods } from "@/lib/supabase/config"
@@ -27,8 +31,66 @@ function AppleIcon() {
   )
 }
 
-export function SocialLogin({ disabled }: { disabled?: boolean }) {
+function TelegramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5 fill-current" aria-hidden>
+      <path d="M21.94 4.6 18.9 19.04c-.23 1.02-.83 1.27-1.69.79l-4.66-3.43-2.25 2.16c-.25.25-.46.46-.94.46l.33-4.74 8.63-7.8c.38-.33-.08-.52-.58-.19l-10.67 6.72-4.6-1.44c-1-.31-1.02-1 .21-1.48l17.98-6.93c.83-.31 1.56.19 1.29 1.44z" />
+    </svg>
+  )
+}
+
+type TelegramUser = Record<string, string | number>
+type TelegramWidget = { Login: { auth: (opts: { bot_id: string; request_access?: "write"; lang?: string }, done: (user: TelegramUser | false) => void) => void } }
+
+/** Telegram's own login widget script, loaded only when the button is tapped. */
+function loadTelegramWidget(): Promise<TelegramWidget> {
+  const w = window as unknown as { Telegram?: TelegramWidget }
+  if (w.Telegram?.Login) return Promise.resolve(w.Telegram)
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script")
+    s.src = "https://telegram.org/js/telegram-widget.js?22"
+    s.async = true
+    s.onload = () => (w.Telegram?.Login ? resolve(w.Telegram) : reject(new Error("no widget")))
+    s.onerror = () => reject(new Error("widget blocked"))
+    document.head.appendChild(s)
+  })
+}
+
+/**
+ * Google (when switched on in Supabase) and Telegram (when the server has it on: /api/auth/telegram)
+ * above the forms, on both tabs, with the «ឬប្រើប្រាស់លេខទូរស័ព្ទ / អ៊ីមែល» line under them. Nothing
+ * at all when neither is available.
+ */
+export function SocialLogin({ disabled, separator = true }: { disabled?: boolean; separator?: boolean }) {
   const t = useT()
+  const [tgBusy, setTgBusy] = useState(false)
+  const telegram = useQuery({
+    queryKey: ["auth-telegram"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => ((await fetch("/api/auth/telegram").then((r) => r.json()).catch(() => null)) as { enabled?: boolean; botId?: string } | null) ?? { enabled: false },
+  })
+  const tgBot = telegram.data?.enabled ? telegram.data.botId : null
+  const google = authMethods.has("google")
+  const apple = authMethods.has("apple")
+  if (!google && !apple && !tgBot) return null
+
+  const signInTelegram = async () => {
+    if (!tgBot) return
+    setTgBusy(true)
+    try {
+      const widget = await loadTelegramWidget()
+      const user = await new Promise<TelegramUser | false>((resolve) => widget.Login.auth({ bot_id: tgBot, request_access: "write" }, resolve))
+      if (!user) return
+      const res = await fetch("/api/auth/telegram", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(user) })
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+      if (json?.ok) return void window.location.assign("/home")
+      toast.error(t(json?.error === "not_linked" ? "login.telegramNotLinked" : "login.telegramError"))
+    } catch {
+      toast.error(t("login.telegramError"))
+    } finally {
+      setTgBusy(false)
+    }
+  }
 
   const signIn = async (provider: Provider) => {
     const supabase = getSupabaseBrowserClient()
@@ -42,7 +104,7 @@ export function SocialLogin({ disabled }: { disabled?: boolean }) {
 
   return (
     <div className="grid gap-2.5">
-      {authMethods.has("google") && (
+      {google && (
         <Button
           variant="outline"
           className="h-12 rounded-xl border border-neutral-200 bg-white text-base font-semibold text-neutral-800 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-white dark:text-neutral-800 dark:hover:bg-neutral-100"
@@ -53,11 +115,28 @@ export function SocialLogin({ disabled }: { disabled?: boolean }) {
           {t("login.google")}
         </Button>
       )}
-      {authMethods.has("apple") && (
+      {tgBot && (
+        <Button
+          className="h-12 rounded-xl bg-[#229ED9] text-base font-semibold text-white shadow-sm shadow-[#229ED9]/25 transition-all hover:bg-[#1c8fc5] active:scale-[0.98]"
+          onClick={() => void signInTelegram()}
+          disabled={disabled || tgBusy}
+        >
+          {tgBusy ? <Loader2Icon className="animate-spin" /> : <TelegramIcon />}
+          {t("login.telegramSignIn")}
+        </Button>
+      )}
+      {apple && (
         <Button variant="outline" className="h-12 rounded-xl text-base font-semibold shadow-sm" onClick={() => signIn("apple")} disabled={disabled}>
           <AppleIcon />
           {t("login.apple")}
         </Button>
+      )}
+      {separator && (
+        <div className="flex items-center gap-3 text-xs text-neutral-400">
+          <Separator className="flex-1" />
+          {t("login.orPhoneEmail")}
+          <Separator className="flex-1" />
+        </div>
       )}
     </div>
   )

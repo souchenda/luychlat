@@ -137,19 +137,8 @@ export default function LoginPage() {
               </Suspense>
               <GuestDataNote />
 
-              {/* Google first: one tap, no typing. Only methods enabled in Supabase are offered (NEXT_PUBLIC_AUTH_METHODS). */}
-              {(authMethods.has("google") || authMethods.has("apple")) && (
-                <>
-                  <SocialLogin disabled={cloudDisabled} />
-                  {(authMethods.has("email") || codeFirst || authMethods.has("phone")) && (
-                    <div className="flex items-center gap-3 text-xs text-neutral-400">
-                      <Separator className="flex-1" />
-                      {t("login.orPhoneEmail")}
-                      <Separator className="flex-1" />
-                    </div>
-                  )}
-                </>
-              )}
+              {/* One tap first, no typing: Google (when on in Supabase) and Telegram (when on on the server), on both tabs. */}
+              <SocialLogin disabled={cloudDisabled} separator={authMethods.has("email") || codeFirst || authMethods.has("phone")} />
 
               {codeFirst && !usePassword && <EmailCodeLogin disabled={cloudDisabled} />}
               {showPassword && <EmailLogin disabled={cloudDisabled} />}
