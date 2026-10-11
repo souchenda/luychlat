@@ -274,7 +274,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
       {business && <BusinessProfileSheet open={editOpen} onOpenChange={setEditOpen} workspace={business} />}
 
       <div className="flex items-center gap-2 border-t px-5 py-3 text-[11px] text-muted-foreground">
-        <BrandMark className="size-5 rounded-md text-[11px] shadow-none" />
+        <BrandMark className="size-9 rounded-xl shadow-none" />
         អេប លុយឆ្លាត · App Luy Chlat v{APP_VERSION}
       </div>
     </div>
