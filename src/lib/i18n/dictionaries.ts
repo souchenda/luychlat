@@ -6981,7 +6981,7 @@ const en: Record<MessageKey, string> = {
   "fuel.pending": "(awaiting the Ministry of Commerce prices for this cycle)",
   "bot.eveningCheckin": "8 PM check-in reminder",
   "bot.eveningCheckinHint": "At 8 PM the bot gives a gentle reminder — only on days you haven't recorded anything yet.",
-  "bot.eveningNudge": "🌙 Good evening! You haven't recorded any income or spending today yet. 📝\n\n👉 Just send a voice note or type it here (e.g. \"sold 120$\" or \"dinner 25,000៛\") and App Luy Chlat records it right away.\n\n(Turn this off in Settings › Official bot)",
+  "bot.eveningNudge": "🌙 End-of-day reminder\nHave you recorded today's income and spending?\n🎙️ Send a voice note or type it here — recorded at once!",
   "bot.eveningOpenApp": "📱 Open the app",
   "tips.adminTitle": "Daily tips",
   "tips.cardHint": "Review and approve the 12:00 community tip",

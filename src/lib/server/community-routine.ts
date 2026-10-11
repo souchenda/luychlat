@@ -6,7 +6,8 @@
 //          goes to subscribed phones as a push notification (web-push.ts) and is
 //          the morning card in the app's bell (src/lib/morning.ts)
 //   09:30  📊 market bulletin (community-bulletin.ts)
-//   20:00  🌙 evening check-in: "did you record today?" — in the channel, and as
+//   20:00  🌙 evening check-in: three short lines, a different one each weekday
+//          (lib/evening-reminder.ts) — in the channel, and as
 //          a gentle nudge in the bot to users who switched it on (Settings ›
 //          Official bot) and recorded nothing today
 //
@@ -18,6 +19,7 @@ import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { sendPosterPhoto } from "@/lib/server/tip-bot"
 import { tipPoster } from "@/lib/server/tip-poster"
 import { logEvent } from "@/lib/server/events"
+import { eveningHtml } from "@/lib/evening-reminder"
 import { MORNING_QUOTE } from "@/lib/morning"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { phnomPenhToday } from "@/lib/server/market-sync"
@@ -43,20 +45,8 @@ export function morningText(): string {
   ].join("\n")
 }
 
-/** 20:00 — the end-of-day check-in (Telegram HTML). */
-export function eveningText(): string {
-  return [
-    "🌙 <b>រាត្រីសួស្តីពី អេប លុយឆ្លាត · រំលឹកចុងថ្ងៃ</b>",
-    "",
-    "✨ «តើថ្ងៃនេះ បងបានកត់ត្រាចំណូល និងចំណាយ អស់ហើយឬនៅ?» 📝",
-    "",
-    "💡 ការកត់ត្រាចំណូល-ចំណាយត្រឹមតែ ១ នាទីមុនចូលគេង ជួយឱ្យបងដឹងច្បាស់ពីប្រាក់ចំណេញ លំហូរសាច់ប្រាក់ គេងលក់ស្រួល និងគ្រប់គ្រងហិរញ្ញវត្ថុបានកាន់តែរឹងមាំ!",
-    "",
-    "👉 គ្រាន់តែផ្ញើសារសំឡេង ឬវាយប្រាប់ Bot មក (ឧ. «លក់បាន 120$» ឬ «បាយល្ងាច ២៥,០០០៛») នោះអេប លុយឆ្លាត នឹងកត់ត្រាជូនភ្លាម!",
-    "",
-    "— អេប លុយឆ្លាត",
-  ].join("\n")
-}
+/** 20:00 — the end-of-day check-in (Telegram HTML): three short lines, a different one each weekday. */
+export const eveningText = (day: string) => eveningHtml(day)
 
 /** [ 🤖 កត់ត្រាតាម Telegram ↗ ] [ 📱 បើកក្នុងអេប លុយឆ្លាត ↗ ] — the channel's standard row. */
 const recordButtons = getChannelPostButtons
@@ -74,7 +64,7 @@ async function claim(job: string, day: string) {
 }
 
 /** The bot's own nudge, in each user's language, to those who asked for it and haven't recorded today. */
-async function nudgeSubscribers() {
+async function nudgeSubscribers(day: string) {
   const { data, error } = await botDb().rpc("bot_evening_checkin_subscribers", { p_key: botKey() })
   if (error) {
     logEvent("error", "routine", `Evening check-in subscribers failed: ${error.message}`, { fold: true })
@@ -84,7 +74,9 @@ async function nudgeSubscribers() {
   const open = (lang: Locale) => (url ? { reply_markup: { inline_keyboard: [[{ text: tr(lang, "bot.eveningOpenApp"), url }]] } } : {})
   let sent = 0
   for (const s of (data as { chat_id: number; language: Locale }[] | null) ?? []) {
-    const r = await sendText(Number(s.chat_id), tr(s.language, "bot.eveningNudge"), open(s.language)).catch(() => null)
+    // Khmer: the day's reminder (as in the channel); English / Chinese: their short line.
+    const text = s.language === "km" ? eveningHtml(day) : tr(s.language, "bot.eveningNudge")
+    const r = await sendText(Number(s.chat_id), text, { ...open(s.language), ...(s.language === "km" ? { parse_mode: "HTML" } : {}) }).catch(() => null)
     if (r?.ok) sent += 1
   }
   return sent
@@ -116,10 +108,10 @@ export async function communityRoutineTick() {
 
   if (due === "evening" && (await claim(EVENING.job, now.day))) {
     if (chat) {
-      const res = await tg("sendMessage", { chat_id: chat, text: eveningText(), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })
+      const res = await tg("sendMessage", { chat_id: chat, text: eveningText(now.day), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })
       logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Evening check-in sent to ${chat}` : `Evening check-in failed: ${res.description ?? "unknown"}`)
     }
-    const nudged = await nudgeSubscribers()
+    const nudged = await nudgeSubscribers(now.day)
     if (nudged) logEvent("info", "routine", `Evening check-in nudge sent to ${nudged} chat${nudged === 1 ? "" : "s"}`, { fold: true })
   }
 }
