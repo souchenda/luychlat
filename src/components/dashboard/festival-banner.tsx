@@ -68,32 +68,34 @@ export function FestivalBanner() {
   const look = CULTURAL_LOOK[day.key]
   const Icon = CULTURAL_ICON[day.key]
 
+  // Compact (founder, 11/10/2026): ✕ in the corner beside the title only, so the blessing gets the
+  // full width — two lines on a 360–390 px phone (Khmer), the net worth card stays near the top.
   return (
-    <section className={`relative overflow-hidden rounded-2xl border bg-linear-to-br px-3 py-2.5 shadow-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-500 ${look.card}`}>
+    <section className={`relative overflow-hidden rounded-2xl border bg-linear-to-br px-2.5 py-2 shadow-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-500 ${look.card}`}>
       {/* A watermark only where the festival's look has one (none for Pchum Ben: a clean warm gradient). */}
       {look.mark && <Icon aria-hidden className={`pointer-events-none absolute -right-3 -bottom-3 size-20 rotate-12 ${look.mark}`} />}
-      <div className="flex items-center gap-2.5">
-        <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-neutral-900 ${look.disc}`}>
+      <button
+        type="button"
+        className="absolute top-1 right-1 rounded-full p-1.5 text-muted-foreground hover:bg-white/60 dark:hover:bg-white/10"
+        aria-label={t("common.close")}
+        onClick={() => {
+          setDay(null)
+          opened = null
+          try {
+            localStorage.setItem(DISMISS_PREFIX + day.key, day.start)
+          } catch {}
+        }}
+      >
+        <XIcon className="size-4" />
+      </button>
+      <div className="flex items-center gap-2">
+        <span className={`flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm dark:bg-neutral-900 ${look.disc}`}>
           <Icon className="size-5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm leading-snug font-semibold">{t(`festival.${day.key}.title` as MessageKey, { year: day.start.slice(0, 4) })}</p>
+          <p className="pr-7 text-sm leading-snug font-semibold">{t(`festival.${day.key}.title` as MessageKey, { year: day.start.slice(0, 4) })}</p>
           <p className="mt-0.5 text-xs leading-snug text-neutral-600 dark:text-neutral-300">{t(`festival.${day.key}.body` as MessageKey)}</p>
         </div>
-        <button
-          type="button"
-          className="-m-1 self-start rounded-full p-2 text-muted-foreground hover:bg-white/60 dark:hover:bg-white/10"
-          aria-label={t("common.close")}
-          onClick={() => {
-            setDay(null)
-            opened = null
-            try {
-              localStorage.setItem(DISMISS_PREFIX + day.key, day.start)
-            } catch {}
-          }}
-        >
-          <XIcon className="size-4" />
-        </button>
       </div>
     </section>
   )
