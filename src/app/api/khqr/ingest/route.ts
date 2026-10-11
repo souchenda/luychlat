@@ -138,7 +138,13 @@ export async function POST(request: Request) {
   // SoundBox (/soundbox): a customer's payment only — never an own-account transfer. The database
   // checks again (INCOME, bank reference, Sales) and members get it live through Supabase Realtime.
   if (shouldEmit(r.status) && r.transaction_id) {
-    const { error: soundError } = await botDb().rpc("bot_soundbox_emit", { p_key: botKey(), p_transaction_id: r.transaction_id, p_payer: pay.payer ?? null })
+    const { error: soundError } = await botDb().rpc("bot_soundbox_emit", {
+      p_key: botKey(),
+      p_transaction_id: r.transaction_id,
+      p_payer: pay.payer ?? null,
+      // The customer's bank as the message prints it ("ABA Bank"), or the API's payer_bank.
+      p_payer_bank: parsed?.via ?? (str(body.payer_bank, 60) || null),
+    })
     if (soundError) logEvent("warn", "soundbox", `SoundBox event not emitted: ${soundError.message}`, { fold: true })
   }
 

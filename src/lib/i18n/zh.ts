@@ -2459,6 +2459,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "ev.petrolBasis": "按商务部汽油价 {price}៛/升 · 燃油车平均 {lper} 升/百公里",
   "ev.addDistanceHint": "输入里程表读数（或单次行程）即可查看每公里成本及与燃油车相比节省的金额。",
   "ev.invalid": "kWh 无效（1–500）",
+  "soundbox.volume": "音量",
+  "soundbox.test": "试听",
   "soundbox.title": "收款语音播报",
   "soundbox.start": "🔊 开启播报声音",
   "soundbox.listening": "正在等待收款——屏幕保持常亮",

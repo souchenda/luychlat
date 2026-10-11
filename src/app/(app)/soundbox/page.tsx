@@ -1,19 +1,19 @@
 "use client"
 
-import { Volume2Icon, VolumeXIcon } from "lucide-react"
+import { PlayIcon, Volume2Icon, VolumeXIcon } from "lucide-react"
 import Link from "next/link"
 import QRCode from "qrcode"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { Segmented } from "@/components/common/segmented"
 import { SettingsSubHeader } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { useActiveWorkspace } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
 import { useMyKhqr } from "@/lib/profile"
-import { shownAmount, todayTotals, type SoundboxEvent, type SoundboxLang } from "@/lib/soundbox"
+import { keepScreenAwake, receiveEvent, shownAmount, SOUNDBOX_MODES, todayTotals, type SoundboxEvent, type SoundboxMode } from "@/lib/soundbox"
 import { announce, unlockAudio } from "@/lib/soundbox-audio"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -36,21 +36,17 @@ const keep = (key: string, value: string) => {
   }
 }
 
-/** Keeps the counter phone's screen on while the SoundBox is open (re-taken when the page is shown again). */
+/** Keeps the counter phone's screen on while the SoundBox is active (keepScreenAwake, re-taken when the page is shown again). */
 function useWakeLock(on: boolean) {
-  useEffect(() => {
-    if (!on) return
-    let lock: { release: () => Promise<void> } | null = null
-    const nav = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<{ release: () => Promise<void> }> } }
-    const take = () => void nav.wakeLock?.request("screen").then((l) => (lock = l)).catch(() => null)
-    const onShow = () => document.visibilityState === "visible" && take()
-    take()
-    document.addEventListener("visibilitychange", onShow)
-    return () => {
-      document.removeEventListener("visibilitychange", onShow)
-      void lock?.release().catch(() => null)
-    }
-  }, [on])
+  useEffect(() => (on ? keepScreenAwake(navigator as Parameters<typeof keepScreenAwake>[0], document) : undefined), [on])
+}
+
+const MODE_LABEL: Record<SoundboxMode, string> = {
+  km: "🇰🇭 ខ្មែរ",
+  en: "🇬🇧 English",
+  zh: "🇨🇳 中文",
+  "km+en": "🌐 ខ្មែរ + អង់គ្លេស",
+  "km+zh": "🌐 ខ្មែរ + ចិន",
 }
 
 /**
@@ -66,11 +62,16 @@ export default function SoundboxPage() {
   const [qr, setQr] = useState<string | null>(null)
   const [active, setActive] = useState(false)
   const [soundOn, setSoundOn] = useState(() => (typeof window === "undefined" ? true : pref("soundbox.sound", "on") === "on"))
-  const [lang, setLang] = useState<SoundboxLang>(() => (typeof window === "undefined" ? "km" : (pref("soundbox.lang", "km") as SoundboxLang)))
+  const [mode, setMode] = useState<SoundboxMode>(() => {
+    const saved = typeof window === "undefined" ? "km" : pref("soundbox.lang", "km")
+    return (SOUNDBOX_MODES as string[]).includes(saved) ? (saved as SoundboxMode) : "km"
+  })
+  const [volume, setVolume] = useState(() => (typeof window === "undefined" ? 100 : Number(pref("soundbox.volume", "100")) || 100))
   const [events, setEvents] = useState<SoundboxEvent[]>([])
+  const eventsRef = useRef<SoundboxEvent[]>([])
   const [flash, setFlash] = useState<SoundboxEvent | null>(null)
-  const settings = useRef({ soundOn, lang })
-  settings.current = { soundOn, lang }
+  const settings = useRef({ soundOn, mode, volume })
+  settings.current = { soundOn, mode, volume }
   useWakeLock(active)
 
   useEffect(() => {
@@ -85,21 +86,29 @@ export default function SoundboxPage() {
     let timer: number | undefined
     void supabase
       .from("soundbox_events")
-      .select("id, amount, currency, account_name, payer, transaction_time")
+      .select("id, amount, currency, account_name, payer, payer_bank, transaction_time")
       .eq("workspace_id", ws)
       .gte("transaction_time", new Date(Date.parse(`${ppDay()}T00:00:00+07:00`)).toISOString())
       .order("transaction_time", { ascending: false })
       .limit(200)
-      .then(({ data }) => setEvents((data ?? []) as SoundboxEvent[]))
+      .then(({ data }) => {
+        const today = ((data ?? []) as SoundboxEvent[]).map((e) => ({ ...e, amount: Number(e.amount) }))
+        // Anything that arrived live meanwhile stays on top.
+        eventsRef.current = [...eventsRef.current, ...today.filter((e) => !eventsRef.current.some((x) => x.id === e.id))]
+        setEvents(eventsRef.current)
+      })
     const channel = supabase
       .channel(`workspace:${ws}:soundbox`)
       .on("postgres_changes", { schema: "public", table: "soundbox_events", event: "INSERT", filter: `workspace_id=eq.${ws}` }, ({ new: row }) => {
-        const e = { ...(row as SoundboxEvent), amount: Number((row as SoundboxEvent).amount) }
-        setEvents((list) => (list.some((x) => x.id === e.id) ? list : [e, ...list]))
-        setFlash(e)
+        // Side effects outside the state updater (React may run an updater twice): announced once.
+        const { list: next, added } = receiveEvent(eventsRef.current, row as Record<string, unknown>)
+        if (!added) return
+        eventsRef.current = next
+        setEvents(next)
+        setFlash(added)
         window.clearTimeout(timer)
         timer = window.setTimeout(() => setFlash(null), FLASH_MS)
-        void announce(e, settings.current.lang, settings.current.soundOn)
+        void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100)
       })
       .subscribe()
     return () => {
@@ -139,18 +148,55 @@ export default function SoundboxPage() {
         </Card>
       )}
 
-      <Segmented
-        aria-label={t("soundbox.voice")}
-        value={lang}
-        onChange={(v) => {
-          setLang(v)
-          keep("soundbox.lang", v)
-        }}
-        options={[
-          { value: "km", label: "🇰🇭 ខ្មែរ" },
-          { value: "en", label: "🇬🇧 English" },
-        ]}
-      />
+      <Card className="gap-3 px-4 py-3">
+        <Select
+          value={mode}
+          onValueChange={(v) => {
+            setMode(v as SoundboxMode)
+            keep("soundbox.lang", v)
+          }}
+        >
+          <SelectTrigger aria-label={t("soundbox.voice")} className="h-11 w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SOUNDBOX_MODES.map((m) => (
+              <SelectItem key={m} value={m}>
+                {MODE_LABEL[m]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-3">
+          <VolumeXIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={volume}
+            aria-label={t("soundbox.volume")}
+            onChange={(e) => {
+              setVolume(Number(e.target.value))
+              keep("soundbox.volume", e.target.value)
+            }}
+            className="h-2 min-w-0 flex-1 accent-primary"
+          />
+          <Volume2Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              await unlockAudio()
+              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100)
+            }}
+          >
+            <PlayIcon />
+            {t("soundbox.test")}
+          </Button>
+        </div>
+      </Card>
 
       {/* The workspace's KHQR, large, for the customer to scan. */}
       <Card className="items-center gap-3 px-4 py-5">
@@ -182,7 +228,10 @@ export default function SoundboxPage() {
             {events.slice(0, 50).map((e) => (
               <li key={e.id} className="flex items-center gap-3 px-4 py-2.5">
                 <span className="w-12 shrink-0 text-xs text-muted-foreground tabular-nums">{hhmm(e.transaction_time)}</span>
-                <span className="min-w-0 flex-1 truncate text-sm">{e.payer ?? e.account_name}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {e.payer ?? e.account_name}
+                  {e.payer_bank ? <span className="text-muted-foreground"> · {e.payer_bank}</span> : null}
+                </span>
                 <span className="shrink-0 text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">{shownAmount(e.amount, e.currency)}</span>
               </li>
             ))}
@@ -201,8 +250,10 @@ export default function SoundboxPage() {
         >
           <span className="text-lg font-medium opacity-90">{t("soundbox.received")}</span>
           <span className="text-6xl font-extrabold tracking-tight tabular-nums sm:text-7xl">{shownAmount(flash.amount, flash.currency)}</span>
+          {(flash.payer || flash.payer_bank) && (
+            <span className="text-xl font-semibold">{[flash.payer, flash.payer_bank].filter(Boolean).join(" · ")}</span>
+          )}
           <span className="text-base opacity-90">
-            {flash.payer ? `${flash.payer} · ` : ""}
             {flash.account_name} · {hhmm(flash.transaction_time)}
           </span>
         </button>
