@@ -110,11 +110,11 @@ export default function LoginPage() {
       </div>
 
       <main
-        className={`${misansKhmer.variable} relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-4 pb-1.5 md:max-w-6xl md:px-8`}
+        className={`${misansKhmer.variable} relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-[max(calc(env(safe-area-inset-top)+0.75rem),2rem)] pb-1.5 md:max-w-6xl md:px-8`}
         style={{ fontFamily: "var(--font-misans-khmer), var(--font-kantumruy), sans-serif" }}
       >
-        {/* In the corner, not a row of its own: the whole page fits one screen. */}
-        <div className="absolute top-3 right-4 z-10">
+        {/* In the corner, not a row of its own (below the iPhone's notch / Dynamic Island): the whole page fits one screen. */}
+        <div className="absolute top-[max(calc(env(safe-area-inset-top)+0.5rem),0.75rem)] right-4 z-10">
           <LanguageToggle />
         </div>
 
@@ -124,7 +124,7 @@ export default function LoginPage() {
         {/* Brand: logo, then title, then the card — each a beat after the last. */}
         <div className="mb-2.5 flex flex-col items-center text-center md:mb-0 md:items-start md:text-left">
           {/* The mascot floats gently, its glow breathes (transform / opacity only, on the GPU); a tap gives a little bounce. */}
-          <div className="relative animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+          <div className="relative mt-2 mb-1 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
             <span aria-hidden className="absolute inset-1 animate-aura rounded-3xl bg-emerald-400/40 blur-xl will-change-transform motion-reduce:animate-none" />
             <div className="relative animate-bob will-change-transform motion-reduce:animate-none">
               <BrandMark
@@ -133,7 +133,7 @@ export default function LoginPage() {
               />
             </div>
           </div>
-          <h1 className="mt-2 text-2xl font-bold md:mt-4 md:text-4xl [@media(max-height:700px)]:mt-1 [@media(max-height:700px)]:text-xl delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "អេប លុយឆ្លាត"}</h1>
+          <h1 style={{ fontFamily: "var(--font-kantumruy), sans-serif" }} className="mt-3 text-2xl font-semibold md:mt-4 md:text-4xl [@media(max-height:700px)]:mt-1 [@media(max-height:700px)]:text-xl delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "អេប លុយឆ្លាត"}</h1>
           <p className="mt-0.5 max-w-[19rem] text-[13px] leading-snug md:mt-2 md:max-w-md md:text-base md:leading-relaxed text-balance text-neutral-500 delay-75 dark:text-neutral-400 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated && <KeepTogether text={t("app.tagline")} keep={TAGLINE_KEEP} />}</p>
           {hydrated && <Features className="mt-6 hidden justify-start md:flex" />}
         </div>
