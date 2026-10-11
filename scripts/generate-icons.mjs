@@ -1,39 +1,49 @@
-// Generates the PWA / iOS PNG icons from the brand mark.
+// Generates the PWA / iOS PNG icons from the official mascot logo (public/logo.png, founder 11/10/2026).
 // Run: node scripts/generate-icons.mjs   (uses sharp, installed with Next.js)
+// The source is 256 px: 192 / 180 are downscaled (crisp); 512 is upscaled — replace public/logo.png
+// with a ≥ 1024 px original and run this again for sharper large icons.
 import { mkdir } from "node:fs/promises"
 
 import sharp from "sharp"
 
-const GREEN = "#0f9f6e"
-const FONT = "Kantumruy Pro, Khmer UI, Khmer OS, Leelawadee UI, Noto Sans Khmer, sans-serif"
+const LOGO = "public/logo.png"
 
-/** Rounded app icon ("any" purpose). */
-const roundedSvg = (size) => `
-<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="${GREEN}"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="20"/>
-  <text x="256" y="262" text-anchor="middle" dominant-baseline="middle" font-family="${FONT}" font-size="210" font-weight="700" fill="#ffffff">៛</text>
-</svg>`
+/**
+ * The logo's own background, full bleed: for each row, its colour near the left edge (no mascot there),
+ * stretched across — the exact same gradient.
+ */
+const backdrop = async (size) => {
+  const { data, info } = await sharp(LOGO).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  const column = Buffer.alloc(info.height * 4)
+  for (let y = 0; y < info.height; y++) {
+    // Inside the rounded rim; the rows above / below it take the nearest clean row (no stripes).
+    const row = Math.min(Math.round(info.height * 0.88), Math.max(Math.round(info.height * 0.12), y))
+    const at = (row * info.width + Math.round(info.width * 0.12)) * 4
+    data.copy(column, y * 4, at, at + 3)
+    column[y * 4 + 3] = 255
+  }
+  return sharp(column, { raw: { width: 1, height: info.height, channels: 4 } }).resize(size, size, { fit: "fill", kernel: "cubic" }).png().toBuffer()
+}
 
-/** Maskable: full-bleed background, artwork inside the 80% safe zone. */
-const maskableSvg = (size) => `
-<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="${GREEN}"/>
-  <circle cx="256" cy="256" r="118" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="16"/>
-  <text x="256" y="261" text-anchor="middle" dominant-baseline="middle" font-family="${FONT}" font-size="165" font-weight="700" fill="#ffffff">៛</text>
-</svg>`
+/** "any": the logo as it is (its own rounded corners). */
+const plain = (size) => sharp(LOGO).resize(size, size, { kernel: "lanczos3" }).png({ compressionLevel: 9 })
 
-/** iOS applies its own corner mask, so the apple-touch-icon is a full square. */
-const appleSvg = (size) => maskableSvg(size).replace('stroke-width="16"', 'stroke-width="18"')
+/** Maskable / iOS: the logo inside the safe zone on its full-bleed background (masks never cut the ears). */
+const onBackdrop = async (size, scale) => {
+  const inner = Math.round(size * scale)
+  const logo = await sharp(LOGO).resize(inner, inner, { kernel: "lanczos3" }).png().toBuffer()
+  const at = Math.round((size - inner) / 2)
+  return sharp(await backdrop(size)).composite([{ input: logo, top: at, left: at }]).png({ compressionLevel: 9 })
+}
 
 await mkdir("public/icons", { recursive: true })
 const jobs = [
-  ["public/icons/icon-192.png", roundedSvg(192)],
-  ["public/icons/icon-512.png", roundedSvg(512)],
-  ["public/icons/maskable-512.png", maskableSvg(512)],
-  ["public/icons/apple-touch-icon.png", appleSvg(180)],
+  ["public/icons/icon-192.png", plain(192)],
+  ["public/icons/icon-512.png", plain(512)],
+  ["public/icons/maskable-512.png", await onBackdrop(512, 0.8)],
+  ["public/icons/apple-touch-icon.png", await onBackdrop(180, 0.92)],
 ]
-for (const [file, svg] of jobs) {
-  await sharp(Buffer.from(svg)).png().toFile(file)
+for (const [file, img] of jobs) {
+  await img.toFile(file)
   console.log("wrote", file)
 }

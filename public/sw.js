@@ -1,6 +1,6 @@
 // LuyChlat service worker: offline shell + cache-first static assets.
 // Never caches API traffic (Supabase), so financial data is not stored here.
-const CACHE = "luysmart-v4" // bump to drop caches from before the LuyChlat rename
+const CACHE = "luysmart-v5" // bump to drop old caches (v5: the mascot icons, 11/10/2026)
 const SHELL = [
   "/",
   "/login",
@@ -12,7 +12,7 @@ const SHELL = [
   "/wallets",
   "/reports",
   "/settings",
-  "/icon.svg",
+  "/logo.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/manifest.webmanifest",

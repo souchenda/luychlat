@@ -8,7 +8,7 @@ import { EmailCodeLogin } from "@/components/auth/email-code-login"
 import { LoginFooter } from "@/components/auth/login-footer"
 import { EmailLogin } from "@/components/auth/email-login"
 import { PhoneLogin } from "@/components/auth/phone-login"
-import { SocialLogin } from "@/components/auth/social-login"
+import { SocialLogin, TelegramReturn } from "@/components/auth/social-login"
 import { ReferralCapture } from "@/components/billing/referral"
 import { KeepTogether } from "@/components/keep-together"
 import { BrandMark } from "@/components/brand-mark"
@@ -141,6 +141,7 @@ export default function LoginPage() {
                   {t("login.supabaseMissing")}
                 </p>
               )}
+              <TelegramReturn />
               <Suspense>
                 <OAuthError />
                 <AccountDeletedNote />

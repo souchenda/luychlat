@@ -3,7 +3,7 @@
 import type { Provider } from "@supabase/supabase-js"
 import { useQuery } from "@tanstack/react-query"
 import { Loader2Icon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { authMethods } from "@/lib/supabase/config"
+import { parseTgAuthResult, telegramAuthUrl } from "@/lib/telegram-auth-result"
 
 function GoogleIcon() {
   return (
@@ -39,21 +40,33 @@ function TelegramIcon() {
   )
 }
 
-type TelegramUser = Record<string, string | number>
-type TelegramWidget = { Login: { auth: (opts: { bot_id: string; request_access?: "write"; lang?: string }, done: (user: TelegramUser | false) => void) => void } }
+/** The signed data back from Telegram → a session (cookies set by the server) → /home. */
+async function finishTelegram(user: Record<string, string | number>): Promise<"ok" | "not_linked" | "error"> {
+  const res = await fetch("/api/auth/telegram", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(user) }).catch(() => null)
+  const json = (await res?.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+  return json?.ok ? "ok" : json?.error === "not_linked" ? "not_linked" : "error"
+}
 
-/** Telegram's own login widget script, loaded only when the button is tapped. */
-function loadTelegramWidget(): Promise<TelegramWidget> {
-  const w = window as unknown as { Telegram?: TelegramWidget }
-  if (w.Telegram?.Login) return Promise.resolve(w.Telegram)
-  return new Promise((resolve, reject) => {
-    const s = document.createElement("script")
-    s.src = "https://telegram.org/js/telegram-widget.js?22"
-    s.async = true
-    s.onload = () => (w.Telegram?.Login ? resolve(w.Telegram) : reject(new Error("no widget")))
-    s.onerror = () => reject(new Error("widget blocked"))
-    document.head.appendChild(s)
-  })
+/**
+ * Back from Telegram's sign-in page (#tgAuthResult=… on /login): finishes the sign-in. Rendered on
+ * the login page whatever the tab; the hash is removed at once so a reload never resends it.
+ */
+export function TelegramReturn() {
+  const t = useT()
+  useEffect(() => {
+    const user = parseTgAuthResult(window.location.hash)
+    if (!window.location.hash.includes("tgAuthResult")) return
+    window.history.replaceState(null, "", window.location.pathname + window.location.search)
+    if (!user) return void toast.error(t("login.telegramError"))
+    const id = toast.loading(t("login.telegramSignIn"))
+    void finishTelegram(user).then((r) => {
+      toast.dismiss(id)
+      if (r === "ok") return window.location.assign("/home")
+      toast.error(t(r === "not_linked" ? "login.telegramNotLinked" : "login.telegramError"))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, [])
+  return null
 }
 
 /**
@@ -74,22 +87,12 @@ export function SocialLogin({ disabled, separator = true, below = false }: { dis
   const apple = authMethods.has("apple")
   if (!google && !apple && !tgBot) return null
 
-  const signInTelegram = async () => {
+  // A full-page redirect to Telegram and back (#tgAuthResult) — a popup fails on phones (a new tab,
+  // then the Telegram app) and in the installed app's WebView.
+  const signInTelegram = () => {
     if (!tgBot) return
     setTgBusy(true)
-    try {
-      const widget = await loadTelegramWidget()
-      const user = await new Promise<TelegramUser | false>((resolve) => widget.Login.auth({ bot_id: tgBot, request_access: "write" }, resolve))
-      if (!user) return
-      const res = await fetch("/api/auth/telegram", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(user) })
-      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
-      if (json?.ok) return void window.location.assign("/home")
-      toast.error(t(json?.error === "not_linked" ? "login.telegramNotLinked" : "login.telegramError"))
-    } catch {
-      toast.error(t("login.telegramError"))
-    } finally {
-      setTgBusy(false)
-    }
+    window.location.assign(telegramAuthUrl(tgBot, window.location.origin, `${window.location.origin}/login`))
   }
 
   const signIn = async (provider: Provider) => {
@@ -130,7 +133,7 @@ export function SocialLogin({ disabled, separator = true, below = false }: { dis
         <Button
           type="button"
           className={`${size} rounded-xl border border-[#229ED9]/25 bg-[#229ED9]/10 font-semibold text-[#1a7fb0] shadow-none transition-all hover:bg-[#229ED9]/15 active:scale-[0.98] dark:text-[#5bbfe8]`}
-          onClick={() => void signInTelegram()}
+          onClick={signInTelegram}
           disabled={disabled || tgBusy}
         >
           {tgBusy ? <Loader2Icon className="animate-spin" /> : <TelegramIcon />}

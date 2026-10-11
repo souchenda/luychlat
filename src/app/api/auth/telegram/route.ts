@@ -31,11 +31,17 @@ export async function POST(request: Request) {
   if (!enabled()) return NextResponse.json({ error: "off" }, { status: 503 })
 
   const tgId = verifyTelegramLogin(await readJson(request, 2_000), botToken()!)
-  if (!tgId) return NextResponse.json({ error: "invalid" }, { status: 401 })
+  if (!tgId) {
+    logEvent("warn", "auth", "Telegram sign-in: signature or age check failed", { fold: true })
+    return NextResponse.json({ error: "invalid" }, { status: 401 })
+  }
 
   const { data } = await botDb().rpc("bot_login_user", { p_key: botKey(), p_tg_id: tgId })
   const user = data as { status: string; email?: string } | null
-  if (user?.status !== "ok" || !user.email) return NextResponse.json({ error: "not_linked" }, { status: 404 })
+  if (user?.status !== "ok" || !user.email) {
+    logEvent("info", "auth", "Telegram sign-in: this Telegram isn't linked to an account", { fold: true })
+    return NextResponse.json({ error: "not_linked" }, { status: 404 })
+  }
 
   // A one-time token for this account (no email is sent), redeemed here at once.
   const link = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
