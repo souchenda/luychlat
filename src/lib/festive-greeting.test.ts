@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { activeGreeting, shouldShowSplash, splashMark } from "./festive-greeting"
+import { activeGreeting, shouldShowSplash, shownDateKey } from "./festive-greeting"
 
 describe("festive greeting — which festival, when", () => {
   it("Pchum Ben 2026: 10–12 October (the official holiday), not the 13th", () => {
@@ -24,11 +24,12 @@ describe("festive greeting — which festival, when", () => {
   })
 })
 
-describe("festive greeting — the splash once a day", () => {
-  it("shown when not yet shown today; again the next day", () => {
-    assert.ok(shouldShowSplash(null, "pchum_ben", "2026-10-11"))
-    assert.ok(!shouldShowSplash(splashMark("pchum_ben", "2026-10-11"), "pchum_ben", "2026-10-11"))
-    assert.ok(shouldShowSplash(splashMark("pchum_ben", "2026-10-11"), "pchum_ben", "2026-10-12"))
+describe("festive greeting — on opening the app, once a day (never on refresh)", () => {
+  it("shown when not yet shown today; not again the same day; again the next day", () => {
+    assert.equal(shownDateKey("pchum_ben"), "pchum_ben_greeting_shown_date")
+    assert.ok(shouldShowSplash(null, "2026-10-11"))
+    assert.ok(!shouldShowSplash("2026-10-11", "2026-10-11"))
+    assert.ok(shouldShowSplash("2026-10-11", "2026-10-12"))
   })
 })
 

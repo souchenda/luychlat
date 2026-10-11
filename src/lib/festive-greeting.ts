@@ -21,6 +21,10 @@ export function activeGreeting(today: string, o: { islamic: boolean; preview?: s
   return { key: day.key, day }
 }
 
-/** The splash once a day per festival: the stored value is «<key>:<day>» of the last showing. */
-export const splashMark = (key: GreetingKey, today: string) => `${key}:${today}`
-export const shouldShowSplash = (stored: string | null, key: GreetingKey, today: string) => stored !== splashMark(key, today)
+/**
+ * The splash once a day, on opening the app: «pchum_ben_greeting_shown_date» holds the day it was
+ * last shown — written the moment it opens, so a refresh, a route change or pull-to-refresh never
+ * shows it again that day.
+ */
+export const shownDateKey = (key: GreetingKey) => `${key}_greeting_shown_date`
+export const shouldShowSplash = (shownDate: string | null, today: string) => shownDate !== today

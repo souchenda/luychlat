@@ -6,12 +6,11 @@ import { Suspense, useEffect, useState } from "react"
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { todayDate } from "@/lib/debts"
-import { activeGreeting, shouldShowSplash, splashMark, type GreetingKey } from "@/lib/festive-greeting"
+import { activeGreeting, shouldShowSplash, shownDateKey, type GreetingKey } from "@/lib/festive-greeting"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { useIslamicSettings } from "@/lib/islamic-settings"
 
-const STORE = "luychlat:festive-splash"
 const GOLD = "#E2B354"
 
 /** Gold line art on the brand emerald: pagoda spire, lotuses and a tiffin carrier (ចានស្រាក់) — or the Water Festival's boat and moon. */
@@ -103,21 +102,22 @@ function Splash() {
   useEffect(() => {
     if (!key) return
     const today = todayDate()
-    let stored: string | null = null
+    const preview = greeting?.day === null
+    let shown: string | null = null
     try {
-      stored = localStorage.getItem(STORE)
+      shown = localStorage.getItem(shownDateKey(key))
     } catch {}
-    if (shouldShowSplash(stored, key, today) || greeting?.day === null) setOpen(true)
+    if (!preview && !shouldShowSplash(shown, today)) return
+    setOpen(true)
+    // Counted as shown the moment it opens: a refresh or another page never brings it back today.
+    try {
+      if (!preview) localStorage.setItem(shownDateKey(key), today)
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per festival key
   }, [key])
 
   if (!key) return null
-  const close = () => {
-    setOpen(false)
-    try {
-      localStorage.setItem(STORE, splashMark(key, todayDate()))
-    } catch {}
-  }
+  const close = () => setOpen(false)
   return (
     <Dialog open={open} onOpenChange={(v) => !v && close()}>
       <DialogContent showCloseButton={false} className="max-w-sm gap-0 overflow-hidden rounded-3xl border-amber-300/40 p-0 animate-in fade-in-0 zoom-in-95 duration-500">

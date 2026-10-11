@@ -2469,7 +2469,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "festive.pchum_ben.title": "亡人节吉祥",
   "festive.pchum_ben.body": "愿您和家人平安喜乐、出行顺利、万事兴旺！",
   "festive.pchum_ben.badge": "🪷 亡人节吉祥",
-  "festive.pchum_ben.ok": "萨度 🙏",
+  "festive.pchum_ben.ok": "萨度 🙏 进入应用",
   "festive.khmer_new_year.title": "高棉新年快乐！",
   "festive.khmer_new_year.body": "LuyChlat 团队祝您和家人新年平安喜乐、万事如意！",
   "festive.khmer_new_year.badge": "🎉 高棉新年快乐",
