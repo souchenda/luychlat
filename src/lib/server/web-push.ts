@@ -15,7 +15,7 @@ function configured(): boolean {
   const pub = vapidPublicKey()
   const priv = process.env.VAPID_PRIVATE_KEY?.trim()
   if (!pub || !priv) return false
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT?.trim() || "https://luy.ibmserp.com", pub, priv)
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT?.trim() || "https://luychlat.com", pub, priv)
   return true
 }
 

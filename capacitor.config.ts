@@ -12,9 +12,9 @@ const config: CapacitorConfig = {
   // Shown only when the live site can't be reached at launch (offline).
   webDir: "capacitor-www",
   server: {
-    url: "https://luy.ibmserp.com",
+    url: "https://luychlat.com",
     // Pages of the live site stay inside the app; any other link (Telegram, bank sites, OAuth) opens in the browser.
-    allowNavigation: ["luy.ibmserp.com"],
+    allowNavigation: ["luychlat.com", "www.luychlat.com", "luy.ibmserp.com"],
     errorPath: "index.html",
   },
   android: {

@@ -4,7 +4,7 @@
 //   HEADER  left:  emerald ៛ tile + "លុយឆ្លាត" over "LuyChlat" (spread to the same width)
 //           right: the poster's category pill ("គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", "ពិធីបុណ្យប្រពៃណីជាតិខ្មែរ"…)
 //   FOOTER  📱 កត់ត្រាចំណូលចំណាយ រហ័សជាមួយ អេប លុយឆ្លាត
-//           ✈️ សហគមន៍ លុយឆ្លាត   •   🌐 luy.ibmserp.com
+//           ✈️ សហគមន៍ លុយឆ្លាត   •   🌐 luychlat.com
 //           app-first (no bot username), left-aligned, never a button or pill on the right
 //
 // Every poster generator (daily tip, festivals, future market posters) draws
@@ -275,5 +275,5 @@ export function drawFooter(ctx: SKRSContext2D) {
   x += ctx.measureText("•").width + 26
   drawIcon(ctx, "globe", x + 14, line2 - 10)
   ctx.fillStyle = "#d1fae5"
-  ctx.fillText("luy.ibmserp.com", x + 44, line2)
+  ctx.fillText("luychlat.com", x + 44, line2)
 }

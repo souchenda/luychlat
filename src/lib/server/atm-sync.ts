@@ -34,7 +34,7 @@ async function fetchOverpass(): Promise<OsmElement[] | null> {
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "LuyChlat/1.0 (https://luy.ibmserp.com)" },
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "LuyChlat/1.0 (https://luychlat.com)" },
         body: new URLSearchParams({ data: QUERY }),
         signal: AbortSignal.timeout(120_000),
       })
