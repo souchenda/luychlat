@@ -13,6 +13,7 @@ import { transcriptionProvider } from "@/lib/server/transcribe"
 import { parseSetGold, plausible } from "@/lib/local-gold"
 import { logEvent } from "@/lib/server/events"
 import { sendDigestNow } from "@/lib/server/weekly-digest"
+import { sendCfoNow } from "@/lib/server/cfo-brief"
 import { handleInvoiceCallback, handleInvoiceMessage, isInvoiceCallback } from "@/lib/server/invoice-bot"
 import { asksWhoOwesMe, awaitingAiQuestion, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
@@ -538,6 +539,9 @@ export async function POST(request: Request) {
   } else if (/^\/(digest|weekly)(@\w+)?$/i.test(command)) {
     // This week's digest now — only for chats that switched the digest on (it shows money totals).
     await sendDigestNow(chatId, lang)
+  } else if (/^\/(cfo|healthcheck)(@\w+)?$/i.test(command)) {
+    // 🩺 The business owner's weekly health brief, now (private chat, numbers on).
+    await sendCfoNow(chatId)
   } else if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
     // Calculators: for every chat, linked or not.
     const ctx = await botContext(chatId)

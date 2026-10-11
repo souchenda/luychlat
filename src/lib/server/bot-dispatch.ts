@@ -11,6 +11,7 @@ import { watchdogTick } from "@/lib/server/health-watchdog"
 import { marketScheduleTick, syncMarket } from "@/lib/server/market-sync"
 import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
+import { cfoBriefTick } from "@/lib/server/cfo-brief"
 import { readFileSync } from "fs"
 import { festivalTick, holyDayTick } from "@/lib/server/holy-days"
 import { posterTick } from "@/lib/server/festival-poster"
@@ -84,6 +85,7 @@ export async function dispatchOnce() {
     await communityRoutineTick()
     await dailyTipTick()
     await weeklyDigestTick()
+    await cfoBriefTick()
     await holyDayTick()
     await festivalTick()
     await posterTick()
