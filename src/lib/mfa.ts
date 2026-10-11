@@ -50,7 +50,7 @@ export async function startEnrollment(): Promise<{ factorId: string; qr: string;
   for (const f of factors?.all ?? []) {
     if (f.factor_type === "totp" && f.status !== "verified") await supabase.auth.mfa.unenroll({ factorId: f.id })
   }
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: `LuyChlat ${new Date().toISOString().slice(0, 10)}`, issuer: "LuyChlat" })
+  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: `App Luy Chlat ${new Date().toISOString().slice(0, 10)}`, issuer: "App Luy Chlat" })
   if (error || !data) throw error ?? new Error("enroll failed")
   return { factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret }
 }

@@ -16,13 +16,13 @@ export const GUIDE: GuideSection[] = [
         q: { km: "តើបង្កើតកាបូប ឬគណនីធនាគារដោយរបៀបណា?", en: "How do I add a wallet or bank account?" },
         a: [
           { km: "ចូល «កាបូប» › «បន្ថែមកាបូប»។ ជ្រើសធនាគារ (ABA, ACLEDA, Wing…) ឬ «សាច់ប្រាក់សុទ្ធ» ដាក់ឈ្មោះ និងជ្រើសរូបិយប័ណ្ណ USD ឬ KHR។", en: "Go to Wallets › Add wallet. Pick the bank (ABA, ACLEDA, Wing…) or Cash, give it a name and choose USD or KHR." },
-          { km: "«សមតុល្យដើម» គឺលុយដែលអ្នកមាននៅថ្ងៃនេះ — មើលក្នុងកម្មវិធីធនាគារ ឬរាប់សាច់ប្រាក់។", en: "The opening balance is what you have today: check your bank app, or count your cash." },
+          { km: "«សមតុល្យដើម» គឺលុយដែលអ្នកមាននៅថ្ងៃនេះ — មើលក្នុងអេបធនាគារ ឬរាប់សាច់ប្រាក់។", en: "The opening balance is what you have today: check your bank app, or count your cash." },
         ],
       },
       {
-        q: { km: "សមតុល្យក្នុងកម្មវិធីខុសពីធនាគារ ធ្វើដូចម្តេច?", en: "My balance in the app doesn't match the bank. What do I do?" },
+        q: { km: "សមតុល្យក្នុងអេបខុសពីធនាគារ ធ្វើដូចម្តេច?", en: "My balance in the app doesn't match the bank. What do I do?" },
         a: [
-          { km: "បើកកាបូប › «កែតម្រូវ» ហើយបញ្ចូលសមតុល្យពិត។ កម្មវិធីនឹងកត់ «កែតម្រូវសមតុល្យ» មួយសម្រាប់ចំនួនខុសគ្នា ដើម្បីកុំឱ្យប្រវត្តិបាត់។", en: "Open the wallet › Adjust and enter the real balance. The app records one \"balance adjustment\" for the difference, so your history stays intact." },
+          { km: "បើកកាបូប › «កែតម្រូវ» ហើយបញ្ចូលសមតុល្យពិត។ អេបនឹងកត់ «កែតម្រូវសមតុល្យ» មួយសម្រាប់ចំនួនខុសគ្នា ដើម្បីកុំឱ្យប្រវត្តិបាត់។", en: "Open the wallet › Adjust and enter the real balance. The app records one \"balance adjustment\" for the difference, so your history stays intact." },
           { km: "ចង់ដឹងថាខុសត្រង់ណា? ប្រើ «ផ្ទៀងផ្ទាត់ជាមួយរបាយការណ៍ធនាគារ» (PRO) — មើលផ្នែកទី ៣។", en: "Want to know where the difference comes from? Use \"Reconcile with bank statement\" (PRO); see section 3." },
         ],
       },
@@ -73,8 +73,8 @@ export const GUIDE: GuideSection[] = [
       {
         q: { km: "តាមដានតុងទីន (ក្បាល) យ៉ាងដូចម្តេច?", en: "How do I track a tontine?" },
         a: [
-          { km: "«បំណុល» › ផ្ទាំង «តុងទីន» › «បន្ថែមក្បាលតុងទីន»។ បញ្ចូលចំណែកក្នុងមួយវេន ចំនួនវេន និងថ្ងៃវេនទី ១ — កម្មវិធីគណនាថ្ងៃត្រូវបង់ឱ្យ ហើយរំលឹកនៅទំព័រដើម។", en: "Debts › Tontine tab › Add a tontine. Enter the share per round, the number of rounds and the round 1 date; the app works out the due dates and reminds you on Home." },
-          { km: "«បង់លុយក្បាលនេះ» កត់ចំណាយ «បង់តុងទីន» ពីកាបូប។ កូនរស់ (មិនទាន់ដេញបាន) ជាធម្មតាបង់តិចជាងចំណែក — បញ្ចូលចំនួនពិត ហើយកម្មវិធីគណនាប្រាក់សន្សំបានពីការដេញ។", en: "\"Pay this round\" records a \"Tontine payment\" expense from your wallet. Live members (not won yet) usually pay less than the share: enter the real amount and the app counts what you saved through bids." },
+          { km: "«បំណុល» › ផ្ទាំង «តុងទីន» › «បន្ថែមក្បាលតុងទីន»។ បញ្ចូលចំណែកក្នុងមួយវេន ចំនួនវេន និងថ្ងៃវេនទី ១ — អេបគណនាថ្ងៃត្រូវបង់ឱ្យ ហើយរំលឹកនៅទំព័រដើម។", en: "Debts › Tontine tab › Add a tontine. Enter the share per round, the number of rounds and the round 1 date; the app works out the due dates and reminds you on Home." },
+          { km: "«បង់លុយក្បាលនេះ» កត់ចំណាយ «បង់តុងទីន» ពីកាបូប។ កូនរស់ (មិនទាន់ដេញបាន) ជាធម្មតាបង់តិចជាងចំណែក — បញ្ចូលចំនួនពិត ហើយអេបគណនាប្រាក់សន្សំបានពីការដេញ។", en: "\"Pay this round\" records a \"Tontine payment\" expense from your wallet. Live members (not won yet) usually pay less than the share: enter the real amount and the app counts what you saved through bids." },
           { km: "«ដេញបាន» កត់ចំណូល «ដេញតុងទីនបាន» ចូលកាបូប ហើយអ្នកក្លាយជា កូនងាប់ — ត្រូវបង់ពេញរហូតដល់វេនចុងក្រោយ។ ចុចវេនដែលបានបង់ ដើម្បីលុបវិញបើកត់ខុស។", en: "\"Won the bid\" records the pot as \"Tontine pot won\" income and makes you a dead member, who pays the full share until the last round. Tap a paid round to undo a mistake." },
         ],
       },
@@ -87,13 +87,13 @@ export const GUIDE: GuideSection[] = [
       {
         q: { km: "មុខងារនេះធ្វើអ្វី?", en: "What does it do?" },
         a: [
-          { km: "វាប្រៀបធៀបកាបូបក្នុងកម្មវិធី ជាមួយរបាយការណ៍ពីធនាគារ ហើយបង្ហាញ៖ ប្រតិបត្តិការដែលភ្លេចកត់ កម្រៃធនាគារ ការកត់ស្ទួន និងចំនួនខុសគ្នា។ ជាមុខងារ PRO។", en: "It compares your wallet with the bank's statement and shows forgotten transactions, bank fees, double entries and the remaining difference. It's a PRO feature." },
+          { km: "វាប្រៀបធៀបកាបូបក្នុងអេប ជាមួយរបាយការណ៍ពីធនាគារ ហើយបង្ហាញ៖ ប្រតិបត្តិការដែលភ្លេចកត់ កម្រៃធនាគារ ការកត់ស្ទួន និងចំនួនខុសគ្នា។ ជាមុខងារ PRO។", en: "It compares your wallet with the bank's statement and shows forgotten transactions, bank fees, double entries and the remaining difference. It's a PRO feature." },
         ],
       },
       {
         q: { km: "ទាញយករបាយការណ៍ពី ABA ឬ ACLEDA យ៉ាងដូចម្តេច?", en: "How do I get a statement from ABA or ACLEDA?" },
         a: [
-          { km: "ក្នុងកម្មវិធីធនាគារ បើកគណនី ហើយរកមើល «Statement» ឬ «Account history/ប្រវត្តិ»។ ជ្រើសរយៈពេល (ឧ. ខែមុន) ហើយទាញយកជា CSV ឬ Excel។ ឈ្មោះម៉ឺនុយអាចខុសគ្នាតាមកំណែកម្មវិធី។", en: "In your bank app, open the account and look for \"Statement\" or \"Account history\". Choose a period (e.g. last month) and download it as CSV or Excel. Menu names can differ between app versions." },
+          { km: "ក្នុងអេបធនាគារ បើកគណនី ហើយរកមើល «Statement» ឬ «Account history/ប្រវត្តិ»។ ជ្រើសរយៈពេល (ឧ. ខែមុន) ហើយទាញយកជា CSV ឬ Excel។ ឈ្មោះម៉ឺនុយអាចខុសគ្នាតាមកំណែអេប។", en: "In your bank app, open the account and look for \"Statement\" or \"Account history\". Choose a period (e.g. last month) and download it as CSV or Excel. Menu names can differ between app versions." },
           { km: "បើធនាគារផ្តល់តែ PDF ឥឡូវនេះមិនទាន់គាំទ្រទេ — នឹងមានឆាប់ៗ។", en: "If your bank only offers PDF, that isn't supported yet; it's coming soon." },
         ],
       },
@@ -102,7 +102,7 @@ export const GUIDE: GuideSection[] = [
         a: [
           { km: "១. បើកកាបូប › «ផ្ទៀងផ្ទាត់ជាមួយរបាយការណ៍ធនាគារ» › ជ្រើសឯកសារ។", en: "1. Open the wallet › Reconcile with bank statement › choose the file." },
           { km: "២. ពិនិត្យជួរឈរ (កាលបរិច្ឆេទ ទឹកប្រាក់ សមតុល្យ…)។ បើឃើញ «សមតុល្យរត់ត្រូវគ្នា ✓» មានន័យថាអានបានត្រឹមត្រូវ។", en: "2. Check the columns (date, amount, balance…). \"Running balance adds up ✓\" means it was read correctly." },
-          { km: "៣. ចុច «ប្រៀបធៀប»៖ «ត្រូវគ្នា» = មានទាំងពីរ, «ពិនិត្យ» = ប្រហែលដូចគ្នា (សូមបញ្ជាក់), «ខ្វះក្នុងកម្មវិធី» = ចុច «បន្ថែម», «មានតែក្នុងកម្មវិធី» = អាចកត់ស្ទួន។", en: "3. Tap Compare. Matched = in both; Review = probably the same (please confirm); Missing = tap Add; App only = maybe a double entry." },
+          { km: "៣. ចុច «ប្រៀបធៀប»៖ «ត្រូវគ្នា» = មានទាំងពីរ, «ពិនិត្យ» = ប្រហែលដូចគ្នា (សូមបញ្ជាក់), «ខ្វះក្នុងអេប» = ចុច «បន្ថែម», «មានតែក្នុងអេប» = អាចកត់ស្ទួន។", en: "3. Tap Compare. Matched = in both; Review = probably the same (please confirm); Missing = tap Add; App only = maybe a double entry." },
           { km: "៤. ចុច «រក្សាទុកការផ្ទៀងផ្ទាត់»។ បើនៅខុសគ្នា អាចបន្ថែមការកែតម្រូវមួយ ដើម្បីឱ្យស្មើធនាគារ។", en: "4. Tap Save reconciliation. If a difference remains, you can add one adjustment so the wallet equals the bank." },
         ],
       },
@@ -131,9 +131,9 @@ export const GUIDE: GuideSection[] = [
         ],
       },
       {
-        q: { km: "Offline, LuyChlat AI និង key ផ្ទាល់ខ្លួន ខុសគ្នាយ៉ាងណា?", en: "Offline, LuyChlat AI or my own key?" },
+        q: { km: "Offline, អេប លុយឆ្លាត AI និង key ផ្ទាល់ខ្លួន ខុសគ្នាយ៉ាងណា?", en: "Offline, App Luy Chlat AI or my own key?" },
         a: [
-          { km: "Offline (ឥតគិតថ្លៃ)៖ គន្លឹះដែលគណនាលើទូរស័ព្ទ។ LuyChlat AI (PRO)៖ AI ពេញលេញ មិនចាំបាច់ key រហូតដល់ ១០០ សំណួរ/ខែ។ Key ផ្ទាល់ខ្លួន៖ អ្នកអាចដាក់ Claude ឬ OpenAI key របស់អ្នក (រក្សាទុកលើទូរស័ព្ទនេះ)។", en: "Offline (free): tips calculated on your phone. LuyChlat AI (PRO): the full AI with no key needed, up to 100 questions a month. Your own key: paste your Claude or OpenAI key (stored on this device)." },
+          { km: "Offline (ឥតគិតថ្លៃ)៖ គន្លឹះដែលគណនាលើទូរស័ព្ទ។ អេប លុយឆ្លាត AI (PRO)៖ AI ពេញលេញ មិនចាំបាច់ key រហូតដល់ ១០០ សំណួរ/ខែ។ Key ផ្ទាល់ខ្លួន៖ អ្នកអាចដាក់ Claude ឬ OpenAI key របស់អ្នក (រក្សាទុកលើទូរស័ព្ទនេះ)។", en: "Offline (free): tips calculated on your phone. App Luy Chlat AI (PRO): the full AI with no key needed, up to 100 questions a month. Your own key: paste your Claude or OpenAI key (stored on this device)." },
           { km: "ប្តូរនៅ «ការកំណត់» › «AI»។", en: "Switch in Settings › AI." },
         ],
       },
@@ -163,7 +163,7 @@ export const GUIDE: GuideSection[] = [
         q: { km: "Free និង PRO ខុសគ្នាអ្វីខ្លះ?", en: "What's the difference between Free and PRO?" },
         a: [
           { km: "Free៖ កាបូប ២, សមាជិកគ្រួសារ ១, គន្លឹះ AI Offline។", en: "Free: 2 wallets, 1 family member, offline AI tips." },
-          { km: "PRO ($2.99/ខែ ឬ $24.99/ឆ្នាំ)៖ កាបូប និងសមាជិកគ្មានកំណត់, LuyChlat AI ១០០ សំណួរ/ខែ, ផ្ទៀងផ្ទាត់ធនាគារ, នាំចេញ Excel/PDF, ពិន្ទុហិរញ្ញវត្ថុ។", en: "PRO ($2.99/month or $24.99/year): unlimited wallets and members, LuyChlat AI with 100 questions a month, bank reconciliation, Excel/PDF export, and the financial health score." },
+          { km: "PRO ($2.99/ខែ ឬ $24.99/ឆ្នាំ)៖ កាបូប និងសមាជិកគ្មានកំណត់, អេប លុយឆ្លាត AI ១០០ សំណួរ/ខែ, ផ្ទៀងផ្ទាត់ធនាគារ, នាំចេញ Excel/PDF, ពិន្ទុហិរញ្ញវត្ថុ។", en: "PRO ($2.99/month or $24.99/year): unlimited wallets and members, App Luy Chlat AI with 100 questions a month, bank reconciliation, Excel/PDF export, and the financial health score." },
         ],
       },
       {

@@ -41,7 +41,7 @@ export function eodText(r: Report): string {
   const [y, m, d] = r.day.split("-")
   const feats = r.commits.filter((c) => c.kind === "feat").length
   const fixes = r.commits.filter((c) => c.kind === "fix").length
-  const lines = [`📋 LuyChlat · End of day ${d}/${m}/${y}`, ""]
+  const lines = [`📋 App Luy Chlat · End of day ${d}/${m}/${y}`, ""]
   if (r.commits.length === 0) lines.push("✅ Shipped: nothing deployed today.")
   else {
     lines.push(`✅ Shipped: ${r.commits.length} (${feats} features · ${fixes} fixes)`)

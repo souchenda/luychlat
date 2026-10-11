@@ -207,7 +207,7 @@ function layout(ctx: SKRSContext2D, data: ReceiptData, locale: Locale): number {
   }
 
   y += 70
-  write(W / 2, y, "LuyChlat · លុយឆ្លាត", { size: 22, color: "#94a3b8", align: "center" })
+  write(W / 2, y, "អេប លុយឆ្លាត", { size: 22, color: "#94a3b8", align: "center" })
   return y + 50
 }
 

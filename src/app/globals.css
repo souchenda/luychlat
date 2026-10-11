@@ -16,6 +16,23 @@
   /* Login hero: a soft light drifting across the emerald, and a gently floating mark. */
   --animate-aurora: aurora 14s ease-in-out infinite alternate;
   --animate-float: float 6s ease-in-out infinite;
+  /* Login: ambient orbs that breathe and drift (6–9s), and a light sweeping across the sign-in button. */
+  --animate-breathe: breathe 6s ease-in-out infinite;
+  --animate-drift: drift 9s ease-in-out infinite;
+  --animate-shimmer: shimmer 3.6s ease-in-out 1s infinite;
+  @keyframes breathe {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.85; }
+    50% { transform: translate3d(0, -12px, 0) scale(1.08); opacity: 1; }
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    33% { transform: translate3d(24px, -18px, 0) scale(1.06); }
+    66% { transform: translate3d(-18px, 14px, 0) scale(0.96); }
+  }
+  @keyframes shimmer {
+    0% { transform: translate3d(-120%, 0, 0) skewX(-12deg); }
+    45%, 100% { transform: translate3d(320%, 0, 0) skewX(-12deg); }
+  }
   /* Home greeting: the hand waves twice, once. */
   --animate-wave: wave 1.6s ease-in-out 0.4s 1 both;
   @keyframes wave {

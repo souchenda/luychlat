@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     if (r.workspace_id)
       await notifyOwner(
         { workspaceId: r.workspace_id },
-        `⚠️ មិនទាន់កត់ត្រា៖ ${formatMoney(t.amount, t.currency)} ពី ${t.payer} (FT ${t.reference})\nបង់ចូលគណនី ${t.toAccount} ដែលមិនមាននៅលើកាបូបណាមួយ — សូមបញ្ចូលលេខគណនីនេះទៅកាបូបក្នុងកម្មវិធី រួចផ្ញើម្ដងទៀត។`,
+        `⚠️ មិនទាន់កត់ត្រា៖ ${formatMoney(t.amount, t.currency)} ពី ${t.payer} (FT ${t.reference})\nបង់ចូលគណនី ${t.toAccount} ដែលមិនមាននៅលើកាបូបណាមួយ — សូមបញ្ចូលលេខគណនីនេះទៅកាបូបក្នុងអេប លុយឆ្លាត រួចផ្ញើម្ដងទៀត។`,
       )
   }
   const http: Record<string, number> = { ok: 201, duplicate: 200, unauthorized: 401, plan_required: 402, not_writable: 403, invalid: 422, no_wallet: 422 }

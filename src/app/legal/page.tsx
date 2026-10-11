@@ -45,7 +45,7 @@ const SECTIONS: Record<"km" | "en", Section[]> = {
     {
       title: "ការបង់ប្រាក់ PRO",
       points: [
-        "PRO បង់តាម KHQR។ អ្នកផ្ញើរូបវិក្កយបត្រទៅក្រុមជំនួយ ហើយយើងបើក PRO បន្ទាប់ពីពិនិត្យ។ កម្មវិធីមិនរក្សាទុកព័ត៌មានកាតធនាគាររបស់អ្នកទេ។",
+        "PRO បង់តាម KHQR។ អ្នកផ្ញើរូបវិក្កយបត្រទៅក្រុមជំនួយ ហើយយើងបើក PRO បន្ទាប់ពីពិនិត្យ។ អេបមិនរក្សាទុកព័ត៌មានកាតធនាគាររបស់អ្នកទេ។",
       ],
     },
     {
@@ -58,9 +58,9 @@ const SECTIONS: Record<"km" | "en", Section[]> = {
     {
       title: "លក្ខខណ្ឌប្រើប្រាស់",
       points: [
-        "លុយឆ្លាត ជាឧបករណ៍កត់ត្រា និងគណនា។ ការគណនា (ការប្រាក់ ហ្សាកាត់ ពិន្ទុឥណទាន…) គឺសម្រាប់ជាឯកសារយោងប៉ុណ្ណោះ។",
+        "អេប លុយឆ្លាត ជាឧបករណ៍កត់ត្រា និងគណនា។ ការគណនា (ការប្រាក់ ហ្សាកាត់ ពិន្ទុឥណទាន…) គឺសម្រាប់ជាឯកសារយោងប៉ុណ្ណោះ។",
         "អ្នកទទួលខុសត្រូវលើភាពត្រឹមត្រូវនៃទិន្នន័យដែលអ្នកបញ្ចូល និងការរក្សា PIN / ពាក្យសម្ងាត់របស់អ្នក។",
-        "កុំប្រើកម្មវិធីសម្រាប់សកម្មភាពខុសច្បាប់។ យើងអាចផ្អាកគណនីដែលរំលោភលក្ខខណ្ឌទាំងនេះ។",
+        "កុំប្រើអេបសម្រាប់សកម្មភាពខុសច្បាប់។ យើងអាចផ្អាកគណនីដែលរំលោភលក្ខខណ្ឌទាំងនេះ។",
       ],
     },
   ],
@@ -104,7 +104,7 @@ const SECTIONS: Record<"km" | "en", Section[]> = {
     {
       title: "Terms of use",
       points: [
-        "LuyChlat is a record-keeping and calculation tool. Its calculations (interest, Zakat, credit score…) are for reference only.",
+        "App Luy Chlat is a record-keeping and calculation tool. Its calculations (interest, Zakat, credit score…) are for reference only.",
         "You are responsible for the accuracy of what you enter and for keeping your PIN and password safe.",
         "Do not use the app for unlawful activity. We may suspend accounts that break these terms.",
       ],

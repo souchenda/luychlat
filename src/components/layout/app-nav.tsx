@@ -228,7 +228,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
         {pro ? (
           <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
             <CrownIcon className="size-3.5" aria-hidden />
-            LuyChlat {plan.tier}
+            App Luy Chlat {plan.tier}
           </p>
         ) : (
           <div className="flex items-center justify-between gap-2">
@@ -275,7 +275,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
 
       <div className="flex items-center gap-2 border-t px-5 py-3 text-[11px] text-muted-foreground">
         <BrandMark className="size-5 rounded-md text-[11px] shadow-none" />
-        លុយឆ្លាត · LuyChlat v{APP_VERSION}
+        អេប លុយឆ្លាត · App Luy Chlat v{APP_VERSION}
       </div>
     </div>
   )

@@ -99,7 +99,7 @@ export function tr(locale: Locale, key: MessageKey, params?: Record<string, stri
   return text
 }
 
-export const SIGNATURE = "\n\n— លុយឆ្លាត · LuyChlat"
+export const SIGNATURE = "\n\n— អេប លុយឆ្លាត"
 
 /**
  * The bytes of a file the bot received (e.g. a receipt photo in a pool group).

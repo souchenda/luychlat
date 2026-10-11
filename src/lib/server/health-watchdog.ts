@@ -188,7 +188,7 @@ export function alertText(issue: Issue, s: Sample): string {
     webhook: [`Telegram webhook: ${s.webhook_error ?? `${s.pending_updates} updates waiting`}.`, `Check that the site is reachable (Nginx and the luysmart container: \`docker compose ps\`); the bot re-activates on the next deploy.`],
   }
   const [what, action] = body[issue]
-  return `🚨 LuyChlat System Health Alert!\n- ${what}\n- Recommended action: ${action}`
+  return `🚨 App Luy Chlat System Health Alert!\n- ${what}\n- Recommended action: ${action}`
 }
 
 const RECOVERED: Record<Issue, (s: Sample) => string> = {
@@ -206,7 +206,7 @@ const ISSUE_NAME: Record<Issue, string> = { ram: "RAM", cpu: "CPU", disk: "disk"
 /** "✅ LuyChlat System Health Recovered: CPU usage returned to normal (12%). All services are healthy." */
 export function recoveredText(issue: Issue, s: Sample, stillOpen: Issue[]): string {
   const rest = stillOpen.length ? `Still being watched: ${stillOpen.map((i) => ISSUE_NAME[i]).join(", ")}.` : "All services are healthy."
-  return `✅ LuyChlat System Health Recovered: ${RECOVERED[issue](s)}. ${rest}`
+  return `✅ App Luy Chlat System Health Recovered: ${RECOVERED[issue](s)}. ${rest}`
 }
 
 async function sendToAdmins(text: string) {
@@ -298,7 +298,7 @@ type Summary = {
 export function summaryText(s: Summary): string {
   const healthy = (s.uptime_pct ?? 0) >= 99 && !s.issues.length
   return [
-    `📊 LuyChlat weekly health · ${healthy ? "✅ Healthy" : "⚠️ Needs a look"}`,
+    `📊 App Luy Chlat weekly health · ${healthy ? "✅ Healthy" : "⚠️ Needs a look"}`,
     `- Uptime: ${s.uptime_pct ?? 0}% (${s.samples} of ${s.slots} checks)`,
     `- Database response: avg ${s.avg_db_ms ?? "–"} ms, p95 ${s.p95_db_ms ?? "–"} ms`,
     `- Telegram API: avg ${s.avg_tg_ms ?? "–"} ms`,

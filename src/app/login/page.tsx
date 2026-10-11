@@ -15,6 +15,7 @@ import { useGuestSummary } from "@/components/settings/guest-import"
 import { LanguageToggle } from "@/components/layout/language-toggle"
 import { Separator } from "@/components/ui/separator"
 import { useHydrated } from "@/hooks/use-hydrated"
+import { misansKhmer } from "@/lib/fonts/misans-khmer"
 import { hasGuestData } from "@/lib/data/guest-import"
 import { useT } from "@/lib/i18n/use-t"
 import { authMethods, isSupabaseConfigured } from "@/lib/supabase/config"
@@ -77,15 +78,19 @@ export default function LoginPage() {
 
   return (
     <div className="relative isolate min-h-dvh overflow-hidden bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-      {/* A soft emerald mesh: a glow behind the logo, two fainter ones at the sides, drifting very slowly. */}
+      {/* Tech background: a faint dot matrix fading out downwards, and three emerald / cyan orbs that breathe
+          and drift (transform + opacity only, composited on the GPU; still with reduced motion). */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-48 left-1/2 size-[40rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(16,185,129,0.22),transparent)] dark:bg-[radial-gradient(closest-side,rgba(16,185,129,0.18),transparent)]" />
-        <div className="absolute -top-24 left-1/2 size-[24rem] animate-aurora rounded-full bg-[radial-gradient(closest-side,rgba(45,212,191,0.18),transparent)] motion-reduce:animate-none" />
-        <div className="absolute top-1/3 -left-40 size-[26rem] rounded-full bg-[radial-gradient(closest-side,rgba(52,211,153,0.10),transparent)]" />
-        <div className="absolute -right-40 bottom-0 size-[28rem] animate-aurora rounded-full bg-[radial-gradient(closest-side,rgba(20,184,166,0.10),transparent)] [animation-delay:-7s] motion-reduce:animate-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(15,23,42,0.13)_1px,transparent_1px)] [background-size:18px_18px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,#000_40%,transparent_100%)] dark:bg-[radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)]" />
+        <div className="absolute -top-48 left-1/2 -ml-[20rem] size-[40rem] animate-breathe rounded-full bg-[radial-gradient(closest-side,rgba(16,185,129,0.24),transparent)] will-change-transform motion-reduce:animate-none dark:bg-[radial-gradient(closest-side,rgba(16,185,129,0.18),transparent)]" />
+        <div className="absolute top-1/4 -left-40 size-[26rem] animate-drift rounded-full bg-[radial-gradient(closest-side,rgba(34,211,238,0.16),transparent)] will-change-transform motion-reduce:animate-none" />
+        <div className="absolute -right-40 bottom-8 size-[28rem] animate-drift rounded-full bg-[radial-gradient(closest-side,rgba(20,184,166,0.16),transparent)] will-change-transform [animation-delay:-4.5s] motion-reduce:animate-none" />
       </div>
 
-      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-3 pb-2">
+      <main
+        className={`${misansKhmer.variable} mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-3 pb-2`}
+        style={{ fontFamily: "var(--font-misans-khmer), var(--font-kantumruy), sans-serif" }}
+      >
         <div className="flex justify-end">
           <LanguageToggle />
         </div>
@@ -93,12 +98,12 @@ export default function LoginPage() {
         {/* Brand: logo, then title, then the card — each a beat after the last. */}
         <div className="mb-3 flex flex-col items-center text-center">
           <BrandMark className="size-16 rounded-[1.35rem] bg-linear-to-br from-emerald-500 to-teal-600 text-3xl text-white shadow-lg shadow-emerald-600/30 ring-1 ring-white/40 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none dark:ring-white/10" />
-          <h1 className="mt-3 text-2xl font-bold delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "លុយឆ្លាត"}</h1>
+          <h1 className="mt-3 text-2xl font-bold delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "អេប លុយឆ្លាត"}</h1>
           <p className="mt-0.5 text-sm text-neutral-500 delay-75 dark:text-neutral-400 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated && t("app.tagline")}</p>
         </div>
 
         {hydrated && (
-          <section className="rounded-3xl border border-emerald-500/15 bg-white/95 px-5 py-5 shadow-2xl shadow-emerald-950/5 backdrop-blur-md delay-150 dark:border-emerald-400/15 dark:bg-zinc-900/90 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+          <section className="rounded-3xl border border-white/60 bg-white/85 px-5 py-5 shadow-2xl shadow-emerald-500/10 backdrop-blur-2xl delay-150 dark:border-emerald-500/20 dark:bg-zinc-900/85 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
             <div className="flex flex-col gap-3">
               {/* Trust line at the top of the card. */}
               <p className="mx-auto flex max-w-full items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] px-3 py-1 text-center text-[11px] leading-snug font-medium text-emerald-800 dark:text-emerald-300">
@@ -167,7 +172,7 @@ export default function LoginPage() {
         {hydrated && (
           <ul className="mt-4 flex flex-wrap justify-center gap-2 delay-200 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
             {FEATURES.map(({ key, icon: Icon }) => (
-              <li key={key} className="flex items-center gap-1.5 rounded-full border border-neutral-200/80 bg-white/70 px-3 py-1 text-xs text-neutral-600 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300">
+              <li key={key} className="flex cursor-default items-center gap-1.5 rounded-full border border-neutral-200/80 bg-white/70 px-3 py-1 text-xs text-neutral-600 backdrop-blur-sm transition-all duration-200 select-none hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-white hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.97] motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300 dark:hover:bg-neutral-900">
                 <Icon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />
                 {t(key)}
               </li>

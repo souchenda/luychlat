@@ -77,7 +77,7 @@ async function exportLog(kind: "csv" | "xlsx", verify: Verify | undefined) {
   const XLSX = await import("xlsx")
   const sheet = XLSX.utils.aoa_to_sheet([COLUMNS, ...rows])
   sheet["!cols"] = [6, 26, 28, 38, 38, 22, 28, 38, 40, 30, 66, 66].map((wch) => ({ wch }))
-  const info = XLSX.utils.aoa_to_sheet([["LuyChlat admin audit log"], ["Exported (UTC)", new Date().toISOString()], ["Entries", rows.length], [chain]])
+  const info = XLSX.utils.aoa_to_sheet([["App Luy Chlat admin audit log"], ["Exported (UTC)", new Date().toISOString()], ["Entries", rows.length], [chain]])
   const book = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(book, sheet, "Audit log")
   XLSX.utils.book_append_sheet(book, info, "Integrity")

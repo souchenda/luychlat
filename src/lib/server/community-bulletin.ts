@@ -82,7 +82,7 @@ function ratesBlock(nbc: NonNullable<MarketLive["nbc"]>): string {
   return `<pre>${rows.join("\n")}</pre>`
 }
 
-const SIGNUP = "✨ ចុះឈ្មោះប្រើកម្មវិធីដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត! 👇👇"
+const SIGNUP = "✨ ចុះឈ្មោះប្រើអេប លុយឆ្លាត ដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត! 👇👇"
 
 /**
  * 09:30 daily market post — the channel's one market template (Telegram HTML), the

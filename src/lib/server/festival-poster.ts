@@ -175,7 +175,7 @@ export const FESTIVAL_POSTERS = {
     window: ["2026-10-10", "2026-10-12"] as const,
     /** Published on its own on the window's first day at this Cambodia time (founder, 08/10); /poster stays as the fallback. */
     autoAt: "07:00",
-    caption: "🪷 សូមអនុមោទនាពិធីបុណ្យភ្ជុំបិណ្ឌ\n\nសូមឧទ្ទិសកុសលផលបុណ្យជូនដល់បុព្វការីជន និងសូមជូនពរលោកអ្នកព្រមទាំងក្រុមគ្រួសារ ធ្វើដំណើរទៅស្រុកកំណើតដោយសុខសុវត្ថិភាព។\n\n— លុយឆ្លាត · LuyChlat",
+    caption: "🪷 សូមអនុមោទនាពិធីបុណ្យភ្ជុំបិណ្ឌ\n\nសូមឧទ្ទិសកុសលផលបុណ្យជូនដល់បុព្វការីជន និងសូមជូនពរលោកអ្នកព្រមទាំងក្រុមគ្រួសារ ធ្វើដំណើរទៅស្រុកកំណើតដោយសុខសុវត្ថិភាព។\n\n— អេប លុយឆ្លាត",
   },
 } as const
 export type FestivalPosterKey = keyof typeof FESTIVAL_POSTERS
@@ -311,7 +311,7 @@ export async function sendFestivalPoster(chatId: number, name: string | undefine
 }
 
 /** The single button under an automatically published poster. */
-export const POSTER_APP_BUTTON = "📱 បើកកម្មវិធី លុយឆ្លាត"
+export const POSTER_APP_BUTTON = "📱 បើកអេប លុយឆ្លាត"
 const POSTER_APP_URL = "https://app.luychlat.com"
 
 /** Until when (Cambodia time) a missed 07:00 slot is still made up — a holiday poster at night would be odd. */

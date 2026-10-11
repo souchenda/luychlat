@@ -8,7 +8,7 @@ const at = (iso: string) => Date.parse(iso)
 describe("07:00 morning message (Cambodia time, UTC+7)", () => {
   it("the push: title, the quote with the call to record, opens the app", () => {
     const p = morningPush()
-    assert.equal(p.title, "☀️ អរុណសួស្តីពី លុយឆ្លាត")
+    assert.equal(p.title, "☀️ អរុណសួស្តីពី អេប លុយឆ្លាត")
     assert.equal(p.body, `${MORNING_QUOTE} — ចុចដើម្បីកត់ត្រាចំណូល-ចំណាយថ្ងៃថ្មី!`)
     assert.equal(p.url, "https://app.luychlat.com")
   })

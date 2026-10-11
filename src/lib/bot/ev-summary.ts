@@ -64,7 +64,7 @@ export function publicChargeSummary(session: { amount: number; currency: "USD" |
   const homeKhr = homeCost(m.homeKwh, m.rate > 0 ? m.rate : DEFAULT_KWH_RATE)
   const homeUsd = Math.round((homeKhr / m.khrPerUsd) * 100) / 100
   if (!m.numbers) {
-    lines.push(`📊 ខែនេះ សាកនៅផ្ទះ៖ ${kwhText(m.homeKwh)} kWh`, "🔒 បើក «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» ក្នុងកម្មវិធី › ការកំណត់ › Telegram ដើម្បីមើលចំណាយសរុប និងសមតុល្យកាបូបនៅទីនេះ។")
+    lines.push(`📊 ខែនេះ សាកនៅផ្ទះ៖ ${kwhText(m.homeKwh)} kWh`, "🔒 បើក «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» ក្នុងអេប លុយឆ្លាត › ការកំណត់ › Telegram ដើម្បីមើលចំណាយសរុប និងសមតុល្យកាបូបនៅទីនេះ។")
     return lines.join("\n")
   }
   if (m.evBalance !== null) lines.push(`💳 សមតុល្យសល់ក្នុងកាបូបសាកឡាន៖ ${formatMoney(m.evBalance, "USD")}`)

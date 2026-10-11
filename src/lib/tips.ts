@@ -271,7 +271,7 @@ export const TIPS: Tip[] = [
     topic: "islamic",
     title: { km: "ហ្សាកាត់ ២,៥%", en: "Zakat at 2.5%" },
     body: {
-      km: "ហ្សាកាត់ = ២,៥% នៃទ្រព្យសុទ្ធដែលលើសនីសាប ហើយកាន់កាប់គ្រប់មួយឆ្នាំចន្ទគតិ (ហាវល៍)។ កម្មវិធីគណនាពីកាបូប និងមាសរបស់អ្នក។",
+      km: "ហ្សាកាត់ = ២,៥% នៃទ្រព្យសុទ្ធដែលលើសនីសាប ហើយកាន់កាប់គ្រប់មួយឆ្នាំចន្ទគតិ (ហាវល៍)។ អេបគណនាពីកាបូប និងមាសរបស់អ្នក។",
       en: "Zakat is 2.5% of net wealth above the Nisab, held for a full lunar year (hawl). The app works it out from your wallets and gold.",
     },
   },

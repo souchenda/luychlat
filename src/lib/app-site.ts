@@ -23,7 +23,7 @@ export type AboutInfo = {
 export const DEFAULT_ABOUT: AboutInfo = {
   developer: "iBMS",
   credits: "",
-  mission_km: "កម្មវិធីគ្រប់គ្រងហិរញ្ញវត្ថុ និងបំណុលឆ្លាតវៃ សម្រាប់ប្រជាជនកម្ពុជា។",
+  mission_km: "អេបគ្រប់គ្រងហិរញ្ញវត្ថុ និងបំណុលឆ្លាតវៃ សម្រាប់ប្រជាជនកម្ពុជា។",
   mission_en: "A smart money and debt manager made for the people of Cambodia.",
   website: SITE_URL,
   email: "",

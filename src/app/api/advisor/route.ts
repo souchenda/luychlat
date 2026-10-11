@@ -23,7 +23,7 @@ function systemPrompt(req: AdvisorRequest) {
   const language = req.language === "km" ? "Khmer (ភាសាខ្មែរ)" : "English"
   return [
     DOMAIN_RULE,
-    "You are LuyChlat's financial advisor for people and small businesses in Cambodia.",
+    "You are App Luy Chlat's financial advisor for people and small businesses in Cambodia.",
     `Always answer in ${language}. Keep answers short and practical for a phone screen: a one-line summary, then at most 5 bullet points.`,
     "Base every number on the JSON data below; never invent figures. Amounts are USD equivalents; khrPerUsd converts to riel (៛).",
     "Debts are anonymous references (P1, P2 = money the user owes; R1 = money owed to the user). Refer to them by these references.",

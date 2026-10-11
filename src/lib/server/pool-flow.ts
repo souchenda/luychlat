@@ -62,7 +62,7 @@ async function progressKeyboard(p: PoolSnapshot) {
     ...(p.khqr ? [[{ text: KHQR_BUTTON, callback_data: `pq:${p.id}` }]] : []),
     [{ text: "🔔 រំលឹកអ្នកមិនទាន់បង់", callback_data: `pr:${p.id}` }],
   ]
-  if (url && p.id) rows.push([{ text: "🏁 បិទ និងទូទាត់ (ក្នុងកម្មវិធី)", url: `${url}/pools/${p.id}` }])
+  if (url && p.id) rows.push([{ text: "🏁 បិទ និងទូទាត់ (ក្នុងអេប លុយឆ្លាត)", url: `${url}/pools/${p.id}` }])
   return { inline_keyboard: rows }
 }
 
@@ -211,7 +211,7 @@ export const isPoolFlowCallback = (data: string | undefined) => /^p[prq]:/.test(
 
 /** The button that shows the pool's KHQR to anyone in the group. */
 export const KHQR_BUTTON = "💳 ស្កេនបង់ប្រាក់ KHQR"
-const NO_KHQR = "⚠️ បេឡាមិនទាន់បានអាប់ឡូតរូបភាព KHQR នៅឡើយទេ។ សូមចូលទៅកាន់កម្មវិធីដើម្បីអាប់ឡូត KHQR ទទួលប្រាក់។"
+const NO_KHQR = "⚠️ បេឡាមិនទាន់បានអាប់ឡូតរូបភាព KHQR នៅឡើយទេ។ សូមចូលទៅកាន់អេប លុយឆ្លាត ដើម្បីអាប់ឡូត KHQR ទទួលប្រាក់។"
 const khqrShownAt = new Map<string, number>()
 
 type Callback = { id: string; data?: string; from?: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } }
@@ -335,7 +335,7 @@ export async function introducePool(chatId: number) {
   const p = await groupSnapshot(chatId)
   if (!p?.id || p.status !== "active") return
   if (p.khqr) await sendWithKhqr(chatId, p, khqrCaption(p))
-  else await tg("sendMessage", { chat_id: chatId, text: `${khqrCaption(p).split("\n👉")[0]}\n\n📲 សូមបង់ទៅអ្នកកាន់បេឡា ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ — លុយឆ្លាតនឹងកត់ត្រាជូន។ 🙏` })
+  else await tg("sendMessage", { chat_id: chatId, text: `${khqrCaption(p).split("\n👉")[0]}\n\n📲 សូមបង់ទៅអ្នកកាន់បេឡា ហើយផ្ញើរូបវិក្កយបត្រក្នុងក្រុមនេះ — អេប លុយឆ្លាត នឹងកត់ត្រាជូន។ 🙏` })
   await postProgress(chatId, p).catch(() => null)
 }
 

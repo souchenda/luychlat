@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Amiri, Amiri_Quran, Geist_Mono, Kantumruy_Pro } from "next/font/google"
 
 import { Providers } from "@/components/providers"
+import { SITE_URL } from "@/lib/app-site"
 import { appFontOn, misansKhmer } from "@/lib/fonts/misans-khmer"
 
 import "./globals.css"
@@ -35,10 +36,18 @@ const amiriQuran = Amiri_Quran({
 })
 
 export const metadata: Metadata = {
-  title: "លុយឆ្លាត · LuyChlat",
-  description: "គ្រប់គ្រងលុយ និងបំណុល ផ្ទាល់ខ្លួន និងអាជីវកម្ម",
-  applicationName: "LuyChlat",
-  appleWebApp: { capable: true, title: "លុយឆ្លាត", statusBarStyle: "black-translucent" },
+  title: "អេប លុយឆ្លាត | App Luy Chlat",
+  description: "អេប លុយឆ្លាត — គ្រប់គ្រងលុយ និងបំណុល ផ្ទាល់ខ្លួន និងអាជីវកម្ម · App Luy Chlat — money and debts, personal and business",
+  openGraph: {
+    title: "អេប លុយឆ្លាត | App Luy Chlat",
+    description: "គ្រប់គ្រងលុយ និងបំណុល ផ្ទាល់ខ្លួន និងអាជីវកម្ម · Money and debts, personal and business",
+    siteName: "App Luy Chlat",
+    url: SITE_URL,
+    locale: "km_KH",
+    type: "website",
+  },
+  applicationName: "App Luy Chlat",
+  appleWebApp: { capable: true, title: "អេប លុយឆ្លាត", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
   // Older iOS Safari only reads the apple-prefixed tag for standalone mode.
   other: { "apple-mobile-web-app-capable": "yes" },

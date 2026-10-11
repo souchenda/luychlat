@@ -1,10 +1,10 @@
 // Server only: the shared kit for every LuyChlat poster (1080 × 1080 PNG) —
 // fonts, Khmer text layout and THE STANDARD FRAME (founder, 2026-10-07):
 //
-//   HEADER  left:  emerald ៛ tile + "លុយឆ្លាត" over "LuyChlat" (spread to the same width)
+//   HEADER  left:  emerald ៛ tile + "អេប លុយឆ្លាត" over "App Luy Chlat" (spread to the same width)
 //           right: the poster's category pill ("គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", "ពិធីបុណ្យប្រពៃណីជាតិខ្មែរ"…)
-//   FOOTER  📱 កត់ត្រាចំណូលចំណាយ រហ័សជាមួយ អេប លុយឆ្លាត
-//           ✈️ សហគមន៍ លុយឆ្លាត   •   🌐 luychlat.com
+//   FOOTER  📱 កត់ត្រាចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត
+//           ✈️ សហគមន៍ អេប លុយឆ្លាត   •   🌐 luychlat.com
 //           app-first (no bot username), left-aligned, never a button or pill on the right
 //
 // Every poster generator (daily tip, festivals, future market posters) draws
@@ -225,11 +225,11 @@ export function drawHeader(ctx: SKRSContext2D, pill: { text: string; icon?: Icon
   ctx.textBaseline = "alphabetic"
   const nameX = PAD + mark + 18
   ctx.font = `700 34px ${FAMILIES}`
-  ctx.fillText("លុយឆ្លាត", nameX, top + 32)
-  const nameW = ctx.measureText("លុយឆ្លាត").width
+  ctx.fillText("អេប លុយឆ្លាត", nameX, top + 32)
+  const nameW = ctx.measureText("អេប លុយឆ្លាត").width
   ctx.font = `500 20px ${FAMILIES}`
   ctx.fillStyle = "rgba(209,250,229,0.78)"
-  drawSpread(ctx, "LuyChlat", nameX, top + 58, nameW)
+  drawSpread(ctx, "App Luy Chlat", nameX, top + 58, nameW)
 
   // The pill, right-aligned on the logo's row.
   ctx.font = `600 26px ${FAMILIES}`
@@ -262,12 +262,12 @@ export function drawFooter(ctx: SKRSContext2D) {
   drawIcon(ctx, "phone", PAD + 14, line1 - 10)
   ctx.font = `600 27px ${FAMILIES}`
   ctx.fillStyle = "#ffffff"
-  ctx.fillText("កត់ត្រាចំណូលចំណាយ រហ័សជាមួយ អេប លុយឆ្លាត", PAD + 44, line1)
+  ctx.fillText("កត់ត្រាចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត", PAD + 44, line1)
   const line2 = footerTop + 106
   ctx.font = `500 26px ${FAMILIES}`
   drawIcon(ctx, "plane", PAD + 14, line2 - 10)
   ctx.fillStyle = "#d1fae5"
-  const community = "សហគមន៍ លុយឆ្លាត"
+  const community = "សហគមន៍ អេប លុយឆ្លាត"
   ctx.fillText(community, PAD + 44, line2)
   let x = PAD + 44 + ctx.measureText(community).width + 26
   ctx.fillStyle = "rgba(209,250,229,0.55)"

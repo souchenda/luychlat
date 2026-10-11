@@ -85,7 +85,7 @@ export function carReportText(r: CarReport, monthLabel: string, petrol: number |
   const lines = [`🚗 ចំណាយលើឡាន · ${monthLabel}`, "", home]
   lines.push(km > 0 ? `🛣️ ចម្ងាយបើកបរខែនេះ៖ ${km1(km)} គីឡូម៉ែត្រ` : "🛣️ ចម្ងាយ៖ វាយ «គីឡូឡាន 15200» (លេខកុងទ័រ) ឬ «ចម្ងាយ 120 គម» ដើម្បីគណនាថ្លៃដើមក្នុងមួយគីឡូម៉ែត្រ")
   if (!r.numbers) {
-    lines.push("", "🔒 ចំនួនទឹកប្រាក់ និងសមតុល្យមិនបង្ហាញក្នុង Telegram ទេ — បើក «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» ក្នុងកម្មវិធី › ការកំណត់ › Telegram ដើម្បីមើលនៅទីនេះ។")
+    lines.push("", "🔒 ចំនួនទឹកប្រាក់ និងសមតុល្យមិនបង្ហាញក្នុង Telegram ទេ — បើក «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» ក្នុងអេប លុយឆ្លាត › ការកំណត់ › Telegram ដើម្បីមើលនៅទីនេះ។")
     return lines.join("\n")
   }
   lines.push(`🔌 សាកនៅក្រៅ៖ ${formatMoney(Number(r.public_usd ?? 0), "USD")}`, `🛣️ ថ្លៃផ្លូវល្បឿនលឿន៖ ${formatMoney(Number(r.toll_usd ?? 0), "USD")}`)
@@ -116,6 +116,6 @@ export function walletBalancesText(wallets: WalletBalance[]): string {
     "",
     ...(wallets.length ? wallets.map((w) => `${mark(w)} ${w.name} — ${formatMoney(Number(w.balance), w.currency)}`) : ["មិនទាន់មានកាបូបទេ។"]),
     "",
-    "🔒 បង្ហាញព្រោះអ្នកបានបើក «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» — បិទវាវិញក្នុងកម្មវិធី › ការកំណត់ › Telegram។",
+    "🔒 បង្ហាញព្រោះអ្នកបានបើក «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» — បិទវាវិញក្នុងអេប លុយឆ្លាត › ការកំណត់ › Telegram។",
   ].join("\n")
 }

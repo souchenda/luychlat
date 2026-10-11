@@ -174,7 +174,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
   }
 
   const field =
-    "h-11 rounded-xl border-neutral-200 bg-neutral-50/50 text-sm shadow-none transition-colors focus-visible:border-emerald-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-neutral-800 dark:bg-neutral-900/50 dark:focus-visible:border-emerald-400 dark:focus-visible:bg-neutral-900"
+    "h-11 rounded-xl border border-zinc-200 bg-neutral-50/50 text-sm shadow-none transition-all duration-200 focus-visible:border-emerald-500 focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-emerald-500/15 dark:border-neutral-800 dark:bg-neutral-900/50 dark:focus-visible:border-emerald-400 dark:focus-visible:bg-neutral-900"
   const label = "text-sm font-medium text-neutral-700 dark:text-neutral-300"
   // Leading icon inside a field; turns emerald with the focus ring.
   const leadIcon =
@@ -313,9 +313,12 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       {notice && <p className="rounded-xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">{notice}</p>}
       <Button
         type="submit"
-        className="h-11 w-full rounded-xl bg-emerald-600 text-sm font-medium text-white shadow-md shadow-emerald-600/20 transition-all duration-200 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/30 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
+        className="relative h-11 w-full overflow-hidden rounded-xl bg-emerald-600 text-sm font-medium text-white shadow-md shadow-emerald-600/20 transition-[transform,box-shadow,background-color] duration-200 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/30 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
         disabled={disabled || busy}
       >
+        {!(disabled || busy) && (
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-1/3 animate-shimmer bg-linear-to-r from-transparent via-white/30 to-transparent will-change-transform motion-reduce:hidden" />
+        )}
         {busy && <Loader2Icon className="animate-spin" />}
         {mode === "forgot" ? t("login.sendReset") : mode === "signin" ? t("login.signIn") : t("login.signUp")}
       </Button>

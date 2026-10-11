@@ -14,7 +14,7 @@ export const APP_URL = "https://app.luychlat.com"
 /** The phone notification. */
 export function morningPush(): { title: string; body: string; url: string; tag: string } {
   return {
-    title: "☀️ អរុណសួស្តីពី លុយឆ្លាត",
+    title: "☀️ អរុណសួស្តីពី អេប លុយឆ្លាត",
     body: `${MORNING_QUOTE} — ចុចដើម្បីកត់ត្រាចំណូល-ចំណាយថ្ងៃថ្មី!`,
     url: APP_URL,
     // One per day on the phone: a second send replaces it instead of piling up.

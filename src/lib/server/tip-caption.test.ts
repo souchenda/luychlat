@@ -7,7 +7,7 @@ import { tipCaption } from "./tip-bot"
 describe("daily tip caption & the channel's buttons (poster branding)", () => {
   const caption = tipCaption({ title: "សន្សំ <៣០%> & ចំណាយ", body: "កុំចំណាយលើស ៧០% នៃចំណូល។" })
   it("ends with the poster's line and the signature", () => {
-    assert.ok(caption.endsWith("📱 កត់ត្រាចំណូលចំណាយ រហ័សជាមួយ អេប លុយឆ្លាត\n\n— លុយឆ្លាត · LuyChlat"))
+    assert.ok(caption.endsWith("📱 កត់ត្រាចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត\n\n— អេប លុយឆ្លាត"))
     assert.doesNotMatch(caption, /@luychlat_bot/)
   })
   it("stays valid Telegram HTML (text escaped) and under the 1,024-character caption limit", () => {
@@ -16,6 +16,6 @@ describe("daily tip caption & the channel's buttons (poster branding)", () => {
   })
   it("the buttons", () => {
     assert.equal(CHANNEL_BOT_BUTTON, "🤖 កត់ត្រាតាម Telegram ↗")
-    assert.equal(CHANNEL_APP_BUTTON, "📱 បើកកម្មវិធី ↗")
+    assert.equal(CHANNEL_APP_BUTTON, "📱 បើកអេប លុយឆ្លាត ↗")
   })
 })

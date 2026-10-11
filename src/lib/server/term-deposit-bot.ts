@@ -45,7 +45,7 @@ export async function handleTermDepositPhoto(chatId: number, fileId: string) {
   const { data, error } = await botDb().rpc("bot_term_deposit", { p_key: botKey(), p_chat_id: chatId, p_dep: depositPayload(d) })
   if (error) {
     logEvent("error", "deposits", `Deposit import failed: ${error.message}`, { fold: true })
-    return sendText(chatId, "🏦 រក្សាទុកប្រាក់បញ្ញើមិនបានទេ ពេលនេះ។ សូមព្យាយាមម្ដងទៀត ឬបញ្ចូលដោយដៃក្នុងកម្មវិធី។", manual)
+    return sendText(chatId, "🏦 រក្សាទុកប្រាក់បញ្ញើមិនបានទេ ពេលនេះ។ សូមព្យាយាមម្ដងទៀត ឬបញ្ចូលដោយដៃក្នុងអេប លុយឆ្លាត។", manual)
   }
   const r = data as { status: "ok" | "duplicate" | "not_linked"; workspace?: string }
   if (r.status === "not_linked") return sendText(chatId, "🏦 សូមភ្ជាប់គណនីជាមុនសិន ដោយប្រើ /start។")

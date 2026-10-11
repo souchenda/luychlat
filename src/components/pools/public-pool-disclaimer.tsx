@@ -2,23 +2,23 @@ import { ShieldAlertIcon } from "lucide-react"
 
 const POINTS: { km: string; en: string }[] = [
   {
-    km: "LuyChlat ជាកម្មវិធីសម្រាប់កត់ត្រា និងបង្ហាញបញ្ជីចំហតែប៉ុណ្ណោះ។",
-    en: "LuyChlat is only a recording tool that shows an open ledger.",
+    km: "អេប លុយឆ្លាត ជាឧបករណ៍សម្រាប់កត់ត្រា និងបង្ហាញបញ្ជីចំហតែប៉ុណ្ណោះ។",
+    en: "App Luy Chlat is only a recording tool that shows an open ledger.",
   },
   {
-    km: "LuyChlat មិនមែនជាស្ថាប័នហិរញ្ញវត្ថុ ធនាគារ ឬអង្គការសប្បុរសធម៌ទេ។",
-    en: "LuyChlat is not a financial institution, a bank or a charity.",
+    km: "អេប លុយឆ្លាត មិនមែនជាស្ថាប័នហិរញ្ញវត្ថុ ធនាគារ ឬអង្គការសប្បុរសធម៌ទេ។",
+    en: "App Luy Chlat is not a financial institution, a bank or a charity.",
   },
   {
-    km: "LuyChlat មិនដែលប៉ះពាល់ កាន់កាប់ រក្សាទុកជំនួស ឬគ្រប់គ្រងប្រាក់ណាមួយឡើយ។",
-    en: "LuyChlat never touches, holds in escrow, keeps or manages any money.",
+    km: "អេប លុយឆ្លាត មិនដែលប៉ះពាល់ កាន់កាប់ រក្សាទុកជំនួស ឬគ្រប់គ្រងប្រាក់ណាមួយឡើយ។",
+    en: "App Luy Chlat never touches, holds in escrow, keeps or manages any money.",
   },
   {
     km: "ការបរិច្ចាគតាម KHQR គឺជាការផ្ទេរប្រាក់ផ្ទាល់ពីអ្នកបរិច្ចាគទៅអ្នកកាន់បេឡា។",
     en: "Donations by KHQR go directly from the donor to the pool keeper.",
   },
   {
-    km: "សូមផ្ទៀងផ្ទាត់កម្មវិធី និងអត្តសញ្ញាណអ្នកកាន់បេឡាដោយខ្លួនឯង មុនពេលផ្ញើប្រាក់។",
+    km: "សូមផ្ទៀងផ្ទាត់ពិធី និងអត្តសញ្ញាណអ្នកកាន់បេឡាដោយខ្លួនឯង មុនពេលផ្ញើប្រាក់។",
     en: "Check the campaign and the keeper's identity yourself before you send money.",
   },
 ]

@@ -14,7 +14,7 @@ import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
 
 // Live numbers on every visit; never cached, never indexed.
 export const dynamic = "force-dynamic"
-export const metadata: Metadata = { title: "បេឡារួម · LuyChlat", robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: "បេឡារួម · អេប លុយឆ្លាត", robots: { index: false, follow: false } }
 
 const KIND: Record<PoolKind, string> = {
   FESTIVAL: "បុណ្យប្រពៃណី · Festival",
@@ -207,7 +207,7 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
         ទំព័រនេះអានបានតែប៉ុណ្ណោះ · Read-only, updates by itself
         <br />
         <Link href="/" className="font-medium text-primary">
-          LuyChlat · លុយឆ្លាត
+          អេប លុយឆ្លាត · App Luy Chlat
         </Link>
       </footer>
     </main>
