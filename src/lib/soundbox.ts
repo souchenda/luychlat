@@ -57,29 +57,84 @@ export function khmerNumber(n: number): string {
 
 const cents = (amount: number) => Math.round((amount - Math.floor(amount)) * 100)
 
+const ZH_DIGITS = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
+const ZH_PLACES = ["千", "百", "十", ""]
+
+/** 0–9999 in Chinese (no leading 零): 5500 → 五千五百, 1005 → 一千零五, 2000 → 两千. */
+function zhSection(n: number): string {
+  const digits = String(n).padStart(4, "0").split("").map(Number)
+  let out = ""
+  let gap = false
+  digits.forEach((d, i) => {
+    if (d === 0) {
+      gap = out !== ""
+      return
+    }
+    if (gap) out += "零"
+    gap = false
+    // 两 before 千 / 百 when it leads (两千, 两百), as spoken.
+    out += (d === 2 && out === "" && i < 2 ? "两" : ZH_DIGITS[d]) + ZH_PLACES[i]
+  })
+  return out
+}
+
+/**
+ * A whole number in Chinese, grouped in 万 / 亿 as spoken: 50,000 → 五万, 125,500 → 十二万五千五百,
+ * 1,500,000 → 一百五十万, 20,000 → 两万, 10,050 → 一万零五十, 15 → 十五.
+ */
+export function chineseNumber(n: number): string {
+  n = Math.floor(Math.abs(n))
+  if (n === 0) return ZH_DIGITS[0]
+  const groups: [number, string][] = [
+    [Math.floor(n / 100_000_000), "亿"],
+    [Math.floor((n % 100_000_000) / 10_000), "万"],
+    [n % 10_000, ""],
+  ]
+  let out = ""
+  let pendingZero = false
+  for (const [value, unit] of groups) {
+    if (value === 0) {
+      pendingZero = out !== ""
+      continue
+    }
+    // A gap inside the number (一万零五十), or a group below a thousand after a higher one.
+    if (out !== "" && (pendingZero || value < 1000)) out += "零"
+    pendingZero = false
+    out += (value === 2 && unit ? "两" : zhSection(value)) + unit
+  }
+  // 一十… is said 十… (十五, 十二万).
+  return out.startsWith("一十") ? out.slice(1) : out
+}
+
+/** Dollars in Chinese as a decimal: 5.5 → 五点五, 5.05 → 五点零五, 12 → 十二, 0.75 → 零点七五. */
+function chineseDecimal(amount: number): string {
+  const [whole, frac = ""] = amount.toFixed(2).replace(/0+$/, "").replace(/\.$/, "").split(".")
+  return frac ? `${chineseNumber(Number(whole))}点${frac.split("").map((d) => ZH_DIGITS[Number(d)]).join("")}` : chineseNumber(Number(whole))
+}
+
 /**
  * The amount as spoken: «ប្រាំម៉ឺនរៀល» / «ប្រាំដុល្លារ ហាសិបសេន»; «50,000 riel» / «5 dollars and 50 cents»;
- * «50,000 瑞尔» / «5 美元 50 美分» (English and Chinese voices read the digits themselves).
+ * «五万瑞尔» / «五点五美元» (Chinese numerals, as Chinese payment speakers say them).
  */
 export function spokenAmount(amount: number, currency: "KHR" | "USD", lang: VoiceLang): string {
   if (currency === "KHR") {
     const riel = Math.round(amount)
     if (lang === "km") return `${khmerNumber(riel)}រៀល`
-    return lang === "zh" ? `${riel.toLocaleString("en-US")} 瑞尔` : `${riel.toLocaleString("en-US")} riel`
+    return lang === "zh" ? `${chineseNumber(riel)}瑞尔` : `${riel.toLocaleString("en-US")} riel`
   }
   const dollars = Math.floor(amount)
   const c = cents(amount)
   if (lang === "km") return [dollars ? `${khmerNumber(dollars)}ដុល្លារ` : null, c ? `${khmerNumber(c)}សេន` : null].filter(Boolean).join(" ") || "សូន្យដុល្លារ"
-  if (lang === "zh") return [dollars ? `${dollars.toLocaleString("en-US")} 美元` : null, c ? `${c} 美分` : null].filter(Boolean).join(" ") || "0 美元"
+  if (lang === "zh") return `${chineseDecimal(amount)}美元`
   const d = dollars ? `${dollars.toLocaleString("en-US")} dollar${dollars === 1 ? "" : "s"}` : null
   const s = c ? `${c} cent${c === 1 ? "" : "s"}` : null
   return [d, s].filter(Boolean).join(" and ") || "0 dollars"
 }
 
-/** What is said in one language: «ទទួលបានប្រាក់ ប្រាំម៉ឺនរៀល» / «Received 50,000 riel» / «收款 50,000 瑞尔». */
+/** What is said in one language: «ទទួលបានប្រាក់ ប្រាំម៉ឺនរៀល» / «Received 50,000 riel» / «收款五万瑞尔». */
 export function announcementText(e: Pick<SoundboxEvent, "amount" | "currency">, lang: VoiceLang): string {
   const amount = spokenAmount(e.amount, e.currency, lang)
-  return lang === "km" ? `ទទួលបានប្រាក់ ${amount}` : lang === "zh" ? `收款 ${amount}` : `Received ${amount}`
+  return lang === "km" ? `ទទួលបានប្រាក់ ${amount}` : lang === "zh" ? `收款${amount}` : `Received ${amount}`
 }
 
 /** The voice language codes asked of the device. */

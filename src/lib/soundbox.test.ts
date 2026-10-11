@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announcementText, audioPlan, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals } from "./soundbox"
+import { announcementText, audioPlan, chineseNumber, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -43,10 +43,27 @@ describe("SoundBox — what is said, in three languages", () => {
     assert.equal(announcementText({ amount: 1, currency: "USD" }, "en"), "Received 1 dollar")
     assert.equal(announcementText({ amount: 0.01, currency: "USD" }, "en"), "Received 1 cent")
   })
-  it("Chinese: riel and dollars", () => {
-    assert.equal(announcementText({ amount: 50_000, currency: "KHR" }, "zh"), "收款 50,000 瑞尔")
-    assert.equal(announcementText({ amount: 20, currency: "USD" }, "zh"), "收款 20 美元")
-    assert.equal(announcementText({ amount: 5.5, currency: "USD" }, "zh"), "收款 5 美元 50 美分")
+  it("Chinese: riel and dollars in Chinese numerals", () => {
+    assert.equal(announcementText({ amount: 50_000, currency: "KHR" }, "zh"), "收款五万瑞尔")
+    assert.equal(announcementText({ amount: 5.5, currency: "USD" }, "zh"), "收款五点五美元")
+    assert.equal(announcementText({ amount: 20, currency: "USD" }, "zh"), "收款二十美元")
+    assert.equal(spokenAmount(5.05, "USD", "zh"), "五点零五美元")
+    assert.equal(spokenAmount(0.75, "USD", "zh"), "零点七五美元")
+    assert.equal(spokenAmount(12.5, "USD", "zh"), "十二点五美元")
+  })
+  it("Chinese numbers (万 / 亿, 零 for gaps, 两 as spoken)", () => {
+    assert.equal(chineseNumber(10_000), "一万")
+    assert.equal(chineseNumber(20_000), "两万")
+    assert.equal(chineseNumber(100_000), "十万")
+    assert.equal(chineseNumber(125_500), "十二万五千五百")
+    assert.equal(chineseNumber(1_500_000), "一百五十万")
+    assert.equal(chineseNumber(10_050), "一万零五十")
+    assert.equal(chineseNumber(1_005), "一千零五")
+    assert.equal(chineseNumber(2_000), "两千")
+    assert.equal(chineseNumber(15), "十五")
+    assert.equal(chineseNumber(100_000_000), "一亿")
+    assert.equal(chineseNumber(100_020_000), "一亿零两万")
+    assert.equal(chineseNumber(0), "零")
   })
   it("on screen", () => {
     assert.equal(shownAmount(50_000, "KHR"), "+50,000 ៛")
