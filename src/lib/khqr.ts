@@ -57,3 +57,30 @@ export function khqrInfo(payload: string): KhqrInfo {
     amount: Number.isFinite(amount) && amount > 0 ? amount : null,
   }
 }
+
+export type KhqrBank = "ABA" | "ACLEDA" | "WING" | "CANADIA" | "SATHAPANA" | "OTHER"
+
+// Bakong account IDs end in the first four letters of the bank's SWIFT code ("…@aclb"); the
+// acquirer is also named in the account fields ("ACLEDA Bank Plc.", "Wing Bank").
+const BANK_SIGNS: [KhqrBank, RegExp][] = [
+  ["ABA", /@abaa\b|\bABA\b|Advanced Bank of Asia/i],
+  ["ACLEDA", /@aclb\b|ACLEDA/i],
+  ["WING", /@wing\b|\bWing\b/i],
+  ["CANADIA", /@cadi\b|Canadia/i],
+  ["SATHAPANA", /@sbpl\b|Sathapana/i],
+]
+
+/**
+ * The bank behind a KHQR, read from its account fields (tags 26–51: the Bakong ID and the
+ * acquirer's name) — never from the merchant's own name, which may mention any bank. OTHER when
+ * it doesn't say.
+ */
+export function khqrBank(payload: string): KhqrBank {
+  const fields = parseEmv(payload)
+  if (!fields) return "OTHER"
+  const text = [...fields]
+    .filter(([id]) => Number(id) >= 26 && Number(id) <= 51)
+    .map(([, v]) => [...(parseEmv(v) ?? new Map([["", v]])).values()].join(" "))
+    .join(" ")
+  return BANK_SIGNS.find(([, re]) => re.test(text))?.[0] ?? "OTHER"
+}

@@ -1,8 +1,8 @@
 "use client"
 
 import { useMoney } from "@/lib/use-money"
-import { CheckIcon, DownloadIcon, Loader2Icon, PlusIcon, QrCodeIcon, RotateCcwIcon, ScrollTextIcon, Share2Icon, Trash2Icon, XIcon } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { CheckIcon, DownloadIcon, Loader2Icon, PlusIcon, RotateCcwIcon, ScrollTextIcon, Share2Icon, Trash2Icon, XIcon } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
@@ -20,7 +20,7 @@ import { itemsTotal, type Invoice, type InvoiceStatus } from "@/lib/invoice"
 import { fetchReceipt, InvoiceLimitError, useInvoiceMutations, useInvoiceQuota, useInvoices } from "@/lib/invoices"
 import { parseAmount, roundMoney } from "@/lib/money"
 import { showUpgrade } from "@/lib/plan"
-import { useMyKhqr } from "@/lib/profile"
+import { KhqrList } from "@/components/invoices/khqr-list"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 
@@ -314,47 +314,6 @@ function InvoiceSheet({ invoice, workspaceId, onClose }: { invoice: Invoice; wor
   )
 }
 
-/** The user's KHQR for receipts: shown, or a button to add it (read from a screenshot of the bank app's QR). */
-function KhqrCard() {
-  const t = useT()
-  const khqr = useMyKhqr()
-  const fileRef = useRef<HTMLInputElement>(null)
-  const pick = async (file: File | undefined) => {
-    if (!file) return
-    try {
-      const saved = await khqr.save.mutateAsync(file)
-      if (saved?.payload) toast.success(t("invoices.khqrSaved"))
-      else toast.error(t("invoices.khqrUnreadable"))
-    } catch {
-      toast.error(t("common.error"))
-    } finally {
-      if (fileRef.current) fileRef.current.value = ""
-    }
-  }
-  const ok = Boolean(khqr.payload)
-  return (
-    <Card className={cn("flex-row items-center gap-3 px-4 py-3", !ok && "border-dashed")}>
-      {khqr.url ? (
-        // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
-        <img src={khqr.url} alt="KHQR" className="size-12 shrink-0 rounded-lg border bg-white object-contain" />
-      ) : (
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <QrCodeIcon className="size-5" />
-        </span>
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{t("invoices.khqrTitle")}</p>
-        <p className="text-xs text-muted-foreground">{ok ? t("invoices.khqrOn") : khqr.path ? t("invoices.khqrUnreadable") : t("invoices.khqrHint")}</p>
-      </div>
-      <Button size="sm" variant={ok ? "ghost" : "default"} onClick={() => fileRef.current?.click()} disabled={khqr.save.isPending}>
-        {khqr.save.isPending ? <Loader2Icon className="animate-spin" /> : null}
-        {ok || khqr.path ? t("invoices.khqrChange") : t("invoices.khqrAdd")}
-      </Button>
-      <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={(e) => void pick(e.target.files?.[0])} aria-label={t("invoices.khqrAdd")} />
-    </Card>
-  )
-}
-
 export default function InvoicesPage() {
   const t = useT()
   const money = useMoney()
@@ -387,7 +346,7 @@ export default function InvoicesPage() {
         <p className="text-xs text-muted-foreground">{t("invoices.quota", { used: Math.min(quota.used, quota.limit), limit: quota.limit })}</p>
       )}
 
-      <KhqrCard />
+      {ws && <KhqrList workspaceId={ws} editable={editable} />}
 
       {invoices.isLoading ? (
         <Skeleton className="h-40 w-full rounded-xl" />

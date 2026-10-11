@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { useActiveWorkspace } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
-import { useMyKhqr } from "@/lib/profile"
+import { codeLabel, selectedCode } from "@/lib/khqr-codes"
+import { useWorkspaceKhqrs } from "@/lib/khqr-codes-data"
 import { keepScreenAwake, receiveEvent, shownAmount, SOUNDBOX_MODES, todayTotals, type SoundboxEvent, type SoundboxMode } from "@/lib/soundbox"
 import { announce, unlockAudio } from "@/lib/soundbox-audio"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -58,7 +59,11 @@ export default function SoundboxPage() {
   const t = useT()
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id
-  const khqr = useMyKhqr().payload
+  const codes = useWorkspaceKhqrs(ws).data ?? []
+  const [chosen, setChosen] = useState<string | null>(null)
+  // The default on load; a tap switches at once (for the customer's bank or currency).
+  const current = selectedCode(codes, chosen)
+  const khqr = current?.khqr_payload ?? null
   const [qr, setQr] = useState<string | null>(null)
   const [active, setActive] = useState(false)
   const [soundOn, setSoundOn] = useState(() => (typeof window === "undefined" ? true : pref("soundbox.sound", "on") === "on"))
@@ -198,8 +203,28 @@ export default function SoundboxPage() {
         </div>
       </Card>
 
-      {/* The workspace's KHQR, large, for the customer to scan. */}
+      {/* The workspace's KHQR, large, for the customer to scan — switch bank / currency with one tap. */}
       <Card className="items-center gap-3 px-4 py-5">
+        {codes.length > 1 && (
+          <div className="flex w-full gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label={t("khqr.title")}>
+            {codes.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                role="tab"
+                aria-selected={current?.id === c.id}
+                onClick={() => setChosen(c.id)}
+                className={cn(
+                  "shrink-0 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                  current?.id === c.id ? "border-primary bg-primary text-primary-foreground" : "bg-background text-foreground",
+                )}
+              >
+                {codeLabel(c)}
+              </button>
+            ))}
+          </div>
+        )}
+        {current && <p className="text-center text-base font-semibold">{current.merchant_name ?? codeLabel(current)}</p>}
         {qr ? (
           // eslint-disable-next-line @next/next/no-img-element -- generated data URL
           <img src={qr} alt="KHQR" className="aspect-square w-full max-w-xs rounded-xl bg-white p-2" />
