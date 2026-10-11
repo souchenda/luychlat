@@ -3,6 +3,9 @@
 // here: the bill is read, saved as a monthly bill with its statement and a 2-day
 // reminder, and the user gets the details with [💳 ស្កេនបង់ប្រាក់] (the KHQR printed on
 // the bill, redrawn sharp) and [✅ បានបង់រួច] (the bill reminders' own "paid").
+import { SITE_URL } from "@/lib/app-site"
+import { phnomPenhToday } from "@/lib/server/market-sync"
+import { billsOverviewText, type OverviewBill } from "@/lib/bot/bills-overview"
 import QRCode from "qrcode"
 
 import type { EacNotice } from "@/lib/eac"
@@ -153,6 +156,28 @@ export async function handleEacNotice(chatId: number, n: EacNotice, ctx: Context
  * number, or the one EDC / water / internet bill of that amount that is due — the bill is marked
  * «បង់រួច» for this cycle, and the user is told in one line. Never guessed (bot_bill_settle).
  */
+/** /bills: the chat's workspace's bills and deposit maturities, with the app's bills page one tap away. */
+export async function sendBillsOverview(chatId: number) {
+  const { data, error } = await botDb().rpc("bot_bills_overview", { p_key: botKey(), p_chat_id: chatId })
+  const r = data as { status: string; workspace?: string; bills?: OverviewBill[] } | null
+  if (error || !r) {
+    logEvent("error", "bills", `Bills overview failed: ${error?.message ?? "no answer"}`, { fold: true })
+    return sendText(chatId, "សូមអភ័យទោស មិនអាចបង្ហាញវិក្កយបត្របានទេ ពេលនេះ។")
+  }
+  if (r.status !== "ok") return sendText(chatId, "🧾 សូមភ្ជាប់គណនីជាមុនសិន ដោយប្រើ /start។")
+  const bills = (r.bills ?? []).map((b) => ({ ...b, amount: Number(b.amount) }))
+  return sendText(chatId, billsOverviewText(bills, phnomPenhToday().day, r.workspace ?? null), {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "📱 បើកទំព័រវិក្កយបត្រ", url: `${SITE_URL}/bills` },
+          { text: "➕ បន្ថែមវិក្កយបត្រ", url: `${SITE_URL}/bills?add=1` },
+        ],
+      ],
+    },
+  })
+}
+
 export async function settleBillFromPayment(chatId: number, txId: string | null | undefined, customer: string | null | undefined, party: string | null | undefined) {
   if (!txId || !(customer || party)) return
   const { data, error } = await botDb().rpc("bot_bill_settle", { p_key: botKey(), p_chat_id: chatId, p_tx_id: txId, p_customer: customer ?? null, p_party: party ?? null })

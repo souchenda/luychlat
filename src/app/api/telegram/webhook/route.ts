@@ -29,7 +29,7 @@ import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { handlePosterCallback, isPosterCallback, sendFestivalPoster } from "@/lib/server/festival-poster"
 import { handleGroupSlip, handleGroupSlipCallback, isGroupSlipCallback } from "@/lib/server/biz-slip-bot"
-import { handleBillKhqrCallback, handleEacNotice, isBillKhqrCallback } from "@/lib/server/bill-bot"
+import { handleBillKhqrCallback, handleEacNotice, isBillKhqrCallback, sendBillsOverview } from "@/lib/server/bill-bot"
 import { parseEacNotice } from "@/lib/eac"
 import { handlePoolFlowCallback, handlePoolSlip, handlePoolSpendText, isPoolFlowCallback } from "@/lib/server/pool-flow"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
@@ -501,6 +501,11 @@ export async function POST(request: Request) {
   } else if (command === "/menuclose") {
     const ctx = await botContext(chatId)
     await sendText(chatId, tr(ctx?.linked ? contextLocale(ctx) : lang, "bot.menuClosed"), KEYBOARD_OFF)
+  } else if (/^\/bills?(@\w+)?$/i.test(command) || /^វិក្កយបត្រ$/.test(text.trim())) {
+    // /bills: the workspace's bills and deposit maturities.
+    const ctx = await botContext(chatId)
+    if (!ctx?.linked) await sendText(chatId, tr(contextLocale(ctx), "bot.notLinked"))
+    else await sendBillsOverview(chatId)
   } else if (/^\/voice(@\w+)?$/i.test(command)) {
     // «🔔 សំឡេង Voice Telegram»: each KHQR sale also as a spoken Khmer voice note (/voice on | off, or toggle).
     const want = /^(on|បើក)$/i.test(payload ?? "") ? true : /^(off|បិទ)$/i.test(payload ?? "") ? false : null

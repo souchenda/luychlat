@@ -125,7 +125,11 @@ export default function BillsPage() {
   const scope = scopeOf(workspace?.type)
   const bills = useBills(ws)
   const categories = useCategories(ws).data ?? []
-  const [sheet, setSheet] = useState<{ open: boolean; bill: Bill | null }>({ open: false, bill: null })
+  // «➕ បន្ថែមវិក្កយបត្រ» from the bot opens /bills?add=1 with the new-bill sheet.
+  const [sheet, setSheet] = useState<{ open: boolean; bill: Bill | null }>(() => ({
+    open: typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add") === "1",
+    bill: null,
+  }))
   const [paying, setPaying] = useState<{ bill: Bill; due: string } | null>(null)
   const nssfMembers = (useNssfMembers().data ?? []).filter((m) => m.is_active).length
   const { save, unmarkPaid } = useBillMutations(ws)

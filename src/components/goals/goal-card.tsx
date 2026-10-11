@@ -34,7 +34,7 @@ export function GoalCard({
     <>
       {/* A deposit at a bank: the bank's logo; a personal goal: its emoji. */}
       {goalShowsBank(goal.icon, goal.name, providerForName) ? (
-        <WalletAvatar icon={goal.icon} name={goal.name} className="size-11 rounded-2xl" />
+        <WalletAvatar icon={goal.icon} name={goal.name} className="size-11 rounded-full" />
       ) : (
         <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-2xl" aria-hidden>
           {goalEmoji(goal.icon)}

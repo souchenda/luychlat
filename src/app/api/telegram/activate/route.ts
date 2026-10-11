@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       { command: "start", description: "ភ្ជាប់គណនី / ចាប់ផ្តើម · Connect / start" },
       { command: "rate", description: "អត្រាប្តូរប្រាក់ និងមាស · Exchange rate & gold" },
       { command: "fuel", description: "តម្លៃប្រេងឥន្ធនៈ · Fuel prices" },
+      { command: "bills", description: "🧾 មើលវិក្កយបត្រ & ការរំលឹក · Bills & reminders" },
       { command: "atm", description: "🏧 ទូ ATM ជិតខ្ញុំ · Nearest ATM" },
       { command: "voice", description: "🔔 សំឡេង Voice លក់ KHQR (បើក/បិទ) · Sale voice notes" },
       { command: "pool", description: "បេឡារួម · Shared pool" },
