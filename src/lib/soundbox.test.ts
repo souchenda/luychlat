@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announcementText, audioPlan, chineseNumber, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals } from "./soundbox"
+import { announcementText, audioPlan, chineseNumber, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -156,5 +156,22 @@ describe("SoundBox — screen wake lock", () => {
     await tick()
     assert.deepEqual(g.log, [])
     stop()
+  })
+})
+
+describe("SoundBox — Khmer from recorded clips (no Khmer voice on iPhones)", () => {
+  it("the clips spell the same words as the Khmer text", () => {
+    assert.deepEqual(khmerClipSequence(20_000, "KHR"), ["received", "2", "meun", "riel"])
+    assert.deepEqual(khmerClipSequence(50_000, "KHR"), ["received", "5", "meun", "riel"])
+    assert.deepEqual(khmerClipSequence(125_500, "KHR"), ["received", "1", "saen", "2", "meun", "5", "poan", "5", "roy", "riel"])
+    assert.deepEqual(khmerClipSequence(1_500_000, "KHR"), ["received", "1", "lean", "5", "saen", "riel"])
+    assert.deepEqual(khmerClipSequence(5.5, "USD"), ["received", "5", "dollar", "50", "cent"])
+    assert.deepEqual(khmerClipSequence(12, "USD"), ["received", "10", "2", "dollar"])
+    assert.deepEqual(khmerClipSequence(0.75, "USD"), ["received", "70", "5", "cent"])
+  })
+  it("every clip named is one of the 27 recorded files", () => {
+    assert.equal(KHMER_CLIPS.length, 27)
+    for (const amount of [1, 9, 10, 19, 99, 100, 999, 1_000, 9_999, 10_000, 99_999, 100_000, 999_999, 1_000_000, 12_345_678])
+      for (const clip of khmerClipSequence(amount, "KHR")) assert.ok((KHMER_CLIPS as readonly string[]).includes(clip), `${amount}: ${clip}`)
   })
 })

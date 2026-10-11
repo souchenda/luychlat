@@ -57,6 +57,53 @@ export function khmerNumber(n: number): string {
 
 const cents = (amount: number) => Math.round((amount - Math.floor(amount)) * 100)
 
+/**
+ * The pre-recorded Khmer clips (public/audio/soundbox/khmer/<name>.mp3) — iPhones ship no Khmer
+ * voice, so Khmer is spoken by joining these instead of speech synthesis.
+ */
+export const KHMER_CLIPS = [
+  "received",
+  ..."123456789".split(""),
+  ...["10", "20", "30", "40", "50", "60", "70", "80", "90"],
+  "roy",
+  "poan",
+  "meun",
+  "saen",
+  "lean",
+  "riel",
+  "dollar",
+  "cent",
+] as const
+export type KhmerClip = (typeof KHMER_CLIPS)[number]
+
+const CLIP_UNITS: [number, KhmerClip][] = [
+  [100_000, "saen"],
+  [10_000, "meun"],
+  [1_000, "poan"],
+  [100, "roy"],
+]
+
+/** A whole number as clips, the same counting as khmerNumber: 20,000 → [2, meun], 125 → [1, roy, 20, 5]. */
+export function khmerNumberClips(n: number): KhmerClip[] {
+  n = Math.floor(Math.abs(n))
+  if (n === 0) return []
+  if (n >= 1_000_000) return [...khmerNumberClips(Math.floor(n / 1_000_000)), "lean", ...khmerNumberClips(n % 1_000_000)]
+  for (const [size, clip] of CLIP_UNITS) if (n >= size) return [String(Math.floor(n / size)) as KhmerClip, clip, ...khmerNumberClips(n % size)]
+  if (n >= 10) return [String(Math.floor(n / 10) * 10) as KhmerClip, ...(n % 10 ? [String(n % 10) as KhmerClip] : [])]
+  return [String(n) as KhmerClip]
+}
+
+/**
+ * «ទទួលបានប្រាក់ … រៀល / ដុល្លារ … សេន» as the clips to play in order:
+ * 20,000 ៛ → [received, 2, meun, riel]; $5.50 → [received, 5, dollar, 50, cent].
+ */
+export function khmerClipSequence(amount: number, currency: "KHR" | "USD"): KhmerClip[] {
+  if (currency === "KHR") return ["received", ...khmerNumberClips(Math.round(amount)), "riel"]
+  const dollars = Math.floor(amount)
+  const c = cents(amount)
+  return ["received", ...(dollars ? [...khmerNumberClips(dollars), "dollar" as const] : []), ...(c ? [...khmerNumberClips(c), "cent" as const] : [])]
+}
+
 const ZH_DIGITS = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
 const ZH_PLACES = ["千", "百", "十", ""]
 
