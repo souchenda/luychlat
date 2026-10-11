@@ -19,6 +19,8 @@ function when(today: string, due: string): string {
   return d < 0 ? `ហួស ${-d} ថ្ងៃ` : d === 0 ? "ថ្ងៃនេះ" : d === 1 ? "ស្អែក" : `នៅសល់ ${d} ថ្ងៃ`
 }
 
+export const NOTHING_DUE = "ពុំមានវិក្កយបត្រដែលត្រូវបង់នៅឡើយទេ 🎉"
+
 export function billsOverviewText(bills: OverviewBill[], today: string, workspace: string | null): string {
   const deposits = bills.filter((b) => b.kind === "DEPOSIT")
   const payable = bills.filter((b) => b.kind !== "DEPOSIT")
@@ -26,15 +28,16 @@ export function billsOverviewText(bills: OverviewBill[], today: string, workspac
   const overdue = payable.filter((b) => days(today, b.due) < 0 && !paidNow(b, today))
   const soon = payable.filter((b) => days(today, b.due) >= 0 && days(today, b.due) <= 7)
   const later = payable.filter((b) => days(today, b.due) > 7)
-  const out = [`🧾 វិក្កយបត្រ និងការរំលឹក${workspace ? ` · ${workspace}` : ""}`]
+  const out = [`🧾 វិក្កយបត្រ និងការរំលឹក${workspace ? ` · ${workspace}` : ""}`, "", "🔔 វិក្កយបត្រប្រចាំខែដែលត្រូវបង់"]
+  if (!payable.length) out.push(NOTHING_DUE)
   if (!bills.length) {
-    out.push("", "មិនទាន់មានវិក្កយបត្រទេ។ ចុច «➕ បន្ថែមវិក្កយបត្រ» ដើម្បីកំណត់ការរំលឹក។")
+    out.push("", "ចុច «➕ បន្ថែមវិក្កយបត្រ» ដើម្បីកំណត់ការរំលឹក។")
     return out.join("\n")
   }
   if (overdue.length) out.push("", "🔴 ហួសកំណត់", ...overdue.map(line))
   if (soon.length) out.push("", "🟠 ក្នុង ៧ ថ្ងៃខាងមុខ", ...soon.map(line))
   if (later.length) out.push("", "🗓️ ក្រោយនេះ", ...later.map(line))
   if (deposits.length)
-    out.push("", "💰 ប្រាក់បញ្ញើដល់កាលកំណត់", ...deposits.map((b) => `• ${b.title} — ${money(b.amount, b.currency)} · ${ddmm(b.due)} (${when(today, b.due)})`))
+    out.push("", "💰 បញ្ញើមានកាលកំណត់ (Fixed Deposit)", ...deposits.map((b) => `• ${b.title} — ${money(b.amount, b.currency)} · ${ddmm(b.due)} (${when(today, b.due)})`))
   return out.join("\n")
 }

@@ -3,6 +3,7 @@ import { createHash } from "crypto"
 import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 
+import BOT_COMMANDS from "@/lib/bot-commands.json"
 import { guardRequest } from "@/lib/server/guard"
 import { botKey, botToken, tg, webhookSecret } from "@/lib/server/telegram-bot"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
@@ -43,23 +44,6 @@ export async function POST(request: Request) {
     allowed_updates: ["message", "callback_query", "my_chat_member"],
     drop_pending_updates: true,
   })
-  await tg("setMyCommands", {
-    commands: [
-      { command: "start", description: "ភ្ជាប់គណនី / ចាប់ផ្តើម · Connect / start" },
-      { command: "rate", description: "អត្រាប្តូរប្រាក់ និងមាស · Exchange rate & gold" },
-      { command: "fuel", description: "តម្លៃប្រេងឥន្ធនៈ · Fuel prices" },
-      { command: "bills", description: "🧾 មើលវិក្កយបត្រ & ការរំលឹក · Bills & reminders" },
-      { command: "atm", description: "🏧 ទូ ATM ជិតខ្ញុំ · Nearest ATM" },
-      { command: "voice", description: "🔔 សំឡេង Voice លក់ KHQR (បើក/បិទ) · Sale voice notes" },
-      { command: "pool", description: "បេឡារួម · Shared pool" },
-      { command: "weekly", description: "របាយការណ៍ប្រចាំសប្តាហ៍ · Weekly report" },
-      { command: "help", description: "ជំនួយ · Help" },
-      { command: "menu", description: "ប៊ូតុង ១ ប៉ះ (បិទបាន) · 1-tap buttons" },
-      { command: "gold", description: "តម្លៃមាស · Gold price (/gold 2 ជី)" },
-      { command: "ai", description: "🤖 សួរទីប្រឹក្សា AI · Ask the AI advisor" },
-      { command: "lang", description: "ភាសា · Language (ខ្មែរ / 中文 / English)" },
-      { command: "stop", description: "ផ្ដាច់ · Disconnect" },
-    ],
-  })
+  await tg("setMyCommands", { commands: BOT_COMMANDS })
   return NextResponse.json({ username: me.result.username, webhook: hook.ok ? url : null, webhookError: hook.ok ? null : hook.description })
 }

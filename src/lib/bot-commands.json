@@ -1,0 +1,16 @@
+[
+  { "command": "start", "description": "ភ្ជាប់គណនី / ចាប់ផ្តើម · Connect / start" },
+  { "command": "bills", "description": "🧾 វិក្កយបត្រ និងការរំលឹកបង់ប្រាក់ · Bills & reminders" },
+  { "command": "rate", "description": "អត្រាប្តូរប្រាក់ និងមាស · Exchange rate & gold" },
+  { "command": "fuel", "description": "តម្លៃប្រេងឥន្ធនៈ · Fuel prices" },
+  { "command": "atm", "description": "🏧 ទូ ATM ជិតខ្ញុំ · Nearest ATM" },
+  { "command": "voice", "description": "🔔 សំឡេង Voice លក់ KHQR (បើក/បិទ) · Sale voice notes" },
+  { "command": "pool", "description": "បេឡារួម · Shared pool" },
+  { "command": "weekly", "description": "របាយការណ៍ប្រចាំសប្តាហ៍ · Weekly report" },
+  { "command": "help", "description": "ជំនួយ · Help" },
+  { "command": "menu", "description": "ប៊ូតុង ១ ប៉ះ (បិទបាន) · 1-tap buttons" },
+  { "command": "gold", "description": "តម្លៃមាស · Gold price (/gold 2 ជី)" },
+  { "command": "ai", "description": "🤖 សួរទីប្រឹក្សា AI · Ask the AI advisor" },
+  { "command": "lang", "description": "ភាសា · Language (ខ្មែរ / 中文 / English)" },
+  { "command": "stop", "description": "ផ្ដាច់ · Disconnect" }
+]

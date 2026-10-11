@@ -45,7 +45,8 @@ if [ -z "$public_url" ]; then
 fi
 
 # Derive the key hash and talk to Telegram from inside the container (the token is in its env).
-result=$(docker compose exec -T -e PUBLIC_URL="$public_url" app node -e '
+bot_commands=$(tr -d '\r\n' < src/lib/bot-commands.json)
+result=$(docker compose exec -T -e PUBLIC_URL="$public_url" -e BOT_COMMANDS="$bot_commands" app node -e '
 const c = require("crypto")
 const t = process.env.TELEGRAM_BOT_TOKEN || ""
 if (!t) { console.log("ERR no_token_in_container"); process.exit(0) }
@@ -60,19 +61,8 @@ const api = (m, b) => fetch("https://api.telegram.org/bot" + t + "/" + m, { meth
     const r = await api("setWebhook", { url: process.env.PUBLIC_URL + "/api/telegram/webhook", secret_token: h("luychlat-webhook"), allowed_updates: ["message", "callback_query", "my_chat_member"] })
     hook = r.ok ? "ok" : "failed"
   }
-  await api("setMyCommands", { commands: [
-    { command: "start", description: "ភ្ជាប់គណនី / ចាប់ផ្តើម · Connect / start" },
-    { command: "rate", description: "អត្រាប្តូរប្រាក់ & មាស · Exchange rate & gold" },
-    { command: "fuel", description: "តម្លៃប្រេងឥន្ធនៈ · Fuel prices" },
-    { command: "pool", description: "បេឡារួម · Shared pool" },
-    { command: "weekly", description: "របាយការណ៍ប្រចាំសប្តាហ៍ · Weekly report" },
-    { command: "help", description: "ជំនួយ · Help" },
-    { command: "menu", description: "ប៊ូតុង ១ ប៉ះ (បិទបាន) · 1-tap buttons" },
-    { command: "gold", description: "តម្លៃមាស · Gold price (/gold 2 ជី)" },
-    { command: "ai", description: "🤖 សួរទីប្រឹក្សា AI · Ask the AI advisor" },
-    { command: "lang", description: "ភាសា · Language (ខ្មែរ / 中文 / English)" },
-    { command: "stop", description: "ផ្ដាច់ · Disconnect" },
-  ] })
+  // The command menu: src/lib/bot-commands.json (the same list as /admin › "Activate bot").
+  if (process.env.BOT_COMMANDS) await api("setMyCommands", { commands: JSON.parse(process.env.BOT_COMMANDS) })
   console.log("OK " + hash + " " + me.result.username + " " + hook)
 })()
 ' 2>/dev/null || echo "ERR container")
