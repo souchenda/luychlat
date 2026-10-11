@@ -7,7 +7,9 @@ import { Amount } from "@/components/money/amount"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import type { Wallet } from "@/lib/data/types"
-import { goalEmoji, goalProgress } from "@/lib/goals"
+import { WalletAvatar } from "@/components/wallets/wallet-avatar"
+import { goalEmoji, goalProgress, goalShowsBank } from "@/lib/goals"
+import { providerForName } from "@/lib/wallets/providers"
 import { useT } from "@/lib/i18n/use-t"
 import { cn } from "@/lib/utils"
 
@@ -30,9 +32,14 @@ export function GoalCard({
   // A button only when it opens the editor (on Home the whole card is a link).
   const header = (
     <>
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-2xl" aria-hidden>
-        {goalEmoji(goal.icon)}
-      </span>
+      {/* A deposit at a bank: the bank's logo; a personal goal: its emoji. */}
+      {goalShowsBank(goal.icon, goal.name, providerForName) ? (
+        <WalletAvatar icon={goal.icon} name={goal.name} className="size-11 rounded-2xl" />
+      ) : (
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-2xl" aria-hidden>
+          {goalEmoji(goal.icon)}
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate font-semibold">{goal.name}</span>
         <span className="block text-xs text-muted-foreground">

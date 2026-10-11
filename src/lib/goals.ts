@@ -26,6 +26,16 @@ export function goalEmoji(icon: string | null | undefined): string {
   return GOAL_PRESETS.find((p) => p.key === icon)?.emoji ?? "🎯"
 }
 
+/**
+ * A goal kept at a bank (a fixed deposit: icon "chipmong", "wing", "acleda"…) shows the bank's logo;
+ * a personal goal (🏠, 🚗, emergency fund…) its emoji.
+ */
+export function goalShowsBank(icon: string | null | undefined, name: string | null | undefined, providerForName: (n: string | null | undefined) => { key: string } | null): boolean {
+  if (icon?.startsWith("goal_")) return false
+  if (icon && icon !== "other" && icon !== "cash") return true
+  return Boolean(providerForName(name))
+}
+
 export type GoalProgress = {
   saved: number
   target: number
