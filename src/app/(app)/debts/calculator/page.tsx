@@ -168,7 +168,7 @@ export default function LoanCalculatorPage() {
       {schedule && alternative && (
         <>
           <Card className="gap-3 px-4 py-4">
-            <p className="hidden text-xs text-muted-foreground print:block">លុយឆ្លាត · LuyChlat — {description}</p>
+            <p className="hidden text-xs text-muted-foreground print:block">អេប លុយឆ្លាត · App Luy Chlat — {description}</p>
             <div className="rounded-2xl bg-primary px-4 py-3 text-primary-foreground">
               <p className="text-sm opacity-85">{t("loan.monthlyPayment")}</p>
               <p className="text-3xl font-bold tabular-nums">

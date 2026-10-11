@@ -212,3 +212,28 @@ export async function exportAmortizationXlsx(input: {
 export function exportFileName(kind: string, workspace: string, suffix: string) {
   return `luysmart-${kind}-${workspace.toLowerCase()}-${suffix}-${format(new Date(), "yyyyMMdd-HHmm")}.xlsx`
 }
+
+/** /reports/tax: the month's tax estimate for an accountant — one sheet, riel. */
+export async function exportTaxXlsx(input: {
+  workspace: string
+  month: string
+  estimate: { salesKhr: number; rentKhr: number; minimumTaxKhr: number; rentWhtKhr: number; patentShareKhr: number; reserveKhr: number }
+  lang: Lang
+  fileName: string
+}) {
+  const { estimate: e, lang } = input
+  const rows: Cell[][] = [
+    [L(lang, "បរិយាយ", "Item"), L(lang, "មូលដ្ឋាន (៛)", "Base (KHR)"), L(lang, "អត្រា", "Rate"), L(lang, "ពន្ធប៉ាន់ស្មាន (៛)", "Estimated tax (KHR)")],
+    [L(lang, "ពន្ធលើប្រាក់ចំណូលអប្បបរមា (ការលក់សរុប)", "Minimum tax (gross sales)"), e.salesKhr, "1%", e.minimumTaxKhr],
+    [L(lang, "ពន្ធកាត់ទុកថ្លៃជួល", "Withholding tax on rent"), e.rentKhr, "10%", e.rentWhtKhr],
+    [L(lang, "ពន្ធប៉ាតង់ (៤០០.០០០៛/ឆ្នាំ ÷ ១២)", "Patent tax (400,000 KHR/year ÷ 12)"), 400_000, "1/12", e.patentShareKhr],
+    [L(lang, "ប្រាក់គួរទុកសម្រាប់ពន្ធ", "Recommended tax reserve"), "", "", e.reserveKhr],
+    [],
+    [`${input.workspace} · ${input.month}`],
+    [L(lang, "ការប៉ាន់ស្មានប៉ុណ្ណោះ — សូមផ្ទៀងផ្ទាត់ជាមួយគណនេយ្យករ ឬអគ្គនាយកដ្ឋានពន្ធដារ មុនដាក់លិខិតប្រកាស។", "An estimate only — confirm with your accountant or the GDT before filing.")],
+  ]
+  const { XLSX, sheet } = await buildSheet(rows, [44, 18, 8, 20], (r, c) => (r <= 5 && (c === 1 || c === 3) ? KHR_FORMAT : undefined))
+  const book = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(book, sheet, L(lang, "ពន្ធ", "Tax"))
+  XLSX.writeFile(book, input.fileName, { compression: true })
+}

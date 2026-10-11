@@ -3643,6 +3643,21 @@ const km = {
   "vdoc.badCost": "តម្លៃមិនត្រឹមត្រូវ",
   "vdoc.saved": "បានរក្សាទុក",
   "vdoc.deleteConfirm": "លុបឯកសារនេះ?",
+  "tax.title": "ជំនួយការប៉ាន់ស្មានពន្ធដារ",
+  "tax.linkHint": "ពន្ធអប្បបរមា ពន្ធកាត់ទុកថ្លៃជួល ពន្ធប៉ាតង់ និងប្រាក់គួរទុកប្រចាំខែ",
+  "tax.businessOnly": "មុខងារនេះសម្រាប់អាជីវកម្មប៉ុណ្ណោះ — សូមប្ដូរទៅកន្លែងធ្វើការអាជីវកម្មរបស់អ្នក។",
+  "tax.reserve": "ប្រាក់គួរទុកសម្រាប់ពន្ធខែនេះ",
+  "tax.reserveHint": "ពន្ធអប្បបរមា + ពន្ធកាត់ទុកថ្លៃជួល + ចំណែកពន្ធប៉ាតង់ (១/១២)",
+  "tax.minimum": "ពន្ធលើប្រាក់ចំណូលអប្បបរមា",
+  "tax.minimumBase": "{rate} នៃការលក់សរុប {amount}",
+  "tax.rentWht": "ពន្ធកាត់ទុកថ្លៃជួល",
+  "tax.rentBase": "{rate} នៃថ្លៃជួល {amount}",
+  "tax.patent": "ពន្ធប៉ាតង់ (ចំណែកខែនេះ)",
+  "tax.patentBase": "{amount} ក្នុងមួយឆ្នាំ ÷ ១២ · បង់មុន ៣១ មីនា",
+  "tax.patentDue": "ពន្ធប៉ាតង់ ៤០០.០០០៛ ត្រូវបង់មុន ៣១ មីនា — នៅសល់ {days} ថ្ងៃ",
+  "tax.patentLate": "ពន្ធប៉ាតង់ហួសថ្ងៃ ៣១ មីនា — សូមបង់ឱ្យបានឆាប់",
+  "tax.export": "នាំចេញសង្ខេបសម្រាប់គណនេយ្យករ (Excel)",
+  "tax.disclaimer": "ការប៉ាន់ស្មានប៉ុណ្ណោះ (ពន្ធអប្បបរមា ១% · ពន្ធកាត់ទុកថ្លៃជួល ១០% · ពន្ធប៉ាតង់ ៤០០.០០០៛) — គណនាពីការលក់ និងថ្លៃជួលដែលបានកត់ក្នុងអេប។ សូមផ្ទៀងផ្ទាត់ជាមួយគណនេយ្យករ ឬអគ្គនាយកដ្ឋានពន្ធដារ មុនដាក់លិខិតប្រកាស។",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -7275,6 +7290,21 @@ const en: Record<MessageKey, string> = {
   "vdoc.badCost": "Invalid amount",
   "vdoc.saved": "Saved",
   "vdoc.deleteConfirm": "Delete this document?",
+  "tax.title": "Tax estimate helper",
+  "tax.linkHint": "Minimum tax, rent withholding, patent tax and the monthly reserve",
+  "tax.businessOnly": "This is for businesses — switch to your business workspace.",
+  "tax.reserve": "Set aside for tax this month",
+  "tax.reserveHint": "Minimum tax + rent withholding + the patent tax's share (1/12)",
+  "tax.minimum": "Minimum tax",
+  "tax.minimumBase": "{rate} of gross sales {amount}",
+  "tax.rentWht": "Withholding tax on rent",
+  "tax.rentBase": "{rate} of rent {amount}",
+  "tax.patent": "Patent tax (this month's share)",
+  "tax.patentBase": "{amount} a year ÷ 12 · due by 31 March",
+  "tax.patentDue": "Patent tax 400,000 KHR is due by 31 March — {days} days left",
+  "tax.patentLate": "Patent tax is past 31 March — please pay soon",
+  "tax.export": "Export a summary for the accountant (Excel)",
+  "tax.disclaimer": "An estimate only (minimum tax 1% · rent withholding 10% · patent tax 400,000 KHR), from the sales and rent recorded in the app. Confirm with your accountant or the GDT before filing.",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

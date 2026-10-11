@@ -137,7 +137,7 @@ export default function LegalPage() {
       <div className="mb-5 flex items-center gap-3">
         <BrandMark className="size-10 text-lg" />
         <div className="text-sm">
-          <p className="font-semibold">លុយឆ្លាត · LuyChlat</p>
+          <p className="font-semibold">អេប លុយឆ្លាត · App Luy Chlat</p>
           <p className="text-xs text-muted-foreground">{t("legal.updated", { date: UPDATED })}</p>
         </div>
       </div>

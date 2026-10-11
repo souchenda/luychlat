@@ -9,6 +9,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   FileSpreadsheetIcon,
+  LandmarkIcon,
   Loader2Icon,
   PrinterIcon,
   TargetIcon,
@@ -383,7 +384,7 @@ export default function ReportsPage() {
       {/* Statement (also the printable / PDF view) */}
       <Card id="statement" className="scroll-mt-20 gap-0 overflow-hidden py-0 print:border-0 print:shadow-none">
         <div className="space-y-0.5 border-b px-4 py-3">
-          <p className="hidden text-xs text-muted-foreground print:block">លុយឆ្លាត · LuyChlat</p>
+          <p className="hidden text-xs text-muted-foreground print:block">អេប លុយឆ្លាត · App Luy Chlat</p>
           <h2 className="font-semibold">{t(business ? "pl.title" : "pl.titlePersonal")}</h2>
           <p className="text-xs text-muted-foreground">
             {workspace ? t(`ws.${workspace.type}`) : ""}
@@ -411,6 +412,18 @@ export default function ReportsPage() {
           </div>
         )}
       </Card>
+
+      {/* Business: the month's tax estimate (minimum tax, rent withholding, patent) and the reserve. */}
+      {business && (
+        <Link href="/reports/tax" className="flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 px-4 py-3 text-sm transition-colors hover:bg-emerald-500/10">
+          <LandmarkIcon className="size-5 shrink-0 text-emerald-700 dark:text-emerald-400" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{t("tax.title")}</span>
+            <span className="block text-xs text-muted-foreground">{t("tax.linkHint")}</span>
+          </span>
+          <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
+        </Link>
+      )}
 
       <Link
         href="/budgets"
