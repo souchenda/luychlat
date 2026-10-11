@@ -3133,7 +3133,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "festival.khmer_new_year.title": "高棉新年快乐！",
   "festival.khmer_new_year.body": "App Luy Chlat 团队祝您和家人新年平安喜乐、财源广进——收入如流水，开支有计划！",
   "festival.pchum_ben.title": "亡人节功德圆满",
-  "festival.pchum_ben.body": "愿您所做的功德回向祖先，祝您和家人身体健康、平安喜乐，回乡一路平安。",
+  "festival.pchum_ben.body": "愿功德回向历代先人，祝愿您和家人平安喜乐、幸福美满、万事吉祥。",
   "festival.water_festival.title": "送水节快乐！",
   "festival.water_festival.body": "与家人共度佳节——有计划地消费，节后钱包依然充实！",
   "cultural.new_year.name": "元旦",

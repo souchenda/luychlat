@@ -3,19 +3,20 @@ import {
   DropletsIcon,
   FlameIcon,
   FlowerIcon,
-  HandHeartIcon,
   MoonStarIcon,
   PartyPopperIcon,
   SailboatIcon,
   SoupIcon,
   SparklesIcon,
-  type LucideIcon,
 } from "lucide-react"
+import type { ComponentType, SVGProps } from "react"
+
+import { LotusIcon } from "@/components/culture/lotus-icon"
 
 import type { CulturalKey } from "@/lib/cultural-calendar"
 
 /** Each festival / offering day's icon (pill, banner, /bills list). */
-export const CULTURAL_ICON: Record<CulturalKey, LucideIcon> = {
+export const CULTURAL_ICON: Record<CulturalKey, ComponentType<SVGProps<SVGSVGElement>>> = {
   new_year: PartyPopperIcon,
   little_new_year: FlameIcon,
   cny_eve: CookingPotIcon,
@@ -23,7 +24,8 @@ export const CULTURAL_ICON: Record<CulturalKey, LucideIcon> = {
   khmer_new_year: FlowerIcon,
   hungry_ghost: DropletsIcon,
   mid_autumn: MoonStarIcon,
-  pchum_ben: HandHeartIcon,
+  // A sacred lotus — the merit festival's own symbol (founder, 11/10/2026).
+  pchum_ben: LotusIcon,
   water_festival: SailboatIcon,
   dongzhi: SoupIcon,
 }
@@ -52,9 +54,10 @@ export const CULTURAL_LOOK: Record<CulturalKey, { card: string; disc: string; ma
   hungry_ghost: RED_GOLD,
   mid_autumn: RED_GOLD,
   pchum_ben: {
-    card: "border-emerald-200/80 from-emerald-50 via-amber-50/60 to-emerald-100/70 dark:border-emerald-900/60 dark:from-emerald-500/15 dark:via-amber-500/10 dark:to-emerald-500/15",
-    disc: "text-emerald-700 dark:text-amber-300",
-    mark: "text-amber-500/20",
+    // Warm gold with a lotus blush, a touch of emerald (merit festival: emerald + gold, never blue).
+    card: "border-amber-200/80 from-amber-50 via-rose-50/50 to-emerald-50/70 dark:border-amber-900/50 dark:from-amber-500/15 dark:via-rose-500/10 dark:to-emerald-500/10",
+    disc: "text-amber-600 dark:text-amber-300",
+    mark: "",
   },
   water_festival: {
     card: "border-sky-200/70 from-sky-50 via-indigo-50 to-amber-50 dark:border-sky-900/50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-amber-500/10",
