@@ -107,6 +107,12 @@ export function culturalDaysOf(year: number): CulturalDay[] {
 }
 
 /** The day running on `iso`, if any. */
+/** The Home banner's festival today: none when there is none, or when it was closed for this festival (its start day stored). */
+export function festivalBannerDay(today: string, dismissed: (key: CulturalKey) => string | null): CulturalDay | null {
+  const d = culturalDayOn(today)
+  return d && dismissed(d.key) !== d.start ? d : null
+}
+
 export function culturalDayOn(iso: string): CulturalDay | null {
   return culturalDaysOf(Number(iso.slice(0, 4))).find((d) => iso >= d.start && iso <= d.end) ?? null
 }

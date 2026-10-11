@@ -9,7 +9,7 @@ import { todayDate } from "@/lib/debts"
 import { activeGreeting, shouldShowSplash, splashMark, type GreetingKey } from "@/lib/festive-greeting"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { useIslamicEnabled } from "@/lib/islamic-settings"
+import { useIslamicSettings } from "@/lib/islamic-settings"
 
 const STORE = "luychlat:festive-splash"
 const GOLD = "#E2B354"
@@ -86,11 +86,12 @@ export function FestiveArt({ festival }: { festival: GreetingKey }) {
 
 function useGreeting() {
   const params = useSearchParams()
-  const islamic = useIslamicEnabled()
-  const [today, setToday] = useState<string | null>(null)
-  // Client-only: the date comes from this device.
-  useEffect(() => setToday(todayDate()), [])
-  return today ? activeGreeting(today, { islamic, preview: params.get("festive") }) : null
+  const { settings, loaded } = useIslamicSettings()
+  // The app renders on the device only: the date is known on the first render.
+  const [today] = useState(todayDate)
+  // Until the Islamic Mode setting has loaded, nothing — never shown, then taken back (a flash).
+  if (!loaded && !params.get("festive")) return null
+  return activeGreeting(today, { islamic: settings.enabled, preview: params.get("festive") })
 }
 
 function Splash() {

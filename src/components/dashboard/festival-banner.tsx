@@ -1,10 +1,11 @@
 "use client"
 
 import { XIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { CULTURAL_ICON, CULTURAL_LOOK } from "@/components/culture/cultural-look"
-import { culturalDayOn, type CulturalDay } from "@/lib/cultural-calendar"
+import { festivalBannerDay } from "@/lib/cultural-calendar"
+import type { CulturalDay } from "@/lib/cultural-calendar"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -19,17 +20,17 @@ const DISMISS_PREFIX = "luychlat:festival-dismissed:"
  */
 export function FestivalBanner() {
   const t = useT()
-  const [day, setDay] = useState<CulturalDay | null>(null)
-
-  // Client-only: the date and the "closed" note come from this device.
-  useEffect(() => {
-    const d = culturalDayOn(todayDate())
-    if (!d) return
-    try {
-      if (localStorage.getItem(DISMISS_PREFIX + d.key) === d.start) return
-    } catch {}
-    setDay(d)
-  }, [])
+  // Decided on the first render — the app renders on the device only (the layout waits for
+  // hydration) — so the banner never mounts empty and pops in, nor flashes when <main> re-keys.
+  const [day, setDay] = useState<CulturalDay | null>(() =>
+    festivalBannerDay(todayDate(), (key) => {
+      try {
+        return localStorage.getItem(DISMISS_PREFIX + key)
+      } catch {
+        return null
+      }
+    }),
+  )
 
   if (!day) return null
   const look = CULTURAL_LOOK[day.key]

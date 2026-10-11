@@ -31,3 +31,13 @@ describe("festive greeting — the splash once a day", () => {
     assert.ok(shouldShowSplash(splashMark("pchum_ben", "2026-10-11"), "pchum_ben", "2026-10-12"))
   })
 })
+
+describe("Home festival banner — decided on the first render", () => {
+  it("shown on Pchum Ben until closed for this festival; closed last year doesn't count", async () => {
+    const { festivalBannerDay } = await import("./cultural-calendar")
+    assert.equal(festivalBannerDay("2026-10-11", () => null)?.key, "pchum_ben")
+    assert.equal(festivalBannerDay("2026-10-11", () => "2026-10-10"), null)
+    assert.equal(festivalBannerDay("2026-10-11", () => "2025-09-20")?.key, "pchum_ben")
+    assert.equal(festivalBannerDay("2026-10-13", () => null), null)
+  })
+})

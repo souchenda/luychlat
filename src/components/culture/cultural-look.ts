@@ -52,9 +52,9 @@ export const CULTURAL_LOOK: Record<CulturalKey, { card: string; disc: string; ma
   hungry_ghost: RED_GOLD,
   mid_autumn: RED_GOLD,
   pchum_ben: {
-    card: "border-amber-200/70 from-amber-50 via-orange-50 to-yellow-50 dark:border-amber-900/50 dark:from-amber-500/10 dark:via-orange-500/10 dark:to-yellow-500/10",
-    disc: "text-amber-600",
-    mark: "text-amber-500/15",
+    card: "border-emerald-200/80 from-emerald-50 via-amber-50/60 to-emerald-100/70 dark:border-emerald-900/60 dark:from-emerald-500/15 dark:via-amber-500/10 dark:to-emerald-500/15",
+    disc: "text-emerald-700 dark:text-amber-300",
+    mark: "text-amber-500/20",
   },
   water_festival: {
     card: "border-sky-200/70 from-sky-50 via-indigo-50 to-amber-50 dark:border-sky-900/50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-amber-500/10",
