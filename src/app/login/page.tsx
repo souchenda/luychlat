@@ -22,8 +22,8 @@ import { useT } from "@/lib/i18n/use-t"
 import { authMethods, isSupabaseConfigured } from "@/lib/supabase/config"
 import { useSessionStore } from "@/stores/session-store"
 
-/** Phrases of the tagline kept whole («ទ្រព្យសម្បត្តិ» must not split). */
-const TAGLINE_KEEP = /ប្រជាជនកម្ពុជា|ទ្រព្យសម្បត្តិ|កាន់តែប្រសើរ|គ្រប់គ្រងលុយ/
+/** Phrases of the tagline kept whole (Khmer words must not split across lines). */
+const TAGLINE_KEEP = /ដៃគូហិរញ្ញវត្ថុឆ្លាតវៃ|សម្រាប់ប្រជាជនកម្ពុជា/
 
 /** Phrases of the guarantee line that never break (Khmer words have no spaces between them). */
 const GUARANTEE_KEEP = /ដាច់ដោយឡែកពីគ្នា|ការសម្ងាត់ ១០០%|១០០%|100%|ស្លីបធនាគារ|bank slips/
