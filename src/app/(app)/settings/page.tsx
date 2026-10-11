@@ -1,6 +1,6 @@
 "use client"
 
-import { BookOpenIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
+import { BellIcon, BookOpenIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -13,6 +13,8 @@ import { GuestImportRow } from "@/components/settings/guest-import"
 import { useOfficialBot, useTelegramLink } from "@/components/settings/official-bot"
 import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
 import { PushSettingsRow } from "@/components/notifications/push-prompt"
+import { useHolyDayChimeSetting } from "@/components/dashboard/holy-day-reminder"
+import { playTempleBell } from "@/lib/temple-bell-player"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -134,6 +136,25 @@ function ExchangeRateRow() {
   )
 }
 
+/** 🪷 «សំឡេងរំលឹកថ្ងៃសីល»: the bell with Home's holy-day reminder (turning it on plays it once). Not with Islamic Mode. */
+function HolyDayChimeRow() {
+  const t = useT()
+  const { visible, on, set } = useHolyDayChimeSetting()
+  if (!visible) return null
+  return (
+    <SettingsRow icon={<BellIcon />} tile="amber" title={t("settings.holyDayChime")} hint={t("settings.holyDayChimeHint")}>
+      <Switch
+        checked={on}
+        aria-label={t("settings.holyDayChime")}
+        onCheckedChange={(v) => {
+          set(v)
+          if (v) playTempleBell()
+        }}
+      />
+    </SettingsRow>
+  )
+}
+
 export default function SettingsPage() {
   const t = useT()
   const router = useRouter()
@@ -210,6 +231,7 @@ export default function SettingsPage() {
         </SettingsRow>
         <IslamicToolsRow />
         <PushSettingsRow />
+        <HolyDayChimeRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
           {bot.data && telegram.data ? (
             <StatusBadge tone="success">

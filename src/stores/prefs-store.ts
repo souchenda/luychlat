@@ -22,12 +22,15 @@ type PrefsState = {
   walletsGrouped: boolean
   /** Wallets page: bank groups the user folded away (provider keys). */
   collapsedBanks: string[]
+  /** 🪷 One soft temple bell with Home's holy-day reminder (Personal only, never with Islamic Mode). On by default. */
+  holyDayChime: boolean
   /** `id` picks a specific Family or Business workspace. */
   setActiveWorkspace: (type: WorkspaceType, id?: string | null) => void
   toggleHideBalances: () => void
   setKhrPerUsd: (rate: number) => void
   setWalletsGrouped: (grouped: boolean) => void
   toggleBankCollapsed: (key: string) => void
+  setHolyDayChime: (on: boolean) => void
 }
 
 export const usePrefsStore = create<PrefsState>()(
@@ -40,6 +43,7 @@ export const usePrefsStore = create<PrefsState>()(
       khrPerUsd: DEFAULT_KHR_PER_USD,
       walletsGrouped: true,
       collapsedBanks: [],
+      holyDayChime: true,
       setActiveWorkspace: (activeWorkspace, id) =>
         set((s) => ({
           activeWorkspace,
@@ -49,6 +53,7 @@ export const usePrefsStore = create<PrefsState>()(
       toggleHideBalances: () => set((s) => ({ hideBalances: !s.hideBalances })),
       setKhrPerUsd: (khrPerUsd) => set({ khrPerUsd }),
       setWalletsGrouped: (walletsGrouped) => set({ walletsGrouped }),
+      setHolyDayChime: (holyDayChime) => set({ holyDayChime }),
       toggleBankCollapsed: (key) =>
         set((s) => ({
           collapsedBanks: s.collapsedBanks.includes(key) ? s.collapsedBanks.filter((k) => k !== key) : [...s.collapsedBanks, key],

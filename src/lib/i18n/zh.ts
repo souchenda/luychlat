@@ -3551,6 +3551,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nssf.recrop": "重新裁剪",
   "nssf.recropped": "已裁剪，只保留卡片",
   "nssf.backfilled": "✂️ 已裁剪 {count} 张社保卡照片，只保留卡片",
+  "settings.holyDayChime": "🪷 佛日提醒铃声",
+  "settings.holyDayChimeHint": "首页佛日提醒时轻响一声钟声（仅个人空间）",
   "login.trustUnified": "银行级安全（Cloudflare 防护）· 数据与银行回单 100% 保密",
   "login.orPhoneEmail": "或使用手机号 / 邮箱",
   "login.telegramSignIn": "使用 Telegram 快速登录",

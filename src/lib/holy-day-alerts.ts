@@ -47,3 +47,20 @@ export const silEveText = (lunar: string) =>
 
 export const silDayText = (lunar: string) =>
   `🪷 អរុណសួស្តី! ថ្ងៃនេះជាថ្ងៃសីល (${lunar})\n🙏 សូមអនុមោទនាកុសលបុណ្យ និងសូមឱ្យបង និងក្រុមគ្រួសារជួបតែសេចក្តីសុខ សុភមង្គល និងចម្រើនរុងរឿងគ្រប់ប្រការ។`
+
+/** The Home reminder's question (founder, 11/10/2026): a gentle nudge to prepare the day's offerings. */
+export const HOLY_DAY_ASK = "តើបងបានត្រៀមបច្ច័យធ្វើបុណ្យ ឬទិញផ្កា ផ្លែឈើបូជាព្រះហើយឬនៅ?"
+
+/**
+ * Home's 🪷 reminder card (with the bell chime): the same moments as the bell's card — from 07:00
+ * the day before a holy day ("ថ្ងៃស្អែក…") and on the day ("ថ្ងៃនេះ…").
+ */
+export function holyDayReminder(now: number): { stage: "eve" | "day"; title: string; ask: string; day: string } | null {
+  const card = holyDayCard(now)
+  if (!card) return null
+  const day = new Date(now + 7 * 3_600_000).toISOString().slice(0, 10)
+  return { stage: card.stage, title: card.stage === "day" ? "🪷 ថ្ងៃនេះជាថ្ងៃសីល" : "🪷 ថ្ងៃស្អែកជាថ្ងៃសីល", ask: HOLY_DAY_ASK, day }
+}
+
+/** Strictly the Personal workspace (never Business — nor Family), never with Islamic Mode on. */
+export const holyDayReminderAllowed = (o: { workspaceType: string | undefined; islamic: boolean }) => o.workspaceType === "PERSONAL" && !o.islamic

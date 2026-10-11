@@ -48,6 +48,7 @@ import { useFeatures } from "@/lib/features"
 import { BirthdayCard } from "@/components/dashboard/birthday-card"
 import { LunarPill } from "@/components/dashboard/lunar-pill"
 import { FestivalBanner } from "@/components/dashboard/festival-banner"
+import { HolyDayReminder } from "@/components/dashboard/holy-day-reminder"
 import { WalletPreviewGrid } from "@/components/wallets/wallet-preview-grid"
 
 const RECENT_COUNT = 4
@@ -149,6 +150,8 @@ export default function HomePage() {
 
       {/* Festivals and Khmer-Chinese offering days: a wish on the day, closable. */}
       <FestivalBanner />
+      {/* 🪷 The day before and on a holy day: a gentle offerings reminder with one soft bell (Personal only). */}
+      <HolyDayReminder />
 
       <ExperienceSelector />
 
