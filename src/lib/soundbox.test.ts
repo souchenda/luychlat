@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announcementText, audioPlan, chineseNumber, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals } from "./soundbox"
+import { announceLate, announcementText, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -173,5 +173,25 @@ describe("SoundBox — Khmer from recorded clips (no Khmer voice on iPhones)", (
     assert.equal(KHMER_CLIPS.length, 27)
     for (const amount of [1, 9, 10, 19, 99, 100, 999, 1_000, 9_999, 10_000, 99_999, 100_000, 999_999, 1_000_000, 12_345_678])
       for (const clip of khmerClipSequence(amount, "KHR")) assert.ok((KHMER_CLIPS as readonly string[]).includes(clip), `${amount}: ${clip}`)
+  })
+})
+
+describe("SoundBox — never silent by accident (11/10: 8,000 ៛ and 3,300 ៛ were emitted but not heard)", () => {
+  const now = Date.parse("2026-10-11T01:25:00Z")
+  it("a payment caught by the backup check is announced only if it is under 5 minutes old", () => {
+    assert.ok(announceLate("2026-10-11T01:22:57Z", now))
+    assert.ok(!announceLate("2026-10-11T01:19:00Z", now + 5 * 60_000))
+    assert.ok(!announceLate(undefined, now))
+  })
+  it("the backup check resumes after the newest event seen", () => {
+    assert.equal(pollSince([{ created_at: "2026-10-11T01:19:38Z" }, { created_at: "2026-10-11T01:22:57Z" }], now), "2026-10-11T01:22:57Z")
+    assert.equal(pollSince([], now), new Date(now).toISOString())
+  })
+  it("the counter shows the business's codes even while the Personal workspace is open", () => {
+    const personal = { id: "p", type: "PERSONAL" }
+    const dl = { id: "dl", type: "BUSINESS" }
+    assert.equal(soundboxWorkspace(personal, [personal, dl])?.id, "dl")
+    assert.equal(soundboxWorkspace(dl, [personal, dl])?.id, "dl")
+    assert.equal(soundboxWorkspace(personal, [personal])?.id, "p")
   })
 })

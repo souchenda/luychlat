@@ -1,6 +1,6 @@
 "use client"
 
-import { PlayIcon, Volume2Icon, VolumeXIcon } from "lucide-react"
+import { PlayIcon, Volume2Icon, VolumeXIcon, WifiOffIcon } from "lucide-react"
 import Link from "next/link"
 import QRCode from "qrcode"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -10,14 +10,15 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { useActiveWorkspace } from "@/lib/data/hooks"
+import { useActiveWorkspace, useWorkspaces } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
 import { codeLabel, selectedCode } from "@/lib/khqr-codes"
 import { useWorkspaceKhqrs } from "@/lib/khqr-codes-data"
-import { keepScreenAwake, receiveEvent, shownAmount, SOUNDBOX_MODES, todayTotals, type SoundboxEvent, type SoundboxMode } from "@/lib/soundbox"
-import { announce, unlockAudio } from "@/lib/soundbox-audio"
+import { announceLate, keepScreenAwake, pollSince, receiveEvent, shownAmount, soundboxWorkspace, SOUNDBOX_MODES, todayTotals, type SoundboxEvent, type SoundboxMode } from "@/lib/soundbox"
+import { announce, unlockAudio, type AnnounceResult } from "@/lib/soundbox-audio"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import { useSessionStore } from "@/stores/session-store"
 
 const FLASH_MS = 6_000
 const ppDay = () => new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)
@@ -58,8 +59,13 @@ const MODE_LABEL: Record<SoundboxMode, string> = {
 export default function SoundboxPage() {
   const t = useT()
   const { workspace } = useActiveWorkspace()
-  const ws = workspace?.id
-  const codes = useWorkspaceKhqrs(ws).data ?? []
+  const workspaces = useWorkspaces().data
+  const userId = useSessionStore((s) => s.user?.id ?? null)
+  // The business's codes, even while the Personal workspace is open.
+  const counter = soundboxWorkspace(workspace, workspaces)
+  const codes = useWorkspaceKhqrs(counter?.id).data ?? []
+  const [live, setLive] = useState<"connecting" | "live" | "down">("connecting")
+  const [audioIssue, setAudioIssue] = useState<AnnounceResult | null>(null)
   const [chosen, setChosen] = useState<string | null>(null)
   // The default on load; a tap switches at once (for the customer's bank or currency).
   const current = selectedCode(codes, chosen)
@@ -84,54 +90,88 @@ export default function SoundboxPage() {
     else setQr(null)
   }, [khqr])
 
-  // Today's receipts, then each new one live (Realtime, members of this workspace only).
+  /** A payment arrived (live, or by the backup check): flash, list, sound — once. */
+  const handle = useRef<(row: Record<string, unknown>, late: boolean) => void>(() => {})
+  handle.current = (row, late) => {
+    const { list: next, added } = receiveEvent(eventsRef.current, row)
+    if (!added) return
+    eventsRef.current = next
+    setEvents(next)
+    // One that came in while the connection was down: listed, announced only if still fresh.
+    if (late && !announceLate(added.created_at, Date.now())) return
+    setFlash(added)
+    window.clearTimeout(flashTimer.current)
+    flashTimer.current = window.setTimeout(() => setFlash(null), FLASH_MS)
+    void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100).then((r) => setAudioIssue(r === "locked" || r === "error" ? r : null))
+  }
+  const flashTimer = useRef<number | undefined>(undefined)
+
+  // Today's receipts in every workspace the user belongs to (RLS), then each new one live — the
+  // payment's workspace needn't be the one open in the app.
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
-    if (!supabase || !ws) return
-    let timer: number | undefined
+    if (!supabase || !userId) return
+    const columns = "id, workspace_id, amount, currency, account_name, payer, payer_bank, transaction_time, created_at"
     void supabase
       .from("soundbox_events")
-      .select("id, amount, currency, account_name, payer, payer_bank, transaction_time")
-      .eq("workspace_id", ws)
+      .select(columns)
       .gte("transaction_time", new Date(Date.parse(`${ppDay()}T00:00:00+07:00`)).toISOString())
       .order("transaction_time", { ascending: false })
       .limit(200)
       .then(({ data }) => {
         const today = ((data ?? []) as SoundboxEvent[]).map((e) => ({ ...e, amount: Number(e.amount) }))
-        // Anything that arrived live meanwhile stays on top.
         eventsRef.current = [...eventsRef.current, ...today.filter((e) => !eventsRef.current.some((x) => x.id === e.id))]
         setEvents(eventsRef.current)
       })
     const channel = supabase
-      .channel(`workspace:${ws}:soundbox`)
-      .on("postgres_changes", { schema: "public", table: "soundbox_events", event: "INSERT", filter: `workspace_id=eq.${ws}` }, ({ new: row }) => {
-        // Side effects outside the state updater (React may run an updater twice): announced once.
-        const { list: next, added } = receiveEvent(eventsRef.current, row as Record<string, unknown>)
-        if (!added) return
-        eventsRef.current = next
-        setEvents(next)
-        setFlash(added)
-        window.clearTimeout(timer)
-        timer = window.setTimeout(() => setFlash(null), FLASH_MS)
-        void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100)
+      .channel(`soundbox:${userId}`)
+      .on("postgres_changes", { schema: "public", table: "soundbox_events", event: "INSERT" }, ({ new: row }) => handle.current(row as Record<string, unknown>, false))
+      .subscribe((status, err) => {
+        setLive(status === "SUBSCRIBED" ? "live" : status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT" ? "down" : "connecting")
+        if (err) console.error("[soundbox] realtime:", status, err)
       })
-      .subscribe()
+    // The backup check: every 15 s and when the page comes back (phones drop sockets in the background).
+    const poll = async () => {
+      const { data, error } = await supabase.from("soundbox_events").select(columns).gt("created_at", pollSince(eventsRef.current, Date.now() - 60_000)).order("created_at").limit(50)
+      if (error) return console.error("[soundbox] backup check:", error.message)
+      for (const row of data ?? []) handle.current(row as Record<string, unknown>, true)
+    }
+    const every = window.setInterval(() => void poll(), 15_000)
+    const onShow = () => document.visibilityState === "visible" && void poll()
+    document.addEventListener("visibilitychange", onShow)
     return () => {
-      window.clearTimeout(timer)
+      window.clearInterval(every)
+      window.clearTimeout(flashTimer.current)
+      document.removeEventListener("visibilitychange", onShow)
       void supabase.removeChannel(channel)
     }
-  }, [ws])
+  }, [userId])
 
   const totals = useMemo(() => todayTotals(events, ppDay()), [events])
 
   const start = async () => {
     await unlockAudio()
     setActive(true)
+    setAudioIssue(null)
   }
 
   return (
     <div className="space-y-4">
       <SettingsSubHeader title={t("soundbox.title")} back="/home" />
+
+      {/* Never silent without saying so: the sound held by the phone, or the live connection down. */}
+      {audioIssue && (
+        <button type="button" onClick={() => void start()} className="flex w-full items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-3 text-left text-sm font-medium text-rose-900 dark:text-rose-200">
+          <VolumeXIcon className="size-5 shrink-0" aria-hidden />
+          {t(audioIssue === "locked" ? "soundbox.audioLocked" : "soundbox.audioError")}
+        </button>
+      )}
+      {live === "down" && (
+        <p className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-200">
+          <WifiOffIcon className="size-4 shrink-0" aria-hidden />
+          {t("soundbox.offline")}
+        </p>
+      )}
 
       {!active ? (
         <Button type="button" className="h-14 w-full text-base" onClick={() => void start()}>
@@ -141,7 +181,10 @@ export default function SoundboxPage() {
       ) : (
         <Card className="flex-row items-center gap-3 px-4 py-3">
           {soundOn ? <Volume2Icon className="size-5 text-primary" aria-hidden /> : <VolumeXIcon className="size-5 text-muted-foreground" aria-hidden />}
-          <span className="min-w-0 flex-1 text-sm font-medium">{t(soundOn ? "soundbox.listening" : "soundbox.muted")}</span>
+          <span className="min-w-0 flex-1 text-sm font-medium">
+            {t(soundOn ? "soundbox.listening" : "soundbox.muted")}
+            <span className={cn("ml-1.5 inline-block size-2 rounded-full align-middle", live === "live" ? "bg-emerald-500" : live === "down" ? "bg-rose-500" : "bg-amber-400")} aria-label={live} />
+          </span>
           <Switch
             checked={soundOn}
             aria-label={t("soundbox.sound")}
@@ -194,7 +237,7 @@ export default function SoundboxPage() {
             variant="outline"
             onClick={async () => {
               await unlockAudio()
-              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100)
+              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100).then((r) => setAudioIssue(r === "locked" || r === "error" ? r : null))
             }}
           >
             <PlayIcon />

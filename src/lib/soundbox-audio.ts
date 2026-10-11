@@ -126,32 +126,55 @@ function speak(text: string, voice: SpeechSynthesisVoice, volume: number): Promi
     u.rate = 0.95
     u.volume = Math.min(1, Math.max(0, volume))
     u.onend = () => resolve()
-    u.onerror = () => resolve()
+    u.onerror = (ev) => {
+      console.error("[soundbox] speech failed:", ev.error)
+      resolve()
+    }
     window.speechSynthesis.speak(u)
     window.setTimeout(resolve, 8_000)
   })
 }
 
-/** One payment: the chime, then each language of the mode (or the melody). Payments arriving together play in turn. */
-let queue: Promise<void> = Promise.resolve()
-export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: SoundboxMode, soundOn: boolean, volume = 1): Promise<void> {
-  queue = queue.then(async () => {
-    // The clips load on the unlock tap; a payment right after it waits for them (a second at most).
-    if (mode.startsWith("km") && ctx && !khmerClipsReady()) await Promise.race([loadKhmerClips(), new Promise((r) => window.setTimeout(r, 1_500))])
-    for (const step of audioPlan({ soundOn, unlocked: isUnlocked(), mode, voices: availableVoices() })) {
-      if (step === "chime") await playPaymentChime(volume)
-      else if (step === "melody") await playMelody(volume)
-      else {
-        const lang = step.slice("speech:".length) as VoiceLang
-        // Khmer: the recorded clips first (they sound the same on every phone).
-        if (lang === "km" && khmerClipsReady()) {
-          await playKhmerClips(khmerClipSequence(e.amount, e.currency), volume)
-          continue
+export type AnnounceResult = "played" | "muted" | "locked" | "error"
+
+/**
+ * One payment: the chime, then each language of the mode (or the melody). Payments arriving together
+ * play in turn. Never silently skipped: «locked» when the phone holds the audio (never unlocked, or
+ * iOS suspended it after the screen locked — one tap brings it back), «error» with the reason logged.
+ */
+let queue: Promise<unknown> = Promise.resolve()
+export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: SoundboxMode, soundOn: boolean, volume = 1): Promise<AnnounceResult> {
+  const run = queue.then(async (): Promise<AnnounceResult> => {
+    if (!soundOn) return "muted"
+    if (!ctx) return "locked"
+    if (ctx.state !== "running") await ctx.resume().catch(() => null)
+    if (ctx.state !== "running") {
+      console.error("[soundbox] audio is suspended by the browser:", ctx.state)
+      return "locked"
+    }
+    try {
+      // The clips load on the unlock tap; a payment right after it waits for them (a second at most).
+      if (mode.startsWith("km") && !khmerClipsReady()) await Promise.race([loadKhmerClips(), new Promise((r) => window.setTimeout(r, 1_500))])
+      for (const step of audioPlan({ soundOn, unlocked: true, mode, voices: availableVoices() })) {
+        if (step === "chime") await playPaymentChime(volume)
+        else if (step === "melody") await playMelody(volume)
+        else {
+          const lang = step.slice("speech:".length) as VoiceLang
+          // Khmer: the recorded clips first (they sound the same on every phone).
+          if (lang === "km" && khmerClipsReady()) {
+            await playKhmerClips(khmerClipSequence(e.amount, e.currency), volume)
+            continue
+          }
+          const voice = voiceFor(lang)
+          if (voice) await speak(announcementText(e, lang), voice, volume)
         }
-        const voice = voiceFor(lang)
-        if (voice) await speak(announcementText(e, lang), voice, volume)
       }
+      return "played"
+    } catch (error) {
+      console.error("[soundbox] announcement failed:", error)
+      return "error"
     }
   })
-  return queue
+  queue = run
+  return run
 }

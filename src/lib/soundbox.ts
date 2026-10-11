@@ -18,6 +18,8 @@ export type SoundboxEvent = {
   payer: string | null
   payer_bank?: string | null
   transaction_time: string
+  workspace_id?: string
+  created_at?: string
 }
 
 /**
@@ -235,6 +237,8 @@ export function receiveEvent(list: SoundboxEvent[], row: Record<string, unknown>
     payer: typeof row.payer === "string" ? row.payer : null,
     payer_bank: typeof row.payer_bank === "string" ? row.payer_bank : null,
     transaction_time: row.transaction_time,
+    ...(typeof row.workspace_id === "string" ? { workspace_id: row.workspace_id } : {}),
+    ...(typeof row.created_at === "string" ? { created_at: row.created_at } : {}),
   }
   return { list: [e, ...list], added: e }
 }
@@ -272,4 +276,20 @@ export function keepScreenAwake(nav: WakeNavigator, doc: WakeDocument): () => vo
     void lock?.release().catch(() => null)
     lock = null
   }
+}
+
+/** A payment found by the backup check (the live connection dropped): announced only if it is fresh. */
+export const LATE_WINDOW_MS = 5 * 60_000
+export const announceLate = (createdAt: string | undefined, now: number) => Boolean(createdAt) && now - Date.parse(createdAt!) <= LATE_WINDOW_MS
+
+/** Where the backup check resumes: the newest event seen (by when it was recorded), else now. */
+export function pollSince(events: Pick<SoundboxEvent, "created_at">[], now: number): string {
+  const newest = events.map((e) => e.created_at).filter((c): c is string => Boolean(c)).sort().at(-1)
+  return newest ?? new Date(now).toISOString()
+}
+
+/** The workspace whose KHQR codes the counter shows: the one open if it is a business, else the first business. */
+export function soundboxWorkspace<T extends { id: string; type: string }>(active: T | undefined, all: T[] | undefined): T | undefined {
+  if (active?.type === "BUSINESS") return active
+  return all?.find((w) => w.type === "BUSINESS") ?? active
 }
