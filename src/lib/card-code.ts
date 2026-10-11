@@ -1,6 +1,7 @@
 "use client"
 
 import { decodeQrText } from "@/lib/khqr-decode"
+import { decodeOriented } from "@/lib/image"
 
 type Detector = { detect: (image: ImageBitmapSource) => Promise<{ rawValue: string; format: string }[]> }
 type DetectorClass = { new (options: { formats: string[] }): Detector; getSupportedFormats?: () => Promise<string[]> }
@@ -20,7 +21,7 @@ export async function decodeCardCode(image: Blob): Promise<string | null> {
       const supported = (await Native.getSupportedFormats?.()) ?? WANTED
       const formats = WANTED.filter((f) => supported.includes(f))
       if (formats.length) {
-        const bitmap = await createImageBitmap(image)
+        const bitmap = await decodeOriented(image)
         try {
           const found = await new Native({ formats }).detect(bitmap)
           const text = found.find((c) => c.rawValue?.trim())?.rawValue

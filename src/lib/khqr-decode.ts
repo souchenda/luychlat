@@ -3,6 +3,7 @@
 import jsQR from "jsqr"
 
 import { isKhqr } from "@/lib/khqr"
+import { decodeOriented } from "@/lib/image"
 
 /**
  * Reads the KHQR text out of a picture of the code (a screenshot from a bank
@@ -17,7 +18,7 @@ export async function decodeKhqr(image: Blob): Promise<string | null> {
 export async function decodeQrText(image: Blob, accept: (text: string) => boolean = () => true): Promise<string | null> {
   let bitmap: ImageBitmap
   try {
-    bitmap = await createImageBitmap(image)
+    bitmap = await decodeOriented(image)
   } catch {
     return null
   }

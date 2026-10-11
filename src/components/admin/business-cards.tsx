@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { decodeOriented } from "@/lib/image"
 
 // Super Admin: the payment details shown in the upgrade sheet (moved from /admin).
 
@@ -25,7 +26,7 @@ const MAX_QR_BYTES = 2 * 1024 * 1024
 /** Big screenshots are scaled down (PNG keeps the QR sharp); small ones upload as they are. */
 async function prepareQrImage(file: File): Promise<Blob> {
   if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error("type")
-  const bitmap = await createImageBitmap(file)
+  const bitmap = await decodeOriented(file)
   const longest = Math.max(bitmap.width, bitmap.height)
   if (longest <= 1600 && file.size <= MAX_QR_BYTES) return file
   const scale = Math.min(1, 1600 / longest)
