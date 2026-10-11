@@ -61,7 +61,7 @@ function loadTelegramWidget(): Promise<TelegramWidget> {
  * above the forms, on both tabs, with the «ឬប្រើប្រាស់លេខទូរស័ព្ទ / អ៊ីមែល» line under them. Nothing
  * at all when neither is available.
  */
-export function SocialLogin({ disabled, separator = true }: { disabled?: boolean; separator?: boolean }) {
+export function SocialLogin({ disabled, separator = true, below = false }: { disabled?: boolean; separator?: boolean; below?: boolean }) {
   const t = useT()
   const [tgBusy, setTgBusy] = useState(false)
   const telegram = useQuery({
@@ -102,13 +102,24 @@ export function SocialLogin({ disabled, separator = true }: { disabled?: boolean
     if (error) toast.error(t("login.oauthError"))
   }
 
+  const line = (label: string) => (
+    <div className="flex items-center gap-3 text-xs text-neutral-400">
+      <Separator className="flex-1" />
+      {label}
+      <Separator className="flex-1" />
+    </div>
+  )
+  const size = below ? "h-11 text-sm" : "h-12 text-base"
+
   return (
-    <div className="grid gap-2.5">
+    <div className={below ? "grid gap-2.5 pt-0.5" : "grid gap-2.5"}>
+      {below && line(t("login.or"))}
       {google && (
         <Button
+          type="button"
           variant="outline"
-          className="h-12 rounded-xl border border-neutral-200 bg-white text-base font-semibold text-neutral-800 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-white dark:text-neutral-800 dark:hover:bg-neutral-100"
-          onClick={() => signIn("google")}
+          className={`${size} rounded-xl border border-neutral-200 bg-white font-semibold text-neutral-800 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-white dark:text-neutral-800 dark:hover:bg-neutral-100`}
+          onClick={() => void signIn("google")}
           disabled={disabled}
         >
           <GoogleIcon />
@@ -117,7 +128,8 @@ export function SocialLogin({ disabled, separator = true }: { disabled?: boolean
       )}
       {tgBot && (
         <Button
-          className="h-12 rounded-xl bg-[#229ED9] text-base font-semibold text-white shadow-sm shadow-[#229ED9]/25 transition-all hover:bg-[#1c8fc5] active:scale-[0.98]"
+          type="button"
+          className={`${size} rounded-xl border border-[#229ED9]/25 bg-[#229ED9]/10 font-semibold text-[#1a7fb0] shadow-none transition-all hover:bg-[#229ED9]/15 active:scale-[0.98] dark:text-[#5bbfe8]`}
           onClick={() => void signInTelegram()}
           disabled={disabled || tgBusy}
         >
@@ -126,18 +138,12 @@ export function SocialLogin({ disabled, separator = true }: { disabled?: boolean
         </Button>
       )}
       {apple && (
-        <Button variant="outline" className="h-12 rounded-xl text-base font-semibold shadow-sm" onClick={() => signIn("apple")} disabled={disabled}>
+        <Button type="button" variant="outline" className={`${size} rounded-xl font-semibold shadow-sm`} onClick={() => void signIn("apple")} disabled={disabled}>
           <AppleIcon />
           {t("login.apple")}
         </Button>
       )}
-      {separator && (
-        <div className="flex items-center gap-3 text-xs text-neutral-400">
-          <Separator className="flex-1" />
-          {t("login.orPhoneEmail")}
-          <Separator className="flex-1" />
-        </div>
-      )}
+      {separator && !below && line(t("login.orPhoneEmail"))}
     </div>
   )
 }

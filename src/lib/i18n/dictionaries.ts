@@ -17,7 +17,7 @@ export const contentLocale = (locale: Locale): "km" | "en" => (locale === "km" ?
 
 const km = {
   "app.name": "អេប លុយឆ្លាត",
-  "app.tagline": "គ្រប់គ្រងលុយ និងបំណុល ឆ្លាតជាងមុន",
+  "app.tagline": "សម្រាប់ប្រជាជនកម្ពុជា គ្រប់គ្រងលុយ ទ្រព្យសម្បត្តិ និងបំណុល កាន់តែប្រសើរ",
 
   "common.cancel": "បោះបង់",
   "common.back": "ថយក្រោយ",
@@ -3613,7 +3613,7 @@ export type MessageKey = keyof typeof km
 
 const en: Record<MessageKey, string> = {
   "app.name": "App Luy Chlat",
-  "app.tagline": "Smarter money & debt management",
+  "app.tagline": "For Cambodians to manage money, wealth, and debt better",
 
   "common.cancel": "Cancel",
   "common.back": "Back",

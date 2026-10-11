@@ -22,6 +22,9 @@ import { useT } from "@/lib/i18n/use-t"
 import { authMethods, isSupabaseConfigured } from "@/lib/supabase/config"
 import { useSessionStore } from "@/stores/session-store"
 
+/** Phrases of the tagline kept whole («ទ្រព្យសម្បត្តិ» must not split). */
+const TAGLINE_KEEP = /ប្រជាជនកម្ពុជា|ទ្រព្យសម្បត្តិ|កាន់តែប្រសើរ|គ្រប់គ្រងលុយ/
+
 /** Phrases of the guarantee line that never break (Khmer words have no spaces between them). */
 const GUARANTEE_KEEP = /ដាច់ដោយឡែកពីគ្នា|ការសម្ងាត់ ១០០%|១០០%|100%|ស្លីបធនាគារ|bank slips/
 
@@ -30,6 +33,21 @@ const FEATURES = [
   { key: "login.featureDebts", icon: ReceiptTextIcon },
   { key: "login.featureWorkspaces", icon: BriefcaseBusinessIcon },
 ] as const
+
+/** What the app does, in three short lines (hover / press feedback). */
+function Features({ className }: { className?: string }) {
+  const t = useT()
+  return (
+    <ul className={`flex-wrap gap-2 delay-200 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none ${className ?? ""}`}>
+      {FEATURES.map(({ key, icon: Icon }) => (
+        <li key={key} className="flex cursor-default items-center gap-1.5 rounded-full border border-neutral-200/80 bg-white/70 px-3 py-1 text-xs text-neutral-600 backdrop-blur-sm transition-all duration-200 select-none hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-white hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.97] motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300 dark:hover:bg-neutral-900">
+          <Icon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          {t(key)}
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 /** Reassures a former guest that their device data will be offered for import. */
 function GuestDataNote() {
@@ -92,25 +110,32 @@ export default function LoginPage() {
       </div>
 
       <main
-        className={`${misansKhmer.variable} mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-3 pb-2`}
+        className={`${misansKhmer.variable} relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-4 pb-1.5 md:max-w-6xl md:px-8`}
         style={{ fontFamily: "var(--font-misans-khmer), var(--font-kantumruy), sans-serif" }}
       >
-        <div className="flex justify-end">
+        {/* In the corner, not a row of its own: the whole page fits one screen. */}
+        <div className="absolute top-3 right-4 z-10">
           <LanguageToggle />
         </div>
 
+        {/* Phones: one column (brand, card). Desktop: brand, tagline and features on the left, the card on the
+            right — the whole page fits one screen without scrolling. */}
+        <div className="flex flex-1 flex-col md:grid md:grid-cols-[minmax(0,1fr)_26rem] md:items-center md:gap-14">
         {/* Brand: logo, then title, then the card — each a beat after the last. */}
-        <div className="mb-2.5 flex flex-col items-center text-center">
-          <BrandMark className="size-16 rounded-[1.35rem] bg-linear-to-br from-emerald-500 to-teal-600 text-3xl text-white shadow-lg shadow-emerald-500/20 ring-4 ring-emerald-500/10 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none dark:ring-emerald-400/15" />
-          <h1 className="mt-2.5 text-2xl font-bold delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "អេប លុយឆ្លាត"}</h1>
-          <p className="mt-0.5 text-sm text-neutral-500 delay-75 dark:text-neutral-400 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated && t("app.tagline")}</p>
+        <div className="mb-2.5 flex flex-col items-center text-center md:mb-0 md:items-start md:text-left">
+          <BrandMark className="size-14 rounded-[1.2rem] md:size-16 [@media(max-height:700px)]:size-11 [@media(max-height:700px)]:text-2xl [@media(min-height:860px)]:size-16 bg-linear-to-br from-emerald-500 to-teal-600 text-3xl text-white shadow-lg shadow-emerald-500/20 ring-4 ring-emerald-500/10 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none dark:ring-emerald-400/15" />
+          <h1 className="mt-2 text-2xl font-bold md:mt-4 md:text-4xl [@media(max-height:700px)]:mt-1 [@media(max-height:700px)]:text-xl delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "អេប លុយឆ្លាត"}</h1>
+          <p className="mt-0.5 max-w-[19rem] text-[13px] leading-snug md:mt-2 md:max-w-md md:text-base md:leading-relaxed text-balance text-neutral-500 delay-75 dark:text-neutral-400 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated && <KeepTogether text={t("app.tagline")} keep={TAGLINE_KEEP} />}</p>
+          {hydrated && <Features className="mt-6 hidden justify-start md:flex" />}
         </div>
 
+        <div>
+
         {hydrated && (
-          <section className="rounded-3xl border border-white/60 bg-white/85 px-5 py-4 shadow-2xl shadow-emerald-500/10 backdrop-blur-xl delay-150 sm:py-5 dark:border-emerald-500/20 dark:bg-zinc-900/85 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
-            <div className="flex flex-col gap-3">
+          <section className="rounded-3xl border border-white/60 bg-white/85 px-5 py-4 [@media(max-height:700px)]:py-3 shadow-2xl shadow-emerald-500/10 backdrop-blur-xl delay-150 sm:py-5 dark:border-emerald-500/20 dark:bg-zinc-900/85 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+            <div className="flex flex-col gap-2.5">
               {/* Trust line at the top of the card. */}
-              <p className="mx-auto flex max-w-full items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] px-2.5 py-1 text-[10.5px] leading-snug font-medium text-emerald-800 dark:text-emerald-300">
+              <p className="mx-auto flex max-w-full items-center gap-1.5 rounded-full [@media(max-height:700px)]:hidden border border-emerald-500/20 bg-emerald-500/[0.07] px-2.5 py-1 text-[10.5px] leading-snug font-medium text-emerald-800 dark:text-emerald-300">
                 <LockKeyholeIcon className="size-3.5 shrink-0" aria-hidden />
                 <span className="flex flex-wrap justify-center gap-x-1 text-center">
                   {t("login.trust")
@@ -137,11 +162,12 @@ export default function LoginPage() {
               </Suspense>
               <GuestDataNote />
 
-              {/* One tap first, no typing: Google (when on in Supabase) and Telegram (when on on the server), on both tabs. */}
-              <SocialLogin disabled={cloudDisabled} separator={authMethods.has("email") || codeFirst || authMethods.has("phone")} />
+              {/* Without the password form, the one-tap buttons stand on their own above the other forms. */}
+              {!showPassword && <SocialLogin disabled={cloudDisabled} separator={codeFirst || authMethods.has("phone")} />}
 
               {codeFirst && !usePassword && <EmailCodeLogin disabled={cloudDisabled} />}
-              {showPassword && <EmailLogin disabled={cloudDisabled} />}
+              {/* Tabs first; Telegram / Google under «ចូលគណនី» on the sign-in tab only (Telegram signs in linked accounts, never signs up). */}
+              {showPassword && <EmailLogin disabled={cloudDisabled} signInExtra={<SocialLogin disabled={cloudDisabled} below />} />}
               {codeFirst && authMethods.has("email") && (
                 <button type="button" className="-mt-2 text-center text-sm text-primary" onClick={() => setUsePassword((v) => !v)}>
                   {usePassword ? t("login.useCode") : t("login.usePassword")}
@@ -162,7 +188,7 @@ export default function LoginPage() {
               )}
 
               {/* The guarantee, under the button. */}
-              <p className="border-t border-neutral-100 pt-3 text-center text-xs leading-relaxed text-balance text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+              <p className="border-t border-neutral-100 pt-2.5 text-center [@media(max-height:700px)]:hidden text-xs leading-relaxed text-balance text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
                 <ShieldCheckIcon className="mr-1 inline size-3.5 -translate-y-px align-middle text-emerald-600 dark:text-emerald-400" aria-hidden />
                 <KeepTogether text={t("login.guarantee")} keep={GUARANTEE_KEEP} />
               </p>
@@ -170,19 +196,12 @@ export default function LoginPage() {
           </section>
         )}
 
-        {/* What the app does, in three short lines. */}
-        {hydrated && (
-          <ul className="mt-3 flex flex-wrap justify-center gap-2 delay-200 md:w-max md:flex-nowrap md:self-center animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
-            {FEATURES.map(({ key, icon: Icon }) => (
-              <li key={key} className="flex cursor-default items-center gap-1.5 rounded-full border border-neutral-200/80 bg-white/70 px-3 py-1 text-xs text-neutral-600 backdrop-blur-sm transition-all duration-200 select-none hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-white hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.97] motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300 dark:hover:bg-neutral-900">
-                <Icon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                {t(key)}
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* What the app does: under the card on phones tall enough to show it without scrolling. */}
+        {hydrated && <Features className="mt-2.5 flex justify-center md:hidden [@media(max-height:879px)]:hidden" />}
+        </div>
+        </div>
 
-        <div className="mt-auto pt-2">{hydrated && <LoginFooter />}</div>
+        <div className="mt-auto pt-1.5">{hydrated && <LoginFooter />}</div>
       </main>
     </div>
   )

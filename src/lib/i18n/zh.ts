@@ -8,7 +8,7 @@ import type { MessageKey } from "./dictionaries"
 
 export const zh: Partial<Record<MessageKey, string>> = {
   "app.name": "App Luy Chlat",
-  "app.tagline": "更聪明地管理资金与债务",
+  "app.tagline": "助力柬埔寨人更好地管理资金、财富与债务",
   "common.cancel": "取消",
   "common.back": "返回",
   "common.comingSoon": "即将推出",
