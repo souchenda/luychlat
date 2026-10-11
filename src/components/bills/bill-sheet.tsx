@@ -407,4 +407,5 @@ const CATEGORY_FOR: Record<BillKind, string[]> = {
   LOAN: ["debt_repayment"],
   NSSF: ["health"],
   OTHER: [],
+  DEPOSIT: [],
 }

@@ -48,7 +48,8 @@ export function useBillStatements(billId: string | null | undefined) {
   })
 }
 
-export type BillKind = "ELECTRICITY" | "WATER" | "INTERNET" | "RENT" | "WASTE" | "LOAN" | "NSSF" | "OTHER"
+/** DEPOSIT: a fixed deposit's maturity (money coming back — nothing to pay). */
+export type BillKind = "ELECTRICITY" | "WATER" | "INTERNET" | "RENT" | "WASTE" | "LOAN" | "NSSF" | "OTHER" | "DEPOSIT"
 export type BillFrequency = "MONTHLY" | "YEARLY"
 export type NssfType = "self_employed_monthly" | "self_employed_yearly" | "enterprise"
 
@@ -84,6 +85,7 @@ export const BILL_EMOJI: Record<BillKind, string> = {
   LOAN: "🏦",
   NSSF: "🛡️",
   OTHER: "🧾",
+  DEPOSIT: "💰",
 }
 
 export type BillPreset = { id: string; kind: BillKind; input: Partial<BillInput> }

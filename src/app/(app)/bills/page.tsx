@@ -202,7 +202,7 @@ export default function BillsPage() {
                       )}
                     >
                       {/* Unpaid vs paid, never confused: "⏳ មិនទាន់បង់" until it is marked paid, then "✅ បង់រួច". */}
-                      {status !== "off" && (
+                      {status !== "off" && bill.kind !== "DEPOSIT" && (
                         <span className={cn("font-medium", recentlyPaid(bill) && status === "later" ? "text-emerald-700 dark:text-emerald-400" : "")}>
                           {t(recentlyPaid(bill) && status === "later" ? "bills.paidBadge" : "bills.unpaidBadge")}
                           {" · "}
@@ -244,7 +244,10 @@ export default function BillsPage() {
                     {t("nssf.updateBill", { count: nssfMembers, amount: formatMoney(nssfSuggestion(bill)!, "KHR") })}
                   </Button>
                 )}
-                {editable && bill.is_active && bill.debt_id ? (
+                {bill.kind === "DEPOSIT" ? (
+                  // A deposit's maturity: money coming back — nothing to mark paid.
+                  <span className="shrink-0 text-xs font-medium text-emerald-700 dark:text-emerald-400">{t("bills.depositMatures")}</span>
+                ) : editable && bill.is_active && bill.debt_id ? (
                   // A loan's bill is paid on the loan (each installment), which keeps this one in step.
                   <Button asChild size="sm" variant={status === "later" ? "outline" : "default"}>
                     <Link href="/debts?tab=PAYABLE">{t("bills.payOnLoan")}</Link>

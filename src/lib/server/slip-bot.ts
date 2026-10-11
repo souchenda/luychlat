@@ -10,13 +10,14 @@
 // notes) — or, while Gemini is overloaded, to Groq's vision model (Groq already
 // transcribes voice notes); wallets and categories are matched here. The card is plain text and
 // passes through maskNumbers (account numbers on the slip never echo back).
-import { DEFAULT_ABOUT } from "@/lib/app-info"
+import { DEFAULT_ABOUT } from "@/lib/app-site"
 import { categoryFor, cleanSlip, isFoodChoice, mealFor, resolveWallet, slipChoices, SLIP_OUT, walletLabel, type Meal, type Slip, type SlipChoice } from "@/lib/bot/bank-slip"
 import { autoDecision, choiceIndex, choiceKey, merchantKey, type Remembered } from "@/lib/bot/slip-auto"
 import type { BotCategory } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
 import { handleBillPhoto, settleBillFromPayment } from "@/lib/server/bill-bot"
 import { handleLoanSchedulePhoto } from "@/lib/server/loan-schedule-bot"
+import { handleTermDepositPhoto } from "@/lib/server/term-deposit-bot"
 import type { BotWallet } from "@/lib/bot/parse-entry"
 import { defaultNeedWant } from "@/lib/need-want"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
@@ -63,12 +64,13 @@ const PROMPT = [
   "ref: the slip's own transaction ID / reference / hash as printed (\"Trx. ID\", \"Reference #\", \"Hash\", \"លេខយោង\"), e.g. \"000234726282C4VF\"; null if not shown.",
   "to_account: the account or phone number the money went TO (\"To account\", \"ទៅគណនី\", the recipient's number), as printed; null if not shown.",
   'An EV CHARGING SCREEN (a car or charger app — e.g. "MG Marvel R", "Charging complete", "kW·h" / "kWh", a daily energy history) is not a slip: answer {"is_slip": false, "ev_charge": true, "kwh": number, "date": "YYYY-MM-DD" | null} — kwh: the energy charged on the latest (or highlighted) day; date: that day.',
+  'A FIXED / TERM DEPOSIT or GOAL SAVING account screen (labels like "Principle Amount", "Maturity Date", "Maturity Amount", "Interest Rate", "Goal Saving Purposes") is not a slip: answer {"is_slip": false, "term_deposit": true}.',
   'A LOAN REPAYMENT SCHEDULE (តារាងកាលវិភាគសងប្រាក់ / "Repayment Schedule": a bank or microfinance table of installments with dates, principal, interest and balance) is not a slip: answer {"is_slip": false, "loan_schedule": true}.',
   'A PAPER UTILITY BILL to be paid (electricity / water: EDC, AKISANI KOUR SROV, PPWSA — an invoice with an amount due and a due date, not a receipt of a payment) is not a slip: answer {"is_slip": false, "utility_bill": true}.',
   'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
-type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" } | { error: "ev_charge"; kwh: number; date: string | null }
+type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" | "term_deposit" } | { error: "ev_charge"; kwh: number; date: string | null }
 
 export type Answer = { text: string } | { fail: string }
 
@@ -155,6 +157,8 @@ export async function readSlip(fileId: string): Promise<ReadResult> {
     if ((raw as { utility_bill?: unknown })?.utility_bill === true) return { error: "utility_bill" }
     // A loan repayment schedule: the loan reader takes it (loan-schedule-bot.ts).
     if ((raw as { loan_schedule?: unknown })?.loan_schedule === true) return { error: "loan_schedule" }
+    // A fixed / term deposit: the deposit reader takes it (term-deposit-bot.ts).
+    if ((raw as { term_deposit?: unknown })?.term_deposit === true) return { error: "term_deposit" }
     // An EV charging screenshot: its day's kWh goes to the home charging log.
     const ev = raw as { ev_charge?: unknown; kwh?: unknown; date?: unknown }
     if (ev?.ev_charge === true) {
@@ -246,6 +250,7 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   }
   if ("error" in read && read.error === "utility_bill") return handleBillPhoto(chatId, fileId, ctx)
   if ("error" in read && read.error === "loan_schedule") return handleLoanSchedulePhoto(chatId, fileId)
+  if ("error" in read && read.error === "term_deposit") return handleTermDepositPhoto(chatId, fileId)
   if ("error" in read && read.error === "ev_charge") {
     return sendText(chatId, await logEvHome(chatId, `⚡ ${read.kwh} kWh · screenshot`, lang, { photo: fileId, day: read.date, kwh: read.kwh }))
   }
@@ -686,7 +691,21 @@ export async function handleNoteReply(chatId: number, replyTo: number, text: str
 }
 
 /** Webhook entry: a private photo from a linked chat (its caption becomes the note). */
+/**
+ * Every photo gets an answer — never silence: whatever goes wrong while reading it (a reader, the
+ * network, a bug), the polite «can't read this» reply with the manual-entry button still goes out.
+ */
 export async function handlePrivatePhoto(chatId: number, fileId: string, caption?: string | null) {
+  try {
+    return await routePrivatePhoto(chatId, fileId, caption)
+  } catch (e) {
+    logEvent("error", "slips", `Photo handling failed: ${(e as Error).message}`, { fold: true })
+    const ctx = await botContext(chatId).catch(() => null)
+    return sendText(chatId, tr(contextLocale(ctx), "bot.slipUnreadable"), { reply_markup: { inline_keyboard: [[{ text: tr(contextLocale(ctx), "bot.manualEntry"), url: `${DEFAULT_ABOUT.website}/transactions` }]] } })
+  }
+}
+
+async function routePrivatePhoto(chatId: number, fileId: string, caption?: string | null) {
   const ctx = await botContext(chatId)
   // The human first: a caption says what the photo is for, so it is followed before the picture is
   // read — the photo is then its evidence. Never "can't read this slip" for a clear caption.
