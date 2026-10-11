@@ -8,7 +8,7 @@ export async function compressImage(file: File, maxSide = 1280, quality = 0.75):
   if (!file.type.startsWith("image/")) throw new Error("Not an image")
   if (file.size > MAX_RECEIPT_INPUT_BYTES) throw new Error("Image too large")
 
-  const bitmap = await createImageBitmap(file)
+  const bitmap = await decodeOriented(file)
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
   const canvas = document.createElement("canvas")
   canvas.width = Math.round(bitmap.width * scale)
@@ -21,4 +21,26 @@ export async function compressImage(file: File, maxSide = 1280, quality = 0.75):
   return new Promise((resolve, reject) =>
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Encoding failed"))), "image/jpeg", quality),
   )
+}
+
+/**
+ * The photo decoded upright: a phone's portrait shot carries its rotation in EXIF, and reading the
+ * raw pixels swaps width and height (a card cropped from the wrong axes → a thin strip). Browsers
+ * apply EXIF with imageOrientation "from-image" (the default in current ones; set explicitly for
+ * older WebViews), and an <img> decode applies it everywhere as the last resort.
+ */
+export async function decodeOriented(image: Blob): Promise<ImageBitmap> {
+  try {
+    return await createImageBitmap(image, { imageOrientation: "from-image" })
+  } catch {
+    const url = URL.createObjectURL(image)
+    try {
+      const img = new Image()
+      img.src = url
+      await img.decode()
+      return await createImageBitmap(img)
+    } finally {
+      URL.revokeObjectURL(url)
+    }
+  }
 }

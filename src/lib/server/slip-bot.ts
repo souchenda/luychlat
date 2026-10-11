@@ -75,7 +75,7 @@ type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bil
 export type Answer = { text: string } | { fail: string }
 
 /** Gemini Vision's raw answer (retrying brief overloads). */
-export async function askGemini(key: string, type: string, image: string, prompt: string = PROMPT, maxTokens = 600): Promise<Answer> {
+export async function askGemini(key: string, type: string, image: string, prompt: string = PROMPT, maxTokens = 600, timeoutMs = 20_000): Promise<Answer> {
   const request = () =>
     fetch(GEMINI_URL, {
       method: "POST",
@@ -85,7 +85,7 @@ export async function askGemini(key: string, type: string, image: string, prompt
         generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } },
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(timeoutMs),
     })
   try {
     // Quick 429 / 5xx answers are retried; a request that hangs goes straight to the fallback.

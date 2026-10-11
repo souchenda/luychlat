@@ -69,7 +69,8 @@ export async function POST(request: Request) {
   const groq = process.env.GROQ_API_KEY?.trim()
   const readers: [string, () => Promise<Answer>][] = []
   const prompt = back ? BACK_PROMPT : kind ? cardPrompt(kind) : PROMPT
-  if (gemini) readers.push(["Gemini", () => askGemini(gemini, file.type, image, prompt)])
+  // 35 s: card photos are larger than slips, and Gemini timing out at 20 s left the card uncropped.
+  if (gemini) readers.push(["Gemini", () => askGemini(gemini, file.type, image, prompt, 600, 35_000)])
   // Corners need a careful reader: Groq (weaker at locating) only reads the front's text.
   if (groq && !back) readers.push(["Groq", () => askGroq(groq, file.type, image, prompt)])
   for (const [name, ask] of readers) {

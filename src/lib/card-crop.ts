@@ -302,3 +302,36 @@ export function localCardBox(px: Uint8ClampedArray, width: number, height: numbe
   const dy = Math.round(box.h * inset)
   return { x: box.x + dx, y: box.y + dy, w: box.w - 2 * dx, h: box.h - 2 * dy }
 }
+
+/**
+ * The safe fallback when nothing found the card (Vision timed out, no edges on the phone): the
+ * largest ID-1 rectangle (85.6 × 54 mm, landscape) that fits in `fill` of the photo, centred —
+ * where people hold the card. The user keeps going and can crop again or retake.
+ */
+export function centerCardBox(width: number, height: number, fill = 0.9): Box {
+  let w = Math.round(width * fill)
+  let h = Math.round(w / CARD_RATIO)
+  if (h > height * fill) {
+    h = Math.round(height * fill)
+    w = Math.round(h * CARD_RATIO)
+  }
+  return { x: Math.round((width - w) / 2), y: Math.round((height - h) / 2), w, h }
+}
+
+/** A crop clearly taller than wide is a card photographed sideways: it is turned to landscape. */
+export const isSideways = (w: number, h: number) => h > w * 1.15
+
+/** The pixels turned 90° clockwise (w × h → h × w), as the corner path turns a sideways card. */
+export function rotate90(px: Uint8ClampedArray, w: number, h: number): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(px.length)
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const from = (y * w + x) * 4
+      const to = (x * h + (h - 1 - y)) * 4
+      out[to] = px[from]
+      out[to + 1] = px[from + 1]
+      out[to + 2] = px[from + 2]
+      out[to + 3] = px[from + 3]
+    }
+  return out
+}

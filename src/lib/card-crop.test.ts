@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { applyH, CARD_H, CARD_W, cleanBox, cleanCorners, cropBox, homography, isCardFrame, localCardBox, orderCorners, sharpen, warpCard, type Quad } from "./card-crop"
+import { applyH, CARD_H, CARD_RATIO, CARD_W, centerCardBox, cleanBox, cleanCorners, cropBox, homography, isCardFrame, isSideways, localCardBox, orderCorners, rotate90, sharpen, warpCard, type Quad } from "./card-crop"
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`)
 
@@ -121,5 +121,31 @@ describe("a photo that is already just the card", () => {
     assert.equal(isCardFrame(660, 1060), true)
     assert.equal(isCardFrame(1200, 1600), false)
     assert.equal(isCardFrame(1600, 1200), false)
+  })
+})
+
+describe("card crop — never blocks the user", () => {
+  it("a portrait phone photo (2400 × 3200) with nothing found: a centred landscape card, 90% wide", () => {
+    const b = centerCardBox(2400, 3200)
+    assert.deepEqual(b, { x: 120, y: 919, w: 2160, h: 1363 })
+    near(b.w / b.h, CARD_RATIO, 0.01)
+    assert.ok(b.w > b.h)
+  })
+  it("a wide photo: limited by its height, still centred", () => {
+    const b = centerCardBox(4000, 1000)
+    assert.equal(b.h, 900)
+    assert.equal(b.y, 50)
+    near(b.x + b.w / 2, 2000, 1)
+  })
+  it("a tall crop (a card shot sideways) is turned to landscape; a landscape one is not", () => {
+    assert.ok(isSideways(600, 950))
+    assert.ok(!isSideways(950, 600))
+    assert.ok(!isSideways(800, 850))
+    // 2 × 3 pixels, each red channel = its index: turned clockwise it is 3 × 2.
+    const px = new Uint8ClampedArray(2 * 3 * 4)
+    for (let i = 0; i < 6; i++) px[i * 4] = i
+    const out = rotate90(px, 2, 3)
+    // Clockwise: the bottom-left pixel (index 4) becomes the top-left; the top-left (0) the top-right.
+    assert.deepEqual([0, 1, 2, 3, 4, 5].map((i) => out[i * 4]), [4, 2, 0, 5, 3, 1])
   })
 })

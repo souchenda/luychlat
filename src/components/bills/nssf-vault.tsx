@@ -73,8 +73,8 @@ function PhotoPicker({
       // Full resolution: the stored card (cut out of this) must stay legible letter by letter when zoomed.
       const image = await compressImage(file, 3200, 0.95)
       // Only the clean card is kept (the table and the background are cut away) — never the raw photo.
-      const stored = prepare ? await prepare(image) : image
-      if (!stored) return void toast.error(t("nssf.cropFailed"))
+      // Never blocked: when nothing could be cut out, the upright photo itself is kept.
+      const stored = (prepare ? await prepare(image) : image) ?? image
       const next = await uploadPhoto(stored)
       if (path) await removePhoto(path)
       onChange(next)
@@ -97,7 +97,8 @@ function PhotoPicker({
       const res = url ? await fetch(url, { cache: "no-store" }) : null
       if (!res?.ok) return void toast.error(t("common.error"))
       const card = await recrop(await res.blob())
-      if (!card) return void toast.error(t("nssf.cropFailed"))
+      // No edges found again: the kept photo stays as it is (never cut smaller and smaller).
+      if (!card) return void toast.info(t("nssf.cropKept"))
       const next = await uploadPhoto(card)
       await removePhoto(current)
       onChange(next)
@@ -204,6 +205,10 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
       const json = (await res?.json().catch(() => null)) as { card?: NssfCard; corners?: unknown; box?: unknown; error?: string } | null
       const crop = await cropCardImage(image, json?.corners, json?.box)
       if (!crop.blob) reportCrop("front", crop.why)
+      else if (crop.how === "center") {
+        reportCrop("front", `centred fallback — ${crop.why}`)
+        toast.info(t("nssf.cropApprox"))
+      }
       const cropped = crop.blob ?? null
       const merged = mergeQrIdentity(json?.card ?? null, identityFromQr(qr))
       const card = merged.card
@@ -235,7 +240,7 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
   }
 
   /** Only cut out (nothing to read): the back of a card, or a stored photo cropped again. */
-  const cropOnly = (side: "back" | "crop") => (image: Blob) => cropCardPhoto(image, side)
+  const cropOnly = (side: "back" | "crop") => (image: Blob) => cropCardPhoto(image, side, side === "crop" ? { approx: false } : { onApprox: () => toast.info(t("nssf.cropApprox")) })
 
   /** The back: its QR (when the card has it there) is read on the phone before the card is cut out. */
   const scanBack = async (image: Blob): Promise<Blob | null> => {
@@ -248,7 +253,7 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
       if (merged.card) applyCard(merged.card)
       toast.success(t(merged.idCorrected ? "nssf.qrCorrected" : "nssf.qrRead"))
     }
-    return cropCardPhoto(image, "back")
+    return cropCardPhoto(image, "back", { onApprox: () => toast.info(t("nssf.cropApprox")) })
   }
 
   useEffect(() => {
@@ -429,7 +434,7 @@ function useCropBackfill(members: NssfMember[]) {
           const url = await signedPhotoUrl(path)
           const res = url ? await fetch(url, { cache: "no-store" }) : null
           if (!res?.ok) continue
-          const card = await cropCardPhoto(await res.blob(), "crop")
+          const card = await cropCardPhoto(await res.blob(), "crop", { approx: false })
           if (!card) continue
           const next = await uploadPhoto(card)
           await save.mutateAsync({

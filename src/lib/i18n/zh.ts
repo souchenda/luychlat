@@ -3546,6 +3546,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nssf.takePhoto": "拍照",
   "nssf.fromGallery": "从相册选择",
   "nssf.cropFailed": "未能找到卡片边缘，请重新拍摄完整卡片（带背景的照片不会保存）。",
+  "nssf.cropApprox": "已按标准卡片尺寸裁剪，如不准确请点“重新裁剪”或重新拍摄",
+  "nssf.cropKept": "未能找到卡片边缘，照片保持原样",
   "nssf.recrop": "重新裁剪",
   "nssf.recropped": "已裁剪，只保留卡片",
   "nssf.backfilled": "✂️ 已裁剪 {count} 张社保卡照片，只保留卡片",

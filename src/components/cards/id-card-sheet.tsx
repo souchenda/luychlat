@@ -128,8 +128,7 @@ export function IdCardSheet({ kind, card, onClose }: { kind: CardKind; card: IdC
   }
 
   const store = async (side: "front" | "back", blob: Blob | null) => {
-    if (!spec.storesPhotos) return
-    if (!blob) return void toast.error(t("nssf.cropFailed"))
+    if (!spec.storesPhotos || !blob) return
     const path = await uploadPhoto(blob)
     const old = form[side]
     if (old && old !== card?.[side === "front" ? "front_path" : "back_path"]) await removePhoto(old)
@@ -150,7 +149,12 @@ export function IdCardSheet({ kind, card, onClose }: { kind: CardKind; card: IdC
       if (spec.storesPhotos) {
         const crop = await cropCardImage(image, json?.corners, json?.box)
         if (!crop.blob) reportCrop(`${kind} front`, crop.why)
-        await store("front", crop.blob)
+        else if (crop.how === "center") {
+          reportCrop(`${kind} front`, `centred fallback — ${crop.why}`)
+          toast.info(t("nssf.cropApprox"))
+        }
+        // Never blocked: when nothing could be cut out, the upright photo itself is kept.
+        await store("front", crop.blob ?? image)
       }
       if (!json?.read && !fromCode) toast.info(t(json?.error === "busy" || !res ? "nssf.ocrBusy" : "nssf.ocrNone"))
       else toast.success(t(fromCode ? "cards.fromCode" : json?.read?.uncertain ? "cards.readUncertain" : "nssf.ocrFilled"))
@@ -165,7 +169,7 @@ export function IdCardSheet({ kind, card, onClose }: { kind: CardKind; card: IdC
     setBusy("back")
     try {
       if (applyCode(await decodeCardCode(image))) toast.success(t("cards.fromCode"))
-      await store("back", await cropCardPhoto(image, "back"))
+      await store("back", (await cropCardPhoto(image, "back", { onApprox: () => toast.info(t("nssf.cropApprox")) })) ?? image)
     } catch {
       toast.error(t("common.error"))
     } finally {
