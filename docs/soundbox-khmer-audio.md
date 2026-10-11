@@ -24,7 +24,11 @@ Two ways to make them:
 
 1. **Record** (best): one Khmer speaker, a quiet room, the phone's voice recorder; say each word
    clearly at the same pace; trim and export as MP3 with the names above.
-2. **Google Cloud Text-to-Speech** (licensed): `GOOGLE_TTS_API_KEY=… node scripts/soundbox-khmer-tts.mjs`
+2. **Azure AI Speech** (licensed; chosen 11/10/2026 — voice km-KH-SreymomNeural, Free F0 tier):
+   `AZURE_SPEECH_KEY=… AZURE_SPEECH_REGION=southeastasia node scripts/soundbox-khmer-tts.mjs`
+   — checks the key, lists Azure's km-KH voices and writes the 27 files. Never Edge-TTS (Edge's
+   read-aloud service is not licensed for other apps).
+3. **Google Cloud Text-to-Speech** (licensed): `GOOGLE_TTS_API_KEY=… node scripts/soundbox-khmer-tts.mjs`
    — it lists Google's km-KH voices and writes the 27 files (stops if the project has none).
 
 Then commit `public/audio/soundbox/khmer/` and deploy; the «សាកស្ដាប់» button on /soundbox plays

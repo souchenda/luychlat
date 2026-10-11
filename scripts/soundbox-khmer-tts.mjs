@@ -1,21 +1,27 @@
 #!/usr/bin/env node
 /**
- * Makes the SoundBox's 27 Khmer clips (public/audio/soundbox/khmer/<name>.mp3) with Google Cloud
- * Text-to-Speech, a licensed service — iPhones ship no Khmer voice, so Khmer amounts are joined
- * from these clips. Run it on your own machine with your own key (never committed):
+ * Makes the SoundBox's 27 Khmer clips (public/audio/soundbox/khmer/<name>.mp3) with a licensed
+ * text-to-speech service — iPhones ship no Khmer voice, so Khmer amounts are joined from these
+ * clips. Run it on your own machine with your own key, set only in your terminal (never committed,
+ * never pasted in chat):
  *
- *   GOOGLE_TTS_API_KEY=… node scripts/soundbox-khmer-tts.mjs            # the first km-KH voice
- *   GOOGLE_TTS_API_KEY=… KHMER_VOICE=km-KH-Standard-B node scripts/soundbox-khmer-tts.mjs
+ *   Azure AI Speech (km-KH-SreymomNeural, the default when both are set — founder, 11/10/2026):
+ *     AZURE_SPEECH_KEY=… AZURE_SPEECH_REGION=southeastasia node scripts/soundbox-khmer-tts.mjs
+ *     (another Azure Khmer voice: KHMER_VOICE=km-KH-PisethNeural)
  *
- * It lists Google's Khmer voices first and stops if there are none. Recordings by a Khmer speaker
- * (docs/soundbox-khmer-audio.md) are just as good: the same file names, then commit them.
+ *   Google Cloud Text-to-Speech:
+ *     GOOGLE_TTS_API_KEY=… node scripts/soundbox-khmer-tts.mjs
+ *
+ * Recordings by a Khmer speaker (docs/soundbox-khmer-audio.md) are just as good: the same file names.
  */
 import { mkdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
+const AZURE_KEY = process.env.AZURE_SPEECH_KEY?.trim()
+const AZURE_REGION = process.env.AZURE_SPEECH_REGION?.trim()
 const KEY = process.env.GOOGLE_TTS_API_KEY?.trim()
-if (!KEY) {
-  console.error("Set GOOGLE_TTS_API_KEY (a Google Cloud API key with Text-to-Speech enabled).")
+if (!(AZURE_KEY && AZURE_REGION) && !KEY) {
+  console.error("Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION (Azure AI Speech), or GOOGLE_TTS_API_KEY (Google Cloud TTS).")
   process.exit(1)
 }
 
@@ -50,6 +56,45 @@ const WORDS = {
   cent: "សេន",
 }
 
+const out = join(process.cwd(), "public", "audio", "soundbox", "khmer")
+mkdirSync(out, { recursive: true })
+
+if (AZURE_KEY && AZURE_REGION) {
+  const base = `https://${AZURE_REGION}.tts.speech.microsoft.com/cognitiveservices`
+  const headers = { "Ocp-Apim-Subscription-Key": AZURE_KEY }
+  const list = await fetch(`${base}/voices/list`, { headers })
+  if (!list.ok) {
+    console.error(`Azure AI Speech refused the key / region (HTTP ${list.status}). Check AZURE_SPEECH_KEY and AZURE_SPEECH_REGION (e.g. southeastasia).`)
+    process.exit(1)
+  }
+  const khmer = (await list.json()).filter((v) => v.Locale === "km-KH").map((v) => v.ShortName)
+  const voice = khmer.find((v) => v === (process.env.KHMER_VOICE || "km-KH-SreymomNeural")) ?? khmer[0]
+  if (!voice) {
+    console.error("Azure AI Speech lists no km-KH voice in this region.")
+    process.exit(1)
+  }
+  console.log(`Azure Khmer voices: ${khmer.join(", ")} — using ${voice}`)
+  const xml = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  for (const [name, text] of Object.entries(WORDS)) {
+    // Slightly quick and loud: joined clips should sound like one sentence on a counter speaker.
+    const ssml = `<speak version="1.0" xml:lang="km-KH"><voice name="${voice}"><prosody rate="+10%" volume="+20%">${xml(text)}</prosody></voice></speak>`
+    const res = await fetch(`${base}/v1`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/ssml+xml", "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3", "User-Agent": "luychlat-soundbox" },
+      body: ssml,
+    })
+    if (!res.ok) {
+      console.error(`${name}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`)
+      process.exit(1)
+    }
+    writeFileSync(join(out, `${name}.mp3`), Buffer.from(await res.arrayBuffer()))
+    console.log(`✓ ${name}.mp3  ${text}`)
+  }
+  console.log(`
+27 clips in ${out}. Listen to a few, then commit public/audio/soundbox/khmer/.`)
+  process.exit(0)
+}
+
 const api = "https://texttospeech.googleapis.com/v1"
 const voices = await fetch(`${api}/voices?languageCode=km-KH&key=${KEY}`).then((r) => r.json())
 const khmer = (voices.voices ?? []).filter((v) => v.languageCodes?.includes("km-KH"))
@@ -61,8 +106,6 @@ if (!khmer.length) {
 const voice = khmer.find((v) => v.name === process.env.KHMER_VOICE) ?? khmer[0]
 console.log(`Khmer voices: ${khmer.map((v) => v.name).join(", ")} — using ${voice.name}`)
 
-const out = join(process.cwd(), "public", "audio", "soundbox", "khmer")
-mkdirSync(out, { recursive: true })
 for (const [name, text] of Object.entries(WORDS)) {
   const res = await fetch(`${api}/text:synthesize?key=${KEY}`, {
     method: "POST",
