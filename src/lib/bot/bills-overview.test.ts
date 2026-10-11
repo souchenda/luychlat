@@ -14,7 +14,7 @@ const BILLS: OverviewBill[] = [
 describe("bot /bills — the overview", () => {
   const text = billsOverviewText(BILLS, "2026-10-11", "ផ្ទាល់ខ្លួន")
   it("bills due within a week, with amounts and days left", () => {
-    assert.match(text, /^🧾 វិក្កយបត្រ និងការរំលឹក · ផ្ទាល់ខ្លួន/)
+    assert.match(text, /^🧾 វិក្កយបត្រ និងការរំលឹកកាលកំណត់ · ផ្ទាល់ខ្លួន/)
     assert.match(text, /🟠 ក្នុង ៧ ថ្ងៃខាងមុខ\n• Cambodian Labor Care PLC — \$244\.00 · 13\/10 \(នៅសល់ 2 ថ្ងៃ\)\n• អគ្គិសនី · ផ្ទះ 37 — 692,100៛ · 15\/10 \(នៅសល់ 4 ថ្ងៃ\)/)
   })
   it("the fixed deposit apart, as money coming in (10 days)", () => {

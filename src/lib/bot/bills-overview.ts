@@ -19,7 +19,7 @@ function when(today: string, due: string): string {
   return d < 0 ? `ហួស ${-d} ថ្ងៃ` : d === 0 ? "ថ្ងៃនេះ" : d === 1 ? "ស្អែក" : `នៅសល់ ${d} ថ្ងៃ`
 }
 
-export const NOTHING_DUE = "ពុំមានវិក្កយបត្រដែលត្រូវបង់នៅឡើយទេ 🎉"
+export const NOTHING_DUE = "ពុំមានវិក្កយបត្រដែលត្រូវបង់នៅពេលនេះទេ។"
 
 export function billsOverviewText(bills: OverviewBill[], today: string, workspace: string | null): string {
   const deposits = bills.filter((b) => b.kind === "DEPOSIT")
@@ -28,7 +28,7 @@ export function billsOverviewText(bills: OverviewBill[], today: string, workspac
   const overdue = payable.filter((b) => days(today, b.due) < 0 && !paidNow(b, today))
   const soon = payable.filter((b) => days(today, b.due) >= 0 && days(today, b.due) <= 7)
   const later = payable.filter((b) => days(today, b.due) > 7)
-  const out = [`🧾 វិក្កយបត្រ និងការរំលឹក${workspace ? ` · ${workspace}` : ""}`, "", "🔔 វិក្កយបត្រប្រចាំខែដែលត្រូវបង់"]
+  const out = [`🧾 វិក្កយបត្រ និងការរំលឹកកាលកំណត់${workspace ? ` · ${workspace}` : ""}`, "", "🔔 វិក្កយបត្រប្រចាំខែដែលត្រូវបង់"]
   if (!payable.length) out.push(NOTHING_DUE)
   if (!bills.length) {
     out.push("", "ចុច «➕ បន្ថែមវិក្កយបត្រ» ដើម្បីកំណត់ការរំលឹក។")

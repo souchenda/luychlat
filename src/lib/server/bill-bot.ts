@@ -168,7 +168,7 @@ export async function sendBillsOverview(chatId: number) {
   const bills = (r.bills ?? []).map((b) => ({ ...b, amount: Number(b.amount) }))
   return sendText(chatId, billsOverviewText(bills, phnomPenhToday().day, r.workspace ?? null), {
     reply_markup: {
-      inline_keyboard: [[{ text: "📱 បើកមើលវិក្កយបត្រក្នុងអេប លុយឆ្លាត", url: `${SITE_URL}/bills` }], [{ text: "➕ បន្ថែមវិក្កយបត្រ", url: `${SITE_URL}/bills?add=1` }]],
+      inline_keyboard: [[{ text: "🌐 បើកមើលវិក្កយបត្រពេញលេញ", url: `${SITE_URL}/bills` }], [{ text: "➕ បន្ថែមវិក្កយបត្រ", url: `${SITE_URL}/bills?add=1` }]],
     },
   })
 }
