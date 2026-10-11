@@ -10,6 +10,7 @@ import { EmailLogin } from "@/components/auth/email-login"
 import { PhoneLogin } from "@/components/auth/phone-login"
 import { SocialLogin } from "@/components/auth/social-login"
 import { ReferralCapture } from "@/components/billing/referral"
+import { KeepTogether } from "@/components/keep-together"
 import { BrandMark } from "@/components/brand-mark"
 import { useGuestSummary } from "@/components/settings/guest-import"
 import { LanguageToggle } from "@/components/layout/language-toggle"
@@ -20,6 +21,9 @@ import { hasGuestData } from "@/lib/data/guest-import"
 import { useT } from "@/lib/i18n/use-t"
 import { authMethods, isSupabaseConfigured } from "@/lib/supabase/config"
 import { useSessionStore } from "@/stores/session-store"
+
+/** Phrases of the guarantee line that never break (Khmer words have no spaces between them). */
+const GUARANTEE_KEEP = /ដាច់ដោយឡែកពីគ្នា|ការសម្ងាត់ ១០០%|១០០%|100%|ស្លីបធនាគារ|bank slips/
 
 const FEATURES = [
   { key: "login.featureScan", icon: ScanLineIcon },
@@ -96,19 +100,28 @@ export default function LoginPage() {
         </div>
 
         {/* Brand: logo, then title, then the card — each a beat after the last. */}
-        <div className="mb-3 flex flex-col items-center text-center">
-          <BrandMark className="size-16 rounded-[1.35rem] bg-linear-to-br from-emerald-500 to-teal-600 text-3xl text-white shadow-lg shadow-emerald-600/30 ring-1 ring-white/40 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none dark:ring-white/10" />
-          <h1 className="mt-3 text-2xl font-bold delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "អេប លុយឆ្លាត"}</h1>
+        <div className="mb-2.5 flex flex-col items-center text-center">
+          <BrandMark className="size-16 rounded-[1.35rem] bg-linear-to-br from-emerald-500 to-teal-600 text-3xl text-white shadow-lg shadow-emerald-500/20 ring-4 ring-emerald-500/10 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none dark:ring-emerald-400/15" />
+          <h1 className="mt-2.5 text-2xl font-bold delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "អេប លុយឆ្លាត"}</h1>
           <p className="mt-0.5 text-sm text-neutral-500 delay-75 dark:text-neutral-400 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated && t("app.tagline")}</p>
         </div>
 
         {hydrated && (
-          <section className="rounded-3xl border border-white/60 bg-white/85 px-5 py-5 shadow-2xl shadow-emerald-500/10 backdrop-blur-xl delay-150 dark:border-emerald-500/20 dark:bg-zinc-900/85 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+          <section className="rounded-3xl border border-white/60 bg-white/85 px-5 py-4 shadow-2xl shadow-emerald-500/10 backdrop-blur-xl delay-150 sm:py-5 dark:border-emerald-500/20 dark:bg-zinc-900/85 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
             <div className="flex flex-col gap-3">
               {/* Trust line at the top of the card. */}
-              <p className="mx-auto flex max-w-full items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] px-3 py-1 text-center text-[11px] leading-snug font-medium text-emerald-800 dark:text-emerald-300">
+              <p className="mx-auto flex max-w-full items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] px-2.5 py-1 text-[10.5px] leading-snug font-medium text-emerald-800 dark:text-emerald-300">
                 <LockKeyholeIcon className="size-3.5 shrink-0" aria-hidden />
-                {t("login.trust")}
+                <span className="flex flex-wrap justify-center gap-x-1 text-center">
+                  {t("login.trust")
+                    .split(" · ")
+                    .map((part, i, all) => (
+                      <span key={i} className="whitespace-nowrap">
+                        {part}
+                        {i < all.length - 1 && " ·"}
+                      </span>
+                    ))}
+                </span>
               </p>
               <h2 className="text-base font-semibold">{t("login.title")}</h2>
 
@@ -160,9 +173,9 @@ export default function LoginPage() {
               )}
 
               {/* The guarantee, under the button. */}
-              <p className="flex items-start justify-center gap-1.5 border-t border-neutral-100 pt-3 text-center text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
-                <ShieldCheckIcon className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                {t("login.guarantee")}
+              <p className="border-t border-neutral-100 pt-3 text-center text-xs leading-relaxed text-balance text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+                <ShieldCheckIcon className="mr-1 inline size-3.5 -translate-y-px align-middle text-emerald-600 dark:text-emerald-400" aria-hidden />
+                <KeepTogether text={t("login.guarantee")} keep={GUARANTEE_KEEP} />
               </p>
             </div>
           </section>
@@ -170,7 +183,7 @@ export default function LoginPage() {
 
         {/* What the app does, in three short lines. */}
         {hydrated && (
-          <ul className="mt-4 flex flex-wrap justify-center gap-2 delay-200 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+          <ul className="mt-3 flex flex-wrap justify-center gap-1.5 delay-200 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
             {FEATURES.map(({ key, icon: Icon }) => (
               <li key={key} className="flex cursor-default items-center gap-1.5 rounded-full border border-neutral-200/80 bg-white/70 px-3 py-1 text-xs text-neutral-600 backdrop-blur-sm transition-all duration-200 select-none hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-white hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.97] motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300 dark:hover:bg-neutral-900">
                 <Icon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />
@@ -180,7 +193,7 @@ export default function LoginPage() {
           </ul>
         )}
 
-        <div className="mt-auto">{hydrated && <LoginFooter />}</div>
+        <div className="mt-auto pt-2">{hydrated && <LoginFooter />}</div>
       </main>
     </div>
   )

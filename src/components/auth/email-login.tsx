@@ -313,7 +313,7 @@ export function EmailLogin({ disabled, initialEmail = "" }: { disabled?: boolean
       {notice && <p className="rounded-xl bg-emerald-50 p-3 text-sm leading-relaxed text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">{notice}</p>}
       <Button
         type="submit"
-        className="relative h-11 w-full overflow-hidden rounded-xl bg-emerald-600 text-sm font-medium text-white shadow-md shadow-emerald-600/20 transition-[transform,box-shadow,background-color] duration-200 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/30 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
+        className="relative h-11 w-full overflow-hidden rounded-xl bg-linear-to-r from-emerald-600 via-emerald-600 to-teal-600 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-all duration-200 hover:from-emerald-500 hover:to-teal-500 hover:shadow-emerald-600/35 active:scale-[0.98] disabled:opacity-60 disabled:shadow-none"
         disabled={disabled || busy}
       >
         {!(disabled || busy) && (
