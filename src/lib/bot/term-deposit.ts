@@ -3,6 +3,7 @@
  * Vision reads, the goal wallet and maturity reminder it becomes, and the bot's confirmation.
  * Pure (term-deposit.test.ts); the reading is src/lib/server/term-deposit-bot.ts.
  */
+import { providerForName } from "@/lib/wallets/providers"
 
 export type TermDeposit = {
   bank: string | null
@@ -21,7 +22,7 @@ export const DEPOSIT_PROMPT = [
   "This image should be a bank app screen of a FIXED / TERM DEPOSIT or GOAL SAVING account (labels like \"Principle Amount\", \"Principal\", \"Maturity Date\", \"Maturity Amount\", \"Interest Rate\", \"Goal Saving Purposes\", \"Account Details\", ប្រាក់បញ្ញើមានកាលកំណត់).",
   "Answer JSON only:",
   '{"is_deposit": boolean, "bank": string | null, "account_number": string | null, "currency": "KHR" | "USD", "principal": number, "maturity_amount": number | null, "interest_rate": number | null, "open_date": "YYYY-MM-DD" | null, "maturity_date": "YYYY-MM-DD", "payout_account": string | null}',
-  "bank: the bank whose app it is (ACLEDA, ABA, Wing, Canadia, Sathapana…). account_number: the deposit's account number as printed. payout_account: the account the money is paid to at maturity, if shown.",
+  "bank: the bank whose app it is, from its logo, brand name and colours (Chip Mong Bank, ACLEDA, ABA, PRASAC, Canadia, Sathapana, Wing, Amret, J Trust, PPCBank…) — never assumed: if no bank is identifiable, null. account_number: the deposit's account number as printed. payout_account: the account the money is paid to at maturity, if shown.",
   "principal: the deposited amount (\"Principle Amount\" / \"Principal\"); maturity_amount: the amount paid at maturity; interest_rate: the yearly rate in percent (6.25 for \"6.25%\").",
   "Amounts are numbers without separators (\"37,321,570.14\" → 37321570.14). Dates as YYYY-MM-DD (\"21 Oct 2026\" → 2026-10-21; dd/mm/yyyy is day first).",
   'If it is not a deposit account screen, or the principal or maturity date is unreadable, answer {"is_deposit": false}.',
@@ -57,27 +58,37 @@ export function cleanTermDeposit(raw: unknown): TermDeposit | null {
   }
 }
 
-const BANK_ICON: [RegExp, string][] = [
-  [/acleda/i, "acleda"],
-  [/\baba\b/i, "aba"],
-  [/ppc/i, "ppcbank"],
-]
+/** The bank as the app names it everywhere (wallet providers: «Chip Mong Bank» and its logo), else as read. */
+export function depositBank(bank: string | null): { label: string; icon: string } {
+  const provider = providerForName(bank)
+  return provider ? { label: provider.name.en, icon: provider.key } : { label: bank ?? "Bank", icon: "other" }
+}
 
-/** «ACLEDA FD ***0102» — the wallet's name (the account number never in full). */
+/** «Chip Mong Bank FD ***0102» — the wallet's name (the account number never in full). */
 export function depositWalletName(d: Pick<TermDeposit, "bank" | "accountNumber">): string {
-  return [d.bank ?? "Bank", "FD", d.accountNumber ? `***${d.accountNumber.slice(-4)}` : null].filter(Boolean).join(" ")
+  return [depositBank(d.bank).label, "FD", d.accountNumber ? `***${d.accountNumber.slice(-4)}` : null].filter(Boolean).join(" ")
+}
+
+const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
+const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
+
+/** «Chip Mong Bank — បញ្ញើមានកាលកំណត់ (ដល់កំណត់ ២១ តុលា ២០២៦)» — the /bills reminder's title. */
+export function depositBillTitle(d: Pick<TermDeposit, "bank" | "maturityDate">): string {
+  const [y, m, day] = d.maturityDate.split("-").map(Number)
+  return `${depositBank(d.bank).label} — បញ្ញើមានកាលកំណត់ (ដល់កំណត់ ${kmDigits(String(day))} ${KM_MONTHS[m - 1]} ${kmDigits(String(y))})`
 }
 
 /** What bot_term_deposit saves. */
 export function depositPayload(d: TermDeposit) {
   return {
-    bank: d.bank,
+    bank: depositBank(d.bank).label,
     wallet_name: depositWalletName(d),
+    bill_title: depositBillTitle(d),
     currency: d.currency,
     principal: d.principal,
     maturity_amount: d.maturityAmount,
     maturity_date: d.maturityDate,
-    icon: BANK_ICON.find(([re]) => re.test(d.bank ?? ""))?.[1] ?? "other",
+    icon: depositBank(d.bank).icon,
   }
 }
 

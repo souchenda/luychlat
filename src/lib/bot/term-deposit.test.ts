@@ -1,12 +1,12 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { cleanTermDeposit, daysTo, depositPayload, depositText, depositWalletName } from "./term-deposit"
+import { cleanTermDeposit, daysTo, depositBillTitle, depositPayload, depositText, depositWalletName } from "./term-deposit"
 
-// The founder's ACLEDA Goal Saving screenshot (11/10/2026), as Vision reads it.
-const ACLEDA_FD = {
+// The founder's Chip Mong Bank fixed deposit screenshot (11/10/2026 — Chip Mong, not ACLEDA), as Vision reads it.
+const CHIP_MONG_FD = {
   is_deposit: true,
-  bank: "ACLEDA",
+  bank: "Chip Mong Bank",
   account_number: "10120102",
   currency: "KHR",
   principal: "37,321,570.14",
@@ -17,11 +17,11 @@ const ACLEDA_FD = {
   payout_account: "16824223",
 }
 
-describe("fixed deposit — reading the ACLEDA screenshot", () => {
-  const d = cleanTermDeposit(ACLEDA_FD)!
+describe("fixed deposit — reading the Chip Mong Bank screenshot", () => {
+  const d = cleanTermDeposit(CHIP_MONG_FD)!
   it("the fields", () => {
     assert.deepEqual(d, {
-      bank: "ACLEDA",
+      bank: "Chip Mong Bank",
       accountNumber: "10120102",
       currency: "KHR",
       principal: 37_321_570.14,
@@ -33,15 +33,16 @@ describe("fixed deposit — reading the ACLEDA screenshot", () => {
     })
   })
   it("the goal wallet: masked name, balance = principal, goal = maturity amount by the maturity date", () => {
-    assert.equal(depositWalletName(d), "ACLEDA FD ***0102")
+    assert.equal(depositWalletName(d), "Chip Mong Bank FD ***0102")
     assert.deepEqual(depositPayload(d), {
-      bank: "ACLEDA",
-      wallet_name: "ACLEDA FD ***0102",
+      bank: "Chip Mong Bank",
+      wallet_name: "Chip Mong Bank FD ***0102",
+      bill_title: "Chip Mong Bank — បញ្ញើមានកាលកំណត់ (ដល់កំណត់ ២១ តុលា ២០២៦)",
       currency: "KHR",
       principal: 37_321_570.14,
       maturity_amount: 38_192_137.57,
       maturity_date: "2026-10-21",
-      icon: "acleda",
+      icon: "chipmong",
     })
   })
   it("the confirmation: amounts, interest earned, 10 days to maturity", () => {
@@ -58,8 +59,18 @@ describe("fixed deposit — reading the ACLEDA screenshot", () => {
 describe("fixed deposit — what isn't accepted", () => {
   it("not a deposit, no principal or maturity date; a maturity amount below the principal is dropped", () => {
     assert.equal(cleanTermDeposit({ is_deposit: false }), null)
-    assert.equal(cleanTermDeposit({ ...ACLEDA_FD, principal: null }), null)
-    assert.equal(cleanTermDeposit({ ...ACLEDA_FD, maturity_date: "21 Oct 2026" }), null)
-    assert.equal(cleanTermDeposit({ ...ACLEDA_FD, maturity_amount: 1000 })?.maturityAmount, null)
+    assert.equal(cleanTermDeposit({ ...CHIP_MONG_FD, principal: null }), null)
+    assert.equal(cleanTermDeposit({ ...CHIP_MONG_FD, maturity_date: "21 Oct 2026" }), null)
+    assert.equal(cleanTermDeposit({ ...CHIP_MONG_FD, maturity_amount: 1000 })?.maturityAmount, null)
+  })
+})
+
+describe("fixed deposit — the bank is the one on the screen", () => {
+  it("named as the app names it (and its logo); never ACLEDA by default", () => {
+    assert.equal(depositWalletName({ bank: "CHIP MONG BANK PLC", accountNumber: "10120102" }), "Chip Mong Bank FD ***0102")
+    assert.equal(depositPayload(cleanTermDeposit({ ...CHIP_MONG_FD, bank: "ChipMong" })!).icon, "chipmong")
+    assert.equal(depositWalletName({ bank: "ACLEDA Bank Plc.", accountNumber: "1" }), "ACLEDA FD ***1")
+    assert.equal(depositPayload(cleanTermDeposit({ ...CHIP_MONG_FD, bank: null })!).wallet_name, "Bank FD ***0102")
+    assert.equal(depositBillTitle({ bank: "Chip Mong Bank", maturityDate: "2026-10-21" }), "Chip Mong Bank — បញ្ញើមានកាលកំណត់ (ដល់កំណត់ ២១ តុលា ២០២៦)")
   })
 })
