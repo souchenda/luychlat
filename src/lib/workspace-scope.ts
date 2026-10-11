@@ -15,11 +15,13 @@ export type Scope = {
   holyDays: boolean
   /** Home EV charging (household electricity). */
   homeEv: boolean
+  /** 🚗 Vehicle documents (inspection, road tax, insurance): strictly Personal — not Family, not Business. */
+  vehicleDocs: boolean
 }
 
 export function scopeOf(type: WorkspaceType | undefined): Scope {
   const personal = type !== "BUSINESS"
-  return { nssf: personal, holyDays: personal, homeEv: personal }
+  return { nssf: personal, holyDays: personal, homeEv: personal, vehicleDocs: type === "PERSONAL" }
 }
 
 /** The bill kinds a workspace can add (a business: no NSSF member contributions). */

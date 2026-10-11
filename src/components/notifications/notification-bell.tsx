@@ -235,7 +235,8 @@ export function NotificationBell() {
                       unreadAtOpen.has(n.id) && "bg-primary/5",
                     )}
                     onClick={() => {
-                      const target = n.debt_id ? `/debts/${n.debt_id}` : n.type === "ACTIVITY" ? "/transactions" : null
+                      // Bills, deposits and vehicle documents (🚗 inspection, road tax, insurance) all live on /bills.
+                      const target = n.debt_id ? `/debts/${n.debt_id}` : n.type === "ACTIVITY" ? "/transactions" : n.type === "DUE_DATE" ? "/bills" : null
                       if (!target) return
                       setOpen(false)
                       router.push(target)
