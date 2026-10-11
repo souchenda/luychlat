@@ -1,5 +1,6 @@
 "use client"
 
+import { BriefcaseBusinessIcon, LockKeyholeIcon, ReceiptTextIcon, ScanLineIcon, ShieldCheckIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 
@@ -18,6 +19,12 @@ import { hasGuestData } from "@/lib/data/guest-import"
 import { useT } from "@/lib/i18n/use-t"
 import { authMethods, isSupabaseConfigured } from "@/lib/supabase/config"
 import { useSessionStore } from "@/stores/session-store"
+
+const FEATURES = [
+  { key: "login.featureScan", icon: ScanLineIcon },
+  { key: "login.featureDebts", icon: ReceiptTextIcon },
+  { key: "login.featureWorkspaces", icon: BriefcaseBusinessIcon },
+] as const
 
 /** Reassures a former guest that their device data will be offered for import. */
 function GuestDataNote() {
@@ -70,10 +77,12 @@ export default function LoginPage() {
 
   return (
     <div className="relative isolate min-h-dvh overflow-hidden bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-      {/* A soft ambient glow at the top centre, drifting very slowly. */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem] overflow-hidden">
-        <div className="absolute -top-40 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(16,185,129,0.20),transparent)] dark:bg-[radial-gradient(closest-side,rgba(16,185,129,0.16),transparent)]" />
-        <div className="absolute -top-24 left-1/2 size-[22rem] animate-aurora rounded-full bg-[radial-gradient(closest-side,rgba(45,212,191,0.16),transparent)] motion-reduce:animate-none" />
+      {/* A soft emerald mesh: a glow behind the logo, two fainter ones at the sides, drifting very slowly. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-48 left-1/2 size-[40rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(16,185,129,0.22),transparent)] dark:bg-[radial-gradient(closest-side,rgba(16,185,129,0.18),transparent)]" />
+        <div className="absolute -top-24 left-1/2 size-[24rem] animate-aurora rounded-full bg-[radial-gradient(closest-side,rgba(45,212,191,0.18),transparent)] motion-reduce:animate-none" />
+        <div className="absolute top-1/3 -left-40 size-[26rem] rounded-full bg-[radial-gradient(closest-side,rgba(52,211,153,0.10),transparent)]" />
+        <div className="absolute -right-40 bottom-0 size-[28rem] animate-aurora rounded-full bg-[radial-gradient(closest-side,rgba(20,184,166,0.10),transparent)] [animation-delay:-7s] motion-reduce:animate-none" />
       </div>
 
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-3 pb-2">
@@ -83,15 +92,19 @@ export default function LoginPage() {
 
         {/* Brand: logo, then title, then the card — each a beat after the last. */}
         <div className="mb-3 flex flex-col items-center text-center">
-          <BrandMark className="size-12 rounded-[1rem] bg-linear-to-br from-emerald-500 to-teal-600 text-2xl text-white shadow-lg shadow-emerald-600/30 ring-1 ring-white/40 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none dark:ring-white/10" />
-          <h1 className="mt-2 text-xl font-semibold delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "លុយឆ្លាត"}</h1>
+          <BrandMark className="size-16 rounded-[1.35rem] bg-linear-to-br from-emerald-500 to-teal-600 text-3xl text-white shadow-lg shadow-emerald-600/30 ring-1 ring-white/40 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none dark:ring-white/10" />
+          <h1 className="mt-3 text-2xl font-bold delay-75 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated ? t("app.name") : "លុយឆ្លាត"}</h1>
           <p className="mt-0.5 text-sm text-neutral-500 delay-75 dark:text-neutral-400 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">{hydrated && t("app.tagline")}</p>
         </div>
 
         {hydrated && (
-          <section className="rounded-3xl border border-neutral-200/80 bg-white px-5 py-4 shadow-xl shadow-emerald-950/5 delay-150 dark:border-neutral-800 dark:bg-neutral-900/80 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+          <section className="rounded-3xl border border-emerald-500/15 bg-white/95 px-5 py-5 shadow-2xl shadow-emerald-950/5 backdrop-blur-md delay-150 dark:border-emerald-400/15 dark:bg-zinc-900/90 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
             <div className="flex flex-col gap-3">
-              {/* One line: the brand's tagline above already says what this is. */}
+              {/* Trust line at the top of the card. */}
+              <p className="mx-auto flex max-w-full items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.07] px-3 py-1 text-center text-[11px] leading-snug font-medium text-emerald-800 dark:text-emerald-300">
+                <LockKeyholeIcon className="size-3.5 shrink-0" aria-hidden />
+                {t("login.trust")}
+              </p>
               <h2 className="text-base font-semibold">{t("login.title")}</h2>
 
               {cloudDisabled && (
@@ -113,7 +126,7 @@ export default function LoginPage() {
                   {(authMethods.has("email") || codeFirst || authMethods.has("phone")) && (
                     <div className="flex items-center gap-3 text-xs text-neutral-400">
                       <Separator className="flex-1" />
-                      {t("login.orEmail")}
+                      {t("login.orPhoneEmail")}
                       <Separator className="flex-1" />
                     </div>
                   )}
@@ -140,10 +153,27 @@ export default function LoginPage() {
                   <PhoneLogin disabled={cloudDisabled} />
                 </>
               )}
+
+              {/* The guarantee, under the button. */}
+              <p className="flex items-start justify-center gap-1.5 border-t border-neutral-100 pt-3 text-center text-xs leading-relaxed text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+                <ShieldCheckIcon className="mt-0.5 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                {t("login.guarantee")}
+              </p>
             </div>
           </section>
         )}
 
+        {/* What the app does, in three short lines. */}
+        {hydrated && (
+          <ul className="mt-4 flex flex-wrap justify-center gap-2 delay-200 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+            {FEATURES.map(({ key, icon: Icon }) => (
+              <li key={key} className="flex items-center gap-1.5 rounded-full border border-neutral-200/80 bg-white/70 px-3 py-1 text-xs text-neutral-600 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300">
+                <Icon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                {t(key)}
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="mt-auto">{hydrated && <LoginFooter />}</div>
       </main>

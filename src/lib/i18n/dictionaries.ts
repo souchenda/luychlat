@@ -3596,6 +3596,12 @@ const km = {
   "nssf.recrop": "កាត់រូបម្ដងទៀត",
   "nssf.recropped": "បានកាត់រូប — នៅសល់តែកាតប៉ុណ្ណោះ",
   "nssf.backfilled": "✂️ បានកាត់រូបកាត ប.ស.ស. {count} — នៅសល់តែកាតប៉ុណ្ណោះ",
+  "login.trust": "សុវត្ថិភាពកម្រិតធនាគារ (Bank-Grade Encryption) · ការពារដោយ Cloudflare",
+  "login.guarantee": "ទិន្នន័យហិរញ្ញវត្ថុ និងស្លីបធនាគារត្រូវបានរក្សាការសម្ងាត់ ១០០% ដាច់ដោយឡែកពីគ្នា",
+  "login.orPhoneEmail": "ឬចូលដោយប្រើលេខទូរស័ព្ទ / អ៊ីមែល",
+  "login.featureScan": "ស្កេនស្លីបស្វ័យប្រវត្តិ",
+  "login.featureDebts": "តាមដានបំណុល និងវិក្កយបត្រ",
+  "login.featureWorkspaces": "គាំទ្រទាំងផ្ទាល់ខ្លួន និងអាជីវកម្ម",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -7181,6 +7187,12 @@ const en: Record<MessageKey, string> = {
   "nssf.recrop": "Crop again",
   "nssf.recropped": "Cropped — just the card now",
   "nssf.backfilled": "✂️ {count} NSSF card photo(s) cropped — just the card now",
+  "login.trust": "Bank-grade encryption · Protected by Cloudflare",
+  "login.guarantee": "Your financial data and bank slips stay 100% private, kept separate for every account",
+  "login.orPhoneEmail": "or sign in with phone / email",
+  "login.featureScan": "Automatic slip scanning",
+  "login.featureDebts": "Track debts and bills",
+  "login.featureWorkspaces": "Personal and business",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

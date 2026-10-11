@@ -3549,4 +3549,10 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nssf.recrop": "重新裁剪",
   "nssf.recropped": "已裁剪，只保留卡片",
   "nssf.backfilled": "✂️ 已裁剪 {count} 张社保卡照片，只保留卡片",
+  "login.trust": "银行级加密 · Cloudflare 防护",
+  "login.guarantee": "您的财务数据和银行回单 100% 保密，每个账户相互隔离",
+  "login.orPhoneEmail": "或使用手机号 / 邮箱登录",
+  "login.featureScan": "自动识别回单",
+  "login.featureDebts": "跟踪债务和账单",
+  "login.featureWorkspaces": "个人与企业皆可用",
 }
