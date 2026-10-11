@@ -183,7 +183,7 @@ export default function LoginPage() {
 
         {/* What the app does, in three short lines. */}
         {hydrated && (
-          <ul className="mt-3 flex flex-wrap justify-center gap-1.5 delay-200 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
+          <ul className="mt-3 flex flex-wrap justify-center gap-2 delay-200 md:w-max md:flex-nowrap md:self-center animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
             {FEATURES.map(({ key, icon: Icon }) => (
               <li key={key} className="flex cursor-default items-center gap-1.5 rounded-full border border-neutral-200/80 bg-white/70 px-3 py-1 text-xs text-neutral-600 backdrop-blur-sm transition-all duration-200 select-none hover:-translate-y-0.5 hover:border-emerald-500/30 hover:bg-white hover:shadow-md hover:shadow-emerald-500/10 active:scale-[0.97] motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-300 dark:hover:bg-neutral-900">
                 <Icon className="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden />
