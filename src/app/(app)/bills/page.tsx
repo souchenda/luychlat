@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { HolyDayCard } from "@/components/bills/holy-day-card"
+import { scopeOf } from "@/lib/workspace-scope"
 
 const NO_WALLET = "__none__"
 
@@ -120,6 +121,8 @@ export default function BillsPage() {
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id
   const editable = canWrite(workspace)
+  // A business: its operating bills only — no family NSSF cards, holy days or home EV charging.
+  const scope = scopeOf(workspace?.type)
   const bills = useBills(ws)
   const categories = useCategories(ws).data ?? []
   const [sheet, setSheet] = useState<{ open: boolean; bill: Bill | null }>({ open: false, bill: null })
@@ -153,7 +156,7 @@ export default function BillsPage() {
       <div className="flex items-center justify-between gap-2">
         <h1 className="flex items-center gap-2 text-xl font-bold">
           <ReceiptIcon className="size-5 text-primary" aria-hidden />
-          {t("bills.title")}
+          {t(workspace?.type === "BUSINESS" ? "nav.bizBills" : "bills.title")}
         </h1>
         {editable && ws && (
           <Button size="sm" onClick={() => setSheet({ open: true, bill: null })}>
@@ -164,7 +167,7 @@ export default function BillsPage() {
       </div>
       <p className="text-sm text-muted-foreground">{t("bills.hint")}</p>
 
-      <HolyDayCard />
+      {scope.holyDays && <HolyDayCard />}
 
       {bills.isLoading ? (
         <Skeleton className="h-32 w-full rounded-xl" />
@@ -271,11 +274,11 @@ export default function BillsPage() {
         </Card>
       )}
 
-      {ws && <EvHomeCard workspaceId={ws} editable={editable} />}
+      {ws && scope.homeEv && <EvHomeCard workspaceId={ws} editable={editable} />}
 
-      <NssfVault />
+      {scope.nssf && <NssfVault />}
 
-      <NssfGuide />
+      {scope.nssf && <NssfGuide />}
 
       {ws && <BillSheet open={sheet.open} onOpenChange={(open) => setSheet((s) => ({ ...s, open }))} workspaceId={ws} bill={sheet.bill} categories={categories} />}
       {paying && ws && <PaySheet bill={paying.bill} due={paying.due} workspaceId={ws} onClose={() => setPaying(null)} />}

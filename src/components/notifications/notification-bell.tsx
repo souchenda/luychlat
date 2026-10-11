@@ -2,7 +2,7 @@
 
 import { formatDistanceToNow } from "date-fns"
 import { enUS, km } from "date-fns/locale"
-import { AlarmClockIcon, BellIcon, BellOffIcon, TriangleAlertIcon } from "lucide-react"
+import { AlarmClockIcon, ArrowDownLeftIcon, ArrowUpRightIcon, BellIcon, BellOffIcon, TriangleAlertIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
@@ -15,14 +15,29 @@ import { MemberAvatar } from "@/components/family/member-avatar"
 import { Button } from "@/components/ui/button"
 import { alertText } from "@/lib/alerts"
 import { clearShownNotifications, syncAppBadge } from "@/lib/app-badge"
-import { useActiveWorkspace, useDebts, useNotificationMutations, useNotifications } from "@/lib/data/hooks"
-import type { AppNotification } from "@/lib/data/types"
+import { useActiveWorkspace, useCategories, useDebts, useNotificationMutations, useNotifications, useTransactions, useWallets } from "@/lib/data/hooks"
+import type { AppNotification, Transaction } from "@/lib/data/types"
+import { TransactionEditor } from "@/components/transactions/transaction-editor"
+import { inFilter, MONEY_WINDOW_DAYS, notificationKind, transactionLine, type FeedFilter } from "@/lib/notification-feed"
+import { usePrefsStore } from "@/stores/prefs-store"
+import { scopeOf } from "@/lib/workspace-scope"
 import { useT } from "@/lib/i18n/use-t"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { contentLocale } from "@/lib/i18n/dictionaries"
 
-/** Header bell: unread badge + notification list for the active workspace. */
+const FILTERS: { value: FeedFilter; label: string }[] = [
+  { value: "all", label: "notifications.filter.all" },
+  { value: "money", label: "notifications.filter.money" },
+  { value: "bills", label: "notifications.filter.bills" },
+  { value: "tips", label: "notifications.filter.tips" },
+]
+
+/**
+ * Header bell: unread badge + the active workspace's feed — its alerts (bills, installments, family
+ * activity), its money in and out of the last days, and the day's tips — with filter tabs. Strictly
+ * the active workspace: a business never shows personal money or reminders, and the other way round.
+ */
 export function NotificationBell() {
   const t = useT()
   const router = useRouter()
@@ -32,6 +47,15 @@ export function NotificationBell() {
   const debts = useDebts(workspace?.id).data ?? []
   const { markRead } = useNotificationMutations(workspace?.id)
   const [open, setOpen] = useState(false)
+  const [filter, setFilter] = useState<FeedFilter>("all")
+  const [opened, setOpened] = useState<Transaction | null>(null)
+  const hidden = usePrefsStore((s) => s.hideBalances)
+  const scope = scopeOf(workspace?.type)
+  // The workspace's money in and out of the last days (own transfers are not listed).
+  const [since] = useState(() => new Date(Date.now() - MONEY_WINDOW_DAYS * 86_400_000).toISOString())
+  const recent = useTransactions(open ? workspace?.id : undefined, { from: since, limit: 30 }).data ?? []
+  const wallets = useWallets(workspace?.id).data ?? []
+  const categories = useCategories(workspace?.id).data ?? []
   // Unread state as it was when the sheet opened, so new items stay highlighted while reading.
   const [unreadAtOpen, setUnreadAtOpen] = useState<Set<string>>(new Set())
 
@@ -45,7 +69,31 @@ export function NotificationBell() {
   const morning = morningCard(now)
   // 🪷 ថ្ងៃសីល: the eve reminder and the day's blessing, as on Telegram (not with Islamic Mode on).
   const islamic = useIslamicEnabled()
-  const holy = islamic ? null : holyDayCard(now)
+  // A personal reminder: never in a business workspace.
+  const holy = islamic || !scope.holyDays ? null : holyDayCard(now)
+
+  // A few dozen rows at most: built on each render.
+  const money = recent.flatMap((tx) => {
+        const line = transactionLine(
+          {
+            ...tx,
+            type: tx.type as "INCOME" | "EXPENSE" | "TRANSFER",
+            currency: tx.currency as "KHR" | "USD",
+            wallet_name: wallets.find((w) => w.id === tx.wallet_id)?.name ?? null,
+            category_name: categories.find((c) => c.id === tx.category_id)?.name ?? null,
+          },
+          hidden,
+        )
+        return line ? [{ tx, line, at: tx.transaction_date }] : []
+      })
+  const showTips = inFilter("tips", filter)
+  const shownAlerts = notifications.filter((n) => inFilter(notificationKind(n), filter))
+  const shownMoney = inFilter("money", filter) ? money : []
+  // One list, newest first: alerts and money together.
+  const feed = [
+    ...shownAlerts.map((n) => ({ kind: "alert" as const, n, at: n.scheduled_at })),
+    ...shownMoney.map((m) => ({ kind: "money" as const, m, at: m.at })),
+  ].sort((a, b) => b.at.localeCompare(a.at))
 
   // The home-screen icon badge follows the real unread count (never a stale "1").
   useEffect(() => {
@@ -97,7 +145,24 @@ export function NotificationBell() {
       </Button>
 
       <BottomSheet open={open} onOpenChange={onOpenChange} title={t("notifications.title")}>
-        {morning && (
+        <div className="-mx-4 flex gap-1.5 overflow-x-auto border-b px-4 pb-3" role="tablist" aria-label={t("notifications.title")}>
+          {FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              role="tab"
+              aria-selected={filter === f.value}
+              onClick={() => setFilter(f.value)}
+              className={cn(
+                "shrink-0 rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors",
+                filter === f.value ? "border-primary bg-primary text-primary-foreground" : "bg-background text-muted-foreground",
+              )}
+            >
+              {t(f.label as Parameters<typeof t>[0])}
+            </button>
+          ))}
+        </div>
+        {showTips && morning && (
           <div className="-mx-4 flex gap-3 border-b bg-amber-500/5 px-4 py-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-lg" aria-hidden>
               ☀️
@@ -111,7 +176,7 @@ export function NotificationBell() {
             </span>
           </div>
         )}
-        {holy && (
+        {showTips && holy && (
           <div className="-mx-4 flex gap-3 border-b bg-emerald-500/5 px-4 py-3">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-lg" aria-hidden>
               🪷
@@ -125,14 +190,41 @@ export function NotificationBell() {
             </span>
           </div>
         )}
-        {notifications.length === 0 && !morning && !holy ? (
+        {feed.length === 0 && !(showTips && (morning || holy)) ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
             <BellOffIcon className="size-8" />
             {t("notifications.empty")}
           </div>
-        ) : notifications.length === 0 ? null : (
+        ) : feed.length === 0 ? null : (
           <ul className="-mx-4 divide-y">
-            {notifications.map((n) => {
+            {feed.map((item) => {
+              if (item.kind === "money") {
+                const { tx, line } = item.m
+                const inflow = tx.type === "INCOME"
+                return (
+                  <li key={`tx-${tx.id}`}>
+                    <button type="button" className="flex w-full gap-3 px-4 py-3 text-left hover:bg-muted/60" onClick={() => setOpened(tx)}>
+                      <span
+                        className={cn(
+                          "flex size-9 shrink-0 items-center justify-center rounded-full",
+                          inflow ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : "bg-rose-500/12 text-rose-600 dark:text-rose-400",
+                        )}
+                        aria-hidden
+                      >
+                        {inflow ? <ArrowDownLeftIcon className="size-4" /> : <ArrowUpRightIcon className="size-4" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={cn("block text-sm font-semibold", inflow && "text-emerald-700 dark:text-emerald-400")}>{line.title}</span>
+                        {line.body && <span className="block truncate text-xs text-muted-foreground">{line.body}</span>}
+                        <span className="mt-1 block text-[11px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(item.at), { addSuffix: true, locale: locale === "km" ? km : enUS })}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                )
+              }
+              const n = item.n
               const { title, body } = content(n)
               return (
                 <li key={n.id}>
@@ -185,6 +277,14 @@ export function NotificationBell() {
           </ul>
         )}
       </BottomSheet>
+      {opened && (
+        <TransactionEditor
+          workspaceId={workspace?.id}
+          wallets={wallets}
+          transaction={opened}
+          onClose={() => setOpened(null)}
+        />
+      )}
     </>
   )
 }

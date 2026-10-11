@@ -34,6 +34,8 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { useActiveWorkspace } from "@/lib/data/hooks"
+import { billKindAllowed } from "@/lib/workspace-scope"
 import { useLocaleStore } from "@/stores/locale-store"
 
 const REMIND_CHOICES = [1, 2, 3, 5, 7, 15]
@@ -96,6 +98,8 @@ export function BillSheet({
   const statements = useBillStatements(bill?.id).data ?? []
   // NSSF: one contribution per active member of the card vault (at least one: the account holder).
   const nssfMembers = (useNssfMembers().data ?? []).filter((m) => m.is_active).length
+  // A business adds no NSSF member bills (founder decision 11/10).
+  const workspaceType = useActiveWorkspace().workspace?.type
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }))
 
   useEffect(() => {
@@ -223,7 +227,7 @@ export function BillSheet({
         )}
         {!bill && (
           <div className="-mx-1 flex flex-wrap gap-1.5 px-1">
-            {BILL_PRESETS.map((p) => (
+            {BILL_PRESETS.filter((p) => billKindAllowed(p.kind, workspaceType)).map((p) => (
               <button
                 key={p.id}
                 type="button"

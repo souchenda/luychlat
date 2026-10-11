@@ -137,7 +137,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
             items: [
               { href: "/reports", label: "nav.bizReports", icon: ChartColumnIcon },
               { href: "/assets", label: "nav.bizAssets", icon: CoinsIcon },
-              { href: "/bills", label: "nav.bizNssfBills", icon: ReceiptIcon },
+              { href: "/bills", label: "nav.bizBills", icon: ReceiptIcon },
               ...admin,
               exportItem,
             ],
@@ -158,7 +158,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
           {
             title: "nav.group.planning",
             items: [
-              { href: "/bills", label: "nav.billsLife", icon: ReceiptIcon },
+              { href: "/bills", label: "nav.personalNssfBills", icon: ReceiptIcon },
               { href: "/debts", label: "nav.debtTracking", icon: HandCoinsIcon },
               { href: "/budgets", label: "nav.budgetSaving", icon: TargetIcon },
               { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
