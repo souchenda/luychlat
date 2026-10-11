@@ -293,3 +293,31 @@ export function soundboxWorkspace<T extends { id: string; type: string }>(active
   if (active?.type === "BUSINESS") return active
   return all?.find((w) => w.type === "BUSINESS") ?? active
 }
+
+/** An MP3 without its ID3 tags (ID3v2 header in front, ID3v1 "TAG" block at the end) — just the audio frames. */
+export function mp3Frames(bytes: Uint8Array): Uint8Array {
+  let start = 0
+  let end = bytes.length
+  if (bytes.length > 10 && bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) {
+    // Syncsafe size (4 × 7 bits), plus a 10-byte footer when flag bit 4 is set.
+    const size = ((bytes[6] & 0x7f) << 21) | ((bytes[7] & 0x7f) << 14) | ((bytes[8] & 0x7f) << 7) | (bytes[9] & 0x7f)
+    start = Math.min(bytes.length, 10 + size + (bytes[5] & 0x10 ? 10 : 0))
+  }
+  if (end - start >= 128 && bytes[end - 128] === 0x54 && bytes[end - 127] === 0x41 && bytes[end - 126] === 0x47) end -= 128
+  return bytes.subarray(start, end)
+}
+
+/**
+ * The Khmer clips joined into one MP3 (frames back to back — the clips share one encoding, so the
+ * result plays as a single file): the Telegram voice note «ទទួលបានប្រាក់ ប្រាំបីពាន់រៀល».
+ */
+export function joinMp3(clips: Uint8Array[]): Uint8Array {
+  const frames = clips.map(mp3Frames)
+  const out = new Uint8Array(frames.reduce((a, f) => a + f.length, 0))
+  let at = 0
+  for (const f of frames) {
+    out.set(f, at)
+    at += f.length
+  }
+  return out
+}

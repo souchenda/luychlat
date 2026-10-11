@@ -7,6 +7,7 @@ import { notifyOwner, ownerText, transferText, type TransferResult } from "@/lib
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 import { shouldEmit } from "@/lib/soundbox"
+import { sendPaymentVoice } from "@/lib/server/voice-alert"
 
 /**
  * KHQR ingest API — a merchant's own tool (e.g. AUTOBOK) pushes each bank
@@ -146,6 +147,8 @@ export async function POST(request: Request) {
       p_payer_bank: parsed?.via ?? (str(body.payer_bank, 60) || null),
     })
     if (soundError) logEvent("warn", "soundbox", `SoundBox event not emitted: ${soundError.message}`, { fold: true })
+    // «🔔 សំឡេង Voice Telegram» (pocket mode): the sale spoken as a voice note, for owners who turned it on.
+    if (r.workspace_id && r.amount !== undefined && r.currency) await sendPaymentVoice(r.workspace_id, r.amount, r.currency).catch(() => 0)
   }
 
   return NextResponse.json(

@@ -501,6 +501,24 @@ export async function POST(request: Request) {
   } else if (command === "/menuclose") {
     const ctx = await botContext(chatId)
     await sendText(chatId, tr(ctx?.linked ? contextLocale(ctx) : lang, "bot.menuClosed"), KEYBOARD_OFF)
+  } else if (/^\/voice(@\w+)?$/i.test(command)) {
+    // «🔔 សំឡេង Voice Telegram»: each KHQR sale also as a spoken Khmer voice note (/voice on | off, or toggle).
+    const want = /^(on|បើក)$/i.test(payload ?? "") ? true : /^(off|បិទ)$/i.test(payload ?? "") ? false : null
+    const { data } = await db.rpc("bot_set_voice_alerts", { p_key: key, p_chat_id: chatId, p_on: want })
+    const r = data as { status: string; on?: boolean } | null
+    const { paymentVoiceNote } = await import("@/lib/server/voice-alert")
+    const ready = Boolean(await paymentVoiceNote(1000, "KHR"))
+    await sendText(
+      chatId,
+      r?.status !== "ok"
+        ? tr(lang, "bot.notLinked")
+        : [
+            r.on ? "🔔 សំឡេង Voice Telegram៖ បើក — ការលក់តាម KHQR នីមួយៗ នឹងផ្ញើជាសារសំឡេង «ទទួលបានប្រាក់ …» ផងដែរ។" : "🔕 សំឡេង Voice Telegram៖ បិទ — នៅតែទទួលសារជាអក្សរដដែល។",
+            ...(r.on && !ready ? ["", "ℹ️ សំឡេងខ្មែរមិនទាន់ដំឡើងនៅឡើយ — សារសំឡេងនឹងចាប់ផ្ដើមភ្លាមៗពេលដំឡើងរួច។"] : []),
+            "",
+            `👉 /voice ${r.on ? "off" : "on"}`,
+          ].join("\n"),
+    )
   } else if (/^\/atm(@\w+)?$/i.test(command)) {
     // The nearest ATMs and branches: a location button, or a province / town name. Public data.
     await handleAtmCommand(chatId, text.trim().replace(/^\S+\s*/, ""))

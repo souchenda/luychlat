@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announceLate, announcementText, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals } from "./soundbox"
+import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -193,5 +193,19 @@ describe("SoundBox — never silent by accident (11/10: 8,000 ៛ and 3,300 ៛ 
     assert.equal(soundboxWorkspace(personal, [personal, dl])?.id, "dl")
     assert.equal(soundboxWorkspace(dl, [personal, dl])?.id, "dl")
     assert.equal(soundboxWorkspace(personal, [personal])?.id, "p")
+  })
+})
+
+describe("SoundBox — the Telegram voice note joined from the clips", () => {
+  const frame = (n: number) => new Uint8Array([0xff, 0xfb, 0x90, n])
+  const id3 = (body: number[]) => new Uint8Array([0x49, 0x44, 0x33, 4, 0, 0, 0, 0, 0, 3, 1, 2, 3, ...body])
+  it("tags are stripped (ID3v2 in front, ID3v1 at the end); plain audio is kept as is", () => {
+    assert.deepEqual([...mp3Frames(id3([0xff, 0xfb, 0x90, 7]))], [0xff, 0xfb, 0x90, 7])
+    const v1 = new Uint8Array([...frame(1), 0x54, 0x41, 0x47, ...new Array(125).fill(0)])
+    assert.deepEqual([...mp3Frames(v1)], [...frame(1)])
+    assert.deepEqual([...mp3Frames(frame(9))], [...frame(9)])
+  })
+  it("the clips' frames back to back, in order", () => {
+    assert.deepEqual([...joinMp3([id3([...frame(1)]), frame(2), frame(3)])], [...frame(1), ...frame(2), ...frame(3)])
   })
 })
