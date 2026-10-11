@@ -1,7 +1,7 @@
 "use client"
 
 import { XIcon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { CULTURAL_ICON, CULTURAL_LOOK } from "@/components/culture/cultural-look"
 import { festivalBannerDay } from "@/lib/cultural-calendar"
@@ -11,26 +11,58 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 
 const DISMISS_PREFIX = "luychlat:festival-dismissed:"
+/** «pchum_ben_card_shown_date»: the day the card was shown (the splash keeps its own «…_greeting_shown_date»). */
+const shownKey = (key: string) => `${key}_card_shown_date`
+
+// Decided once per app open (this page load): shown the first time Home opens that day; a refresh
+// or coming back to Home later doesn't bring it back. A remount right after the first (data
+// arriving re-renders Home) keeps it, so it never flashes away.
+let opened: { day: CulturalDay; left: number | null } | null | undefined
+
+function decide(today: string): CulturalDay | null {
+  if (opened !== undefined) {
+    if (!opened) return null
+    // Back within a moment = the same view remounting; later = navigated away and back.
+    if (opened.left !== null && Date.now() - opened.left > 1500) opened = null
+    return opened?.day ?? null
+  }
+  const read = (k: string) => {
+    try {
+      return localStorage.getItem(k)
+    } catch {
+      return null
+    }
+  }
+  const day = festivalBannerDay(today, (key) => read(DISMISS_PREFIX + key))
+  if (!day || read(shownKey(day.key)) === today) {
+    opened = null
+    return null
+  }
+  try {
+    localStorage.setItem(shownKey(day.key), today)
+  } catch {}
+  opened = { day, left: null }
+  return day
+}
 
 /**
  * Home, on a festival or Khmer-Chinese offering day (New Year, Little New Year,
  * Chinese New Year's eve and New Year, Khmer New Year, Hungry Ghost,
- * Mid-Autumn, Pchum Ben, Water Festival, Dongzhi): a warm wish. Closing it
- * hides it for the rest of that festival on this device.
+ * Mid-Autumn, Pchum Ben, Water Festival, Dongzhi): a warm wish — once a day, when the app is
+ * opened (not on a refresh or on coming back to Home). Closing it hides it for the rest of that
+ * festival on this device.
  */
 export function FestivalBanner() {
   const t = useT()
   // Decided on the first render — the app renders on the device only (the layout waits for
   // hydration) — so the banner never mounts empty and pops in, nor flashes when <main> re-keys.
-  const [day, setDay] = useState<CulturalDay | null>(() =>
-    festivalBannerDay(todayDate(), (key) => {
-      try {
-        return localStorage.getItem(DISMISS_PREFIX + key)
-      } catch {
-        return null
-      }
-    }),
-  )
+  const [day, setDay] = useState<CulturalDay | null>(() => decide(todayDate()))
+  useEffect(() => {
+    if (opened) opened.left = null
+    return () => {
+      if (opened) opened.left = Date.now()
+    }
+  }, [])
 
   if (!day) return null
   const look = CULTURAL_LOOK[day.key]
@@ -53,6 +85,7 @@ export function FestivalBanner() {
           aria-label={t("common.close")}
           onClick={() => {
             setDay(null)
+            opened = null
             try {
               localStorage.setItem(DISMISS_PREFIX + day.key, day.start)
             } catch {}
