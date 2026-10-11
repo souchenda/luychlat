@@ -1,6 +1,6 @@
 "use client"
 
-import { BriefcaseBusinessIcon, LockKeyholeIcon, ReceiptTextIcon, ScanLineIcon, ShieldCheckIcon } from "lucide-react"
+import { BriefcaseBusinessIcon, ReceiptTextIcon, ScanLineIcon, ShieldCheckIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 
@@ -25,8 +25,8 @@ import { useSessionStore } from "@/stores/session-store"
 /** Phrases of the tagline kept whole (Khmer words must not split across lines). */
 const TAGLINE_KEEP = /ដៃគូហិរញ្ញវត្ថុឆ្លាតវៃ|សម្រាប់ប្រជាជនកម្ពុជា/
 
-/** Phrases of the guarantee line that never break (Khmer words have no spaces between them). */
-const GUARANTEE_KEEP = /ដាច់ដោយឡែកពីគ្នា|ការសម្ងាត់ ១០០%|១០០%|100%|ស្លីបធនាគារ|bank slips/
+/** Phrases of the security badge that never break (Khmer words have no spaces between them). */
+const TRUST_KEEP = /សុវត្ថិភាពកម្រិតធនាគារ|\(Cloudflare Protected\)|ស្លីបធនាគារ|រក្សាការសម្ងាត់ ១០០%|100% private|bank slips|Bank-grade security/
 
 const FEATURES = [
   { key: "login.featureScan", icon: ScanLineIcon },
@@ -134,20 +134,6 @@ export default function LoginPage() {
         {hydrated && (
           <section className="rounded-3xl border border-white/60 bg-white/85 px-5 py-4 [@media(max-height:700px)]:py-3 shadow-2xl shadow-emerald-500/10 backdrop-blur-xl delay-150 sm:py-5 dark:border-emerald-500/20 dark:bg-zinc-900/85 dark:shadow-black/30 animate-in fade-in-0 slide-in-from-bottom-3 duration-350 ease-out fill-mode-both motion-reduce:animate-none">
             <div className="flex flex-col gap-2.5">
-              {/* Trust line at the top of the card. */}
-              <p className="mx-auto flex max-w-full items-center gap-1.5 rounded-full [@media(max-height:700px)]:hidden border border-emerald-500/20 bg-emerald-500/[0.07] px-2.5 py-1 text-[10.5px] leading-snug font-medium text-emerald-800 dark:text-emerald-300">
-                <LockKeyholeIcon className="size-3.5 shrink-0" aria-hidden />
-                <span className="flex flex-wrap justify-center gap-x-1 text-center">
-                  {t("login.trust")
-                    .split(" · ")
-                    .map((part, i, all) => (
-                      <span key={i} className="whitespace-nowrap">
-                        {part}
-                        {i < all.length - 1 && " ·"}
-                      </span>
-                    ))}
-                </span>
-              </p>
               <h2 className="text-base font-semibold">{t("login.title")}</h2>
 
               {cloudDisabled && (
@@ -187,10 +173,10 @@ export default function LoginPage() {
                 </>
               )}
 
-              {/* The guarantee, under the button. */}
-              <p className="border-t border-neutral-100 pt-2.5 text-center [@media(max-height:700px)]:hidden text-xs leading-relaxed text-balance text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
-                <ShieldCheckIcon className="mr-1 inline size-3.5 -translate-y-px align-middle text-emerald-600 dark:text-emerald-400" aria-hidden />
-                <KeepTogether text={t("login.guarantee")} keep={GUARANTEE_KEEP} />
+              {/* Security in one quiet badge under the buttons (bank-grade, Cloudflare, data and slips kept private). */}
+              <p className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-2.5 text-center text-xs leading-relaxed text-balance text-emerald-800 dark:text-emerald-300 [@media(max-height:700px)]:hidden">
+                <ShieldCheckIcon className="mr-1 inline size-3.5 -translate-y-px align-middle" aria-hidden />
+                <KeepTogether text={t("login.trustUnified")} keep={TRUST_KEEP} />
               </p>
             </div>
           </section>
