@@ -14,6 +14,7 @@ import { DormantGate } from "@/components/layout/dormant-gate"
 import { WelcomeGuide } from "@/components/onboarding/welcome-guide"
 import { FeatureGate } from "@/components/layout/feature-gate"
 import { BottomNav } from "@/components/layout/bottom-nav"
+import { FestiveBadge, FestiveSplash } from "@/components/culture/festive-greeting"
 import { HashScroller } from "@/components/layout/hash-scroller"
 import { PrayerAlertScheduler } from "@/components/islamic/prayer-alerts"
 import { AppLock } from "@/components/lock/app-lock"
@@ -76,6 +77,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <ExchangeRateSync />
       <PendingReferralRedeemer />
       <UpgradeSheet />
+      {/* Khmer New Year, Pchum Ben, Water Festival: the greeting once a day. */}
+      <FestiveSplash />
       <div hidden={isLocked} inert={isLocked} className="md:pl-68 print:pl-0">
         {/* Admins testing their account as another plan can't miss it. */}
         <TestPlanBanner />
@@ -94,6 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <LanguageToggle compact />
               <NotificationBell />
             </div>
+            <FestiveBadge />
           </header>
           {/* Re-keyed on switch so the new workspace's content fades in. */}
           <main
