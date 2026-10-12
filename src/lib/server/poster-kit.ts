@@ -1,7 +1,7 @@
 // Server only: the shared kit for every LuyChlat poster (1080 × 1080 PNG) —
 // fonts, Khmer text layout and THE STANDARD FRAME (founder, 2026-10-07):
 //
-//   HEADER  left:  emerald ៛ tile + "អេប លុយឆ្លាត" over "App Luy Chlat" (spread to the same width)
+//   HEADER  left:  the mascot logo tile + "អេប លុយឆ្លាត" over "App Luy Chlat" (spread to the same width)
 //           right: the poster's category pill ("គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", "ពិធីបុណ្យប្រពៃណីជាតិខ្មែរ"…)
 //   FOOTER  📱 កត់ត្រាចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត
 //           ✈️ សហគមន៍ អេប លុយឆ្លាត   •   🌐 luychlat.com
@@ -13,9 +13,10 @@
 // (@napi-rs/canvas), whose HarfBuzz shaping gets Khmer right; lines break at
 // Khmer word boundaries (Intl.Segmenter). Icons are drawn — the server has no
 // emoji font. Type: MiSans Khmer, Kantumruy Pro behind it for Latin.
+import { readFileSync } from "node:fs"
 import path from "node:path"
 
-import { GlobalFonts, type SKRSContext2D } from "@napi-rs/canvas"
+import { GlobalFonts, type Image, loadImage, type SKRSContext2D } from "@napi-rs/canvas"
 
 export const FRAME = {
   W: 1080,
@@ -43,6 +44,18 @@ export function loadFonts() {
   for (const w of ["Regular", "Medium", "Semibold", "Bold"]) GlobalFonts.registerFromPath(path.join(dir, `MiSansKhmer-${w}.woff2`), "MiSans Khmer")
   for (const sys of ["/usr/share/fonts", "C:/Windows/Fonts"]) GlobalFonts.loadFontsFromDir(sys)
 }
+
+/**
+ * The mascot logo (public/logo.png), decoded once at start-up — @napi-rs/canvas only decodes through
+ * loadImage (async); posters are drawn long after, and a missing file keeps the old ៛ tile.
+ */
+let mascotImage: Image | null = null
+export const posterAssetsReady: Promise<void> = loadImage(readFileSync(path.join(process.cwd(), "public", "logo.png")))
+  .then((img) => {
+    mascotImage = img
+  })
+  .catch(() => {})
+const mascot = () => mascotImage
 
 const words = new Intl.Segmenter("km", { granularity: "word" })
 
@@ -202,7 +215,7 @@ export function drawIcon(ctx: SKRSContext2D, icon: Icon, cx: number, cy: number)
 }
 
 /**
- * HEADER — left: the emerald ៛ tile with "លុយឆ្លាត" over "LuyChlat"; right: the
+ * HEADER — left: the mascot logo tile with "អេប លុយឆ្លាត" over "App Luy Chlat"; right: the
  * category pill (gold), with a drawn icon (a light bulb by default, or the
  * poster's own, e.g. a lotus).
  */
@@ -210,17 +223,31 @@ export function drawHeader(ctx: SKRSContext2D, pill: { text: string; icon?: Icon
   const { W, PAD } = FRAME
   const mark = 64
   const top = 60
-  roundRect(ctx, PAD, top, mark, mark, 18)
-  ctx.fillStyle = "rgba(16,185,129,0.22)"
-  ctx.fill()
-  ctx.lineWidth = 2
-  ctx.strokeStyle = "rgba(52,211,153,0.65)"
-  ctx.stroke()
+  // The official mascot (public/logo.png) in the rounded tile; the old ៛ glyph only if the file is missing.
+  const logo = mascot()
+  if (logo) {
+    ctx.save()
+    roundRect(ctx, PAD, top, mark, mark, 18)
+    ctx.clip()
+    ctx.drawImage(logo, PAD, top, mark, mark)
+    ctx.restore()
+    roundRect(ctx, PAD, top, mark, mark, 18)
+    ctx.lineWidth = 2
+    ctx.strokeStyle = "rgba(52,211,153,0.65)"
+    ctx.stroke()
+  } else {
+    roundRect(ctx, PAD, top, mark, mark, 18)
+    ctx.fillStyle = "rgba(16,185,129,0.22)"
+    ctx.fill()
+    ctx.lineWidth = 2
+    ctx.strokeStyle = "rgba(52,211,153,0.65)"
+    ctx.stroke()
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.font = `700 40px ${FAMILIES}`
+    ctx.fillText("៛", PAD + mark / 2, top + mark / 2 + 2)
+  }
   ctx.fillStyle = "#ffffff"
-  ctx.textAlign = "center"
-  ctx.textBaseline = "middle"
-  ctx.font = `700 40px ${FAMILIES}`
-  ctx.fillText("៛", PAD + mark / 2, top + mark / 2 + 2)
   ctx.textAlign = "left"
   ctx.textBaseline = "alphabetic"
   const nameX = PAD + mark + 18

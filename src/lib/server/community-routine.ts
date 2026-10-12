@@ -20,7 +20,7 @@ import { sendPosterPhoto } from "@/lib/server/tip-bot"
 import { tipPoster } from "@/lib/server/tip-poster"
 import { logEvent } from "@/lib/server/events"
 import { eveningHtml } from "@/lib/evening-reminder"
-import { MORNING_QUOTE } from "@/lib/morning"
+import { morningQuote } from "@/lib/morning"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
@@ -32,14 +32,13 @@ const EVENING = { job: "community-evening", from: 20 * 60, until: 21 * 60 + 30 }
 const communityChat = () => (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim() || null
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
-const QUOTE = `«${MORNING_QUOTE}»`
 
 /** 07:00 — title and the core quote (Telegram HTML). The tip goes out at 12:00, approved first (tip-bot.ts). */
-export function morningText(): string {
+export function morningText(day: string): string {
   return [
     "☀️ <b>អរុណសួស្តីថ្ងៃថ្មី · ថាមពលហិរញ្ញវត្ថុ</b>",
     "",
-    `<i>${esc(QUOTE)}</i>`,
+    `<i>${esc(`«${morningQuote(day)}»`)}</i>`,
     "",
     "— អេប លុយឆ្លាត",
   ].join("\n")
@@ -53,7 +52,7 @@ const recordButtons = getChannelPostButtons
 
 /** The morning quote on the v3 poster frame (same design as the daily tip, its own tag). */
 export function morningPoster(day: string): Buffer {
-  const quote = QUOTE.replace(/[«»]/g, "")
+  const quote = morningQuote(day)
   return tipPoster({ title: "អរុណសួស្តីថ្ងៃថ្មី", body: quote }, day, { tag: "ថាមពលហិរញ្ញវត្ថុពេលព្រឹក" })
 }
 
@@ -99,8 +98,8 @@ export async function communityRoutineTick() {
   if (due === "morning" && chat && (await claim(MORNING.job, now.day))) {
     // The poster with the text as its caption; plain text only if the image can't be sent.
     const buttons = await recordButtons()
-    const id = await sendPosterPhoto(chat, morningPoster(now.day), morningText(), { reply_markup: buttons.reply_markup })
-    const res = id ? { ok: true as const, description: undefined } : await tg("sendMessage", { chat_id: chat, text: morningText(), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
+    const id = await sendPosterPhoto(chat, morningPoster(now.day), morningText(now.day), { reply_markup: buttons.reply_markup })
+    const res = id ? { ok: true as const, description: undefined } : await tg("sendMessage", { chat_id: chat, text: morningText(now.day), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
     logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Morning post sent to ${chat}${id ? " (poster)" : " (text — poster failed)"}` : `Morning post failed: ${res.description ?? "unknown"}`)
   }
   // Phones that turned on notifications: the same quote, once a day (its own claim, so a channel problem never blocks it).

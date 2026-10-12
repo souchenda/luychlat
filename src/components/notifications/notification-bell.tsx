@@ -6,7 +6,7 @@ import { AlarmClockIcon, ArrowDownLeftIcon, ArrowUpRightIcon, BellIcon, BellOffI
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
-import { MORNING_QUOTE, morningCard } from "@/lib/morning"
+import { morningCard, morningQuote } from "@/lib/morning"
 import { holyDayCard } from "@/lib/holy-day-alerts"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 
@@ -169,7 +169,7 @@ export function NotificationBell() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">{t("notifications.morningTitle")}</span>
-              <span className="block text-xs text-muted-foreground">{MORNING_QUOTE}</span>
+              <span className="block text-xs text-muted-foreground">{morningQuote(morning.day)}</span>
               <span className="mt-1 block text-[11px] text-muted-foreground">
                 {formatDistanceToNow(new Date(morning.at), { addSuffix: true, locale: locale === "km" ? km : enUS })}
               </span>

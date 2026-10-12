@@ -5,6 +5,7 @@
 import webpush from "web-push"
 
 import { morningPush } from "@/lib/morning"
+import { phnomPenhToday } from "@/lib/server/market-sync"
 
 import { logEvent } from "./events"
 import { botDb, botKey } from "./telegram-bot"
@@ -27,7 +28,7 @@ export async function sendMorningPush(): Promise<number> {
     logEvent("error", "push", `Push targets failed: ${error.message}`, { fold: true })
     return 0
   }
-  const payload = JSON.stringify(morningPush())
+  const payload = JSON.stringify(morningPush(phnomPenhToday().day))
   const gone: string[] = []
   const ok: string[] = []
   let failed = 0
