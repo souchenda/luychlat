@@ -77,7 +77,7 @@ function Gauge({ score }: { score: number }) {
 }
 
 /**
- * «CBC Credit Health»: the person's own K-Score (never in a workspace, never in the bot) — the gauge,
+ * «CBC Credit Health» (on /debts › «ត្រូវសងគេ», founder 12/10/2026): the person's own K-Score (never in a workspace, never in the bot) — the gauge,
  * CBC's words for the level, the score date and the trend, a K-Score Guardian tip naming their open
  * loans, and «📷» to add a newer CBC screenshot (read, then confirmed before saving).
  */
@@ -114,7 +114,7 @@ export function CreditHealthCard({ workspaceId }: { workspaceId?: string }) {
   }
 
   return (
-    <section className="space-y-2">
+    <section id="credit-health" className="scroll-mt-20 space-y-2">
       <div className="flex items-center justify-between px-1">
         <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
           <ShieldCheckIcon className="size-4" aria-hidden />

@@ -1,6 +1,7 @@
 "use client"
 
 import { EyeIcon, EyeOffIcon, HomeIcon, type LucideIcon } from "lucide-react"
+import Link from "next/link"
 import type { ReactNode } from "react"
 
 import { Amount } from "@/components/money/amount"
@@ -124,12 +125,13 @@ export function NetWorthCard({
           {/* Loans: their own line — what is owed, and what is left after it (the headline stays the total held). */}
           {!loading && liabilitiesUsd > 0 && (
             <div className="mt-2.5 space-y-0.5 text-xs tabular-nums text-white/90">
-              <p className="flex justify-between gap-2">
-                <span>{t("netWorth.loans")}</span>
+              {/* Opens the loans owed with the CBC K-Score at the top. */}
+              <Link href="/debts?tab=PAYABLE#credit-health" className="flex justify-between gap-2 rounded-md underline-offset-4 hover:underline">
+                <span>{t("netWorth.loans")} ›</span>
                 <span className="font-semibold whitespace-nowrap">
                   −<Amount value={liabilitiesUsd} currency="USD" />
                 </span>
-              </p>
+              </Link>
               <p className="flex justify-between gap-2">
                 <span>{t("netWorth.net")}</span>
                 <Amount value={roundMoney(totals.totalUsd - liabilitiesUsd, "USD")} currency="USD" className="font-semibold whitespace-nowrap" />

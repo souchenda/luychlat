@@ -15,6 +15,7 @@ import { DebtCard } from "@/components/debts/debt-card";
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet";
 import { OutstandingAmount } from "@/components/debts/debt-summary";
 import { Segmented } from "@/components/common/segmented";
+import { CreditHealthCard } from "@/components/debts/credit-health-card";
 import { TontineList } from "@/components/tontine/tontine-list";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -116,6 +117,9 @@ function DebtsView() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+
+          {/* CBC K-Score with the loans that build it (the person's own; Personal workspace only). */}
+          {tab === "PAYABLE" && workspace?.type === "PERSONAL" && <CreditHealthCard workspaceId={workspace.id} />}
 
           <Card className="flex-row items-center justify-between px-4 py-3">
             <div>
