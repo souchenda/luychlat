@@ -52,7 +52,8 @@ const recordButtons = getChannelPostButtons
 
 /** The morning quote on the v3 poster frame (same design as the daily tip, its own tag). */
 export function morningPoster(day: string): Buffer {
-  const quote = morningQuote(day)
+  // The poster's fonts have no emoji: the hook and the tip are already two lines there.
+  const quote = morningQuote(day).replace(/\s*💡\s*/u, " ")
   return tipPoster({ title: "អរុណសួស្តីថ្ងៃថ្មី", body: quote }, day, { tag: "ថាមពលហិរញ្ញវត្ថុពេលព្រឹក" })
 }
 

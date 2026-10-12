@@ -33,4 +33,11 @@ describe("the morning quote rotates with the day of the month", () => {
   it("never «អែប», «កម្មវិធី» or «&» (the Khmer copy standard)", () => {
     for (const q of MORNING_QUOTES) assert.doesNotMatch(q, /អែប|កម្មវិធី|&/)
   })
+  it("Gen Z deadpan: a hook, then one thing to do after 💡; no «» inside (the caption wraps each quote in «»)", () => {
+    for (const q of MORNING_QUOTES) {
+      assert.match(q, /^.+ 💡 .+$/)
+      assert.doesNotMatch(q, /[«»]/)
+      assert.ok(q.length <= 140, q)
+    }
+  })
 })
