@@ -34,33 +34,43 @@ export type AccountRead = {
 }
 
 export const ACCOUNT_PROMPT = [
-  "This photo should be a Cambodian mobile-banking ACCOUNT screen (an account list, account details or a savings account — e.g. Chip Mong «Kmeng Chhlat», ABA, ACLEDA, Wing), in Khmer or English, light or dark.",
+  "This photo should be a Cambodian mobile-banking ACCOUNT screen (an account list, account details or a savings account — e.g. Amret «Kmeng Chhlat», ABA, ACLEDA, Wing, Chip Mong), in Khmer or English, light or dark.",
   "Answer only JSON for the one main account shown:",
   '{"is_account": boolean, "bank": string | null, "account_name": string | null, "account_no": string | null, "balance": number | null, "currency": "USD" | "KHR"}',
   "- bank: the bank's name as shown (logo text, app name). account_name: the account's own name or product (not the person's name).",
+  "- «Kmeng Chhlat» / «ក្មេងឆ្លាត» is Amret MFI's kids' savings account: its bank is Amret.",
   "- account_no: exactly as printed (digits, spaces, dashes). balance: the available / current balance shown for that account.",
   "- Never invent a value: null when not on the screen.",
   'If it is not a bank account screen, answer {"is_account": false}.',
 ].join("\n")
 
+/**
+ * Account products that belong to one institution whatever the reader guessed (founder, 12/10/2026):
+ * «ក្មេងឆ្លាត» / «Kmeng Chhlat» kids' savings is Amret MFI's — never Chip Mong's.
+ */
+const PRODUCT_BANKS: { product: RegExp; bank: string; icon: string }[] = [{ product: /ក្មេង\s*ឆ្លាត|kmeng\s*chh?lat/i, bank: "Amret", icon: "amret" }]
+
 export function cleanAccount(raw: unknown): AccountRead | null {
   const r = (raw ?? {}) as Record<string, unknown>
   if (r.is_account !== true) return null
-  const bank = text(r.bank, 40)
+  const readBank = text(r.bank, 40)
+  const accountName = text(r.account_name, 40)
   const accountNo = text(r.account_no, 40)
   const balance = num(r.balance)
-  if (!bank && !accountNo && balance === null) return null
+  if (!readBank && !accountNo && balance === null) return null
+  const product = PRODUCT_BANKS.find((p) => p.product.test(`${accountName ?? ""} ${readBank ?? ""}`))
+  const bank = product?.bank ?? readBank
   return {
     bank,
-    icon: providerForName(bank)?.key ?? "other",
-    accountName: text(r.account_name, 40),
+    icon: product?.icon ?? providerForName(bank)?.key ?? "other",
+    accountName,
     accountNo: accountNo && /^[0-9][0-9 -]{2,29}$/.test(accountNo) ? accountNo : null,
     balance: balance !== null && balance >= 0 ? balance : null,
     currency: r.currency === "KHR" ? "KHR" : "USD",
   }
 }
 
-/** A wallet / goal name from the screen: «Chip Mong · Kmeng Chhlat», or the bank alone. */
+/** A wallet / goal name from the screen: «Amret · Kmeng Chhlat», or the bank alone. */
 export const accountTitle = (a: Pick<AccountRead, "bank" | "accountName">, providerName?: string | null) =>
   [providerName ?? a.bank, a.accountName].filter(Boolean).join(" · ").slice(0, 60)
 

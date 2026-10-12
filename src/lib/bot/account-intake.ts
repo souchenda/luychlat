@@ -10,7 +10,7 @@ import { latinDigits } from "@/lib/moc-fuel"
 
 export type AccountIntake = { name: string; bank: string | null; accountName: string | null; accountNo: string | null; balance: number | null; currency: Currency }
 
-/** «🏦 រកឃើញគណនីសន្សំ Chip Mong Bank Kmeng Chhlat $1,250.50!» + the question. */
+/** «🏦 រកឃើញគណនីសន្សំ Amret Kmeng Chhlat $1,250.50!» + the question. */
 export function accountIntakeText(a: AccountIntake, showNumbers: boolean): string {
   const who = [a.bank, a.accountName].filter(Boolean).join(" ") || a.name
   const amount = a.balance === null ? null : showNumbers ? formatMoney(a.balance, a.currency) : "••••"

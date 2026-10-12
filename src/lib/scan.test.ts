@@ -5,13 +5,30 @@ import { cleanLoanDetail } from "./loans/loan-detail-read"
 import { accountTitle, cleanAccount, cleanVehicle, loanFormFields } from "./scan"
 
 describe("scan — bank account screen", () => {
-  const a = cleanAccount({ is_account: true, bank: "Chip Mong Bank", account_name: "Kmeng Chhlat", account_no: "0102 3456 789", balance: 1250.5, currency: "USD" })!
-  it("Chip Mong «Kmeng Chhlat»: the bank's logo key, the account's own name, number and balance", () => {
-    assert.equal(a.icon, "chipmong")
+  const a = cleanAccount({ is_account: true, bank: "Amret", account_name: "Kmeng Chhlat", account_no: "0102 3456 789", balance: 1250.5, currency: "USD" })!
+  it("Amret «Kmeng Chhlat»: Amret's logo key, the account's own name, number and balance", () => {
+    assert.equal(a.icon, "amret")
+    assert.equal(a.bank, "Amret")
     assert.equal(a.accountName, "Kmeng Chhlat")
     assert.equal(a.accountNo, "0102 3456 789")
     assert.equal(a.balance, 1250.5)
-    assert.equal(accountTitle(a, "Chip Mong Bank"), "Chip Mong Bank · Kmeng Chhlat")
+    assert.equal(accountTitle(a, "Amret"), "Amret · Kmeng Chhlat")
+  })
+  it("«ក្មេងឆ្លាត» / Kmeng Chhlat is always Amret's — even when the reader guessed Chip Mong, or saw no bank", () => {
+    for (const raw of [
+      { is_account: true, bank: "Chip Mong Bank", account_name: "Kmeng Chhlat", balance: 10 },
+      { is_account: true, bank: null, account_name: "ក្មេងឆ្លាត", balance: 10 },
+      { is_account: true, bank: "Chip Mong", account_name: "KMENG CHLAT Savings", balance: 10 },
+    ]) {
+      const r = cleanAccount(raw)!
+      assert.equal(r.bank, "Amret", JSON.stringify(raw))
+      assert.equal(r.icon, "amret")
+    }
+    // Other Chip Mong accounts stay Chip Mong.
+    assert.equal(cleanAccount({ is_account: true, bank: "Chip Mong Bank", account_name: "Fixed Deposit", balance: 10 })!.icon, "chipmong")
+  })
+  it("Amret written «អម្រឹត» is Amret too, with its logo", () => {
+    assert.equal(cleanAccount({ is_account: true, bank: "គ្រឹះស្ថានមីក្រូហិរញ្ញវត្ថុ អម្រឹត", account_name: "Savings", balance: 5 })!.icon, "amret")
   })
   it("an unknown bank keeps its name with the generic icon; a malformed number or a negative balance is dropped", () => {
     const b = cleanAccount({ is_account: true, bank: "Some MFI", account_no: "ABC-1", balance: -5, currency: "KHR" })!

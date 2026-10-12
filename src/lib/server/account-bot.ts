@@ -1,4 +1,4 @@
-// Server only: a bank account / savings screenshot in the bot's private chat (e.g. Chip Mong
+// Server only: a bank account / savings screenshot in the bot's private chat (e.g. Amret
 // «Kmeng Chhlat») → «🏦 រកឃើញគណនីសន្សំ …! តើចង់កត់ត្រាចូលកាបូប ឬគោលដៅសន្សំ?» with one tap:
 //   👛 កាបូប       a wallet — the bank's logo, the account's name and number, the balance as its opening balance
 //   🎯 គោលដៅសន្សំ  a goal — the target typed in reply; it starts at 0, as in the app

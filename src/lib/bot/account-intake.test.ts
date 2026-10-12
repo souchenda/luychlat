@@ -3,13 +3,13 @@ import { describe, it } from "node:test"
 
 import { accountIntakeButtons, accountIntakeText, isAccountCallback, parseAccountCallback, parseGoalTarget, type AccountIntake } from "./account-intake"
 
-const KMENG: AccountIntake = { name: "Chip Mong Bank · Kmeng Chhlat", bank: "Chip Mong Bank", accountName: "Kmeng Chhlat", accountNo: "0102 3456 789", balance: 1250.5, currency: "USD" }
+const KMENG: AccountIntake = { name: "Amret · Kmeng Chhlat", bank: "Amret", accountName: "Kmeng Chhlat", accountNo: "0102 3456 789", balance: 1250.5, currency: "USD" }
 const ID = "3f2b8c1e-5d4a-4b6c-9e8f-1a2b3c4d5e6f"
 
 describe("bot account intake — the question", () => {
-  it("«រកឃើញគណនីសន្សំ Chip Mong Bank Kmeng Chhlat $1,250.50!» when the chat shows numbers", () => {
+  it("«រកឃើញគណនីសន្សំ Amret Kmeng Chhlat $1,250.50!» when the chat shows numbers", () => {
     const t = accountIntakeText(KMENG, true)
-    assert.match(t.split("\n")[0], /^🏦 រកឃើញគណនីសន្សំ Chip Mong Bank Kmeng Chhlat \$1,250\.50!$/)
+    assert.match(t.split("\n")[0], /^🏦 រកឃើញគណនីសន្សំ Amret Kmeng Chhlat \$1,250\.50!$/)
     assert.match(t, /តើចង់កត់ត្រាចូលកាបូប ឬគោលដៅសន្សំ\?/)
     assert.match(t, /🔢 លេខគណនី៖ 0102 3456 789/)
   })

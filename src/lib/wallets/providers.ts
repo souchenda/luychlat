@@ -32,7 +32,7 @@ export const WALLET_PROVIDERS: WalletProvider[] = [
   { key: "chipmong", name: { km: "Chip Mong Bank", en: "Chip Mong Bank" }, mark: "CM", color: "#00857c", defaultCurrency: "USD", logo: "/banks/chipmong.png", alias: /CHIP\s*MONG/i },
   { key: "amk", name: { km: "AMK", en: "AMK" }, mark: "AMK", color: "#00843d", defaultCurrency: "KHR", alias: /\bAMK\b/i },
   { key: "prasac", name: { km: "KB PRASAC Bank", en: "KB PRASAC Bank" }, mark: "KB", color: "#ffc72c", defaultCurrency: "KHR", logo: "/banks/prasac.png", alias: /PRASAC|ប្រាសាក់/i },
-  { key: "amret", name: { km: "អំរ៉ែត", en: "Amret" }, mark: "AM", color: "#00843d", defaultCurrency: "KHR", logo: "/banks/amret.png", alias: /AMRET|អំរ៉ែត/i },
+  { key: "amret", name: { km: "អំរ៉ែត", en: "Amret" }, mark: "AM", color: "#00843d", defaultCurrency: "KHR", logo: "/banks/amret.png", alias: /AMRET|អំរ៉ែត|អម្រឹត/i },
   { key: "vattanac", name: { km: "Vattanac Bank", en: "Vattanac Bank" }, mark: "VB", color: "#8a1538", defaultCurrency: "USD", alias: /VATTANAC/i },
   { key: "ftb", name: { km: "FTB Bank", en: "FTB Bank" }, mark: "FTB", color: "#003d7c", defaultCurrency: "USD", alias: /\bFTB\b|FOREIGN\s+TRADE\s+BANK/i },
   { key: "maybank", name: { km: "Maybank", en: "Maybank" }, mark: "MB", color: "#ffc72c", defaultCurrency: "USD", alias: /MAYBANK/i },
