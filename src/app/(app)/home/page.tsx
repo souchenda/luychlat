@@ -10,6 +10,7 @@ import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
 import { TontineDueCard } from "@/components/tontine/tontine-due-card"
 import { FamilyStrip } from "@/components/family/family-strip"
 import { ExperienceSelector } from "@/components/islamic/islamic-mode"
+import { SourceSelector } from "@/components/onboarding/source-selector"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { DailyTipCard } from "@/components/dashboard/daily-tip-card"
 import { MarketRatesCard } from "@/components/dashboard/market-rates-card"
@@ -156,6 +157,7 @@ export default function HomePage() {
       {/* 🪷 The day before and on a holy day: a gentle offerings reminder with one soft bell (Personal only). */}
       <HolyDayReminder />
 
+      <SourceSelector />
       <ExperienceSelector />
 
       <NetWorthCard

@@ -1,5 +1,6 @@
 "use client"
 
+import { AcquisitionSources } from "@/components/admin/acquisition-sources"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
 import {
@@ -701,6 +702,7 @@ export default function AdminPage() {
       <SystemHealthCard />
       {admin && (
         <>
+          <AcquisitionSources />
           <Subscribers />
           <div className="space-y-2">
             <Collapsible icon={<SettingsIcon />} title={t("admin.appSettings")} hint={t("admin.appSettingsHint")}>

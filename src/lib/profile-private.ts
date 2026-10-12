@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import type { AcquisitionSource } from "@/lib/acquisition"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -14,6 +15,7 @@ export const OCCUPATIONS = ["STUDENT", "EMPLOYEE", "BUSINESS_OWNER", "GENERAL"] 
 export type Occupation = (typeof OCCUPATIONS)[number]
 export type ProfilePrivate = { birth_date: string | null; occupation: Occupation | null }
 
+
 const key = (userId: string | undefined) => ["profile-private", userId] as const
 
 export function useProfilePrivate() {
@@ -23,9 +25,9 @@ export function useProfilePrivate() {
     enabled: Boolean(userId),
     staleTime: 10 * 60_000,
     queryFn: async () => {
-      const { data, error } = await getSupabaseBrowserClient()!.from("profile_private").select("birth_date, occupation").eq("user_id", userId!).maybeSingle()
+      const { data, error } = await getSupabaseBrowserClient()!.from("profile_private").select("birth_date, occupation, acquisition_source").eq("user_id", userId!).maybeSingle()
       if (error) throw error
-      return (data ?? { birth_date: null, occupation: null }) as ProfilePrivate
+      return (data ?? { birth_date: null, occupation: null, acquisition_source: null }) as ProfilePrivate & { acquisition_source: AcquisitionSource | null }
     },
   })
 }
@@ -38,6 +40,21 @@ export function useSaveProfilePrivate() {
       const { error } = await getSupabaseBrowserClient()!
         .from("profile_private")
         .upsert({ user_id: userId!, birth_date: v.birth_date || null, occupation: v.occupation, updated_at: new Date().toISOString() })
+      if (error) throw error
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: key(userId) }),
+  })
+}
+
+/** The first-visit answer: saved alone (the birthday and occupation are left as they are). */
+export function useSaveAcquisitionSource() {
+  const userId = useSessionStore((s) => s.user?.id)
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (source: AcquisitionSource) => {
+      const { error } = await getSupabaseBrowserClient()!
+        .from("profile_private")
+        .upsert({ user_id: userId!, acquisition_source: source, acquisition_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       if (error) throw error
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: key(userId) }),

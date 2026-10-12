@@ -4,6 +4,7 @@ import { BriefcaseIcon, CheckIcon, Loader2Icon, MoonStarIcon } from "lucide-reac
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { useSourcePromptOpen } from "@/components/onboarding/source-selector"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -68,8 +69,10 @@ export function ExperienceSelector() {
   const { choose, pending, choosing } = useChoose()
   const [later, setLater] = useState(false)
   const [done, setDone] = useState(false)
+  // One dialog at a time: «how did you hear of us» first, then this.
+  const sourceOpen = useSourcePromptOpen()
   const isNew = createdAt ? Date.now() - new Date(createdAt).getTime() < PROMPT_DAYS * 86_400_000 : false
-  const open = loaded && isNew && !settings.decided && !settings.enabled && !later && !done
+  const open = loaded && isNew && !settings.decided && !settings.enabled && !later && !done && !sourceOpen
 
   const option = (islamic: boolean) => {
     const busy = pending && choosing === islamic
