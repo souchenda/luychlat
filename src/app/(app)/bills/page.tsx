@@ -7,7 +7,8 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { BillSheet } from "@/components/bills/bill-sheet"
-import { BillIcon } from "@/components/common/party-avatar"
+import { PartyAvatar } from "@/components/common/party-avatar"
+import { billCategory } from "@/lib/institution-logos"
 import { VehicleDocsCard } from "@/components/bills/vehicle-docs-card"
 import { EvHomeCard } from "@/components/bills/ev-home-card"
 import { NssfVault } from "@/components/bills/nssf-vault"
@@ -18,7 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { BILL_EMOJI, NSSF_URL, daysUntil, nextDue, nssfAmountFor, useBillMutations, useBills, useNssfMembers, type Bill } from "@/lib/bills"
+import { NSSF_URL, daysUntil, nextDue, nssfAmountFor, useBillMutations, useBills, useNssfMembers, type Bill } from "@/lib/bills"
 import { canWrite, useActiveWorkspace, useCategories, useWallets } from "@/lib/data/hooks"
 import { dayDate } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
@@ -196,7 +197,7 @@ export default function BillsPage() {
             return (
               <div key={bill.id} className={cn("flex items-center gap-3 px-4 py-3", !bill.is_active && "opacity-60")}>
                 <button type="button" onClick={() => editable && setSheet({ open: true, bill })} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                  <BillIcon title={bill.title} emoji={BILL_EMOJI[bill.kind]} className="size-9" />
+                  <PartyAvatar name={bill.title} category={billCategory(bill.kind)} className="size-9" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{bill.title}</span>
                     <span className="block truncate text-xs text-muted-foreground tabular-nums">

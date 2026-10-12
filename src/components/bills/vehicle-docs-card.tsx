@@ -17,6 +17,7 @@ import { dayDate } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount, roundMoney, roundRiel } from "@/lib/money"
+import { PartyAvatar } from "@/components/common/party-avatar"
 import { COST_HINT, daysLeft, docStatus, renewedExpiry, VEHICLE_DOC_TYPES, type VehicleDoc, type VehicleDocType } from "@/lib/vehicle-docs"
 import { useVehicleDocMutations, useVehicleDocs } from "@/lib/vehicle-docs-data"
 import type { VehicleRead } from "@/lib/scan"
@@ -70,6 +71,11 @@ export function VehicleDocsCard({ workspaceId, editable }: { workspaceId: string
             const left = daysLeft(d.expires_on, today)
             return (
               <div key={d.id} className="flex items-start gap-3 px-4 py-3">
+                <PartyAvatar
+                  name={d.doc_type === "INSURANCE" && d.provider ? d.provider : d.vehicle}
+                  category={d.doc_type === "INSURANCE" && d.provider ? "INSURANCE" : "VEHICLE"}
+                  className="size-9"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">
                     {t(`vdoc.type.${d.doc_type}` as MessageKey)}
