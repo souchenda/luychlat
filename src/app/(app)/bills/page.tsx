@@ -7,6 +7,7 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { BillSheet } from "@/components/bills/bill-sheet"
+import { BillIcon } from "@/components/common/party-avatar"
 import { VehicleDocsCard } from "@/components/bills/vehicle-docs-card"
 import { EvHomeCard } from "@/components/bills/ev-home-card"
 import { NssfVault } from "@/components/bills/nssf-vault"
@@ -195,9 +196,7 @@ export default function BillsPage() {
             return (
               <div key={bill.id} className={cn("flex items-center gap-3 px-4 py-3", !bill.is_active && "opacity-60")}>
                 <button type="button" onClick={() => editable && setSheet({ open: true, bill })} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                  <span className="text-2xl" aria-hidden>
-                    {BILL_EMOJI[bill.kind]}
-                  </span>
+                  <BillIcon title={bill.title} emoji={BILL_EMOJI[bill.kind]} className="size-9" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{bill.title}</span>
                     <span className="block truncate text-xs text-muted-foreground tabular-nums">
