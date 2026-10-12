@@ -23,7 +23,8 @@ import {
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { communityChat, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
 import { logEvent } from "@/lib/server/events"
-import { facebookConfig, facebookHolidayMessage, publishLogged, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
+import { facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
+import { holidayPoster } from "@/lib/server/holiday-poster"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { sendPosterPhoto } from "@/lib/server/tip-bot"
@@ -188,10 +189,20 @@ const realDeps = (): SchedulerDeps => ({
     return ((data as { chat_id: number }[] | null) ?? []).map((c) => Number(c.chat_id))
   },
   async content(row) {
-    if (row.kind === "MORNING") return { png: morningPoster(String(row.payload.day)), body: stripHtml(morningText(String(row.payload.day))) }
+    // The morning post and the holiday notes always preview as their poster; a drawing failure is
+    // logged and the preview still goes out (as text) so the founder is never left without one.
+    const poster = (draw: () => Buffer) => {
+      try {
+        return draw()
+      } catch (e) {
+        logEvent("error", "scheduled-posts", `Poster for ${row.kind} ${row.post_key} failed: ${e instanceof Error ? e.message : String(e)}`)
+        return null
+      }
+    }
+    if (row.kind === "MORNING") return { png: poster(() => morningPoster(String(row.payload.day))), body: stripHtml(morningText(String(row.payload.day))) }
     if (row.kind === "HOLIDAY") {
       const m = holidayOf(row)
-      return { png: null, body: m ? stripHtml(holidayPostHtml(m)) : "—" }
+      return { png: m ? poster(() => holidayPoster(m)) : null, body: m ? stripHtml(holidayPostHtml(m)) : "—" }
     }
     return { png: null, body: String(row.payload.telegram ?? "—") }
   },
@@ -217,10 +228,15 @@ const realDeps = (): SchedulerDeps => ({
     if (row.kind === "HOLIDAY") {
       const m = holidayOf(row)
       if (!m) return
-      if (chat) await tg("sendMessage", { chat_id: chat, text: holidayPostHtml(m), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
+      // The poster with the note as its caption (text only if the image can't be sent).
+      const png = holidayPoster(m)
+      if (chat) {
+        const id = await sendPosterPhoto(chat, png, holidayPostHtml(m), { reply_markup: buttons.reply_markup })
+        if (!id) await tg("sendMessage", { chat_id: chat, text: holidayPostHtml(m), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
+      }
       if (facebookConfig() && shouldPublishToFacebook({ kind: "holiday" })) {
         const { title, body } = holidayMessage(m)
-        await publishLogged(`holiday note (${row.post_key})`, () => publishTextToFacebook(facebookHolidayMessage(title, body)), fbLog)
+        await publishLogged(`holiday note (${row.post_key})`, () => publishPhotoToFacebook(png, facebookHolidayMessage(title, body)), fbLog)
       }
       return
     }

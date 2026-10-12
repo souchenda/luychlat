@@ -24,7 +24,7 @@ const GOLD_DEEP = "#d97706"
 const CREAM = "#fdf6e3"
 
 /** A lotus blossom (filled petals in gold) centred on its base (x, y). */
-function lotus(ctx: SKRSContext2D, x: number, y: number, s: number) {
+export function lotus(ctx: SKRSContext2D, x: number, y: number, s: number) {
   ctx.save()
   ctx.translate(x, y)
   ctx.scale(s, s)

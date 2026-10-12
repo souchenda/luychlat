@@ -15,7 +15,7 @@ function fake(start: number) {
   let now = start
   const rows: PostRow[] = []
   const published: number[] = []
-  const previewsSent: { chat: number; text: string }[] = []
+  const previewsSent: { chat: number; text: string; png: boolean }[] = []
   const edits: { msg: number; text: string; buttons: number }[] = []
   const answers: { text: string; alert: boolean }[] = []
   const deps: SchedulerDeps = {
@@ -53,8 +53,8 @@ function fake(start: number) {
     async publish(row) {
       published.push(row.id)
     },
-    async sendPreview(chat, _png, text) {
-      previewsSent.push({ chat, text })
+    async sendPreview(chat, png, text) {
+      previewsSent.push({ chat, text, png: Boolean(png) })
       return 900 + previewsSent.length
     },
     async editPreview(p, text, buttons) {
@@ -84,6 +84,7 @@ describe("preview-first — the preview at 06:15", () => {
     assert.equal(f.previewsSent.length, 1)
     assert.match(f.previewsSent[0].text, /^📢 គោលដៅផ្សាយ៖ \[ ✈️ Telegram Channel \+ 🔵 Facebook Page \]/)
     assert.match(f.previewsSent[0].text, /នៅម៉ោង ០៧:០០ ព្រឹក ប្រសិនបើគ្មានសកម្មភាព។$/)
+    assert.equal(f.previewsSent[0].png, true) // the poster, never text-only
     await f.at(6, 16)
     await f.at(6, 59)
     assert.equal(f.previewsSent.length, 1)
