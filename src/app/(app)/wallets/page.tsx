@@ -10,6 +10,7 @@ import { TransactionEditor } from "@/components/transactions/transaction-editor"
 import { TransactionList } from "@/components/transactions/transaction-list"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { CreditHealthCard } from "@/components/profile/credit-health-card"
 import { NetWorthCard } from "@/components/wallets/net-worth-card"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
@@ -102,6 +103,8 @@ export default function WalletsPage() {
       </div>
 
       <NetWorthCard wallets={all} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
+      {/* The person's CBC K-Score beside their net worth — Personal workspace only (never in a business). */}
+      {workspace?.type === "PERSONAL" && <CreditHealthCard workspaceId={workspace.id} />}
 
       <div className={editable ? "grid grid-cols-2 gap-2" : "hidden"}>
         <Button className="h-11" onClick={openCreate}>

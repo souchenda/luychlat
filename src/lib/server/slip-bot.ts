@@ -67,12 +67,13 @@ const PROMPT = [
   'An EV CHARGING SCREEN (a car or charger app — e.g. "MG Marvel R", "Charging complete", "kW·h" / "kWh", a daily energy history) is not a slip: answer {"is_slip": false, "ev_charge": true, "kwh": number, "date": "YYYY-MM-DD" | null} — kwh: the energy charged on the latest (or highlighted) day; date: that day.',
   'A FIXED / TERM DEPOSIT or GOAL SAVING account screen (labels like "Principle Amount", "Maturity Date", "Maturity Amount", "Interest Rate", "Goal Saving Purposes") is not a slip: answer {"is_slip": false, "term_deposit": true}.',
   'A mobile-banking LOAN DETAIL / LOAN ACCOUNT screen of any bank or MFI ("Loan Detail", "Outstanding Balance", "Loan Principle", "Next Repayment Schedule", «ព័ត៌មានឥណទាន», «សមតុល្យនៅសល់», «ប្រាក់ដើមកម្ចី» — a single loan summary, not a table of installments) is not a slip: answer {"is_slip": false, "loan_detail": true}.',
+  'A CBC (Credit Bureau Cambodia) K-SCORE screen ("K Score", "My K-Score", a 100–1400 gauge) is not a slip: answer {"is_slip": false, "kscore": true}.',
   'A LOAN REPAYMENT SCHEDULE (តារាងកាលវិភាគសងប្រាក់ / "Repayment Schedule": a bank or microfinance table of installments with dates, principal, interest and balance) is not a slip: answer {"is_slip": false, "loan_schedule": true}.',
   'A PAPER UTILITY BILL to be paid (electricity / water: EDC, AKISANI KOUR SROV, PPWSA — an invoice with an amount due and a due date, not a receipt of a payment) is not a slip: answer {"is_slip": false, "utility_bill": true}.',
   'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
-type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" | "loan_detail" | "term_deposit" } | { error: "ev_charge"; kwh: number; date: string | null }
+type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" | "loan_detail" | "term_deposit" | "kscore" } | { error: "ev_charge"; kwh: number; date: string | null }
 
 export type Answer = { text: string } | { fail: string }
 
@@ -160,6 +161,7 @@ export async function readSlip(fileId: string): Promise<ReadResult> {
     // A loan repayment schedule: the loan reader takes it (loan-schedule-bot.ts).
     if ((raw as { loan_schedule?: unknown })?.loan_schedule === true) return { error: "loan_schedule" }
     if ((raw as { loan_detail?: unknown })?.loan_detail === true) return { error: "loan_detail" }
+    if ((raw as { kscore?: unknown })?.kscore === true) return { error: "kscore" }
     // A fixed / term deposit: the deposit reader takes it (term-deposit-bot.ts).
     if ((raw as { term_deposit?: unknown })?.term_deposit === true) return { error: "term_deposit" }
     // An EV charging screenshot: its day's kWh goes to the home charging log.
@@ -254,6 +256,9 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   if ("error" in read && read.error === "utility_bill") return handleBillPhoto(chatId, fileId, ctx)
   if ("error" in read && read.error === "loan_schedule") return handleLoanSchedulePhoto(chatId, fileId)
   if ("error" in read && read.error === "loan_detail") return handleLoanDetailPhoto(chatId, fileId)
+  // A credit score is private: never read or kept through the bot — the app's Profile keeps it.
+  if ("error" in read && read.error === "kscore")
+    return sendText(chatId, "🔒 ពិន្ទុ K-Score ជាព័ត៌មានឯកជន — Bot មិនរក្សាទុកទេ។ សូមបញ្ចូលវាក្នុងអេប លុយឆ្លាត › ប្រវត្តិរូប › «សុខភាពឥណទាន CBC»។", { reply_markup: { inline_keyboard: [[{ text: "🛡️ បើកសុខភាពឥណទាន", url: "https://app.luychlat.com/profile" }]] } })
   if ("error" in read && read.error === "term_deposit") return handleTermDepositPhoto(chatId, fileId)
   if ("error" in read && read.error === "ev_charge") {
     return sendText(chatId, await logEvHome(chatId, `⚡ ${read.kwh} kWh · screenshot`, lang, { photo: fileId, day: read.date, kwh: read.kwh }))

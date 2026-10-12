@@ -10,6 +10,7 @@ import { ProfileSheet } from "@/components/profile/profile-sheets"
 import { SettingsGroup, SettingsSubHeader, TILE } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
+import { CreditHealthCard } from "@/components/profile/credit-health-card"
 import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
 import { dayDate } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
@@ -178,6 +179,9 @@ export default function ProfilePage() {
           </>
         )}
       </SettingsGroup>
+
+      {/* CBC K-Score — the person's own, private; open loans of the Personal workspace for the Guardian tip. */}
+      <CreditHealthCard workspaceId={workspace?.type === "PERSONAL" ? workspace.id : undefined} />
 
       <div className="space-y-3">
         <Button className="h-12 w-full rounded-xl text-base" onClick={() => setEditOpen(true)}>
