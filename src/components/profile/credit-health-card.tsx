@@ -1,6 +1,6 @@
 "use client"
 
-import { CameraIcon, Loader2Icon, LockIcon, ShieldCheckIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
+import { CameraIcon, Loader2Icon, LockIcon, ShieldCheckIcon } from "lucide-react"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -10,29 +10,45 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDebts } from "@/lib/data/hooks"
-import { dayDate } from "@/lib/dates"
+import { dayDate, khmerDigits } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
 import { compressImage, MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
-import { gaugeFraction, guardianLenders, KSCORE_MAX, KSCORE_MIN, kscoreTrend, riskTone, type KScoreRead } from "@/lib/kscore"
+import { gaugeFraction, guardianLenders, KSCORE_MAX, KSCORE_MIN, KSCORE_TIERS, kscoreTier, kscoreTrend, type KScoreRead, type KScoreTier } from "@/lib/kscore"
 import { useLatestKScore, useSaveKScore } from "@/lib/kscore-data"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
-const TONE = {
-  good: { arc: "#10b981", text: "text-emerald-700 dark:text-emerald-400" },
-  warn: { arc: "#f59e0b", text: "text-amber-700 dark:text-amber-400" },
-  neutral: { arc: "#64748b", text: "text-muted-foreground" },
-} as const
+const TIERS: KScoreTier[] = ["high", "moderate", "good", "excellent"]
 
-/** A 100–1400 half-circle gauge. */
-function Gauge({ score, color }: { score: number; color: string }) {
+/**
+ * The 100–1400 half-circle gauge: a soft light track, the score's arc in its CBC tier colour (a
+ * gradient with a soft glow), and the four CBC bands as a thin strip underneath.
+ */
+function Gauge({ score }: { score: number }) {
+  const tier = KSCORE_TIERS[kscoreTier(score)]
   const f = gaugeFraction(score)
-  const r = 52
-  const len = Math.PI * r
+  const len = Math.PI * 52
+  const id = `ks-${kscoreTier(score)}`
   return (
-    <svg viewBox="0 0 120 68" className="h-auto w-36" aria-hidden>
-      <path d="M8 62 A52 52 0 0 1 112 62" fill="none" stroke="currentColor" strokeOpacity={0.12} strokeWidth={10} strokeLinecap="round" />
-      <path d="M8 62 A52 52 0 0 1 112 62" fill="none" stroke={color} strokeWidth={10} strokeLinecap="round" strokeDasharray={`${len * f} ${len}`} />
+    <svg viewBox="0 0 120 74" className="h-auto w-40" aria-hidden>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor={tier.to} />
+          <stop offset="1" stopColor={tier.color} />
+        </linearGradient>
+        <filter id={`${id}-glow`} x="-20%" y="-20%" width="140%" height="160%">
+          <feDropShadow dx="0" dy="0" stdDeviation="2.2" floodColor={tier.color} floodOpacity="0.55" />
+        </filter>
+      </defs>
+      <path d="M8 62 A52 52 0 0 1 112 62" fill="none" className="stroke-[#E2E8F0] dark:stroke-white/10" strokeWidth={10} strokeLinecap="round" />
+      <path d="M8 62 A52 52 0 0 1 112 62" fill="none" stroke={`url(#${id})`} strokeWidth={10} strokeLinecap="round" strokeDasharray={`${len * f} ${len}`} filter={`url(#${id}-glow)`} />
+      {/* CBC's four bands along the bottom: 100–550 · 551–750 · 751–950 · 951–1400. */}
+      {TIERS.map((k) => {
+        const t = KSCORE_TIERS[k]
+        const x0 = 8 + ((t.min - KSCORE_MIN) / (KSCORE_MAX - KSCORE_MIN)) * 104
+        const x1 = 8 + ((t.max - KSCORE_MIN) / (KSCORE_MAX - KSCORE_MIN)) * 104
+        return <rect key={k} x={x0} y={70} width={Math.max(1, x1 - x0 - 1)} height={3} rx={1.5} fill={t.color} opacity={k === kscoreTier(score) ? 1 : 0.35} />
+      })}
     </svg>
   )
 }
@@ -52,8 +68,10 @@ export function CreditHealthCard({ workspaceId }: { workspaceId?: string }) {
   const [reading, setReading] = useState(false)
   const [draft, setDraft] = useState<KScoreRead | null>(null)
   const k = latest.data
-  const tone = TONE[riskTone(k?.riskLabel ?? null)]
+  const tierKey = k ? kscoreTier(k.score) : null
+  const tier = tierKey ? KSCORE_TIERS[tierKey] : null
   const trend = k ? kscoreTrend(k) : null
+  const kmNum = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
 
   const pick = async (file: File | undefined) => {
     if (!file) return
@@ -85,30 +103,42 @@ export function CreditHealthCard({ workspaceId }: { workspaceId?: string }) {
         </Button>
         <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} />
       </div>
-      <Card className="gap-3 px-4 py-4">
-        {!k ? (
+      <Card
+        className={
+          tierKey === "excellent" || tierKey === "good"
+            ? "gap-3 border-emerald-200/80 bg-linear-to-br from-emerald-50 via-white to-teal-50/60 px-4 py-4 dark:border-emerald-900/50 dark:from-emerald-500/10 dark:via-transparent dark:to-teal-500/5"
+            : "gap-3 px-4 py-4"
+        }
+      >
+        {!k || !tier ? (
           <p className="text-sm text-muted-foreground">{t("kscore.empty")}</p>
         ) : (
           <>
             <div className="flex items-center gap-4">
               <div className="relative shrink-0">
-                <Gauge score={k.score} color={tone.arc} />
-                <p className="absolute inset-x-0 bottom-0 text-center text-2xl font-bold tabular-nums">{hidden ? "****" : k.score}</p>
+                <Gauge score={k.score} />
+                <p className="absolute inset-x-0 bottom-3 text-center text-3xl font-extrabold tracking-tight tabular-nums">{hidden ? "****" : k.score}</p>
               </div>
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <p className={`font-semibold ${tone.text}`}>{k.riskLabel ?? t("kscore.noLabel")}</p>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                {/* CBC's band for the score — e.g. «🟢 ល្អប្រសើរ · Excellent». */}
+                <p className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold" style={{ backgroundColor: `${tier.color}1f`, color: tier.to }}>
+                  {tier.dot} {tier.km} · {tier.en}
+                </p>
+                {trend && !hidden && (
+                  <p className={`text-sm font-semibold ${trend.delta >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {trend.delta >= 0 ? "↗" : "↘"} {trend.delta >= 0 ? "+" : "−"}
+                    {Math.abs(trend.delta)}{" "}
+                    <span className="font-normal text-muted-foreground">
+                      ({kmNum(trend.fromScore)} ➔ {kmNum(k.score)} · {t("kscore.inMonths", { n: kmNum(trend.months) })})
+                    </span>
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   {KSCORE_MIN}–{KSCORE_MAX} · {t("kscore.asOf", { date: dayDate(new Date(`${k.scoreDate}T12:00:00`), locale) })}
                 </p>
-                {trend && !hidden && (
-                  <p className={`flex items-center gap-1 text-xs font-medium ${trend.delta >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                    {trend.delta >= 0 ? <TrendingUpIcon className="size-3.5" aria-hidden /> : <TrendingDownIcon className="size-3.5" aria-hidden />}
-                    {t("kscore.trend", { delta: `${trend.delta >= 0 ? "+" : "−"}${Math.abs(trend.delta)}`, from: `${trend.from.slice(5, 7)}/${trend.from.slice(2, 4)}` })}
-                  </p>
-                )}
               </div>
             </div>
-            <p className="rounded-xl bg-emerald-500/5 px-3 py-2 text-xs leading-relaxed text-emerald-900 dark:text-emerald-200">
+            <p className="rounded-xl bg-white/70 px-3 py-2 text-xs leading-relaxed text-emerald-900 ring-1 ring-emerald-500/15 dark:bg-white/5 dark:text-emerald-200">
               <span className="font-semibold">{t("kscore.guardian")}</span> {lenders.length ? t("kscore.guardianTip", { lenders: lenders.join(" និង ") }) : t("kscore.guardianGeneric")}
             </p>
           </>
