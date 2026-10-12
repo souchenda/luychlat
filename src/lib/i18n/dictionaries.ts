@@ -3702,6 +3702,8 @@ const km = {
   "goals.coverAdd": "ដាក់រូបគម្រប",
   "goals.coverRemove": "ដករូបចេញ",
   "kscore.inMonths": "{n} ខែ",
+  "kscore.rose": "កើនពី {from} ដល់ {to} ក្នុង {n} ខែ",
+  "kscore.fell": "ធ្លាក់ពី {from} មក {to} ក្នុង {n} ខែ",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -7393,6 +7395,8 @@ const en: Record<MessageKey, string> = {
   "goals.coverAdd": "Add a cover photo",
   "goals.coverRemove": "Remove photo",
   "kscore.inMonths": "{n} months",
+  "kscore.rose": "up from {from} to {to} in {n} months",
+  "kscore.fell": "down from {from} to {to} in {n} months",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

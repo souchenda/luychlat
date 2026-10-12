@@ -3655,4 +3655,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "goals.coverAdd": "添加封面照片",
   "goals.coverRemove": "移除照片",
   "kscore.inMonths": "{n} 个月",
+  "kscore.rose": "{n} 个月内从 {from} 升至 {to}",
+  "kscore.fell": "{n} 个月内从 {from} 降至 {to}",
 }

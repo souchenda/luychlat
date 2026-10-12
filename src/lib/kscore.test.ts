@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { cleanKScore, gaugeFraction, guardianLenders, kscoreTier, kscoreTrend } from "./kscore"
+import { cleanKScore, gaugeFraction, guardianLenders, KSCORE_TIERS, kscoreTier, kscoreTrend } from "./kscore"
 
 // The founder's CBC screen (15 Sep 2026) as the vision model returns it.
 const CBC = {
@@ -50,6 +50,12 @@ describe("CBC K-Score — the screenshot", () => {
     assert.equal(kscoreTier(551), "moderate")
     assert.equal(kscoreTier(550), "high")
     assert.equal(kscoreTier(100), "high")
+  })
+  it("every score from 951 renders emerald #10B981; the other bands their own colour (never slate)", () => {
+    for (const score of [951, 1044, 1200, 1400]) assert.equal(KSCORE_TIERS[kscoreTier(score)].color, "#10B981")
+    assert.equal(KSCORE_TIERS[kscoreTier(800)].color, "#84CC16")
+    assert.equal(KSCORE_TIERS[kscoreTier(600)].color, "#F59E0B")
+    assert.equal(KSCORE_TIERS[kscoreTier(300)].color, "#EF4444")
   })
   it("not a K-Score, a score outside 100–1400, or a future date → null", () => {
     assert.equal(cleanKScore({ is_kscore: false }, "2026-10-12"), null)
