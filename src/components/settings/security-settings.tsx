@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { Segmented } from "@/components/common/segmented"
 import { BiometricIcon } from "@/components/lock/biometric-icon"
+import { PasskeySettings } from "@/components/settings/passkey-settings"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { stepUp } from "@/components/security/step-up"
 import { TwoFactorRow } from "@/components/security/two-factor"
@@ -141,6 +142,7 @@ export function SecuritySettings() {
           </div>
         )}
       </SettingsGroup>
+      <PasskeySettings />
 
       <SettingsGroup title={t("settings.signInSecurity")}>
         {email && (

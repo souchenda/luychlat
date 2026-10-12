@@ -6,9 +6,12 @@ import { Loader2Icon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { BiometricIcon } from "@/components/lock/biometric-icon"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { passkeySupported, signInWithPasskey } from "@/lib/auth/passkey"
 import { useT } from "@/lib/i18n/use-t"
+import { detectBiometricKind } from "@/lib/security/biometric"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { authMethods } from "@/lib/supabase/config"
 import { parseTgAuthResult, telegramAuthUrl } from "@/lib/telegram-auth-result"
@@ -85,7 +88,19 @@ export function SocialLogin({ disabled, separator = true, below = false }: { dis
   const tgBot = telegram.data?.enabled ? telegram.data.botId : null
   const google = authMethods.has("google")
   const apple = authMethods.has("apple")
-  if (!google && !apple && !tgBot) return null
+  // Face ID / fingerprint: only where the device has it and the server verifies passkeys.
+  const passkey = useQuery({ queryKey: ["auth-passkey"], staleTime: 10 * 60_000, queryFn: passkeySupported }).data === true
+  const [pkBusy, setPkBusy] = useState(false)
+  if (!google && !apple && !tgBot && !passkey) return null
+
+  const signInPasskey = async () => {
+    setPkBusy(true)
+    const r = await signInWithPasskey()
+    if (r === "ok") return window.location.assign("/home")
+    setPkBusy(false)
+    if (r === "unknown") toast.error(t("passkey.unknown"))
+    else if (r === "failed") toast.error(t("passkey.failed"))
+  }
 
   // A full-page redirect to Telegram and back (#tgAuthResult) — a popup fails on phones (a new tab,
   // then the Telegram app) and in the installed app's WebView.
@@ -117,6 +132,17 @@ export function SocialLogin({ disabled, separator = true, below = false }: { dis
   return (
     <div className={below ? "grid gap-2.5 pt-0.5" : "grid gap-2.5"}>
       {below && line(t("login.or"))}
+      {passkey && (
+        <Button
+          type="button"
+          className={`${size} rounded-xl border border-emerald-600/25 bg-emerald-600/10 font-semibold text-emerald-800 shadow-none transition-all hover:bg-emerald-600/15 active:scale-[0.98] dark:text-emerald-300`}
+          onClick={() => void signInPasskey()}
+          disabled={disabled || pkBusy}
+        >
+          {pkBusy ? <Loader2Icon className="animate-spin" /> : <BiometricIcon kind={detectBiometricKind()} />}
+          {t("passkey.signIn")}
+        </Button>
+      )}
       {google && (
         <Button
           type="button"
