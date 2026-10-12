@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- App Luy Chlat's own emblem for អគ្គិសនី កួរស្រូវ (Kour Srov Electricity) — not the company's trademark; replace with the official file when supplied. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#B45309"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" fill="url(#g)"/>
+  <circle cx="128" cy="128" r="92" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="6"/>
+  <path d="M142 46 82 140h40l-12 70 64-100h-42z" fill="#fff" stroke="#fff" stroke-linejoin="round" stroke-width="6"/>
+</svg>

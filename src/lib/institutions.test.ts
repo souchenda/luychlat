@@ -12,7 +12,7 @@ describe("institution registry — who a debt / bill is with", () => {
     assert.deepEqual(resolveParty("PPCBank · New Car Loan to Individual-USD"), { kind: "logo", key: "ppcbank", logo: "/banks/ppcbank.png", name: "PPCBank" })
     assert.equal(resolveParty("Chip Mong Bank FD ***0102").kind, "logo")
   })
-  it("CLC, EDC and Kour Srov Electricity (either spelling) → their own badge, never a silhouette", () => {
+  it("CLC, EDC and Kour Srov Electricity (either spelling) → their logo, never a silhouette", () => {
     assert.equal(getInstitutionLogo("Cambodian Labor Care PLC").key, "clc")
     assert.equal(getInstitutionLogo("EDC · ផ្ទះ").key, "edc")
     assert.equal(getInstitutionLogo("អគ្គិសនីកម្ពុជា").key, "edc")
@@ -21,8 +21,10 @@ describe("institution registry — who a debt / bill is with", () => {
       assert.equal(l.key, "kour-srov", n)
       assert.equal(l.category, "ELECTRICITY")
     }
-    assert.deepEqual(resolveParty("Cambodian Labor Care PLC"), { kind: "institution", key: "clc", mark: "CLC", bg: CATEGORY_BADGE.BANK.bg })
-    assert.equal(resolveParty("អគ្គិសនី កួរស្រូវ").kind, "institution")
+    assert.deepEqual(resolveParty("Cambodian Labor Care PLC"), { kind: "logo", key: "clc", logo: "/logos/banks/clc.svg", name: "Cambodian Labor Care" })
+    assert.equal(getInstitutionLogo("អគ្គិសនី កួរស្រូវ").logoUrl, "/logos/utilities/kour-srov-electric.svg")
+    // A registry entry without a file yet keeps its mark on the category colour.
+    assert.deepEqual(resolveParty("Cintri"), { kind: "institution", key: "cintri", mark: "CT", bg: CATEGORY_BADGE.WASTE.bg })
   })
   it("water, waste, tax, telco, insurance and car makers by their Khmer or English names", () => {
     const keys = (names: string[]) => names.map((n) => getInstitutionLogo(n).key)

@@ -33,10 +33,10 @@ type Entry = { key: string; category: InstitutionCategory; name: string; mark: s
 export const INSTITUTIONS: Entry[] = [
   // Banks & MFIs (accounts the providers' names miss)
   { key: "ppcbank", category: "BANK", name: "PPCBank", mark: "PPC", alias: /\b1-22\d-\d{8}-\d\b/, logo: "/banks/ppcbank.png" },
-  { key: "clc", category: "BANK", name: "Cambodian Labor Care", mark: "CLC", alias: /labou?r\s*care|\bCLC\b/i },
+  { key: "clc", category: "BANK", name: "Cambodian Labor Care", mark: "CLC", alias: /labou?r\s*care|\bCLC\b/i, logo: "/logos/banks/clc.svg" },
   // Electricity
   { key: "edc", category: "ELECTRICITY", name: "EDC", mark: "EDC", alias: /\bEDC\b|អគ្គិសនីកម្ពុជា|electricit[ée]\s*du\s*cambodge/i, logo: "/logos/edc.png" },
-  { key: "kour-srov", category: "ELECTRICITY", name: "Kour Srov Electricity", mark: "KS", alias: /អគ្គិសនី\s*[គក]ួរ\s*ស្រូវ|k[ou]+r\s*srov/i },
+  { key: "kour-srov", category: "ELECTRICITY", name: "Kour Srov Electricity", mark: "KS", alias: /អគ្គិសនី\s*[គក]ួរ\s*ស្រូវ|k[ou]+r\s*srov/i, logo: "/logos/utilities/kour-srov-electric.svg" },
   // Water
   { key: "srwsa", category: "WATER", name: "SRWSA", mark: "SR", alias: /\bSRWSA\b|រដ្ឋាករទឹកសៀមរាប/i },
   { key: "ppwsa", category: "WATER", name: "PPWSA", mark: "PP", alias: /\bPPWSA\b|រដ្ឋាករទឹក/i },
@@ -59,7 +59,7 @@ export const INSTITUTIONS: Entry[] = [
   { key: "ezecom", category: "TELCO", name: "EZECOM", mark: "EZ", alias: /EZECOM/i, logo: "/logos/ezecom.png" },
   { key: "sinet", category: "TELCO", name: "SINET", mark: "SI", alias: /\bSINET\b/i },
   // Insurance
-  { key: "forte", category: "INSURANCE", name: "Forte", mark: "F", alias: /\bFORTE\b|ហ្វតេ/i },
+  { key: "forte", category: "INSURANCE", name: "Forte", mark: "F", alias: /\bFORTE\b|ហ្វតេ/i, logo: "/logos/forte.svg" },
   { key: "prudential", category: "INSURANCE", name: "Prudential", mark: "PRU", alias: /PRUDENTIAL|ព្រូដិនសលល៍/i, logo: "/logos/prudential.png" },
   { key: "aia", category: "INSURANCE", name: "AIA", mark: "AIA", alias: /\bAIA\b/i, logo: "/logos/aia.png" },
   { key: "manulife", category: "INSURANCE", name: "Manulife", mark: "M", alias: /MANULIFE/i },
@@ -69,11 +69,11 @@ export const INSTITUTIONS: Entry[] = [
   { key: "lexus", category: "VEHICLE", name: "Lexus", mark: "L", alias: /LEXUS|ឡិចស៊ីស/i, logo: "/logos/lexus.png" },
   { key: "ford", category: "VEHICLE", name: "Ford", mark: "F", alias: /\bFORD\b|\bRANGER\b|\bEVEREST\b/i, logo: "/logos/ford.png" },
   { key: "hyundai", category: "VEHICLE", name: "Hyundai", mark: "H", alias: /HYUNDAI|ហ៊ីយ៉ាន់ដាយ/i, logo: "/logos/hyundai.png" },
-  { key: "kia", category: "VEHICLE", name: "Kia", mark: "KIA", alias: /\bKIA\b/i },
+  { key: "kia", category: "VEHICLE", name: "Kia", mark: "KIA", alias: /\bKIA\b/i, logo: "/logos/kia.svg" },
   { key: "mazda", category: "VEHICLE", name: "Mazda", mark: "MZ", alias: /MAZDA/i, logo: "/logos/mazda.png" },
-  { key: "honda", category: "VEHICLE", name: "Honda", mark: "H", alias: /HONDA|ហុងដា/i },
-  { key: "byd", category: "VEHICLE", name: "BYD", mark: "BYD", alias: /\bBYD\b/i },
-  { key: "tesla", category: "VEHICLE", name: "Tesla", mark: "T", alias: /TESLA/i },
+  { key: "honda", category: "VEHICLE", name: "Honda", mark: "H", alias: /HONDA|ហុងដា/i, logo: "/logos/honda.svg" },
+  { key: "byd", category: "VEHICLE", name: "BYD", mark: "BYD", alias: /\bBYD\b/i, logo: "/logos/byd.svg" },
+  { key: "tesla", category: "VEHICLE", name: "Tesla", mark: "T", alias: /TESLA/i, logo: "/logos/tesla.svg" },
 ]
 
 export type InstitutionLogo = {

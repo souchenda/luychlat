@@ -30,12 +30,33 @@ artwork is otherwise unchanged.
 | `cellcard.png` | https://www.cellcard.com.kh/apple-touch-icon.png |
 | `metfone.png` | https://metfone.com.kh/favicon.ico (the largest image inside it) |
 | `ezecom.png` | https://www.ezecom.com.kh/favicon.ico (the largest image inside it) |
+| `forte.svg` | https://www.forteinsurance.com/Assets/images/logo-white.png, on Forte's red (#ea0d44, from its site icon) |
+
+## From Wikimedia Commons (public domain), taken 2026-10-12
+
+Each is wrapped unchanged in a 256 × 256 square view box.
+
+| File | Source |
+|---|---|
+| `honda.svg` | [File:Honda Logo.svg](https://commons.wikimedia.org/wiki/File:Honda_Logo.svg) (the wing — Honda's motorcycles and brand mark) |
+| `byd.svg` | [File:BYD Auto 2022 logo.svg](https://commons.wikimedia.org/wiki/File:BYD_Auto_2022_logo.svg) |
+| `tesla.svg` | [File:Tesla T symbol.svg](https://commons.wikimedia.org/wiki/File:Tesla_T_symbol.svg) |
+| `kia.svg` | [File:KIA logo3.svg](https://commons.wikimedia.org/wiki/File:KIA_logo3.svg) |
+
+## App Luy Chlat's own emblems (not the companies' trademarks)
+
+No official file is available yet, so these are neutral emblems drawn for the app — to be replaced
+by the official logo when the company or the founder supplies it.
+
+| File | For |
+|---|---|
+| `banks/clc.svg` | Cambodian Labor Care PLC — «CLC» on green-to-blue |
+| `utilities/kour-srov-electric.svg` | អគ្គិសនី កួរស្រូវ — a lightning bolt on amber |
 
 ## Not yet available
 
-- **CLC, Kour Srov Electricity:** no public website logo; to be cropped from their own documents.
-- **PPWSA, NSSF:** their sites declare no usable icon. **Cintri, SRWSA, Mizuda, Honda, BYD (Cambodia):**
-  the sites did not answer. **Manulife, Tesla:** the sites refused the request.
-- **Forte, SINET, BYD, MPWT, Kia:** only a 16–48 px icon was offered — too small to look crisp.
+- **PPWSA, NSSF:** their sites declare no usable icon. **Cintri, SRWSA, Mizuda:**
+  the sites did not answer. **Manulife:** the site refused the request. Neither PPWSA nor NSSF has a logo on Wikimedia Commons.
+- **SINET, MPWT:** only a 16–48 px icon was offered — too small to look crisp.
 
 These show their badge in the category's colour until a file is added.
