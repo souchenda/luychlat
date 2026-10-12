@@ -35,6 +35,31 @@ use come before feature count: no half-baked features, broken links or untested 
 - **Licensing:** only licensed services and assets (no Edge-TTS or other unofficial endpoints; Khmer
   SoundBox clips via Azure AI Speech or Google Cloud TTS — `scripts/soundbox-khmer-tts.mjs`).
 
+## Publishing and content standards (founder, 12/10/2026)
+
+- **No "AI slop" (ម៉ារៀលៗ).** Every line of copy, visual or media for «អេប លុយឆ្លាត» must feel
+  human-crafted, grounded in real Cambodian daily life, prestigious and meaningful. Quality over
+  quantity: no generic templates, no filler posts.
+- **Curated, never a blind mirror** — one rule, `shouldPublishToFacebook` in
+  `src/lib/server/facebook-publisher.ts` (tested):
+  - 07:00 morning quote poster → Telegram Channel **and** Facebook Page.
+  - MoC fuel notice → Facebook **only** when EA92 or diesel changed (Δ ≠ 0, ▲ / ▼); unchanged (or
+    no known previous period) → Telegram only.
+  - 20:00 nightly reminder → Telegram **only**, never the Page.
+  - Holiday notes (eve 18:00, day back 07:30) and the Saturday 17:00 core-value spotlight → both.
+- **Preview-first with auto-publish fallback** (`src/lib/server/scheduled-posts.ts`): the 07:00
+  poster, holiday notes and fuel changes reach the founder's private chat 45 min before (06:15 for
+  07:00) with the destination badge «📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel + 🔵 Facebook Page ]» (or
+  «… តែប៉ុណ្ណោះ»), [ 🚀 ផុសភ្លាមៗ ] / [ ❌ ផ្អាកថ្ងៃនេះ ] and «⏰ នឹងផ្សាយស្វ័យប្រវត្តិទៅកាន់ […] នៅម៉ោង …
+  ប្រសិនបើគ្មានសកម្មភាព។»; no action → published at its time. Each post leaves PENDING exactly once
+  (`bot_post_take`), so it is never posted twice; more than 90 min late → dropped, never posted late.
+- **Video (Reels / MP4), whenever added:** length follows substance — 30–60 s with a complete
+  beginning and end, never cut at an arbitrary 15 s. Three acts: (1) a real Cambodian pain point
+  (hesitating over a debt, shop and household money mixed, a missed loan date); (2) the resolution
+  step by step on the **real** app UI (voice recording, the PPCBank loan schedule, the green K-Score
+  gauge); (3) a dignified, educational takeaway. Audio: natural, rhythmic voice with proper pauses —
+  licensed voices only (see Licensing), never robotic, screechy or disjointed.
+
 ## Completed features — ស្ថាពរ (verified in git and on production)
 
 ### A. Telegram bot
