@@ -4,6 +4,8 @@
  */
 export const ACQUISITION_SOURCES = ["facebook", "telegram", "referral", "organic_search"] as const
 export type AcquisitionSource = (typeof ACQUISITION_SOURCES)[number]
+/** What is saved: one of the four, or a typed «other: …» (otherSource). */
+export type AcquisitionAnswer = AcquisitionSource | `other: ${string}`
 
 /** New accounts are asked within this many days of signing up (as the Islamic Mode choice). */
 export const SOURCE_PROMPT_DAYS = 14
@@ -13,3 +15,23 @@ export function shouldAskSource(o: { createdAt: string | null; now: number; load
   if (!o.loaded || o.answered || o.skipped || !o.createdAt) return false
   return o.now - Date.parse(o.createdAt) < SOURCE_PROMPT_DAYS * 86_400_000
 }
+
+/** The longest typed «ផ្សេងៗ» answer kept. */
+export const OTHER_SOURCE_MAX = 60
+
+/**
+ * A typed «ផ្សេងៗ» answer → «other: tiktok»: trimmed, spaces collapsed, Latin letters lower-cased (so
+ * «TikTok» and «tiktok» group together in the admin view), 1–60 characters; null when empty.
+ */
+export function otherSource(text: string): string | null {
+  const t = text
+    .replace(/^\s*other\s*:\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+  if (!t) return null
+  return `other: ${t.slice(0, OTHER_SOURCE_MAX).trim()}`
+}
+
+/** A saved answer: one of the four, or a typed «other: …». */
+export const isAcquisitionAnswer = (v: string | null | undefined) => Boolean(v && ((ACQUISITION_SOURCES as readonly string[]).includes(v) || /^other: \S/.test(v)))

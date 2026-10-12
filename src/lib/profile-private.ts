@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import type { AcquisitionSource } from "@/lib/acquisition"
+import type { AcquisitionAnswer } from "@/lib/acquisition"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -27,7 +27,7 @@ export function useProfilePrivate() {
     queryFn: async () => {
       const { data, error } = await getSupabaseBrowserClient()!.from("profile_private").select("birth_date, occupation, acquisition_source").eq("user_id", userId!).maybeSingle()
       if (error) throw error
-      return (data ?? { birth_date: null, occupation: null, acquisition_source: null }) as ProfilePrivate & { acquisition_source: AcquisitionSource | null }
+      return (data ?? { birth_date: null, occupation: null, acquisition_source: null }) as ProfilePrivate & { acquisition_source: AcquisitionAnswer | null }
     },
   })
 }
@@ -51,7 +51,7 @@ export function useSaveAcquisitionSource() {
   const userId = useSessionStore((s) => s.user?.id)
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (source: AcquisitionSource) => {
+    mutationFn: async (source: AcquisitionAnswer) => {
       const { error } = await getSupabaseBrowserClient()!
         .from("profile_private")
         .upsert({ user_id: userId!, acquisition_source: source, acquisition_at: new Date().toISOString(), updated_at: new Date().toISOString() })

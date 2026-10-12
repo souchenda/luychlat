@@ -9,18 +9,21 @@ import { useT } from "@/lib/i18n/use-t"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { ACQUISITION_SOURCES, type AcquisitionSource } from "@/lib/acquisition"
 
-type Counts = Record<AcquisitionSource | "unknown", number>
-type Breakdown = Counts & { total: number; last_30_days: Counts }
+type Row = AcquisitionSource | "other"
+type Counts = Record<Row | "unknown", number>
+type Breakdown = Counts & { total: number; last_30_days: Counts; other_sources?: { label: string; count: number }[] }
 
-const EMOJI: Record<AcquisitionSource, string> = { facebook: "🔵", telegram: "✈️", referral: "👥", organic_search: "🔍" }
+const EMOJI: Record<Row, string> = { facebook: "🔵", telegram: "✈️", referral: "👥", organic_search: "🔍", other: "🌐" }
+const ROWS: Row[] = [...ACQUISITION_SOURCES, "other"]
 
 /** Admin overview: where users heard of the app (the first-visit question), all time and the last 30 days. */
 export function AcquisitionSources() {
   const t = useT()
   const { data } = useQuery({ queryKey: ["admin", "acquisition-sources"], queryFn: () => rpc<Breakdown>("admin_acquisition_sources"), staleTime: 60_000 })
   if (!data) return null
-  const answered = ACQUISITION_SOURCES.reduce((n, s) => n + Number(data[s] ?? 0), 0)
-  const rows = [...ACQUISITION_SOURCES].sort((a, b) => Number(data[b]) - Number(data[a]))
+  const answered = ROWS.reduce((n, s) => n + Number(data[s] ?? 0), 0)
+  const rows = [...ROWS].sort((a, b) => Number(data[b] ?? 0) - Number(data[a] ?? 0))
+  const typed = data.other_sources ?? []
   return (
     <Section title={t("admin.sources")} icon={<MegaphoneIcon />}>
       <Card className="gap-2.5 px-4 py-3">
@@ -43,6 +46,19 @@ export function AcquisitionSources() {
             </div>
           )
         })}
+        {/* The typed «ផ្សេងៗ» answers, grouped — new channels (TikTok, a poster, an event…) show here first. */}
+        {typed.length > 0 && (
+          <div className="space-y-1.5 border-t pt-2">
+            <p className="text-xs font-medium text-muted-foreground">🌐 {t("admin.sourcesOther")}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {typed.map((o) => (
+                <span key={o.label} className="rounded-lg bg-muted px-2 py-1 text-xs">
+                  {o.label} <span className="font-semibold tabular-nums">· {o.count}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <p className="border-t pt-2 text-xs text-muted-foreground tabular-nums">
           {t("admin.sourcesUnknown")}: {Number(data.unknown ?? 0)} / {Number(data.total ?? 0)}
         </p>
