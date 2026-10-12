@@ -29,6 +29,8 @@ import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
+import { handleAccountCallback, handleAccountGoalReply } from "@/lib/server/account-bot"
+import { isAccountCallback } from "@/lib/bot/account-intake"
 import { handlePosterCallback, isPosterCallback, sendFestivalPoster } from "@/lib/server/festival-poster"
 import { handleGroupSlip, handleGroupSlipCallback, isGroupSlipCallback } from "@/lib/server/biz-slip-bot"
 import { handleBillKhqrCallback, handleEacNotice, isBillKhqrCallback, sendBillsOverview } from "@/lib/server/bill-bot"
@@ -330,6 +332,8 @@ export async function POST(request: Request) {
       await handleSlipCallback(update.callback_query)
     } else if (isTipCallback(update.callback_query.data)) {
       await handleTipCallback(update.callback_query)
+    } else if (isAccountCallback(update.callback_query.data)) {
+      await handleAccountCallback(update.callback_query)
     } else if (isScheduledPostCallback(update.callback_query.data)) {
       await handleScheduledPostCallback(update.callback_query)
     } else if (isPosterCallback(update.callback_query.data)) {
@@ -423,7 +427,12 @@ export async function POST(request: Request) {
   // Replies: to a slip's "add a note" prompt → that note; a super admin's to a daily-tip preview → edits it.
   if (message.reply_to_message && message.chat.type === "private") {
     const replyTo = message.reply_to_message.message_id
-    if ((await handleNoteReply(chatId, replyTo, message.text)) || (await handleTipReply(chatId, replyTo, message.text))) return NextResponse.json({ ok: true })
+    if (
+      (await handleNoteReply(chatId, replyTo, message.text)) ||
+      (await handleTipReply(chatId, replyTo, message.text)) ||
+      (await handleAccountGoalReply(chatId, replyTo, message.text))
+    )
+      return NextResponse.json({ ok: true })
   }
   // Before linking, replies follow the Telegram app's language (Khmer by default);
   // linked chats use the language chosen in the app or with /lang.

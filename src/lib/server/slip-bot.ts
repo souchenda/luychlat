@@ -17,6 +17,7 @@ import type { BotCategory } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
 import { handleBillPhoto, settleBillFromPayment } from "@/lib/server/bill-bot"
 import { handleLoanDetailPhoto } from "@/lib/server/loan-detail-bot"
+import { handleAccountPhoto } from "@/lib/server/account-bot"
 import { handleLoanSchedulePhoto } from "@/lib/server/loan-schedule-bot"
 import { handleTermDepositPhoto } from "@/lib/server/term-deposit-bot"
 import type { BotWallet } from "@/lib/bot/parse-entry"
@@ -68,12 +69,13 @@ const PROMPT = [
   'A FIXED / TERM DEPOSIT or GOAL SAVING account screen (labels like "Principle Amount", "Maturity Date", "Maturity Amount", "Interest Rate", "Goal Saving Purposes") is not a slip: answer {"is_slip": false, "term_deposit": true}.',
   'A mobile-banking LOAN DETAIL / LOAN ACCOUNT screen of any bank or MFI ("Loan Detail", "Outstanding Balance", "Loan Principle", "Next Repayment Schedule", «ព័ត៌មានឥណទាន», «សមតុល្យនៅសល់», «ប្រាក់ដើមកម្ចី» — a single loan summary, not a table of installments) is not a slip: answer {"is_slip": false, "loan_detail": true}.',
   'A CBC (Credit Bureau Cambodia) K-SCORE screen ("K Score", "My K-Score", a 100–1400 gauge) is not a slip: answer {"is_slip": false, "kscore": true}.',
+  'A mobile-banking ACCOUNT / SAVINGS screen (an account list or account details: the account name, account number and available balance — e.g. Chip Mong «Kmeng Chhlat», ABA, ACLEDA, Wing; no transfer, no recipient, no transaction reference; not a fixed / term deposit) is not a slip: answer {"is_slip": false, "bank_account": true}.',
   'A LOAN REPAYMENT SCHEDULE (តារាងកាលវិភាគសងប្រាក់ / "Repayment Schedule": a bank or microfinance table of installments with dates, principal, interest and balance) is not a slip: answer {"is_slip": false, "loan_schedule": true}.',
   'A PAPER UTILITY BILL to be paid (electricity / water: EDC, AKISANI KOUR SROV, PPWSA — an invoice with an amount due and a due date, not a receipt of a payment) is not a slip: answer {"is_slip": false, "utility_bill": true}.',
   'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
-type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" | "loan_detail" | "term_deposit" | "kscore" } | { error: "ev_charge"; kwh: number; date: string | null }
+type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" | "loan_detail" | "term_deposit" | "kscore" | "bank_account" } | { error: "ev_charge"; kwh: number; date: string | null }
 
 export type Answer = { text: string } | { fail: string }
 
@@ -162,6 +164,8 @@ export async function readSlip(fileId: string): Promise<ReadResult> {
     if ((raw as { loan_schedule?: unknown })?.loan_schedule === true) return { error: "loan_schedule" }
     if ((raw as { loan_detail?: unknown })?.loan_detail === true) return { error: "loan_detail" }
     if ((raw as { kscore?: unknown })?.kscore === true) return { error: "kscore" }
+    // A bank account / savings screen: one tap adds it as a wallet or a goal (account-bot.ts).
+    if ((raw as { bank_account?: unknown })?.bank_account === true) return { error: "bank_account" }
     // A fixed / term deposit: the deposit reader takes it (term-deposit-bot.ts).
     if ((raw as { term_deposit?: unknown })?.term_deposit === true) return { error: "term_deposit" }
     // An EV charging screenshot: its day's kWh goes to the home charging log.
@@ -256,6 +260,7 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   if ("error" in read && read.error === "utility_bill") return handleBillPhoto(chatId, fileId, ctx)
   if ("error" in read && read.error === "loan_schedule") return handleLoanSchedulePhoto(chatId, fileId)
   if ("error" in read && read.error === "loan_detail") return handleLoanDetailPhoto(chatId, fileId)
+  if ("error" in read && read.error === "bank_account") return handleAccountPhoto(chatId, fileId)
   // A credit score is private: never read or kept through the bot — the app's Profile keeps it.
   if ("error" in read && read.error === "kscore")
     return sendText(chatId, "🔒 ពិន្ទុ K-Score ជាព័ត៌មានឯកជន — Bot មិនរក្សាទុកទេ។ សូមបញ្ចូលវាក្នុងអេប លុយឆ្លាត › ប្រវត្តិរូប › «សុខភាពឥណទាន CBC»។", { reply_markup: { inline_keyboard: [[{ text: "🛡️ បើកសុខភាពឥណទាន", url: "https://app.luychlat.com/profile" }]] } })
