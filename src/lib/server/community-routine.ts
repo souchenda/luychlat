@@ -21,6 +21,7 @@ import { tipPoster } from "@/lib/server/tip-poster"
 import { logEvent } from "@/lib/server/events"
 import { eveningHtml } from "@/lib/evening-reminder"
 import { morningQuote } from "@/lib/morning"
+import { holidayDue, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
@@ -89,9 +90,18 @@ export function routineDue(minutes: number): "morning" | "evening" | null {
   return null
 }
 
+async function holidayTick(day: string, minutes: number) {
+  const job = holidayDue(day, minutes)
+  const chat = communityChat()
+  if (!job || !chat || !(await claim(job, day))) return
+  const res = await tg("sendMessage", { chat_id: chat, text: holidayPostHtml(holidayMoment(day)!), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })
+  logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Holiday note (${job}) sent to ${chat}` : `Holiday note (${job}) failed: ${res.description ?? "unknown"}`)
+}
+
 /** Called every minute by the dispatcher. */
 export async function communityRoutineTick() {
   const now = phnomPenhToday()
+  await holidayTick(now.day, now.hour * 60 + now.minute)
   const due = routineDue(now.hour * 60 + now.minute)
   if (!due) return
   const chat = communityChat()

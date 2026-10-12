@@ -85,3 +85,28 @@ const MERIT_DAYS = new Set<MessageKey>(["holiday.sil", "holiday.kan_ben", "holid
 
 /** Buddhist merit-making days: shown with 🙏, not a festive ✨. */
 export const isMeritDay = (key: MessageKey) => MERIT_DAYS.has(key)
+
+/** Festivals in the list that are not public holidays (no day off). */
+const NOT_DAYS_OFF = new Set<MessageKey>(["holiday.chinese_new_year", "holiday.christmas"])
+
+/**
+ * The public holidays of `year` (YYYY-MM-DD → its greeting key), from the lists above: Pchum Ben's
+ * three days and every festival that is a day off. Years without a dated entry simply have fewer.
+ */
+export function publicHolidays(year: number): Map<string, MessageKey> {
+  const out = new Map<string, MessageKey>()
+  const pchum = PCHUM_BEN[year]
+  if (pchum) {
+    const [y, m, d] = pchum.split("-").map(Number)
+    for (const off of [-1, 0, 1]) out.set(ymd(new Date(y, m - 1, d + off)), "holiday.pchum_ben")
+  }
+  for (const [key, from, to] of FESTIVALS) {
+    if (NOT_DAYS_OFF.has(key)) continue
+    const start = from.length === 5 ? `${year}-${from}` : from
+    const end = to.length === 5 ? `${year}-${to}` : to
+    if (start.slice(0, 4) !== String(year)) continue
+    const [y, m, d] = start.split("-").map(Number)
+    for (let day = new Date(y, m - 1, d); ymd(day) <= end; day.setDate(day.getDate() + 1)) if (!out.has(ymd(day))) out.set(ymd(day), key)
+  }
+  return out
+}

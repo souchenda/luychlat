@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { morningCard, morningQuote } from "@/lib/morning"
+import { holidayCard } from "@/lib/holiday-lifecycle"
 import { holyDayCard } from "@/lib/holy-day-alerts"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 
@@ -71,6 +72,10 @@ export function NotificationBell() {
   const islamic = useIslamicEnabled()
   // A personal reminder: never in a business workspace.
   const holy = islamic || !scope.holyDays ? null : holyDayCard(now)
+  // 🗓️ The eve of days off (18:00) and the day back (07:30), as in the community channel; Pchum Ben's
+  // merit wording not with Islamic Mode on.
+  const holidayNote = holidayCard(now)
+  const holiday = holidayNote && !(islamic && holidayNote.block.kind === "PCHUM_BEN") ? holidayNote : null
 
   // A few dozen rows at most: built on each render.
   const money = recent.flatMap((tx) => {
@@ -190,7 +195,21 @@ export function NotificationBell() {
             </span>
           </div>
         )}
-        {feed.length === 0 && !(showTips && (morning || holy)) ? (
+        {showTips && holiday && (
+          <div className="-mx-4 flex gap-3 border-b bg-emerald-500/5 px-4 py-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-lg" aria-hidden>
+              {holiday.title.split(" ")[0]}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">{holiday.title.split(" ").slice(1).join(" ")}</span>
+              <span className="block text-xs whitespace-pre-line text-muted-foreground">{holiday.body}</span>
+              <span className="mt-1 block text-[11px] text-muted-foreground">
+                {formatDistanceToNow(new Date(holiday.at), { addSuffix: true, locale: locale === "km" ? km : enUS })}
+              </span>
+            </span>
+          </div>
+        )}
+        {feed.length === 0 && !(showTips && (morning || holy || holiday)) ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
             <BellOffIcon className="size-8" />
             {t("notifications.empty")}
