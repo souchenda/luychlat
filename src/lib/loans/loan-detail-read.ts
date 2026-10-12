@@ -1,5 +1,5 @@
 /**
- * A mobile-banking LOAN DETAIL screen (any Cambodian bank or MFI — Canadia, ABA, ACLEDA, Sathapana,
+ * A mobile-banking LOAN DETAIL screen (any Cambodian bank or MFI — PPCBank, Canadia, ABA, ACLEDA, Sathapana,
  * Wing, KB Prasac, Chip Mong, FTB, Prince, PPCBank, Amret, LOLC…) read by Vision AI from its meaning,
  * not one bank's layout: original principal, outstanding balance, rate, term (open / end date), next
  * repayment date. It becomes the same loan a printed schedule does (schedule-read.ts → bot_import_loan):
@@ -58,7 +58,17 @@ const BANKS: [RegExp, string][] = [
 /** No bank named on the screen: a plain label, never a failure. */
 export const UNKNOWN_BANK = "កម្ចីធនាគារ (Bank Loan)"
 
-export function canonicalBank(raw: string | null | undefined): string {
+/**
+ * Account-number shapes that name the bank for certain — more reliable than a logo read from a dark
+ * screen. PPCBank loan accounts: 1-22X-XXXXXXXX-X (1-223-00004253-8 car loan, 1-224-00006341-4 house
+ * loan — founder, 12/10/2026).
+ */
+const ACCOUNT_BANKS: [RegExp, string][] = [[/^1-22\d-\d{8}-\d$/, "PPCBank"]]
+
+/** The bank: from the account number's shape when it is certain, else the name on the screen, else «កម្ចីធនាគារ (Bank Loan)». */
+export function canonicalBank(raw: string | null | undefined, account?: string | null): string {
+  const byAccount = account ? ACCOUNT_BANKS.find(([re]) => re.test(account.replace(/\s+/g, "")))?.[1] : undefined
+  if (byAccount) return byAccount
   const s = raw?.trim() ?? ""
   return BANKS.find(([re]) => re.test(s))?.[1] ?? (s ? s.slice(0, 40) : UNKNOWN_BANK)
 }
@@ -77,6 +87,7 @@ export function loanDetailPrompt(today: string): string {
     '- the interest rate (a percentage) and the term ("Open Date" / "End Date", "Maturity Date", «កាលបរិច្ឆេទ»).',
     "Answer only JSON:",
     '{"is_loan_detail": boolean, "bank": string | null, "product": string | null, "account": string | null, "currency": "USD" | "KHR", "principal": number | null, "outstanding": number | null, "rate": number | null, "rate_period": "YEAR" | "MONTH", "open_date": "YYYY-MM-DD" | null, "end_date": "YYYY-MM-DD" | null, "months": number | null, "next_due": "YYYY-MM-DD" | null, "installment": number | null, "method": "AMORTIZATION" | "FLAT" | null}',
+    "- PPCBank Mobile (Phnom Penh Commercial Bank) screens are dark with green accents; their loan accounts look like 1-223-00004253-8.",
     "- bank: the bank / MFI name as shown (logo text, app name) or null; product: the loan's product name (e.g. «New Car Loan to Individual-USD»); account: the loan account number exactly as printed.",
     "- installment: ONLY a monthly repayment amount printed on the screen — never computed. months: only a printed term in months.",
     "- Never invent a value: null when it is not on the screen. Personal names are not needed.",
@@ -109,7 +120,7 @@ export function cleanLoanDetail(raw: unknown): LoanDetailRead | null {
   // A term is needed for the schedule — from the dates, a printed term, or a printed installment.
   if ((!months || months < 1 || months > 600) && !installment) return null
   return {
-    bank: canonicalBank(text(r.bank, 60)),
+    bank: canonicalBank(text(r.bank, 60), text(r.account, 40)),
     product: text(r.product, 60),
     account: text(r.account, 40),
     currency,
