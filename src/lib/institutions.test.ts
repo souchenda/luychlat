@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
+import { existsSync } from "node:fs"
 import { describe, it } from "node:test"
 
-import { billCategory, CATEGORY_BADGE, getInstitutionLogo } from "./institution-logos"
+import { billCategory, CATEGORY_BADGE, getInstitutionLogo, INSTITUTIONS } from "./institution-logos"
 import { hueOf, initialOf, resolveParty } from "./institutions"
 
 describe("institution registry — who a debt / bill is with", () => {
@@ -21,6 +22,7 @@ describe("institution registry — who a debt / bill is with", () => {
       assert.equal(l.category, "ELECTRICITY")
     }
     assert.deepEqual(resolveParty("Cambodian Labor Care PLC"), { kind: "institution", key: "clc", mark: "CLC", bg: CATEGORY_BADGE.BANK.bg })
+    assert.equal(resolveParty("អគ្គិសនី កួរស្រូវ").kind, "institution")
   })
   it("water, waste, tax, telco, insurance and car makers by their Khmer or English names", () => {
     const keys = (names: string[]) => names.map((n) => getInstitutionLogo(n).key)
@@ -30,6 +32,8 @@ describe("institution registry — who a debt / bill is with", () => {
     assert.deepEqual(keys(["Smart Axiata", "Cellcard", "EZECOM 50Mbps", "Forte"]), ["smart", "cellcard", "ezecom", "forte"])
     assert.deepEqual(keys(["MG Marvel R · 2AB-1234", "Toyota Prius", "Lexus RX"]), ["mg", "toyota", "lexus"])
     assert.equal(getInstitutionLogo("ABA").logoUrl, "/banks/aba.png")
+    assert.equal(getInstitutionLogo("EDC · ផ្ទះ").logoUrl, "/logos/edc.png")
+    assert.equal(getInstitutionLogo("MG Marvel R · 2AB-1234").logoUrl, "/logos/mg.png")
   })
   it("an unknown vendor with a category → the category's badge (blue «ទ» water, gold «អ» power, green «ស» trash)", () => {
     assert.deepEqual(getInstitutionLogo("ទឹកបុរី ពិភពថ្មី", "WATER").fallbackBadge, { bg: "#0284C7", text: "ទ" })
@@ -43,5 +47,11 @@ describe("institution registry — who a debt / bill is with", () => {
     assert.equal(initialOf("sokha"), "S")
     assert.equal(hueOf("បងហ៊ុយ"), hueOf(" បងហ៊ុយ "))
     assert.equal(resolveParty("SmartLuy").kind, "person")
+  })
+})
+
+describe("institution logos — files", () => {
+  it("every logo the registry names exists in public/", () => {
+    for (const i of INSTITUTIONS) if (i.logo) assert.ok(existsSync(`public${i.logo}`), i.logo)
   })
 })
