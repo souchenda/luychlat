@@ -9,13 +9,26 @@ import { SettingsSubHeader } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { useActiveWorkspace, useWorkspaces } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
 import { codeLabel, selectedCode } from "@/lib/khqr-codes"
 import { useWorkspaceKhqrs } from "@/lib/khqr-codes-data"
-import { announceLate, keepScreenAwake, pollSince, receiveEvent, shownAmount, soundboxWorkspace, SOUNDBOX_MODES, todayTotals, type SoundboxEvent, type SoundboxMode } from "@/lib/soundbox"
-import { announce, unlockAudio, type AnnounceResult } from "@/lib/soundbox-audio"
+import {
+  announceLate,
+  keepScreenAwake,
+  pollSince,
+  readSoundboxEnabled,
+  receiveEvent,
+  reconnectDelay,
+  shownAmount,
+  soundboxWorkspace,
+  SOUNDBOX_MODES,
+  todayTotals,
+  writeSoundboxEnabled,
+  type SoundboxEvent,
+  type SoundboxMode,
+} from "@/lib/soundbox"
+import { announce, isUnlocked, unlockAudio, type AnnounceResult } from "@/lib/soundbox-audio"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
@@ -28,6 +41,13 @@ const pref = (key: string, fallback: string) => {
     return localStorage.getItem(key) ?? fallback
   } catch {
     return fallback
+  }
+}
+const store = () => {
+  try {
+    return window.localStorage
+  } catch {
+    return null
   }
 }
 const keep = (key: string, value: string) => {
@@ -71,8 +91,20 @@ export default function SoundboxPage() {
   const current = selectedCode(codes, chosen)
   const khqr = current?.khqr_payload ?? null
   const [qr, setQr] = useState<string | null>(null)
-  const [active, setActive] = useState(false)
-  const [soundOn, setSoundOn] = useState(() => (typeof window === "undefined" ? true : pref("soundbox.sound", "on") === "on"))
+  // On / off, remembered for this business (soundbox_enabled_<workspace>): a reload, a remount or a
+  // dropped connection never turns it off — only «🔇 បិទសំឡេង» does.
+  const counterId = counter?.id ?? null
+  const [enabled, setEnabledState] = useState(false)
+  useEffect(() => {
+    const on = readSoundboxEnabled(store(), counterId)
+    setEnabledState(on)
+    // Restored on: the browser needs one touch before it plays sound again — say so until then.
+    if (on && !isUnlocked()) setAudioIssue("locked")
+  }, [counterId])
+  const setEnabled = (on: boolean) => {
+    setEnabledState(on)
+    writeSoundboxEnabled(store(), counterId, on)
+  }
   const [mode, setMode] = useState<SoundboxMode>(() => {
     const saved = typeof window === "undefined" ? "km" : pref("soundbox.lang", "km")
     return (SOUNDBOX_MODES as string[]).includes(saved) ? (saved as SoundboxMode) : "km"
@@ -81,9 +113,25 @@ export default function SoundboxPage() {
   const [events, setEvents] = useState<SoundboxEvent[]>([])
   const eventsRef = useRef<SoundboxEvent[]>([])
   const [flash, setFlash] = useState<SoundboxEvent | null>(null)
-  const settings = useRef({ soundOn, mode, volume })
-  settings.current = { soundOn, mode, volume }
-  useWakeLock(active)
+  const settings = useRef({ soundOn: enabled, mode, volume })
+  settings.current = { soundOn: enabled, mode, volume }
+  useWakeLock(enabled)
+
+  // The first touch anywhere on the page after a reload brings the sound back (browsers allow audio
+  // only after a gesture); the SoundBox itself stays on throughout.
+  useEffect(() => {
+    if (!enabled) return
+    const wake = () => {
+      if (isUnlocked()) return
+      void unlockAudio().then((ok) => ok && setAudioIssue(null))
+    }
+    document.addEventListener("pointerdown", wake, true)
+    document.addEventListener("keydown", wake, true)
+    return () => {
+      document.removeEventListener("pointerdown", wake, true)
+      document.removeEventListener("keydown", wake, true)
+    }
+  }, [enabled])
 
   useEffect(() => {
     if (khqr) void QRCode.toDataURL(khqr, { width: 720, margin: 2, errorCorrectionLevel: "M" }).then(setQr)
@@ -123,13 +171,38 @@ export default function SoundboxPage() {
         eventsRef.current = [...eventsRef.current, ...today.filter((e) => !eventsRef.current.some((x) => x.id === e.id))]
         setEvents(eventsRef.current)
       })
-    const channel = supabase
-      .channel(`soundbox:${userId}`)
-      .on("postgres_changes", { schema: "public", table: "soundbox_events", event: "INSERT" }, ({ new: row }) => handle.current(row as Record<string, unknown>, false))
-      .subscribe((status, err) => {
-        setLive(status === "SUBSCRIBED" ? "live" : status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT" ? "down" : "connecting")
-        if (err) console.error("[soundbox] realtime:", status, err)
+    // The live channel, rejoined silently with a growing delay (1 s … 30 s) whenever it drops — a
+    // dropped connection only changes the status dot, never the SoundBox's on/off.
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    let attempt = 0
+    let retry: number | undefined
+    let stopped = false
+    const connect = () => {
+      if (stopped) return
+      const ch = supabase
+        .channel(`soundbox:${userId}:${Date.now()}`)
+        .on("postgres_changes", { schema: "public", table: "soundbox_events", event: "INSERT" }, ({ new: row }) => handle.current(row as Record<string, unknown>, false))
+      channel = ch
+      ch.subscribe((status, err) => {
+        if (stopped || channel !== ch) return
+        if (status === "SUBSCRIBED") {
+          attempt = 0
+          setLive("live")
+          return
+        }
+        if (status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          if (err) console.error("[soundbox] realtime:", status, err)
+          setLive("down")
+          channel = null
+          void supabase.removeChannel(ch)
+          window.clearTimeout(retry)
+          retry = window.setTimeout(connect, reconnectDelay(attempt++))
+          return
+        }
+        setLive("connecting")
       })
+    }
+    connect()
     // The backup check: every 15 s and when the page comes back (phones drop sockets in the background).
     const poll = async () => {
       const { data, error } = await supabase.from("soundbox_events").select(columns).gt("created_at", pollSince(eventsRef.current, Date.now() - 60_000)).order("created_at").limit(50)
@@ -140,19 +213,21 @@ export default function SoundboxPage() {
     const onShow = () => document.visibilityState === "visible" && void poll()
     document.addEventListener("visibilitychange", onShow)
     return () => {
+      stopped = true
       window.clearInterval(every)
+      window.clearTimeout(retry)
       window.clearTimeout(flashTimer.current)
       document.removeEventListener("visibilitychange", onShow)
-      void supabase.removeChannel(channel)
+      if (channel) void supabase.removeChannel(channel)
     }
   }, [userId])
 
   const totals = useMemo(() => todayTotals(events, ppDay()), [events])
 
   const start = async () => {
-    await unlockAudio()
-    setActive(true)
-    setAudioIssue(null)
+    const ok = await unlockAudio()
+    setEnabled(true)
+    setAudioIssue(ok ? null : "locked")
   }
 
   return (
@@ -173,26 +248,23 @@ export default function SoundboxPage() {
         </p>
       )}
 
-      {!active ? (
+      {!enabled ? (
         <Button type="button" className="h-14 w-full text-base" onClick={() => void start()}>
           <Volume2Icon />
           {t("soundbox.start")}
         </Button>
       ) : (
-        <Card className="flex-row items-center gap-3 px-4 py-3">
-          {soundOn ? <Volume2Icon className="size-5 text-primary" aria-hidden /> : <VolumeXIcon className="size-5 text-muted-foreground" aria-hidden />}
-          <span className="min-w-0 flex-1 text-sm font-medium">
-            {t(soundOn ? "soundbox.listening" : "soundbox.muted")}
-            <span className={cn("ml-1.5 inline-block size-2 rounded-full align-middle", live === "live" ? "bg-emerald-500" : live === "down" ? "bg-rose-500" : "bg-amber-400")} aria-label={live} />
+        <Card className="flex-row items-center gap-3 border-emerald-500/40 bg-emerald-500/5 px-4 py-3">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-emerald-800 dark:text-emerald-300">{t("soundbox.activeOn")}</span>
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={cn("inline-block size-2 rounded-full", live === "live" ? "bg-emerald-500" : live === "down" ? "bg-rose-500" : "bg-amber-400")} aria-label={live} />
+              {t("soundbox.listening")}
+            </span>
           </span>
-          <Switch
-            checked={soundOn}
-            aria-label={t("soundbox.sound")}
-            onCheckedChange={(v) => {
-              setSoundOn(v)
-              keep("soundbox.sound", v ? "on" : "off")
-            }}
-          />
+          <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => setEnabled(false)}>
+            {t("soundbox.mute")}
+          </Button>
         </Card>
       )}
 

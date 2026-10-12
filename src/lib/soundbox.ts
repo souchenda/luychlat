@@ -321,3 +321,30 @@ export function joinMp3(clips: Uint8Array[]): Uint8Array {
   }
   return out
 }
+
+/** The SoundBox's on/off, remembered per business workspace (founder, 12/10/2026): never reset by a reload or navigation. */
+export const soundboxStorageKey = (workspaceId: string) => `soundbox_enabled_${workspaceId}`
+
+type KeyValueStore = { getItem(key: string): string | null; setItem(key: string, value: string): void }
+
+/** On only when this workspace's SoundBox was turned on and never turned off since. */
+export function readSoundboxEnabled(store: KeyValueStore | null, workspaceId: string | null | undefined): boolean {
+  if (!store || !workspaceId) return false
+  try {
+    return store.getItem(soundboxStorageKey(workspaceId)) === "1"
+  } catch {
+    return false
+  }
+}
+
+export function writeSoundboxEnabled(store: KeyValueStore | null, workspaceId: string | null | undefined, on: boolean) {
+  if (!store || !workspaceId) return
+  try {
+    store.setItem(soundboxStorageKey(workspaceId), on ? "1" : "0")
+  } catch {
+    // private mode: not remembered
+  }
+}
+
+/** The live connection's retry delay: 1 s, 2 s, 4 s … up to 30 s — silent, never turning the SoundBox off. */
+export const reconnectDelay = (attempt: number) => Math.min(30_000, 1_000 * 2 ** Math.max(0, attempt))

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals } from "./soundbox"
+import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, soundboxStorageKey, writeSoundboxEnabled } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -207,5 +207,32 @@ describe("SoundBox — the Telegram voice note joined from the clips", () => {
   })
   it("the clips' frames back to back, in order", () => {
     assert.deepEqual([...joinMp3([id3([...frame(1)]), frame(2), frame(3)])], [...frame(1), ...frame(2), ...frame(3)])
+  })
+})
+
+describe("SoundBox on/off survives reloads (founder, 12/10/2026)", () => {
+  const memory = () => {
+    const m = new Map<string, string>()
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), m }
+  }
+  it("remembered per business workspace under soundbox_enabled_<id>", () => {
+    const s = memory()
+    assert.equal(soundboxStorageKey("dl"), "soundbox_enabled_dl")
+    assert.equal(readSoundboxEnabled(s, "dl"), false) // never turned on
+    writeSoundboxEnabled(s, "dl", true)
+    assert.equal(s.m.get("soundbox_enabled_dl"), "1")
+    assert.equal(readSoundboxEnabled(s, "dl"), true) // a reload / remount: still on
+    assert.equal(readSoundboxEnabled(s, "other"), false) // another business: its own setting
+    writeSoundboxEnabled(s, "dl", false)
+    assert.equal(readSoundboxEnabled(s, "dl"), false) // only «🔇 បិទសំឡេង» turns it off
+  })
+  it("no storage (private mode) or no workspace yet: off, never a crash", () => {
+    const broken = { getItem: () => { throw new Error("denied") }, setItem: () => { throw new Error("denied") } }
+    assert.equal(readSoundboxEnabled(broken, "dl"), false)
+    assert.doesNotThrow(() => writeSoundboxEnabled(broken, "dl", true))
+    assert.equal(readSoundboxEnabled(memory(), null), false)
+  })
+  it("a dropped live connection retries 1 s, 2 s, 4 s … capped at 30 s", () => {
+    assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 10].map(reconnectDelay), [1_000, 2_000, 4_000, 8_000, 16_000, 30_000, 30_000, 30_000])
   })
 })

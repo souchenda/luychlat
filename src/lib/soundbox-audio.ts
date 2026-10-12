@@ -59,12 +59,36 @@ function playKhmerClips(sequence: KhmerClip[], volume: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
-/** On the «🔊 បើកសំឡេង SoundBox» tap: the audio context, the Khmer clips, and an empty utterance (iOS needs speech started by a tap too). */
+/**
+ * Keep-alive: a silent buffer looping into the speakers keeps Android Chrome from suspending the
+ * audio context during the long quiet stretches between payments (an idle context gets parked; a
+ * playing one does not). Started once, on the unlock tap.
+ */
+let keepAlive: AudioBufferSourceNode | null = null
+function startKeepAlive() {
+  if (!ctx || keepAlive) return
+  const silent = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate) // 1 s of zeros
+  const source = ctx.createBufferSource()
+  source.buffer = silent
+  source.loop = true
+  const gain = ctx.createGain()
+  gain.gain.value = 0
+  source.connect(gain).connect(ctx.destination)
+  source.start()
+  keepAlive = source
+  // If the phone still parks it (screen locked), try to wake it as soon as it says so.
+  ctx.onstatechange = () => {
+    if (ctx && ctx.state === "suspended") void ctx.resume().catch(() => null)
+  }
+}
+
+/** On the «🔊 បើកសំឡេង SoundBox» tap (or the first tap after a reload): the audio context, the keep-alive, the Khmer clips, and an empty utterance (iOS needs speech started by a tap too). */
 export async function unlockAudio(): Promise<boolean> {
   const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
   if (!Ctx) return false
   ctx ??= new Ctx()
   if (ctx.state !== "running") await ctx.resume().catch(() => null)
+  if (ctx.state === "running") startKeepAlive()
   void loadKhmerClips()
   if ("speechSynthesis" in window) {
     const warm = new SpeechSynthesisUtterance(" ")

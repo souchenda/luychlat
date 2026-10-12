@@ -2496,6 +2496,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "soundbox.test": "试听",
   "soundbox.title": "收款语音播报",
   "soundbox.start": "🔊 开启播报声音",
+  "soundbox.activeOn": "🟢 播报声音已开启（保持开启）",
+  "soundbox.mute": "🔇 关闭声音",
   "soundbox.listening": "正在等待收款——屏幕保持常亮",
   "soundbox.muted": "已静音——仍显示收款",
   "soundbox.sound": "声音",
