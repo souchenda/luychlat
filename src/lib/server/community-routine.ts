@@ -23,6 +23,7 @@ import { eveningHtml } from "@/lib/evening-reminder"
 import { morningQuote } from "@/lib/morning"
 import { holidayDue, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import { sendMorningPush } from "@/lib/server/web-push"
+import { facebookConfig, facebookMorningCaption, publishPhotoToFacebook } from "@/lib/server/facebook-publisher"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
 import type { Locale } from "@/lib/i18n/dictionaries"
@@ -98,6 +99,20 @@ async function holidayTick(day: string, minutes: number) {
   logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Holiday note (${job}) sent to ${chat}` : `Holiday note (${job}) failed: ${res.description ?? "unknown"}`)
 }
 
+/** The 07:00 poster on the Facebook Page; every failure is logged, nothing is thrown. */
+export async function publishMorningToFacebook(day: string) {
+  try {
+    const res = await publishPhotoToFacebook(morningPoster(day), facebookMorningCaption(day))
+    if (res.ok) logEvent("info", "routine", `Facebook morning post published (${res.postId}${res.attempts > 1 ? `, attempt ${res.attempts}` : ""})`)
+    else if (res.skipped) logEvent("info", "routine", `Facebook morning post skipped: ${res.reason}`, { fold: true })
+    else logEvent("error", "routine", `Facebook morning post failed after ${res.attempts} attempt(s): ${res.error}`)
+    return res
+  } catch (e) {
+    logEvent("error", "routine", `Facebook morning post crashed: ${e instanceof Error ? e.message : String(e)}`)
+    return null
+  }
+}
+
 /** Called every minute by the dispatcher. */
 export async function communityRoutineTick() {
   const now = phnomPenhToday()
@@ -113,6 +128,8 @@ export async function communityRoutineTick() {
     const res = id ? { ok: true as const, description: undefined } : await tg("sendMessage", { chat_id: chat, text: morningText(now.day), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
     logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Morning post sent to ${chat}${id ? " (poster)" : " (text — poster failed)"}` : `Morning post failed: ${res.description ?? "unknown"}`)
   }
+  // The Facebook Page: the same poster, once a day — only when its credentials are set, never blocking Telegram.
+  if (due === "morning" && facebookConfig() && (await claim("facebook-morning", now.day))) await publishMorningToFacebook(now.day)
   // Phones that turned on notifications: the same quote, once a day (its own claim, so a channel problem never blocks it).
   if (due === "morning" && (await claim("push-morning", now.day))) await sendMorningPush()
 

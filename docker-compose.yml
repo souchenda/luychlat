@@ -56,6 +56,9 @@ services:
       # and the service-role key (all-powerful: server only, never NEXT_PUBLIC_, never in chat or git).
       TELEGRAM_LOGIN: ${TELEGRAM_LOGIN:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      # Server-only, optional: mirror the 07:00 poster to the Facebook Page (Graph API, Page token only).
+      FB_PAGE_ID: ${FB_PAGE_ID:-}
+      FB_PAGE_ACCESS_TOKEN: ${FB_PAGE_ACCESS_TOKEN:-}
       # This server sends the bot's reminders — only from the active slot (deploy/run/active-slot).
       BOT_DISPATCHER: "on"
       APP_SLOT: ${APP_SLOT:-blue}
