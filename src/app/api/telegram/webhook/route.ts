@@ -28,6 +28,7 @@ import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
+import { handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
 import { handlePosterCallback, isPosterCallback, sendFestivalPoster } from "@/lib/server/festival-poster"
 import { handleGroupSlip, handleGroupSlipCallback, isGroupSlipCallback } from "@/lib/server/biz-slip-bot"
 import { handleBillKhqrCallback, handleEacNotice, isBillKhqrCallback, sendBillsOverview } from "@/lib/server/bill-bot"
@@ -329,6 +330,8 @@ export async function POST(request: Request) {
       await handleSlipCallback(update.callback_query)
     } else if (isTipCallback(update.callback_query.data)) {
       await handleTipCallback(update.callback_query)
+    } else if (isScheduledPostCallback(update.callback_query.data)) {
+      await handleScheduledPostCallback(update.callback_query)
     } else if (isPosterCallback(update.callback_query.data)) {
       await handlePosterCallback(update.callback_query)
     } else if (isGroupSlipCallback(update.callback_query.data)) {

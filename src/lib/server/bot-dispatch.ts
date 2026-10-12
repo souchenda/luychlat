@@ -6,6 +6,7 @@ import { duePrayer } from "@/lib/prayer-alerts"
 import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "./telegram-bot"
 import { sendCommunityBulletin, syncCommunityPost } from "@/lib/server/community-bulletin"
 import { communityRoutineTick } from "@/lib/server/community-routine"
+import { scheduledPostsTick } from "@/lib/server/scheduled-posts"
 import { dailyTipTick } from "@/lib/server/tip-bot"
 import { watchdogTick } from "@/lib/server/health-watchdog"
 import { marketScheduleTick, syncMarket } from "@/lib/server/market-sync"
@@ -83,6 +84,7 @@ export async function dispatchOnce() {
     await sendCommunityBulletin()
     await syncCommunityPost()
     await communityRoutineTick()
+    await scheduledPostsTick()
     await dailyTipTick()
     await weeklyDigestTick()
     await cfoBriefTick()

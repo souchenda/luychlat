@@ -21,19 +21,10 @@ import { tipPoster } from "@/lib/server/tip-poster"
 import { logEvent } from "@/lib/server/events"
 import { eveningHtml } from "@/lib/evening-reminder"
 import { morningQuote } from "@/lib/morning"
-import { holidayDue, holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { SPOTLIGHT, spotlightCaption, spotlightDue, spotlightHtml } from "@/lib/spotlight"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
-import {
-  facebookConfig,
-  facebookHolidayMessage,
-  facebookMorningCaption,
-  publishLogged,
-  publishPhotoToFacebook,
-  publishTextToFacebook,
-  shouldPublishToFacebook,
-} from "@/lib/server/facebook-publisher"
+import { facebookConfig, facebookMorningCaption, publishLogged, publishPhotoToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
 import type { Locale } from "@/lib/i18n/dictionaries"
@@ -41,7 +32,7 @@ import type { Locale } from "@/lib/i18n/dictionaries"
 const MORNING = { job: "community-morning", from: 7 * 60, until: 8 * 60 + 30 }
 const EVENING = { job: "community-evening", from: 20 * 60, until: 21 * 60 + 30 }
 
-const communityChat = () => (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim() || null
+export const communityChat = () => (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim() || null
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 
@@ -101,20 +92,7 @@ export function routineDue(minutes: number): "morning" | "evening" | null {
   return null
 }
 
-async function holidayTick(day: string, minutes: number) {
-  const job = holidayDue(day, minutes)
-  const chat = communityChat()
-  if (!job || !chat || !(await claim(job, day))) return
-  const res = await tg("sendMessage", { chat_id: chat, text: holidayPostHtml(holidayMoment(day)!), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })
-  logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Holiday note (${job}) sent to ${chat}` : `Holiday note (${job}) failed: ${res.description ?? "unknown"}`)
-  // The Page too — a holiday note is worth the public feed; its own claim, after Telegram.
-  if (shouldPublishToFacebook({ kind: "holiday" }) && facebookConfig() && (await claim(`facebook-${job}`, day))) {
-    const { title, body } = holidayMessage(holidayMoment(day)!)
-    await publishLogged(`holiday note (${job})`, () => publishTextToFacebook(facebookHolidayMessage(title, body)), fbLog)
-  }
-}
-
-const fbLog = (level: "info" | "error", message: string, fold?: boolean) => logEvent(level, "routine", message, { fold })
+export const fbLog = (level: "info" | "error", message: string, fold?: boolean) => logEvent(level, "routine", message, { fold })
 
 /** The 07:00 poster on the Facebook Page; every failure is logged, nothing is thrown. */
 export const publishMorningToFacebook = (day: string) =>
@@ -137,21 +115,13 @@ async function spotlightTick(day: string, minutes: number) {
 /** Called every minute by the dispatcher. */
 export async function communityRoutineTick() {
   const now = phnomPenhToday()
-  await holidayTick(now.day, now.hour * 60 + now.minute)
   await spotlightTick(now.day, now.hour * 60 + now.minute)
   const due = routineDue(now.hour * 60 + now.minute)
   if (!due) return
   const chat = communityChat()
 
-  if (due === "morning" && chat && (await claim(MORNING.job, now.day))) {
-    // The poster with the text as its caption; plain text only if the image can't be sent.
-    const buttons = await recordButtons()
-    const id = await sendPosterPhoto(chat, morningPoster(now.day), morningText(now.day), { reply_markup: buttons.reply_markup })
-    const res = id ? { ok: true as const, description: undefined } : await tg("sendMessage", { chat_id: chat, text: morningText(now.day), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
-    logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Morning post sent to ${chat}${id ? " (poster)" : " (text — poster failed)"}` : `Morning post failed: ${res.description ?? "unknown"}`)
-  }
-  // The Facebook Page: the same poster, once a day — only when its credentials are set, never blocking Telegram.
-  if (due === "morning" && shouldPublishToFacebook({ kind: "morning" }) && facebookConfig() && (await claim("facebook-morning", now.day))) await publishMorningToFacebook(now.day)
+  // The 07:00 poster (Telegram Channel + Facebook Page) and the holiday notes are preview-first with an
+  // auto-publish fallback: lib/server/scheduled-posts.ts. Only the phone push stays here.
   // Phones that turned on notifications: the same quote, once a day (its own claim, so a channel problem never blocks it).
   if (due === "morning" && (await claim("push-morning", now.day))) await sendMorningPush()
 
