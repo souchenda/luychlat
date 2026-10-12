@@ -3660,6 +3660,8 @@ const km = {
   "tax.disclaimer": "ការប៉ាន់ស្មានប៉ុណ្ណោះ (ពន្ធអប្បបរមា ១% · ពន្ធកាត់ទុកថ្លៃជួល ១០% · ពន្ធប៉ាតង់ ៤០០.០០០៛) — គណនាពីការលក់ និងថ្លៃជួលដែលបានកត់ក្នុងអេប។ សូមផ្ទៀងផ្ទាត់ជាមួយគណនេយ្យករ ឬអគ្គនាយកដ្ឋានពន្ធដារ មុនដាក់លិខិតប្រកាស។",
   "vdoc.carTitle": "រថយន្តរបស់ខ្ញុំ",
   "vdoc.personalOnly": "ឯកសារយានយន្តមាននៅកន្លែងធ្វើការផ្ទាល់ខ្លួនប៉ុណ្ណោះ — សូមប្ដូរទៅ «ផ្ទាល់ខ្លួន»។",
+  "vdoc.carLoans": "កម្ចីរថយន្ត",
+  "vdoc.nextInstallment": "បង់បន្ទាប់ {date}",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -7309,6 +7311,8 @@ const en: Record<MessageKey, string> = {
   "tax.disclaimer": "An estimate only (minimum tax 1% · rent withholding 10% · patent tax 400,000 KHR), from the sales and rent recorded in the app. Confirm with your accountant or the GDT before filing.",
   "vdoc.carTitle": "My car",
   "vdoc.personalOnly": "Vehicle documents are in your Personal workspace only — switch to Personal.",
+  "vdoc.carLoans": "Car loans",
+  "vdoc.nextInstallment": "next installment {date}",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.

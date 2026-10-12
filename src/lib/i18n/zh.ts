@@ -3613,4 +3613,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "tax.disclaimer": "仅为估算（最低税 1% · 租金预扣税 10% · 营业执照税 400,000 瑞尔），基于应用中记录的销售与租金。申报前请与会计或税务总局确认。",
   "vdoc.carTitle": "我的车",
   "vdoc.personalOnly": "车辆证件仅在个人空间中，请切换到个人空间。",
+  "vdoc.carLoans": "车贷",
+  "vdoc.nextInstallment": "下次还款 {date}",
 }

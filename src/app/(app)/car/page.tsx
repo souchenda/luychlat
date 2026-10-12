@@ -3,6 +3,7 @@
 import { ArrowLeftIcon } from "lucide-react"
 import Link from "next/link"
 
+import { CarLoansCard } from "@/components/bills/car-loans-card"
 import { EvHomeCard } from "@/components/bills/ev-home-card"
 import { VehicleDocsCard } from "@/components/bills/vehicle-docs-card"
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,7 @@ export default function CarPage() {
         </Card>
       ) : (
         <>
+          <CarLoansCard workspaceId={ws} />
           <VehicleDocsCard workspaceId={ws} editable={editable} />
           {scope.homeEv && <EvHomeCard workspaceId={ws} editable={editable} />}
         </>
