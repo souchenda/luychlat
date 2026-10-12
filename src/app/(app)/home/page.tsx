@@ -33,6 +33,7 @@ import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
 import { cashFlow } from "@/lib/analytics"
 import { adjustmentCategoryIds } from "@/lib/categories/presets"
+import { liabilitiesUsd } from "@/lib/debts"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { khmerDigits, longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
@@ -73,6 +74,8 @@ export default function HomePage() {
   const categoriesQuery = useCategories(ws)
   const txQuery = useTransactions(ws, filter)
   const debtsQuery = useDebts(ws)
+  // Loans and money owed: their own line under the net worth (lib/debts › liabilitiesUsd).
+  const liabilities = useMemo(() => liabilitiesUsd(debtsQuery.data ?? [], khrPerUsd), [debtsQuery.data, khrPerUsd])
 
   const [walletFormOpen, setWalletFormOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
@@ -159,6 +162,7 @@ export default function HomePage() {
         wallets={walletsQuery.data}
         loading={walletsQuery.isLoading}
         assetsUsd={assets.totalUsd}
+        liabilitiesUsd={liabilities}
         // NBC $1 = …៛ · gold per damlung, inside the bottom of the card — opens /market.
         footer={<MarketRatesCard />}
         actions={

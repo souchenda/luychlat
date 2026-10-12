@@ -15,6 +15,21 @@ export function remaining(debt: Pick<Debt, "total_amount" | "paid_amount" | "cur
   return Math.max(0, roundMoney(debt.total_amount - debt.paid_amount, debt.currency))
 }
 
+/**
+ * What the workspace still owes (loans and money owed to others — PAYABLE, not settled), in USD:
+ * a bank loan's remaining principal, a flat loan's remaining installments. Shown under the net worth
+ * card as «បំណុលត្រូវសង» and «ទ្រព្យសុទ្ធ» (founder, 12/10/2026: a separate line; the headline is unchanged).
+ */
+export function liabilitiesUsd(debts: Pick<Debt, "type" | "status" | "total_amount" | "paid_amount" | "currency">[], khrPerUsd: number): number {
+  let usd = 0
+  for (const d of debts) {
+    if (d.type !== "PAYABLE" || d.status === "SETTLED") continue
+    const left = remaining(d)
+    usd += d.currency === "USD" ? left : left / khrPerUsd
+  }
+  return roundMoney(usd, "USD")
+}
+
 /** 0..100 */
 export function progressPercent(debt: Pick<Debt, "total_amount" | "paid_amount">): number {
   if (debt.total_amount <= 0) return 0

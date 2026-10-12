@@ -3615,4 +3615,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "vdoc.personalOnly": "车辆证件仅在个人空间中，请切换到个人空间。",
   "vdoc.carLoans": "车贷",
   "vdoc.nextInstallment": "下次还款 {date}",
+  "netWorth.loans": "待还贷款",
+  "netWorth.net": "净资产（扣除贷款后）",
 }

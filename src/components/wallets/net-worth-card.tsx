@@ -51,12 +51,15 @@ export function NetWorthCard({
   wallets,
   loading,
   assetsUsd = 0,
+  liabilitiesUsd = 0,
   actions,
   footer,
 }: {
   wallets: Wallet[] | undefined
   loading?: boolean
   assetsUsd?: number
+  /** Loans and other money owed (liabilitiesUsd in lib/debts): a line under the totals, never subtracted from the headline. */
+  liabilitiesUsd?: number
   actions?: ReactNode
   footer?: ReactNode
 }) {
@@ -118,6 +121,21 @@ export function NetWorthCard({
               </span>
             )}
           </div>
+          {/* Loans: their own line — what is owed, and what is left after it (the headline stays the total held). */}
+          {!loading && liabilitiesUsd > 0 && (
+            <div className="mt-2.5 space-y-0.5 text-xs tabular-nums text-white/90">
+              <p className="flex justify-between gap-2">
+                <span>{t("netWorth.loans")}</span>
+                <span className="font-semibold whitespace-nowrap">
+                  −<Amount value={liabilitiesUsd} currency="USD" />
+                </span>
+              </p>
+              <p className="flex justify-between gap-2">
+                <span>{t("netWorth.net")}</span>
+                <Amount value={roundMoney(totals.totalUsd - liabilitiesUsd, "USD")} currency="USD" className="font-semibold whitespace-nowrap" />
+              </p>
+            </div>
+          )}
         </div>
 
         {actions && <div className="flex w-[7.25rem] shrink-0 flex-col justify-center gap-2">{actions}</div>}

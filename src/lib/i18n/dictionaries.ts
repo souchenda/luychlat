@@ -3662,6 +3662,8 @@ const km = {
   "vdoc.personalOnly": "ឯកសារយានយន្តមាននៅកន្លែងធ្វើការផ្ទាល់ខ្លួនប៉ុណ្ណោះ — សូមប្ដូរទៅ «ផ្ទាល់ខ្លួន»។",
   "vdoc.carLoans": "កម្ចីរថយន្ត",
   "vdoc.nextInstallment": "បង់បន្ទាប់ {date}",
+  "netWorth.loans": "បំណុលត្រូវសង",
+  "netWorth.net": "ទ្រព្យសុទ្ធ (ក្រោយដកបំណុល)",
 } as const
 
 export type MessageKey = keyof typeof km
@@ -7313,6 +7315,8 @@ const en: Record<MessageKey, string> = {
   "vdoc.personalOnly": "Vehicle documents are in your Personal workspace only — switch to Personal.",
   "vdoc.carLoans": "Car loans",
   "vdoc.nextInstallment": "next installment {date}",
+  "netWorth.loans": "Loans owed",
+  "netWorth.net": "Net worth (after loans)",
 }
 
 // Chinese (Simplified): keys without a translation yet fall back to English.
