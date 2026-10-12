@@ -19,6 +19,8 @@ export const GOAL_PRESETS = [
   { key: "goal_wedding", emoji: "💍" },
   { key: "goal_travel", emoji: "✈️" },
   { key: "goal_qurban", emoji: "🐑" },
+  // Kids' savings (Chip Mong «Kmeng Chhlat» and the like).
+  { key: "goal_kids", emoji: "👶" },
   { key: "goal_other", emoji: "🎯" },
 ] as const
 

@@ -5,6 +5,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
+import { CameraScanBar } from "@/components/common/camera-scan-bar"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -18,6 +19,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount, roundMoney, roundRiel } from "@/lib/money"
 import { COST_HINT, daysLeft, docStatus, renewedExpiry, VEHICLE_DOC_TYPES, type VehicleDoc, type VehicleDocType } from "@/lib/vehicle-docs"
 import { useVehicleDocMutations, useVehicleDocs } from "@/lib/vehicle-docs-data"
+import type { VehicleRead } from "@/lib/scan"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -190,6 +192,19 @@ function VehicleDocSheet({ open, onOpenChange, workspaceId, doc, vehicles }: { o
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={t(doc ? "vdoc.editTitle" : "vdoc.newTitle")}>
       <form onSubmit={submit} className="space-y-4">
+        {/* Camera-first: an inspection, road tax, insurance or registration document fills what it shows. */}
+        <CameraScanBar<VehicleRead>
+          kind="vehicle"
+          hint={t("scan.hintVehicle")}
+          onRead={(v) =>
+            set({
+              ...(v.vehicle ? { vehicle: v.vehicle } : {}),
+              ...(v.docType ? { type: v.docType, ...(doc ? {} : { currency: COST_HINT[v.docType].currency }) } : {}),
+              ...(v.expiresOn ? { expiresOn: v.expiresOn } : {}),
+              ...(v.provider ? { provider: v.provider } : {}),
+            })
+          }
+        />
         <div className="space-y-1.5">
           <Label htmlFor="vdoc-vehicle">{t("vdoc.vehicle")}</Label>
           <Input id="vdoc-vehicle" list="vdoc-vehicles" value={form.vehicle} onChange={(e) => set({ vehicle: e.target.value })} placeholder={t("vdoc.vehiclePlaceholder")} maxLength={60} className="h-11" />

@@ -27,6 +27,7 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
+import { CameraScanBar } from "@/components/common/camera-scan-bar"
 import { Amount } from "@/components/money/amount"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
@@ -41,6 +42,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { maskAccount } from "@/lib/format"
 import { parseAmount, roundMoney } from "@/lib/money"
 import { showUpgrade, usePlan } from "@/lib/plan"
+import { accountTitle, type AccountRead } from "@/lib/scan"
 import { cn } from "@/lib/utils"
 import { getProvider, POPULAR_PROVIDERS, searchProviders } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -272,6 +274,16 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
     if (!editing) setValue("currency", next.defaultCurrency)
   }
 
+  /** Camera-first (new wallet): a bank account screen fills the bank, name, account number and opening balance — to review. */
+  const fromScan = (a: AccountRead) => {
+    if (a.icon !== "other") pickProvider(a.icon)
+    const title = accountTitle(a, a.icon !== "other" ? pickText(getProvider(a.icon).name, locale) : null)
+    if (title) setValue("name", title, { shouldValidate: true })
+    setValue("currency", a.currency)
+    if (a.accountNo) setValue("accountNo", a.accountNo, { shouldValidate: true })
+    if (a.balance !== null) setValue("balance", String(a.balance), { shouldValidate: true })
+  }
+
   const onSubmit = handleSubmit(async (values) => {
     if (values.currency === "BOTH" && !wallet && values.kind !== "CREDIT_CARD") return void createPair(values)
     const currency = (values.currency === "BOTH" ? "USD" : values.currency) as Currency
@@ -411,6 +423,8 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
             {t("wallet.othersPersonal", { name: ownerName ?? t("family.someone") })}
           </p>
         )}
+        {/* Camera-first: only when adding a wallet (an existing balance moves through the ledger). */}
+        {!editing && <CameraScanBar<AccountRead> kind="account" onRead={fromScan} hint={t("scan.hintAccount")} />}
         <fieldset disabled={othersPersonal} className="space-y-5">
         {wallet && isCard(wallet) && (
           <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">

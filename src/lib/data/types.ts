@@ -80,6 +80,8 @@ export type WalletKind = "STANDARD" | "CREDIT_CARD"
  * ledger balance (negative while drawn); available = balance + od_limit.
  */
 export type OverdraftFields = {
+  /** A savings goal's cover photo in the private goal-covers bucket (<uploader id>/<file>). */
+  cover_path?: string | null
   od_limit?: number | null
   /** The bank account number (digits, spaces or dashes), shown masked (lib/format maskAccount). */
   account_no?: string | null

@@ -1,11 +1,12 @@
 "use client"
 
-import { CameraIcon, ExternalLinkIcon, Loader2Icon, Trash2Icon } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { ExternalLinkIcon, Loader2Icon, Trash2Icon } from "lucide-react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { CategoryIcon } from "@/components/categories/category-icon"
 import { BottomSheet } from "@/components/common/bottom-sheet"
+import { CameraScanBar } from "@/components/common/camera-scan-bar"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -94,7 +95,6 @@ export function BillSheet({
   // A photographed paper bill (electricity / water): fills the form, and is kept as this month's statement.
   const [scanned, setScanned] = useState<UtilityBill | null>(null)
   const [scanning, setScanning] = useState(false)
-  const scanInput = useRef<HTMLInputElement>(null)
   const statements = useBillStatements(bill?.id).data ?? []
   // NSSF: one contribution per active member of the card vault (at least one: the account holder).
   const nssfMembers = (useNssfMembers().data ?? []).filter((m) => m.is_active).length
@@ -155,7 +155,6 @@ export function BillSheet({
       toast.success(t("bills.scanFilled"))
     } finally {
       setScanning(false)
-      if (scanInput.current) scanInput.current.value = ""
     }
   }
 
@@ -215,11 +214,8 @@ export function BillSheet({
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={bill ? t("bills.editTitle") : t("bills.newTitle")}>
       <form onSubmit={submit} className="space-y-4">
-        <Button type="button" variant="outline" className="h-11 w-full" disabled={scanning} onClick={() => scanInput.current?.click()}>
-          {scanning ? <Loader2Icon className="animate-spin" /> : <CameraIcon />}
-          {t(scanning ? "bills.scanReading" : "bills.scan")}
-        </Button>
-        <input ref={scanInput} type="file" accept="image/*" className="hidden" onChange={(e) => void scan(e.target.files?.[0])} />
+        {/* Camera-first: the shared bar; a utility bill keeps its own reader (/api/bills/ocr). */}
+        <CameraScanBar onFile={scan} busy={scanning} hint={t("scan.hintBill")} />
         {scanned && (
           <p className="rounded-xl bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
             {[scanned.invoiceNo, scanned.customerId, scanned.usage !== null ? `${scanned.usage} ${scanned.kind === "WATER" ? "m³" : "kWh"}` : null, scanned.dueDate].filter(Boolean).join(" · ")}

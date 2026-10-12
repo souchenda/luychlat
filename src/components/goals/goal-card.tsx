@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import type { Wallet } from "@/lib/data/types"
 import { WalletAvatar } from "@/components/wallets/wallet-avatar"
+import { useGoalCoverUrl } from "@/lib/goal-cover"
 import { goalEmoji, goalProgress, goalShowsBank } from "@/lib/goals"
 import { providerForName } from "@/lib/wallets/providers"
 import { useT } from "@/lib/i18n/use-t"
@@ -29,6 +30,7 @@ export function GoalCard({
 }) {
   const t = useT()
   const p = goalProgress(goal)
+  const coverUrl = useGoalCoverUrl(goal.cover_path).data
   // A button only when it opens the editor (on Home the whole card is a link).
   const header = (
     <>
@@ -54,7 +56,12 @@ export function GoalCard({
   const headerClass = "flex w-full items-start gap-3 text-left"
 
   return (
-    <Card className={cn("gap-3 px-4 py-4", goal.archived_at && "opacity-60")}>
+    <Card className={cn("gap-3 px-4 py-4", goal.archived_at && "opacity-60", coverUrl && "overflow-hidden pt-0")}>
+      {/* The goal's cover photo (private: a signed URL for the workspace's members). */}
+      {coverUrl && (
+        // eslint-disable-next-line @next/next/no-img-element -- a short-lived signed URL
+        <img src={coverUrl} alt="" className={cn("-mx-4 w-[calc(100%+2rem)] object-cover", compact ? "h-20" : "h-28")} loading="lazy" />
+      )}
       {onEdit ? (
         <button type="button" onClick={onEdit} className={headerClass}>
           {header}

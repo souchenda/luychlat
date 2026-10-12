@@ -7,6 +7,7 @@ import { Controller, useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { CameraScanBar } from "@/components/common/camera-scan-bar"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,8 @@ import { fromDateInput } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import type { LoanDetailRead } from "@/lib/loans/loan-detail-read"
+import { loanFormFields } from "@/lib/scan"
 import { cn } from "@/lib/utils"
 import { INSURERS } from "@/lib/insurance"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
@@ -307,6 +310,30 @@ export function DebtFormSheet({
       title={debt ? t("debtForm.edit") : t(`debtForm.new${selectedType}`)}
     >
       <form onSubmit={onSubmit} className="space-y-4">
+        {/* Camera-first (a new loan): a bank app's loan details screen fills the lender, principal, rate and schedule — to review. */}
+        {!debt && selectedType === "PAYABLE" && (
+          <CameraScanBar<LoanDetailRead>
+            kind="loan"
+            hint={t("scan.hintLoan")}
+            onRead={(d) => {
+              const f = loanFormFields(d)
+              const opts = { shouldValidate: true }
+              setValue("party", f.party, opts)
+              setValue("total", f.total, opts)
+              setValue("currency", f.currency, opts)
+              setValue("interest", f.interest, opts)
+              setValue("interestPeriod", f.interestPeriod, opts)
+              setValue("startDate", f.startDate, opts)
+              setValue("schedOn", true, opts)
+              setValue("schedFrequency", "MONTHLY", opts)
+              setValue("schedCount", f.schedCount, opts)
+              setValue("schedMethod", f.schedMethod, opts)
+              setValue("schedFirst", f.schedFirst, opts)
+              setValue("note", f.note, opts)
+              if (!f.installmentStated) toast.info(t("scan.loanCalc", { paid: f.paid }))
+            }}
+          />
+        )}
         {!debt && (
           <div className="space-y-2">
             <Label>{t("debtForm.type")}</Label>
