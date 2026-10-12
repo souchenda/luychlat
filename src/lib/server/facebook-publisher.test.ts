@@ -139,3 +139,9 @@ describe("facebook publisher — curated, not a mirror (founder, 12/10/2026)", (
     assert.match(String((g.calls[0].init!.body as FormData).get("message")), /^☀️ សូមស្វាគមន៍\n\nbody\n/)
   })
 })
+
+describe("facebook publisher — the weekly spotlight", () => {
+  it("the Saturday spotlight reaches the Page", () => {
+    assert.equal(shouldPublishToFacebook({ kind: "spotlight" }), true)
+  })
+})

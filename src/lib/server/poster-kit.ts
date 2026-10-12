@@ -56,6 +56,8 @@ export const posterAssetsReady: Promise<void> = loadImage(readFileSync(path.join
   })
   .catch(() => {})
 const mascot = () => mascotImage
+/** The decoded mascot for posters that show it large (null until posterAssetsReady settles, or if missing). */
+export const posterMascot = () => mascotImage
 
 const words = new Intl.Segmenter("km", { granularity: "word" })
 

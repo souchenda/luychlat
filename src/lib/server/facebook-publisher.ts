@@ -57,16 +57,22 @@ type GraphError = { message?: string; code?: number; error_subcode?: number; typ
 
 /**
  * Which posts reach the public Page (founder, 12/10/2026): curated, never a blind mirror of Telegram.
- * The 07:00 poster and the holiday notes yes; the 20:00 nightly reminder never; a new fuel notice only
+ * The 07:00 poster, the holiday notes and the Saturday spotlight yes; the 20:00 nightly reminder never; a new fuel notice only
  * when EA92 or diesel actually changed against the previous period (unknown previous = no post).
  */
 export type FuelPair = { regular: number; diesel: number }
-export type ChannelPostKind = { kind: "morning" } | { kind: "holiday" } | { kind: "evening" } | { kind: "fuel"; now: FuelPair; previous: FuelPair | null }
+export type ChannelPostKind =
+  | { kind: "morning" }
+  | { kind: "holiday" }
+  | { kind: "spotlight" }
+  | { kind: "evening" }
+  | { kind: "fuel"; now: FuelPair; previous: FuelPair | null }
 
 export function shouldPublishToFacebook(post: ChannelPostKind): boolean {
   switch (post.kind) {
     case "morning":
     case "holiday":
+    case "spotlight":
       return true
     case "evening":
       return false

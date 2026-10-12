@@ -23,6 +23,8 @@ import { eveningHtml } from "@/lib/evening-reminder"
 import { morningQuote } from "@/lib/morning"
 import { holidayDue, holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import { sendMorningPush } from "@/lib/server/web-push"
+import { SPOTLIGHT, spotlightCaption, spotlightDue, spotlightHtml } from "@/lib/spotlight"
+import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import {
   facebookConfig,
   facebookHolidayMessage,
@@ -118,10 +120,25 @@ const fbLog = (level: "info" | "error", message: string, fold?: boolean) => logE
 export const publishMorningToFacebook = (day: string) =>
   publishLogged("morning post", () => publishPhotoToFacebook(morningPoster(day), facebookMorningCaption(day)), fbLog)
 
+/** Saturday 17:00 — the weekly core-value spotlight: the poster to the channel, then the Facebook Page. */
+async function spotlightTick(day: string, minutes: number) {
+  if (!spotlightDue(day, minutes)) return
+  const chat = communityChat()
+  if (chat && (await claim(SPOTLIGHT.job, day))) {
+    const buttons = await recordButtons()
+    const id = await sendPosterPhoto(chat, spotlightPoster(), spotlightHtml(), { reply_markup: buttons.reply_markup })
+    const res = id ? { ok: true as const, description: undefined } : await tg("sendMessage", { chat_id: chat, text: spotlightHtml(), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
+    logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Weekly spotlight sent to ${chat}${id ? " (poster)" : " (text — poster failed)"}` : `Weekly spotlight failed: ${res.description ?? "unknown"}`)
+  }
+  if (shouldPublishToFacebook({ kind: "spotlight" }) && facebookConfig() && (await claim(`facebook-${SPOTLIGHT.job}`, day)))
+    await publishLogged("weekly spotlight", () => publishPhotoToFacebook(spotlightPoster(), spotlightCaption()), fbLog)
+}
+
 /** Called every minute by the dispatcher. */
 export async function communityRoutineTick() {
   const now = phnomPenhToday()
   await holidayTick(now.day, now.hour * 60 + now.minute)
+  await spotlightTick(now.day, now.hour * 60 + now.minute)
   const due = routineDue(now.hour * 60 + now.minute)
   if (!due) return
   const chat = communityChat()
