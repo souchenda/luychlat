@@ -3657,4 +3657,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "kscore.inMonths": "{n} 个月",
   "kscore.rose": "{n} 个月内从 {from} 升至 {to}",
   "kscore.fell": "{n} 个月内从 {from} 降至 {to}",
+  "plan.owner": "👑 应用所有者 · ULTRA 套餐",
+  "plan.lifetime": "永不过期 · 终身使用",
 }

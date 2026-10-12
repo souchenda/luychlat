@@ -33,6 +33,8 @@ export type MyPlan = {
   staff_role?: StaffRole | null
   /** Admin test mode: the plan the admin is trying their own account as, until it ends. */
   test_plan?: { tier: Tier; expires_at: string } | null
+  /** The app's owner (super_admin): ULTRA for life — no end date, never a renewal. */
+  lifetime?: boolean
   /** Business workspaces allowed (null = unlimited, Ultra). */
   max_business_workspaces?: number | null
   /** Free plan: when the Business workspace trial ends (ISO), else null. */
@@ -88,6 +90,24 @@ export function usePlan() {
   const plan = userId ? (query.data ?? FREE_PLAN) : FREE_PLAN
   // isPro = any paid plan (Pro or Ultra); isUltra = several business workspaces.
   return { plan, isPro: plan.tier !== "FREE", isUltra: plan.tier === "ULTRA", loading: Boolean(userId) && query.isLoading }
+}
+
+/** Admin console: the lifetime (owner) accounts, shown «LIFETIME (Permanent)» instead of an end date. */
+export function useLifetimeUsers(): Set<string> {
+  const { plan } = usePlan()
+  const query = useQuery({
+    queryKey: ["admin", "lifetime-users"],
+    enabled: plan.is_admin,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) return [] as string[]
+      const { data, error } = await supabase.rpc("admin_lifetime_users")
+      if (error) throw error
+      return (data ?? []) as string[]
+    },
+  })
+  return new Set(query.data ?? [])
 }
 
 export function usePlanOptions() {

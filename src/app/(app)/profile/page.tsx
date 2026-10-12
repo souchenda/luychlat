@@ -121,7 +121,20 @@ export default function ProfilePage() {
           placeholder=""
         />
         <TestPlanSwitch />
-        {periodEnd ? (
+        {plan.lifetime ? (
+          <InfoRow
+            icon={<CrownIcon />}
+            tile="amber"
+            label={t("profile.validity")}
+            value={
+              <>
+                <span className="font-semibold text-amber-700 dark:text-amber-400">{t("plan.owner")}</span>
+                <span className="block text-xs font-normal text-muted-foreground">{t("plan.lifetime")}</span>
+              </>
+            }
+            placeholder=""
+          />
+        ) : periodEnd ? (
           <InfoRow
             icon={<CalendarClockIcon />}
             tile={daysLeft <= 7 ? "rose" : "sky"}

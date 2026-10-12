@@ -42,7 +42,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { useMarket } from "@/lib/market"
-import { usePlan } from "@/lib/plan"
+import { useLifetimeUsers, usePlan } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { loginLabel } from "@/lib/auth-identifier"
@@ -204,6 +204,7 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
   const invalidate = useInvalidateAdmin()
   const [endDate, setEndDate] = useState("")
   const [grantTier, setGrantTier] = useState<"PRO" | "ULTRA">("PRO")
+  const lifetimeUsers = useLifetimeUsers()
   const events = useQuery({
     queryKey: ["admin", "events", user?.user_id],
     enabled: Boolean(user),
@@ -226,6 +227,7 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
   })
 
   if (!user) return null
+  const lifetime = lifetimeUsers.has(user.user_id)
   const planCode = user.plan_code && user.plan_code !== "FREE" ? user.plan_code : "PRO_MONTHLY"
   const extend = (days: number, code: string) =>
     act.mutate({ name: "admin_extend_subscription", args: { p_user_id: user.user_id, p_plan_code: code, p_days: days, p_note: null } })
@@ -236,8 +238,8 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
         <div className="grid grid-cols-2 gap-2">
           <Stat
             label={t("admin.plan")}
-            value={<span className="text-base">{user.tier}</span>}
-            hint={user.period_end ? format(new Date(user.period_end), "dd/MM/yyyy") : undefined}
+            value={<span className="text-base">{lifetime ? "ULTRA" : user.tier}</span>}
+            hint={lifetime ? t("admin.lifetime") : user.period_end ? format(new Date(user.period_end), "dd/MM/yyyy") : undefined}
             accent={user.tier !== "FREE"}
           />
           <Stat label={t("admin.lastActive")} value={<span className="text-base">{ago(user.last_active_at)}</span>} hint={t("admin.joined", { date: format(new Date(user.joined_at), "dd/MM/yyyy") })} />
@@ -249,6 +251,8 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
 
         <AdminUserSecurity userId={user.user_id} label={who(user)} />
 
+        {!lifetime && (
+          <>
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" role="radiogroup" aria-label={t("admin.plan")}>
           {(["PRO", "ULTRA"] as const).map((tier) => (
             <button
@@ -305,6 +309,8 @@ function SubscriberSheet({ user, onClose }: { user: Subscriber | null; onClose: 
             {t("admin.cancelSub")}
           </Button>
         )}
+          </>
+        )}
 
         <div className="space-y-1.5">
           <p className="text-sm font-medium">{t("admin.history")}</p>
@@ -339,6 +345,7 @@ function Subscribers() {
   const [filter, setFilter] = useState<Filter>("all")
   const [limit, setLimit] = useState(PAGE_SIZE)
   const [selected, setSelected] = useState<Subscriber | null>(null)
+  const lifetimeUsers = useLifetimeUsers()
 
   useEffect(() => {
     const id = setTimeout(() => setDebounced(search.trim()), 300)
@@ -403,7 +410,11 @@ function Subscribers() {
                 >
                   {u.tier}
                 </span>
-                {u.period_end && <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{format(new Date(u.period_end), "dd/MM/yy")}</p>}
+                {lifetimeUsers.has(u.user_id) ? (
+                  <p className="mt-0.5 text-[11px] font-medium text-amber-600">{t("admin.lifetime")}</p>
+                ) : (
+                  u.period_end && <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{format(new Date(u.period_end), "dd/MM/yy")}</p>
+                )}
                 {u.pending_payments > 0 && <p className="mt-0.5 text-[11px] font-medium text-amber-600">{t("admin.pendingCount", { count: u.pending_payments })}</p>}
               </div>
             </button>

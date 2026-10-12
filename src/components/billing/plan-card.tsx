@@ -35,18 +35,22 @@ export function PlanCard() {
             <CrownIcon className="size-5" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">{isPro ? `App Luy Chlat ${plan.tier}` : t("plan.free")}</p>
+            <p className="font-semibold">{plan.lifetime ? t("plan.owner") : isPro ? `App Luy Chlat ${plan.tier}` : t("plan.free")}</p>
             <p className={isPro ? "text-xs text-white/80" : "text-xs text-muted-foreground"}>
-              {isPro && plan.period_end
+              {plan.lifetime
+                ? t("plan.lifetime")
+                : isPro && plan.period_end
                 ? t("plan.until", { date: format(new Date(plan.period_end), "dd/MM/yyyy"), duration: formatDuration(daysLeft ?? 0, "remaining", locale) })
                 : expired
                   ? t("plan.expired", { date: format(new Date(plan.last_period_end!), "dd/MM/yyyy") })
                   : t("plan.freeHint")}
             </p>
           </div>
-          <Button size="sm" variant={isPro ? "secondary" : "default"} onClick={() => showUpgrade("general")}>
-            {isPro ? t("plan.renew") : t("upgrade.cta")}
-          </Button>
+          {!plan.lifetime && (
+            <Button size="sm" variant={isPro ? "secondary" : "default"} onClick={() => showUpgrade("general")}>
+              {isPro ? t("plan.renew") : t("upgrade.cta")}
+            </Button>
+          )}
         </div>
         {isPro && plan.ai_queries_per_month > 0 && (
           <div className="space-y-1">

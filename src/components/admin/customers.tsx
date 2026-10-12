@@ -1,5 +1,6 @@
 "use client"
 
+import { useLifetimeUsers } from "@/lib/plan"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { differenceInCalendarDays, format } from "date-fns"
 import { CakeIcon, Loader2Icon, SearchIcon, SendIcon, UsersRoundIcon } from "lucide-react"
@@ -85,7 +86,8 @@ function Badges({ c }: { c: Customer }) {
 function CustomerRow({ c, onOpen }: { c: Customer; onOpen: () => void }) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
-  const daysLeft = c.status === "ACTIVE" && c.period_end ? differenceInCalendarDays(new Date(c.period_end), new Date()) : null
+  const lifetime = useLifetimeUsers().has(c.user_id)
+  const daysLeft = !lifetime && c.status === "ACTIVE" && c.period_end ? differenceInCalendarDays(new Date(c.period_end), new Date()) : null
   // How the plan was obtained: paid (KHQR / entered by an admin) or free (trial, referral, promo).
   const how = c.status === "ACTIVE" && c.source ? t(`customers.source.${c.source}`) : null
   return (
@@ -104,14 +106,15 @@ function CustomerRow({ c, onOpen }: { c: Customer; onOpen: () => void }) {
         </div>
         <div className="shrink-0 text-right">
           <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", STATUS_TONE[c.status])}>
-            {c.status === "ACTIVE" ? `🟢 ${c.tier}` : c.status === "EXPIRED" ? `🟡 ${t("customers.expired")}` : t("plan.free")}
+            {lifetime ? "👑 ULTRA" : c.status === "ACTIVE" ? `🟢 ${c.tier}` : c.status === "EXPIRED" ? `🟡 ${t("customers.expired")}` : t("plan.free")}
           </span>
           {daysLeft !== null && (
             <p className={cn("mt-0.5 text-[11px] tabular-nums", daysLeft <= 7 ? "font-medium text-amber-600" : "text-muted-foreground")}>
               {t("customers.daysLeft", { duration: formatDuration(Math.max(0, daysLeft), "remaining", locale) })} · {format(new Date(c.period_end!), "dd/MM/yy")}
             </p>
           )}
-          {c.status === "EXPIRED" && c.period_end && <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{format(new Date(c.period_end), "dd/MM/yy")}</p>}
+          {lifetime && <p className="mt-0.5 text-[11px] font-medium text-amber-600">{t("admin.lifetime")}</p>}
+          {!lifetime && c.status === "EXPIRED" && c.period_end && <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{format(new Date(c.period_end), "dd/MM/yy")}</p>}
         </div>
       </div>
       <p className="text-[11px] text-muted-foreground">
@@ -142,6 +145,7 @@ type Tier = "FREE" | "PRO" | "ULTRA"
  * test account. Each asks for a reason and the admin's 2FA, and is audited.
  */
 function CustomerSheet({ c, onClose }: { c: Customer; onClose: () => void }) {
+  const lifetime = useLifetimeUsers().has(c.user_id)
   const t = useT()
   const queryClient = useQueryClient()
   const [tier, setTier] = useState<Tier>(c.status === "ACTIVE" ? c.tier : "PRO")
@@ -181,8 +185,9 @@ function CustomerSheet({ c, onClose }: { c: Customer; onClose: () => void }) {
           <div className="rounded-xl bg-muted/60 px-3 py-2">
             <p className="text-xs text-muted-foreground">{t("admin.plan")}</p>
             <p className="font-semibold">
-              {c.status === "ACTIVE" ? c.tier : t("plan.free")}
-              {c.status === "ACTIVE" && c.period_end && <span className="text-xs font-normal text-muted-foreground"> · {format(new Date(c.period_end), "dd/MM/yy")}</span>}
+              {lifetime ? "ULTRA" : c.status === "ACTIVE" ? c.tier : t("plan.free")}
+              {lifetime && <span className="block text-xs font-medium text-amber-600">{t("admin.lifetime")}</span>}
+              {!lifetime && c.status === "ACTIVE" && c.period_end && <span className="text-xs font-normal text-muted-foreground"> · {format(new Date(c.period_end), "dd/MM/yy")}</span>}
             </p>
           </div>
           <div className="rounded-xl bg-muted/60 px-3 py-2">
