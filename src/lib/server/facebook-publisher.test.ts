@@ -1,7 +1,17 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { checkFacebookPage, facebookConfig, facebookMorningCaption, publishPhotoToFacebook, redact } from "./facebook-publisher"
+import {
+  checkFacebookPage,
+  facebookConfig,
+  facebookFuelCaption,
+  facebookHolidayMessage,
+  facebookMorningCaption,
+  publishPhotoToFacebook,
+  publishTextToFacebook,
+  redact,
+  shouldPublishToFacebook,
+} from "./facebook-publisher"
 
 const TOKEN = "EAAtestTOKEN123secret"
 const env = { FB_PAGE_ID: "102345678901234", FB_PAGE_ACCESS_TOKEN: TOKEN }
@@ -93,5 +103,39 @@ describe("facebook publisher — caption and checks", () => {
   })
   it("redact scrubs the token and access_token= query values", () => {
     assert.equal(redact(`bad ${TOKEN} and ?access_token=${TOKEN}&x=1`, TOKEN), "bad [token] and ?access_token=[token]&x=1")
+  })
+})
+
+describe("facebook publisher — curated, not a mirror (founder, 12/10/2026)", () => {
+  const before = { regular: 4_100, diesel: 4_200 }
+  it("fuel: unchanged EA92 and diesel → Telegram only, no Facebook", () => {
+    assert.equal(shouldPublishToFacebook({ kind: "fuel", now: { regular: 4_100, diesel: 4_200 }, previous: before }), false)
+  })
+  it("fuel: no known previous period → no Facebook (no change can be stated)", () => {
+    assert.equal(shouldPublishToFacebook({ kind: "fuel", now: { regular: 4_000, diesel: 4_250 }, previous: null }), false)
+  })
+  it("fuel: EA92 or diesel moved → Facebook", () => {
+    assert.equal(shouldPublishToFacebook({ kind: "fuel", now: { regular: 4_000, diesel: 4_200 }, previous: before }), true)
+    assert.equal(shouldPublishToFacebook({ kind: "fuel", now: { regular: 4_100, diesel: 4_250 }, previous: before }), true)
+  })
+  it("the 20:00 reminder never reaches the Page; the morning poster and holiday notes do", () => {
+    assert.equal(shouldPublishToFacebook({ kind: "evening" }), false)
+    assert.equal(shouldPublishToFacebook({ kind: "morning" }), true)
+    assert.equal(shouldPublishToFacebook({ kind: "holiday" }), true)
+  })
+  it("the fuel caption leads with the change: «សាំងធម្មតាចុះ -100៛ ▼ | ម៉ាស៊ូតឡើង +50៛ ▲»", () => {
+    const c = facebookFuelCaption({ now: { regular: 4_000, diesel: 4_250, super: null }, previous: before, period: "សម្រាប់ថ្ងៃទី ២១ ដល់ ៣០ ខែតុលា ឆ្នាំ ២០២៦", sourceUrl: "https://t.me/mocnewsfeed/1" })
+    assert.equal(c.split("\n")[0], "⛽ តម្លៃប្រេងសាំងថ្មី៖ សាំងធម្មតាចុះ -100៛ ▼ | ម៉ាស៊ូតឡើង +50៛ ▲")
+    assert.match(c, /• សាំងធម្មតា \(EA92\) ៖ 4,000៛\/លីត្រ/)
+    assert.doesNotMatch(c, /EA95/)
+    const one = facebookFuelCaption({ now: { regular: 4_100, diesel: 4_150 }, previous: before, period: "p", sourceUrl: "u" })
+    assert.equal(one.split("\n")[0], "⛽ តម្លៃប្រេងសាំងថ្មី៖ សាំងធម្មតានៅដដែល | ម៉ាស៊ូតចុះ -50៛ ▼")
+  })
+  it("a text post goes to /{page}/feed as «message»; the holiday note is plain text", async () => {
+    const g = graph(json({ id: "102345678901234_7" }))
+    const res = await publishTextToFacebook(facebookHolidayMessage("☀️ សូមស្វាគមន៍", "body"), { env, fetch: g.fetch, sleep: noSleep })
+    assert.deepEqual(res, { ok: true, postId: "102345678901234_7", attempts: 1 })
+    assert.equal(g.calls[0].url, "https://graph.facebook.com/v21.0/102345678901234/feed")
+    assert.match(String((g.calls[0].init!.body as FormData).get("message")), /^☀️ សូមស្វាគមន៍\n\nbody\n/)
   })
 })

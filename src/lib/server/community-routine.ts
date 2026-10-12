@@ -21,9 +21,17 @@ import { tipPoster } from "@/lib/server/tip-poster"
 import { logEvent } from "@/lib/server/events"
 import { eveningHtml } from "@/lib/evening-reminder"
 import { morningQuote } from "@/lib/morning"
-import { holidayDue, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
+import { holidayDue, holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import { sendMorningPush } from "@/lib/server/web-push"
-import { facebookConfig, facebookMorningCaption, publishPhotoToFacebook } from "@/lib/server/facebook-publisher"
+import {
+  facebookConfig,
+  facebookHolidayMessage,
+  facebookMorningCaption,
+  publishLogged,
+  publishPhotoToFacebook,
+  publishTextToFacebook,
+  shouldPublishToFacebook,
+} from "@/lib/server/facebook-publisher"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
 import type { Locale } from "@/lib/i18n/dictionaries"
@@ -97,21 +105,18 @@ async function holidayTick(day: string, minutes: number) {
   if (!job || !chat || !(await claim(job, day))) return
   const res = await tg("sendMessage", { chat_id: chat, text: holidayPostHtml(holidayMoment(day)!), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })
   logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Holiday note (${job}) sent to ${chat}` : `Holiday note (${job}) failed: ${res.description ?? "unknown"}`)
-}
-
-/** The 07:00 poster on the Facebook Page; every failure is logged, nothing is thrown. */
-export async function publishMorningToFacebook(day: string) {
-  try {
-    const res = await publishPhotoToFacebook(morningPoster(day), facebookMorningCaption(day))
-    if (res.ok) logEvent("info", "routine", `Facebook morning post published (${res.postId}${res.attempts > 1 ? `, attempt ${res.attempts}` : ""})`)
-    else if (res.skipped) logEvent("info", "routine", `Facebook morning post skipped: ${res.reason}`, { fold: true })
-    else logEvent("error", "routine", `Facebook morning post failed after ${res.attempts} attempt(s): ${res.error}`)
-    return res
-  } catch (e) {
-    logEvent("error", "routine", `Facebook morning post crashed: ${e instanceof Error ? e.message : String(e)}`)
-    return null
+  // The Page too — a holiday note is worth the public feed; its own claim, after Telegram.
+  if (shouldPublishToFacebook({ kind: "holiday" }) && facebookConfig() && (await claim(`facebook-${job}`, day))) {
+    const { title, body } = holidayMessage(holidayMoment(day)!)
+    await publishLogged(`holiday note (${job})`, () => publishTextToFacebook(facebookHolidayMessage(title, body)), fbLog)
   }
 }
+
+const fbLog = (level: "info" | "error", message: string, fold?: boolean) => logEvent(level, "routine", message, { fold })
+
+/** The 07:00 poster on the Facebook Page; every failure is logged, nothing is thrown. */
+export const publishMorningToFacebook = (day: string) =>
+  publishLogged("morning post", () => publishPhotoToFacebook(morningPoster(day), facebookMorningCaption(day)), fbLog)
 
 /** Called every minute by the dispatcher. */
 export async function communityRoutineTick() {
@@ -129,10 +134,11 @@ export async function communityRoutineTick() {
     logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Morning post sent to ${chat}${id ? " (poster)" : " (text — poster failed)"}` : `Morning post failed: ${res.description ?? "unknown"}`)
   }
   // The Facebook Page: the same poster, once a day — only when its credentials are set, never blocking Telegram.
-  if (due === "morning" && facebookConfig() && (await claim("facebook-morning", now.day))) await publishMorningToFacebook(now.day)
+  if (due === "morning" && shouldPublishToFacebook({ kind: "morning" }) && facebookConfig() && (await claim("facebook-morning", now.day))) await publishMorningToFacebook(now.day)
   // Phones that turned on notifications: the same quote, once a day (its own claim, so a channel problem never blocks it).
   if (due === "morning" && (await claim("push-morning", now.day))) await sendMorningPush()
 
+  // 20:00 is Telegram only — never the Facebook Page (shouldPublishToFacebook({ kind: "evening" }) is false).
   if (due === "evening" && (await claim(EVENING.job, now.day))) {
     if (chat) {
       const res = await tg("sendMessage", { chat_id: chat, text: eveningText(now.day), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })

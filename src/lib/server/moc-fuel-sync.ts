@@ -20,6 +20,7 @@ import { channelPosts, cleanNoticePrices, isFuelNotice, parseNoticePeriod, price
 
 import { getChannelPostButtons } from "./channel-buttons"
 import { logEvent } from "./events"
+import { facebookConfig, facebookFuelCaption, publishLogged, publishTextToFacebook, shouldPublishToFacebook } from "./facebook-publisher"
 import { currentMarket, setFuelPrices } from "./market-sync"
 import { askGemini, askGroq, type Answer } from "./slip-bot"
 import { botDb, botKey, tg } from "./telegram-bot"
@@ -226,6 +227,12 @@ async function applyNotice(day: string, notice: ChannelPost, period: { from: str
   if (chat && (await claim(`moc-fuel-post-${notice.id}`, day))) {
     const prev = previous && previous.to <= period.from ? previous : null
     await tg("sendMessage", { chat_id: chat, text: newPricesText(saved.fuel, prev, notice.id), disable_web_page_preview: true, ...(await getChannelPostButtons()) }).catch(() => null)
+  }
+  // The Facebook Page: only a real change in EA92 or diesel (an unchanged notice stays on Telegram).
+  const prevPair = previous && previous.to <= period.from ? { regular: previous.regular, diesel: previous.diesel } : null
+  if (shouldPublishToFacebook({ kind: "fuel", now: saved.fuel, previous: prevPair }) && facebookConfig() && (await claim(`facebook-moc-fuel-${notice.id}`, day))) {
+    const message = facebookFuelCaption({ now: saved.fuel, previous: prevPair!, period: periodLine(period.from, period.to), sourceUrl: `https://${link}` })
+    await publishLogged("fuel price change", () => publishTextToFacebook(message), (level, msg, fold) => logEvent(level, "moc-fuel", msg, { fold }))
   }
   await toSuperAdmins(
     `✅ [តម្លៃប្រេង] បានធ្វើបច្ចុប្បន្នភាពដោយស្វ័យប្រវត្តិពីក្រសួងពាណិជ្ជកម្ម (${cycleText(period.from, period.to, "km")})៖ សាំង ${riel(reading.prices.regular)}៛ · ម៉ាស៊ូត ${riel(reading.prices.diesel)}៛\n• ពិនិត្យ៖ ${link}\n• បើខុស៖ /setfuel ដើម្បីកែ`,

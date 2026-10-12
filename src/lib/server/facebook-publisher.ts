@@ -55,8 +55,87 @@ const BACKOFF_MS = [2_000, 6_000]
 
 type GraphError = { message?: string; code?: number; error_subcode?: number; type?: string }
 
-/** One photo post to the Page, with up to 3 attempts on network errors, 5xx, 429 and Graph's temporary codes. */
-export async function publishPhotoToFacebook(png: Buffer, caption: string, deps: Partial<Deps> = {}): Promise<FacebookResult> {
+/**
+ * Which posts reach the public Page (founder, 12/10/2026): curated, never a blind mirror of Telegram.
+ * The 07:00 poster and the holiday notes yes; the 20:00 nightly reminder never; a new fuel notice only
+ * when EA92 or diesel actually changed against the previous period (unknown previous = no post).
+ */
+export type FuelPair = { regular: number; diesel: number }
+export type ChannelPostKind = { kind: "morning" } | { kind: "holiday" } | { kind: "evening" } | { kind: "fuel"; now: FuelPair; previous: FuelPair | null }
+
+export function shouldPublishToFacebook(post: ChannelPostKind): boolean {
+  switch (post.kind) {
+    case "morning":
+    case "holiday":
+      return true
+    case "evening":
+      return false
+    case "fuel":
+      return post.previous !== null && (post.now.regular !== post.previous.regular || post.now.diesel !== post.previous.diesel)
+  }
+}
+
+const signedRiel = (delta: number) => `${delta > 0 ? "+" : "-"}${new Intl.NumberFormat("en-US").format(Math.abs(delta))}៛`
+const move = (label: string, now: number, before: number) =>
+  now === before ? `${label}នៅដដែល` : `${label}${now > before ? "ឡើង" : "ចុះ"} ${signedRiel(now - before)} ${now > before ? "▲" : "▼"}`
+
+/** «⛽ តម្លៃប្រេងសាំងថ្មី៖ សាំងធម្មតាចុះ -100៛ ▼ | ម៉ាស៊ូតឡើង +50៛ ▲» — the change first, then the new prices. */
+export function facebookFuelCaption(o: { now: FuelPair & { super?: number | null }; previous: FuelPair; period: string; sourceUrl: string }): string {
+  const price = (n: number) => `${new Intl.NumberFormat("en-US").format(n)}៛/លីត្រ`
+  return [
+    `⛽ តម្លៃប្រេងសាំងថ្មី៖ ${move("សាំងធម្មតា", o.now.regular, o.previous.regular)} | ${move("ម៉ាស៊ូត", o.now.diesel, o.previous.diesel)}`,
+    "",
+    `📅 ${o.period} (អនុវត្តចាប់ពីម៉ោង ១ រសៀល)`,
+    `• សាំងធម្មតា (EA92) ៖ ${price(o.now.regular)}`,
+    ...(o.now.super ? [`• សាំងស៊ុបពែរ (EA95) ៖ ${price(o.now.super)}`] : []),
+    `• ប្រេងម៉ាស៊ូត (Diesel) ៖ ${price(o.now.diesel)}`,
+    "",
+    `ℹ️ ប្រភព៖ សេចក្តីជូនដំណឹងក្រសួងពាណិជ្ជកម្ម · ${o.sourceUrl}`,
+    "📱 តាមដានចំណាយធ្វើដំណើរជាមួយ អេប លុយឆ្លាត · https://app.luychlat.com",
+    "",
+    "#តម្លៃប្រេង #អេបលុយឆ្លាត #AppLuyChlat #Cambodia",
+  ].join("\n")
+}
+
+/** A holiday note as a Page post (plain text). */
+export function facebookHolidayMessage(title: string, body: string): string {
+  return [title, "", body, "", "— អេប លុយឆ្លាត · https://app.luychlat.com", "", "#អេបលុយឆ្លាត #AppLuyChlat #ថ្ងៃឈប់សម្រាក"].join("\n")
+}
+
+/** A photo post (the 07:00 poster). */
+export function publishPhotoToFacebook(png: Buffer, caption: string, deps: Partial<Deps> = {}): Promise<FacebookResult> {
+  return postToPage(
+    "photos",
+    (form) => {
+      form.set("source", new Blob([new Uint8Array(png)], { type: "image/png" }), "luychlat-morning.png")
+      form.set("caption", caption)
+      form.set("published", "true")
+    },
+    deps,
+  )
+}
+
+/** A text post (a holiday note, a fuel price change). */
+export function publishTextToFacebook(message: string, deps: Partial<Deps> = {}): Promise<FacebookResult> {
+  return postToPage("feed", (form) => form.set("message", message), deps)
+}
+
+/** Run a Page post and log its outcome; never throws. */
+export async function publishLogged(label: string, send: () => Promise<FacebookResult>, log: (level: "info" | "error", message: string, fold?: boolean) => void) {
+  try {
+    const res = await send()
+    if (res.ok) log("info", `Facebook ${label} published (${res.postId}${res.attempts > 1 ? `, attempt ${res.attempts}` : ""})`)
+    else if (res.skipped) log("info", `Facebook ${label} skipped: ${res.reason}`, true)
+    else log("error", `Facebook ${label} failed after ${res.attempts} attempt(s): ${res.error}`)
+    return res
+  } catch (e) {
+    log("error", `Facebook ${label} crashed: ${e instanceof Error ? e.message : String(e)}`)
+    return null
+  }
+}
+
+/** One Graph POST to the Page, with up to 3 attempts on network errors, 5xx, 429 and Graph's temporary codes. */
+async function postToPage(edge: "photos" | "feed", fill: (form: FormData) => void, deps: Partial<Deps>): Promise<FacebookResult> {
   const d = { ...defaultDeps(), ...deps }
   const cfg = facebookConfig(d.env)
   if (!cfg) return { ok: false, skipped: true, reason: "FB_PAGE_ID / FB_PAGE_ACCESS_TOKEN not set" }
@@ -64,12 +143,10 @@ export async function publishPhotoToFacebook(png: Buffer, caption: string, deps:
   let last: { error: string; retryable: boolean } = { error: "not sent", retryable: false }
   for (let attempt = 1; attempt <= BACKOFF_MS.length + 1; attempt++) {
     const form = new FormData()
-    form.set("source", new Blob([new Uint8Array(png)], { type: "image/png" }), "luychlat-morning.png")
-    form.set("caption", caption)
-    form.set("published", "true")
+    fill(form)
     form.set("access_token", cfg.token)
     try {
-      const res = await d.fetch(`${GRAPH}/${cfg.pageId}/photos`, { method: "POST", body: form, signal: AbortSignal.timeout(30_000) })
+      const res = await d.fetch(`${GRAPH}/${cfg.pageId}/${edge}`, { method: "POST", body: form, signal: AbortSignal.timeout(30_000) })
       const body = (await res.json().catch(() => ({}))) as { id?: string; post_id?: string; error?: GraphError }
       if (res.ok && (body.post_id || body.id)) return { ok: true, postId: String(body.post_id ?? body.id), attempts: attempt }
       const code = body.error?.code
