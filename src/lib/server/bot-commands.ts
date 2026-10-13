@@ -1,4 +1,5 @@
 // Server only: chat logging for the official bot (Phase C part 2).
+import { paidDebtLine, paidDebtProposal } from "@/lib/server/debt-link-bot"
 import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
 import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
 import { carReportText, parseTopUp, topUpCard, walletBalancesText, type CarReport, type WalletBalance } from "@/lib/bot/prepaid"
@@ -227,6 +228,27 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
 
   const parsed = parseEntry(input, { wallets: ws.wallets, categories: ws.categories, debts: ws.debts, rate: ws.rate })
   if (!parsed.ok) {
+    // «clc paid» / «បង់ clc» — no amount, but a loan named: its installment, as a repayment to confirm.
+    if (parsed.reason === "no_amount") {
+      const paid = await paidDebtProposal(chatId, input, ws.debts)
+      const usable = paid ? ws.wallets.filter((w) => w.kind !== "CREDIT_CARD") : []
+      const wallet = paid ? (usable.find((w) => w.currency === paid.debt.currency) ?? usable[0]) : undefined
+      if (paid && wallet) {
+        const repay: Parsed = { ok: true, kind: "REPAY", amount: paid.amount, currency: paid.debt.currency, wallet, debt: paid.debt, note: input.slice(0, 200) }
+        const pendingId = await propose(chatId, repay, ws, { text: input, heard, route })
+        if (!pendingId) return reply(tr(lang, "bot.saveFailed"))
+        return sendText(chatId, [said + paidDebtLine(paid.debt, paid.amount), `👛 ${tr(lang, "bot.paidFrom")} ${wallet.name}`].join("\n"), {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "✅ បាទ", callback_data: `ok:${pendingId}` },
+                { text: "❌ ទេ", callback_data: `no:${pendingId}` },
+              ],
+            ],
+          },
+        })
+      }
+    }
     // A voice note without an amount: say exactly what was heard instead of the general hint.
     if (heard && parsed.reason === "no_amount") return sendText(chatId, tr(lang, "bot.voiceNoAmount", { text: heard }))
     return reply(failureText(parsed, ws, lang))

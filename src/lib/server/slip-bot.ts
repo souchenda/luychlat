@@ -11,11 +11,13 @@
 // transcribes voice notes); wallets and categories are matched here. The card is plain text and
 // passes through maskNumbers (account numbers on the slip never echo back).
 import { DEFAULT_ABOUT } from "@/lib/app-site"
-import { categoryFor, cleanSlip, isFoodChoice, mealFor, resolveWallet, slipChoices, SLIP_OUT, walletLabel, type Meal, type Slip, type SlipChoice } from "@/lib/bot/bank-slip"
+import { categoryFor, cleanSlip, isFoodChoice, maskedAccount, mealFor, resolveWallet, slipChoices, SLIP_OUT, walletLabel, type Meal, type Slip, type SlipChoice } from "@/lib/bot/bank-slip"
 import { autoDecision, choiceIndex, choiceKey, merchantKey, type Remembered } from "@/lib/bot/slip-auto"
-import type { BotCategory } from "@/lib/bot/parse-entry"
+import type { BotCategory, BotDebt } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
 import { handleBillPhoto, settleBillFromPayment } from "@/lib/server/bill-bot"
+import { offerDebtLink } from "@/lib/server/debt-link-bot"
+import { matchPayableDebt } from "@/lib/bot/debt-match"
 import { handleLoanDetailPhoto } from "@/lib/server/loan-detail-bot"
 import { handleAccountPhoto } from "@/lib/server/account-bot"
 import { handleLoanSchedulePhoto } from "@/lib/server/loan-schedule-bot"
@@ -203,6 +205,10 @@ type SlipInfo = {
   note?: string | null
   /** A bill payment's customer ID / phone number (a recurring bill is settled by it). */
   consumer?: string | null
+  /** The paying account as printed (shown masked when the wallet must be chosen). */
+  account?: string | null
+  /** The workspace's open loans — a payee that is one of them is offered as its repayment. */
+  debts?: BotDebt[]
 }
 type Keyboard = { text: string; callback_data: string }[][]
 
@@ -226,7 +232,7 @@ function slipCard(lang: Locale, pendingId: string, info: SlipInfo, wallet: BotWa
     ...(info.party ? [`${info.kind === "INCOME" ? "↩️" : "➡️"} ${info.party}`] : []),
     ...(info.note ? [`📝 ${info.note}`] : []),
     "",
-    wallet ? tr(lang, "bot.slipAsk") : tr(lang, "bot.slipWhichWallet", { bank: info.bank ?? "", currency: info.currency }),
+    wallet ? tr(lang, "bot.slipAsk") : tr(lang, "bot.slipWhichWallet", { bank: info.bank ?? "", account: maskedAccount(info.account) ?? info.currency }),
   ]
   const keyboard: Keyboard = []
   if (wallet) {
@@ -294,7 +300,7 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
     .join(" ")
     .slice(0, 200)
   const note = [userNote, slipNote].filter(Boolean).join(" · ")
-  const info: SlipInfo = { kind, amount: slip.amount, currency: slip.currency, bank: slip.bank, party: slip.party, date: slip.date, time: slip.time, note: userNote, consumer: slip.consumer ?? null }
+  const info: SlipInfo = { kind, amount: slip.amount, currency: slip.currency, bank: slip.bank, party: slip.party, date: slip.date, time: slip.time, note: userNote, consumer: slip.consumer ?? null, account: slip.account ?? null, debts: ws.debts }
   const action = {
     kind,
     // Unsure: a placeholder that bot_confirm refuses (wallet_pending) until one of wallet_choices is picked.
@@ -316,7 +322,10 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   if (error || typeof pendingId !== "string") return sendText(chatId, tr(lang, "bot.saveFailed"))
 
   // Zero-click: a known payee and a certain wallet → saved now, with override buttons.
-  if (wallet && kind === "EXPENSE" && (await autoSaveSlip(chatId, lang, pendingId, ws, wallet, info, action.meal, time))) return
+  // A payee that is one of the person's loans (CAMBODIAN LABOR CARE PLC → CLC): never auto-filed under a
+  // shop's category — saved uncategorised, then «record it as the loan's repayment?» (debt-link-bot.ts).
+  const loanPayee = kind === "EXPENSE" ? matchPayableDebt(info.party, ws.debts) : null
+  if (wallet && kind === "EXPENSE" && !loanPayee && (await autoSaveSlip(chatId, lang, pendingId, ws, wallet, info, action.meal, time))) return
   // An unknown payee: saved now all the same (nothing is lost if no one taps), flagged
   // "⚠️ ខ្វះព័ត៌មានចំណាយ" with the six categories; a tap fills it in (and is learned).
   if (wallet && kind === "EXPENSE" && (await saveWithoutCategory(chatId, lang, pendingId, wallet, info))) return
@@ -380,6 +389,7 @@ async function autoSaveSlip(
   await sendText(chatId, card.text, { reply_markup: card.reply_markup })
   logEvent("info", "slips", `Slip saved without a tap (${decision.source === "memory" ? "user's habit" : "payee rule"})`, { fold: true })
   await settleBillFromPayment(chatId, r.tx_id, info.consumer, info.party)
+  await offerDebtLink(chatId, r.tx_id, info.party, info.debts ?? [])
   return true
 }
 
@@ -409,6 +419,7 @@ async function saveWithoutCategory(chatId: number, lang: Locale, pendingId: stri
   await sendText(chatId, maskNumbers(text), { reply_markup: { inline_keyboard: rows } })
   logEvent("info", "slips", "Slip saved without a category (asked to pick one)", { fold: true })
   await settleBillFromPayment(chatId, r.tx_id, info.consumer, info.party)
+  await offerDebtLink(chatId, r.tx_id, info.party, info.debts ?? [])
   return true
 }
 
@@ -596,6 +607,7 @@ export async function handleSlipCallback(cb: Callback) {
       : { text: maskNumbers([tr(lang, "bot.slipSaved"), `💵 ${formatMoney(tagged.amount, tagged.currency)}`, `👛 ${tagged.wallet}`, `🏷️ ${label}`].join("\n")) }
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, ...card })
   if (action.kind === "EXPENSE") await settleBillFromPayment(chatId, r.tx_id, action.slip?.consumer, action.slip?.party)
+  if (action.kind === "EXPENSE") await offerDebtLink(chatId, r.tx_id, action.slip?.party, ws?.debts ?? [])
 }
 
 /** A "which wallet?" button: set that wallet on the pending slip, then show the category buttons. */

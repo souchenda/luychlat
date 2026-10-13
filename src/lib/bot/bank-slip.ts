@@ -161,6 +161,14 @@ function atBank(w: BotWallet, bank: string | null): boolean {
   return words.some((x) => w.name.toLowerCase().includes(x))
 }
 
+/** The slip names a known bank, and this wallet is known to be at a different one. */
+function atOtherBank(w: BotWallet, bank: string | null): boolean {
+  const slipBank = bank ? providerForName(bank) : null
+  if (!slipBank || slipBank.key === "other") return false
+  const walletBank = walletInstitution({ icon: w.icon ?? null, name: w.name })
+  return walletBank.key !== "other" && walletBank.key !== "cash" && walletBank.key !== slipBank.key
+}
+
 /**
  * The wallet a slip belongs to — only when it is certain:
  * 1. By account number: exactly one wallet in the slip's currency matches the
@@ -194,6 +202,14 @@ export function resolveWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pi
     const pool = inCurrency.length ? inCurrency : matched
     // One number on two banks' wallets (e.g. a phone number): the slip's bank settles it.
     const atSlipBank = pool.filter((w) => atBank(w, slip.bank))
+    // The number matches only wallets known to be at ANOTHER bank (an ABA slip, the number saved on an
+    // ACLEDA wallet — founder, 13/10/2026): never booked there — ask, this bank's wallets first.
+    const bankConflict = pool.length > 0 && atSlipBank.length === 0 && pool.every((w) => atOtherBank(w, slip.bank))
+    if (bankConflict) {
+      const sameBank = wallets.filter((w) => w.currency === slip.currency && atBank(w, slip.bank))
+      const ask = [...new Map([...sameBank, ...pool].map((w) => [w.id, w])).values()]
+      return { choices: ask.slice(0, MAX_CHOICES) }
+    }
     const byNumber = decide(pool.length > 1 && atSlipBank.length === 1 ? atSlipBank : pool)
     if (byNumber) return byNumber
   }

@@ -31,6 +31,8 @@ import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/t
 import { handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
 import { handleAccountCallback, handleAccountGoalReply } from "@/lib/server/account-bot"
 import { isAccountCallback } from "@/lib/bot/account-intake"
+import { isDebtLinkCallback } from "@/lib/bot/debt-match"
+import { handleDebtLinkCallback } from "@/lib/server/debt-link-bot"
 import { handlePosterCallback, isPosterCallback, sendFestivalPoster } from "@/lib/server/festival-poster"
 import { handleGroupSlip, handleGroupSlipCallback, isGroupSlipCallback } from "@/lib/server/biz-slip-bot"
 import { handleBillKhqrCallback, handleEacNotice, isBillKhqrCallback, sendBillsOverview } from "@/lib/server/bill-bot"
@@ -332,6 +334,8 @@ export async function POST(request: Request) {
       await handleSlipCallback(update.callback_query)
     } else if (isTipCallback(update.callback_query.data)) {
       await handleTipCallback(update.callback_query)
+    } else if (isDebtLinkCallback(update.callback_query.data)) {
+      await handleDebtLinkCallback(update.callback_query)
     } else if (isAccountCallback(update.callback_query.data)) {
       await handleAccountCallback(update.callback_query)
     } else if (isScheduledPostCallback(update.callback_query.data)) {

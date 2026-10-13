@@ -54,3 +54,27 @@ describe("cleanSlip — ABA bill payment / Smart Mobile top-up ('-5.00 USD')", (
     assert.equal(cleanSlip({ ...read, amount: 5, consumer: null, time: "05:12 PM" }), null)
   })
 })
+
+describe("resolveWallet — never another bank's wallet by number alone (founder, 13/10/2026)", () => {
+  // The founder's Personal wallets: 016 824 222 is saved on an ACLEDA wallet; the ABA wallet has 078…
+  const wallets = [
+    { id: "aba-usd", name: "ABA Bank", icon: "aba", currency: "USD" as const, account_no: "078824222" },
+    { id: "ac-016", name: "អេស៊ីលីដា 016***4222 USD", icon: "acleda", currency: "USD" as const, account_no: "016824222" },
+    { id: "ac-usd", name: "អេស៊ីលីដា USD", icon: "acleda", currency: "USD" as const, account_no: "078824222" },
+  ]
+  it("an ABA BANK slip from 016 824 222 → asked (ABA's wallet first), never booked to the ACLEDA wallet", () => {
+    const pick = resolveWallet({ bank: "ABA BANK", currency: "USD", account: "016824222", accountName: "DL USD" }, wallets)
+    assert.ok(pick && "choices" in pick)
+    assert.deepEqual(pick.choices.map((w) => w.id), ["aba-usd", "ac-016"])
+  })
+  it("an ACLEDA slip from the same number is still booked straight to it", () => {
+    const pick = resolveWallet({ bank: "ACLEDA", currency: "USD", account: "016824222" }, wallets)
+    assert.ok(pick && "wallet" in pick)
+    assert.equal(pick.wallet.id, "ac-016")
+  })
+  it("a slip naming no bank keeps matching by number", () => {
+    const pick = resolveWallet({ bank: null, currency: "USD", account: "016824222" }, wallets)
+    assert.ok(pick && "wallet" in pick)
+    assert.equal(pick.wallet.id, "ac-016")
+  })
+})
