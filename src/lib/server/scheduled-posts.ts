@@ -94,10 +94,14 @@ export function createScheduler(d: SchedulerDeps) {
     await refresh(row)
   }
 
-  /** Schedule a post (idempotent); a new one gets its preview if its time is still ahead. */
+  /**
+   * Schedule a post (idempotent). A pending post with no preview yet gets one while its time is still
+   * ahead — a new one, or one re-armed for a fresh preview (status back to PENDING, previews emptied).
+   */
   async function schedulePost(kind: PostKind, postKey: string, payload: Record<string, string | null>, publishAt: string) {
     const row = await d.schedule(kind, postKey, payload, publishAt)
-    if (row?.created && d.now() < Date.parse(publishAt)) await sendPreviews(row)
+    if (row && row.status === "PENDING" && !row.previews?.length && d.now() < Date.parse(row.publish_at) && (row.created || (await d.adminChats()).length))
+      await sendPreviews(row)
     return row
   }
 

@@ -135,6 +135,23 @@ describe("preview-first — the buttons", () => {
   })
 })
 
+describe("preview-first — a fresh preview for a re-armed post", () => {
+  it("paused, then re-armed (PENDING again, no previews, a later time): one fresh preview, then published at the new time", async () => {
+    const f = fake(clock(6, 0))
+    await f.at(6, 15)
+    await f.press("sp:1:x")
+    const row = f.rows[0]
+    Object.assign(row, { status: "PENDING", previews: [], publish_at: new Date(clock(7, 40)).toISOString() })
+    await f.at(7, 10)
+    assert.equal(f.previewsSent.length, 2)
+    await f.at(7, 11)
+    assert.equal(f.previewsSent.length, 2)
+    assert.deepEqual(f.published, [])
+    await f.at(7, 40)
+    assert.deepEqual(f.published, [1])
+  })
+})
+
 describe("preview-first — the auto-publish fallback", () => {
   it("no action: published at 07:00 exactly once; the preview says ✅", async () => {
     const f = fake(clock(6, 0))
