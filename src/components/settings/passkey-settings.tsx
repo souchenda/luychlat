@@ -8,7 +8,7 @@ import { BiometricIcon } from "@/components/lock/biometric-icon"
 import { stepUp } from "@/components/security/step-up"
 import { SettingsGroup, SettingsRow } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
-import { passkeySupported, registerPasskey } from "@/lib/auth/passkey"
+import { forgetPasskey, passkeySupported, registerPasskey } from "@/lib/auth/passkey"
 import { dayDate } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
 import { deviceLabel } from "@/lib/passkey-rp"
@@ -17,7 +17,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
 
-type Passkey = { id: string; device_label: string | null; created_at: string; last_used_at: string | null }
+type Passkey = { id: string; credential_id: string; device_label: string | null; created_at: string; last_used_at: string | null }
 
 /**
  * Settings › Security: «ចូលដោយ Face ID / ស្នាមម្រាមដៃ» — this device's passkey (W3C WebAuthn), so the
@@ -34,7 +34,7 @@ export function PasskeySettings() {
     queryKey: ["passkeys", userId],
     enabled: Boolean(userId),
     queryFn: async () => {
-      const { data, error } = await getSupabaseBrowserClient()!.from("passkeys").select("id, device_label, created_at, last_used_at").order("created_at", { ascending: false })
+      const { data, error } = await getSupabaseBrowserClient()!.from("passkeys").select("id, credential_id, device_label, created_at, last_used_at").order("created_at", { ascending: false })
       if (error) throw error
       return (data ?? []) as Passkey[]
     },
@@ -49,9 +49,11 @@ export function PasskeySettings() {
     },
   })
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await getSupabaseBrowserClient()!.from("passkeys").delete().eq("id", id)
+    mutationFn: async (k: Passkey) => {
+      const { error } = await getSupabaseBrowserClient()!.from("passkeys").delete().eq("id", k.id)
       if (error) throw error
+      // This device's passkey gone: its login button goes too.
+      forgetPasskey(k.credential_id)
     },
     onSuccess: () => {
       toast.success(t("passkey.removed"))
@@ -86,7 +88,7 @@ export function PasskeySettings() {
             onClick={async () => {
               // Removing a way in needs the PIN / Face ID first (as turning the App Lock off).
               if (!(await stepUp(t("passkey.removeConfirm")))) return
-              remove.mutate(k.id)
+              remove.mutate(k)
             }}
           >
             <Trash2Icon className="text-destructive" />

@@ -9,7 +9,7 @@ import { toast } from "sonner"
 import { BiometricIcon } from "@/components/lock/biometric-icon"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { passkeySupported, signInWithPasskey } from "@/lib/auth/passkey"
+import { hasLocalPasskey, passkeySupported, signInWithPasskey } from "@/lib/auth/passkey"
 import { useT } from "@/lib/i18n/use-t"
 import { detectBiometricKind } from "@/lib/security/biometric"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -88,8 +88,9 @@ export function SocialLogin({ disabled, separator = true, below = false }: { dis
   const tgBot = telegram.data?.enabled ? telegram.data.botId : null
   const google = authMethods.has("google")
   const apple = authMethods.has("apple")
-  // Face ID / fingerprint: only where the device has it and the server verifies passkeys.
-  const passkey = useQuery({ queryKey: ["auth-passkey"], staleTime: 10 * 60_000, queryFn: passkeySupported }).data === true
+  // Face ID / fingerprint: hidden unless this device made a passkey (Settings › Security), and only
+  // where the device has it and the server verifies passkeys — never the phone's «none available» sheet.
+  const passkey = useQuery({ queryKey: ["auth-passkey-login"], staleTime: 10 * 60_000, queryFn: async () => hasLocalPasskey() && (await passkeySupported()) }).data === true
   const [pkBusy, setPkBusy] = useState(false)
   if (!google && !apple && !tgBot && !passkey) return null
 
