@@ -26,6 +26,7 @@ import { logEvent } from "@/lib/server/events"
 import { facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
 import { phnomPenhToday } from "@/lib/server/market-sync"
+import { sendMorningPush } from "@/lib/server/web-push"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { sendPosterPhoto } from "@/lib/server/tip-bot"
 
@@ -227,6 +228,10 @@ const realDeps = (): SchedulerDeps => ({
         if (!id) await tg("sendMessage", { chat_id: chat, text: morningText(day), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
       }
       if (facebookConfig() && shouldPublishToFacebook({ kind: "morning" })) await publishMorningToFacebook(day)
+      // Phones that turned on notifications: the same quote, only now that it is published (a pause
+      // stops it too) and once a day. The in-app ☀️ card follows the same status (morning_post_published).
+      const { data: first } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "push-morning", p_day: day })
+      if (first === true) await sendMorningPush()
       return
     }
     if (row.kind === "HOLIDAY") {

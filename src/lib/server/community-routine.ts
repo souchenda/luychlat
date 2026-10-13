@@ -21,7 +21,6 @@ import { tipPoster } from "@/lib/server/tip-poster"
 import { logEvent } from "@/lib/server/events"
 import { eveningHtml } from "@/lib/evening-reminder"
 import { morningQuote } from "@/lib/morning"
-import { sendMorningPush } from "@/lib/server/web-push"
 import { SPOTLIGHT, spotlightCaption, spotlightDue, spotlightHtml } from "@/lib/spotlight"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { facebookConfig, facebookMorningCaption, publishLogged, publishPhotoToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
@@ -120,10 +119,9 @@ export async function communityRoutineTick() {
   if (!due) return
   const chat = communityChat()
 
-  // The 07:00 poster (Telegram Channel + Facebook Page) and the holiday notes are preview-first with an
-  // auto-publish fallback: lib/server/scheduled-posts.ts. Only the phone push stays here.
-  // Phones that turned on notifications: the same quote, once a day (its own claim, so a channel problem never blocks it).
-  if (due === "morning" && (await claim("push-morning", now.day))) await sendMorningPush()
+  // The 07:00 poster (Telegram Channel + Facebook Page), its phone push and in-app card, and the holiday
+  // notes are preview-first with an auto-publish fallback: lib/server/scheduled-posts.ts — a pause there
+  // stops all of them.
 
   // 20:00 is Telegram only — never the Facebook Page (shouldPublishToFacebook({ kind: "evening" }) is false).
   if (due === "evening" && (await claim(EVENING.job, now.day))) {

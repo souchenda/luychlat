@@ -4,9 +4,11 @@ import { formatDistanceToNow } from "date-fns"
 import { enUS, km } from "date-fns/locale"
 import { AlarmClockIcon, ArrowDownLeftIcon, ArrowUpRightIcon, BellIcon, BellOffIcon, TriangleAlertIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 
 import { morningCard, morningQuote } from "@/lib/morning"
+import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { holidayCard } from "@/lib/holiday-lifecycle"
 import { holyDayCard } from "@/lib/holy-day-alerts"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
@@ -67,7 +69,21 @@ export function NotificationBell() {
   useEffect(() => {
     if (open) setNow(Date.now())
   }, [open])
-  const morning = morningCard(now)
+  // The ☀️ card follows the founder's decision on the morning post: shown only once it was published
+  // (🚀 or the timer), never while it waits or after «❌ ផ្អាកថ្ងៃនេះ» — as the channel and the push.
+  const morningSlot = morningCard(now)
+  const morningPublished = useQuery({
+    queryKey: ["morning-published", morningSlot?.day ?? null],
+    enabled: Boolean(morningSlot),
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) return false
+      const { data, error } = await supabase.rpc("morning_post_published", { p_day: morningSlot!.day })
+      return !error && data === true
+    },
+  }).data
+  const morning = morningSlot && morningPublished ? morningSlot : null
   // 🪷 ថ្ងៃសីល: the eve reminder and the day's blessing, as on Telegram (not with Islamic Mode on).
   const islamic = useIslamicEnabled()
   // A personal reminder: never in a business workspace.
