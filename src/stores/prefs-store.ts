@@ -11,6 +11,10 @@ type PrefsState = {
   activeFamilyId: string | null
   /** Which business workspace (Ultra users can have several). */
   activeBusinessId: string | null
+  /**
+   * Privacy by default (founder, 13/10/2026): balances start hidden on every launch / reload — never
+   * saved — and hide again whenever the app goes to the background (BalancePrivacyGuard).
+   */
   hideBalances: boolean
   /**
    * Exchange rate used for conversions and net worth. The saved value is in
@@ -27,11 +31,15 @@ type PrefsState = {
   /** `id` picks a specific Family or Business workspace. */
   setActiveWorkspace: (type: WorkspaceType, id?: string | null) => void
   toggleHideBalances: () => void
+  setHideBalances: (hidden: boolean) => void
   setKhrPerUsd: (rate: number) => void
   setWalletsGrouped: (grouped: boolean) => void
   toggleBankCollapsed: (key: string) => void
   setHolyDayChime: (on: boolean) => void
 }
+
+/** Restoring saved preferences: all as saved, except balances — every launch starts hidden. */
+export const restorePrefs = <T extends { hideBalances: boolean }>(persisted: unknown, current: T): T => ({ ...current, ...(persisted as Partial<T>), hideBalances: true })
 
 export const usePrefsStore = create<PrefsState>()(
   persist(
@@ -39,7 +47,7 @@ export const usePrefsStore = create<PrefsState>()(
       activeWorkspace: "PERSONAL",
       activeFamilyId: null,
       activeBusinessId: null,
-      hideBalances: false,
+      hideBalances: true,
       khrPerUsd: DEFAULT_KHR_PER_USD,
       walletsGrouped: true,
       collapsedBanks: [],
@@ -51,6 +59,7 @@ export const usePrefsStore = create<PrefsState>()(
           activeBusinessId: activeWorkspace === "BUSINESS" && id !== undefined ? id : s.activeBusinessId,
         })),
       toggleHideBalances: () => set((s) => ({ hideBalances: !s.hideBalances })),
+      setHideBalances: (hideBalances) => set({ hideBalances }),
       setKhrPerUsd: (khrPerUsd) => set({ khrPerUsd }),
       setWalletsGrouped: (walletsGrouped) => set({ walletsGrouped }),
       setHolyDayChime: (holyDayChime) => set({ holyDayChime }),
@@ -62,6 +71,7 @@ export const usePrefsStore = create<PrefsState>()(
     {
       name: "luysmart-prefs",
       version: 1,
+      merge: restorePrefs,
       // The old built-in default (4,100) must never show, even for a moment
       // before the saved rate loads: a device still holding it starts at 4,000.
       migrate: (persisted, version) => {
