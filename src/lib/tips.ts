@@ -119,10 +119,10 @@ export const TIPS: Tip[] = [
   {
     id: "snowball",
     topic: "debt",
-    title: { km: "ឬ សងបំណុលតូចមុន", en: "Or the smallest first" },
+    title: { km: "សងបំណុលតូចជាងគេមុន", en: "Pay the smallest debt first" },
     body: {
-      km: "បើត្រូវការកម្លាំងចិត្ត សងបំណុលតូចជាងគេឱ្យអស់មុន។ ការលុបបំណុលមួយៗ ជួយឱ្យយើងបន្តដល់ចប់។",
-      en: "If you need motivation, clear the smallest debt first. Crossing debts off one by one keeps you going.",
+      km: "បើត្រូវការកម្លាំងចិត្ត ចូរជ្រើសរើសសងបំណុលតូចជាងគេឱ្យអស់មុន។ ការកាត់បន្ថយបំណុលបានមួយៗ នឹងជួយឱ្យយើងមានកម្លាំងចិត្តបន្តរហូតដល់រួចបំណុល។",
+      en: "If you need motivation, clear the smallest debt first. Paying debts off one by one keeps you going until you are debt-free.",
     },
   },
   {

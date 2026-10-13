@@ -7,7 +7,7 @@ import { tipCaption } from "./tip-bot"
 describe("daily tip caption & the channel's buttons (poster branding)", () => {
   const caption = tipCaption({ title: "សន្សំ <៣០%> & ចំណាយ", body: "កុំចំណាយលើស ៧០% នៃចំណូល។" })
   it("ends with the poster's line and the signature", () => {
-    assert.ok(caption.endsWith("📱 កត់ត្រាចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត\n\n— អេប លុយឆ្លាត"))
+    assert.ok(caption.endsWith("📱 គ្រប់គ្រងចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត\n\n— អេប លុយឆ្លាត"))
     assert.doesNotMatch(caption, /@luychlat_bot/)
   })
   it("stays valid Telegram HTML (text escaped) and under the 1,024-character caption limit", () => {

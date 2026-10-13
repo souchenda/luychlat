@@ -34,7 +34,7 @@ export type DailyTip = {
   status: "DRAFT" | "APPROVED" | "SKIPPED" | "POSTED"
   version: number
   /** Preview photos, plus the "send the new text" prompts (prompt: true) that a reply to also edits. */
-  previews: { chat: number; msg: number; prompt?: boolean }[]
+  previews: { chat: number; msg: number; prompt?: boolean; v?: number }[]
   /** Approved by the system at the 12:00 cut-off (nobody approved it). */
   auto_approved?: boolean
 }
@@ -54,7 +54,7 @@ export function tipWindow(minutes: number): "preview" | "post" | null {
 
 /** The public caption (Telegram HTML), as posted at 12:00. */
 export function tipCaption(t: Pick<DailyTip, "title" | "body">): string {
-  return [`💡 <b>គន្លឹះថ្ងៃនេះ៖ ${esc(t.title)}</b>`, "", esc(t.body), "", "📱 កត់ត្រាចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត", "", "— អេប លុយឆ្លាត"].join("\n")
+  return [`💡 <b>គន្លឹះថ្ងៃនេះ៖ ${esc(t.title)}</b>`, "", esc(t.body), "", "📱 គ្រប់គ្រងចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត", "", "— អេប លុយឆ្លាត"].join("\n")
 }
 
 /** The status line on the private preview. */
@@ -162,6 +162,9 @@ async function refreshPreviews(t: DailyTip, withImage: boolean) {
     if (png) await photo(p.chat, png, caption, { messageId: p.msg, reply_markup })
     else await tg("editMessageCaption", { chat_id: p.chat, message_id: p.msg, caption, parse_mode: "HTML", reply_markup })
   }
+  // Each preview remembers the version it shows, so a change made elsewhere is redrawn once (dailyTipTick).
+  if (withImage && t.previews?.some((p) => !p.prompt && p.v !== t.version))
+    await botDb().rpc("bot_tip_set_previews", { p_key: botKey(), p_day: t.day, p_previews: t.previews.map((p) => (p.prompt ? p : { ...p, v: t.version })) })
 }
 
 /** Sends a fresh preview to every super admin chat (replacing the stored ones). */
@@ -171,10 +174,10 @@ async function sendPreviews(t: DailyTip) {
   const today = phnomPenhToday().day
   const locked = lockedFor(t.day)
   const png = await posterFor(t)
-  const previews: { chat: number; msg: number }[] = []
+  const previews: { chat: number; msg: number; v: number }[] = []
   for (const c of (chats as { chat_id: number }[] | null) ?? []) {
     const msg = await photo(Number(c.chat_id), png, previewCaption(t, today, locked), { reply_markup: { inline_keyboard: previewKeyboard(t, locked) } })
-    if (msg) previews.push({ chat: Number(c.chat_id), msg })
+    if (msg) previews.push({ chat: Number(c.chat_id), msg, v: t.version })
   }
   await db.rpc("bot_tip_set_previews", { p_key: botKey(), p_day: t.day, p_previews: previews })
   return previews.length
@@ -206,7 +209,13 @@ export async function dailyTipTick() {
   const db = botDb()
 
   if (phase === "preview") {
-    if (!(await claim("tip-preview", now.day))) return
+    if (!(await claim("tip-preview", now.day))) {
+      // Already previewed: a tip changed since (a fix made in the database or elsewhere) is redrawn in
+      // the same preview message — never a second one.
+      const t = await getTip(now.day)
+      if (t && (t.status === "DRAFT" || t.status === "APPROVED") && t.previews?.some((p) => !p.prompt && p.v !== t.version)) await refreshPreviews(t, true)
+      return
+    }
     let t = await getTip(now.day)
     if (!t) {
       const tip = await pickTip(now.day)
