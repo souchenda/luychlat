@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, silentWav, soundboxPush, soundboxStorageKey, writeSoundboxEnabled } from "./soundbox"
+import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, silentWav, soundboxPush, soundboxStorageKey, voiceAvailability, writeSoundboxEnabled } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -254,5 +254,24 @@ describe("SoundBox with the screen locked (founder, 14/10/2026)", () => {
     assert.equal(ascii(8, 12), "WAVE")
     assert.equal(wav.length, 44 + 80_000)
     assert.ok(wav.slice(44).every((b) => b === 128)) // mid-level = silence
+  })
+})
+
+describe("SoundBox speaks even when the phone lists no voices (founder, 14/10/2026)", () => {
+  it("speech available but an empty voice list (Android Chrome) → try every language, never the melody up front", () => {
+    const v = voiceAvailability({ speech: true, listed: [], khmerClips: false })
+    assert.deepEqual(v, { km: true, en: true, zh: true })
+    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "en", voices: v }), ["chime", "speech:en"])
+    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "zh", voices: v }), ["chime", "speech:zh"])
+  })
+  it("a real list decides: no Khmer voice → English; the clips make Khmer available", () => {
+    const listed = ["en-US", "zh-CN"]
+    assert.deepEqual(voiceAvailability({ speech: true, listed, khmerClips: false }), { km: false, en: true, zh: true })
+    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "km", voices: voiceAvailability({ speech: true, listed, khmerClips: false }) }), ["chime", "speech:en"])
+    assert.equal(voiceAvailability({ speech: true, listed, khmerClips: true }).km, true)
+  })
+  it("no speech at all (an old browser) → the melody, never silence", () => {
+    const v = voiceAvailability({ speech: false, listed: [], khmerClips: false })
+    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "en", voices: v }), ["chime", "melody"])
   })
 })

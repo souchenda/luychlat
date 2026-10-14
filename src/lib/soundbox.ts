@@ -390,3 +390,16 @@ export function silentWav(seconds = 10, sampleRate = 8000): Uint8Array {
   out.fill(128, 44)
   return out
 }
+
+/**
+ * Which languages to try speaking (founder, 14/10/2026). Android Chrome often reports an EMPTY voice
+ * list although speaking works with the phone's default voice — deciding from the list alone meant
+ * «chime, then the melody», never words. So: with speech available but no list, try every language
+ * (a failed attempt falls back at play time); with a list, the languages it has; Khmer also counts
+ * when the recorded clips are there.
+ */
+export function voiceAvailability(o: { speech: boolean; listed: string[]; khmerClips: boolean }): Record<VoiceLang, boolean> {
+  const tags = o.listed.map((t) => t.toLowerCase().replace("_", "-"))
+  const has = (lang: VoiceLang) => o.speech && (tags.length === 0 || tags.some((t) => t.startsWith(lang) || (lang === "zh" && t.startsWith("cmn"))))
+  return { km: o.khmerClips || has("km"), en: has("en"), zh: has("zh") }
+}

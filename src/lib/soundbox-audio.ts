@@ -1,6 +1,6 @@
 "use client"
 
-import { announcementText, audioPlan, KHMER_CLIPS, khmerClipSequence, silentWav, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceLang } from "@/lib/soundbox"
+import { announcementText, audioPlan, KHMER_CLIPS, khmerClipSequence, silentWav, voiceAvailability, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceLang } from "@/lib/soundbox"
 
 /**
  * The SoundBox's sound: one AudioContext created on the cashier's tap (browsers block audio until a
@@ -195,23 +195,63 @@ export function voiceFor(lang: VoiceLang): SpeechSynthesisVoice | null {
   return voices.find((v) => base(v) === tag) ?? voices.find((v) => base(v).startsWith(lang) || (lang === "zh" && base(v).startsWith("cmn"))) ?? null
 }
 
-/** Khmer counts as available with the recorded clips (every device) or a device Khmer voice. */
-export const availableVoices = (): Record<VoiceLang, boolean> => ({ km: khmerClipsReady() || Boolean(voiceFor("km")), en: Boolean(voiceFor("en")), zh: Boolean(voiceFor("zh")) })
+/**
+ * Which languages to try (voiceAvailability): Android Chrome often reports no voices at all although
+ * the phone speaks with its default one — then every language is tried and a failure falls back at
+ * play time. Khmer also counts with the recorded clips.
+ */
+export const availableVoices = (): Record<VoiceLang, boolean> =>
+  voiceAvailability({
+    speech: typeof window !== "undefined" && "speechSynthesis" in window,
+    listed: typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis.getVoices().map((v) => v.lang) : [],
+    khmerClips: khmerClipsReady(),
+  })
 
-function speak(text: string, voice: SpeechSynthesisVoice, volume: number): Promise<void> {
+/**
+ * Speaks `text` in `lang`: the matching voice when the phone lists one, else just the language tag
+ * (the phone's default voice for it). Resolves true once speech really started and ended; false when
+ * it errored or never started within 3 s (Android Chrome can leave the queue stuck after other audio —
+ * cancel() + resume() first clears that).
+ */
+function speak(text: string, lang: VoiceLang, volume: number): Promise<boolean> {
   return new Promise((resolve) => {
+    const synth = window.speechSynthesis
+    let started = false
+    let settled = false
+    const finish = (ok: boolean) => {
+      if (settled) return
+      settled = true
+      resolve(ok)
+    }
+    try {
+      synth.cancel()
+      synth.resume()
+    } catch {
+      // not supported here: speak anyway
+    }
     const u = new SpeechSynthesisUtterance(text)
-    u.voice = voice
-    u.lang = voice.lang
+    const voice = voiceFor(lang)
+    if (voice) u.voice = voice
+    u.lang = voice?.lang ?? VOICE_TAGS[lang]
     u.rate = 0.95
     u.volume = Math.min(1, Math.max(0, volume))
-    u.onend = () => resolve()
-    u.onerror = (ev) => {
-      console.error("[soundbox] speech failed:", ev.error)
-      resolve()
+    u.onstart = () => {
+      started = true
     }
-    window.speechSynthesis.speak(u)
-    window.setTimeout(resolve, 8_000)
+    u.onend = () => finish(started)
+    u.onerror = (ev) => {
+      console.error(`[soundbox] speech (${u.lang}) failed:`, ev.error)
+      finish(false)
+    }
+    synth.speak(u)
+    // Never started (no voice for the language, a stuck engine) → a fallback, not silence.
+    window.setTimeout(() => {
+      if (!started) {
+        synth.cancel()
+        finish(false)
+      }
+    }, 3_000)
+    window.setTimeout(() => finish(started), 12_000)
   })
 }
 
@@ -246,8 +286,10 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
             await playKhmerClips(khmerClipSequence(e.amount, e.currency), volume)
             continue
           }
-          const voice = voiceFor(lang)
-          if (voice) await speak(announcementText(e, lang), voice, volume)
+          // Spoken; a language the phone can't say → English (for Khmer), else the melody — never silence.
+          if (await speak(announcementText(e, lang), lang, volume)) continue
+          if (lang !== "en" && (await speak(announcementText(e, "en"), "en", volume))) continue
+          await playMelody(volume)
         }
       }
       return "played"
