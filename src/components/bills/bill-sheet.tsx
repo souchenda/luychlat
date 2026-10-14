@@ -182,8 +182,9 @@ export function BillSheet({
     try {
       const id = await save.mutateAsync({ id: bill?.id, input })
       // This month's paper bill: invoice, usage, rate — the history under the bill.
-      if (scanned) await addStatement.mutateAsync({ billId: id, s: scanned }).catch(() => null)
-      toast.success(t("bills.saved"))
+      const statementSaved = scanned ? await addStatement.mutateAsync({ billId: id, s: scanned }).then(() => true, () => false) : true
+      if (statementSaved) toast.success(t("bills.saved"))
+      else toast.warning(t("bills.savedNoStatement"))
       onOpenChange(false)
     } catch {
       toast.error(t("common.error"))

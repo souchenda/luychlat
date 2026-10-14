@@ -233,6 +233,7 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
       const paid = await paidDebtProposal(chatId, input, ws.debts)
       const usable = paid ? ws.wallets.filter((w) => w.kind !== "CREDIT_CARD") : []
       const wallet = paid ? (usable.find((w) => w.currency === paid.debt.currency) ?? usable[0]) : undefined
+      if (paid && !wallet) return reply(tr(lang, "bot.cmdNoWallet"))
       if (paid && wallet) {
         const repay: Parsed = { ok: true, kind: "REPAY", amount: paid.amount, currency: paid.debt.currency, wallet, debt: paid.debt, note: input.slice(0, 200) }
         const pendingId = await propose(chatId, repay, ws, { text: input, heard, route })

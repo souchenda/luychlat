@@ -1,5 +1,8 @@
 "use client"
 
+import { toast } from "sonner"
+
+import { QUERY_ERROR_TOAST } from "@/lib/query-client"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
 
@@ -439,6 +442,8 @@ export function useTontineMutations(workspaceId: string | undefined) {
     setClosed: useMutation({
       mutationFn: ({ id, closed }: { id: string; closed: boolean }) => repo.setTontineClosed(id, closed),
       onSuccess: () => invalidate("tontines"),
+      // Closing / reopening failed: said, never silent.
+      onError: () => toast.error(QUERY_ERROR_TOAST),
     }),
     remove: useMutation({ mutationFn: (id: string) => repo.deleteTontine(id), onSuccess: () => invalidate("tontines", "tontinePayments") }),
     pay: useMutation({ mutationFn: (input: TontinePayInput) => repo.payTontineRound(input), onSuccess: moneyMoved }),

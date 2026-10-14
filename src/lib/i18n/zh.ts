@@ -1866,6 +1866,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.savedRepay": "✅ 已保存！与 {party} 剩余 {remaining} · {wallet}",
   "bot.cancelled": "❌ 已取消 — 未保存任何内容。",
   "bot.expired": "⌛ 此卡片已过期或已被替换。请重新发送消息。",
+  "bills.savedNoStatement": "⚠️ 账单已保存，但扫描的账单明细（用量、费率）未保存——请重新扫描",
   "bot.saveFailed": "⚠️ 保存失败。请在应用中检查后重试。",
   "settings.group.prefs": "偏好设置",
   "settings.group.general": "通用与功能",

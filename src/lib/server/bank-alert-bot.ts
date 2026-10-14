@@ -1,6 +1,7 @@
 // Server only: bank alerts forwarded to the bot (private chat) are saved at once
 // into the wallet named with the account's last digits, with ↩️ Undo. The same
 // alert twice is skipped. The balance shows only with the AI-numbers opt-in.
+import { logEvent } from "@/lib/server/events"
 import { settleBillFromPayment } from "@/lib/server/bill-bot"
 import { createHash } from "crypto"
 
@@ -91,8 +92,14 @@ export async function handleBankUndoCallback(cb: Callback, lang: Locale) {
     await tg("answerCallbackQuery", { callback_query_id: cb.id })
     return
   }
-  const { data } = await botDb().rpc("bot_bank_undo", { p_key: botKey(), p_chat_id: chatId, p_transaction_id: id })
-  const status = (data as { status?: string } | null)?.status
+  const { data, error } = await botDb().rpc("bot_bank_undo", { p_key: botKey(), p_chat_id: chatId, p_transaction_id: id })
+  // A failed call is a failure (the entry is still there) — never «already removed».
+  if (error || !data) {
+    logEvent("error", "bank-alert", `Undo failed: ${error?.message ?? "no answer"}`, { fold: true })
+    await tg("answerCallbackQuery", { callback_query_id: cb.id, text: tr(lang, "bot.saveFailed").slice(0, 190), show_alert: true })
+    return
+  }
+  const status = (data as { status?: string }).status
   const note = status === "undone" ? tr(lang, "bank.undone") : tr(lang, "bank.undoGone")
   await tg("answerCallbackQuery", { callback_query_id: cb.id, text: note })
   if (status === "undone") {

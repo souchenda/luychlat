@@ -6,6 +6,7 @@
 // to the group by the dispatcher. Only the pool's own wallet is ever shown.
 // Receipt photos: /spend as a photo caption, or a photo sent as a reply to an
 // expense card; kept on Telegram (<keeper>/tg/<file id>), shown through the app.
+import { logEvent } from "@/lib/server/events"
 import { duplicateSlipText } from "./pool-flow"
 import { parseAmountText, toLatinDigits } from "@/lib/bot/parse-entry"
 import type { Locale } from "@/lib/i18n/dictionaries"
@@ -92,6 +93,7 @@ export async function flushPoolPosts(poolId?: string) {
     const p = toSnapshot(raw.snapshot)
     const lang = asLocale(raw.language)
     let low: boolean | null = null
+    let delivered = true
     if (raw.chat_id && raw.items.length) {
       const lines = raw.items.slice(-10).map((i) =>
         i.type === "EXPENSE"
@@ -106,6 +108,7 @@ export async function flushPoolPosts(poolId?: string) {
         low = true
       } else if (p.gauge !== "low") low = false
       const sent = await sendText(raw.chat_id, lines.join("\n"))
+      if (!(sent as { ok?: boolean }).ok) delivered = false
       // One expense per card: remember it, so a photo replied to the card becomes its receipt.
       const only = raw.items.length === 1 && raw.items[0].type === "EXPENSE" ? raw.items[0].id : undefined
       const messageId = (sent as { result?: { message_id?: number } }).result?.message_id
@@ -117,6 +120,11 @@ export async function flushPoolPosts(poolId?: string) {
     if (raw.settle && raw.chat_id) {
       if (lang === "km") await postClosing(raw.chat_id, p).catch(() => sendText(raw.chat_id!, settlementText(p, lang)))
       else await sendText(raw.chat_id, settlementText(p, lang))
+    }
+    // Not delivered (Telegram down, the bot removed): kept pending and tried again next flush — never marked seen.
+    if (!delivered) {
+      logEvent("warn", "pools", `Pool post to ${raw.chat_id} not delivered — will retry`, { fold: true })
+      continue
     }
     await botDb().rpc("bot_pool_posted", { p_key: botKey(), p_pool_id: raw.pool_id, p_until: raw.until, p_low: low, p_settled: raw.settle })
   }

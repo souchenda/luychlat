@@ -3,7 +3,7 @@
 import { formatDuration, formatOverdue } from "@/lib/format"
 import { CheckIcon, ChevronDownIcon, ExternalLinkIcon, Loader2Icon, PlusIcon, ReceiptIcon, ShieldCheckIcon, Undo2Icon } from "lucide-react"
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { BillSheet } from "@/components/bills/bill-sheet"
@@ -39,6 +39,13 @@ function PaySheet({ bill, due, workspaceId, onClose }: { bill: Bill; due: string
   const wallets = (useWallets(workspaceId).data ?? []).filter((w) => !w.archived_at)
   const { markPaid } = useBillMutations(workspaceId)
   const [walletId, setWalletId] = useState<string>(wallets.find((w) => w.currency === bill.currency)?.id ?? wallets[0]?.id ?? NO_WALLET)
+  // Wallets not loaded yet when the sheet opened: choose the wallet once they arrive, unless the user
+  // already picked — the payment is never logged as «not from a wallet» by accident.
+  const [walletTouched, setWalletTouched] = useState(false)
+  const firstWallet = wallets.find((w) => w.currency === bill.currency)?.id ?? wallets[0]?.id
+  useEffect(() => {
+    if (!walletTouched && walletId === NO_WALLET && firstWallet) setWalletId(firstWallet)
+  }, [walletTouched, walletId, firstWallet])
   const [amount, setAmount] = useState(String(bill.amount))
 
   const submit = async () => {
@@ -58,7 +65,13 @@ function PaySheet({ bill, due, workspaceId, onClose }: { bill: Bill; due: string
       <div className="space-y-4">
         <div className="space-y-2">
           <Label>{t("bills.payFrom")}</Label>
-          <Select value={walletId} onValueChange={setWalletId}>
+          <Select
+            value={walletId}
+            onValueChange={(v) => {
+              setWalletTouched(true)
+              setWalletId(v)
+            }}
+          >
             <SelectTrigger className="h-12! w-full" aria-label={t("bills.payFrom")}>
               <SelectValue />
             </SelectTrigger>

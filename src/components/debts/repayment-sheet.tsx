@@ -94,6 +94,17 @@ export function RepaymentSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the sheet opens
   }, [open])
 
+  // Wallets (or the profile, which decides the user's own wallets) still loading when the sheet opened:
+  // the defaults were «don't move money». Once they arrive, pick the wallet — unless the user already
+  // chose — so a repayment never silently skips the wallet.
+  const untouched = !formState.dirtyFields.walletId && !formState.dirtyFields.moveMoney
+  useEffect(() => {
+    if (!open || !untouched || !active.length) return
+    setValue("moveMoney", true)
+    setValue("walletId", (active.find((w) => w.currency === debt.currency) ?? active[0]).id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-pick only when the wallet list changes
+  }, [open, active])
+
   const [amountText, walletId, moveMoney] = useWatch({ control, name: ["amount", "walletId", "moveMoney"] })
   const wallet = moveMoney ? byId.get(walletId) : undefined
   const amount = parseAmount(amountText)

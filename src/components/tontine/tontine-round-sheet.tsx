@@ -74,6 +74,19 @@ export function TontineRoundSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the sheet opens
   }, [open])
 
+  // Wallets still loading when the sheet opened left it on «no wallet»: pick one once they arrive,
+  // unless the user chose — a round is never paid or collected outside a wallet by accident.
+  const [walletTouched, setWalletTouched] = useState(false)
+  useEffect(() => {
+    if (open) setWalletTouched(false)
+  }, [open])
+  useEffect(() => {
+    if (!open || walletTouched || walletId !== NONE || !active.length) return
+    const preferred = active.find((w) => w.id === tontine.wallet_id) ?? active.find((w) => w.currency === tontine.currency) ?? active[0]
+    setWalletId(preferred.id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-pick only when the wallet list arrives
+  }, [open, active])
+
   const amount = roundMoney(parseAmount(amountText), tontine.currency)
   const bid = roundMoney(parseAmount(bidText), tontine.currency)
   const discount = mode === "pay" ? Math.max(0, roundMoney(tontine.share_amount - amount, tontine.currency)) : 0
@@ -175,7 +188,13 @@ export function TontineRoundSheet({
 
         <div className="space-y-2">
           <Label>{t(mode === "pay" ? "tontine.payFrom" : "tontine.receiveInto")}</Label>
-          <Select value={walletId} onValueChange={setWalletId}>
+          <Select
+            value={walletId}
+            onValueChange={(v) => {
+              setWalletTouched(true)
+              setWalletId(v)
+            }}
+          >
             <SelectTrigger className="h-11 w-full">
               <SelectValue />
             </SelectTrigger>
