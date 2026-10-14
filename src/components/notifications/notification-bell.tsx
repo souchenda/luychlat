@@ -136,6 +136,8 @@ export function NotificationBell() {
     setOpen(next)
     if (next) {
       void clearShownNotifications()
+      // Opened: the launcher icon's number goes at once (not only after «mark read» reaches the server).
+      void syncAppBadge(0)
       setUnreadAtOpen(new Set(notifications.filter((n) => !n.is_read).map((n) => n.id)))
       if (unread > 0) markRead.mutate()
     }
