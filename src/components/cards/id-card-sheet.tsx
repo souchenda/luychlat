@@ -16,6 +16,7 @@ import { hasUnread, KIND_SPECS, type CardKind, type DetailKey, type IdCardRead }
 import { useIdCardMutations, type IdCard, type IdCardInput } from "@/lib/id-cards"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { useFillBirthDate, useProfilePrivate } from "@/lib/profile-private"
 import { compressImage, MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
 import { identityFromQr } from "@/lib/nssf-card"
 import { cn } from "@/lib/utils"
@@ -89,6 +90,9 @@ function PhotoButtons({ label, busy, onPhoto }: { label: string; busy: boolean; 
  */
 export function IdCardSheet({ kind, card, onClose }: { kind: CardKind; card: IdCard | null; onClose: () => void }) {
   const t = useT()
+  const fillBirthDate = useFillBirthDate()
+  const privateDetails = useProfilePrivate().data
+  const needsBirthDate = Boolean(privateDetails) && !privateDetails?.birth_date
   const spec = KIND_SPECS[kind]
   const { save, remove, uploadPhoto, removePhoto } = useIdCardMutations()
   const [form, setForm] = useState<Form>(card ? fromCard(card) : EMPTY)
@@ -207,6 +211,12 @@ export function IdCardSheet({ kind, card, onClose }: { kind: CardKind; card: IdC
       // Photos replaced or removed in this form: their old files go too.
       for (const old of [card?.front_path, card?.back_path]) if (old && old !== input.front_path && old !== input.back_path) await removePhoto(old)
       toast.success(t("bills.saved"))
+      // A date of birth on the card and none on the profile: offered, never assumed (it may be a family member's card).
+      if (form.dob && needsBirthDate)
+        toast(t("birthday.useScannedDob", { date: form.dob.split("-").reverse().join("/") }), {
+          duration: 12_000,
+          action: { label: t("birthday.useScannedDobAction"), onClick: () => void fillBirthDate(form.dob) },
+        })
       onClose()
     } catch {
       toast.error(t("nssf.invalid"))

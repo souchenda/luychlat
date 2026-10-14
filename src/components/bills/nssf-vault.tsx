@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { NSSF_MONTHLY_PER_MEMBER, signedPhotoUrl, useNssfMembers, useNssfMutations, useNssfPhotoUrl, type NssfMember, type NssfRelationship } from "@/lib/bills"
 import { compressImage, MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
 import { useT } from "@/lib/i18n/use-t"
+import { useFillBirthDate } from "@/lib/profile-private"
 import { formatMoney } from "@/lib/money"
 import { useProfile } from "@/lib/data/hooks"
 import { decodeCardCode } from "@/lib/card-code"
@@ -275,6 +276,7 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
     )
   }, [member])
 
+  const fillBirthDate = useFillBirthDate()
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name.trim() || unread) return
@@ -301,6 +303,9 @@ function MemberSheet({ member, onClose }: { member: NssfMember | null; onClose: 
         },
       })
       toast.success(t("bills.saved"))
+      // The person's own NSSF card («self») and no birthday set yet: it becomes their date of birth — said.
+      if (form.relationship === "self" && form.dob && (await fillBirthDate(form.dob).catch(() => false)))
+        toast.success(t("birthday.dobFromNssf", { date: form.dob.split("-").reverse().join("/") }))
       onClose()
     } catch {
       toast.error(t("nssf.invalid"))

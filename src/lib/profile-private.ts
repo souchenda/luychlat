@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { AcquisitionAnswer } from "@/lib/acquisition"
+import { isBirthdayToday } from "@/lib/birthday"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -61,14 +62,22 @@ export function useSaveAcquisitionSource() {
   })
 }
 
-/** Is today this person's birthday? (29 February counts on 28 February in other years.) */
-export function isBirthday(birthDate: string | null | undefined, today: Date = new Date()): boolean {
-  if (!birthDate) return false
-  const [, m, d] = birthDate.split("-").map(Number)
-  const tm = today.getMonth() + 1
-  const td = today.getDate()
-  if (m === tm && d === td) return true
-  const year = today.getFullYear()
-  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
-  return m === 2 && d === 29 && !leap && tm === 2 && td === 28
+/**
+ * A date of birth read from a scanned card, saved only when none is set yet (occupation kept).
+ * Returns true when it was saved. The caller decides it is the person's OWN card (an NSSF card marked
+ * «self», or the person's tap) — a spouse's card never becomes their birthday by itself.
+ */
+export function useFillBirthDate() {
+  const current = useProfilePrivate().data
+  const save = useSaveProfilePrivate()
+  return async (dob: string | null | undefined): Promise<boolean> => {
+    if (!dob || !/^\d{4}-\d{2}-\d{2}$/.test(dob) || !current || current.birth_date) return false
+    await save.mutateAsync({ birth_date: dob, occupation: current.occupation })
+    return true
+  }
+}
+
+/** Is today (Cambodia time) this person's birthday? (29 February counts on 28 February in other years.) */
+export function isBirthday(birthDate: string | null | undefined, now: number = Date.now()): boolean {
+  return isBirthdayToday(birthDate, now)
 }

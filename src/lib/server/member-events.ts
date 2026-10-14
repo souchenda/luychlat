@@ -1,5 +1,5 @@
 // Server only: member events from the bot dispatcher — a note to the super
-// admins for each new sign-up, and birthday wishes at 08:00 Cambodia time.
+// admins for each new sign-up, and birthday wishes from 07:00 Cambodia time (with the morning round).
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { loginLabel } from "@/lib/auth-identifier"
 
@@ -53,10 +53,10 @@ export async function flushSignupAlerts() {
 
 const BIRTHDAY_JOB = "birthday-wishes"
 
-/** From 08:00 Cambodia time, once a day: a birthday wish to everyone born today who linked Telegram. */
+/** From 07:00 Cambodia time, once a day: a birthday wish to everyone born today who linked Telegram. */
 export async function birthdayTick() {
   const now = phnomPenhToday()
-  if (now.hour < 8) return
+  if (now.hour < 7) return
   const db = botDb()
   const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: BIRTHDAY_JOB, p_day: now.day })
   if (claimed !== true) return

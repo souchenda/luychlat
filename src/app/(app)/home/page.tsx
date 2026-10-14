@@ -48,6 +48,7 @@ import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useFeatures } from "@/lib/features"
 import { BirthdayCard } from "@/components/dashboard/birthday-card"
+import { BirthdayCelebrationModal } from "@/components/birthday/birthday-celebration-modal"
 import { LunarPill } from "@/components/dashboard/lunar-pill"
 import { FestivalBanner } from "@/components/dashboard/festival-banner"
 import { HolyDayReminder } from "@/components/dashboard/holy-day-reminder"
@@ -193,6 +194,7 @@ export default function HomePage() {
       {workspace?.type === "BUSINESS" && <BusinessValueCard workspaceId={ws} wallets={walletsQuery.data} debts={debtsQuery.data} transactions={txQuery.data} categories={categoriesQuery.data} />}
 
       <BirthdayCard />
+      <BirthdayCelebrationModal />
 
       <section className="space-y-2">
         <div className="flex items-center justify-between px-1">
