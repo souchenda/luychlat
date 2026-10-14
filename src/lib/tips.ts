@@ -139,7 +139,7 @@ export const TIPS: Tip[] = [
     topic: "debt",
     title: { km: "ដឹងតម្លៃពិតនៃប្រាក់កម្ចី", en: "Know a loan's true cost" },
     body: {
-      km: "ការប្រាក់ ២% ក្នុងមួយខែ = ប្រហែល ២៤% ក្នុងមួយឆ្នាំ។ ប្រើ «ម៉ាស៊ីនគិតប្រាក់កម្ចី» មុនខ្ចី ដើម្បីមើលការប្រាក់សរុប។",
+      km: "ការប្រាក់ ២% ក្នុងមួយខែ = ប្រហែល ២៤% ក្នុងមួយឆ្នាំ។ មុនខ្ចី បើក «គណនាប្រាក់កម្ចី» ក្នុងអេប ដើម្បីដឹងការប្រាក់សរុបដែលត្រូវបង់។",
       en: "2% a month is about 24% a year. Use the loan calculator before borrowing to see the total interest.",
     },
   },
@@ -195,7 +195,7 @@ export const TIPS: Tip[] = [
     topic: "credit",
     title: { km: "ប័ណ្ណឥណទានមិនមែនជាប្រាក់ចំណូល", en: "A card is not extra income" },
     body: {
-      km: "ចាយតាមប័ណ្ណ តែអ្វីដែលអ្នកមានលុយសងរួចហើយ។ ចាយតាមកាតក៏ដូចជាចាយលុយក្នុងហោប៉ៅខ្លួនឯងដែរ។",
+      km: "ប័ណ្ណឥណទានជាលុយខ្ចី មិនមែនលុយបន្ថែមទេ។ ទិញតាមប័ណ្ណតែអ្វីដែលបងមានលុយសងរួចហើយ ដូចចាយលុយក្នុងហោប៉ៅខ្លួនឯង។",
       en: "Only spend on a card what you already have the money to repay. Treat it like a card that draws from your own wallet.",
     },
   },
@@ -206,7 +206,7 @@ export const TIPS: Tip[] = [
     topic: "business",
     title: { km: "បំបែកលុយហាង និងលុយផ្ទះ", en: "Separate shop and home money" },
     body: {
-      km: "ប្រើកាបូបដាច់ដោយឡែកសម្រាប់អាជីវកម្ម។ ពេលយកលុយហាងទៅប្រើផ្ទាល់ខ្លួន កត់ជា «ដកប្រាក់ម្ចាស់» ដើម្បីដឹងចំណេញពិត។",
+      km: "ប្រើកាបូបដាច់ដោយឡែកសម្រាប់អាជីវកម្ម។ ពេលយកលុយហាងទៅប្រើផ្ទាល់ខ្លួន កត់ជា «ម្ចាស់ដកប្រើ» ដើម្បីដឹងចំណេញពិតរបស់ហាង។",
       en: "Use separate wallets for the business. When you take shop money for yourself, record it as an owner's draw to see the real profit.",
     },
   },
@@ -215,7 +215,7 @@ export const TIPS: Tip[] = [
     topic: "business",
     title: { km: "មើលលំហូរសាច់ប្រាក់រាល់ថ្ងៃ", en: "Watch cash flow daily" },
     body: {
-      km: "ចំណេញលើក្រដាស មិនមែនមានន័យថាមានលុយក្នុងដៃទេ។ ពិនិត្យលុយចូល លុយចេញ និងអ្នកជំពាក់ រៀងរាល់ថ្ងៃ។",
+      km: "ចំណេញក្នុងបញ្ជី មិនមែនមានន័យថាមានលុយក្នុងដៃទេ។ ពិនិត្យលុយចូល លុយចេញ និងភ្ញៀវដែលជំពាក់ រៀងរាល់ថ្ងៃ។",
       en: "Profit on paper isn't cash in hand. Check money in, money out and who owes you, every day.",
     },
   },

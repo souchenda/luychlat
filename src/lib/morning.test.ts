@@ -9,7 +9,7 @@ describe("07:00 morning message (Cambodia time, UTC+7)", () => {
   it("the push: title, the quote with the call to record, opens the app", () => {
     const p = morningPush("2026-10-12")
     assert.equal(p.title, "☀️ អរុណសួស្តីពី អេប លុយឆ្លាត")
-    assert.equal(p.body, `${morningQuote("2026-10-12")} — ចុចដើម្បីកត់ត្រាចំណូល-ចំណាយថ្ងៃថ្មី!`)
+    assert.equal(p.body, `${morningQuote("2026-10-12")} — ចុចដើម្បីគ្រប់គ្រងចំណូល-ចំណាយថ្ងៃថ្មី!`)
     assert.equal(p.url, "https://app.luychlat.com")
   })
   it("the bell card appears from 07:00 Phnom Penh time, dated today's 07:00", () => {
