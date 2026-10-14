@@ -16,6 +16,12 @@ describe("silent fallbacks — fixed and locked", () => {
     assert.equal(shouldAnnounceQueryError(true), false)
     assert.match(src("lib/query-client.ts"), /new QueryCache\(\{\s*onError/)
   })
+  it("only core data raises the global warning; a side widget failing never covers a loaded dashboard, and the warning goes once core data loads (founder, 14/10/2026)", () => {
+    for (const key of ["wallets", "transactions", "workspaces", "debts", "categories"]) assert.equal(shouldAnnounceQueryError(false, [key, "s", "w"]), true, key)
+    for (const key of ["goal-cover", "profile-image", "market-prices", "gold-rates", "daily-tips", "morning-published", "kscore"]) assert.equal(shouldAnnounceQueryError(false, [key]), false, key)
+    assert.equal(shouldAnnounceQueryError(true, ["wallets"]), false)
+    assert.match(src("lib/query-client.ts"), /onSuccess:[\s\S]{0,160}toast\.dismiss\("query-error"\)/)
+  })
   it("bank-alert Undo: a failed call is reported as a failure, never «already removed»", () => {
     assert.match(src("lib/server/bank-alert-bot.ts"), /const \{ data, error \} = await botDb\(\)\.rpc\("bot_bank_undo"[\s\S]{0,200}if \(error \|\| !data\)/)
   })
