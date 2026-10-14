@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { parseMerchantPayment } from "@/lib/bot/merchant-khqr"
 import { logEvent } from "@/lib/server/events"
 import { notifyOwner, ownerText, transferText, type TransferResult } from "@/lib/server/biz-group-bot"
+import { askHeldKhqr, type Held } from "@/lib/server/held-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 import { shouldEmit, soundboxPush } from "@/lib/soundbox"
@@ -30,7 +31,8 @@ import { sendPaymentVoice } from "@/lib/server/voice-alert"
  * fields (e.g. chatId) are ignored: the key decides the business. Optional:
  * "notify_group": true posts "✅ +$1.00 បានកត់ត្រា …" in the Telegram group(s) linked to the business.
  *
- * Answers: 201 recorded · 200 duplicate (already recorded — safe to retry) · 401 bad key ·
+ * Answers: 201 recorded · 202 held (no wallet of the receiving bank — the owner is asked which wallet) ·
+ * 200 duplicate (already recorded — safe to retry) · 401 bad key ·
  * 402 plan required · 403 not allowed · 422 not a payment / no wallet · 429 too many.
  */
 export const runtime = "nodejs"
@@ -122,6 +124,16 @@ export async function POST(request: Request) {
     from_wallet?: string
     from_bank?: string | null
     suffix?: string
+  }
+  // No wallet of the receiving bank: held (202) and the owner is asked which wallet — never booked into
+  // Cash or another bank's wallet. A retry of the same payment is not asked twice.
+  if (r.status === "ask") {
+    logEvent("info", "khqr", `KHQR ${r.bank} payment held — no wallet of that bank (${r.workspace})`, { fold: true })
+    const asked = r.workspace_id ? await askHeldKhqr({ workspaceId: r.workspace_id }, r as Held) : false
+    return NextResponse.json(
+      { ok: true, status: "held", asked, workspace: r.workspace ?? null, amount: r.amount ?? null, currency: r.currency ?? null, bank: r.bank ?? null, ref: pay.ref ? String(pay.ref).toLowerCase() : null },
+      { status: 202 },
+    )
   }
   const http: Record<string, number> = { ok: 201, transfer: 201, duplicate: 200, unauthorized: 401, plan_required: 402, not_writable: 403, invalid: 422, no_wallet: 422 }
   const status = http[r.status] ?? 500

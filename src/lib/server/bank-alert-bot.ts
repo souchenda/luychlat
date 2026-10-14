@@ -8,6 +8,7 @@ import { createHash } from "crypto"
 import type { BankAlert } from "@/lib/bot/bank-alert"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
+import { askBankWallet, type Held } from "@/lib/server/held-bot"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -15,7 +16,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /** "bu:<transaction id>" — the ↩️ Undo button. */
 export const isBankUndo = (data: string | undefined) => /^bu:/.test(data ?? "")
 
-type Saved = {
+export type Saved = {
   status: string
   transaction_id?: string
   wallet?: string
@@ -58,6 +59,9 @@ export async function handleBankAlert(chatId: number, alert: BankAlert, raw: str
       return sendText(chatId, tr(lang, "bank.duplicate"))
     case "no_wallet":
       return sendText(chatId, tr(lang, "bank.noWallet", { suffix: alert.suffix }))
+    case "ambiguous":
+      // Two or more wallets end in these digits: held until the person picks — never a guess.
+      return askBankWallet(chatId, data as Held, alert.suffix, lang)
     case "other_workspace":
       return sendText(chatId, tr(lang, "bank.otherWorkspace", { suffix: alert.suffix, workspace: (data as { workspace?: string }).workspace ?? "" }))
     case "ok":
@@ -65,6 +69,15 @@ export async function handleBankAlert(chatId: number, alert: BankAlert, raw: str
     default:
       return sendText(chatId, tr(lang, "bot.saveFailed"))
   }
+  const card = savedCard(r, lang)
+  const sent = await sendText(chatId, card.text, { reply_markup: card.reply_markup })
+  // Paying EDC / water / internet: the matching recurring bill is marked paid (↩️ Undo makes it unpaid again).
+  if (r.type === "EXPENSE") await settleBillFromPayment(chatId, r.transaction_id, null, alert.party)
+  return sent
+}
+
+/** The saved card with ↩️ Undo — also what a held alert becomes once its wallet is picked. */
+export function savedCard(r: Saved, lang: Locale) {
   const money = formatMoney(Number(r.amount), r.currency ?? "USD")
   const lines = [
     tr(lang, "bank.saved"),
@@ -74,12 +87,7 @@ export async function handleBankAlert(chatId: number, alert: BankAlert, raw: str
     // Only with "Let LuyChlat AI see my numbers" on (no balances in chat otherwise).
     ...(r.balance != null ? [tr(lang, "bank.balance", { amount: formatMoney(Number(r.balance), r.wallet_currency ?? "USD") })] : []),
   ]
-  const sent = await sendText(chatId, lines.join("\n"), {
-    reply_markup: { inline_keyboard: [[{ text: tr(lang, "bank.undo"), callback_data: `bu:${r.transaction_id}` }]] },
-  })
-  // Paying EDC / water / internet: the matching recurring bill is marked paid (↩️ Undo makes it unpaid again).
-  if (r.type === "EXPENSE") await settleBillFromPayment(chatId, r.transaction_id, null, alert.party)
-  return sent
+  return { text: lines.join("\n"), reply_markup: { inline_keyboard: [[{ text: tr(lang, "bank.undo"), callback_data: `bu:${r.transaction_id}` }]] } }
 }
 
 type Callback = { id: string; data?: string; message?: { message_id: number; text?: string; chat: { id: number; type: string } } }

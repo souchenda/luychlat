@@ -10,6 +10,7 @@ import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
 
 import { logEvent } from "./events"
+import { askHeldKhqr, type Held } from "./held-bot"
 import { botDb, botKey, sendText, tr } from "./telegram-bot"
 
 type Recorded = { transaction_id?: string; amount?: number; currency?: "USD" | "KHR"; wallet?: string; workspace?: string; bank?: string }
@@ -120,6 +121,10 @@ export async function handleKhqrGroupMessage(chatId: number, text: string, lang:
   } else if (r.status === "transfer") {
     logEvent("info", "khqr", `KHQR ${pay.bank} own transfer recorded (${r.workspace})`, { fold: true })
     await notifyOwner({ group: chatId }, transferText(r as TransferResult))
+  } else if (r.status === "ask") {
+    // No wallet of the receiving bank: held, and the owner picks — never booked into another wallet.
+    logEvent("info", "khqr", `KHQR ${pay.bank} payment held — no wallet of that bank (${r.workspace})`, { fold: true })
+    await askHeldKhqr({ group: chatId }, r as Held)
   } else if (r.status === "no_wallet") {
     await notifyOwner({ group: chatId }, tr(lang, "biz.noWallet", { workspace: r.workspace ?? "" }))
   } else if (r.status === "plan_required") {

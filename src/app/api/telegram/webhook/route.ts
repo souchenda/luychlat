@@ -19,6 +19,8 @@ import { asksWhoOwesMe, awaitingAiQuestion, handleAiQuestion, isAiQuestion } fro
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
 import { bestPhoto, handlePoolGroupCommand, handlePoolPhotoReply } from "@/lib/server/pool-bot"
 import { handleBankAlert, handleBankUndoCallback, isBankUndo } from "@/lib/server/bank-alert-bot"
+import { isHeldCallback } from "@/lib/bot/held"
+import { handleHeldCallback } from "@/lib/server/held-bot"
 import { parseBankAlert } from "@/lib/bot/bank-alert"
 import { photoRoute } from "@/lib/bot/photo-route"
 import { isGiftMessage } from "@/lib/bot/parse-gift"
@@ -327,6 +329,9 @@ export async function POST(request: Request) {
       const chat = update.callback_query.message?.chat.id
       if (chat && !featureOk(await botFeatures(chat), "gifts")) await soon(update.callback_query.id, contextLocale(ctx))
       else await handleGiftCallback(update.callback_query, contextLocale(ctx))
+    } else if (isHeldCallback(update.callback_query.data)) {
+      const ctx = update.callback_query.message ? await botContext(update.callback_query.message.chat.id) : null
+      await handleHeldCallback(update.callback_query, contextLocale(ctx))
     } else if (isBankUndo(update.callback_query.data)) {
       const ctx = update.callback_query.message ? await botContext(update.callback_query.message.chat.id) : null
       await handleBankUndoCallback(update.callback_query, contextLocale(ctx))
