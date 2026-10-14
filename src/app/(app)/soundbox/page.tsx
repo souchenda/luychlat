@@ -167,6 +167,8 @@ export default function SoundboxPage() {
   handle.current = (row, late) => {
     const { list: next, added } = receiveEvent(eventsRef.current, row)
     if (!added) return
+    // When this phone got it: «rx:<ms after it was recorded>» (live or by the backup check) leads the report.
+    const received = [`rx:${added.created_at ? Math.max(0, Date.now() - Date.parse(added.created_at)) : "?"}`, late ? "poll" : "live"]
     eventsRef.current = next
     setEvents(next)
     // One that came in while the connection was down: listed, announced only if still fresh.
@@ -180,7 +182,7 @@ export default function SoundboxPage() {
       // announcement is diagnosed from facts, never guessed.
       const supabase = getSupabaseBrowserClient()
       if (supabase && r.result !== "muted")
-        void supabase.rpc("soundbox_report", { p_event: added.id, p_log: r.log.join(" ").slice(0, 500), p_ua: navigator.userAgent.slice(0, 200) }).then(({ error }) => {
+        void supabase.rpc("soundbox_report", { p_event: added.id, p_log: [...received, ...r.log].join(" ").slice(0, 500), p_ua: navigator.userAgent.slice(0, 200) }).then(({ error }) => {
           if (error) console.error("[soundbox] report:", error.message)
         })
     })
