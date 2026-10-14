@@ -8,14 +8,23 @@
 
 type BadgeNavigator = Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> }
 
-/** Close LuyChlat's notifications still shown in the notification shade. */
-export async function clearShownNotifications() {
-  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return
+type ShadeNavigator = { serviceWorker?: { ready: Promise<{ getNotifications?: () => Promise<{ close: () => void }[]> }> } }
+
+/**
+ * Close LuyChlat's notifications still shown in the notification shade (Android's notification bar).
+ * Waits for the active service worker (`ready` — getRegistration() can come back empty right after the
+ * app opens), at most 3 s: `ready` never settles where no worker was ever registered. Returns how many.
+ */
+export async function clearShownNotifications(nav: ShadeNavigator | undefined = typeof navigator === "undefined" ? undefined : (navigator as ShadeNavigator)): Promise<number> {
+  if (!nav?.serviceWorker) return 0
   try {
-    const reg = await navigator.serviceWorker.getRegistration()
-    for (const n of (await reg?.getNotifications()) ?? []) n.close()
+    const reg = await Promise.race([nav.serviceWorker.ready, new Promise<null>((resolve) => setTimeout(() => resolve(null), 3_000))])
+    const shown = (await reg?.getNotifications?.()) ?? []
+    for (const n of shown) n.close()
+    return shown.length
   } catch {
     // Not supported (e.g. iOS before 16.4): nothing to clear.
+    return 0
   }
 }
 
