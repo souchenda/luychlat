@@ -51,6 +51,10 @@ describe("GOLDEN 7 · ask, never guess the wallet", () => {
     const rows = heldButtons("b7a12090-d9a5-481f-b639-437943ce5501", [{ id: "w", name: "ACLEDA ••6222" }])
     assert.deepEqual(parseHeldCallback(rows[0][0].callback_data), { id: "b7a12090-d9a5-481f-b639-437943ce5501", idx: 0 })
   })
+  it("a held KHQR sale booked later never rings the SoundBox — a late chime would look like a new payment (founder, 14/10/2026)", () => {
+    const held = src("lib/server/held-bot.ts")
+    assert.doesNotMatch(held, /soundbox|sendPaymentVoice|sendSoundboxPush/i)
+  })
   it("every caller handles the hold: the API, the bank group and the bank-alert chat", () => {
     assert.match(src("app/api/khqr/ingest/route.ts"), /r\.status === "ask"[\s\S]{0,300}askHeldKhqr/)
     assert.match(src("lib/server/biz-group-bot.ts"), /r\.status === "ask"[\s\S]{0,300}askHeldKhqr/)
