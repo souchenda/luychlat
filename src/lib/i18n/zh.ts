@@ -2518,6 +2518,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "soundbox.statusReady": "🟢 SoundBox 就绪 · {device} · {ago}",
   "soundbox.statusDown": "🔴 SoundBox 未连接 · 最后 {time}",
   "soundbox.statusNever": "🔴 SoundBox 未连接",
+  "soundbox.statusThisPhone": "🟢 本机即 SoundBox——就绪",
+  "soundbox.heartbeatFailed": "⚠️ SoundBox 状态未保存（{error}）——Telegram 提醒可能不准确。",
   "soundbox.agoSec": "{n} 秒前",
   "soundbox.agoMin": "{n} 分钟前",
   "soundbox.offline": "实时连接已断开——仍每 15 秒检查一次收款",

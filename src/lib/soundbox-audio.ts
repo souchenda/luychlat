@@ -91,11 +91,14 @@ export async function unlockAudio(): Promise<boolean> {
   const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
   if (!Ctx) return false
   ctx ??= new Ctx()
+  // Speech first, synchronously inside the tap: iOS lets a page speak on its own later only if it spoke
+  // DURING a touch — primed after an await (as before, 14/10/2026) the touch no longer counted and
+  // every payment chimed without words.
+  warmSpeech()
   if (ctx.state !== "running") await ctx.resume().catch(() => null)
   if (ctx.state === "running") unlocked = true
   void loadKhmerClips()
   void voicesReady()
-  warmSpeech()
   const ok = ctx.state === "running"
   // Nothing plays until a payment: give the audio back to the phone (Telegram, calls, music…).
   release()
@@ -163,6 +166,8 @@ export type SpeechOutcome = "spoken" | "timeout" | "silent-end" | `error:${strin
  * still speaking — cancel() right before speak() makes Safari and Chrome drop the new utterance
  * (founder, 14/10/2026: the 13:38 payment chimed, then nothing).
  */
+const speaking = new Set<SpeechSynthesisUtterance>()
+
 function speakOnce(text: string, lang: VoiceLang, volume: number): Promise<SpeechOutcome> {
   return new Promise((resolve) => {
     const synth = window.speechSynthesis
@@ -171,6 +176,7 @@ function speakOnce(text: string, lang: VoiceLang, volume: number): Promise<Speec
     const finish = (r: SpeechOutcome) => {
       if (settled) return
       settled = true
+      speaking.delete(u)
       resolve(r)
     }
     try {
@@ -180,6 +186,8 @@ function speakOnce(text: string, lang: VoiceLang, volume: number): Promise<Speec
       // not supported here: speak anyway
     }
     const u = new SpeechSynthesisUtterance(text)
+    // Held until it ends: a collected utterance loses its events (a known Safari / Chrome bug).
+    speaking.add(u)
     const voice = voiceFor(lang)
     if (voice) u.voice = voice
     u.lang = voice?.lang ?? VOICE_TAGS[lang]
@@ -205,23 +213,27 @@ function speakOnce(text: string, lang: VoiceLang, volume: number): Promise<Speec
   })
 }
 
-/** Speech the phone refused until a touch («not-allowed»): the page asks for one tap (speechNeedsTap). */
-let speechBlocked = false
-export const speechNeedsTap = () => speechBlocked
+/**
+ * Speech not yet proven on this page (none spoken yet, or the last attempt failed): every touch primes it
+ * again (speechNeedsTap → warmSpeech in the tap) until an announcement is really spoken.
+ */
+let speechUnproven = true
+export const speechNeedsTap = () => speechUnproven
 
 /** Speaks, with one retry after a stuck engine or an interruption; each attempt is written to `log`. */
 async function speak(text: string, lang: VoiceLang, volume: number, log: string[]): Promise<boolean> {
   let r = await speakOnce(text, lang, volume)
   log.push(`${lang}:${r}`)
-  if (r === "spoken") return true
-  if (r === "error:not-allowed") {
-    speechBlocked = true
-    return false
+  if (r === "spoken") {
+    speechUnproven = false
+    return true
   }
+  speechUnproven = true
+  if (r === "error:not-allowed") return false
   await new Promise((resolve) => window.setTimeout(resolve, 250))
   r = await speakOnce(text, lang, volume)
   log.push(`${lang}:retry:${r}`)
-  if (r === "error:not-allowed") speechBlocked = true
+  if (r === "spoken") speechUnproven = false
   return r === "spoken"
 }
 
@@ -232,16 +244,23 @@ async function speak(text: string, lang: VoiceLang, volume: number, log: string[
 export function warmSpeech() {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return
   try {
+    if (window.speechSynthesis.speaking) return
     const warm = new SpeechSynthesisUtterance(".")
     warm.volume = 0
     warm.rate = 2
-    warm.onend = () => {
-      speechBlocked = false
+    speaking.add(warm)
+    warm.onend = warm.onerror = () => {
+      speaking.delete(warm)
     }
     window.speechSynthesis.speak(warm)
   } catch {
     // no speech here: Khmer clips / the melody still play
   }
+}
+
+/** Web Audio back on (after the context was suspended for speech). */
+async function audible() {
+  if (ctx && ctx.state !== "running") await ctx.resume().catch(() => null)
 }
 
 export type AnnounceResult = "played" | "muted" | "locked" | "error"
@@ -272,12 +291,19 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
       await voicesReady()
       for (const step of audioPlan({ soundOn, unlocked: true, mode, voices: availableVoices() })) {
         if (step === "chime" || step === "melody") log.push(step)
-        if (step === "chime") await playPaymentChime(volume)
-        else if (step === "melody") await playMelody(volume)
-        else {
+        if (step === "chime") {
+          await playPaymentChime(volume)
+          // The chime has finished: the Web Audio context lets go of the audio session before the
+          // words, so iOS never has the two compete (speech is not Web Audio).
+          if (ctx.state === "running") await ctx.suspend().catch(() => null)
+        } else if (step === "melody") {
+          await audible()
+          await playMelody(volume)
+        } else {
           const lang = step.slice("speech:".length) as VoiceLang
           // Khmer: the recorded clips first (they sound the same on every phone).
           if (lang === "km" && khmerClipsReady()) {
+            await audible()
             await playKhmerClips(khmerClipSequence(e.amount, e.currency), volume)
             log.push("km:clips")
             continue
@@ -286,6 +312,7 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
           if (await speak(announcementText(e, lang), lang, volume, log)) continue
           if (lang !== "en" && (await speak(announcementText(e, "en"), "en", volume, log))) continue
           log.push("melody")
+          await audible()
           await playMelody(volume)
         }
       }

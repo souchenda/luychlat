@@ -79,6 +79,22 @@ function useWakeLock(on: boolean): WakeState | null {
   return state
 }
 
+type Db = NonNullable<ReturnType<typeof getSupabaseBrowserClient>>
+
+/**
+ * An RPC that survives an expired sign-in: a page left open for hours (iOS freezes the refresh timer
+ * while hidden) holds an old token — refreshed once and tried again, else the error is returned.
+ */
+async function rpcFresh(supabase: Db, fn: string, args: Record<string, unknown>): Promise<string | null> {
+  let { error } = await supabase.rpc(fn, args)
+  if (error && /jwt|token|401|expired/i.test(`${error.message} ${error.code ?? ""}`)) {
+    await supabase.auth.refreshSession().catch(() => null)
+    ;({ error } = await supabase.rpc(fn, args))
+  }
+  if (error) console.error(`[soundbox] ${fn}:`, error.message)
+  return error ? error.message : null
+}
+
 /** This browser's SoundBox id (one row in soundbox_devices), made once and kept. */
 function deviceId(): string | null {
   try {
@@ -99,39 +115,43 @@ function deviceId(): string | null {
  * changes — page shown or hidden, sound unlocked, live connection, wake lock. The business sees whether
  * a counter phone is ready; the owner is told on Telegram when none is (lib/server/soundbox-watch.ts).
  */
-function useHeartbeat(workspaceId: string | null, on: boolean, state: { audioOk: boolean; live: boolean; wake: WakeState | null }) {
+function useHeartbeat(workspaceId: string | null, on: boolean, state: { audioOk: boolean; live: boolean; wake: WakeState | null }): { id: string | null; error: string | null } {
   const latest = useRef(state)
   latest.current = state
+  const [error, setError] = useState<string | null>(null)
+  const [id] = useState(() => (typeof window === "undefined" ? null : deviceId()))
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
-    const id = deviceId()
     if (!supabase || !workspaceId || !id) return
     const beat = (visible = document.visibilityState === "visible") => {
       const s = latest.current
-      void supabase
-        .rpc("soundbox_heartbeat", {
-          p_device: id,
-          p_workspace: workspaceId,
-          p_state: { visible, audio_unlocked: on && isUnlocked() && s.audioOk, live: s.live, wake: s.wake, platform: devicePlatform(navigator.userAgent) },
-        })
-        .then(({ error }) => {
-          if (error) console.error("[soundbox] heartbeat:", error.message)
-        })
+      void rpcFresh(supabase, "soundbox_heartbeat", {
+        p_device: id,
+        p_workspace: workspaceId,
+        p_state: { visible, audio_unlocked: on && isUnlocked() && s.audioOk, live: s.live, wake: s.wake, platform: devicePlatform(navigator.userAgent) },
+      }).then((e) => {
+        if (visible) setError(e)
+      })
     }
     beat()
     const every = window.setInterval(() => beat(), HEARTBEAT_MS)
     const onVisibility = () => beat()
+    const onShow = () => beat()
     const onHide = () => beat(false)
     document.addEventListener("visibilitychange", onVisibility)
+    // Back from the iOS page cache: no remount — beat at once.
+    window.addEventListener("pageshow", onShow)
     window.addEventListener("pagehide", onHide)
     return () => {
       window.clearInterval(every)
       document.removeEventListener("visibilitychange", onVisibility)
+      window.removeEventListener("pageshow", onShow)
       window.removeEventListener("pagehide", onHide)
       // Leaving /soundbox: not ready any more.
       beat(false)
     }
-  }, [workspaceId, on, state.audioOk, state.live, state.wake])
+  }, [workspaceId, on, id, state.audioOk, state.live, state.wake])
+  return { id, error }
 }
 
 const MODE_LABEL: Record<SoundboxMode, string> = {
@@ -157,6 +177,7 @@ export default function SoundboxPage() {
   const codes = useWorkspaceKhqrs(counter?.id).data ?? []
   const [live, setLive] = useState<"connecting" | "live" | "down">("connecting")
   const [audioIssue, setAudioIssue] = useState<AudioIssue | null>(null)
+  const [testLog, setTestLog] = useState<string | null>(null)
   const [chosen, setChosen] = useState<string | null>(null)
   // The default on load; a tap switches at once (for the customer's bank or currency).
   const current = selectedCode(codes, chosen)
@@ -192,18 +213,19 @@ export default function SoundboxPage() {
   const settings = useRef({ soundOn: enabled, mode, volume })
   settings.current = { soundOn: enabled, mode, volume }
   const wake = useWakeLock(enabled)
-  useHeartbeat(counterId, enabled, { audioOk: audioIssue !== "locked", live: live === "live", wake })
+  const heartbeat = useHeartbeat(counterId, enabled, { audioOk: audioIssue !== "locked", live: live === "live", wake })
 
   // The first touch anywhere on the page after a reload brings the sound back (browsers allow audio
   // only after a gesture); the SoundBox itself stays on throughout.
   useEffect(() => {
     if (!enabled) return
     const wake = () => {
-      // Speech refused until a touch: this touch brings it back (the audio itself may still be fine).
+      // Speech not proven yet (or it failed): this touch primes it again — synchronously, inside the
+      // touch, which is the only moment iOS accepts it.
       if (isUnlocked()) {
         if (speechNeedsTap()) {
           warmSpeech()
-          setAudioIssue(null)
+          setAudioIssue((issue) => (issue === "voice" ? null : issue))
         }
         return
       }
@@ -233,10 +255,7 @@ export default function SoundboxPage() {
     setEvents(next)
     const report = (log: string[]) => {
       const supabase = getSupabaseBrowserClient()
-      if (supabase)
-        void supabase.rpc("soundbox_report", { p_event: added.id, p_log: [...received, ...log].join(" ").slice(0, 500), p_ua: navigator.userAgent.slice(0, 200) }).then(({ error }) => {
-          if (error) console.error("[soundbox] report:", error.message)
-        })
+      if (supabase) void rpcFresh(supabase, "soundbox_report", { p_event: added.id, p_log: [...received, ...log].join(" ").slice(0, 500), p_ua: navigator.userAgent.slice(0, 200) })
     }
     // A late push (the bank's time over 10 minutes before the server got it): listed only — never rung,
     // spoken or flashed, an hours-old chime would look like a customer paying now (founder, 14/10/2026).
@@ -337,7 +356,11 @@ export default function SoundboxPage() {
   return (
     <div className="space-y-4">
       <SettingsSubHeader title={t("soundbox.title")} back="/home" />
-      <SoundboxStatus workspaceId={counterId} />
+      {/* This phone's own state (never «not connected» about itself while it is the SoundBox), then the business's other phones. */}
+      <SoundboxStatus
+        workspaceId={counterId}
+        self={{ id: heartbeat.id, ready: enabled && audioIssue !== "locked" && live === "live" && isUnlocked(), error: heartbeat.error }}
+      />
 
       {/* Never silent without saying so: the sound held by the phone, or the live connection down. */}
       {audioIssue && (
@@ -429,13 +452,18 @@ export default function SoundboxPage() {
             variant="outline"
             onClick={async () => {
               await unlockAudio()
-              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100).then((r) => setAudioIssue(audioIssueOf(r)))
+              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100).then((r) => {
+                setAudioIssue(audioIssueOf(r))
+                // What the phone did, on screen: «visible chime km:timeout … en:spoken».
+                setTestLog(r.log.join(" "))
+              })
             }}
           >
             <PlayIcon />
             {t("soundbox.test")}
           </Button>
         </div>
+        {testLog && <p className="mt-2 font-mono text-xs break-words text-muted-foreground">{testLog}</p>}
       </Card>
 
       {/* The workspace's KHQR, large, for the customer to scan — switch bank / currency with one tap. */}

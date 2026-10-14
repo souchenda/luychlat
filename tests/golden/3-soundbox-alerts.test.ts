@@ -46,7 +46,7 @@ describe("GOLDEN 3 · SoundBox alerts", () => {
     assert.doesNotMatch(src, /new SpeechSynthesisUtterance\(" "\)/)
     assert.match(src, /log\.push\(`\$\{lang\}:retry:\$\{r\}`\)/)
     const page = readFileSync(join(process.cwd(), "src", "app", "(app)", "soundbox", "page.tsx"), "utf8")
-    assert.match(page, /rpc\("soundbox_report"/)
+    assert.match(page, /rpcFresh\(supabase, "soundbox_report"/)
     assert.match(page, /setAudioIssue\(audioIssueOf\(r\)\)/)
   })
   it("a late push (bank time over 10 min before the server got it) is listed, never rung, spoken, flashed or pushed (founder, 14/10/2026)", () => {
@@ -58,8 +58,19 @@ describe("GOLDEN 3 · SoundBox alerts", () => {
   it("the counter phone's heartbeat runs on /soundbox, and the dispatcher watches for a phone gone during business hours", () => {
     const page = readFileSync(join(process.cwd(), "src", "app", "(app)", "soundbox", "page.tsx"), "utf8")
     assert.match(page, /useHeartbeat\(counterId, enabled/)
-    assert.match(page, /rpc\("soundbox_heartbeat"/)
+    assert.match(page, /rpcFresh\(supabase, "soundbox_heartbeat"/)
     const dispatch = readFileSync(join(process.cwd(), "src", "lib", "server", "bot-dispatch.ts"), "utf8")
     assert.match(dispatch, /await soundboxWatchTick\(\)/)
+  })
+  it("iPhone speech: primed synchronously inside the tap (before any await), re-primed on every tap until a payment is spoken, and the audio context lets go between the chime and the words (founder, 14/10/2026 — the 17:40 payment chimed without words)", () => {
+    const src = readFileSync(join(process.cwd(), "src", "lib", "soundbox-audio.ts"), "utf8")
+    const unlock = src.slice(src.indexOf("export async function unlockAudio"))
+    assert.ok(unlock.indexOf("warmSpeech()") > 0 && unlock.indexOf("warmSpeech()") < unlock.indexOf("await ctx"), "warmSpeech must run before the first await")
+    assert.match(src, /await playPaymentChime\(volume\)\s*\/\/[^\n]*\n[\s\S]{0,200}?ctx\.suspend\(\)/)
+    assert.match(src, /speaking\.add\(u\)/)
+    const page = readFileSync(join(process.cwd(), "src", "app", "(app)", "soundbox", "page.tsx"), "utf8")
+    assert.match(page, /if \(speechNeedsTap\(\)\) \{\s*warmSpeech\(\)/)
+    // The page never shows «not connected» about itself.
+    assert.match(page, /<SoundboxStatus\s+workspaceId=\{counterId\}\s+self=\{/)
   })
 })

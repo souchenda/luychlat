@@ -16,7 +16,18 @@ const ictTime = (iso: string) => new Date(Date.parse(iso) + 7 * 3_600_000).toISO
  * counter phones from their heartbeat (founder, 14/10/2026). Hidden for a business that has never
  * opened the SoundBox (no device in 7 days).
  */
-export function SoundboxStatus({ workspaceId, link = false, className }: { workspaceId: string | null | undefined; link?: boolean; className?: string }) {
+export function SoundboxStatus({
+  workspaceId,
+  link = false,
+  className,
+  self,
+}: {
+  workspaceId: string | null | undefined
+  link?: boolean
+  className?: string
+  /** On /soundbox: this phone — its own live state, not the database's view of it; its heartbeat error if any. */
+  self?: { id: string | null; ready: boolean; error: string | null }
+}) {
   const t = useT()
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -41,7 +52,24 @@ export function SoundboxStatus({ workspaceId, link = false, className }: { works
       return (data ?? []) as SoundboxDevice[]
     },
   })
-  const list = devices.data ?? []
+  const list = (devices.data ?? []).filter((d) => d.id !== self?.id)
+  if (self) {
+    // This phone is the SoundBox: its own state; a heartbeat that didn't save is said (alerts depend on it).
+    const failed = self.error ? (
+      <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+        {t("soundbox.heartbeatFailed", { error: self.error.slice(0, 120) })}
+      </p>
+    ) : null
+    if (!self.ready) return failed // not ready here yet: the page's own buttons say what to do — no red banner about itself
+    return (
+      <div className="space-y-2">
+        <p role="status" className={cn("rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-900 dark:text-emerald-200", className)}>
+          {t("soundbox.statusThisPhone")}
+        </p>
+        {failed}
+      </div>
+    )
+  }
   if (!list.length) return null
   const ready = list.find((d) => deviceReady(d, now))
   const lastReady = list.map((d) => d.last_ready_at).filter((x): x is string => Boolean(x)).sort().at(-1)
