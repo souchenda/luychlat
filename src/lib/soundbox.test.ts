@@ -159,6 +159,19 @@ describe("SoundBox — screen wake lock", () => {
   })
 })
 
+describe("SoundBox — the screen wake lock says whether it holds", () => {
+  const doc = () => ({ visibilityState: "visible", addEventListener: () => {}, removeEventListener: () => {} })
+  const tick = () => new Promise((r) => setTimeout(r, 0))
+  it("on / unsupported / denied — so the page can ask for the phone's own screen timeout", async () => {
+    const states: string[] = []
+    keepScreenAwake({ wakeLock: { request: async () => ({ release: async () => {} }) } }, doc(), (s) => states.push(s))
+    keepScreenAwake({}, doc(), (s) => states.push(s))
+    keepScreenAwake({ wakeLock: { request: async () => Promise.reject(new Error("NotAllowedError")) } }, doc(), (s) => states.push(s))
+    await tick()
+    assert.deepEqual(states.sort(), ["denied", "on", "unsupported"])
+  })
+})
+
 describe("SoundBox — Khmer from recorded clips (no Khmer voice on iPhones)", () => {
   it("the clips spell the same words as the Khmer text", () => {
     assert.deepEqual(khmerClipSequence(20_000, "KHR"), ["received", "2", "meun", "riel"])

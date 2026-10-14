@@ -27,6 +27,7 @@ import {
   todayTotals,
   writeSoundboxEnabled,
   type AudioIssue,
+  type WakeState,
   type SoundboxEvent,
   type SoundboxMode,
 } from "@/lib/soundbox"
@@ -62,8 +63,16 @@ const keep = (key: string, value: string) => {
 }
 
 /** Keeps the counter phone's screen on while the SoundBox is active (keepScreenAwake, re-taken when the page is shown again). */
-function useWakeLock(on: boolean) {
-  useEffect(() => (on ? keepScreenAwake(navigator as Parameters<typeof keepScreenAwake>[0], document) : undefined), [on])
+function useWakeLock(on: boolean): WakeState | null {
+  const [state, setState] = useState<WakeState | null>(null)
+  useEffect(() => {
+    if (!on) {
+      setState(null)
+      return
+    }
+    return keepScreenAwake(navigator as Parameters<typeof keepScreenAwake>[0], document, setState)
+  }, [on])
+  return state
 }
 
 const MODE_LABEL: Record<SoundboxMode, string> = {
@@ -123,7 +132,7 @@ export default function SoundboxPage() {
   const [flash, setFlash] = useState<SoundboxEvent | null>(null)
   const settings = useRef({ soundOn: enabled, mode, volume })
   settings.current = { soundOn: enabled, mode, volume }
-  useWakeLock(enabled)
+  const wake = useWakeLock(enabled)
 
   // The first touch anywhere on the page after a reload brings the sound back (browsers allow audio
   // only after a gesture); the SoundBox itself stays on throughout.
@@ -264,6 +273,10 @@ export default function SoundboxPage() {
           <VolumeXIcon className="size-5 shrink-0" aria-hidden />
           {t(audioIssue === "locked" ? "soundbox.audioLocked" : audioIssue === "voice" ? "soundbox.voiceFailed" : "soundbox.audioError")}
         </button>
+      )}
+      {/* The phone won't keep the screen on by itself: say how to, instead of a SoundBox that goes dark. */}
+      {enabled && (wake === "unsupported" || wake === "denied") && (
+        <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-200">{t("soundbox.screenTimeout")}</p>
       )}
       {live === "down" && (
         <p className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-200">

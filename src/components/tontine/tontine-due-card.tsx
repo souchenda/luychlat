@@ -3,6 +3,7 @@
 import { BellRingIcon, ChevronRightIcon } from "lucide-react"
 import Link from "next/link"
 
+import { WidgetRetry } from "@/components/common/widget-retry"
 import { useTontinePayments, useTontines } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
@@ -13,9 +14,15 @@ import { DueText } from "./tontine-list"
 /** Home reminder: tontine rounds due within 2 days (or overdue). Hidden otherwise. */
 export function TontineDueCard({ workspaceId }: { workspaceId: string | undefined }) {
   const t = useT()
-  const tontines = useTontines(workspaceId).data ?? []
-  const payments = useTontinePayments(workspaceId).data ?? []
+  const tontinesQuery = useTontines(workspaceId)
+  const paymentsQuery = useTontinePayments(workspaceId)
+  const tontines = tontinesQuery.data ?? []
+  const payments = paymentsQuery.data ?? []
   const due = dueTontines(tontines, payments)
+  // Without the payments a paid round would look due (or a due one missed): retry in place, never a guess.
+  const failed = (tontinesQuery.isError && !tontinesQuery.data) || (paymentsQuery.isError && !paymentsQuery.data)
+  if (failed && (tontines.length > 0 || !tontinesQuery.data))
+    return <WidgetRetry name={t("tontine.title")} onRetry={() => Promise.all([tontinesQuery.refetch(), paymentsQuery.refetch()])} />
   if (due.length === 0) return null
 
   return (

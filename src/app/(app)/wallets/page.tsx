@@ -101,7 +101,7 @@ export default function WalletsPage() {
         )}
       </div>
 
-      <NetWorthCard wallets={all} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} />
+      <NetWorthCard wallets={all} loading={walletsQuery.isLoading} assetsUsd={assets.totalUsd} gaps={assets.gaps} onRetryGaps={assets.retry} />
 
       <div className={editable ? "grid grid-cols-2 gap-2" : "hidden"}>
         <Button className="h-11" onClick={openCreate}>

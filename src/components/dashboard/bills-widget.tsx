@@ -1,6 +1,7 @@
 "use client"
 
 import { PartyAvatar } from "@/components/common/party-avatar"
+import { WidgetRetry } from "@/components/common/widget-retry"
 import { billCategory } from "@/lib/institution-logos"
 import { useLocaleStore } from "@/stores/locale-store"
 import { formatDuration, formatOverdue } from "@/lib/format"
@@ -19,12 +20,15 @@ export function BillsWidget({ workspaceId }: { workspaceId: string | undefined }
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const hidden = usePrefsStore((s) => s.hideBalances)
-  const soon = (useBills(workspaceId).data ?? [])
+  const billsQuery = useBills(workspaceId)
+  const soon = (billsQuery.data ?? [])
     .filter((b) => b.is_active)
     .map((b) => ({ bill: b, due: nextDue(b), left: daysUntil(nextDue(b)) }))
     .filter((r) => r.left <= 7)
     .sort((a, b) => a.left - b.left)
     .slice(0, 3)
+  // Failed to load: said in place with a retry — a bill due soon must never just vanish.
+  if (billsQuery.isError && !billsQuery.data) return <WidgetRetry name={t("bills.title")} onRetry={() => billsQuery.refetch()} />
   if (!soon.length) return null
   return (
     <section className="space-y-2">

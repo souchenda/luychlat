@@ -4,6 +4,7 @@ import { ChevronRightIcon, TargetIcon } from "lucide-react"
 import Link from "next/link"
 import { useMemo } from "react"
 
+import { WidgetRetry } from "@/components/common/widget-retry"
 import { Card } from "@/components/ui/card"
 import { summarizeBudgets } from "@/lib/budgets"
 import { useBudgets } from "@/lib/data/hooks"
@@ -36,6 +37,7 @@ export function BudgetHomeCard({
     [budgets.data, categories, monthTransactions, khrPerUsd, currency],
   )
   if (budgets.isLoading) return null
+  if (budgets.isError && !budgets.data) return <WidgetRetry name={t("budget.title")} onRetry={() => budgets.refetch()} />
 
   // No budget yet: show nothing (Home stays data-only; the "Budget" link above opens the planner).
   if (!summary.lines.length) return null

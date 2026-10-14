@@ -1,11 +1,12 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon, HomeIcon, type LucideIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, HomeIcon, RotateCwIcon, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 
 import { Amount } from "@/components/money/amount"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { AssetGap } from "@/lib/asset-gaps"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
 import { convert, roundMoney } from "@/lib/money"
@@ -55,6 +56,8 @@ export function NetWorthCard({
   liabilitiesUsd = 0,
   actions,
   footer,
+  gaps = [],
+  onRetryGaps,
 }: {
   wallets: Wallet[] | undefined
   loading?: boolean
@@ -63,6 +66,9 @@ export function NetWorthCard({
   liabilitiesUsd?: number
   actions?: ReactNode
   footer?: ReactNode
+  /** Assets that could not be counted (useAssetsTotal().gaps): said under the total, never a silent $0. */
+  gaps?: AssetGap[]
+  onRetryGaps?: () => void
 }) {
   const t = useT()
   const { hideBalances, toggleHideBalances, khrPerUsd } = usePrefsStore()
@@ -122,6 +128,16 @@ export function NetWorthCard({
               </span>
             )}
           </div>
+          {!loading && gaps.length > 0 && (
+            <button
+              type="button"
+              onClick={onRetryGaps}
+              className="mt-2 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-amber-400/25 px-2.5 py-1 text-left text-xs font-medium text-white ring-1 ring-amber-200/40"
+            >
+              <span>{t("netWorth.notCounted", { items: gaps.map((g) => t(`assetGap.${g}`)).join(", ") })}</span>
+              {onRetryGaps && <RotateCwIcon className="size-3.5 shrink-0" aria-label={t("widget.retry")} />}
+            </button>
+          )}
           {/* Loans: their own line — what is owed, and what is left after it (the headline stays the total held). */}
           {!loading && liabilitiesUsd > 0 && (
             <div className="mt-2.5 space-y-0.5 text-xs tabular-nums text-white/90">

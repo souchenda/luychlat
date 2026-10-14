@@ -243,27 +243,46 @@ export function receiveEvent(list: SoundboxEvent[], row: Record<string, unknown>
   return { list: [e, ...list], added: e }
 }
 
-type Sentinel = { release: () => Promise<void> }
+type Sentinel = { release: () => Promise<void>; addEventListener?: (t: "release", f: () => void) => void }
 type WakeNavigator = { wakeLock?: { request: (type: "screen") => Promise<Sentinel> } }
 type WakeDocument = { visibilityState: string; addEventListener: (t: "visibilitychange", f: () => void) => void; removeEventListener: (t: "visibilitychange", f: () => void) => void }
 
+/** The counter screen: kept on, not supported by this browser, or refused (battery saver, an old iOS home-screen app). */
+export type WakeState = "on" | "unsupported" | "denied"
+
 /**
  * Keeps the counter screen on: a screen wake lock now, taken again whenever the page becomes visible
- * (the browser drops it when the tab is hidden). Returns the stop function; a browser without the
- * API (or one that refuses) simply doesn't lock.
+ * (the browser drops it when the tab is hidden) and when the system lets it go while the page is still
+ * shown. Returns the stop function. `onState` says whether it holds — so the page can tell the cashier
+ * to set the phone's own screen timeout when it can't (never a silent «the screen went dark»).
  */
-export function keepScreenAwake(nav: WakeNavigator, doc: WakeDocument): () => void {
+export function keepScreenAwake(nav: WakeNavigator, doc: WakeDocument, onState?: (s: WakeState) => void): () => void {
   let lock: Sentinel | null = null
   let stopped = false
   const take = () => {
-    if (stopped || !nav.wakeLock) return
+    if (stopped) return
+    if (!nav.wakeLock) {
+      onState?.("unsupported")
+      return
+    }
     void nav.wakeLock
       .request("screen")
       .then((l) => {
-        if (stopped) void l.release().catch(() => null)
-        else lock = l
+        if (stopped) {
+          void l.release().catch(() => null)
+          return
+        }
+        lock = l
+        onState?.("on")
+        // Released by the system (battery saver, the screen turned off by hand) while the page is shown: take it again.
+        l.addEventListener?.("release", () => {
+          if (lock === l) lock = null
+          if (!stopped && doc.visibilityState === "visible") setTimeout(take, 1_000)
+        })
       })
-      .catch(() => null)
+      .catch(() => {
+        if (!stopped) onState?.("denied")
+      })
   }
   const onShow = () => {
     if (doc.visibilityState === "visible") take()
@@ -273,8 +292,9 @@ export function keepScreenAwake(nav: WakeNavigator, doc: WakeDocument): () => vo
   return () => {
     stopped = true
     doc.removeEventListener("visibilitychange", onShow)
-    void lock?.release().catch(() => null)
+    const held = lock
     lock = null
+    void held?.release().catch(() => null)
   }
 }
 

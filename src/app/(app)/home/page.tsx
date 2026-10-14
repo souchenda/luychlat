@@ -164,6 +164,8 @@ export default function HomePage() {
         wallets={walletsQuery.data}
         loading={walletsQuery.isLoading}
         assetsUsd={assets.totalUsd}
+        gaps={assets.gaps}
+        onRetryGaps={assets.retry}
         liabilitiesUsd={liabilities}
         // NBC $1 = …៛ · gold per damlung, inside the bottom of the card — opens /market.
         footer={<MarketRatesCard />}
