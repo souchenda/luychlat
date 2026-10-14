@@ -29,7 +29,7 @@ export const TIPS: Tip[] = [
     topic: "saving",
     title: { km: "ច្បាប់ ៥០/៣០/២០", en: "The 50/30/20 rule" },
     body: {
-      km: "ចែកប្រាក់ចំណូល៖ ៥០% សម្រាប់អ្វីដែលចាំបាច់ (ផ្ទះ អាហារ ធ្វើដំណើរ) ៣០% សម្រាប់អ្វីដែលចង់បាន និង ២០% សម្រាប់សន្សំ ឬសងបំណុល។",
+      km: "ចែកប្រាក់ចំណូល៖ ៥០% សម្រាប់អ្វីដែលចាំបាច់ (ផ្ទះ អាហារ ធ្វើដំណើរ) ៣០% សម្រាប់អ្វីដែលចង់បាន និង ២០% សម្រាប់សន្សំ ឬសងបំណុល។ ចាប់ផ្តើមពីខែនេះ — កំណត់ថវិកាតាមប្រភេទក្នុងអេប លុយឆ្លាត ហើយមើលថាបងនៅក្នុងចន្លោះនេះឬទេ។",
       en: "Split your income: 50% for needs (rent, food, transport), 30% for wants, and 20% for saving or paying off debt.",
     },
   },
@@ -112,7 +112,7 @@ export const TIPS: Tip[] = [
     topic: "debt",
     title: { km: "សងការប្រាក់ខ្ពស់មុន", en: "Highest interest first" },
     body: {
-      km: "បង់ចំនួនអប្បបរមាគ្រប់បំណុល ហើយដាក់លុយលើសទៅបំណុលដែលការប្រាក់ខ្ពស់ជាងគេ — វិធីនេះសន្សំការប្រាក់បានច្រើនជាងគេ។",
+      km: "បង់ចំនួនអប្បបរមាគ្រប់បំណុល ហើយដាក់លុយលើសទៅបំណុលដែលការប្រាក់ខ្ពស់ជាងគេ។ វិធីនេះសន្សំការប្រាក់បានច្រើនជាងគេ ហើយរួចបំណុលលឿនជាង។",
       en: "Pay the minimum on every debt and put any extra on the one with the highest interest — this saves the most interest.",
     },
   },
@@ -166,9 +166,9 @@ export const TIPS: Tip[] = [
   {
     id: "card-pay-full",
     topic: "credit",
-    title: { km: "បង់ប័ណ្ណឥណទានពេញចំនួន", en: "Pay your card in full" },
+    title: { km: "បង់ប័ណ្ណឥណទានឱ្យគ្រប់ចំនួន", en: "Pay your card in full" },
     body: {
-      km: "បង់សមតុល្យប័ណ្ណឥណទានទាំងអស់ មុនថ្ងៃកំណត់ ដើម្បីកុំឱ្យមានការប្រាក់។ បង់តែអប្បបរមា ធ្វើឱ្យការប្រាក់កើនរៀងរាល់ខែ។",
+      km: "កុំបង់ត្រឹមតែចំនួនអប្បបរមា (Minimum Due) ព្រោះការប្រាក់កើនឡើងរាល់ថ្ងៃ។ បង់ឱ្យគ្រប់ចំនួនជារៀងរាល់ខែ ដើម្បីកុំឱ្យធ្លាក់ក្នុងអន្ទាក់បំណុល។",
       en: "Pay the full card balance before the due date to avoid interest. Paying only the minimum lets interest grow every month.",
     },
   },
@@ -233,7 +233,7 @@ export const TIPS: Tip[] = [
     topic: "business",
     title: { km: "គិតតម្លៃលក់ឱ្យគ្រប់ថ្លៃដើម", en: "Price to cover every cost" },
     body: {
-      km: "តម្លៃលក់ត្រូវគ្របដណ្ដប់ថ្លៃទំនិញ ថ្លៃជួល ទឹកភ្លើង ប្រាក់ខែ និងដឹកជញ្ជូន — មិនមែនតែថ្លៃទិញទំនិញនោះទេ។",
+      km: "តម្លៃលក់ត្រូវគ្របដណ្ដប់ថ្លៃទំនិញ ថ្លៃជួល ទឹកភ្លើង ប្រាក់ខែ និងដឹកជញ្ជូន — មិនមែនតែថ្លៃទិញទំនិញនោះទេ។ គណនាថ្លៃដើមពិតម្ដងក្នុងមួយខែ ហើយបន្ថែមប្រាក់ចំណេញលើវា។",
       en: "Your price must cover stock, rent, utilities, wages and delivery — not only what you paid for the goods.",
     },
   },
@@ -242,7 +242,7 @@ export const TIPS: Tip[] = [
     topic: "business",
     title: { km: "ទុកប្រាក់បម្រុងសម្រាប់ហាង", en: "Keep a business buffer" },
     body: {
-      km: "ទុកប្រាក់គ្រប់គ្រាន់សម្រាប់ចំណាយ ១-២ ខែ (ជួល ប្រាក់ខែ ទឹកភ្លើង) ពេលលក់មិនដាច់ ឬរដូវស្ងាត់។",
+      km: "ទុកប្រាក់គ្រប់គ្រាន់សម្រាប់ចំណាយ ១-២ ខែ (ជួល ប្រាក់ខែ ទឹកភ្លើង) ពេលលក់មិនដាច់ ឬរដូវស្ងាត់។ ដាក់វាក្នុងគណនីដាច់ដោយឡែក កុំយកមកប្រើក្នុងការលក់ប្រចាំថ្ងៃ។",
       en: "Keep enough for 1–2 months of fixed costs (rent, wages, utilities) for slow seasons.",
     },
   },
@@ -251,7 +251,7 @@ export const TIPS: Tip[] = [
     topic: "business",
     title: { km: "ផ្ទៀងផ្ទាត់ជាមួយរបាយការណ៍ធនាគារ", en: "Match your bank statement" },
     body: {
-      km: "ម្ដងក្នុងមួយខែ នាំចូលរបាយការណ៍ ABA ឬ ACLEDA ដើម្បីប្រាកដថាគ្មានប្រតិបត្តិការណាមួយបាត់។",
+      km: "ម្ដងក្នុងមួយខែ នាំចូលរបាយការណ៍ ABA ឬ ACLEDA ដើម្បីប្រាកដថាគ្មានប្រតិបត្តិការណាមួយបាត់។ សមតុល្យក្នុងអេបដែលត្រូវនឹងធនាគារ ធ្វើឱ្យរបាយការណ៍ និងពន្ធត្រឹមត្រូវ។",
       en: "Once a month, import your ABA or ACLEDA statement to make sure no transaction is missing.",
     },
   },

@@ -18,6 +18,8 @@
 // Buttons carry the version they were shown with: a tap on an older preview
 // (after an edit here or in the app) refreshes it instead of approving.
 import { TIP_BODY_MAX, TIP_TITLE_MAX, defaultTip, nextTip } from "@/lib/daily-tip"
+import { needsFounderApproval, tipTextIssues } from "@/lib/tip-quality"
+import { TIPS } from "@/lib/tips"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
@@ -37,6 +39,11 @@ export type DailyTip = {
   previews: { chat: number; msg: number; prompt?: boolean; v?: number }[]
   /** Approved by the system at the 12:00 cut-off (nobody approved it). */
   auto_approved?: boolean
+  /** A «✏️ កែអត្ថបទ» reply waiting for ✅ / ❌ — never applied before. */
+  pending_edit?: { title: string; body: string } | null
+  /** The channel post's message and the version it shows (a corrected tip is edited into it). */
+  posted_message_id?: number | null
+  posted_version?: number | null
 }
 
 const PREVIEW = { from: 10 * 60 + 30, until: 12 * 60 }
@@ -58,11 +65,12 @@ export function tipCaption(t: Pick<DailyTip, "title" | "body">): string {
 }
 
 /** The status line on the private preview. */
-export function statusLine(t: Pick<DailyTip, "status" | "day" | "auto_approved">, today: string, locked: boolean): string {
+export function statusLine(t: Pick<DailyTip, "status" | "day" | "auto_approved" | "tip_id" | "title" | "body">, today: string, locked: boolean): string {
   if (t.status === "POSTED") return t.auto_approved ? "📢 បានចេញផ្សាយដោយស្វ័យប្រវត្តិ (គ្មានការអនុម័តមុនម៉ោង ១២:០០)។" : "📢 បានចេញផ្សាយរួចហើយ។"
   if (t.status === "SKIPPED") return "❌ បានផ្អាកថ្ងៃនេះ — មិនផ្សាយទេ។"
   const when = t.day === today ? "នៅម៉ោង ១២:០០ ថ្ងៃត្រង់" : `ថ្ងៃ ${kmDigits(t.day.split("-").reverse().join("/"))} ម៉ោង ១២:០០`
   if (t.status === "APPROVED") return t.auto_approved ? `✅ អនុម័តដោយស្វ័យប្រវត្តិ — កំពុងចេញផ្សាយ។` : `✅ បានអនុម័ត! នឹងចេញផ្សាយ${when}។`
+  if (needsFounderApproval(t, TIPS)) return `⚠️ អត្ថបទត្រូវបានកែ ឬមិនទាន់ពេញលេញ — មិនផ្សាយដោយស្វ័យប្រវត្តិទេ។ ចុច «✅ អនុម័តផ្សាយ» ដើម្បីផ្សាយ${when}។`
   if (locked) return "⏰ ផុតម៉ោង ១២:០០ — កំពុងចេញផ្សាយដោយស្វ័យប្រវត្តិ។"
   return `⏳ រង់ចាំការពិនិត្យ — បើគ្មានការកែ ឬផ្អាកមុនម៉ោង ១២:០០ នឹងចេញផ្សាយដោយស្វ័យប្រវត្តិ${when}។`
 }
@@ -84,14 +92,22 @@ export function previewCaption(t: DailyTip, today: string, locked: boolean): str
 type Button = { text: string; callback_data: string }
 /** Buttons for the preview: tq:<yyyymmdd>:<version>:<a|n|s|d>. */
 export function previewKeyboard(t: DailyTip, locked: boolean): Button[][] {
-  if (t.status === "POSTED" || locked) return []
   const data = (action: string) => `tq:${t.day.replace(/-/g, "")}:${t.version}:${action}`
+  // Held for the founder (edited / flagged — never auto-published): ✅ stays until 13:00.
+  if (locked && heldForFounder(t)) return [[{ text: "✅ អនុម័តផ្សាយ", callback_data: data("a") }], [{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: data("s") }]]
+  if (t.status === "POSTED" || locked) return []
   const edit = { text: "✏️ កែអត្ថបទ", callback_data: data("e") }
   const fresh = { text: "🔄 ប្តូរគន្លឹះថ្មី", callback_data: data("n") }
   const skip = { text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: data("s") }
   if (t.status === "APPROVED") return [[edit, fresh], [skip]]
   if (t.status === "SKIPPED") return [[{ text: "↩️ បើកវិញ (ពិនិត្យម្ដងទៀត)", callback_data: data("d") }]]
   return [[{ text: "✅ អនុម័តផ្សាយ", callback_data: data("a") }], [edit, fresh], [skip]]
+}
+
+/** An edited or flagged tip still waiting today, before the 13:00 end of the post step. */
+function heldForFounder(t: DailyTip) {
+  const now = phnomPenhToday()
+  return t.status === "DRAFT" && t.day === now.day && now.hour < 13 && needsFounderApproval(t, TIPS)
 }
 
 /** Is today's 12:00 cut-off past for this day? */
@@ -201,9 +217,26 @@ async function getTip(day: string): Promise<DailyTip | null> {
   return t?.day ? t : null
 }
 
+/**
+ * A published tip corrected afterwards (its version above the one the channel shows — a fix made in the
+ * database by the founder's request) is edited into the same channel post: the poster and the caption,
+ * once. Never a second post.
+ */
+async function republishCorrected(day: string) {
+  const t = await getTip(day)
+  if (!t || t.status !== "POSTED" || !t.posted_message_id || (t.posted_version ?? t.version) >= t.version) return
+  const chat = communityChat()
+  if (!chat) return
+  const msg = await photo(chat, await posterFor(t), tipCaption(t), { messageId: t.posted_message_id, ...(await getChannelPostButtons()) })
+  if (!msg) return logEvent("error", "daily-tip", `Correcting the published tip (v${t.version}) failed — will retry next minute`, { fold: true })
+  await botDb().rpc("bot_tip_republished", { p_key: botKey(), p_day: day, p_version: t.version })
+  logEvent("info", "daily-tip", `Published tip corrected in place (v${t.posted_version ?? "?"} → v${t.version})`)
+}
+
 /** Called every minute by the dispatcher. */
 export async function dailyTipTick() {
   const now = phnomPenhToday()
+  await republishCorrected(now.day)
   const phase = tipWindow(now.hour * 60 + now.minute)
   if (!phase) return
   const db = botDb()
@@ -236,7 +269,12 @@ export async function dailyTipTick() {
     const tip = await pickTip(now.day)
     await db.rpc("bot_tip_ensure", { p_key: botKey(), p_day: now.day, p_tip_id: tip.id, p_title: tip.title.km, p_body: tip.body.km })
   }
-  const { data: auto } = await db.rpc("bot_tip_auto_approve", { p_key: botKey() })
+  // Strict review: an edited or flagged tip is never approved by the system — only the founder's ✅.
+  const waiting = await getTip(now.day)
+  const strict = waiting?.status === "DRAFT" && needsFounderApproval(waiting, TIPS)
+  if (strict && (await claim("tip-strict-notice", now.day)))
+    logEvent("warn", "daily-tip", `Tip v${waiting.version} was edited or flagged — not auto-published; waiting for the founder's ✅`)
+  const { data: auto } = strict ? { data: null } : await db.rpc("bot_tip_auto_approve", { p_key: botKey() })
   if ((auto as DailyTip | null)?.day) logEvent("info", "daily-tip", `No approval by 12:00 — tip v${(auto as DailyTip).version} approved by the system`)
   const { data } = await db.rpc("bot_tip_claim_post", { p_key: botKey() })
   const t = data as DailyTip | null
@@ -259,7 +297,7 @@ type Callback = { id: string; data?: string; message?: { message_id: number; cha
 /** A preview button: approve / new tip / skip / reopen — from a super admin's chat only. */
 export async function handleTipCallback(cb: Callback) {
   const answer = (text?: string, alert = false) => tg("answerCallbackQuery", { callback_query_id: cb.id, ...(text ? { text: text.slice(0, 190), show_alert: alert } : {}) })
-  const m = /^tq:(\d{4})(\d{2})(\d{2}):(\d+):([ansde])$/.exec(cb.data ?? "")
+  const m = /^tq:(\d{4})(\d{2})(\d{2}):(\d+):([ansdeck])$/.exec(cb.data ?? "")
   const chatId = cb.message?.chat.id
   if (!m || !chatId || cb.message?.chat.type !== "private") return answer()
   const day = `${m[1]}-${m[2]}-${m[3]}`
@@ -268,6 +306,23 @@ export async function handleTipCallback(cb: Callback) {
   const current = await getTip(day)
   if (!current) return answer("រកមិនឃើញគន្លឹះនេះទេ។", true)
   if (action === "e") return askForText(chatId, current, cb.message!.message_id, answer)
+  // The «✏️» proposal: ✅ applies exactly the previewed text, ❌ drops it.
+  if (action === "k") {
+    await botDb().rpc("bot_tip_set_pending", { p_key: botKey(), p_day: day, p_pending: null })
+    await tg("editMessageReplyMarkup", { chat_id: chatId, message_id: cb.message!.message_id, reply_markup: { inline_keyboard: [] } })
+    return answer("❌ មិនបានកែទេ — អត្ថបទដើមនៅដដែល")
+  }
+  if (action === "c") {
+    const proposal = current.pending_edit
+    if (!proposal?.body) return answer("រកមិនឃើញការកែនេះទេ (ឬបានប្រើរួច)។", true)
+    const { data, error } = await botDb().rpc("bot_tip_action", { p_key: botKey(), p_chat_id: chatId, p_day: day, p_action: "save", p_title: proposal.title, p_body: proposal.body })
+    if (error) return answer(/already_posted/.test(error.message) ? "បានចេញផ្សាយរួចហើយ។" : "មិនអាចរក្សាទុកបានទេ។", true)
+    await botDb().rpc("bot_tip_set_pending", { p_key: botKey(), p_day: day, p_pending: null })
+    await tg("editMessageReplyMarkup", { chat_id: chatId, message_id: cb.message!.message_id, reply_markup: { inline_keyboard: [] } })
+    await answer("✅ បានប្រើអត្ថបទថ្មី")
+    await refreshPreviews(data as DailyTip, true)
+    return
+  }
   // An older preview (edited since, here or in the app): show the current version instead.
   if (current.version !== version && action !== "d") {
     await refreshPreviews(current, true)
@@ -338,16 +393,33 @@ export async function handleTipReply(chatId: number, replyTo: number, text: stri
     await tg("sendMessage", { chat_id: chatId, text: "ℹ️ សារនេះមិនបានកែគន្លឹះទេ។ ដើម្បីកែអត្ថបទ សូមចុច «✏️ កែអត្ថបទ» នៅក្រោមរូបមើលជាមុន។", reply_to_message_id: replyTo })
     return true
   }
+  if (current.status === "POSTED") {
+    await tg("sendMessage", { chat_id: chatId, text: "បានចេញផ្សាយរួចហើយ — មិនអាចកែតាមនេះបានទេ។", reply_to_message_id: replyTo })
+    return true
+  }
   const lines = text.trim().split(/\n+/).map((l) => l.trim()).filter(Boolean)
   const title = (lines.length > 1 ? lines[0] : current.title).slice(0, TIP_TITLE_MAX)
   const body = (lines.length > 1 ? lines.slice(1).join("\n") : lines[0] ?? "").slice(0, TIP_BODY_MAX)
   if (!body) return true
-  const { data, error } = await db.rpc("bot_tip_action", { p_key: botKey(), p_chat_id: chatId, p_day: day, p_action: "save", p_title: title, p_body: body })
-  if (error) {
-    await tg("sendMessage", { chat_id: chatId, text: /already_posted/.test(error.message) ? "បានចេញផ្សាយរួចហើយ — មិនអាចកែបានទេ។" : /super admin/.test(error.message) ? "សម្រាប់ Super Admin ប៉ុណ្ណោះ។" : "មិនអាចរក្សាទុកបានទេ។", reply_to_message_id: replyTo })
-    return true
-  }
-  await refreshPreviews(data as DailyTip, true)
-  await tg("sendMessage", { chat_id: chatId, text: "✏️ បានកែ (កំណែថ្មី) — សូមពិនិត្យ ហើយចុច «✅ អនុម័តផ្សាយ» ម្ដងទៀត។", reply_to_message_id: replyTo })
+  // Never applied as typed (founder, 14/10/2026 — a comment once became the published tip): the exact
+  // result is shown first, with any problems, and only ✅ applies it.
+  await db.rpc("bot_tip_set_pending", { p_key: botKey(), p_day: day, p_pending: { title, body } })
+  const issues = tipTextIssues(title, body)
+  const data = (a: string) => `tq:${day.replace(/-/g, "")}:${current.version}:${a}`
+  await tg("sendMessage", {
+    chat_id: chatId,
+    reply_to_message_id: replyTo,
+    parse_mode: "HTML",
+    text: [
+      "📝 <b>អត្ថបទដែលនឹងប្រើ — សូមពិនិត្យ៖</b>",
+      "",
+      `💡 <b>ចំណងជើង៖</b> ${esc(title)}`,
+      `📄 <b>ការពន្យល់៖</b> ${esc(body)}`,
+      ...(issues.length ? ["", "⚠️ <b>បញ្ហា៖</b>", ...issues.map((i) => `• ${esc(i)}`)] : []),
+      "",
+      "មិនទាន់កែអ្វីទេ — ចុច ✅ ដើម្បីប្រើ ឬ ❌ ដើម្បីបោះបង់។",
+    ].join("\n"),
+    reply_markup: { inline_keyboard: [[{ text: "✅ ប្រើអត្ថបទនេះ", callback_data: data("c") }, { text: "❌ បោះបង់", callback_data: data("k") }]] },
+  })
   return true
 }
