@@ -348,3 +348,45 @@ export function writeSoundboxEnabled(store: KeyValueStore | null, workspaceId: s
 
 /** The live connection's retry delay: 1 s, 2 s, 4 s … up to 30 s — silent, never turning the SoundBox off. */
 export const reconnectDelay = (attempt: number) => Math.min(30_000, 1_000 * 2 ** Math.max(0, attempt))
+
+/**
+ * The phone push for a payment (the SoundBox with the screen locked — founder, 14/10/2026): the amount
+ * on the lock screen, a vibration, one notification per payment (renotify), a tap opens /soundbox.
+ */
+export function soundboxPush(e: { id: string; amount: number; currency: "KHR" | "USD"; account_name?: string | null; payer?: string | null }) {
+  return {
+    title: `💰 ទទួលបានប្រាក់ ${shownAmount(e.amount, e.currency)}`,
+    body: [e.payer, e.account_name].filter(Boolean).join(" · ") || "SoundBox · អេប លុយឆ្លាត",
+    tag: `soundbox-${e.id}`,
+    url: "/soundbox",
+    renotify: true,
+    vibrate: [250, 120, 250, 120, 400],
+  }
+}
+
+/**
+ * A silent mono WAV of `seconds` (8-bit PCM at 8 kHz, every sample the mid-level 128): looped in an
+ * <audio> element with a Media Session, it keeps Android Chrome from putting the page to sleep while
+ * the screen is off — no file to download, nothing heard.
+ */
+export function silentWav(seconds = 10, sampleRate = 8000): Uint8Array {
+  const samples = Math.max(1, Math.round(seconds * sampleRate))
+  const out = new Uint8Array(44 + samples)
+  const view = new DataView(out.buffer)
+  const text = (at: number, s: string) => [...s].forEach((c, i) => view.setUint8(at + i, c.charCodeAt(0)))
+  text(0, "RIFF")
+  view.setUint32(4, 36 + samples, true)
+  text(8, "WAVE")
+  text(12, "fmt ")
+  view.setUint32(16, 16, true) // PCM header size
+  view.setUint16(20, 1, true) // PCM
+  view.setUint16(22, 1, true) // mono
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate, true) // byte rate (8-bit mono)
+  view.setUint16(32, 1, true) // block align
+  view.setUint16(34, 8, true) // bits per sample
+  text(36, "data")
+  view.setUint32(40, samples, true)
+  out.fill(128, 44)
+  return out
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import { announcementText, audioPlan, KHMER_CLIPS, khmerClipSequence, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceLang } from "@/lib/soundbox"
+import { announcementText, audioPlan, KHMER_CLIPS, khmerClipSequence, silentWav, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceLang } from "@/lib/soundbox"
 
 /**
  * The SoundBox's sound: one AudioContext created on the cashier's tap (browsers block audio until a
@@ -82,6 +82,61 @@ function startKeepAlive() {
   }
 }
 
+/**
+ * Android Chrome fills its voice list a moment after the page loads (getVoices() is empty until
+ * «voiceschanged»): an announcement made before that found no Khmer voice and fell back to English.
+ * Wait for the list (at most 1.5 s) before choosing a voice.
+ */
+function voicesReady(timeoutMs = 1_500): Promise<void> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || window.speechSynthesis.getVoices().length) return Promise.resolve()
+  return new Promise((resolve) => {
+    const done = () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", done)
+      resolve()
+    }
+    window.speechSynthesis.addEventListener("voiceschanged", done)
+    window.setTimeout(done, timeoutMs)
+  })
+}
+
+/**
+ * Screen off: Android Chrome puts a page to sleep soon after the screen locks — unless it is playing
+ * media. A silent WAV looped in an <audio> element, announced to the system through the Media Session
+ * («SoundBox · អេប លុយឆ្លាត» on the lock screen), keeps the page — its live connection and its voice —
+ * awake while the SoundBox is on. Started by the unlock tap (media needs a gesture), stopped by «🔇».
+ */
+let mediaKeepAlive: HTMLAudioElement | null = null
+export async function startBackgroundKeepAlive(): Promise<boolean> {
+  if (typeof window === "undefined") return false
+  if (!mediaKeepAlive) {
+    const url = URL.createObjectURL(new Blob([silentWav(10).slice().buffer as ArrayBuffer], { type: "audio/wav" }))
+    mediaKeepAlive = new Audio(url)
+    mediaKeepAlive.loop = true
+    mediaKeepAlive.preload = "auto"
+    mediaKeepAlive.setAttribute("playsinline", "")
+  }
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: "SoundBox · អេប លុយឆ្លាត", artist: "កំពុងរង់ចាំការបង់ប្រាក់", artwork: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }] })
+    navigator.mediaSession.playbackState = "playing"
+    // A stray «pause» from the lock screen or a headset must not silence the counter.
+    navigator.mediaSession.setActionHandler("pause", () => void mediaKeepAlive?.play().catch(() => null))
+  }
+  try {
+    await mediaKeepAlive.play()
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function stopBackgroundKeepAlive() {
+  mediaKeepAlive?.pause()
+  if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+    navigator.mediaSession.playbackState = "none"
+    navigator.mediaSession.setActionHandler("pause", null)
+  }
+}
+
 /** On the «🔊 បើកសំឡេង SoundBox» tap (or the first tap after a reload): the audio context, the keep-alive, the Khmer clips, and an empty utterance (iOS needs speech started by a tap too). */
 export async function unlockAudio(): Promise<boolean> {
   const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
@@ -90,6 +145,7 @@ export async function unlockAudio(): Promise<boolean> {
   if (ctx.state !== "running") await ctx.resume().catch(() => null)
   if (ctx.state === "running") startKeepAlive()
   void loadKhmerClips()
+  void voicesReady()
   if ("speechSynthesis" in window) {
     const warm = new SpeechSynthesisUtterance(" ")
     warm.volume = 0
@@ -179,6 +235,7 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
     try {
       // The clips load on the unlock tap; a payment right after it waits for them (a second at most).
       if (mode.startsWith("km") && !khmerClipsReady()) await Promise.race([loadKhmerClips(), new Promise((r) => window.setTimeout(r, 1_500))])
+      await voicesReady()
       for (const step of audioPlan({ soundOn, unlocked: true, mode, voices: availableVoices() })) {
         if (step === "chime") await playPaymentChime(volume)
         else if (step === "melody") await playMelody(volume)

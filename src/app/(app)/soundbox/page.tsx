@@ -1,6 +1,6 @@
 "use client"
 
-import { PlayIcon, Volume2Icon, VolumeXIcon, WifiOffIcon } from "lucide-react"
+import { BellRingIcon, PlayIcon, Volume2Icon, VolumeXIcon, WifiOffIcon } from "lucide-react"
 import Link from "next/link"
 import QRCode from "qrcode"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -28,7 +28,8 @@ import {
   type SoundboxEvent,
   type SoundboxMode,
 } from "@/lib/soundbox"
-import { announce, isUnlocked, unlockAudio, type AnnounceResult } from "@/lib/soundbox-audio"
+import { announce, isUnlocked, startBackgroundKeepAlive, stopBackgroundKeepAlive, unlockAudio, type AnnounceResult } from "@/lib/soundbox-audio"
+import { enablePush, pushState, type PushState } from "@/lib/push"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
@@ -104,7 +105,13 @@ export default function SoundboxPage() {
   const setEnabled = (on: boolean) => {
     setEnabledState(on)
     writeSoundboxEnabled(store(), counterId, on)
+    if (!on) stopBackgroundKeepAlive()
   }
+  // Payments with the screen locked: the phone push (the browser may be asleep) — offered until it is on.
+  const [push, setPush] = useState<PushState | null>(null)
+  useEffect(() => {
+    void pushState().then(setPush)
+  }, [])
   const [mode, setMode] = useState<SoundboxMode>(() => {
     const saved = typeof window === "undefined" ? "km" : pref("soundbox.lang", "km")
     return (SOUNDBOX_MODES as string[]).includes(saved) ? (saved as SoundboxMode) : "km"
@@ -124,6 +131,7 @@ export default function SoundboxPage() {
     const wake = () => {
       if (isUnlocked()) return
       void unlockAudio().then((ok) => ok && setAudioIssue(null))
+      void startBackgroundKeepAlive()
     }
     document.addEventListener("pointerdown", wake, true)
     document.addEventListener("keydown", wake, true)
@@ -228,6 +236,8 @@ export default function SoundboxPage() {
     const ok = await unlockAudio()
     setEnabled(true)
     setAudioIssue(ok ? null : "locked")
+    // Keeps the page (live connection + voice) awake with the screen off (Android Chrome).
+    void startBackgroundKeepAlive()
   }
 
   return (
@@ -266,6 +276,17 @@ export default function SoundboxPage() {
             {t("soundbox.mute")}
           </Button>
         </Card>
+      )}
+
+      {enabled && push && push !== "on" && push !== "unsupported" && (
+        <button
+          type="button"
+          onClick={() => void enablePush().then(setPush)}
+          className="flex w-full items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-3 text-left text-sm font-medium text-amber-900 dark:text-amber-200"
+        >
+          <BellRingIcon className="size-5 shrink-0" aria-hidden />
+          {t(push === "denied" ? "soundbox.pushDenied" : "soundbox.pushOffer")}
+        </button>
       )}
 
       <Card className="gap-3 px-4 py-3">

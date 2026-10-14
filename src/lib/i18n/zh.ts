@@ -2527,6 +2527,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "soundbox.title": "收款语音播报",
   "soundbox.start": "🔊 开启播报声音",
   "soundbox.activeOn": "🟢 播报声音已开启（保持开启）",
+  "soundbox.pushOffer": "🔔 开启通知——即使屏幕关闭也能得知每笔收款",
+  "soundbox.pushDenied": "🔕 浏览器已阻止通知——请在手机设置中允许，以便锁屏时收到提醒",
   "soundbox.mute": "🔇 关闭声音",
   "soundbox.listening": "正在等待收款——屏幕保持常亮",
   "soundbox.muted": "已静音——仍显示收款",

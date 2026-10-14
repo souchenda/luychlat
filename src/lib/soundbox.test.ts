@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, soundboxStorageKey, writeSoundboxEnabled } from "./soundbox"
+import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, silentWav, soundboxPush, soundboxStorageKey, writeSoundboxEnabled } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -234,5 +234,25 @@ describe("SoundBox on/off survives reloads (founder, 12/10/2026)", () => {
   })
   it("a dropped live connection retries 1 s, 2 s, 4 s … capped at 30 s", () => {
     assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 10].map(reconnectDelay), [1_000, 2_000, 4_000, 8_000, 16_000, 30_000, 30_000, 30_000])
+  })
+})
+
+describe("SoundBox with the screen locked (founder, 14/10/2026)", () => {
+  it("the payment push: the amount on the lock screen, one per payment, opens /soundbox", () => {
+    const p = soundboxPush({ id: "tx-1", amount: 50_000, currency: "KHR", account_name: "DL MEAT SUPPLY", payer: "SOKHA" })
+    assert.match(p.title, /^💰 ទទួលបានប្រាក់ /)
+    assert.ok(p.title.includes(shownAmount(50_000, "KHR")))
+    assert.equal(p.body, "SOKHA · DL MEAT SUPPLY")
+    assert.equal(p.tag, "soundbox-tx-1")
+    assert.equal(p.url, "/soundbox")
+    assert.equal(p.renotify, true)
+  })
+  it("the keep-alive audio is a valid, silent WAV", () => {
+    const wav = silentWav(10, 8000)
+    const ascii = (a: number, b: number) => String.fromCharCode(...wav.slice(a, b))
+    assert.equal(ascii(0, 4), "RIFF")
+    assert.equal(ascii(8, 12), "WAVE")
+    assert.equal(wav.length, 44 + 80_000)
+    assert.ok(wav.slice(44).every((b) => b === 128)) // mid-level = silence
   })
 })

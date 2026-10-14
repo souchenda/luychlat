@@ -6,7 +6,8 @@ import { logEvent } from "@/lib/server/events"
 import { notifyOwner, ownerText, transferText, type TransferResult } from "@/lib/server/biz-group-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
-import { shouldEmit } from "@/lib/soundbox"
+import { shouldEmit, soundboxPush } from "@/lib/soundbox"
+import { sendSoundboxPush } from "@/lib/server/web-push"
 import { sendPaymentVoice } from "@/lib/server/voice-alert"
 
 /**
@@ -149,6 +150,9 @@ export async function POST(request: Request) {
     if (soundError) logEvent("warn", "soundbox", `SoundBox event not emitted: ${soundError.message}`, { fold: true })
     // «🔔 សំឡេង Voice Telegram» (pocket mode): the sale spoken as a voice note, for owners who turned it on.
     if (r.workspace_id && r.amount !== undefined && r.currency) await sendPaymentVoice(r.workspace_id, r.amount, r.currency).catch(() => 0)
+    // The screen may be off or the browser asleep: the phones of the business's people get a push too.
+    if (r.workspace_id && r.amount !== undefined && r.currency)
+      await sendSoundboxPush(r.workspace_id, soundboxPush({ id: r.transaction_id, amount: r.amount, currency: r.currency, payer: pay.payer ?? null, account_name: r.workspace ?? null })).catch(() => 0)
   }
 
   return NextResponse.json(
