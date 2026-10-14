@@ -49,4 +49,17 @@ describe("GOLDEN 3 · SoundBox alerts", () => {
     assert.match(page, /rpc\("soundbox_report"/)
     assert.match(page, /setAudioIssue\(audioIssueOf\(r\)\)/)
   })
+  it("a late push (bank time over 10 min before the server got it) is listed, never rung, spoken, flashed or pushed (founder, 14/10/2026)", () => {
+    const page = readFileSync(join(process.cwd(), "src", "app", "(app)", "soundbox", "page.tsx"), "utf8")
+    assert.match(page, /if \(isLatePush\(added\.transaction_time, added\.created_at \?\? Date\.now\(\)\)\) \{\s*report\(\[document\.visibilityState, "late"\]\)\s*return/)
+    const ingest = readFileSync(join(process.cwd(), "src", "app", "api", "khqr", "ingest", "route.ts"), "utf8")
+    assert.match(ingest, /const late = isLatePush\(r\.posted_at, Date\.now\(\)\)[\s\S]{0,200}else if[\s\S]{0,400}sendPaymentVoice[\s\S]{0,300}sendSoundboxPush[\s\S]{0,300}alertIfNoSoundbox/)
+  })
+  it("the counter phone's heartbeat runs on /soundbox, and the dispatcher watches for a phone gone during business hours", () => {
+    const page = readFileSync(join(process.cwd(), "src", "app", "(app)", "soundbox", "page.tsx"), "utf8")
+    assert.match(page, /useHeartbeat\(counterId, enabled/)
+    assert.match(page, /rpc\("soundbox_heartbeat"/)
+    const dispatch = readFileSync(join(process.cwd(), "src", "lib", "server", "bot-dispatch.ts"), "utf8")
+    assert.match(dispatch, /await soundboxWatchTick\(\)/)
+  })
 })

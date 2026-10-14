@@ -412,3 +412,64 @@ export function audioIssueOf(a: { result: string; log: string[] }): AudioIssue |
   if (!attempts.length) return null
   return attempts.some((s) => s.endsWith(":spoken") || s === "km:clips") ? null : "voice"
 }
+
+/**
+ * A late push (founder, 14/10/2026): a payment the bank made more than 10 minutes before the server got
+ * it (AUTOBOK catching up — the 915,000 ៛ sale of 10:07 arrived at 14:58) is listed, never rung or
+ * spoken: an hours-old chime would look like a customer paying now.
+ */
+export const LATE_PUSH_MS = 10 * 60_000
+export function isLatePush(bankTime: string | null | undefined, receivedAt: string | number | null | undefined): boolean {
+  const bank = bankTime ? Date.parse(bankTime) : NaN
+  const got = typeof receivedAt === "number" ? receivedAt : receivedAt ? Date.parse(receivedAt) : NaN
+  return Number.isFinite(bank) && Number.isFinite(got) && got - bank > LATE_PUSH_MS
+}
+
+/** The counter phone's heartbeat: every minute while /soundbox is open, and at once on any change. */
+export const HEARTBEAT_MS = 60_000
+/** Ready = heard from within this window, page shown, sound unlocked, live connection up. */
+export const READY_WINDOW_MS = 90_000
+
+export type SoundboxDevice = {
+  id: string
+  platform: string | null
+  visible: boolean | null
+  audio_unlocked: boolean | null
+  live: boolean | null
+  last_seen: string
+  last_ready_at: string | null
+}
+
+export function deviceReady(d: Pick<SoundboxDevice, "visible" | "audio_unlocked" | "live" | "last_seen">, now: number): boolean {
+  return Boolean(d.visible && d.audio_unlocked && d.live) && now - Date.parse(d.last_seen) <= READY_WINDOW_MS
+}
+
+/** "iPhone" / "Android" / "Computer" from a user agent — the device's name in the status and the alerts. */
+export function devicePlatform(userAgent: string): string {
+  if (/iPhone|iPad|iPod/.test(userAgent)) return "iPhone"
+  if (/Android/.test(userAgent)) return "Android"
+  return "Computer"
+}
+
+/** Business hours for the offline alert: 07:00–21:00 Cambodia time (founder, 14/10/2026). */
+export const OPEN_HOUR = 7
+export const CLOSE_HOUR = 21
+export const OFFLINE_ALERT_MS = 5 * 60_000
+const ictHour = (ms: number) => new Date(ms + 7 * 3_600_000).getUTCHours()
+const ictDay = (ms: number) => new Date(ms + 7 * 3_600_000).toISOString().slice(0, 10)
+
+/**
+ * The counter phone went away (closed, locked, offline) during business hours: alert once when it has
+ * been gone 5 minutes — only if it was last ready today within business hours (a phone closed last night
+ * is no surprise at 07:00), and once per absence (alertedAt older than the last ready moment).
+ */
+export function offlineAlertDue(o: { lastReadyAt: string | null; alertedAt: string | null; readyNow: boolean; now: number }): boolean {
+  if (o.readyNow || !o.lastReadyAt) return false
+  const ready = Date.parse(o.lastReadyAt)
+  if (!Number.isFinite(ready)) return false
+  const hour = ictHour(o.now)
+  if (hour < OPEN_HOUR || hour >= CLOSE_HOUR) return false
+  if (ictDay(ready) !== ictDay(o.now) || ictHour(ready) < OPEN_HOUR) return false
+  if (o.now - ready <= OFFLINE_ALERT_MS) return false
+  return !o.alertedAt || Date.parse(o.alertedAt) < ready
+}

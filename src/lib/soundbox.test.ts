@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announceLate, audioIssueOf, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, soundboxPush, soundboxStorageKey, voiceAvailability, writeSoundboxEnabled } from "./soundbox"
+import { announceLate, audioIssueOf, deviceReady, devicePlatform, isLatePush, offlineAlertDue, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, soundboxPush, soundboxStorageKey, voiceAvailability, writeSoundboxEnabled } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -296,5 +296,55 @@ describe("SoundBox — the chime, then nothing (founder, 14/10/2026)", () => {
     assert.equal(audioIssueOf({ result: "muted", log: ["visible"] }), null)
     assert.equal(audioIssueOf({ result: "locked", log: ["hidden", "ctx:suspended"] }), "locked")
     assert.equal(audioIssueOf({ result: "error", log: [] }), "error")
+  })
+})
+
+describe("SoundBox — late pushes are listed, never rung (founder, 14/10/2026)", () => {
+  it("the 915,000 ៛ sale of 10:07 that arrived at 14:58 is late; one a minute old is not; exactly 10 min is not", () => {
+    assert.equal(isLatePush("2026-10-14T03:07:00Z", "2026-10-14T07:58:47Z"), true)
+    assert.equal(isLatePush("2026-10-14T07:58:00Z", "2026-10-14T07:58:47Z"), false)
+    assert.equal(isLatePush("2026-10-14T07:48:47Z", "2026-10-14T07:58:47Z"), false)
+  })
+  it("unknown times never silence a payment", () => {
+    assert.equal(isLatePush(null, "2026-10-14T07:58:47Z"), false)
+    assert.equal(isLatePush("2026-10-14T03:07:00Z", undefined), false)
+  })
+})
+
+describe("SoundBox — the counter phone's heartbeat", () => {
+  const now = Date.parse("2026-10-14T07:00:00Z") // 14:00 Cambodia
+  const seen = (msAgo: number) => new Date(now - msAgo).toISOString()
+  it("ready: shown, unlocked, live, heard from within 90 s", () => {
+    assert.equal(deviceReady({ visible: true, audio_unlocked: true, live: true, last_seen: seen(30_000) }, now), true)
+    assert.equal(deviceReady({ visible: true, audio_unlocked: true, live: true, last_seen: seen(120_000) }, now), false)
+    assert.equal(deviceReady({ visible: false, audio_unlocked: true, live: true, last_seen: seen(5_000) }, now), false)
+    assert.equal(deviceReady({ visible: true, audio_unlocked: false, live: true, last_seen: seen(5_000) }, now), false)
+    assert.equal(deviceReady({ visible: true, audio_unlocked: true, live: false, last_seen: seen(5_000) }, now), false)
+  })
+  it("platform names", () => {
+    assert.equal(devicePlatform("Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X)"), "iPhone")
+    assert.equal(devicePlatform("Mozilla/5.0 (Linux; Android 10; K)"), "Android")
+    assert.equal(devicePlatform("Mozilla/5.0 (Windows NT 10.0; Win64; x64)"), "Computer")
+  })
+})
+
+describe("SoundBox — offline alert during business hours (07:00–21:00)", () => {
+  const at = (ict: string) => Date.parse(`${ict}+07:00`)
+  const iso = (ict: string) => new Date(at(ict)).toISOString()
+  it("gone more than 5 minutes after being ready today → alert", () => {
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T13:59:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T14:05:00") }), true)
+  })
+  it("5 minutes or less, or ready again → no alert", () => {
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T14:00:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T14:05:00") }), false)
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T13:00:00"), alertedAt: null, readyNow: true, now: at("2026-10-14T14:05:00") }), false)
+  })
+  it("once per absence: already alerted after the last ready moment → quiet; ready again then gone → alert again", () => {
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T13:59:00"), alertedAt: iso("2026-10-14T14:05:00"), readyNow: false, now: at("2026-10-14T15:00:00") }), false)
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T15:00:00"), alertedAt: iso("2026-10-14T14:05:00"), readyNow: false, now: at("2026-10-14T15:06:00") }), true)
+  })
+  it("outside business hours, or last ready last night / before opening → no alert", () => {
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T20:58:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T21:04:00") }), false)
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-13T20:00:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T07:10:00") }), false)
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T06:50:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T07:10:00") }), false)
   })
 })

@@ -52,6 +52,7 @@ import { LunarPill } from "@/components/dashboard/lunar-pill"
 import { FestivalBanner } from "@/components/dashboard/festival-banner"
 import { HolyDayReminder } from "@/components/dashboard/holy-day-reminder"
 import { WalletPreviewGrid } from "@/components/wallets/wallet-preview-grid"
+import { SoundboxStatus } from "@/components/soundbox/soundbox-status"
 
 const RECENT_COUNT = 4
 const TREND_MONTHS = 6
@@ -188,6 +189,7 @@ export default function HomePage() {
 
 
       {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}
+      {workspace?.type === "BUSINESS" && <SoundboxStatus workspaceId={ws} link />}
       {workspace?.type === "BUSINESS" && <BusinessValueCard workspaceId={ws} wallets={walletsQuery.data} debts={debtsQuery.data} transactions={txQuery.data} categories={categoriesQuery.data} />}
 
       <BirthdayCard />

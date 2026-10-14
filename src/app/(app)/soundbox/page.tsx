@@ -6,6 +6,7 @@ import QRCode from "qrcode"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { SettingsSubHeader } from "@/components/settings/settings-ui"
+import { SoundboxStatus } from "@/components/soundbox/soundbox-status"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,6 +17,9 @@ import { useWorkspaceKhqrs } from "@/lib/khqr-codes-data"
 import {
   announceLate,
   audioIssueOf,
+  devicePlatform,
+  HEARTBEAT_MS,
+  isLatePush,
   keepScreenAwake,
   pollSince,
   readSoundboxEnabled,
@@ -73,6 +77,61 @@ function useWakeLock(on: boolean): WakeState | null {
     return keepScreenAwake(navigator as Parameters<typeof keepScreenAwake>[0], document, setState)
   }, [on])
   return state
+}
+
+/** This browser's SoundBox id (one row in soundbox_devices), made once and kept. */
+function deviceId(): string | null {
+  try {
+    const s = store()
+    let id = s?.getItem("soundbox_device_id") ?? null
+    if (!id && typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      id = crypto.randomUUID()
+      s?.setItem("soundbox_device_id", id)
+    }
+    return id
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The heartbeat (founder, 14/10/2026): every minute while /soundbox is open, and at once when anything
+ * changes — page shown or hidden, sound unlocked, live connection, wake lock. The business sees whether
+ * a counter phone is ready; the owner is told on Telegram when none is (lib/server/soundbox-watch.ts).
+ */
+function useHeartbeat(workspaceId: string | null, on: boolean, state: { audioOk: boolean; live: boolean; wake: WakeState | null }) {
+  const latest = useRef(state)
+  latest.current = state
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient()
+    const id = deviceId()
+    if (!supabase || !workspaceId || !id) return
+    const beat = (visible = document.visibilityState === "visible") => {
+      const s = latest.current
+      void supabase
+        .rpc("soundbox_heartbeat", {
+          p_device: id,
+          p_workspace: workspaceId,
+          p_state: { visible, audio_unlocked: on && isUnlocked() && s.audioOk, live: s.live, wake: s.wake, platform: devicePlatform(navigator.userAgent) },
+        })
+        .then(({ error }) => {
+          if (error) console.error("[soundbox] heartbeat:", error.message)
+        })
+    }
+    beat()
+    const every = window.setInterval(() => beat(), HEARTBEAT_MS)
+    const onVisibility = () => beat()
+    const onHide = () => beat(false)
+    document.addEventListener("visibilitychange", onVisibility)
+    window.addEventListener("pagehide", onHide)
+    return () => {
+      window.clearInterval(every)
+      document.removeEventListener("visibilitychange", onVisibility)
+      window.removeEventListener("pagehide", onHide)
+      // Leaving /soundbox: not ready any more.
+      beat(false)
+    }
+  }, [workspaceId, on, state.audioOk, state.live, state.wake])
 }
 
 const MODE_LABEL: Record<SoundboxMode, string> = {
@@ -133,6 +192,7 @@ export default function SoundboxPage() {
   const settings = useRef({ soundOn: enabled, mode, volume })
   settings.current = { soundOn: enabled, mode, volume }
   const wake = useWakeLock(enabled)
+  useHeartbeat(counterId, enabled, { audioOk: audioIssue !== "locked", live: live === "live", wake })
 
   // The first touch anywhere on the page after a reload brings the sound back (browsers allow audio
   // only after a gesture); the SoundBox itself stays on throughout.
@@ -171,6 +231,19 @@ export default function SoundboxPage() {
     const received = [`rx:${added.created_at ? Math.max(0, Date.now() - Date.parse(added.created_at)) : "?"}`, late ? "poll" : "live"]
     eventsRef.current = next
     setEvents(next)
+    const report = (log: string[]) => {
+      const supabase = getSupabaseBrowserClient()
+      if (supabase)
+        void supabase.rpc("soundbox_report", { p_event: added.id, p_log: [...received, ...log].join(" ").slice(0, 500), p_ua: navigator.userAgent.slice(0, 200) }).then(({ error }) => {
+          if (error) console.error("[soundbox] report:", error.message)
+        })
+    }
+    // A late push (the bank's time over 10 minutes before the server got it): listed only — never rung,
+    // spoken or flashed, an hours-old chime would look like a customer paying now (founder, 14/10/2026).
+    if (isLatePush(added.transaction_time, added.created_at ?? Date.now())) {
+      report([document.visibilityState, "late"])
+      return
+    }
     // One that came in while the connection was down: listed, announced only if still fresh.
     if (late && !announceLate(added.created_at, Date.now())) return
     setFlash(added)
@@ -180,11 +253,7 @@ export default function SoundboxPage() {
       setAudioIssue(audioIssueOf(r))
       // What the phone did (chime, each voice attempt, the melody) is kept with the payment — a silent
       // announcement is diagnosed from facts, never guessed.
-      const supabase = getSupabaseBrowserClient()
-      if (supabase && r.result !== "muted")
-        void supabase.rpc("soundbox_report", { p_event: added.id, p_log: [...received, ...r.log].join(" ").slice(0, 500), p_ua: navigator.userAgent.slice(0, 200) }).then(({ error }) => {
-          if (error) console.error("[soundbox] report:", error.message)
-        })
+      if (r.result !== "muted") report(r.log)
     })
   }
   const flashTimer = useRef<number | undefined>(undefined)
@@ -268,6 +337,7 @@ export default function SoundboxPage() {
   return (
     <div className="space-y-4">
       <SettingsSubHeader title={t("soundbox.title")} back="/home" />
+      <SoundboxStatus workspaceId={counterId} />
 
       {/* Never silent without saying so: the sound held by the phone, or the live connection down. */}
       {audioIssue && (

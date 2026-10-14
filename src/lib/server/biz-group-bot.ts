@@ -55,16 +55,19 @@ export async function ownerText(r: Recorded, payer: string | null | undefined): 
   return lines.join("\n")
 }
 
-/** Tell the business owner privately (their linked chat with the bot); by the business or one of its groups. */
-export async function notifyOwner(where: { workspaceId?: string | null; group?: number | null }, text: string): Promise<boolean> {
+/** Tell the business owner privately (their linked chat with the bot); by the business or one of its groups. A function gets each chat's language. */
+export async function notifyOwner(where: { workspaceId?: string | null; group?: number | null }, text: string | ((lang: Locale) => string)): Promise<boolean> {
   const { data } = await botDb().rpc("bot_biz_owner_chats", { p_key: botKey(), p_workspace_id: where.workspaceId ?? null, p_group: where.group ?? null })
-  const chats = (data as { chat_id: number }[] | null) ?? []
+  const chats = (data as { chat_id: number; language?: string | null }[] | null) ?? []
   if (!chats.length) {
     logEvent("warn", "khqr", "Business owner has no linked Telegram chat — confirmation not sent", { fold: true })
     return false
   }
   let sent = false
-  for (const c of chats) sent = (await announce(Number(c.chat_id), text)) || sent
+  for (const c of chats) {
+    const lang: Locale = c.language === "en" || c.language === "zh" ? c.language : "km"
+    sent = (await announce(Number(c.chat_id), typeof text === "function" ? text(lang) : text)) || sent
+  }
   return sent
 }
 

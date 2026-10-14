@@ -7,7 +7,8 @@ import { notifyOwner, ownerText, transferText, type TransferResult } from "@/lib
 import { askHeldKhqr, type Held } from "@/lib/server/held-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
-import { shouldEmit, soundboxPush } from "@/lib/soundbox"
+import { isLatePush, shouldEmit, soundboxPush } from "@/lib/soundbox"
+import { alertIfNoSoundbox } from "@/lib/server/soundbox-watch"
 import { sendSoundboxPush } from "@/lib/server/web-push"
 import { sendPaymentVoice } from "@/lib/server/voice-alert"
 
@@ -160,11 +161,18 @@ export async function POST(request: Request) {
       p_payer_bank: parsed?.via ?? (str(body.payer_bank, 60) || null),
     })
     if (soundError) logEvent("warn", "soundbox", `SoundBox event not emitted: ${soundError.message}`, { fold: true })
-    // «🔔 សំឡេង Voice Telegram» (pocket mode): the sale spoken as a voice note, for owners who turned it on.
-    if (r.workspace_id && r.amount !== undefined && r.currency) await sendPaymentVoice(r.workspace_id, r.amount, r.currency).catch(() => 0)
-    // The screen may be off or the browser asleep: the phones of the business's people get a push too.
-    if (r.workspace_id && r.amount !== undefined && r.currency)
+    // A late push (the bank's time over 10 minutes before now — AUTOBOK catching up): listed on the SoundBox
+    // screen only. No voice note, no push, no «not announced» alert — an hours-old ring looks like a new sale.
+    const late = isLatePush(r.posted_at, Date.now())
+    if (late) logEvent("info", "soundbox", `Late KHQR push (${r.posted_at}) listed, not rung`, { fold: true })
+    else if (r.workspace_id && r.amount !== undefined && r.currency) {
+      // «🔔 សំឡេង Voice Telegram» (pocket mode): the sale spoken as a voice note, for owners who turned it on.
+      await sendPaymentVoice(r.workspace_id, r.amount, r.currency).catch(() => 0)
+      // The screen may be off or the browser asleep: the phones of the business's people get a push too.
       await sendSoundboxPush(r.workspace_id, soundboxPush({ id: r.transaction_id, amount: r.amount, currency: r.currency, payer: pay.payer ?? null, account_name: r.workspace ?? null })).catch(() => 0)
+      // No counter phone ready to say it: the owner is told this sale went unannounced.
+      if (!soundError) await alertIfNoSoundbox(r.workspace_id, r.amount, r.currency).catch(() => null)
+    }
   }
 
   return NextResponse.json(
