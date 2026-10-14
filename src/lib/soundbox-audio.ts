@@ -95,11 +95,7 @@ export async function unlockAudio(): Promise<boolean> {
   if (ctx.state === "running") unlocked = true
   void loadKhmerClips()
   void voicesReady()
-  if ("speechSynthesis" in window) {
-    const warm = new SpeechSynthesisUtterance(" ")
-    warm.volume = 0
-    window.speechSynthesis.speak(warm)
-  }
+  warmSpeech()
   const ok = ctx.state === "running"
   // Nothing plays until a payment: give the audio back to the phone (Telegram, calls, music…).
   release()
@@ -159,25 +155,27 @@ export const availableVoices = (): Record<VoiceLang, boolean> =>
     khmerClips: khmerClipsReady(),
   })
 
+export type SpeechOutcome = "spoken" | "timeout" | "silent-end" | `error:${string}`
+
 /**
- * Speaks `text` in `lang`: the matching voice when the phone lists one, else just the language tag
- * (the phone's default voice for it). Resolves true once speech really started and ended; false when
- * it errored or never started within 3 s (Android Chrome can leave the queue stuck after other audio —
- * cancel() + resume() first clears that).
+ * One attempt at speaking `text` in `lang`: the matching voice when the phone lists one, else just the
+ * language tag (the phone's default voice for it). The engine is cancelled ONLY when something is
+ * still speaking — cancel() right before speak() makes Safari and Chrome drop the new utterance
+ * (founder, 14/10/2026: the 13:38 payment chimed, then nothing).
  */
-function speak(text: string, lang: VoiceLang, volume: number): Promise<boolean> {
+function speakOnce(text: string, lang: VoiceLang, volume: number): Promise<SpeechOutcome> {
   return new Promise((resolve) => {
     const synth = window.speechSynthesis
     let started = false
     let settled = false
-    const finish = (ok: boolean) => {
+    const finish = (r: SpeechOutcome) => {
       if (settled) return
       settled = true
-      resolve(ok)
+      resolve(r)
     }
     try {
-      synth.cancel()
-      synth.resume()
+      if (synth.speaking || synth.pending) synth.cancel()
+      if (synth.paused) synth.resume()
     } catch {
       // not supported here: speak anyway
     }
@@ -190,21 +188,60 @@ function speak(text: string, lang: VoiceLang, volume: number): Promise<boolean> 
     u.onstart = () => {
       started = true
     }
-    u.onend = () => finish(started)
+    u.onend = () => finish(started ? "spoken" : "silent-end")
     u.onerror = (ev) => {
       console.error(`[soundbox] speech (${u.lang}) failed:`, ev.error)
-      finish(false)
+      finish(`error:${ev.error}`)
     }
     synth.speak(u)
-    // Never started (no voice for the language, a stuck engine) → a fallback, not silence.
+    // Never started (no voice for the language, a stuck engine, speech not allowed yet) → a fallback, not silence.
     window.setTimeout(() => {
       if (!started) {
-        synth.cancel()
-        finish(false)
+        if (synth.speaking || synth.pending) synth.cancel()
+        finish("timeout")
       }
     }, 3_000)
-    window.setTimeout(() => finish(started), 12_000)
+    window.setTimeout(() => finish(started ? "spoken" : "timeout"), 12_000)
   })
+}
+
+/** Speech the phone refused until a touch («not-allowed»): the page asks for one tap (speechNeedsTap). */
+let speechBlocked = false
+export const speechNeedsTap = () => speechBlocked
+
+/** Speaks, with one retry after a stuck engine or an interruption; each attempt is written to `log`. */
+async function speak(text: string, lang: VoiceLang, volume: number, log: string[]): Promise<boolean> {
+  let r = await speakOnce(text, lang, volume)
+  log.push(`${lang}:${r}`)
+  if (r === "spoken") return true
+  if (r === "error:not-allowed") {
+    speechBlocked = true
+    return false
+  }
+  await new Promise((resolve) => window.setTimeout(resolve, 250))
+  r = await speakOnce(text, lang, volume)
+  log.push(`${lang}:retry:${r}`)
+  if (r === "error:not-allowed") speechBlocked = true
+  return r === "spoken"
+}
+
+/**
+ * Speech unlocked by a touch: iOS (and Chrome) let a page speak on its own only after it spoke once
+ * inside a tap — a real, silent utterance (an empty or blank one is skipped and unlocks nothing).
+ */
+export function warmSpeech() {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return
+  try {
+    const warm = new SpeechSynthesisUtterance(".")
+    warm.volume = 0
+    warm.rate = 2
+    warm.onend = () => {
+      speechBlocked = false
+    }
+    window.speechSynthesis.speak(warm)
+  } catch {
+    // no speech here: Khmer clips / the melody still play
+  }
 }
 
 export type AnnounceResult = "played" | "muted" | "locked" | "error"
@@ -215,20 +252,26 @@ export type AnnounceResult = "played" | "muted" | "locked" | "error"
  * iOS suspended it after the screen locked — one tap brings it back), «error» with the reason logged.
  */
 let queue: Promise<unknown> = Promise.resolve()
-export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: SoundboxMode, soundOn: boolean, volume = 1): Promise<AnnounceResult> {
-  const run = queue.then(async (): Promise<AnnounceResult> => {
-    if (!soundOn) return "muted"
-    if (!ctx) return "locked"
+export type Announced = { result: AnnounceResult; log: string[] }
+export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: SoundboxMode, soundOn: boolean, volume = 1): Promise<Announced> {
+  const run = queue.then(async (): Promise<Announced> => {
+    // What happened, step by step — reported with the payment, so a silent announcement is never a guess.
+    const log: string[] = [document.visibilityState]
+    const done = (result: AnnounceResult): Announced => ({ result, log })
+    if (!soundOn) return done("muted")
+    if (!ctx) return done("locked")
     if (ctx.state !== "running") await ctx.resume().catch(() => null)
     if (ctx.state !== "running") {
       console.error("[soundbox] audio is suspended by the browser:", ctx.state)
-      return "locked"
+      log.push(`ctx:${ctx.state}`)
+      return done("locked")
     }
     try {
       // The clips load on the unlock tap; a payment right after it waits for them (a second at most).
       if (mode.startsWith("km") && !khmerClipsReady()) await Promise.race([loadKhmerClips(), new Promise((r) => window.setTimeout(r, 1_500))])
       await voicesReady()
       for (const step of audioPlan({ soundOn, unlocked: true, mode, voices: availableVoices() })) {
+        if (step === "chime" || step === "melody") log.push(step)
         if (step === "chime") await playPaymentChime(volume)
         else if (step === "melody") await playMelody(volume)
         else {
@@ -236,18 +279,21 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
           // Khmer: the recorded clips first (they sound the same on every phone).
           if (lang === "km" && khmerClipsReady()) {
             await playKhmerClips(khmerClipSequence(e.amount, e.currency), volume)
+            log.push("km:clips")
             continue
           }
           // Spoken; a language the phone can't say → English (for Khmer), else the melody — never silence.
-          if (await speak(announcementText(e, lang), lang, volume)) continue
-          if (lang !== "en" && (await speak(announcementText(e, "en"), "en", volume))) continue
+          if (await speak(announcementText(e, lang), lang, volume, log)) continue
+          if (lang !== "en" && (await speak(announcementText(e, "en"), "en", volume, log))) continue
+          log.push("melody")
           await playMelody(volume)
         }
       }
-      return "played"
+      return done("played")
     } catch (error) {
       console.error("[soundbox] announcement failed:", error)
-      return "error"
+      log.push(`throw:${String(error).slice(0, 80)}`)
+      return done("error")
     } finally {
       // Announced: the phone's audio is released again at once.
       release()

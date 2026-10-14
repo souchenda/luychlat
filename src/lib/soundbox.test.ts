@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, soundboxPush, soundboxStorageKey, voiceAvailability, writeSoundboxEnabled } from "./soundbox"
+import { announceLate, audioIssueOf, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, soundboxPush, soundboxStorageKey, voiceAvailability, writeSoundboxEnabled } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -265,5 +265,23 @@ describe("SoundBox speaks even when the phone lists no voices (founder, 14/10/20
   it("no speech at all (an old browser) → the melody, never silence", () => {
     const v = voiceAvailability({ speech: false, listed: [], khmerClips: false })
     assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "en", voices: v }), ["chime", "melody"])
+  })
+})
+
+describe("SoundBox — the chime, then nothing (founder, 14/10/2026)", () => {
+  it("words planned but none spoken → «voice» (one tap brings speech back), never a silent success", () => {
+    assert.equal(audioIssueOf({ result: "played", log: ["visible", "chime", "km:timeout", "km:retry:timeout", "en:error:not-allowed", "melody"] }), "voice")
+    assert.equal(audioIssueOf({ result: "played", log: ["visible", "chime", "km:silent-end", "km:retry:silent-end", "en:timeout", "en:retry:timeout", "melody"] }), "voice")
+  })
+  it("spoken (after a retry, or in English for Khmer), or the recorded Khmer clips → no issue", () => {
+    assert.equal(audioIssueOf({ result: "played", log: ["visible", "chime", "km:timeout", "km:retry:spoken"] }), null)
+    assert.equal(audioIssueOf({ result: "played", log: ["visible", "chime", "km:timeout", "km:retry:timeout", "en:spoken"] }), null)
+    assert.equal(audioIssueOf({ result: "played", log: ["visible", "chime", "km:clips"] }), null)
+  })
+  it("no voice planned at all (the melody by design), muted, locked, error", () => {
+    assert.equal(audioIssueOf({ result: "played", log: ["visible", "chime", "melody"] }), null)
+    assert.equal(audioIssueOf({ result: "muted", log: ["visible"] }), null)
+    assert.equal(audioIssueOf({ result: "locked", log: ["hidden", "ctx:suspended"] }), "locked")
+    assert.equal(audioIssueOf({ result: "error", log: [] }), "error")
   })
 })

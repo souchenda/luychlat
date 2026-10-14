@@ -377,3 +377,18 @@ export function voiceAvailability(o: { speech: boolean; listed: string[]; khmerC
   const has = (lang: VoiceLang) => o.speech && (tags.length === 0 || tags.some((t) => t.startsWith(lang) || (lang === "zh" && t.startsWith("cmn"))))
   return { km: o.khmerClips || has("km"), en: has("en"), zh: has("zh") }
 }
+
+export type AudioIssue = "locked" | "error" | "voice"
+
+/**
+ * What the cashier is told after an announcement (founder, 14/10/2026 — «the chime, then nothing»): the
+ * sound held by the phone, an error, or — words were planned but none was spoken (no recorded Khmer clip,
+ * no voice attempt that really started) — «voice», with one tap to bring speech back. Never silent.
+ */
+export function audioIssueOf(a: { result: string; log: string[] }): AudioIssue | null {
+  if (a.result === "locked" || a.result === "error") return a.result
+  if (a.result !== "played") return null
+  const attempts = a.log.filter((s) => /^(km|en|zh):/.test(s))
+  if (!attempts.length) return null
+  return attempts.some((s) => s.endsWith(":spoken") || s === "km:clips") ? null : "voice"
+}

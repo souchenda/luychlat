@@ -2511,6 +2511,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "festive.water_festival.ok": "谢谢 🙏",
   "soundbox.audioLocked": "🔇 手机暂停了播报声音（例如锁屏后）——点此重新开启",
   "soundbox.audioError": "🔇 无法播放声音——点此重试",
+  "soundbox.voiceFailed": "🔇 只响了提示音，没有播报金额——点屏幕任意处一次以恢复语音播报",
   "soundbox.offline": "实时连接已断开——仍每 15 秒检查一次收款",
   "khqr.title": "银行 KHQR 收款码",
   "khqr.hint": "顾客可选择用哪家银行或币种付款 · ⭐ 默认码用于收据和收款播报",

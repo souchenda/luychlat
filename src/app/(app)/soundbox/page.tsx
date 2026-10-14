@@ -15,6 +15,7 @@ import { codeLabel, selectedCode } from "@/lib/khqr-codes"
 import { useWorkspaceKhqrs } from "@/lib/khqr-codes-data"
 import {
   announceLate,
+  audioIssueOf,
   keepScreenAwake,
   pollSince,
   readSoundboxEnabled,
@@ -25,10 +26,11 @@ import {
   SOUNDBOX_MODES,
   todayTotals,
   writeSoundboxEnabled,
+  type AudioIssue,
   type SoundboxEvent,
   type SoundboxMode,
 } from "@/lib/soundbox"
-import { announce, isUnlocked, unlockAudio, type AnnounceResult } from "@/lib/soundbox-audio"
+import { announce, isUnlocked, speechNeedsTap, unlockAudio, warmSpeech } from "@/lib/soundbox-audio"
 import { enablePush, pushState, type PushState } from "@/lib/push"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -86,7 +88,7 @@ export default function SoundboxPage() {
   const counter = soundboxWorkspace(workspace, workspaces)
   const codes = useWorkspaceKhqrs(counter?.id).data ?? []
   const [live, setLive] = useState<"connecting" | "live" | "down">("connecting")
-  const [audioIssue, setAudioIssue] = useState<AnnounceResult | null>(null)
+  const [audioIssue, setAudioIssue] = useState<AudioIssue | null>(null)
   const [chosen, setChosen] = useState<string | null>(null)
   // The default on load; a tap switches at once (for the customer's bank or currency).
   const current = selectedCode(codes, chosen)
@@ -128,7 +130,14 @@ export default function SoundboxPage() {
   useEffect(() => {
     if (!enabled) return
     const wake = () => {
-      if (isUnlocked()) return
+      // Speech refused until a touch: this touch brings it back (the audio itself may still be fine).
+      if (isUnlocked()) {
+        if (speechNeedsTap()) {
+          warmSpeech()
+          setAudioIssue(null)
+        }
+        return
+      }
       void unlockAudio().then((ok) => ok && setAudioIssue(null))
     }
     document.addEventListener("pointerdown", wake, true)
@@ -156,7 +165,16 @@ export default function SoundboxPage() {
     setFlash(added)
     window.clearTimeout(flashTimer.current)
     flashTimer.current = window.setTimeout(() => setFlash(null), FLASH_MS)
-    void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100).then((r) => setAudioIssue(r === "locked" || r === "error" ? r : null))
+    void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100).then((r) => {
+      setAudioIssue(audioIssueOf(r))
+      // What the phone did (chime, each voice attempt, the melody) is kept with the payment — a silent
+      // announcement is diagnosed from facts, never guessed.
+      const supabase = getSupabaseBrowserClient()
+      if (supabase && r.result !== "muted")
+        void supabase.rpc("soundbox_report", { p_event: added.id, p_log: r.log.join(" ").slice(0, 500), p_ua: navigator.userAgent.slice(0, 200) }).then(({ error }) => {
+          if (error) console.error("[soundbox] report:", error.message)
+        })
+    })
   }
   const flashTimer = useRef<number | undefined>(undefined)
 
@@ -244,7 +262,7 @@ export default function SoundboxPage() {
       {audioIssue && (
         <button type="button" onClick={() => void start()} className="flex w-full items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-3 text-left text-sm font-medium text-rose-900 dark:text-rose-200">
           <VolumeXIcon className="size-5 shrink-0" aria-hidden />
-          {t(audioIssue === "locked" ? "soundbox.audioLocked" : "soundbox.audioError")}
+          {t(audioIssue === "locked" ? "soundbox.audioLocked" : audioIssue === "voice" ? "soundbox.voiceFailed" : "soundbox.audioError")}
         </button>
       )}
       {live === "down" && (
@@ -326,7 +344,7 @@ export default function SoundboxPage() {
             variant="outline"
             onClick={async () => {
               await unlockAudio()
-              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100).then((r) => setAudioIssue(r === "locked" || r === "error" ? r : null))
+              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100).then((r) => setAudioIssue(audioIssueOf(r)))
             }}
           >
             <PlayIcon />
