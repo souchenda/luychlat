@@ -1,0 +1,8 @@
+#!/bin/sh
+# Pre-push gate (Regression Prevention Protocol): the golden paths and the typecheck must pass before
+# anything reaches master — the server builds and deploys every push. Bypass only with the founder's OK.
+echo "→ Golden paths (npm run test:golden)…"
+npm run --silent test:golden >/tmp/luychlat-golden.log 2>&1 || { tail -40 /tmp/luychlat-golden.log; echo "✗ Golden path broken — push aborted."; exit 1; }
+echo "→ Typecheck…"
+npx tsc --noEmit -p . || { echo "✗ Typecheck failed — push aborted."; exit 1; }
+echo "✓ Golden paths and typecheck pass."

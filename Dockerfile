@@ -36,8 +36,11 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_BIOMETRIC_MOCK=$NEXT_PUBLIC_BIOMETRIC_MOCK \
     NEXT_TELEMETRY_DISABLED=1
 
-# Financial-integrity and engine tests (npm test): a failure stops the image, so the
-# running version stays live (deploy/update.sh is set -e).
+# Pre-deploy smoke gate: the 5 golden paths (bot receipt intake, publisher pipeline, SoundBox alerts,
+# privacy by default, wallet accounting) + the SoundBox isolation guard run first — one failure stops
+# the image, so the deploy aborts and the running version stays live (deploy/update.sh is set -e).
+RUN npm run test:golden
+# Then every financial-integrity and engine test (npm test).
 RUN npm test
 RUN npm run build
 

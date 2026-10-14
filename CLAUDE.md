@@ -35,6 +35,28 @@ use come before feature count: no half-baked features, broken links or untested 
 - **Licensing:** only licensed services and assets (no Edge-TTS or other unofficial endpoints; Khmer
   SoundBox clips via Azure AI Speech or Google Cloud TTS — `scripts/soundbox-khmer-tts.mjs`).
 
+## Regression Prevention Protocol — mandatory (founder, 14/10/2026)
+
+1. **NEVER modify shared logic without verifying dependent modules.** Before changing a shared module
+   (`src/lib/**`, a database function, a store), find every caller (`grep` the export, the RPC name) and
+   run their tests.
+2. **Every bug fix MUST come with an automated regression test** that reproduces the bug and locks the
+   expected behaviour permanently (e.g. the ABA-slip-booked-to-ACLEDA case in `bank-slip.test.ts`).
+3. **Golden paths must never break** — `tests/golden/` (`npm run test:golden`):
+   1. Bot receipt intake — exact amounts, never another bank's wallet by number, loans recognised.
+   2. Publisher pipeline — 06:15 preview, 07:00 auto-publish once, ❌ stops every channel, curated Facebook.
+   3. SoundBox alerts — sales only, the Khmer amount, stays on, the locked-screen push.
+   4. Privacy by default — balances hidden on launch, ***** never a digit, the bot masks numbers.
+   5. Wallet accounting — exact money, 100 ៛ rounding only where computed, repayments ≤ what is left.
+   Plus the SoundBox isolation guard (`6-soundbox-isolation.test.ts`).
+4. **Pre-deploy smoke gate:** the Dockerfile runs `npm run test:golden` before `npm test` and the build —
+   one failure aborts the deploy and the running version stays live. Locally, `.githooks/pre-push`
+   (`git config core.hooksPath .githooks`) runs the golden paths and the typecheck before every push.
+   Never weaken or delete a golden test to make a change pass; change it only on the founder's decision.
+5. **SoundBox is isolated:** `lib/soundbox.ts` imports nothing of the app, `lib/soundbox-audio.ts` only the
+   SoundBox core, and no SoundBox file imports sign-in, publishing or wallet-balance code; only the
+   SoundBox page uses the audio module. The guard test enforces it.
+
 ## Publishing and content standards (founder, 12/10/2026)
 
 - **No "AI slop" (ម៉ារៀលៗ).** Every line of copy, visual or media for «អេប លុយឆ្លាត» must feel
