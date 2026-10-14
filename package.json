@@ -14,7 +14,7 @@
     "android:sync": "cap sync android",
     "android:assets": "node scripts/android-assets.mjs",
     "android:open": "cap open android",
-    "test": "tsx --test \"src/**/*.test.ts\" \"tests/**/*.test.ts\"",
+    "test": "tsx --test --test-force-exit --test-timeout=60000 \"src/**/*.test.ts\" \"tests/**/*.test.ts\"",
     "test:golden": "tsx --test \"tests/golden/*.test.ts\""
   },
   "dependencies": {

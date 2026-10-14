@@ -1,6 +1,7 @@
 // useAssetsTotal + the net worth card when asset queries fail (React Testing Library on jsdom).
 // The founder's rule — no silent guessing on money: a failed list, or gold without today's rate, is
 // named in `gaps` and on the card with a retry; it is never quietly counted as $0.
+import "../../tests/support/offline-env"
 import "global-jsdom/register"
 
 import assert from "node:assert/strict"
