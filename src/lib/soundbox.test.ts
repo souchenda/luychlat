@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, silentWav, soundboxPush, soundboxStorageKey, voiceAvailability, writeSoundboxEnabled } from "./soundbox"
+import { announceLate, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, soundboxPush, soundboxStorageKey, voiceAvailability, writeSoundboxEnabled } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -246,14 +246,6 @@ describe("SoundBox with the screen locked (founder, 14/10/2026)", () => {
     assert.equal(p.tag, "soundbox-tx-1")
     assert.equal(p.url, "/soundbox")
     assert.equal(p.renotify, true)
-  })
-  it("the keep-alive audio is a valid, silent WAV", () => {
-    const wav = silentWav(10, 8000)
-    const ascii = (a: number, b: number) => String.fromCharCode(...wav.slice(a, b))
-    assert.equal(ascii(0, 4), "RIFF")
-    assert.equal(ascii(8, 12), "WAVE")
-    assert.equal(wav.length, 44 + 80_000)
-    assert.ok(wav.slice(44).every((b) => b === 128)) // mid-level = silence
   })
 })
 

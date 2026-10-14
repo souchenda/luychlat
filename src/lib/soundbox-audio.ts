@@ -1,6 +1,6 @@
 "use client"
 
-import { announcementText, audioPlan, KHMER_CLIPS, khmerClipSequence, silentWav, voiceAvailability, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceLang } from "@/lib/soundbox"
+import { announcementText, audioPlan, KHMER_CLIPS, khmerClipSequence, voiceAvailability, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceLang } from "@/lib/soundbox"
 
 /**
  * The SoundBox's sound: one AudioContext created on the cashier's tap (browsers block audio until a
@@ -12,7 +12,17 @@ import { announcementText, audioPlan, KHMER_CLIPS, khmerClipSequence, silentWav,
  */
 let ctx: AudioContext | null = null
 
-export const isUnlocked = () => ctx !== null && ctx.state === "running"
+/**
+ * The SoundBox touches the phone's audio ONLY while it announces a payment (founder, 14/10/2026 — an
+ * always-on silent loop + Media Session held the iPhone's audio session and muted Telegram voice notes
+ * and system sounds while the app was open). The context is unlocked by a tap, then suspended — the
+ * audio session released — and resumed just for each announcement.
+ */
+let unlocked = false
+export const isUnlocked = () => ctx !== null && unlocked
+const release = () => {
+  if (ctx && ctx.state === "running") void ctx.suspend().catch(() => null)
+}
 
 const CLIP_BASE = "/audio/soundbox/khmer"
 const clips = new Map<KhmerClip, AudioBuffer>()
@@ -60,29 +70,6 @@ function playKhmerClips(sequence: KhmerClip[], volume: number): Promise<void> {
 }
 
 /**
- * Keep-alive: a silent buffer looping into the speakers keeps Android Chrome from suspending the
- * audio context during the long quiet stretches between payments (an idle context gets parked; a
- * playing one does not). Started once, on the unlock tap.
- */
-let keepAlive: AudioBufferSourceNode | null = null
-function startKeepAlive() {
-  if (!ctx || keepAlive) return
-  const silent = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate) // 1 s of zeros
-  const source = ctx.createBufferSource()
-  source.buffer = silent
-  source.loop = true
-  const gain = ctx.createGain()
-  gain.gain.value = 0
-  source.connect(gain).connect(ctx.destination)
-  source.start()
-  keepAlive = source
-  // If the phone still parks it (screen locked), try to wake it as soon as it says so.
-  ctx.onstatechange = () => {
-    if (ctx && ctx.state === "suspended") void ctx.resume().catch(() => null)
-  }
-}
-
-/**
  * Android Chrome fills its voice list a moment after the page loads (getVoices() is empty until
  * «voiceschanged»): an announcement made before that found no Khmer voice and fell back to English.
  * Wait for the list (at most 1.5 s) before choosing a voice.
@@ -99,51 +86,13 @@ function voicesReady(timeoutMs = 1_500): Promise<void> {
   })
 }
 
-/**
- * Screen off: Android Chrome puts a page to sleep soon after the screen locks — unless it is playing
- * media. A silent WAV looped in an <audio> element, announced to the system through the Media Session
- * («SoundBox · អេប លុយឆ្លាត» on the lock screen), keeps the page — its live connection and its voice —
- * awake while the SoundBox is on. Started by the unlock tap (media needs a gesture), stopped by «🔇».
- */
-let mediaKeepAlive: HTMLAudioElement | null = null
-export async function startBackgroundKeepAlive(): Promise<boolean> {
-  if (typeof window === "undefined") return false
-  if (!mediaKeepAlive) {
-    const url = URL.createObjectURL(new Blob([silentWav(10).slice().buffer as ArrayBuffer], { type: "audio/wav" }))
-    mediaKeepAlive = new Audio(url)
-    mediaKeepAlive.loop = true
-    mediaKeepAlive.preload = "auto"
-    mediaKeepAlive.setAttribute("playsinline", "")
-  }
-  if ("mediaSession" in navigator) {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: "SoundBox · អេប លុយឆ្លាត", artist: "កំពុងរង់ចាំការបង់ប្រាក់", artwork: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }] })
-    navigator.mediaSession.playbackState = "playing"
-    // A stray «pause» from the lock screen or a headset must not silence the counter.
-    navigator.mediaSession.setActionHandler("pause", () => void mediaKeepAlive?.play().catch(() => null))
-  }
-  try {
-    await mediaKeepAlive.play()
-    return true
-  } catch {
-    return false
-  }
-}
-
-export function stopBackgroundKeepAlive() {
-  mediaKeepAlive?.pause()
-  if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
-    navigator.mediaSession.playbackState = "none"
-    navigator.mediaSession.setActionHandler("pause", null)
-  }
-}
-
-/** On the «🔊 បើកសំឡេង SoundBox» tap (or the first tap after a reload): the audio context, the keep-alive, the Khmer clips, and an empty utterance (iOS needs speech started by a tap too). */
+/** On the «🔊 បើកសំឡេង SoundBox» tap (or the first tap after a reload): the audio context, the Khmer clips, and an empty utterance (iOS needs speech started by a tap too) — then the audio is released until a payment. */
 export async function unlockAudio(): Promise<boolean> {
   const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
   if (!Ctx) return false
   ctx ??= new Ctx()
   if (ctx.state !== "running") await ctx.resume().catch(() => null)
-  if (ctx.state === "running") startKeepAlive()
+  if (ctx.state === "running") unlocked = true
   void loadKhmerClips()
   void voicesReady()
   if ("speechSynthesis" in window) {
@@ -151,7 +100,10 @@ export async function unlockAudio(): Promise<boolean> {
     warm.volume = 0
     window.speechSynthesis.speak(warm)
   }
-  return ctx.state === "running"
+  const ok = ctx.state === "running"
+  // Nothing plays until a payment: give the audio back to the phone (Telegram, calls, music…).
+  release()
+  return ok
 }
 
 function tone(freq: number, start: number, length: number, peak: number, volume: number, type: OscillatorType = "sine") {
@@ -296,6 +248,9 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
     } catch (error) {
       console.error("[soundbox] announcement failed:", error)
       return "error"
+    } finally {
+      // Announced: the phone's audio is released again at once.
+      release()
     }
   })
   queue = run

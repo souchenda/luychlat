@@ -1,8 +1,10 @@
 // GOLDEN PATH 3 — SoundBox alerts (sales only, the Khmer amount, stays on, the locked-screen push).
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { khmerClipSequence, readSoundboxEnabled, receiveEvent, shouldEmit, silentWav, soundboxPush, writeSoundboxEnabled } from "../../src/lib/soundbox"
+import { khmerClipSequence, readSoundboxEnabled, receiveEvent, shouldEmit, soundboxPush, writeSoundboxEnabled } from "../../src/lib/soundbox"
 
 describe("GOLDEN 3 · SoundBox alerts", () => {
   it("only a customer's sale is announced — never an own transfer or an unknown status", () => {
@@ -27,8 +29,14 @@ describe("GOLDEN 3 · SoundBox alerts", () => {
     writeSoundboxEnabled(store, "dl", false)
     assert.equal(readSoundboxEnabled(store, "dl"), false)
   })
-  it("screen locked: the push carries the amount; the keep-alive audio is silent", () => {
+  it("screen locked: the push carries the amount", () => {
     assert.match(soundboxPush({ id: "t", amount: 5, currency: "USD" }).title, /^💰 ទទួលបានប្រាក់ /)
-    assert.ok(silentWav(1).slice(44).every((b) => b === 128))
+  })
+  it("the phone's audio is never held: no looping media, no Media Session; released after each announcement (founder, 14/10/2026 — it muted Telegram voice notes on iPhone)", () => {
+    const src = readFileSync(join(process.cwd(), "src", "lib", "soundbox-audio.ts"), "utf8")
+    assert.doesNotMatch(src, /\.loop\s*=\s*true/)
+    assert.doesNotMatch(src, /mediaSession|new Audio\(/)
+    assert.match(src, /ctx\.suspend\(/)
+    assert.match(src, /finally \{[\s\S]{0,160}?release\(\)/)
   })
 })

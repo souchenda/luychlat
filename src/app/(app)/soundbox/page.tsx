@@ -28,7 +28,7 @@ import {
   type SoundboxEvent,
   type SoundboxMode,
 } from "@/lib/soundbox"
-import { announce, isUnlocked, startBackgroundKeepAlive, stopBackgroundKeepAlive, unlockAudio, type AnnounceResult } from "@/lib/soundbox-audio"
+import { announce, isUnlocked, unlockAudio, type AnnounceResult } from "@/lib/soundbox-audio"
 import { enablePush, pushState, type PushState } from "@/lib/push"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -105,7 +105,6 @@ export default function SoundboxPage() {
   const setEnabled = (on: boolean) => {
     setEnabledState(on)
     writeSoundboxEnabled(store(), counterId, on)
-    if (!on) stopBackgroundKeepAlive()
   }
   // Payments with the screen locked: the phone push (the browser may be asleep) — offered until it is on.
   const [push, setPush] = useState<PushState | null>(null)
@@ -131,7 +130,6 @@ export default function SoundboxPage() {
     const wake = () => {
       if (isUnlocked()) return
       void unlockAudio().then((ok) => ok && setAudioIssue(null))
-      void startBackgroundKeepAlive()
     }
     document.addEventListener("pointerdown", wake, true)
     document.addEventListener("keydown", wake, true)
@@ -236,8 +234,6 @@ export default function SoundboxPage() {
     const ok = await unlockAudio()
     setEnabled(true)
     setAudioIssue(ok ? null : "locked")
-    // Keeps the page (live connection + voice) awake with the screen off (Android Chrome).
-    void startBackgroundKeepAlive()
   }
 
   return (
