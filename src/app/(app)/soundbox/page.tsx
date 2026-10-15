@@ -333,7 +333,16 @@ export default function SoundboxPage() {
       for (const row of data ?? []) handle.current(row as Record<string, unknown>, true)
     }
     const every = window.setInterval(() => void poll(), 15_000)
-    const onShow = () => document.visibilityState === "visible" && void poll()
+    const onShow = () => {
+      if (document.visibilityState !== "visible") return
+      void poll()
+      // The live connection dropped while hidden (iOS / Android freeze sockets): rejoin now, not after the back-off.
+      if (!channel && !stopped) {
+        window.clearTimeout(retry)
+        attempt = 0
+        connect()
+      }
+    }
     document.addEventListener("visibilitychange", onShow)
     return () => {
       stopped = true

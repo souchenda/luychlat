@@ -454,13 +454,14 @@ export function devicePlatform(userAgent: string): string {
 /** Business hours for the offline alert: 07:00–21:00 Cambodia time (founder, 14/10/2026). */
 export const OPEN_HOUR = 7
 export const CLOSE_HOUR = 21
-export const OFFLINE_ALERT_MS = 5 * 60_000
+/** 10 minutes (founder, 15/10/2026 — was 5: a brief network drop or a short switch away alerted for nothing). */
+export const OFFLINE_ALERT_MS = 10 * 60_000
 const ictHour = (ms: number) => new Date(ms + 7 * 3_600_000).getUTCHours()
 const ictDay = (ms: number) => new Date(ms + 7 * 3_600_000).toISOString().slice(0, 10)
 
 /**
  * The counter phone went away (closed, locked, offline) during business hours: alert once when it has
- * been gone 5 minutes — only if it was last ready today within business hours (a phone closed last night
+ * been gone 10 minutes — only if it was last ready today within business hours (a phone closed last night
  * is no surprise at 07:00), and once per absence (alertedAt older than the last ready moment).
  */
 export function offlineAlertDue(o: { lastReadyAt: string | null; alertedAt: string | null; readyNow: boolean; now: number }): boolean {

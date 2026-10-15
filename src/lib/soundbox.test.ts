@@ -331,20 +331,21 @@ describe("SoundBox — the counter phone's heartbeat", () => {
 describe("SoundBox — offline alert during business hours (07:00–21:00)", () => {
   const at = (ict: string) => Date.parse(`${ict}+07:00`)
   const iso = (ict: string) => new Date(at(ict)).toISOString()
-  it("gone more than 5 minutes after being ready today → alert", () => {
-    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T13:59:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T14:05:00") }), true)
+  it("gone more than 10 minutes after being ready today → alert", () => {
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T13:54:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T14:05:00") }), true)
   })
-  it("5 minutes or less, or ready again → no alert", () => {
-    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T14:00:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T14:05:00") }), false)
+  it("10 minutes or less (a short switch away, a network blip), or ready again → no alert", () => {
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T13:59:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T14:05:00") }), false)
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T13:55:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T14:05:00") }), false)
     assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T13:00:00"), alertedAt: null, readyNow: true, now: at("2026-10-14T14:05:00") }), false)
   })
   it("once per absence: already alerted after the last ready moment → quiet; ready again then gone → alert again", () => {
     assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T13:59:00"), alertedAt: iso("2026-10-14T14:05:00"), readyNow: false, now: at("2026-10-14T15:00:00") }), false)
-    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T15:00:00"), alertedAt: iso("2026-10-14T14:05:00"), readyNow: false, now: at("2026-10-14T15:06:00") }), true)
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T15:00:00"), alertedAt: iso("2026-10-14T14:05:00"), readyNow: false, now: at("2026-10-14T15:11:00") }), true)
   })
   it("outside business hours, or last ready last night / before opening → no alert", () => {
-    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T20:58:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T21:04:00") }), false)
-    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-13T20:00:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T07:10:00") }), false)
-    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T06:50:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T07:10:00") }), false)
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T20:50:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T21:04:00") }), false)
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-13T20:00:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T07:20:00") }), false)
+    assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T06:50:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T07:20:00") }), false)
   })
 })

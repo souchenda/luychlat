@@ -1,6 +1,6 @@
 // Server only: the SoundBox counter phones (founder, 14/10/2026).
 //   • A sale arrives while no SoundBox of the business is ready → the owner hears «🔇 no SoundBox open».
-//   • A counter phone gone (closed, locked, offline) over 5 minutes during 07:00–21:00 → one alert per
+//   • A counter phone gone (closed, locked, offline) over 10 minutes during 07:00–21:00 → one alert per
 //     absence (offlineAlertDue in lib/soundbox.ts), checked every minute by the dispatcher.
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
@@ -37,7 +37,7 @@ type Watched = {
   other_ready: boolean
 }
 
-/** Every minute (the dispatcher): counter phones gone over 5 minutes during business hours. */
+/** Every minute (the dispatcher): counter phones gone over 10 minutes during business hours. */
 export async function soundboxWatchTick(now = Date.now()): Promise<void> {
   const { data, error } = await botDb().rpc("bot_soundbox_watch", { p_key: botKey() })
   if (error) {
@@ -52,6 +52,6 @@ export async function soundboxWatchTick(now = Date.now()): Promise<void> {
     const sent = await notifyOwner({ workspaceId: d.workspace_id }, (lang: Locale) =>
       tr(lang, "soundbox.alertOffline", { device: d.platform ?? "SoundBox", time: ictTime(d.last_ready_at!) }),
     )
-    logEvent(sent ? "info" : "warn", "soundbox", `Counter phone offline over 5 min — owner ${sent ? "told" : "NOT reached"}`, { fold: true })
+    logEvent(sent ? "info" : "warn", "soundbox", `Counter phone offline over 10 min — owner ${sent ? "told" : "NOT reached"}`, { fold: true })
   }
 }
