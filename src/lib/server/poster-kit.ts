@@ -4,7 +4,7 @@
 //   HEADER  left:  the mascot logo tile + "អេប លុយឆ្លាត" over "App Luy Chlat" (spread to the same width)
 //           right: the poster's category pill ("គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", "ពិធីបុណ្យប្រពៃណីជាតិខ្មែរ"…)
 //   FOOTER  📱 គ្រប់គ្រងចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត
-//           ✈️ សហគមន៍ អេប លុយឆ្លាត   •   🌐 app.luychlat.com
+//           ✈️ សហគមន៍ Telegram ៖ t.me/LuyChlatCommunity   •   🌐 luychlat.com (founder, 15/10/2026)
 //           app-first (no bot username), left-aligned, never a button or pill on the right
 //
 // Every poster generator (daily tip, festivals, future market posters) draws
@@ -296,7 +296,7 @@ export function drawFooter(ctx: SKRSContext2D) {
   ctx.font = `500 26px ${FAMILIES}`
   drawIcon(ctx, "plane", PAD + 14, line2 - 10)
   ctx.fillStyle = "#d1fae5"
-  const community = "សហគមន៍ អេប លុយឆ្លាត"
+  const community = "សហគមន៍ Telegram ៖ t.me/LuyChlatCommunity"
   ctx.fillText(community, PAD + 44, line2)
   let x = PAD + 44 + ctx.measureText(community).width + 26
   ctx.fillStyle = "rgba(209,250,229,0.55)"
@@ -304,5 +304,5 @@ export function drawFooter(ctx: SKRSContext2D) {
   x += ctx.measureText("•").width + 26
   drawIcon(ctx, "globe", x + 14, line2 - 10)
   ctx.fillStyle = "#d1fae5"
-  ctx.fillText("app.luychlat.com", x + 44, line2)
+  ctx.fillText("luychlat.com", x + 44, line2)
 }
