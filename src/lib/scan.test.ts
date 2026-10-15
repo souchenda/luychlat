@@ -50,12 +50,32 @@ describe("scan — vehicle document", () => {
       vehicle: "MG Marvel R · 2AB-1234",
       expiresOn: "2027-03-20",
       provider: null,
+      cost: null,
+      currency: null,
     })
   })
   it("insurance keeps the insurer; a registration card has no document type to track (the person picks)", () => {
     assert.equal(cleanVehicle({ is_vehicle_doc: true, doc_type: "INSURANCE", plate: "2AB-1234", expires_on: "2027-01-01", insurer: "Forte" })!.provider, "Forte")
     assert.equal(cleanVehicle({ is_vehicle_doc: true, doc_type: "REGISTRATION", plate: "2AB-1234", expires_on: null })!.docType, null)
     assert.equal(cleanVehicle({ is_vehicle_doc: true, doc_type: "INSPECTION", expires_on: "bad" }), null)
+  })
+  it("road tax receipt (5054/5056.jpg, 15/10/2026): 100,000 ៛ read; the model's 31/12/2026 replaced by the GDT deadline 30/11 of the next year", () => {
+    const v = cleanVehicle({ is_vehicle_doc: true, doc_type: "ROAD_TAX", plate: "ភ្នំពេញ 2CE-3895", model: "MG MARVEL R DEL", expires_on: "2026-12-31", tax_year: 2026, amount: 100000, currency: "KHR" })!
+    assert.equal(v.vehicle, "MG MARVEL R DEL · ភ្នំពេញ 2CE-3895")
+    assert.equal(v.expiresOn, "2027-11-30")
+    assert.equal(v.cost, 100000)
+    assert.equal(v.currency, "KHR")
+  })
+  it("road tax: Khmer digits and «100,000» as text; no tax year → the year of the printed date; never 31 December", () => {
+    const v = cleanVehicle({ is_vehicle_doc: true, doc_type: "ROAD_TAX", plate: "2CE-3895", expires_on: "2026-12-31", amount: "១០០,០០០" })!
+    assert.equal(v.cost, 100000)
+    assert.equal(v.currency, "KHR")
+    assert.equal(v.expiresOn, "2027-11-30")
+    assert.equal(cleanVehicle({ is_vehicle_doc: true, doc_type: "ROAD_TAX", plate: "2CE-3895", tax_year: "២០២៦" })!.expiresOn, "2027-11-30")
+  })
+  it("no amount, or a zero / nonsense amount → left for the person to type (never a 0 filled in)", () => {
+    assert.equal(cleanVehicle({ is_vehicle_doc: true, doc_type: "ROAD_TAX", plate: "2CE-3895", tax_year: 2026, amount: 0 })!.cost, null)
+    assert.equal(cleanVehicle({ is_vehicle_doc: true, doc_type: "INSPECTION", plate: "2CE-3895", expires_on: "2027-03-20" })!.cost, null)
   })
 })
 

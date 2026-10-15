@@ -8,7 +8,7 @@
 import type { Currency } from "@/lib/data/types"
 import { detailToSchedule, type LoanDetailRead } from "@/lib/loans/loan-detail-read"
 import { providerForName } from "@/lib/wallets/providers"
-import type { VehicleDocType } from "@/lib/vehicle-docs"
+import { roadTaxDue, type VehicleDocType } from "@/lib/vehicle-docs"
 
 export type ScanKind = "account" | "vehicle" | "loan"
 
@@ -16,6 +16,7 @@ const num = (v: unknown) => {
   const n = typeof v === "number" ? v : typeof v === "string" ? Number(v.replace(/[,\s$៛]/g, "")) : NaN
   return Number.isFinite(n) ? n : null
 }
+const latinDigits = (s: string) => s.replace(/[០-៩]/g, (d) => String("០១២៣៤៥៦៧៨៩".indexOf(d)))
 const date = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? v : null)
 const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().replace(/\s+/g, " ").slice(0, max) : null)
 
@@ -76,14 +77,24 @@ export const accountTitle = (a: Pick<AccountRead, "bank" | "accountName">, provi
 
 // ── Vehicle document ─────────────────────────────────────────────────────────────────────────
 
-export type VehicleRead = { docType: VehicleDocType | null; vehicle: string | null; expiresOn: string | null; provider: string | null }
+export type VehicleRead = {
+  docType: VehicleDocType | null
+  vehicle: string | null
+  expiresOn: string | null
+  provider: string | null
+  /** The amount paid as printed (road tax: «ប្រាក់ពន្ធ» / «សរុប»), and its currency. */
+  cost: number | null
+  currency: Currency | null
+}
 
 export const VEHICLE_PROMPT = [
   "This photo should be a Cambodian VEHICLE DOCUMENT: a roadworthiness inspection certificate (ឆៀកឡាន / វិញ្ញាបនបត្រត្រួតពិនិត្យលក្ខណៈបច្ចេកទេសយានជំនិះ), a road tax receipt (ពន្ធផ្លូវ / ពន្ធលើមធ្យោបាយដឹកជញ្ជូន), a vehicle insurance certificate (Forte, AIA…), or a registration card (កាតគ្រីឡាន).",
   "Answer only JSON:",
-  '{"is_vehicle_doc": boolean, "doc_type": "INSPECTION" | "ROAD_TAX" | "INSURANCE" | "REGISTRATION" | null, "plate": string | null, "model": string | null, "expires_on": "YYYY-MM-DD" | null, "insurer": string | null}',
+  '{"is_vehicle_doc": boolean, "doc_type": "INSPECTION" | "ROAD_TAX" | "INSURANCE" | "REGISTRATION" | null, "plate": string | null, "model": string | null, "expires_on": "YYYY-MM-DD" | null, "insurer": string | null, "tax_year": number | null, "amount": number | null, "currency": "KHR" | "USD" | null}',
   "- plate: the plate number exactly as printed (e.g. 2AB-1234); model: make and model if printed (e.g. MG Marvel R).",
   "- expires_on: the validity end / next inspection / expiry date. insurer: the insurance company (insurance only).",
+  "- tax_year (road tax only): the tax year the receipt is for (ឆ្នាំ…), as a number, Khmer digits ០-៩ → 0-9.",
+  "- amount: the amount paid as printed — on a road tax receipt «ប្រាក់ពន្ធ» or «សរុប» (e.g. 100,000 ៛ → 100000), digits only; currency: KHR for ៛ / រៀល, USD for $. null if none.",
   "- Never invent a value. Ignore owner names and ID numbers.",
   'If it is not a vehicle document, answer {"is_vehicle_doc": false}.',
 ].join("\n")
@@ -95,9 +106,17 @@ export function cleanVehicle(raw: unknown): VehicleRead | null {
   const plate = text(r.plate, 20)
   const model = text(r.model, 36)
   const vehicle = [model, plate].filter(Boolean).join(" · ").slice(0, 60) || null
-  const expiresOn = date(r.expires_on)
+  const amount = num(typeof r.amount === "string" ? latinDigits(r.amount) : r.amount)
+  const cost = amount !== null && amount > 0 && amount < 1e9 ? amount : null
+  const currency: Currency | null = r.currency === "USD" || r.currency === "KHR" ? r.currency : cost !== null && type === "ROAD_TAX" ? "KHR" : null
+  let expiresOn = date(r.expires_on)
+  if (type === "ROAD_TAX") {
+    // Never the model's 31 December: the GDT deadline, 30 November of the year after the tax year paid.
+    const year = Number(latinDigits(String(r.tax_year ?? ""))) || (expiresOn ? Number(expiresOn.slice(0, 4)) : 0)
+    expiresOn = year >= 2000 && year < 2100 ? roadTaxDue(year) : null
+  }
   if (!vehicle && !expiresOn) return null
-  return { docType: type, vehicle, expiresOn, provider: type === "INSURANCE" ? text(r.insurer, 60) : null }
+  return { docType: type, vehicle, expiresOn, provider: type === "INSURANCE" ? text(r.insurer, 60) : null, cost, currency }
 }
 
 // ── Loan detail → the debt form ──────────────────────────────────────────────────────────────

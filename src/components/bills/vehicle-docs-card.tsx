@@ -138,7 +138,7 @@ export function VehicleDocsCard({ workspaceId, editable, addType = null }: { wor
 /** «បន្តរួច»: the new expiry, one year on by default. */
 function RenewSheet({ doc, busy, onClose, onSave }: { doc: VehicleDoc; busy: boolean; onClose: () => void; onSave: (expiresOn: string) => void }) {
   const t = useT()
-  const [value, setValue] = useState(() => renewedExpiry(doc.expires_on, cambodiaToday()))
+  const [value, setValue] = useState(() => renewedExpiry(doc.expires_on, cambodiaToday(), doc.doc_type))
   return (
     <BottomSheet open onOpenChange={(v) => !v && onClose()} title={t("vdoc.renewTitle")} description={`${t(`vdoc.type.${doc.doc_type}` as MessageKey)} · ${doc.vehicle}`}>
       <div className="space-y-4">
@@ -214,6 +214,8 @@ function VehicleDocSheet({ open, onOpenChange, workspaceId, doc, vehicles, initi
               ...(v.docType ? { type: v.docType, ...(doc ? {} : { currency: COST_HINT[v.docType].currency }) } : {}),
               ...(v.expiresOn ? { expiresOn: v.expiresOn } : {}),
               ...(v.provider ? { provider: v.provider } : {}),
+              // The amount printed on the receipt (road tax «ប្រាក់ពន្ធ» / «សរុប») — exact, as the bank or GDT stated it.
+              ...(v.cost !== null ? { cost: String(v.cost), ...(v.currency ? { currency: v.currency } : {}) } : {}),
             })
           }
         />

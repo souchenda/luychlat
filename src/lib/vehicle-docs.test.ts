@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { daysLeft, docStatus, reminderDue, renewedExpiry, toggleRemindDay } from "./vehicle-docs"
+import { daysLeft, docStatus, reminderDue, renewedExpiry, roadTaxDue, toggleRemindDay } from "./vehicle-docs"
 import { scopeOf } from "./workspace-scope"
 
 const TODAY = "2026-10-11"
@@ -37,6 +37,18 @@ describe("vehicle documents — the 30 / 15 / 7 reminder toggles", () => {
   it("all off still reminds on the day and when expired (the database rule)", () => {
     assert.equal(reminderDue("2026-10-20", "2026-10-20", []), true)
     assert.equal(reminderDue("2026-10-20", "2026-10-05", []), false)
+  })
+})
+
+describe("road tax — the GDT deadline is 30 November, never 31 December", () => {
+  it("a receipt for tax year 2026: paid; the next deadline is 30/11/2027", () => {
+    assert.equal(roadTaxDue(2026), "2027-11-30")
+  })
+  it("«បន្តរួច» on road tax lands on 30 November — a 31 December entered before is corrected", () => {
+    assert.equal(renewedExpiry("2027-11-30", "2027-11-10", "ROAD_TAX"), "2028-11-30")
+    assert.equal(renewedExpiry("2026-12-31", "2026-12-20", "ROAD_TAX"), "2027-11-30")
+    // other documents: a year on, as before
+    assert.equal(renewedExpiry("2026-12-31", "2026-12-20", "INSPECTION"), "2027-12-31")
   })
 })
 

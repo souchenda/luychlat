@@ -57,12 +57,22 @@ export function reminderDue(expiresOn: string, today: string, remindDays: number
 }
 
 /** «បន្តរួច»: the next expiry suggested — one year after the old one (or after today, when it had long expired). */
-export function renewedExpiry(expiresOn: string, today: string): string {
+export function renewedExpiry(expiresOn: string, today: string, type?: VehicleDocType): string {
   const from = daysLeft(expiresOn, today) < -30 ? today : expiresOn
   const d = new Date(`${from}T12:00:00Z`)
   d.setUTCFullYear(d.getUTCFullYear() + 1)
+  // Road tax: always the GDT deadline, 30 November (a 31 December entered earlier is moved too).
+  if (type === "ROAD_TAX") return `${d.getUTCFullYear()}-11-30`
   return d.toISOString().slice(0, 10)
 }
+
+/**
+ * Road tax (ពន្ធលើមធ្យោបាយដឹកជញ្ជូន): GDT collects each tax year's tax from 1 June to 30 November; after
+ * 30 November it costs double (founder, 15/10/2026 — never 31 December). A receipt for tax year Y means
+ * Y is paid, so the date to be reminded of is the NEXT deadline: 30 November of Y + 1.
+ */
+export const ROAD_TAX_DEADLINE = { month: 11, day: 30 } as const
+export const roadTaxDue = (taxYear: number): string => `${taxYear + 1}-11-30`
 
 /** Most urgent first: expired, then the soonest expiry. */
 export const byUrgency = (a: Pick<VehicleDoc, "expires_on">, b: Pick<VehicleDoc, "expires_on">) => a.expires_on.localeCompare(b.expires_on)
