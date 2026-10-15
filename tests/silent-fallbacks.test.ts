@@ -22,6 +22,17 @@ describe("silent fallbacks — fixed and locked", () => {
     assert.equal(shouldAnnounceQueryError(true, ["wallets"]), false)
     assert.match(src("lib/query-client.ts"), /onSuccess:[\s\S]{0,160}toast\.dismiss\("query-error"\)/)
   })
+  it("never on the login page or any public page, never before sign-in, never for a 401 / expired sign-in (founder, 15/10/2026)", () => {
+    // Before sign-in every query runs with the «signed-out» scope and rejects «not_signed_in».
+    assert.equal(shouldAnnounceQueryError(false, ["workspaces", "signed-out"], new Error("not_signed_in"), "/login"), false)
+    assert.equal(shouldAnnounceQueryError(false, ["profile", "signed-out"], new Error("not_signed_in"), "/home"), false)
+    assert.equal(shouldAnnounceQueryError(false, ["wallets", "u1", "w1"], { status: 401, message: "Unauthorized" }, "/home"), false)
+    assert.equal(shouldAnnounceQueryError(false, ["wallets", "u1", "w1"], { code: "PGRST301", message: "JWT expired" }, "/home"), false)
+    for (const path of ["/login", "/join/abc", "/reset-password", "/auth/callback", "/p/xyz", "/legal/privacy", "/"])
+      assert.equal(shouldAnnounceQueryError(false, ["wallets", "u1", "w1"], new Error("Failed to fetch"), path), false, path)
+    // Signed in, inside the app, a real failure: still said.
+    assert.equal(shouldAnnounceQueryError(false, ["wallets", "u1", "w1"], new Error("Failed to fetch"), "/home"), true)
+  })
   it("bank-alert Undo: a failed call is reported as a failure, never «already removed»", () => {
     assert.match(src("lib/server/bank-alert-bot.ts"), /const \{ data, error \} = await botDb\(\)\.rpc\("bot_bank_undo"[\s\S]{0,200}if \(error \|\| !data\)/)
   })

@@ -18,8 +18,35 @@ export const QUERY_ERROR_TOAST = "⚠️ មិនអាចផ្ទុកទិ
  */
 const CORE = new Set(["workspaces", "profile", "wallets", "categories", "transactions", "debts", "budgets", "bills", "tontines"])
 
-export function shouldAnnounceQueryError(hadData: boolean, queryKey: readonly unknown[] = ["wallets"]): boolean {
-  return !hadData && CORE.has(String(queryKey[0]))
+/** Pages a signed-out visitor sees (founder, 15/10/2026: the warning showed on /login before signing in). */
+const PUBLIC_PATHS = ["/login", "/join", "/reset-password", "/auth", "/p/", "/legal"]
+export const isPublicPath = (pathname: string | null | undefined) =>
+  !!pathname && (pathname === "/" || PUBLIC_PATHS.some((p) => pathname === p.replace(/\/$/, "") || pathname.startsWith(p.endsWith("/") ? p : `${p}/`)))
+
+/** Not signed in (yet), or the sign-in expired: the sign-in flow handles it — never «can't load data». */
+export function isAuthError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false
+  const e = error as { message?: unknown; code?: unknown; status?: unknown }
+  const message = typeof e.message === "string" ? e.message : ""
+  return (
+    message === "not_signed_in" ||
+    e.status === 401 ||
+    e.code === "PGRST301" ||
+    e.code === "PGRST302" ||
+    /jwt|not authenticated|unauthori[sz]ed|refresh token/i.test(message)
+  )
+}
+
+export function shouldAnnounceQueryError(
+  hadData: boolean,
+  queryKey: readonly unknown[] = ["wallets"],
+  error: unknown = null,
+  pathname: string | null = null,
+): boolean {
+  if (hadData || !CORE.has(String(queryKey[0]))) return false
+  // Before sign-in: the queries run with the «signed-out» scope and fail by design.
+  if (queryKey[1] === "signed-out" || isAuthError(error) || isPublicPath(pathname)) return false
+  return true
 }
 
 /** Core data loaded (again): any warning about it is out of date — taken away. */
@@ -33,7 +60,8 @@ export function getQueryClient(): QueryClient {
       queryCache: new QueryCache({
         onError: (error, query) => {
           console.error("[query]", query.queryKey, error)
-          if (!shouldAnnounceQueryError(query.state.data !== undefined, query.queryKey)) return
+          const pathname = typeof window === "undefined" ? null : window.location.pathname
+          if (!shouldAnnounceQueryError(query.state.data !== undefined, query.queryKey, error, pathname)) return
           if (typeof window !== "undefined") toast.error(QUERY_ERROR_TOAST, { id: "query-error" })
         },
         onSuccess: (_data, query) => {
