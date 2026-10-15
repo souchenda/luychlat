@@ -67,6 +67,9 @@ describe("GOLDEN 3 · SoundBox alerts", () => {
     assert.doesNotMatch(ingest, /alertIfNoSoundbox|soundbox-watch/)
     const km = readFileSync(join(process.cwd(), "src", "lib", "i18n", "dictionaries.ts"), "utf8")
     assert.doesNotMatch(km, /"soundbox\.alert(Offline|NotOpen)"/)
+    // Nor on the dashboard: no SoundBox status or nag on /home (founder, 15/10/2026) — only on /soundbox.
+    const home = readFileSync(join(process.cwd(), "src", "app", "(app)", "home", "page.tsx"), "utf8")
+    assert.doesNotMatch(home, /SoundboxStatus|soundbox-status/)
   })
   it("iPhone speech: primed synchronously inside the tap (before any await), re-primed on every tap until a payment is spoken, and the audio context lets go between the chime and the words (founder, 14/10/2026 — the 17:40 payment chimed without words)", () => {
     const src = readFileSync(join(process.cwd(), "src", "lib", "soundbox-audio.ts"), "utf8")
