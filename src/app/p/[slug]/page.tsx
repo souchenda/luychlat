@@ -11,6 +11,7 @@ import { isKhqr } from "@/lib/khqr"
 import { formatMoney } from "@/lib/money"
 import { poolEmoji, toSnapshot, type PoolKind, type PoolSnapshot } from "@/lib/pool"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
+import { withCleanFetch } from "@/lib/supabase/clean-fetch"
 
 // Live numbers on every visit; never cached, never indexed.
 export const dynamic = "force-dynamic"
@@ -38,7 +39,7 @@ const ddmm = (iso: string) => {
 export default async function PublicPoolPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   if (!/^[a-f0-9]{32}$/.test(slug)) notFound()
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, withCleanFetch({ auth: { persistSession: false, autoRefreshToken: false } }))
   const { data } = await supabase.rpc("pool_public", { p_slug: slug })
   if (!data) notFound()
   const pool = toSnapshot(data as PoolSnapshot)

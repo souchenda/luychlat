@@ -7,6 +7,7 @@ import BOT_COMMANDS from "@/lib/bot-commands.json"
 import { guardRequest } from "@/lib/server/guard"
 import { botKey, botToken, tg, webhookSecret } from "@/lib/server/telegram-bot"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
+import { cleanFetch } from "@/lib/supabase/clean-fetch"
 
 /**
  * /admin › "Activate bot": checks TELEGRAM_BOT_TOKEN with Telegram, stores the
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   // As the admin: admin_set_bot checks is_admin() itself.
   const db = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { Authorization: auth } },
+    global: { headers: { Authorization: auth }, fetch: cleanFetch },
   })
   const hash = createHash("sha256").update(botKey()!).digest("hex")
   const { error } = await db.rpc("admin_set_bot", { p_key_hash: hash, p_username: me.result.username })

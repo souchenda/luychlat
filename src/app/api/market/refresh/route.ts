@@ -5,6 +5,7 @@ import { guardRequest } from "@/lib/server/guard"
 import { syncMarket } from "@/lib/server/market-sync"
 import { botToken } from "@/lib/server/telegram-bot"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
+import { withCleanFetch } from "@/lib/supabase/clean-fetch"
 
 /**
  * "🔄 Refresh rates" for signed-in users: fetches the NBC rates and gold spot
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
   // Signed-in users only (the token is checked by Supabase).
   const auth = request.headers.get("authorization")
   if (!auth?.startsWith("Bearer ")) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  const db = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  const db = createClient(supabaseUrl, supabaseAnonKey, withCleanFetch({ auth: { persistSession: false, autoRefreshToken: false } }))
   const { data, error } = await db.auth.getUser(auth.slice(7))
   if (error || !data.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 

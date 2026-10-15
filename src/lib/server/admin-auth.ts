@@ -2,6 +2,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
+import { cleanFetch } from "@/lib/supabase/clean-fetch"
 
 /**
  * The caller's own client (their Bearer token), or null without one. Admin
@@ -13,7 +14,7 @@ export function callerDb(request: Request): SupabaseClient | null {
   if (!auth?.startsWith("Bearer ")) return null
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { Authorization: auth } },
+    global: { headers: { Authorization: auth }, fetch: cleanFetch },
   })
 }
 

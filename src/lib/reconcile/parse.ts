@@ -8,6 +8,7 @@
  * and the user can fix the mapping. Bank-specific profiles (ABA, ACLEDA…)
  * come in R2, built from real sample exports.
  */
+import { cleanText } from "../clean-text"
 
 export type ColumnRole = "date" | "description" | "ref" | "amount" | "debit" | "credit" | "balance" | "ignore"
 export type DateOrder = "DMY" | "MDY" | "YMD"
@@ -247,8 +248,8 @@ export function buildStatement(rows: string[][], mapping: Mapping, scale: number
       line_no: 0,
       posted_on: date,
       amount: round(amount, scale),
-      description: description.replace(/\s+/g, " ").slice(0, 300),
-      bank_ref: cell(row, cRef).slice(0, 80) || null,
+      description: cleanText(description).replace(/\s+/g, " ").slice(0, 300),
+      bank_ref: cleanText(cell(row, cRef)).slice(0, 80) || null,
       running_balance: balance === null ? null : round(balance, scale),
       fileRow: i + 1,
     })

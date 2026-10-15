@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js"
 
 import { dictionaries, type Locale, type MessageKey } from "@/lib/i18n/dictionaries"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
+import { withCleanFetch } from "@/lib/supabase/clean-fetch"
 
 /**
  * The official LuyChlat Telegram bot, server side. TELEGRAM_BOT_TOKEN lives
@@ -90,7 +91,7 @@ export const unescapeHtml = (s: string) => s.replace(/&lt;/g, "<").replace(/&gt;
 
 /** Database client without a user session: only the bot_* functions (with the key) work. */
 export function botDb() {
-  return createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  return createClient(supabaseUrl, supabaseAnonKey, withCleanFetch({ auth: { persistSession: false, autoRefreshToken: false } }))
 }
 
 export function tr(locale: Locale, key: MessageKey, params?: Record<string, string | number>) {

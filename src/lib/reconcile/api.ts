@@ -1,4 +1,5 @@
 import { OWNER_CATEGORY_PRESETS } from "@/lib/categories/presets"
+import { deepCleanText } from "@/lib/clean-text"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 export type LineDecision =
@@ -81,10 +82,11 @@ export async function isFileImported(walletId: string, sha256: string): Promise<
 }
 
 export async function importStatement(walletId: string, meta: ImportMeta, lines: ImportPayloadLine[], align: boolean): Promise<ImportResult> {
+  // Statement text is cleaned here too (the client's fetch cleans every body again): never a 22P05.
   const { data, error } = await client().rpc("import_statement", {
     p_wallet_id: walletId,
-    p_meta: meta,
-    p_lines: lines,
+    p_meta: deepCleanText(meta),
+    p_lines: deepCleanText(lines),
     p_align: align,
   })
   if (error) throw error

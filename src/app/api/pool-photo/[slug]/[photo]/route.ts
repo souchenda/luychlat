@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { isTelegramReceipt } from "@/lib/pool"
 import { telegramFile } from "@/lib/server/telegram-bot"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
+import { withCleanFetch } from "@/lib/supabase/clean-fetch"
 
 export const runtime = "nodejs"
 
@@ -15,7 +16,7 @@ export const runtime = "nodejs"
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string; photo: string }> }) {
   const { slug, photo } = await params
   if (!/^[a-f0-9]{32}$/.test(slug) || !/^[a-f0-9]{16}$/.test(photo)) return NextResponse.json({ error: "not_found" }, { status: 404 })
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, withCleanFetch({ auth: { persistSession: false, autoRefreshToken: false } }))
   const { data: ref } = await supabase.rpc("pool_public_photo", { p_slug: slug, p_photo: photo })
   if (typeof ref !== "string" || !ref) return NextResponse.json({ error: "not_found" }, { status: 404 })
 

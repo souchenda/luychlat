@@ -17,10 +17,11 @@ import { PASSKEY_RP_NAME } from "@/lib/passkey-rp"
 import { logEvent } from "@/lib/server/events"
 import { supabaseUrl } from "@/lib/supabase/config"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { withCleanFetch } from "@/lib/supabase/clean-fetch"
 
 const serviceKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null
 export const passkeysEnabled = () => Boolean(serviceKey() && supabaseUrl)
-const service = () => createClient(supabaseUrl, serviceKey()!, { auth: { persistSession: false, autoRefreshToken: false } })
+const service = () => createClient(supabaseUrl, serviceKey()!, withCleanFetch({ auth: { persistSession: false, autoRefreshToken: false } }))
 
 const b64url = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64url")
 const fromB64url = (s: string) => new Uint8Array(Buffer.from(s, "base64url"))

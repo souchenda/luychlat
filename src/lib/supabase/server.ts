@@ -2,11 +2,13 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
 import { supabaseAnonKey, supabaseUrl } from "./config"
+import { cleanFetch } from "@/lib/supabase/clean-fetch"
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies()
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
+    global: { fetch: cleanFetch },
     cookies: {
       getAll() {
         return cookieStore.getAll()

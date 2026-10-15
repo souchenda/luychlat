@@ -14,6 +14,7 @@
  */
 
 import { parseStatementAmount, parseStatementDate } from "./parse"
+import { cleanText } from "@/lib/clean-text"
 
 export type PdfItem = { x: number; y: number; w: number; str: string }
 export type PdfPage = PdfItem[]
@@ -191,7 +192,7 @@ export async function readPdfPages(data: ArrayBuffer): Promise<PdfPage[]> {
     const content = await (await doc.getPage(n)).getTextContent()
     pages.push(
       content.items.flatMap((it) =>
-        "str" in it ? [{ x: Math.round(it.transform[4] * 10) / 10, y: Math.round(it.transform[5] * 10) / 10, w: it.width, str: it.str }] : [],
+        "str" in it ? [{ x: Math.round(it.transform[4] * 10) / 10, y: Math.round(it.transform[5] * 10) / 10, w: it.width, str: cleanText(it.str) }] : [],
       ),
     )
   }

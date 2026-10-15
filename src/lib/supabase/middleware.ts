@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "./config"
+import { cleanFetch } from "@/lib/supabase/clean-fetch"
 
 /** Refreshes the Supabase auth cookie on every request. */
 export async function updateSession(request: NextRequest) {
@@ -9,6 +10,7 @@ export async function updateSession(request: NextRequest) {
   if (!isSupabaseConfigured) return response
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    global: { fetch: cleanFetch },
     cookies: {
       getAll() {
         return request.cookies.getAll()
