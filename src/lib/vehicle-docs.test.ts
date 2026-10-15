@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { daysLeft, docStatus, reminderDue, renewedExpiry } from "./vehicle-docs"
+import { daysLeft, docStatus, reminderDue, renewedExpiry, toggleRemindDay } from "./vehicle-docs"
 import { scopeOf } from "./workspace-scope"
 
 const TODAY = "2026-10-11"
@@ -25,6 +25,18 @@ describe("vehicle documents — reminders at D-30, D-15, D-7, the day, and when 
   it("expired: the day after, then weekly — never every day", () => {
     const due = Array.from({ length: 30 }, (_, i) => -(i + 1)).filter((left) => reminderDue(on(left), TODAY))
     assert.deepEqual(due, [-1, -8, -15, -22, -29])
+  })
+})
+
+describe("vehicle documents — the 30 / 15 / 7 reminder toggles", () => {
+  it("a tap turns one off or back on; stored largest first, never twice", () => {
+    assert.deepEqual(toggleRemindDay([30, 15, 7], 15), [30, 7])
+    assert.deepEqual(toggleRemindDay([30, 7], 15), [30, 15, 7])
+    assert.deepEqual(toggleRemindDay([7], 30), [30, 7])
+  })
+  it("all off still reminds on the day and when expired (the database rule)", () => {
+    assert.equal(reminderDue("2026-10-20", "2026-10-20", []), true)
+    assert.equal(reminderDue("2026-10-20", "2026-10-05", []), false)
   })
 })
 

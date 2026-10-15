@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useNssfMembers } from "@/lib/bills"
+import { useActiveWorkspace } from "@/lib/data/hooks"
+import { useVehicleDocs } from "@/lib/vehicle-docs-data"
+import { scopeOf } from "@/lib/workspace-scope"
 import { CARD_KINDS, expiryState, KIND_SPECS, type CardKind } from "@/lib/id-card"
 import { useCardPhotoUrl, useIdCardMutations, useIdCards, type IdCard } from "@/lib/id-cards"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
@@ -43,6 +46,10 @@ export default function CardsPage() {
   const hidden = usePrefsStore((s) => s.hideBalances)
   const { data: cards, isLoading } = useIdCards()
   const nssf = useNssfMembers().data ?? []
+  // Vehicle documents (ឆៀកឡាន, ពន្ធផ្លូវ, ធានារ៉ាប់រង) keep one home on /car, with their reminders — listed here, Personal only.
+  const { workspace } = useActiveWorkspace()
+  const vehicleScope = scopeOf(workspace?.type).vehicleDocs
+  const vehicleDocs = useVehicleDocs(vehicleScope ? workspace?.id : undefined).data ?? []
   const { save } = useIdCardMutations()
   const [editing, setEditing] = useState<{ kind: CardKind; card: IdCard | null } | null>(null)
   const [choosing, setChoosing] = useState(false)
@@ -84,6 +91,13 @@ export default function CardsPage() {
               </button>
             )
           })}
+          {vehicleScope &&
+            (["INSPECTION", "ROAD_TAX"] as const).map((type) => (
+              <Link key={type} href={`/car?add=${type}`} className="flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-sm font-medium hover:bg-muted">
+                <CarFrontIcon className="size-5 shrink-0 text-primary" aria-hidden />
+                {t(`vdoc.short.${type}` as MessageKey)}
+              </Link>
+            ))}
         </Card>
       )}
 
@@ -96,6 +110,16 @@ export default function CardsPage() {
         </span>
         <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
       </Link>
+      {vehicleScope && (
+        <Link href="/car" className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3">
+          <CarFrontIcon className="size-5 text-primary" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{t("nav.vehicleDocs")}</span>
+            <span className="block text-xs text-muted-foreground">{t("cards.vehicleDocsCount", { count: vehicleDocs.length })}</span>
+          </span>
+          <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
+        </Link>
+      )}
 
       {isLoading ? (
         <Skeleton className="h-32 w-full rounded-xl" />

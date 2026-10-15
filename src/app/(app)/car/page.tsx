@@ -6,10 +6,13 @@ import Link from "next/link"
 import { CarLoansCard } from "@/components/bills/car-loans-card"
 import { EvHomeCard } from "@/components/bills/ev-home-card"
 import { VehicleDocsCard } from "@/components/bills/vehicle-docs-card"
+import { useEffect, useState } from "react"
+
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { canWrite, useActiveWorkspace } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
+import { VEHICLE_DOC_TYPES, type VehicleDocType } from "@/lib/vehicle-docs"
 import { scopeOf } from "@/lib/workspace-scope"
 
 /**
@@ -22,6 +25,12 @@ export default function CarPage() {
   const scope = scopeOf(workspace?.type)
   const ws = workspace?.id
   const editable = canWrite(workspace)
+  // «ឆៀកឡាន» / «ពន្ធផ្លូវ» chosen in the card vault (/cards): /car?add=INSPECTION opens the form with that type.
+  const [addType, setAddType] = useState<VehicleDocType | null>(null)
+  useEffect(() => {
+    const add = new URLSearchParams(window.location.search).get("add")
+    if (add && (VEHICLE_DOC_TYPES as readonly string[]).includes(add)) setAddType(add as VehicleDocType)
+  }, [])
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -39,7 +48,7 @@ export default function CarPage() {
       ) : (
         <>
           <CarLoansCard workspaceId={ws} />
-          <VehicleDocsCard workspaceId={ws} editable={editable} />
+          <VehicleDocsCard workspaceId={ws} editable={editable} addType={addType} />
           {scope.homeEv && <EvHomeCard workspaceId={ws} editable={editable} />}
         </>
       )}

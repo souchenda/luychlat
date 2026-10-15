@@ -6,7 +6,7 @@ import { useRepo } from "@/lib/data/hooks"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import type { VehicleDoc } from "@/lib/vehicle-docs"
 
-export type VehicleDocInput = Pick<VehicleDoc, "vehicle" | "doc_type" | "provider" | "expires_on" | "cost" | "currency" | "notes">
+export type VehicleDocInput = Pick<VehicleDoc, "vehicle" | "doc_type" | "provider" | "expires_on" | "cost" | "currency" | "notes" | "remind_days">
 
 const toDoc = (row: VehicleDoc): VehicleDoc => ({ ...row, cost: row.cost == null ? null : Number(row.cost) })
 

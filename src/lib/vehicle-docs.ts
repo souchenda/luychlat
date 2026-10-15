@@ -23,6 +23,13 @@ export type VehicleDoc = {
 
 /** D-30, D-15, D-7 (the founder's intervals). */
 export const DEFAULT_REMIND_DAYS = [30, 15, 7]
+/** The reminder choices in the form, and one toggled on/off (kept largest first, as stored). */
+export const REMIND_CHOICES = [30, 15, 7] as const
+export function toggleRemindDay(days: readonly number[], day: number): number[] {
+  const next = days.includes(day) ? days.filter((d) => d !== day) : [...days, day]
+  return [...new Set(next)].sort((a, b) => b - a)
+}
+
 /** "Expiring soon" from 30 days before. */
 export const SOON_DAYS = 30
 

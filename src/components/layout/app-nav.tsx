@@ -1,6 +1,6 @@
 "use client"
 
-import {
+import { CarIcon,
   ArrowLeftRightIcon,
   BookOpenIcon,
   CoinsIcon,
@@ -159,6 +159,8 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
             title: "nav.group.planning",
             items: [
               { href: "/bills", label: "nav.personalNssfBills", icon: ReceiptIcon },
+              // Vehicle documents are Personal only (workspace-scope «vehicleDocs», RLS is_personal_workspace) — not Family.
+              ...(workspace?.type === "PERSONAL" ? [{ href: "/car", label: "nav.vehicleDocs", icon: CarIcon } as Item] : []),
               { href: "/debts", label: "nav.debtTracking", icon: HandCoinsIcon },
               { href: "/budgets", label: "nav.budgetSaving", icon: TargetIcon },
               { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
