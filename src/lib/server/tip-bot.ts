@@ -61,7 +61,7 @@ export function tipWindow(minutes: number): "preview" | "post" | null {
 
 /** The public caption (Telegram HTML), as posted at 12:00. */
 export function tipCaption(t: Pick<DailyTip, "title" | "body">): string {
-  return [`💡 <b>គន្លឹះថ្ងៃនេះ៖ ${esc(t.title)}</b>`, "", esc(t.body), "", "📱 គ្រប់គ្រងចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត", "", "— អេប លុយឆ្លាត"].join("\n")
+  return [`💡 <b>គន្លឹះថ្ងៃនេះ៖ ${esc(t.title)}</b>`, "", esc(t.body), "", "📱 គ្រប់គ្រងបំណុល ចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត", "", "— អេប លុយឆ្លាត"].join("\n")
 }
 
 /** The status line on the private preview. */
