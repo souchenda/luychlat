@@ -7,7 +7,7 @@ import { join, relative } from "node:path"
 import { describe, it } from "node:test"
 
 const ROOT = join(process.cwd(), "src")
-const SOUNDBOX = ["lib/soundbox.ts", "lib/soundbox-audio.ts", "app/(app)/soundbox/page.tsx", "components/soundbox/soundbox-status.tsx", "lib/server/soundbox-watch.ts"]
+const SOUNDBOX = ["lib/soundbox.ts", "lib/soundbox-audio.ts", "app/(app)/soundbox/page.tsx", "components/soundbox/soundbox-status.tsx"]
 
 const importsOf = (file: string) => [...readFileSync(join(ROOT, file), "utf8").matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1])
 

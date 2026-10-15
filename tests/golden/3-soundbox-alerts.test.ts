@@ -53,14 +53,20 @@ describe("GOLDEN 3 · SoundBox alerts", () => {
     const page = readFileSync(join(process.cwd(), "src", "app", "(app)", "soundbox", "page.tsx"), "utf8")
     assert.match(page, /if \(isLatePush\(added\.transaction_time, added\.created_at \?\? Date\.now\(\)\)\) \{\s*report\(\[document\.visibilityState, "late"\]\)\s*return/)
     const ingest = readFileSync(join(process.cwd(), "src", "app", "api", "khqr", "ingest", "route.ts"), "utf8")
-    assert.match(ingest, /const late = isLatePush\(r\.posted_at, Date\.now\(\)\)[\s\S]{0,200}else if[\s\S]{0,400}sendPaymentVoice[\s\S]{0,300}sendSoundboxPush[\s\S]{0,300}alertIfNoSoundbox/)
+    assert.match(ingest, /const late = isLatePush\(r\.posted_at, Date\.now\(\)\)[\s\S]{0,200}else if[\s\S]{0,400}sendPaymentVoice[\s\S]{0,300}sendSoundboxPush/)
   })
-  it("the counter phone's heartbeat runs on /soundbox, and the dispatcher watches for a phone gone during business hours", () => {
+  it("the counter phone's heartbeat runs on /soundbox for the in-app status only — no SoundBox alert is ever sent on Telegram", () => {
     const page = readFileSync(join(process.cwd(), "src", "app", "(app)", "soundbox", "page.tsx"), "utf8")
     assert.match(page, /useHeartbeat\(counterId, enabled/)
     assert.match(page, /rpcFresh\(supabase, "soundbox_heartbeat"/)
+    // No SoundBox Telegram alerts — not when a phone goes offline, not when a sale arrives with none open
+    // (founder, 15/10/2026: «permanently disable»). The heartbeat only feeds the in-app status.
     const dispatch = readFileSync(join(process.cwd(), "src", "lib", "server", "bot-dispatch.ts"), "utf8")
-    assert.match(dispatch, /await soundboxWatchTick\(\)/)
+    assert.doesNotMatch(dispatch, /soundboxWatch|soundbox-watch/)
+    const ingest = readFileSync(join(process.cwd(), "src", "app", "api", "khqr", "ingest", "route.ts"), "utf8")
+    assert.doesNotMatch(ingest, /alertIfNoSoundbox|soundbox-watch/)
+    const km = readFileSync(join(process.cwd(), "src", "lib", "i18n", "dictionaries.ts"), "utf8")
+    assert.doesNotMatch(km, /"soundbox\.alert(Offline|NotOpen)"/)
   })
   it("iPhone speech: primed synchronously inside the tap (before any await), re-primed on every tap until a payment is spoken, and the audio context lets go between the chime and the words (founder, 14/10/2026 — the 17:40 payment chimed without words)", () => {
     const src = readFileSync(join(process.cwd(), "src", "lib", "soundbox-audio.ts"), "utf8")

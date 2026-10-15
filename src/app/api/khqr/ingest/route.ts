@@ -8,7 +8,6 @@ import { askHeldKhqr, type Held } from "@/lib/server/held-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 import { isLatePush, shouldEmit, soundboxPush } from "@/lib/soundbox"
-import { alertIfNoSoundbox } from "@/lib/server/soundbox-watch"
 import { sendSoundboxPush } from "@/lib/server/web-push"
 import { sendPaymentVoice } from "@/lib/server/voice-alert"
 
@@ -170,8 +169,6 @@ export async function POST(request: Request) {
       await sendPaymentVoice(r.workspace_id, r.amount, r.currency).catch(() => 0)
       // The screen may be off or the browser asleep: the phones of the business's people get a push too.
       await sendSoundboxPush(r.workspace_id, soundboxPush({ id: r.transaction_id, amount: r.amount, currency: r.currency, payer: pay.payer ?? null, account_name: r.workspace ?? null })).catch(() => 0)
-      // No counter phone ready to say it: the owner is told this sale went unannounced.
-      if (!soundError) await alertIfNoSoundbox(r.workspace_id, r.amount, r.currency).catch(() => null)
     }
   }
 

@@ -113,7 +113,7 @@ function deviceId(): string | null {
 /**
  * The heartbeat (founder, 14/10/2026): every minute while /soundbox is open, and at once when anything
  * changes — page shown or hidden, sound unlocked, live connection, wake lock. The business sees whether
- * a counter phone is ready; the owner is told on Telegram when none is (lib/server/soundbox-watch.ts).
+ * a counter phone is ready (the in-app status only — no Telegram alerts: founder, 15/10/2026).
  */
 function useHeartbeat(workspaceId: string | null, on: boolean, state: { audioOk: boolean; live: boolean; wake: WakeState | null }): { id: string | null; error: string | null } {
   const latest = useRef(state)

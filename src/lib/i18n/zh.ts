@@ -2513,8 +2513,6 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "soundbox.audioError": "🔇 无法播放声音——点此重试",
   "soundbox.voiceFailed": "🔇 只响了提示音，没有播报金额——点屏幕任意处一次以恢复语音播报",
   "soundbox.screenTimeout": "📱 这部手机不允许 SoundBox 保持屏幕常亮。为避免熄屏：iPhone › 设置 › 显示与亮度 › 自动锁定 › 永不 · Android › 设置 › 显示 › 屏幕超时（最长）。并关闭低电量模式 / 省电模式。",
-  "soundbox.alertNotOpen": "🔇 没有打开的 SoundBox——这笔收款（{amount}）未播报。请在收银手机上打开 /soundbox。",
-  "soundbox.alertOffline": "🔴 SoundBox（{device}）已关闭、锁屏或离线超过 10 分钟（最后就绪 {time}）。新收款将不会播报——请重新打开 /soundbox 并点击「🔊 开启声音」。",
   "soundbox.statusReady": "🟢 SoundBox 就绪 · {device} · {ago}",
   "soundbox.statusDown": "🔴 SoundBox 未连接 · 最后 {time}",
   "soundbox.statusNever": "🔴 SoundBox 未连接",
