@@ -19,6 +19,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { useFillBirthDate, useProfilePrivate } from "@/lib/profile-private"
 import { compressImage, MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
 import { identityFromQr } from "@/lib/nssf-card"
+import { reconcileIdDates, type Mrz } from "@/lib/mrz"
 import { cn } from "@/lib/utils"
 
 type Form = {
@@ -169,10 +170,30 @@ export function IdCardSheet({ kind, card, onClose }: { kind: CardKind; card: IdC
     }
   }
 
+  /** The national ID's MRZ (often on the back): birth date, number and Latin name by check digit; the expiry checked against it. */
+  const readBackMrz = async (image: Blob) => {
+    const body = new FormData()
+    body.append("image", await compressImage(new File([image], "back.jpg", { type: "image/jpeg" }), 1800, 0.88), "back.jpg")
+    body.append("kind", kind)
+    body.append("side", "mrz")
+    const res = await fetch("/api/nssf/ocr", { method: "POST", body }).catch(() => null)
+    const json = (await res?.json().catch(() => null)) as { mrz?: Mrz } | null
+    if (!json?.mrz) return
+    const mrz = json.mrz
+    let flagged = false
+    setForm((f) => {
+      const fixed = reconcileIdDates({ model: { dob: f.dob || null, issued: f.issued || null, expiry: f.expiry || null, number: f.number || null, nameEn: f.holderEn || null }, mrz })
+      flagged = fixed.uncertain
+      return { ...f, dob: fixed.dob ?? "", issued: fixed.issued ?? "", expiry: fixed.expiry ?? "", number: fixed.number ?? "", holderEn: fixed.nameEn ?? "", gender: f.gender ?? mrz.sex }
+    })
+    toast[flagged ? "warning" : "success"](t(flagged ? "cards.mrzCorrected" : "cards.mrzRead"))
+  }
+
   const scanBack = async (image: Blob) => {
     setBusy("back")
     try {
       if (applyCode(await decodeCardCode(image))) toast.success(t("cards.fromCode"))
+      if (kind === "NATIONAL_ID") await readBackMrz(image)
       await store("back", (await cropCardPhoto(image, "back", { onApprox: () => toast.info(t("nssf.cropApprox")) })) ?? image)
     } catch {
       toast.error(t("common.error"))

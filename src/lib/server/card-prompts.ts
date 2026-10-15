@@ -5,6 +5,7 @@ import { KIND_SPECS, type CardKind, type DetailKey } from "@/lib/id-card"
 /** Khmer is copied, never reconstructed; an unclear character is "?" with is_uncertain: true. */
 export const KHMER_VERBATIM = [
   "KHMER TEXT IS TRANSCRIBED VERBATIM, character by character, from the Khmer line itself (e.g. after \"គោត្តនាម និងនាម :\"): every consonant, subscript consonant (្ + consonant, e.g. ន្ត in ចិន្តា), vowel and sign (៉ ៊ ់ ិ ា …) exactly as printed.",
+  "Keep every sign written ABOVE a consonant — the shifters ៉ (musikatoan) and ៊ (triisap), and ់ ៍ ៌ — they change the name: ប៊ិ is not បិ, ម៉ោ is not មោ. Dropping one is a misreading.",
   "NEVER guess, transliterate or rebuild a Khmer name from the Latin name on the card — Khmer spellings are not phonetic (CHENDA is printed ចិន្តា, never ឈិនដា).",
   "If ANY character (Khmer, Latin or digit) is blurred, covered or ambiguous, write \"?\" in its place — never a guess — and answer \"is_uncertain\": true. Otherwise \"is_uncertain\": false.",
 ].join("\n")
@@ -26,6 +27,20 @@ const DETAIL_HELP: Record<DetailKey, string> = {
   last4: "last4: ONLY the last 4 digits of the card number — never the full number",
 }
 
+/** The national ID: its validity line and machine-readable zone are COPIED, and decoded in code (lib/mrz.ts). */
+const NATIONAL_ID_HELP = [
+  "validity_text: the validity line exactly as printed, Khmer digits and dots included, NOT converted (e.g. «សុពលភាព៖ ០០.០០.០០០០ ដល់ថ្ងៃ ០០.០០.០០០០»); null if not visible.",
+  "mrz: if the card shows the 3-line machine-readable zone (capital letters, digits and «<», 30 characters per line), copy each line exactly, character by character, every «<» included; otherwise null.",
+  "issued / expiry: the two dates of that validity line (dd.mm.yyyy, day first) — the first is issued, the second expiry.",
+].join("\n")
+
+/** The back of a national ID: only its machine-readable zone, copied. */
+export const MRZ_PROMPT = [
+  "This image should show a Cambodian national ID card (either side).",
+  'Answer JSON only: {"mrz": [string, string, string] | null}',
+  "mrz: the 3-line machine-readable zone (capital letters, digits and «<», 30 characters per line), each line copied exactly, character by character, every «<» included; null if there is none or it is unreadable.",
+].join("\n")
+
 /** The front of a card of this kind: its fields (only those it has), and where it is for the crop. */
 export function cardPrompt(kind: CardKind): string {
   const spec = KIND_SPECS[kind]
@@ -40,6 +55,7 @@ export function cardPrompt(kind: CardKind): string {
     ...(f.expiry ? [`"expiry": ${kind === "BANK_CARD" ? '"MM/YY"' : '"YYYY-MM-DD"'} | null`] : []),
     ...(f.issuer ? ['"issuer": string | null'] : []),
     ...(spec.details.length ? [`"details": { ${spec.details.map((d) => `"${d}": string | null`).join(", ")} }`] : []),
+    ...(kind === "NATIONAL_ID" ? ['"validity_text": string | null', '"mrz": [string, string, string] | null'] : []),
     '"is_uncertain": boolean',
     '"box_2d": [ymin, xmin, ymax, xmax] | null',
     '"corners": [[y, x], [y, x], [y, x], [y, x]] | null',
@@ -51,6 +67,7 @@ export function cardPrompt(kind: CardKind): string {
     ...(f.number ? ["number: the card / document / policy number as printed, keeping dashes and letters."] : []),
     ...(f.issuer ? [kind === "BANK_CARD" ? "issuer: the bank's name." : "issuer: the insurer's name."] : []),
     "Dates: Khmer digits ០-៩ → 0-9; dd/mm/yyyy is day first. gender: ប្រុស = MALE, ស្រី = FEMALE.",
+    ...(kind === "NATIONAL_ID" ? [NATIONAL_ID_HELP] : []),
     ...spec.details.map((d) => DETAIL_HELP[d]),
     KHMER_VERBATIM,
     CORNERS,

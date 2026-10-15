@@ -6,6 +6,7 @@
  *   3. nothing is saved with a "?" left in it, and the user confirms against the photo (verified_by_user).
  * Pure (id-card.test.ts).
  */
+import { parseTd1, reconcileIdDates } from "@/lib/mrz"
 
 export type CardKind = "NATIONAL_ID" | "DRIVER_LICENSE" | "VEHICLE_REG" | "INSURANCE" | "BANK_CARD"
 export const CARD_KINDS: CardKind[] = ["NATIONAL_ID", "DRIVER_LICENSE", "VEHICLE_REG", "INSURANCE", "BANK_CARD"]
@@ -135,7 +136,20 @@ export function cleanIdCard(raw: unknown, kind: CardKind): IdCardRead | null {
     details,
     uncertain: false,
   }
-  card.uncertain = r.is_uncertain === true || hasUnread(card.holderKh, card.holderEn, card.number, card.issuer, ...Object.values(details))
+  let reconciledUncertain = false
+  if (kind === "NATIONAL_ID") {
+    // Dates parsed from the printed line, identity from the MRZ (check digits) — never the model's own conversion.
+    const mrz = parseTd1(Array.isArray(r.mrz) ? r.mrz.filter((l): l is string => typeof l === "string") : null)
+    const fixed = reconcileIdDates({ model: { ...card, nameEn: card.holderEn }, validityText: typeof r.validity_text === "string" ? r.validity_text : null, mrz })
+    card.dob = fixed.dob
+    card.issued = fixed.issued
+    card.expiry = fixed.expiry
+    card.number = fixed.number
+    card.holderEn = fixed.nameEn
+    if (mrz?.sex && !card.gender) card.gender = mrz.sex
+    reconciledUncertain = fixed.uncertain
+  }
+  card.uncertain = r.is_uncertain === true || reconciledUncertain || hasUnread(card.holderKh, card.holderEn, card.number, card.issuer, ...Object.values(details))
   return card.holderKh || card.holderEn || card.number || card.issuer || Object.keys(details).length ? card : null
 }
 

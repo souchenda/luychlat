@@ -1,10 +1,11 @@
+import { parseTd1 } from "@/lib/mrz"
 import { NextResponse } from "next/server"
 
 import { cleanNssfCard } from "@/lib/nssf-card"
 import { logEvent } from "@/lib/server/events"
 import { guardRequest } from "@/lib/server/guard"
 import { CARD_KINDS, cleanIdCard, type CardKind } from "@/lib/id-card"
-import { cardPrompt, CORNERS, KHMER_VERBATIM } from "@/lib/server/card-prompts"
+import { MRZ_PROMPT, cardPrompt, CORNERS, KHMER_VERBATIM } from "@/lib/server/card-prompts"
 import { askGemini, askGroq, type Answer } from "@/lib/server/slip-bot"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -49,6 +50,8 @@ export async function POST(request: Request) {
 
   let file: File | null = null
   let back = false
+  // "mrz": a national ID's machine-readable zone only (the back photo), decoded in code.
+  let mrzOnly = false
   // The card vault's other kinds (national ID, licence, vehicle, insurance, bank card); none = NSSF.
   let kind: CardKind | null = null
   try {
@@ -57,6 +60,7 @@ export async function POST(request: Request) {
     file = v instanceof File ? v : null
     // "back" and "crop": corners only (the back of a card; a stored photo cropped again).
     back = form.get("side") === "back" || form.get("side") === "crop"
+    mrzOnly = form.get("side") === "mrz"
     const k = form.get("kind")
     kind = typeof k === "string" && (CARD_KINDS as string[]).includes(k) ? (k as CardKind) : null
   } catch {
@@ -68,7 +72,7 @@ export async function POST(request: Request) {
   const gemini = process.env.GEMINI_API_KEY?.trim()
   const groq = process.env.GROQ_API_KEY?.trim()
   const readers: [string, () => Promise<Answer>][] = []
-  const prompt = back ? BACK_PROMPT : kind ? cardPrompt(kind) : PROMPT
+  const prompt = mrzOnly ? MRZ_PROMPT : back ? BACK_PROMPT : kind ? cardPrompt(kind) : PROMPT
   // 35 s: card photos are larger than slips, and Gemini timing out at 20 s left the card uncropped.
   if (gemini) readers.push(["Gemini", () => askGemini(gemini, file.type, image, prompt, 600, 35_000)])
   // Corners need a careful reader: Groq (weaker at locating) only reads the front's text.
@@ -85,6 +89,10 @@ export async function POST(request: Request) {
       const corners = name === "Gemini" && Array.isArray(raw?.corners) ? raw.corners : null
       const box = name === "Gemini" && Array.isArray(raw?.box_2d) ? raw.box_2d : null
       if (back) return NextResponse.json({ corners, box }, { status: 200 })
+      if (mrzOnly) {
+        const mrz = parseTd1(Array.isArray(raw?.mrz) ? (raw.mrz as unknown[]).filter((l): l is string => typeof l === "string") : null)
+        return NextResponse.json(mrz ? { mrz } : { error: "no_mrz" }, { status: mrz ? 200 : 422 })
+      }
       if (kind) {
         const read = cleanIdCard(raw, kind)
         return NextResponse.json(read ? { read, corners, box, reader: name } : { error: "not_a_card", corners, box }, { status: read ? 200 : 422 })

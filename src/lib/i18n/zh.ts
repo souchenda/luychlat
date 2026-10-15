@@ -2594,6 +2594,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "cards.qrShowStaff": "请向工作人员（医院、警察、银行）出示此码以扫描核实",
   "cards.qrNone": "卡片照片上未找到二维码或条码——请在编辑中清晰重拍带码的一面",
   "cards.fromCode": "✅ 已读取卡片官方码——以其内容为准。保存前请核对",
+  "cards.mrzRead": "✅ 已与证件底部的 MRZ 码核对",
+  "cards.mrzCorrected": "⚠️ 日期已按 MRZ 码更正——保存前请对照证件核实",
   "cards.readUncertain": "已读取，但部分字符不清晰（「?」）——请按实体卡更正",
   "cards.privateNote": "私密：仅您的账户可见。",
   "cards.bankNote": "为安全起见，不保存银行卡照片和完整卡号——仅保存末 4 位。",

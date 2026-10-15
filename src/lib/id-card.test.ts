@@ -55,3 +55,28 @@ describe("card vault — dates, official codes, expiry", () => {
     assert.equal(expiryState("2027-10-01", "2026-10-10"), null)
   })
 })
+
+describe("national ID scan of 15/10/2026 (5045.jpg) — dates and identity reconciled in code", () => {
+  const mrz = ["IDKHM0102030457<<<<<<<<<<<<<<<", "8701071M2711058KHM<<<<<<<<<<<0", "SOU<<CHENDA<<<<<<<<<<<<<<<<<<<"]
+  it("the model's 2009 / 2019 are replaced: issued 2017-11-08, expiry 2027-11-04 (MRZ 271105 is the day after)", () => {
+    const c = cleanIdCard(
+      { is_card: true, holder_kh: "ស៊ូ ចិន្តា", holder_en: "SOU CHENDA", number: "010203045", dob: "1987-01-07", gender: "M", issued: "2009-03-08", expiry: "2019-03-08", validity_text: "សុពលភាព៖ ០៨.១១.២០១៧ ដល់ថ្ងៃ ០៤.១១.២០២៧", mrz },
+      "NATIONAL_ID",
+    )!
+    assert.equal(c.issued, "2017-11-08")
+    assert.equal(c.expiry, "2027-11-04")
+    assert.equal(c.dob, "1987-01-07")
+    assert.equal(c.uncertain, false)
+  })
+  it("the triisap ៊ in «ស៊ូ» is kept as read — never stripped", () => {
+    const c = cleanIdCard({ is_card: true, holder_kh: "ស៊ូ ចិន្តា", number: "010203045" }, "NATIONAL_ID")!
+    assert.equal(c.holderKh, "ស៊ូ ចិន្តា")
+    assert.ok(c.holderKh!.includes("៊"))
+  })
+  it("no validity line: the MRZ corrects a wrong expiry and the card is flagged to check", () => {
+    const c = cleanIdCard({ is_card: true, holder_kh: "ស៊ូ ចិន្តា", number: "010203045", issued: "2009-03-08", expiry: "2019-03-08", mrz }, "NATIONAL_ID")!
+    assert.equal(c.expiry, "2027-11-04")
+    assert.equal(c.issued, null)
+    assert.equal(c.uncertain, true)
+  })
+})
