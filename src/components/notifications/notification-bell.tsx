@@ -16,7 +16,7 @@ import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { MemberAvatar } from "@/components/family/member-avatar"
 import { Button } from "@/components/ui/button"
-import { alertText } from "@/lib/alerts"
+import { alertText, parseAlertKey } from "@/lib/alerts"
 import { clearShownNotifications, syncAppBadge } from "@/lib/app-badge"
 import { useActiveWorkspace, useCategories, useDebts, useNotificationMutations, useNotifications, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { AppNotification, Transaction } from "@/lib/data/types"
@@ -146,8 +146,14 @@ export function NotificationBell() {
   // Due-date alerts are re-rendered in the current UI language from live debt data.
   const content = (n: AppNotification) => {
     const debt = n.debt_id ? debts.find((d) => d.id === n.debt_id) : undefined
-    if (debt && n.alert_key) return alertText(debt, n.alert_key, contentLocale(locale))
-    return { title: n.title, body: n.message }
+    const key = parseAlertKey(n.alert_key)
+    if (!debt || !key) return { title: n.title, body: n.message }
+    const language = contentLocale(locale)
+    // A loan with a schedule: the alert is about THAT installment (its date is in the key) — never the loan's
+    // final maturity (founder, 16/10/2026: «នៅសល់ ៣ ឆ្នាំ ៤ ខែ (១,២៤៦ ថ្ងៃ)» for a monthly PPCBank payment).
+    // The stored Khmer text already names the installment and its amount.
+    if (key.due) return language === "km" ? { title: n.title, body: n.message } : alertText({ ...debt, due_date: key.due }, key.stage, language)
+    return alertText(debt, key.stage, language)
   }
 
   return (

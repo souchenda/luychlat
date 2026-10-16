@@ -19,6 +19,15 @@ export function alertStage(debt: Pick<Debt, "due_date">, today: string = todayDa
   return null
 }
 
+/**
+ * A stored alert key → its stage, and the installment date for a loan with a schedule
+ * («D7:2026-10-20», as run_debt_alerts writes it); a plain «D7» has no date. Unknown → null.
+ */
+export function parseAlertKey(key: string | null | undefined): { stage: AlertKey; due: string | null } | null {
+  const m = /^(D7|D3|D0|OVERDUE)(?::(\d{4}-\d{2}-\d{2}))?$/.exec(key ?? "")
+  return m ? { stage: m[1] as AlertKey, due: m[2] ?? null } : null
+}
+
 /** Open debts that are in an alert stage today. */
 export function dueAlerts(debts: Debt[], today: string = todayDate()) {
   return debts.flatMap((debt) => {

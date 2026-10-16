@@ -39,7 +39,8 @@ import { useActiveWorkspace } from "@/lib/data/hooks"
 import { billKindAllowed } from "@/lib/workspace-scope"
 import { useLocaleStore } from "@/stores/locale-store"
 
-const REMIND_CHOICES = [1, 2, 3, 5, 7, 15]
+/** Up to a week before (founder, 16/10/2026) — the database ignores anything further (bill_alert_due). */
+const REMIND_CHOICES = [1, 2, 3, 5, 7]
 const NONE = "__none__"
 
 type Form = {
