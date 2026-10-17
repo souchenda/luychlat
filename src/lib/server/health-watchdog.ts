@@ -3,6 +3,7 @@ import fs from "fs"
 
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { logEvent } from "@/lib/server/events"
+import { devopsChats } from "@/lib/server/admin-routes"
 
 /**
  * Runs every minute from the dispatcher (production only):
@@ -209,11 +210,19 @@ export function recoveredText(issue: Issue, s: Sample, stillOpen: Issue[]): stri
   return `✅ App Luy Chlat System Health Recovered: ${RECOVERED[issue](s)}. ${rest}`
 }
 
-async function sendToAdmins(text: string) {
-  const { data } = await botDb().rpc("bot_admin_chats", { p_key: botKey() })
-  for (const row of (data as { chat_id: number }[] | null) ?? []) {
-    await tg("sendMessage", { chat_id: row.chat_id, text, disable_web_page_preview: true })
-  }
+/**
+ * Telegram only for a real outage (founder, 17/10/2026 — «no CPU warnings»): the database unreachable, or
+ * Telegram unable to reach the site, for 5 minutes or more. CPU / RAM / disk / app memory / a slow database
+ * stay in the incident log (Super Admin › Development › Security) and are never sent. A 502 — the app itself
+ * down, which this process can't see — is watched from outside (deploy/uptime-watch.sh).
+ */
+export const PAGE_ISSUES: Issue[] = ["db_down", "webhook"]
+export const PAGE_AFTER_MS = 5 * 60_000
+export const shouldPage = (issue: Issue, since: number, now: number) => PAGE_ISSUES.includes(issue) && now - since >= PAGE_AFTER_MS
+
+/** An outage message: the DevOps chat, or — none set — the super admins (critical). */
+async function sendCritical(text: string) {
+  for (const chat of await devopsChats({ critical: true })) await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true })
 }
 
 /** The figure an incident's peak tracks (CPU %, RAM %, disk %, app memory %, DB ms). */
@@ -224,6 +233,9 @@ const history: Sample[] = []
 /** Open alerts (issue → when last alerted), shared with the database so deploys don't lose them. */
 const lastAlert = new Map<Issue, number>()
 const clearStreak = new Map<Issue, number>()
+/** When each current issue started (this run of minutes), and which ones were paged. */
+const downSince = new Map<Issue, number>()
+const paged = new Set<Issue>()
 let loaded = false
 let ticks = 0
 
@@ -242,6 +254,9 @@ export async function watchdogTick() {
   history.push(sample)
   if (history.length > 30) history.shift()
   const issues = findIssues(history)
+  const now = Date.now()
+  for (const issue of issues) if (!downSince.has(issue)) downSince.set(issue, now)
+  for (const issue of [...downSince.keys()]) if (!issues.includes(issue)) downSince.delete(issue)
 
   for (const issue of issues) {
     clearStreak.set(issue, 0)
@@ -253,8 +268,12 @@ export async function watchdogTick() {
     if (Date.now() - last >= LIMITS.cooldownMs) {
       lastAlert.set(issue, Date.now())
       await botDb().rpc("bot_health_alert_set", { p_key: botKey(), p_issue: issue, p_open: true })
-      await sendToAdmins(alertText(issue, sample))
       logEvent("warn", "watchdog", `Alert: ${issue} (RAM ${sample.ram_pct}%, CPU ${sample.cpu_pct}%, disk ${sample.disk_pct}%, DB ${sample.db_ms ?? "–"} ms)`)
+    }
+    // Telegram: a real outage only, once it has lasted 5 minutes — one message per incident.
+    if (!paged.has(issue) && shouldPage(issue, downSince.get(issue) ?? now, now)) {
+      paged.add(issue)
+      await sendCritical(alertText(issue, sample))
     }
   }
   // An open alert clears once it has really recovered (margin + a few minutes), with one message.
@@ -266,7 +285,8 @@ export async function watchdogTick() {
     clearStreak.delete(issue)
     await botDb().rpc("bot_health_alert_set", { p_key: botKey(), p_issue: issue, p_open: false })
     await botDb().rpc("bot_health_incident", { p_key: botKey(), p_issue: issue, p_event: "close" })
-    await sendToAdmins(recoveredText(issue, sample, [...lastAlert.keys()]))
+    // «Recovered» only for what was paged.
+    if (paged.delete(issue)) await sendCritical(recoveredText(issue, sample, [...lastAlert.keys()].filter((i) => PAGE_ISSUES.includes(i))))
     logEvent("info", "watchdog", `Recovered: ${issue}`)
   }
 
@@ -316,5 +336,6 @@ async function weeklySummary() {
   const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "weekly-health", p_day: t.toISOString().slice(0, 10) })
   if (claimed !== true) return
   const { data } = await botDb().rpc("bot_health_summary", { p_key: botKey(), p_days: 7 })
-  if (data) await sendToAdmins(summaryText(data as Summary))
+  // A server log: the DevOps chat only (not sent when none is set).
+  if (data) for (const chat of await devopsChats()) await tg("sendMessage", { chat_id: chat, text: summaryText(data as Summary), disable_web_page_preview: true })
 }

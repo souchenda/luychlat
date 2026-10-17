@@ -26,6 +26,7 @@ import { scheduleFuelPost } from "./scheduled-posts"
 import { currentMarket, setFuelPrices } from "./market-sync"
 import { askGemini, askGroq, type Answer } from "./slip-bot"
 import { botDb, botKey, tg } from "./telegram-bot"
+import { marketingChats } from "@/lib/server/admin-routes"
 
 const CHANNEL = "mocnewsfeed"
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
@@ -59,8 +60,7 @@ async function claim(job: string, day: string) {
 }
 
 async function toSuperAdmins(text: string) {
-  const { data: chats } = await botDb().rpc("bot_super_admin_chats", { p_key: botKey() })
-  for (const c of (chats as { chat_id: number }[] | null) ?? []) await tg("sendMessage", { chat_id: Number(c.chat_id), text, disable_web_page_preview: true }).catch(() => null)
+  for (const chat of await marketingChats()) await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true }).catch(() => null)
 }
 
 /**

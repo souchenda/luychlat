@@ -7,6 +7,7 @@ import { groupByArea } from "@/lib/dev-areas"
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText } from "./telegram-bot"
+import { devopsChats } from "@/lib/server/admin-routes"
 
 type Report = {
   day: string
@@ -88,8 +89,8 @@ export async function devEodTick() {
     logEvent("error", "dev-eod", `End-of-day report failed: ${error?.message ?? "no data"}`, { fold: true })
     return
   }
-  const { data: chats } = await db.rpc("bot_admin_chats", { p_key: botKey() })
+  // A dev log: the DevOps chat only (not sent when none is set — the founder's chat is for business).
   const text = eodText(data as Report)
-  for (const c of (chats as { chat_id: number }[] | null) ?? []) await sendText(Number(c.chat_id), text).catch(() => null)
+  for (const chat of await devopsChats()) await sendText(chat, text).catch(() => null)
   logEvent("info", "dev-eod", `End-of-day report ${day} sent`, { fold: true })
 }

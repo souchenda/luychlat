@@ -7,6 +7,7 @@ import { khrPerUnit, NBC_CURRENCIES, nextWorkingDay, pickNbc, referenceRates, ty
 import { parseNbcPage } from "@/lib/nbc"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { logEvent } from "@/lib/server/events"
+import { devopsChats } from "@/lib/server/admin-routes"
 
 /**
  * Sources (no API keys):
@@ -325,8 +326,7 @@ async function integrityAlert(kind: "nbc" | "gold", day: string, detail: string)
     `• ${detail}`,
     kind === "nbc" ? "• កែដោយដៃ៖ /setrate <អត្រា> (ឬ Admin › អត្រា NBC)" : "• កែដោយដៃ៖ /setgold <លក់> <ទិញ> (ឬ Admin › តម្លៃមាស)",
   ].join("\n")
-  const { data: chats } = await db.rpc("bot_super_admin_chats", { p_key: botKey() })
-  for (const c of (chats as { chat_id: number }[] | null) ?? []) await tg("sendMessage", { chat_id: Number(c.chat_id), text }).catch(() => null)
+  for (const chat of await devopsChats()) await tg("sendMessage", { chat_id: chat, text }).catch(() => null)
   logEvent("error", kind === "nbc" ? "nbc" : "local-gold", `Integrity alert sent: ${detail}`)
 }
 

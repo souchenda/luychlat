@@ -29,6 +29,7 @@ import { phnomPenhToday } from "@/lib/server/market-sync"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { sendPosterPhoto } from "@/lib/server/tip-bot"
+import { marketingChats } from "@/lib/server/admin-routes"
 
 export type Preview = { chat: number; msg: number; photo: boolean }
 export type PostRow = {
@@ -60,7 +61,7 @@ export type SchedulerDeps = {
   log(level: "info" | "warn" | "error", message: string): void
 }
 
-export type Callback = { id: string; data?: string; message?: { message_id: number; chat: { id: number; type: string } } }
+export type Callback = { id: string; data?: string; from?: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } }
 
 export function createScheduler(d: SchedulerDeps) {
   async function render(row: PostRow, status: PostStatus) {
@@ -127,14 +128,15 @@ export function createScheduler(d: SchedulerDeps) {
     await processDue()
   }
 
-  /** [ 🚀 ផុសភ្លាមៗ ] / [ ❌ ផ្អាកថ្ងៃនេះ ] — from a super admin's private chat only. */
+  /** [ 🚀 ផុសភ្លាមៗ ] / [ ❌ ផ្អាកថ្ងៃនេះ ] — from a super admin: their private chat, or the marketing group (the person who tapped is checked). */
   async function onCallback(cb: Callback) {
     const parsed = parseScheduledPostCallback(cb.data)
     const chat = cb.message?.chat
-    if (!parsed || !chat || chat.type !== "private") return d.answer(cb.id, "")
+    const actor = chat?.type === "private" ? chat.id : cb.from?.id
+    if (!parsed || !chat || !actor) return d.answer(cb.id, "")
     let taken: PostRow | null
     try {
-      taken = await d.take(parsed.id, parsed.action === "publish" ? "PUBLISHED" : "PAUSED", chat.id)
+      taken = await d.take(parsed.id, parsed.action === "publish" ? "PUBLISHED" : "PAUSED", actor)
     } catch (e) {
       return d.answer(cb.id, /super admin only/.test(e instanceof Error ? e.message : String(e)) ? "សម្រាប់ Super Admin ប៉ុណ្ណោះ។" : "មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។", true)
     }
@@ -189,10 +191,8 @@ const realDeps = (): SchedulerDeps => ({
   async setPreviews(id, previews) {
     await botDb().rpc("bot_post_set_previews", { p_key: botKey(), p_id: id, p_previews: previews })
   },
-  async adminChats() {
-    const { data } = await botDb().rpc("bot_super_admin_chats", { p_key: botKey() })
-    return ((data as { chat_id: number }[] | null) ?? []).map((c) => Number(c.chat_id))
-  },
+  // The marketing chat (or topic) when set, else the super admins' private chats (lib/chat-route.ts).
+  adminChats: () => marketingChats(),
   async content(row) {
     // The morning post and the holiday notes always preview as their poster; a drawing failure is
     // logged and the preview still goes out (as text) so the founder is never left without one.

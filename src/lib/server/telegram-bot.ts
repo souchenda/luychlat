@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js"
 import { dictionaries, type Locale, type MessageKey } from "@/lib/i18n/dictionaries"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
 import { withCleanFetch } from "@/lib/supabase/clean-fetch"
+import { threadFor } from "@/lib/chat-route"
 
 /**
  * The official LuyChlat Telegram bot, server side. TELEGRAM_BOT_TOKEN lives
@@ -29,6 +30,11 @@ export const webhookSecret = () => derive("luychlat-webhook")
 export async function tg<T = unknown>(method: string, payload: Record<string, unknown>): Promise<{ ok: boolean; result?: T; description?: string }> {
   const token = botToken()
   if (!token) return { ok: false, description: "no token" }
+  // A message to the marketing / DevOps chat lands in its forum topic, when one is set (lib/chat-route.ts).
+  if (method.startsWith("send") && payload.chat_id != null && payload.message_thread_id == null) {
+    const thread = threadFor(payload.chat_id)
+    if (thread) payload = { ...payload, message_thread_id: thread }
+  }
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
       method: "POST",

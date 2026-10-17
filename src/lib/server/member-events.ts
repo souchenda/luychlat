@@ -7,8 +7,9 @@ import { appUrl } from "./community-bulletin"
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText, SIGNATURE, tg, tr } from "./telegram-bot"
+import { sourceForAlert } from "@/lib/acquisition"
 
-type Pending = { user_id: string; email: string | null; provider: string; created_at: string; total_members: number; display_name?: string | null }
+type Pending = { user_id: string; email: string | null; provider: string; created_at: string; total_members: number; display_name?: string | null; acquisition_source?: string | null }
 type AdminChat = { chat_id: number; language: Locale }
 
 const METHOD: Record<string, string> = { phone: "Phone", email: "Email", google: "Google", apple: "Apple" }
@@ -35,10 +36,14 @@ export async function flushSignupAlerts() {
   for (const p of data as Pending[]) {
     let delivered = false
     for (const a of admins) {
+      // The name typed at sign-up (a masked default "•••222" is no name), else the phone / email.
+      const name = p.display_name && !p.display_name.startsWith("•") ? p.display_name : null
+      const account = loginLabel(p.email) || "—"
+      const src = sourceForAlert(p.acquisition_source)
       const text = tr(a.language, "bot.signupAlert", {
-        // The name typed at sign-up; a masked default ("•••222") is no name.
-        name: p.display_name && !p.display_name.startsWith("•") ? p.display_name : "—",
-        account: loginLabel(p.email) || "—",
+        who: name ?? account,
+        source: !src ? tr(a.language, "bot.signupNoSource") : typeof src === "string" ? tr(a.language, `source.${src}`) : `${tr(a.language, "source.other")}: ${src.other}`,
+        account,
         date: cambodiaTime(p.created_at),
         method: METHOD[p.provider] ?? p.provider,
         total: Number(p.total_members).toLocaleString("en-US"),

@@ -26,6 +26,8 @@ import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, botToken, tg } from "@/lib/server/telegram-bot"
 import { tipPoster } from "@/lib/server/tip-poster"
 import { supabaseUrl } from "@/lib/supabase/config"
+import { threadFor } from "@/lib/chat-route"
+import { marketingChats } from "@/lib/server/admin-routes"
 
 export type DailyTip = {
   day: string
@@ -136,6 +138,8 @@ async function photo(chatId: number | string, png: Buffer, caption: string, opts
   if (!token) return null
   const form = new FormData()
   form.append("chat_id", String(chatId))
+  const thread = opts.messageId ? null : threadFor(chatId)
+  if (thread) form.append("message_thread_id", String(thread))
   if (opts.messageId) {
     form.append("message_id", String(opts.messageId))
     form.append("media", JSON.stringify({ type: "photo", media: "attach://poster", caption, parse_mode: "HTML" }))
@@ -186,14 +190,15 @@ async function refreshPreviews(t: DailyTip, withImage: boolean) {
 /** Sends a fresh preview to every super admin chat (replacing the stored ones). */
 async function sendPreviews(t: DailyTip) {
   const db = botDb()
-  const { data: chats } = await db.rpc("bot_super_admin_chats", { p_key: botKey() })
+  // The marketing chat (or topic) when set, else the super admins' private chats (lib/chat-route.ts).
+  const chats = await marketingChats()
   const today = phnomPenhToday().day
   const locked = lockedFor(t.day)
   const png = await posterFor(t)
   const previews: { chat: number; msg: number; v: number }[] = []
-  for (const c of (chats as { chat_id: number }[] | null) ?? []) {
-    const msg = await photo(Number(c.chat_id), png, previewCaption(t, today, locked), { reply_markup: { inline_keyboard: previewKeyboard(t, locked) } })
-    if (msg) previews.push({ chat: Number(c.chat_id), msg, v: t.version })
+  for (const chat of chats) {
+    const msg = await photo(chat, png, previewCaption(t, today, locked), { reply_markup: { inline_keyboard: previewKeyboard(t, locked) } })
+    if (msg) previews.push({ chat, msg, v: t.version })
   }
   await db.rpc("bot_tip_set_previews", { p_key: botKey(), p_day: t.day, p_previews: previews })
   return previews.length
@@ -292,20 +297,27 @@ export async function dailyTipTick() {
 
 export const isTipCallback = (data: string | undefined) => Boolean(data?.startsWith("tq:"))
 
-type Callback = { id: string; data?: string; message?: { message_id: number; chat: { id: number; type: string } } }
+type Callback = { id: string; data?: string; from?: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } }
 
-/** A preview button: approve / new tip / skip / reopen — from a super admin's chat only. */
+/**
+ * A preview button: approve / new tip / skip / reopen — from a super admin. In the marketing group the
+ * person who tapped is checked (a Telegram user's id is their private chat's id); the message edited is the
+ * group's.
+ */
 export async function handleTipCallback(cb: Callback) {
   const answer = (text?: string, alert = false) => tg("answerCallbackQuery", { callback_query_id: cb.id, ...(text ? { text: text.slice(0, 190), show_alert: alert } : {}) })
   const m = /^tq:(\d{4})(\d{2})(\d{2}):(\d+):([ansdeck])$/.exec(cb.data ?? "")
   const chatId = cb.message?.chat.id
-  if (!m || !chatId || cb.message?.chat.type !== "private") return answer()
+  const isPrivate = cb.message?.chat.type === "private"
+  const actor = isPrivate ? chatId : cb.from?.id
+  if (!m || !chatId || !actor) return answer()
   const day = `${m[1]}-${m[2]}-${m[3]}`
   const version = Number(m[4])
   const action = m[5]
   const current = await getTip(day)
   if (!current) return answer("រកមិនឃើញគន្លឹះនេះទេ។", true)
-  if (action === "e") return askForText(chatId, current, cb.message!.message_id, answer)
+  // ✏️ asks for a reply — in the private chat only (a group's replies are not read as tip text).
+  if (action === "e") return isPrivate ? askForText(chatId, current, cb.message!.message_id, answer) : answer("✏️ សូមកែក្នុងសារឯកជនជាមួយ bot ឬក្នុងអេប។", true)
   // The «✏️» proposal: ✅ applies exactly the previewed text, ❌ drops it.
   if (action === "k") {
     await botDb().rpc("bot_tip_set_pending", { p_key: botKey(), p_day: day, p_pending: null })
@@ -315,7 +327,7 @@ export async function handleTipCallback(cb: Callback) {
   if (action === "c") {
     const proposal = current.pending_edit
     if (!proposal?.body) return answer("រកមិនឃើញការកែនេះទេ (ឬបានប្រើរួច)។", true)
-    const { data, error } = await botDb().rpc("bot_tip_action", { p_key: botKey(), p_chat_id: chatId, p_day: day, p_action: "save", p_title: proposal.title, p_body: proposal.body })
+    const { data, error } = await botDb().rpc("bot_tip_action", { p_key: botKey(), p_chat_id: actor, p_day: day, p_action: "save", p_title: proposal.title, p_body: proposal.body })
     if (error) return answer(/already_posted/.test(error.message) ? "បានចេញផ្សាយរួចហើយ។" : "មិនអាចរក្សាទុកបានទេ។", true)
     await botDb().rpc("bot_tip_set_pending", { p_key: botKey(), p_day: day, p_pending: null })
     await tg("editMessageReplyMarkup", { chat_id: chatId, message_id: cb.message!.message_id, reply_markup: { inline_keyboard: [] } })
@@ -335,7 +347,7 @@ export async function handleTipCallback(cb: Callback) {
           return { p_action: "save", p_title: tip.title.km, p_body: tip.body.km, p_tip_id: tip.id }
         })()
       : { p_action: action === "a" ? "approve" : action === "s" ? "skip" : "draft", p_version: version }
-  const { data, error } = await botDb().rpc("bot_tip_action", { p_key: botKey(), p_chat_id: chatId, p_day: day, ...params })
+  const { data, error } = await botDb().rpc("bot_tip_action", { p_key: botKey(), p_chat_id: actor, p_day: day, ...params })
   if (error) {
     const msg = error.message ?? ""
     const why = /super admin only/.test(msg)

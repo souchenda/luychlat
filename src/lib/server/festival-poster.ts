@@ -16,6 +16,7 @@ import { getChannelPostButtons } from "./channel-buttons"
 import { logEvent } from "./events"
 import { FAMILIES, FRAME, drawFooter, drawHeader, loadFonts, roundRect, wrap } from "./poster-kit"
 import { botDb, botKey, botToken, tg } from "./telegram-bot"
+import { marketingChats } from "@/lib/server/admin-routes"
 
 const { W, H, PAD } = FRAME
 const MINT = "#34d399"
@@ -360,8 +361,7 @@ export async function posterTick() {
 }
 
 async function toSuperAdmins(text: string) {
-  const { data: chats } = await botDb().rpc("bot_super_admin_chats", { p_key: botKey() })
-  for (const c of (chats as { chat_id: number }[] | null) ?? []) await tg("sendMessage", { chat_id: Number(c.chat_id), text }).catch(() => null)
+  for (const chat of await marketingChats()) await tg("sendMessage", { chat_id: chat, text }).catch(() => null)
 }
 
 export const isPosterCallback = (data: string | undefined) => Boolean(data?.startsWith("pf:"))

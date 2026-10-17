@@ -33,5 +33,16 @@ export function otherSource(text: string): string | null {
   return `other: ${t.slice(0, OTHER_SOURCE_MAX).trim()}`
 }
 
+/**
+ * How a saved answer reads in the new-user alert: one of the four → its key (the bot translates it);
+ * «other: tiktok» → { other: "tiktok" }; nothing yet → null.
+ */
+export function sourceForAlert(answer: string | null | undefined): AcquisitionSource | { other: string } | null {
+  if (!answer) return null
+  if ((ACQUISITION_SOURCES as readonly string[]).includes(answer)) return answer as AcquisitionSource
+  const m = /^other: (.+)$/.exec(answer)
+  return m ? { other: m[1] } : null
+}
+
 /** A saved answer: one of the four, or a typed «other: …». */
 export const isAcquisitionAnswer = (v: string | null | undefined) => Boolean(v && ((ACQUISITION_SOURCES as readonly string[]).includes(v) || /^other: \S/.test(v)))
