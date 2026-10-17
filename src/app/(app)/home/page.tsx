@@ -168,6 +168,8 @@ export default function HomePage() {
         gaps={assets.gaps}
         onRetryGaps={assets.retry}
         liabilitiesUsd={liabilities}
+        // NBC $1 = …៛ · gold per damlung: one slim line at the bottom inside the card — opens /market.
+        footer={<MarketRatesCard />}
         actions={
           editable && (
             <>
@@ -184,8 +186,6 @@ export default function HomePage() {
           )
         }
       />
-      {/* NBC $1 = …៛ · gold per damlung: one full-width line under the card (never inside it) — opens /market. */}
-      <MarketRatesCard />
 
 
       {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}
