@@ -55,7 +55,8 @@ describe("loan alerts in the bell — the installment, never the loan's maturity
   })
   it("a PPCBank installment due in 4 days reads «4 days», not «3 years 4 months (1,246 days)»", () => {
     const today = new Date()
-    const iso = (d: Date) => d.toISOString().slice(0, 10)
+    // The Cambodian date, as the app counts days (a UTC date failed this test from 00:00 to 07:00 ICT).
+    const iso = (d: Date) => new Date(d.getTime() + 7 * 3_600_000).toISOString().slice(0, 10)
     const due = iso(new Date(today.getTime() + 4 * 86_400_000))
     const maturity = iso(new Date(today.getTime() + 1246 * 86_400_000))
     const debt = { id: "l", type: "PAYABLE", party_name: "PPCBank", currency: "USD", total_amount: 20000, paid_amount: 4000, due_date: maturity, status: "PARTIALLY_PAID" } as unknown as Debt
