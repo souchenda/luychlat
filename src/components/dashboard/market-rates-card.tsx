@@ -14,7 +14,7 @@ const usd = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
 /**
  * Home, a standalone utility row under the total-assets card (founder, 17/10/2026 — like ACLEDA's
  * exchange-rate shortcut): "NBC $1 = 4,057៛ · មាស $5,010/តម្លឹង ›" (kilo gold when recent, else 24K),
- * opens /market. It wraps rather than truncating.
+ * opens /market. One full-width line: NBC on the left, gold on the right (founder, 17/10/2026).
  * The NBC date and the gold kind are in the tooltip. Hidden until data exists.
  */
 export function MarketRatesCard() {
@@ -31,10 +31,10 @@ export function MarketRatesCard() {
     <Link
       href="/market"
       title={title}
-      className="group flex min-h-12 items-center gap-2 rounded-2xl border bg-card px-4 py-2.5 text-sm shadow-xs transition-colors hover:bg-muted/40"
+      className="group flex min-h-12 w-full flex-row items-center gap-2 rounded-2xl border bg-card px-4 py-2.5 text-sm whitespace-nowrap shadow-xs transition-colors hover:bg-muted/40"
       aria-label={t("market.title")}
     >
-      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="flex min-w-0 flex-1 flex-row items-center justify-between gap-3">
         {usdKhr && (
           <span className="flex shrink-0 items-center gap-1">
             <LandmarkIcon className="size-4 text-primary" strokeWidth={2} aria-hidden />
@@ -45,7 +45,7 @@ export function MarketRatesCard() {
         {gold24 && (
           <span className="flex min-w-0 items-center gap-1">
             <CoinsIcon className="size-4 shrink-0 text-amber-500" strokeWidth={2} aria-hidden />
-            <span>
+            <span className="truncate">
               <span className="text-muted-foreground">{t(local ? "market.goldShort" : "market.goldPerDamlung")}</span> <span className="font-semibold tabular-nums">${usd.format(gold24)}</span>
               <span className="text-muted-foreground">{t("market.perDamlung")}</span>
             </span>

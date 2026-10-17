@@ -180,12 +180,12 @@ export default function HomePage() {
                 onClick={() => setTransferOpen(true)}
                 disabled={active.length < 2}
               />
-      {/* NBC $1 = …៛ · gold per damlung: its own row under the card (never crammed inside) — opens /market. */}
-      <MarketRatesCard />
             </>
           )
         }
       />
+      {/* NBC $1 = …៛ · gold per damlung: one full-width line under the card (never inside it) — opens /market. */}
+      <MarketRatesCard />
 
 
       {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}
