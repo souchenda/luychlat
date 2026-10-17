@@ -39,7 +39,7 @@ const arc = (from: number, to: number) => {
  * 951–1400 emerald, the founder's reference); the score's own band is bold, and a glowing
  * indicator in its colour marks the score (1044: emerald, in the top-right green zone).
  */
-function Gauge({ score }: { score: number }) {
+export function Gauge({ score }: { score: number }) {
   const key = kscoreTier(score)
   const tier = KSCORE_TIERS[key]
   const dot = at(score)

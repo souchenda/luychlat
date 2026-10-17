@@ -99,7 +99,7 @@ function TrendChart({ transactions, months, exclude }: { transactions: Transacti
   )
 }
 
-function TopSpending({ transactions, categories }: { transactions: Transaction[]; categories: Category[] }) {
+export function TopSpending({ transactions, categories }: { transactions: Transaction[]; categories: Category[] }) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const { khrPerUsd, hideBalances } = usePrefsStore()

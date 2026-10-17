@@ -12,6 +12,9 @@ import { FamilyStrip } from "@/components/family/family-strip"
 import { ExperienceSelector } from "@/components/islamic/islamic-mode"
 import { SourceSelector } from "@/components/onboarding/source-selector"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
+import { KScoreHomeCard } from "@/components/dashboard/kscore-home-card"
+import { SpendingTrendCard } from "@/components/dashboard/spending-trend-card"
+import { TopCategoriesCard } from "@/components/dashboard/top-categories-card"
 import { MarketRatesCard } from "@/components/dashboard/market-rates-card"
 import { BillsWidget } from "@/components/dashboard/bills-widget"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
@@ -243,6 +246,11 @@ export default function HomePage() {
           </Link>
         }
       />
+      {/* The infographic (founder, 17/10/2026): six months of spending, this month's top categories, and —
+          the person's own, so Personal only — the CBC K-Score. */}
+      <SpendingTrendCard transactions={transactions} categories={categoriesQuery.data ?? []} months={months} />
+      <TopCategoriesCard transactions={transactions} categories={categoriesQuery.data ?? []} />
+      {workspace?.type === "PERSONAL" && <KScoreHomeCard />}
 
 
       <BudgetHomeCard

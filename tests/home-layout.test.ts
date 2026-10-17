@@ -26,4 +26,8 @@ describe("home — the hero card's layout", () => {
     assert.match(ticker, /whitespace-nowrap/)
     assert.doesNotMatch(ticker, /flex-wrap/)
   })
+  it("the K-Score (the person's own) shows on the Personal home only — never in a business or family workspace", () => {
+    assert.match(home, /\{workspace\?\.type === "PERSONAL" && <KScoreHomeCard \/>\}/)
+    assert.equal(home.match(/<KScoreHomeCard/g)?.length, 1)
+  })
 })

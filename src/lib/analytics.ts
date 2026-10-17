@@ -71,3 +71,14 @@ export function topExpenseCategories(transactions: Transaction[], khrPerUsd: num
   const other = sorted.slice(limit - 1).reduce((acc, r) => acc + r.usd, 0)
   return { rows: sorted.slice(0, limit - 1), other: roundMoney(other, "USD") }
 }
+
+/**
+ * This month's spending against last month's (from monthlyTrend's expense column, oldest first): the
+ * change in percent, or null when last month had nothing to compare with (never «+∞%»).
+ */
+export function spendingChange(expenses: number[]): { current: number; previous: number; pct: number | null } {
+  const current = expenses.at(-1) ?? 0
+  const previous = expenses.at(-2) ?? 0
+  const pct = previous > 0 ? Math.round(((current - previous) / previous) * 100) : null
+  return { current, previous, pct }
+}
