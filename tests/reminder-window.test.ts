@@ -6,6 +6,8 @@ import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
+import { format } from "date-fns"
+
 import { alertText, parseAlertKey } from "../src/lib/alerts"
 import type { Debt } from "../src/lib/data/types"
 
@@ -55,8 +57,9 @@ describe("loan alerts in the bell — the installment, never the loan's maturity
   })
   it("a PPCBank installment due in 4 days reads «4 days», not «3 years 4 months (1,246 days)»", () => {
     const today = new Date()
-    // The Cambodian date, as the app counts days (a UTC date failed this test from 00:00 to 07:00 ICT).
-    const iso = (d: Date) => new Date(d.getTime() + 7 * 3_600_000).toISOString().slice(0, 10)
+    // The device's own calendar date, exactly as the app counts days (todayDate in lib/debts.ts) — a fixed
+    // UTC or ICT date made this test fail in some hours on a Cambodian PC or in the UTC build container.
+    const iso = (d: Date) => format(d, "yyyy-MM-dd")
     const due = iso(new Date(today.getTime() + 4 * 86_400_000))
     const maturity = iso(new Date(today.getTime() + 1246 * 86_400_000))
     const debt = { id: "l", type: "PAYABLE", party_name: "PPCBank", currency: "USD", total_amount: 20000, paid_amount: 4000, due_date: maturity, status: "PARTIALLY_PAID" } as unknown as Debt
