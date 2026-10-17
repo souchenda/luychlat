@@ -245,3 +245,15 @@
     }
   }
 }
+
+/*
+ * The home dashboard in Khmer (founder, 17/10/2026 — the ACLEDA Mobile benchmark): line-height 1.6 so a
+ * subscript (ជើង) and a vowel above (ស្រៈលើ) never touch the next line, and no text under 13 px.
+ * Unlayered on purpose: it wins over Tailwind's utilities, and only inside .dash with lang="km".
+ */
+html[lang="km"] .dash :is(.text-xs, .text-sm, .text-base, .text-lg, .text-\[13px\], .text-\[15px\]) {
+  line-height: 1.6;
+}
+html[lang="km"] .dash :is(.text-xs, .text-\[9\.5px\], .text-\[10px\], .text-\[11px\]) {
+  font-size: 0.8125rem;
+}

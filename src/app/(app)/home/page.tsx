@@ -12,7 +12,6 @@ import { FamilyStrip } from "@/components/family/family-strip"
 import { ExperienceSelector } from "@/components/islamic/islamic-mode"
 import { SourceSelector } from "@/components/onboarding/source-selector"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
-import { DailyTipCard } from "@/components/dashboard/daily-tip-card"
 import { MarketRatesCard } from "@/components/dashboard/market-rates-card"
 import { BillsWidget } from "@/components/dashboard/bills-widget"
 import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
@@ -114,7 +113,8 @@ export default function HomePage() {
   const islamicKey = islamicGreeting(hijri)
 
   return (
-    <div className="space-y-4">
+    // «dash»: readable Khmer on the dashboard (globals.css — line-height 1.6, nothing under 13 px).
+    <div className="dash space-y-4">
       {/* One row: greeting with today's date under it on the left, the lunar day / next holy day pill on the right. */}
       <header>
         <div className="flex items-center justify-between gap-3">
@@ -168,8 +168,6 @@ export default function HomePage() {
         gaps={assets.gaps}
         onRetryGaps={assets.retry}
         liabilitiesUsd={liabilities}
-        // NBC $1 = …៛ · gold per damlung, inside the bottom of the card — opens /market.
-        footer={<MarketRatesCard />}
         actions={
           editable && (
             <>
@@ -182,6 +180,8 @@ export default function HomePage() {
                 onClick={() => setTransferOpen(true)}
                 disabled={active.length < 2}
               />
+      {/* NBC $1 = …៛ · gold per damlung: its own row under the card (never crammed inside) — opens /market. */}
+      <MarketRatesCard />
             </>
           )
         }
@@ -244,7 +244,6 @@ export default function HomePage() {
         }
       />
 
-      <DailyTipCard wallets={walletsQuery.data} debts={debtsQuery.data} workspace={workspace} />
 
       <BudgetHomeCard
         workspaceId={ws}

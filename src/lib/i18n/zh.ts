@@ -3682,6 +3682,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "vdoc.nextInstallment": "下次还款 {date}",
   "netWorth.loans": "待还贷款",
   "netWorth.net": "净资产（扣除贷款后）",
+  "netWorth.inUsd": "美元 ($)",
+  "netWorth.inKhr": "瑞尔 (៛)",
   "widget.loadFailed": "⚠️ {name} 无法加载",
   "widget.retry": "重试",
   "netWorth.notCounted": "⚠️ 未计入：{items}",

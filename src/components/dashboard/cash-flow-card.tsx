@@ -34,7 +34,7 @@ function Split({ native, kind }: { native: NonNullable<DualTotal["native"]>; kin
   return (
     <div className="mt-auto flex flex-wrap gap-1 pt-0.5">
       {parts.map((p) => (
-        <span key={p} className={cn("max-w-full truncate rounded px-1.5 py-0.5 text-[9.5px] font-semibold tabular-nums", PILL[kind])}>
+        <span key={p} className={cn("max-w-full truncate rounded-md px-2 py-0.5 text-[13px] font-semibold tabular-nums", PILL[kind])}>
           {p}
         </span>
       ))}
@@ -42,26 +42,40 @@ function Split({ native, kind }: { native: NonNullable<DualTotal["native"]>; kin
   )
 }
 
-function Stat({ label, total, icon, tone, kind }: { label: string; total: DualTotal; icon: React.ReactNode; tone: string; kind: Kind }) {
-  const net = kind === "net"
+/** Income or expense: its own card, the label at 14 px and the amount large (founder, 17/10/2026). */
+function Stat({ label, total, icon, tone, kind }: { label: string; total: DualTotal; icon: React.ReactNode; tone: string; kind: Exclude<Kind, "net"> }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5 p-3">
-      <span className="mb-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-        <span className={cn("[&_svg]:size-3.5", tone)}>{icon}</span>
-        <span className="truncate">{label}</span>
+    <Card className="flex min-w-0 flex-col gap-1 px-4 py-3.5">
+      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <span className={cn("[&_svg]:size-4", tone)}>{icon}</span>
+        <span>{label}</span>
       </span>
-      <Amount
-        value={total.usd}
-        currency="USD"
-        signed={net}
-        className={cn("truncate text-base font-bold", net && (total.usd >= 0 ? "text-teal-600 dark:text-teal-400" : "text-rose-600 dark:text-rose-400"))}
-      />
+      <Amount value={total.usd} currency="USD" className="block truncate text-2xl font-bold tracking-tight tabular-nums" />
       {/* The same total in riel: an equivalent, not a second balance. */}
-      <span className="truncate text-[11px] text-muted-foreground">
-        ≈ <Amount value={total.khr} currency="KHR" signed={net} />
+      <span className="truncate text-sm text-muted-foreground tabular-nums">
+        ≈ <Amount value={total.khr} currency="KHR" />
       </span>
-      {!net && total.native && <Split native={total.native} kind={kind} />}
-    </div>
+      {total.native && <Split native={total.native} kind={kind} />}
+    </Card>
+  )
+}
+
+/** The month's net: one full-width row under the two cards. */
+function NetRow({ label, total, icon }: { label: string; total: DualTotal; icon: React.ReactNode }) {
+  const up = total.usd >= 0
+  return (
+    <Card className="flex flex-row items-center justify-between gap-3 px-4 py-3">
+      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <span className="text-teal-500 [&_svg]:size-4">{icon}</span>
+        {label}
+      </span>
+      <span className="text-right tabular-nums">
+        <Amount value={total.usd} currency="USD" signed className={cn("block text-xl font-bold", up ? "text-teal-600 dark:text-teal-400" : "text-rose-600 dark:text-rose-400")} />
+        <span className="block text-[13px] text-muted-foreground">
+          ≈ <Amount value={total.khr} currency="KHR" signed />
+        </span>
+      </span>
+    </Card>
   )
 }
 
@@ -80,17 +94,19 @@ export function CashFlowCard({
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2 px-1">
-        <h2 className="text-sm font-medium text-muted-foreground">{t("flow.title")}</h2>
+        <h2 className="text-[15px] font-semibold">{t("flow.title")}</h2>
         {action}
       </div>
       {loading ? (
-        <Skeleton className="h-24 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-xl" />
       ) : (
-        <Card className="grid grid-cols-3 gap-0 divide-x py-0">
-          <Stat label={t("flow.income")} total={flow.income} icon={<TrendingUpIcon strokeWidth={2} />} tone="text-emerald-500" kind="income" />
-          <Stat label={t("flow.expense")} total={flow.expense} icon={<TrendingDownIcon strokeWidth={2} />} tone="text-rose-500" kind="expense" />
-          <Stat label={t("flow.net")} total={flow.net} icon={<WalletIcon strokeWidth={2} />} tone="text-teal-500" kind="net" />
-        </Card>
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Stat label={t("flow.income")} total={flow.income} icon={<TrendingUpIcon strokeWidth={2} />} tone="text-emerald-500" kind="income" />
+            <Stat label={t("flow.expense")} total={flow.expense} icon={<TrendingDownIcon strokeWidth={2} />} tone="text-rose-500" kind="expense" />
+          </div>
+          <NetRow label={t("flow.net")} total={flow.net} icon={<WalletIcon strokeWidth={2} />} />
+        </div>
       )}
     </section>
   )

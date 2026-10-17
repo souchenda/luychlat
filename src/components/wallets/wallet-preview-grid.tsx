@@ -34,15 +34,14 @@ export function WalletPreviewGrid({ wallets, onAdd }: { wallets: Wallet[]; onAdd
           <Link
             key={w.id}
             href={`/wallets/${w.id}`}
-            className="flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3 shadow-xs transition-colors hover:bg-muted/40 active:scale-[0.99]"
+            className="flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-3.5 shadow-xs transition-colors hover:bg-muted/40 active:scale-[0.99]"
           >
-            <span className="flex min-w-0 items-center gap-2">
-              <WalletAvatar icon={w.icon} color={w.color} name={w.name} />
-              <span className="min-w-0 truncate text-sm font-medium" title={w.name}>{walletDisplayName(w)}</span>
-            </span>
+            <WalletAvatar icon={w.icon} color={w.color} name={w.name} />
+            {/* The name under the logo, the card's full width, up to three lines: readable on a phone, never «…» at once. */}
+            <span className="line-clamp-3 min-w-0 text-sm leading-snug font-medium break-words" title={w.name}>{walletDisplayName(w)}</span>
             <span className="min-w-0">
               <Amount value={w.balance} currency={w.currency} className={`block font-bold tracking-tight whitespace-nowrap tabular-nums ${balanceSize(w)}`} />
-              <span className="block text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+              <span className="block text-[13px] whitespace-nowrap text-muted-foreground tabular-nums">
                 ≈ <Amount value={convert(w.balance, w.currency, other, khrPerUsd)} currency={other} />
               </span>
             </span>

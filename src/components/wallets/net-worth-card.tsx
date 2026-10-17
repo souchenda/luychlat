@@ -35,19 +35,11 @@ export function computeTotals(wallets: Wallet[], khrPerUsd: number, assetsUsd = 
   }
 }
 
-const usd2 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })
-
-/** The headline total shrinks a step as it grows, so it never truncates beside the action column. */
-function totalSize(usd: number, narrow: boolean) {
-  if (!narrow) return "text-3xl"
-  const len = usd2.format(usd).length
-  return len <= 9 ? "text-3xl" : len <= 11 ? "text-2xl" : "text-xl"
-}
 
 /**
  * Total of the active workspace (wallets, savings goals and assets), in USD and KHR at the configured rate.
- * Home passes `actions` (stacked on the right, beside the totals) and `footer` (the market ticker,
- * under a hairline at the bottom of the card); /wallets shows the totals alone.
+ * Home passes `actions` (one row of large buttons under the totals); the market ticker sits below the card
+ * (MarketRatesCard), never inside it. /wallets shows the totals alone.
  */
 export function NetWorthCard({
   wallets,
@@ -81,83 +73,84 @@ export function NetWorthCard({
       <span aria-hidden className="pointer-events-none absolute -bottom-24 -left-10 -z-10 size-56 rounded-full bg-teal-300/25 blur-3xl" />
       <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 bg-linear-to-b from-white/12 to-transparent" />
 
-      <div className="flex gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
-            <p className="text-sm font-medium tracking-wide text-white/80">{t("netWorth.title")}</p>
-            <button
-              type="button"
-              onClick={toggleHideBalances}
-              className="-my-1.5 rounded-full p-1.5 text-white/75 transition-colors hover:bg-white/15 hover:text-white"
-              aria-label={t("netWorth.toggle")}
-              aria-pressed={hideBalances}
-            >
-              {hideBalances ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="mt-2 space-y-2">
-              <Skeleton className="h-9 w-36 bg-white/20" />
-              <Skeleton className="h-5 w-28 bg-white/20" />
-            </div>
-          ) : (
-            <>
-              <Amount
-                value={totals.totalUsd}
-                currency="USD"
-                className={`mt-1 block font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm ${totalSize(totals.totalUsd, Boolean(actions))}`}
-              />
-              <p className="text-sm whitespace-nowrap text-white/85 tabular-nums">
-                ≈ <Amount value={totals.totalKhr} currency="KHR" />
-              </p>
-            </>
-          )}
-
-          <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs tabular-nums">
-            <span className="rounded-full bg-white/15 px-2.5 py-1 whitespace-nowrap ring-1 ring-white/20 backdrop-blur-sm">
-              <Amount value={totals.usdWallets} currency="USD" />
-            </span>
-            <span className="rounded-full bg-white/15 px-2.5 py-1 whitespace-nowrap ring-1 ring-white/20 backdrop-blur-sm">
-              <Amount value={totals.khrWallets} currency="KHR" />
-            </span>
-            {totals.assets > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/30 px-2.5 py-1 whitespace-nowrap ring-1 ring-amber-200/40 backdrop-blur-sm" title={t("assets.pageTitle")}>
-                <HomeIcon className="size-3" aria-hidden />
-                <Amount value={totals.assets} currency="USD" />
-              </span>
-            )}
-          </div>
-          {!loading && gaps.length > 0 && (
-            <button
-              type="button"
-              onClick={onRetryGaps}
-              className="mt-2 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-amber-400/25 px-2.5 py-1 text-left text-xs font-medium text-white ring-1 ring-amber-200/40"
-            >
-              <span>{t("netWorth.notCounted", { items: gaps.map((g) => t(`assetGap.${g}`)).join(", ") })}</span>
-              {onRetryGaps && <RotateCwIcon className="size-3.5 shrink-0" aria-label={t("widget.retry")} />}
-            </button>
-          )}
-          {/* Loans: their own line — what is owed, and what is left after it (the headline stays the total held). */}
-          {!loading && liabilitiesUsd > 0 && (
-            <div className="mt-2.5 space-y-0.5 text-xs tabular-nums text-white/90">
-              {/* Opens the loans owed with the CBC K-Score at the top. */}
-              <Link href="/debts?tab=PAYABLE#credit-health" className="flex justify-between gap-2 rounded-md underline-offset-4 hover:underline">
-                <span>{t("netWorth.loans")} ›</span>
-                <span className="font-semibold whitespace-nowrap">
-                  −<Amount value={liabilitiesUsd} currency="USD" />
-                </span>
-              </Link>
-              <p className="flex justify-between gap-2">
-                <span>{t("netWorth.net")}</span>
-                <Amount value={roundMoney(totals.totalUsd - liabilitiesUsd, "USD")} currency="USD" className="font-semibold whitespace-nowrap" />
-              </p>
-            </div>
-          )}
-        </div>
-
-        {actions && <div className="flex w-[7.25rem] shrink-0 flex-col justify-center gap-2">{actions}</div>}
+      {/* Title and the privacy eye. */}
+      <div className="flex items-center gap-1">
+        <p className="text-[15px] font-medium text-white/90">{t("netWorth.title")}</p>
+        <button
+          type="button"
+          onClick={toggleHideBalances}
+          className="-my-1 grid size-10 place-items-center rounded-full text-white/85 transition-colors hover:bg-white/15 hover:text-white"
+          aria-label={t("netWorth.toggle")}
+          aria-pressed={hideBalances}
+        >
+          {hideBalances ? <EyeOffIcon className="size-5" /> : <EyeIcon className="size-5" />}
+        </button>
       </div>
+
+      {/* The total, full width and large (ACLEDA «Total balances»), then the same in riel. */}
+      {loading ? (
+        <div className="mt-2 space-y-2">
+          <Skeleton className="h-10 w-44 bg-white/20" />
+          <Skeleton className="h-5 w-32 bg-white/20" />
+        </div>
+      ) : (
+        <>
+          <Amount value={totals.totalUsd} currency="USD" className="mt-1 block text-[2rem] leading-tight font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm" />
+          <p className="text-base whitespace-nowrap text-white/90 tabular-nums">
+            ≈ <Amount value={totals.totalKhr} currency="KHR" />
+          </p>
+        </>
+      )}
+
+      {/* What is held in each currency: two clear tiles, no chips crammed together. */}
+      <div className="mt-4 grid grid-cols-2 gap-2 tabular-nums">
+        <div className="min-w-0 rounded-2xl bg-white/12 px-3 py-2.5 ring-1 ring-white/20 backdrop-blur-sm">
+          <p className="text-[13px] text-white/80">{t("netWorth.inUsd")}</p>
+          <Amount value={totals.usdWallets} currency="USD" className="block truncate text-lg font-bold" />
+        </div>
+        <div className="min-w-0 rounded-2xl bg-white/12 px-3 py-2.5 ring-1 ring-white/20 backdrop-blur-sm">
+          <p className="text-[13px] text-white/80">{t("netWorth.inKhr")}</p>
+          <Amount value={totals.khrWallets} currency="KHR" className="block truncate text-lg font-bold" />
+        </div>
+      </div>
+      {totals.assets > 0 && (
+        <p className="mt-2 flex items-center justify-between gap-2 text-sm text-white/90 tabular-nums">
+          <span className="inline-flex items-center gap-1.5">
+            <HomeIcon className="size-4" aria-hidden />
+            {t("assets.pageTitle")}
+          </span>
+          <Amount value={totals.assets} currency="USD" className="font-semibold whitespace-nowrap" />
+        </p>
+      )}
+      {!loading && gaps.length > 0 && (
+        <button
+          type="button"
+          onClick={onRetryGaps}
+          className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-full bg-amber-400/25 px-3 py-1 text-left text-[13px] font-medium text-white ring-1 ring-amber-200/40"
+        >
+          <span>{t("netWorth.notCounted", { items: gaps.map((g) => t(`assetGap.${g}`)).join(", ") })}</span>
+          {onRetryGaps && <RotateCwIcon className="size-4 shrink-0" aria-label={t("widget.retry")} />}
+        </button>
+      )}
+      {/* Loans: their own lines — what is owed, and what is left after it (the headline stays the total held). */}
+      {!loading && liabilitiesUsd > 0 && (
+        <div className="mt-3 space-y-1 border-t border-white/15 pt-2.5 text-sm tabular-nums text-white/90">
+          {/* Opens the loans owed with the CBC K-Score at the top. */}
+          <Link href="/debts?tab=PAYABLE#credit-health" className="flex justify-between gap-2 rounded-md underline-offset-4 hover:underline">
+            <span>{t("netWorth.loans")} ›</span>
+            <span className="font-semibold whitespace-nowrap">
+              −<Amount value={liabilitiesUsd} currency="USD" />
+            </span>
+          </Link>
+          <p className="flex justify-between gap-2">
+            <span>{t("netWorth.net")}</span>
+            <Amount value={roundMoney(totals.totalUsd - liabilitiesUsd, "USD")} currency="USD" className="font-semibold whitespace-nowrap" />
+          </p>
+        </div>
+      )}
+
+      {/* Quick entry: one row of large touch targets under the totals (never a column squeezing them). */}
+      {actions && <div className="mt-4 grid grid-cols-3 gap-2">{actions}</div>}
 
       {footer && <div className="mt-3 border-t border-white/15 pt-2 -mb-1 empty:hidden">{footer}</div>}
     </section>
@@ -165,8 +158,8 @@ export function NetWorthCard({
 }
 
 /**
- * Quick entry, stacked (and centred) on the right of the hero card: compact frosted glass with a white icon disc,
- * 36px tall. The glass is a dark tint (not white) so white text stays readable on the light top-right bloom.
+ * Quick entry, one row of three under the totals (founder, 17/10/2026 — the ACLEDA Mobile benchmark): a white
+ * icon disc above a 14 px label, at least 64 px tall. The glass is a dark tint so white text stays readable.
  */
 export function HeroAction({
   icon: Icon,
@@ -186,12 +179,12 @@ export function HeroAction({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-emerald-950/25 px-2.5 text-xs font-medium text-white backdrop-blur-sm transition-all hover:bg-emerald-950/35 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none active:scale-[0.97] disabled:opacity-50"
+      className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl border border-white/20 bg-emerald-950/25 px-1 py-2 text-white backdrop-blur-sm transition-all hover:bg-emerald-950/35 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none active:scale-[0.97] disabled:opacity-50"
     >
-      <span className={`grid size-5 shrink-0 place-items-center rounded-full bg-white shadow-sm ${tone}`}>
-        <Icon className="size-3" strokeWidth={3} aria-hidden />
+      <span className={`grid size-8 shrink-0 place-items-center rounded-full bg-white shadow-sm ${tone}`}>
+        <Icon className="size-4" strokeWidth={2.75} aria-hidden />
       </span>
-      <span className="truncate text-center">{label}</span>
+      <span className="text-center text-sm leading-snug font-medium">{label}</span>
     </button>
   )
 }
