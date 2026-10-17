@@ -26,18 +26,18 @@ function lastFour(w: Wallet): string | null {
 }
 
 /**
- * Home: the first two cash / bank wallets side by side, drawn as bank cards (founder, 17/10/2026 — the
+ * Home: the cash / bank wallets as a horizontal carousel of bank cards (swipe; each snaps into place), (founder, 17/10/2026 — the
  * infographic dashboard): the bank's colour, its logo, the full name (up to three lines, never «…» at
  * once), the last four digits, the balance and ≈ the other currency. Each opens its statement
  * (/wallets/<id>). With fewer than two, the free slot adds a wallet. Credit cards and the full list live
- * on /wallets.
+ * on /wallets. (The carousel replaced the two-up grid, founder 17/10/2026.)
  */
 export function WalletPreviewGrid({ wallets, onAdd }: { wallets: Wallet[]; onAdd?: () => void }) {
   const t = useT()
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {wallets.map((w) => {
         const other = w.currency === "USD" ? "KHR" : "USD"
         const brand = w.color || walletInstitution(w).color
@@ -46,7 +46,7 @@ export function WalletPreviewGrid({ wallets, onAdd }: { wallets: Wallet[]; onAdd
           <Link
             key={w.id}
             href={`/wallets/${w.id}`}
-            className="relative isolate flex min-h-40 min-w-0 flex-col gap-2 overflow-hidden rounded-2xl p-3.5 text-white shadow-md ring-1 ring-black/5 transition-transform active:scale-[0.99]"
+            className="relative isolate flex min-h-40 w-[70%] max-w-[17rem] shrink-0 snap-start flex-col gap-2 overflow-hidden rounded-2xl p-3.5 text-white shadow-md ring-1 ring-black/5 transition-transform active:scale-[0.99]"
             // Darkened from the brand colour so white text reads on any bank (Wing's light green included).
             style={{ background: `linear-gradient(135deg, color-mix(in oklab, ${brand} 72%, black) 0%, color-mix(in oklab, ${brand} 48%, black) 100%)` }}
           >
@@ -71,11 +71,11 @@ export function WalletPreviewGrid({ wallets, onAdd }: { wallets: Wallet[]; onAdd
           </Link>
         )
       })}
-      {onAdd && wallets.length < 2 && (
+      {onAdd && (
         <button
           type="button"
           onClick={onAdd}
-          className="flex min-h-40 flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed text-sm text-muted-foreground transition-colors hover:bg-muted/50"
+          className="flex min-h-40 w-28 shrink-0 snap-start flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed text-sm text-muted-foreground transition-colors hover:bg-muted/50"
         >
           <PlusIcon className="size-5" aria-hidden />
           {t("wallets.addShort")}

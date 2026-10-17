@@ -12,7 +12,7 @@ import { FamilyStrip } from "@/components/family/family-strip"
 import { ExperienceSelector } from "@/components/islamic/islamic-mode"
 import { SourceSelector } from "@/components/onboarding/source-selector"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
-import { KScoreHomeCard } from "@/components/dashboard/kscore-home-card"
+import { SmartHub } from "@/components/dashboard/smart-hub"
 import { SpendingTrendCard } from "@/components/dashboard/spending-trend-card"
 import { TopCategoriesCard } from "@/components/dashboard/top-categories-card"
 import { MarketRatesCard } from "@/components/dashboard/market-rates-card"
@@ -91,7 +91,7 @@ export default function HomePage() {
   // Wallets section lists ordinary wallets; savings goals show in their own card.
   const active = wallets.filter((w) => !w.archived_at && !isGoal(w))
   // Home previews the first two cash / bank wallets; credit cards and the rest are on /wallets.
-  const preview = active.filter((w) => !isCard(w)).slice(0, 2)
+  const preview = active.filter((w) => !isCard(w))
   const transactions = useMemo(() => txQuery.data ?? [], [txQuery.data])
   const thisMonth = monthKey()
   const monthTransactions = useMemo(
@@ -185,6 +185,10 @@ export default function HomePage() {
                 onClick={() => setTransferOpen(true)}
                 disabled={active.length < 2}
               />
+      {/* The signature dashboard (founder, 17/10/2026): the spending pulse, then the smart hub — the K-Score
+          (the person's own: Personal only) and the next obligation within a week. */}
+      <SpendingTrendCard transactions={transactions} categories={categoriesQuery.data ?? []} />
+      <SmartHub workspaceId={ws} personal={workspace?.type === "PERSONAL"} />
             </>
           )
         }
@@ -246,11 +250,7 @@ export default function HomePage() {
           </Link>
         }
       />
-      {/* The infographic (founder, 17/10/2026): six months of spending, this month's top categories, and —
-          the person's own, so Personal only — the CBC K-Score. */}
-      <SpendingTrendCard transactions={transactions} categories={categoriesQuery.data ?? []} months={months} />
       <TopCategoriesCard transactions={transactions} categories={categoriesQuery.data ?? []} />
-      {workspace?.type === "PERSONAL" && <KScoreHomeCard />}
 
 
       <BudgetHomeCard

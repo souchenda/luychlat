@@ -27,7 +27,8 @@ describe("home — the hero card's layout", () => {
     assert.doesNotMatch(ticker, /flex-wrap/)
   })
   it("the K-Score (the person's own) shows on the Personal home only — never in a business or family workspace", () => {
-    assert.match(home, /\{workspace\?\.type === "PERSONAL" && <KScoreHomeCard \/>\}/)
-    assert.equal(home.match(/<KScoreHomeCard/g)?.length, 1)
+    assert.match(home, /<SmartHub workspaceId=\{ws\} personal=\{workspace\?\.type === "PERSONAL"\} \/>/)
+    const hub = readFileSync(join(process.cwd(), "src", "components", "dashboard", "smart-hub.tsx"), "utf8")
+    assert.match(hub, /const score = personal \? kscore : null/)
   })
 })
