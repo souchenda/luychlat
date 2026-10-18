@@ -97,8 +97,10 @@ export type IslamicPostContent = {
   /** The Gregorian day, «ថ្ងៃសុក្រ ២៣ តុលា ២០២៦». */
   date: string
   title: string
-  /** The caption's first line when it differs from the poster's title (the fast reminder: «…ស្អែក…»). */
+  /** The caption's first line when it differs from the poster's title (the fast reminder: «…ស្អែកនេះ…»). */
   lead?: string
+  /** The poster's single date line, when given (the fast day: «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.»). */
+  posterDate?: string
   paragraphs: string[]
   /** Shorter text for the poster when the caption's would not fit (the caption always has it all). */
   posterParagraphs?: string[]
@@ -131,14 +133,16 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       hijriShort: hijriTomorrow ? formatHijri(hijriTomorrow, "km", { short: true }) : null,
       date: kmDay(fastDay),
       title: monday ? "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ (صِيَام يَوْم الإِثْنَيْن)" : "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ (صِيَام يَوْم الخَمِيس)",
-      lead: `🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណាស្អែក (${monday ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"} ទី${khmerDigits(String(d))} ${KM_MONTH[Number(fastDay.slice(5, 7)) - 1]})៖</b>`,
+      lead: `🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់${monday ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"} ស្អែកនេះ)៖</b>`,
+      // One line on the poster: the fast day, Gregorian and Hijri (founder, 18/10/2026).
+      posterDate: `${kmDay(fastDay)}${hijriTomorrow ? ` · ${formatHijri(hijriTomorrow, "km", { short: true })}` : ""}`,
       paragraphs: [
-        `សូមបងប្អូនកុំភ្លេចទទួលទានអាហារសាហួរ (Sahur / السَّحُور) នៅទៀបភ្លឺមុនម៉ោងអ៊ឹមសាក់ ${times.imsak} និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។ ការបួសនេះជាស៊ុណ្ណា — តាមលទ្ធភាពសុខភាពរបស់អ្នក។`,
-        "ព្យាការី មូហាំម៉ាត់ ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
+        `សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ${times.imsak} និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។`,
+        "ការបួសនេះជាស៊ុណ្ណា — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ព្យាការី មូហាំម៉ាត់ ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
       ],
       posterParagraphs: [
-        "ព្យាការី មូហាំម៉ាត់ ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
-        "ទទួលទានអាហារសាហួរ (السَّحُور) មុនម៉ោងអ៊ឹមសាក់ ហើយតាំងចិត្តនីយ៉ាត់ (النِّيَّة) ពីយប់មុន។",
+        `សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ${times.imsak} និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។`,
+        "ព្យាការី មូហាំម៉ាត់ ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ព្រោះអំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
       ],
       source: { label: "Jami' at-Tirmidhi 747", url: "https://sunnah.com/tirmidhi:747" },
       fast: times,

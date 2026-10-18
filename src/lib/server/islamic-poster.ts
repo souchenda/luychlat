@@ -223,16 +223,27 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   ctx.fillText(c.pill, W / 2, y)
   y += 82
 
-  // The Hijri date (large, one line) and the day.
-  if (c.hijriShort) {
+  // The fast day: one line, «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.» (gold, up to two lines).
+  if (c.posterDate) {
+    ctx.font = `700 38px ${FAMILIES}`
+    ctx.fillStyle = GOLD
+    for (const l of lines(c.posterDate, W - 2 * SIDE, 2)) {
+      ctx.fillText(l, W / 2, y)
+      y += 54
+    }
+    y -= 18
+  } else if (c.hijriShort) {
+    // The Hijri date (large, one line) and the day.
     ctx.font = `700 46px ${FAMILIES}`
     ctx.fillStyle = GOLD
     ctx.fillText(lines(c.hijriShort, W - 2 * SIDE, 1)[0] ?? "", W / 2, y)
     y += 58
   }
-  ctx.font = `500 30px ${FAMILIES}`
-  ctx.fillStyle = "rgba(209,250,229,0.85)"
-  ctx.fillText(c.date, W / 2, y)
+  if (!c.posterDate) {
+    ctx.font = `500 30px ${FAMILIES}`
+    ctx.fillStyle = "rgba(209,250,229,0.85)"
+    ctx.fillText(c.date, W / 2, y)
+  }
   y += 36
   ornament(ctx, y)
   y += 70
