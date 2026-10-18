@@ -9,6 +9,7 @@ import { describe, it } from "node:test"
 import { MORNING_QUOTES } from "../../src/lib/morning"
 import { SPOTLIGHT_CALL, SPOTLIGHT_HOOK, SPOTLIGHT_PILLARS } from "../../src/lib/spotlight"
 import { TIPS } from "../../src/lib/tips"
+import { ISLAMIC_TIPS } from "../../src/lib/islamic-tips"
 
 /** Banned anywhere in published wording (founder, 18/10/2026). */
 const BANNED = ["ធនាគារឪពុកម្តាយ", "បង់ពេញចំនួន", "តាក់ស៊ី"]
@@ -16,7 +17,7 @@ const BANNED = ["ធនាគារឪពុកម្តាយ", "បង់ព�
 /** Every line the channel and the Page publish from the datasets. */
 const lines: { where: string; text: string; title?: boolean }[] = [
   ...MORNING_QUOTES.map((q, i) => ({ where: `morning day ${i + 1}`, text: q, title: true })),
-  ...TIPS.flatMap((t) => [
+  ...[...TIPS, ...ISLAMIC_TIPS].flatMap((t) => [
     { where: `tip ${t.id} title`, text: t.title.km, title: true },
     { where: `tip ${t.id} body`, text: t.body.km },
   ]),

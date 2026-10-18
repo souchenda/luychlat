@@ -6,6 +6,8 @@
  * can use it too.
  */
 
+import { islamicTipOfTheDay, type IslamicTip } from "@/lib/islamic-tips"
+
 export type TipTopic = "saving" | "debt" | "credit" | "business" | "islamic"
 type Text = { km: string; en: string }
 export type Tip = { id: string; topic: TipTopic; title: Text; body: Text }
@@ -325,7 +327,9 @@ const dayNumber = (date: Date) => Math.floor(Date.UTC(date.getFullYear(), date.g
  * debts → a debt tip (most days); a business workspace → business tips join in.
  * `offset` gives the next tip ("Another tip").
  */
-export function tipOfTheDay(date: Date, ctx: TipContext = {}, offset = 0): Tip {
+export function tipOfTheDay(date: Date, ctx: TipContext = {}, offset = 0): Tip | IslamicTip {
+  // Islamic Mode: the Islamic financial and life ethics, each with its Quran / Hadith source (founder, 18/10/2026).
+  if (ctx.islamic) return islamicTipOfTheDay(dayNumber(date), offset)
   const day = dayNumber(date) + offset
   const allowed = (t: Tip) => t.topic !== "islamic" || ctx.islamic
   const pool = (topic: TipTopic) => TIPS.filter((t) => t.topic === topic)
