@@ -52,6 +52,8 @@ services:
       # Optional: daily market posts to the community channel / group (bot must be its admin).
       TELEGRAM_COMMUNITY_CHAT_ID: ${TELEGRAM_COMMUNITY_CHAT_ID:-}
       TELEGRAM_COMMUNITY_CHANNEL_ID: ${TELEGRAM_COMMUNITY_CHANNEL_ID:-}
+      # The Islamic community channel (lib/server/channel.ts); the bot must be an admin there.
+      TELEGRAM_ISLAMIC_CHANNEL_ID: ${TELEGRAM_ISLAMIC_CHANNEL_ID:-@LuyChlatIslamic}
       # Admin message routing (lib/chat-route.ts): «chat» or «chat:topic»; unset → previews in the founder's chat, no DevOps logs.
       MARKETING_CHAT_ID: ${MARKETING_CHAT_ID:-}
       DEVOPS_CHAT_ID: ${DEVOPS_CHAT_ID:-}

@@ -12,6 +12,7 @@ import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-li
 import {
   dueAction,
   parseScheduledPostCallback,
+  plannedIslamicPosts,
   plannedPosts,
   previewButtons,
   previewText,
@@ -24,7 +25,9 @@ import {
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
 import { bulletinPreview, publishBulletin } from "@/lib/server/community-bulletin"
-import { communityChannel, communityChannelConfigured, founderApproved } from "@/lib/server/channel"
+import { communityChannel, communityChannelConfigured, founderApproved, islamicChannel, islamicChannelConfigured } from "@/lib/server/channel"
+import { toHijri, type HijriDate } from "@/lib/islamic"
+import { dateOf, isIslamicKind, islamicDailyHtml, jumuahHtml, sunnahFastHtml } from "@/lib/islamic-channel"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
@@ -138,8 +141,9 @@ export function createScheduler(d: SchedulerDeps) {
   }
 
   /** Every minute: schedule what is in its preview window, then publish what is due. */
-  async function tick(day: string, minutes: number) {
-    for (const p of plannedPosts(day, minutes)) await schedulePost(p.kind, p.postKey, p.payload, atMinute(day, p.publishMinute))
+  async function tick(day: string, minutes: number, hijriOf?: (day: string) => HijriDate | null) {
+    // The Islamic channel's posts only when the Hijri calendar is given (the real tick); the same preview and gate.
+    for (const p of [...plannedPosts(day, minutes), ...(hijriOf ? plannedIslamicPosts(day, minutes, hijriOf) : [])]) await schedulePost(p.kind, p.postKey, p.payload, atMinute(day, p.publishMinute))
     await processDue()
   }
 
@@ -247,11 +251,17 @@ const realDeps = (): SchedulerDeps => ({
       }
       case "HOLYDAY":
         return { png: null, body: String(row.payload.text ?? "—") }
+      case "ISLAMIC_DAILY":
+      case "ISLAMIC_FAST":
+      case "ISLAMIC_JUMUAH":
+        return { png: null, body: stripHtml(await islamicHtml(row.kind, day)) }
       default:
         return { png: null, body: String(row.payload.telegram ?? "—") }
     }
   },
   targets(row) {
+    // The Islamic channel's own posts: there only, never the general channel or the Page.
+    if (isIslamicKind(row.kind)) return { telegram: islamicChannelConfigured(), facebook: false, channel: "islamic" }
     const fb = Boolean(facebookConfig())
     const telegram = communityChannelConfigured()
     if (row.kind === "MORNING") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "morning" }) }
@@ -264,12 +274,18 @@ const realDeps = (): SchedulerDeps => ({
     // Called only for a post the database let leave PENDING / APPROVED by the founder's decision
     // (bot_post_take): the approval that opens the channel and the Page.
     const approval = founderApproved(`${row.kind} ${row.post_key}`)
-    const chat = communityChannel(approval)
+    // One routing rule (lib/islamic-channel.ts channelFor): Islamic posts → @LuyChlatIslamic, all else → the general channel.
+    const islamic = isIslamicKind(row.kind)
+    const chat = islamic ? islamicChannel(approval) : communityChannel(approval)
     const buttons = await getChannelPostButtons()
     const ids: Published = { telegram: null, facebook: null }
     const sentText = async (text: string, html: boolean) => {
       const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, text, ...(html ? { parse_mode: "HTML" } : {}), disable_web_page_preview: true, ...buttons })
       return res.ok && res.result ? res.result.message_id : null
+    }
+    if (islamic) {
+      if (chat) ids.telegram = await sentText(await islamicHtml(row.kind, String(row.payload.day)), true)
+      return ids
     }
     if (row.kind === "MORNING") {
       const day = String(row.payload.day)
@@ -348,13 +364,34 @@ const realDeps = (): SchedulerDeps => ({
   log: (level, message) => logEvent(level, "scheduled-posts", message),
 })
 
+// ─── The Islamic channel's posts ──────────────────────────────────────────────────────────────────
+
+let hijriOffsetCache: { value: number; at: number } | null = null
+/** The admin's Hijri offset (Super Admin › Islamic defaults), cached for 30 minutes — the same day as in the app. */
+async function hijriOffset(): Promise<number> {
+  if (hijriOffsetCache && Date.now() - hijriOffsetCache.at < 30 * 60_000) return hijriOffsetCache.value
+  const { data } = await botDb().rpc("bot_islamic_defaults", { p_key: botKey() })
+  const value = Number((data as { hijri_offset?: string } | null)?.hijri_offset ?? 0) || 0
+  hijriOffsetCache = { value, at: Date.now() }
+  return value
+}
+const nextDay = (day: string) => new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
+
+async function islamicHtml(kind: string, day: string): Promise<string> {
+  const offset = await hijriOffset()
+  if (kind === "ISLAMIC_FAST") return sunnahFastHtml(day, toHijri(dateOf(nextDay(day)), offset))
+  if (kind === "ISLAMIC_JUMUAH") return jumuahHtml(day, toHijri(dateOf(day), offset))
+  return islamicDailyHtml(day, toHijri(dateOf(day), offset))
+}
+
 let scheduler: ReturnType<typeof createScheduler> | null = null
 const real = () => (scheduler ??= createScheduler(realDeps()))
 
 /** Called every minute by the dispatcher. */
 export async function scheduledPostsTick() {
   const now = phnomPenhToday()
-  await real().tick(now.day, now.hour * 60 + now.minute)
+  const offset = await hijriOffset()
+  await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
 }
 
 /** A fuel price change: previewed now; published only once the founder approves (at the earliest 45 minutes later, or at once with 🚀). */

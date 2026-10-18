@@ -15,6 +15,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useT } from "@/lib/i18n/use-t"
+import { useActiveWorkspace } from "@/lib/data/hooks"
+import { communityLink } from "@/lib/islamic-channel"
+import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { usePlan } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { telHref, TICKET_CATEGORIES, useSupportContacts, type SupportTicket, type TicketCategory } from "@/lib/support"
@@ -40,8 +43,12 @@ function TelegramGlyph({ className }: { className?: string }) {
 function Channels() {
   const t = useT()
   const { data: c, isLoading } = useSupportContacts()
+  // Islamic Mode (never in a business workspace, like the Islamic tools): the Islamic community channel instead.
+  const islamic = useIslamicEnabled()
+  const { workspace } = useActiveWorkspace()
+  const community = communityLink(islamic && workspace?.type !== "BUSINESS", c?.community_url)
   if (isLoading) return <Card className="h-32 animate-pulse" />
-  const none = !c?.telegram_url && !c?.phone && !c?.community_url
+  const none = !c?.telegram_url && !c?.phone && !community
   return (
     <section className="space-y-2">
       <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("support.channels")}</h2>
@@ -72,16 +79,16 @@ function Channels() {
                 <span className="text-xs text-muted-foreground tabular-nums">{formatPhoneNumber(c.phone)}</span>
               </a>
             )}
-            {c?.community_url && (
+            {community && (
               <a
-                href={c.community_url}
+                href={community.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-col gap-1 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted/60"
               >
                 <UsersIcon className="size-5 text-[#229ED9]" aria-hidden />
-                <span className="text-sm font-medium">{t("support.community")}</span>
-                <span className="text-xs text-muted-foreground">{t("support.communityHint")}</span>
+                <span className="text-sm font-medium">{t(community.label)}</span>
+                <span className="text-xs text-muted-foreground">{t(community.hint)}</span>
               </a>
             )}
           </div>

@@ -1,0 +1,141 @@
+/**
+ * The Islamic community channel (@LuyChlatIslamic, founder, 18/10/2026) — kept 100 % apart from the general
+ * channel (@LuyChlatCommunity):
+ *   general  market news, fuel prices, Buddhist holy days (ថ្ងៃសីល), the 07:00 poster…
+ *   Islamic  the Hijri date with one of the 14 halal-finance lessons (08:00 daily), the Monday / Thursday sunnah
+ *            fast reminder (19:00 the evening before) and Jumu'ah (Friday 09:00). Never a holy-day note.
+ * Every post is preview-first with the founder's ✅ — the same gate as the general channel (lib/scheduled-posts.ts).
+ * Pure (islamic-channel.test.ts).
+ */
+import { khmerDigits } from "@/lib/dates"
+import { formatHijri, type HijriDate } from "@/lib/islamic"
+import { ISLAMIC_TIPS, islamicTipOfTheDay } from "@/lib/islamic-tips"
+
+export const ISLAMIC_KINDS = ["ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH"] as const
+export type IslamicKind = (typeof ISLAMIC_KINDS)[number]
+
+export const isIslamicKind = (kind: string): kind is IslamicKind => (ISLAMIC_KINDS as readonly string[]).includes(kind)
+
+/** Which channel a post kind goes to — the only routing rule (a Buddhist holy-day note is never Islamic). */
+export const channelFor = (kind: string): "islamic" | "community" => (isIslamicKind(kind) ? "islamic" : "community")
+
+export const ISLAMIC_DAILY_MINUTE = 8 * 60
+export const ISLAMIC_FAST_MINUTE = 19 * 60
+export const ISLAMIC_JUMUAH_MINUTE = 9 * 60
+
+export const ISLAMIC_COMMUNITY_URL = "https://t.me/LuyChlatIslamic"
+
+/** Weekday (0 = Sunday) of a Cambodian calendar day "YYYY-MM-DD". */
+export const weekdayOf = (day: string) => new Date(`${day}T00:00:00Z`).getUTCDay()
+
+const addDays = (day: string, n: number) => new Date(Date.parse(`${day}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10)
+
+/** The calendar date for the Hijri conversion (noon, so no time zone can move it). */
+export const dateOf = (day: string) => {
+  const [y, m, d] = day.split("-").map(Number)
+  return new Date(y, m - 1, d, 12)
+}
+
+/**
+ * A voluntary fast tomorrow is worth a reminder — unless tomorrow is in Ramadan (already obligatory) or a day
+ * on which fasting is forbidden: Eid al-Fitr (1 Shawwal) and Eid al-Adha with the Tashreeq days (10–13 Dhul-Hijjah).
+ */
+export function sunnahFastTomorrow(tomorrow: HijriDate | null): boolean {
+  if (!tomorrow) return false
+  if (tomorrow.month === 9) return false
+  if (tomorrow.month === 10 && tomorrow.day === 1) return false
+  if (tomorrow.month === 12 && tomorrow.day >= 10 && tomorrow.day <= 13) return false
+  return true
+}
+
+export type IslamicPlan = { kind: IslamicKind; postKey: string; publishMinute: number; payload: Record<string, string> }
+
+/**
+ * The Islamic posts whose preview window is open at this Cambodian minute (the same window as the general
+ * posts: from 45 min before until 90 min after). `hijriOf` converts a day with the admin's Hijri offset.
+ */
+export function islamicPlannedPosts(day: string, hijriOf: (day: string) => HijriDate | null, open: (at: number) => boolean): IslamicPlan[] {
+  const out: IslamicPlan[] = []
+  if (open(ISLAMIC_DAILY_MINUTE)) out.push({ kind: "ISLAMIC_DAILY", postKey: day, publishMinute: ISLAMIC_DAILY_MINUTE, payload: { day } })
+  const weekday = weekdayOf(day)
+  // Sunday → Monday's fast, Wednesday → Thursday's.
+  if ((weekday === 0 || weekday === 3) && open(ISLAMIC_FAST_MINUTE) && sunnahFastTomorrow(hijriOf(addDays(day, 1))))
+    out.push({ kind: "ISLAMIC_FAST", postKey: day, publishMinute: ISLAMIC_FAST_MINUTE, payload: { day } })
+  if (weekday === 5 && open(ISLAMIC_JUMUAH_MINUTE)) out.push({ kind: "ISLAMIC_JUMUAH", postKey: day, publishMinute: ISLAMIC_JUMUAH_MINUTE, payload: { day } })
+  return out
+}
+
+// ─── The posts (Telegram HTML; Khmer never in italics) ───────────────────────────────────────────
+
+const SIGN = "— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម"
+const KM_WEEKDAY = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"]
+const KM_MONTH = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+/** «ថ្ងៃសុក្រ ២៣ តុលា ២០២៦» */
+export function kmDay(day: string) {
+  const [y, m, d] = day.split("-").map(Number)
+  return `ថ្ងៃ${KM_WEEKDAY[weekdayOf(day)]} ${khmerDigits(String(d))} ${KM_MONTH[m - 1]} ${khmerDigits(String(y))}`
+}
+
+const dateLine = (day: string, hijri: HijriDate | null) => `🌙 <b>${hijri ? esc(formatHijri(hijri, "km")) : ""}</b>${hijri ? " · " : ""}${kmDay(day)}`
+
+/** The day number the in-app Islamic tip uses (lib/tips.ts), so the channel and the app show the same lesson. */
+export const tipDayNumber = (day: string) => Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000)
+
+/** 08:00 — the Hijri date and today's halal-finance lesson (one of the 14), with its exact source. */
+export function islamicDailyHtml(day: string, hijri: HijriDate | null): string {
+  const tip = islamicTipOfTheDay(tipDayNumber(day))
+  const lesson = ISLAMIC_TIPS.indexOf(tip) + 1
+  return [
+    dateLine(day, hijri),
+    "",
+    `📗 <b>មេរៀនហិរញ្ញវត្ថុហាឡាល់ ${khmerDigits(String(lesson))}/${khmerDigits(String(ISLAMIC_TIPS.length))}៖ ${esc(tip.title.km)}</b>`,
+    esc(tip.body.km),
+    "",
+    `📖 ប្រភព៖ <a href="${tip.ref.url}">${esc(tip.ref.label)}</a>`,
+    "",
+    SIGN,
+  ].join("\n")
+}
+
+/** Sunday / Wednesday 19:00 — tomorrow's sunnah fast (Monday / Thursday). */
+export function sunnahFastHtml(day: string, hijriTomorrow: HijriDate | null): string {
+  const tomorrow = weekdayOf(day) === 0 ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"
+  return [
+    `🌙 <b>រំលឹក៖ ស្អែក${tomorrow} ជាថ្ងៃបួសស៊ុណ្ណះ</b>${hijriTomorrow ? ` (${esc(formatHijri(hijriTomorrow, "km"))})` : ""}`,
+    "",
+    "ព្យាការី ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
+    "",
+    "🍽 កុំភ្លេចស៊ូហួរ (អាហារមុនរះអរុណ) ហើយដាក់ចិត្ត (នីយ៉ាត់) តាំងពីយប់នេះ។ ការបួសជាការស្ម័គ្រចិត្ត — តាមលទ្ធភាពសុខភាពរបស់អ្នក។",
+    "",
+    `📖 ប្រភព៖ <a href="https://sunnah.com/tirmidhi:747">Jami' at-Tirmidhi 747</a>`,
+    "",
+    SIGN,
+  ].join("\n")
+}
+
+/** Friday 09:00 — Jumu'ah. */
+export function jumuahHtml(day: string, hijri: HijriDate | null): string {
+  return [
+    dateLine(day, hijri),
+    "",
+    "🕌 <b>ជុមអះ មូបារ៉ក់ — ថ្ងៃសុក្រដ៏មានពរ</b>",
+    "",
+    "អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំនៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។",
+    "",
+    "🏪 ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំជុមអះ — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយពរជ័យ។",
+    "",
+    `📖 ប្រភព៖ <a href="https://quran.com/62/9-10">Al-Jumu'ah 62:9–10</a>`,
+    "",
+    SIGN,
+  ].join("\n")
+}
+
+// ─── In-app community link ─────────────────────────────────────────────────────────────────────
+
+/** The «join the community» link: the Islamic channel while Islamic Mode is on, else the configured general one. */
+export function communityLink(islamic: boolean, configured: string | null | undefined): { url: string; label: "support.communityIslamic" | "support.community"; hint: "support.communityIslamicHint" | "support.communityHint" } | null {
+  if (islamic) return { url: ISLAMIC_COMMUNITY_URL, label: "support.communityIslamic", hint: "support.communityIslamicHint" }
+  return configured ? { url: configured, label: "support.community", hint: "support.communityHint" } : null
+}

@@ -7,7 +7,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
 import { describe, it } from "node:test"
 
-import { plannedPosts, takeAllowed } from "../../src/lib/scheduled-posts"
+import { plannedIslamicPosts, plannedPosts, takeAllowed } from "../../src/lib/scheduled-posts"
+import { channelFor } from "../../src/lib/islamic-channel"
 
 const ROOT = join(process.cwd(), "src")
 function walk(dir: string): string[] {
@@ -32,6 +33,24 @@ describe("GOLDEN · publish only with the founder's approval", () => {
   })
   it("the channel's id «to identify it» only in the group guard and the admin status page", () => {
     assert.deepEqual(users(/communityChannelRef\(/), ["app/api/admin/system/route.ts", "lib/server/group-guard.ts"])
+  })
+  it("the Islamic channel (@LuyChlatIslamic) has the same single door, behind the same approval", () => {
+    assert.deepEqual(users(/process\.env\.TELEGRAM_ISLAMIC_/), ["lib/server/channel.ts"])
+    assert.deepEqual(users(/islamicChannel\(/), ["lib/server/channel.ts", "lib/server/scheduled-posts.ts"]) // defined, and used only for an approved scheduled post
+    assert.deepEqual(users(/islamicChannelRef\(/), ["lib/server/group-guard.ts"])
+    assert.match(readFileSync(join(ROOT, "lib/server/channel.ts"), "utf8"), /export function islamicChannel\(approval: FounderApproval\)/)
+  })
+  it("a Buddhist holy-day note never reaches the Islamic channel; Islamic posts never the general one", () => {
+    assert.equal(channelFor("HOLYDAY"), "community")
+    for (const k of ["ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH"]) assert.equal(channelFor(k), "islamic")
+    const sp = readFileSync(join(ROOT, "lib/server/scheduled-posts.ts"), "utf8")
+    assert.match(sp, /const chat = islamic \? islamicChannel\(approval\) : communityChannel\(approval\)/)
+    assert.doesNotMatch(readFileSync(join(ROOT, "lib/server/holy-days.ts"), "utf8"), /islamicChannel|ISLAMIC_/)
+  })
+  it("the Islamic posts are previewed and held like the rest (the timer never publishes them unapproved)", () => {
+    assert.ok(plannedIslamicPosts("2026-10-23", 8 * 60 + 15).some((p) => p.kind === "ISLAMIC_JUMUAH")) // a Friday
+    assert.ok(!plannedPosts("2026-10-23", 8 * 60 + 15).some((p) => channelFor(p.kind) === "islamic")) // never in the general plan
+    assert.equal(takeAllowed("PENDING", "PUBLISHED", false), false)
   })
   it("the Facebook publish functions demand an approval", () => {
     const fb = readFileSync(join(ROOT, "lib/server/facebook-publisher.ts"), "utf8")

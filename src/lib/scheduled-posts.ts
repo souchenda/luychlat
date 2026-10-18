@@ -10,14 +10,17 @@
 import { khmerDigits } from "@/lib/dates"
 import { HOLIDAY_POST_MINUTE, HOLIDAY_PRE_MINUTE, holidayMoment } from "@/lib/holiday-lifecycle"
 import { SPOTLIGHT } from "@/lib/spotlight"
+import { toHijri, type HijriDate } from "@/lib/islamic"
+import { dateOf, islamicPlannedPosts, type IslamicKind } from "@/lib/islamic-channel"
 
 /**
  * Every public post (founder, 18/10/2026 — none without approval): the 07:00 poster, holiday notes, fuel
  * notices, the 20:00 reminder, the Saturday spotlight, the market bulletin, the evening NBC rates,
  * festival posters and holy-day notes.
  */
-export type PostKind = "MORNING" | "HOLIDAY" | "FUEL" | "EVENING" | "SPOTLIGHT" | "BULLETIN" | "RATES" | "POSTER" | "HOLYDAY"
-export type Targets = { telegram: boolean; facebook: boolean }
+export type PostKind = "MORNING" | "HOLIDAY" | "FUEL" | "EVENING" | "SPOTLIGHT" | "BULLETIN" | "RATES" | "POSTER" | "HOLYDAY" | IslamicKind
+/** `channel`: which Telegram channel (lib/islamic-channel.ts channelFor) — the general one unless said. */
+export type Targets = { telegram: boolean; facebook: boolean; channel?: "community" | "islamic" }
 export type PostStatus = "PENDING" | "APPROVED" | "PUBLISHED" | "PAUSED" | "EXPIRED"
 
 /** The preview goes out this long before the post. */
@@ -52,6 +55,11 @@ export function plannedPosts(day: string, minutes: number): { kind: PostKind; po
   return out
 }
 
+/** The Islamic channel's posts (@LuyChlatIslamic) — planned apart from the general ones, same window, same approval gate. */
+export function plannedIslamicPosts(day: string, minutes: number, hijriOf: (day: string) => HijriDate | null = (d) => toHijri(dateOf(d))) {
+  return islamicPlannedPosts(day, hijriOf, (at) => minutes >= at - PREVIEW_LEAD_MIN && minutes < at + LATE_LIMIT_MIN)
+}
+
 /**
  * What the timer does: not yet; publish — ONLY a post the founder approved; hold — its time has come
  * but nobody approved it (never published by the timer); or too late (expired, never posted).
@@ -65,6 +73,7 @@ export function dueAction(publishAt: string, now: number, status: PostStatus): "
 
 /** «✈️ Telegram Channel + 🔵 Facebook Page» / «… តែប៉ុណ្ណោះ». */
 export function targetLabel(t: Targets): string {
+  if (t.channel === "islamic") return t.telegram ? "✈️ Telegram Channel ឥស្លាម (@LuyChlatIslamic) តែប៉ុណ្ណោះ" : "គ្មានគោលដៅ (មិនទាន់កំណត់ Channel ឥស្លាម)"
   if (t.telegram && t.facebook) return "✈️ Telegram Channel + 🔵 Facebook Page"
   if (t.telegram) return "✈️ Telegram Channel តែប៉ុណ្ណោះ"
   if (t.facebook) return "🔵 Facebook Page តែប៉ុណ្ណោះ"
@@ -90,6 +99,9 @@ const KIND_LABEL: Record<PostKind, string> = {
   RATES: "អត្រាប្តូរប្រាក់ NBC ពេលល្ងាច",
   POSTER: "Poster ពិធីបុណ្យ",
   HOLYDAY: "សារថ្ងៃសីល",
+  ISLAMIC_DAILY: "ហ៊ីជរី និងមេរៀនហិរញ្ញវត្ថុហាឡាល់",
+  ISLAMIC_FAST: "រំលឹកបួសស៊ុណ្ណះ (ច័ន្ទ / ព្រហស្បតិ៍)",
+  ISLAMIC_JUMUAH: "ជុមអះ (ថ្ងៃសុក្រ)",
 }
 
 /** The preview's header (destination first), the post itself, then the status line. */

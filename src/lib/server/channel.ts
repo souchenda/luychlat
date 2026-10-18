@@ -39,3 +39,20 @@ export function isCommunityChannel(chat: string | number | null | undefined): bo
  * admin status page. Never used to post (the golden guard allows it in those two files only).
  */
 export const communityChannelRef = (): string | null => raw()
+
+// ─── The Islamic community channel (@LuyChlatIslamic, founder, 18/10/2026) ─────────────────────────
+// Its own door, behind the same FounderApproval. Only the Islamic posts go here (lib/islamic-channel.ts
+// channelFor) — never a Buddhist holy-day note; the general channel never gets an Islamic post.
+
+const islamicRaw = () => process.env.TELEGRAM_ISLAMIC_CHANNEL_ID?.trim() || null
+
+/** The Islamic channel to post an APPROVED Islamic post to (null when not configured). */
+export function islamicChannel(approval: FounderApproval): string | null {
+  void approval // the proof is the parameter: no approval, no channel
+  return islamicRaw()
+}
+
+export const islamicChannelConfigured = (): boolean => Boolean(islamicRaw())
+
+/** The Islamic channel's id or @username, to IDENTIFY it only (the group guard never leaves it). */
+export const islamicChannelRef = (): string | null => islamicRaw()

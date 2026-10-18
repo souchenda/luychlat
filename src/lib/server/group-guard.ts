@@ -6,7 +6,7 @@ import type { Locale } from "@/lib/i18n/dictionaries"
 
 import { logEvent } from "./events"
 import { botDb, botKey, sendText, tg, tr } from "./telegram-bot"
-import { communityChannelRef } from "@/lib/server/channel"
+import { communityChannelRef, islamicChannelRef } from "@/lib/server/channel"
 
 /** Groups seen recently (one database touch per group per hour, not per message). */
 const seenAt = new Map<number, number>()
@@ -34,18 +34,22 @@ export async function noteGroupLeft(chatId: number) {
   await botDb().rpc("bot_group_forget", { p_key: botKey(), p_group: chatId })
 }
 
-let community: { id: number | null; at: number } | null = null
-/** The community chat's numeric id (configured as an id or an @username), cached for an hour. */
-async function communityId(): Promise<number | null> {
-  if (community && Date.now() - community.at < 3_600_000) return community.id
-  const raw = communityChannelRef()
-  let id: number | null = null
-  if (raw && /^-?\d+$/.test(raw)) id = Number(raw)
-  else if (raw) id = (await tg<{ id?: number }>("getChat", { chat_id: raw })).result?.id ?? null
-  community = { id, at: Date.now() }
-  return id
+let community: { ids: number[]; at: number } | null = null
+/** The community channels' numeric ids — the general and the Islamic one (an id or an @username), cached for an hour. */
+async function communityIds(): Promise<number[]> {
+  if (community && Date.now() - community.at < 3_600_000) return community.ids
+  const ids: number[] = []
+  for (const raw of [communityChannelRef(), islamicChannelRef()]) {
+    if (raw && /^-?\d+$/.test(raw)) ids.push(Number(raw))
+    else if (raw) {
+      const id = (await tg<{ id?: number }>("getChat", { chat_id: raw })).result?.id
+      if (id) ids.push(id)
+    }
+  }
+  community = { ids, at: Date.now() }
+  return ids
 }
-const isCommunityChat = async (chatId: number) => (await communityId()) === chatId
+const isCommunityChat = async (chatId: number) => (await communityIds()).includes(chatId)
 
 /**
  * Called every minute by the dispatcher: leaves groups with no active pool
