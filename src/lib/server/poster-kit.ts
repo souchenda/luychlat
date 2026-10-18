@@ -82,10 +82,39 @@ function pieces(paragraph: string): string[] {
   const joined: string[] = []
   for (const p of out) {
     const prev = joined[joined.length - 1]
-    if (prev !== undefined && (/^[/%៛]/.test(p) || /[/$៛]$/.test(prev))) joined[joined.length - 1] = prev + p
+    // …and a time or a decimal («០៤:២៣», «4.5») — never broken at its colon or point.
+    const timeOrDecimal = prev !== undefined && ((/[0-9០-៩]$/.test(prev) && /^[:.][0-9០-៩]/.test(p)) || (/[0-9០-៩][:.]$/.test(prev) && /^[0-9០-៩]/.test(p)) || (/[0-9០-៩]$/.test(prev) && /^[:.]$/.test(p)))
+    if (prev !== undefined && (timeOrDecimal || /^[/%៛]/.test(p) || /[/$៛]$/.test(prev))) joined[joined.length - 1] = prev + p
     else joined.push(p)
   }
-  return joined
+  return keepTerms(joined)
+}
+
+/**
+ * Loanwords the Khmer word breaker splits («អ៊ឹម|សាក់»): kept whole on a line. Add a term here when a poster
+ * breaks one.
+ */
+const KEEP_TOGETHER = ["អ៊ឹមសាក់", "ស្រាយបួស", "ហូបបាយបួស", "នីយ៉ាត់", "ស៊ុណ្ណា", "សាហួរ", "ជូម៉ាអះ", "បារ៉ាកាត់", "មូហាំម៉ាត់", "ហ៊ីចរ៉ោះ"]
+
+function keepTerms(pieces: string[]): string[] {
+  const out: string[] = []
+  for (let i = 0; i < pieces.length; i++) {
+    let merged = pieces[i]
+    for (const term of KEEP_TOGETHER) {
+      if (!term.startsWith(merged.trim()) || merged.trim() === term) continue
+      // Join the following pieces while they still spell the term.
+      let j = i + 1
+      let acc = merged
+      while (j < pieces.length && term.startsWith((acc + pieces[j]).trim()) && (acc + pieces[j]).trim() !== term) acc += pieces[j++]
+      if (j < pieces.length && (acc + pieces[j]).trim() === term) {
+        merged = acc + pieces[j]
+        i = j
+        break
+      }
+    }
+    out.push(merged)
+  }
+  return out
 }
 
 /** Lines of `text` that fit `maxWidth`, at most `maxLines` (the last cut with "…"). */

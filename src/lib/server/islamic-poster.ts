@@ -183,6 +183,14 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   const canvas = createCanvas(W, H)
   const ctx = canvas.getContext("2d")
   let truncated = false
+  /** Sets the largest of `sizes` at which `text` fits one line; false (smallest set) when none does. */
+  const fitLine = (text: string, weight: number, sizes: number[]) => {
+    for (const size of sizes) {
+      ctx.font = `${weight} ${size}px ${FAMILIES}`
+      if (ctx.measureText(text).width <= W - 2 * SIDE) return true
+    }
+    return false
+  }
   const lines = (text: string, width: number, max: number) => {
     const out = wrap(ctx, text, width, max)
     if (out.length && out[out.length - 1].endsWith("…") && !text.endsWith("…")) truncated = true
@@ -225,13 +233,10 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
 
   // The fast day: one line, «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.» (gold, up to two lines).
   if (c.posterDate) {
-    ctx.font = `700 38px ${FAMILIES}`
+    // One line: the largest size that fits (a Thursday's date is the longest).
     ctx.fillStyle = GOLD
-    for (const l of lines(c.posterDate, W - 2 * SIDE, 2)) {
-      ctx.fillText(l, W / 2, y)
-      y += 54
-    }
-    y -= 18
+    fitLine(c.posterDate, 700, [38, 35, 32, 30, 28])
+    ctx.fillText(c.posterDate, W / 2, y)
   } else if (c.hijriShort) {
     // The Hijri date (large, one line) and the day.
     ctx.font = `700 46px ${FAMILIES}`
@@ -248,12 +253,17 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   ornament(ctx, y)
   y += 70
 
-  // The title.
-  ctx.font = `700 50px ${FAMILIES}`
+  // The title: one line when a smaller size fits (an Arabic name is never split across lines), else two.
   ctx.fillStyle = "#ffffff"
-  for (const l of lines(c.title, W - 2 * SIDE, 2)) {
-    ctx.fillText(l, W / 2, y)
+  if (fitLine(c.title, 700, [50, 46, 42, 39])) {
+    ctx.fillText(c.title, W / 2, y)
     y += 68
+  } else {
+    ctx.font = `700 46px ${FAMILIES}`
+    for (const l of lines(c.title, W - 2 * SIDE, 2)) {
+      ctx.fillText(l, W / 2, y)
+      y += 64
+    }
   }
   y += 10
 

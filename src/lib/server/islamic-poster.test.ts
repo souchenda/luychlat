@@ -47,4 +47,21 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     assert.match(sp, /if \(chat\) ids\.telegram = \(await sendPosterPhoto\(chat, islamicPoster\(c\), caption, \{ reply_markup: buttons\.reply_markup \}\)\) \?\? \(await sentText\(caption, true\)\)/)
     assert.match(sp, /return \{ png: poster\(\(\) => islamicPoster\(c\)\), body: stripHtml\(islamicCaptionHtml\(c\)\) \}/) // the preview is the poster too
   })
+  it("lines never break a time («០៤:២៣») or an Islamic term («អ៊ឹមសាក់», «ស៊ុណ្ណា»…) — the server font is wider than Windows'", async () => {
+    const { createCanvas } = await import("@napi-rs/canvas")
+    const { FAMILIES, loadFonts, wrap } = await import("./poster-kit")
+    loadFonts()
+    const ctx = createCanvas(1080, 200).getContext("2d")
+    ctx.font = `400 31px ${FAMILIES}`
+    const text = "សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ០៤:២៣ និងតាំងចិត្តនីយ៉ាត់ តាំងពីយប់នេះ។"
+    for (let width = 260; width <= 900; width += 7) {
+      const lines = wrap(ctx, text, width, 99)
+      for (const [i, l] of lines.entries()) {
+        const next = lines[i + 1] ?? ""
+        assert.ok(!(l.endsWith("អ៊ឹម") && next.startsWith("សាក់")), `អ៊ឹម|សាក់ at ${width}`)
+        assert.ok(!/[0-9០-៩]:?$/.test(l) || !/^:?[0-9០-៩]/.test(next), `a time broken at ${width}: «${l}» | «${next}»`)
+      }
+    }
+  })
 })
+
