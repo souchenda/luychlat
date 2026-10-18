@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { useT } from "@/lib/i18n/use-t"
 import { QURAN_TRANSLATION, SURAHS, surahByNumber } from "@/lib/quran"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
+import { SurahPlayButton } from "@/components/islamic/quran-player"
+import { QURAN_RECITER } from "@/lib/quran-audio"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
 
@@ -55,7 +57,8 @@ export default function QuranIndexPage() {
 
       <Card className="gap-0 divide-y py-0">
         {list.map((s) => (
-          <Link key={s.n} href={`/islamic/quran/${s.n}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/60">
+          <div key={s.n} className="flex items-center gap-1 pr-3">
+          <Link href={`/islamic/quran/${s.n}`} className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 hover:bg-muted/60">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold tabular-nums">{s.n}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{s.latin}</span>
@@ -65,10 +68,19 @@ export default function QuranIndexPage() {
               {s.ar}
             </span>
           </Link>
+          {/* ▶️ the recitation, streamed (founder, 18/10/2026). */}
+          <SurahPlayButton surah={s.n} />
+          </div>
         ))}
         {list.length === 0 && <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("quran.noMatch")}</p>}
       </Card>
 
+      <p className="px-1 text-[11px] text-muted-foreground">
+        {t("quranAudio.credit", { reciter: QURAN_RECITER.name, riwaya: QURAN_RECITER.riwaya })}{" "}
+        <a href={QURAN_RECITER.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
+          {QURAN_RECITER.source}
+        </a>
+      </p>
       <p className="px-1 text-[11px] text-muted-foreground">
         {t("quran.credit", { publisher: pick(QURAN_TRANSLATION.publisher, locale) })}{" "}
         <a href={QURAN_TRANSLATION.url} target="_blank" rel="noopener noreferrer" className="underline">

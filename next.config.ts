@@ -26,7 +26,8 @@ const csp = [
   `img-src 'self' data: blob: ${supabaseOrigin} https://tile.openstreetmap.org`.trim(),
   "font-src 'self' data:",
   // The Adhan sound the user picks is played from an on-device blob.
-  "media-src 'self' blob:",
+  // Quran recitation streamed from MP3Quran's official CDN (lib/quran-audio.ts) — that host only.
+  "media-src 'self' blob: https://cdn.mp3quran.net",
   `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`.trim(),
   "worker-src 'self'",
   "manifest-src 'self'",
