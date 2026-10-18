@@ -9,6 +9,7 @@
  * Pure — the timeline and the FFmpeg plan are in reels-timeline.ts; reels-scripts.test.ts guards every line.
  */
 import * as G from "@/lib/islamic/glossary"
+import type { SfxId } from "@/lib/islamic/reels-audio"
 
 export type ReelAct = "hook" | "turn" | "resolution"
 
@@ -26,8 +27,12 @@ export type ReelBeat = {
   appScreen?: { route: string; what: string }
   /** Who speaks the voice line (the voice casting for the TTS or the recording). */
   speaker?: ReelSpeaker
-  /** Ambient sound under the beat (licensed files only — the Adhan from the app's own licensed presets). */
+  /** Ambient sound under the beat, described (licensed files only — the Adhan from the app's own licensed presets). */
   sound?: string
+  /** Comedy effects: `at` seconds into the beat, or `withLine` — as that on-screen line rises in (reels-audio.ts). */
+  sfx?: ({ id: SfxId; at: number } | { id: SfxId; withLine: number })[]
+  /** The ambient track starting `at` seconds into the beat, under the voices (reels-audio.ts REEL_MIX). */
+  ambient?: { track: "adhan"; at: number }
 }
 
 export type ReelSpeaker = "user" | "sophea" | "narrator"
@@ -82,6 +87,7 @@ export const REEL_SCRIPTS: ReelScript[] = [
         voice: "សុំ ៣០ វិនាទីទៀត កំពុងដល់វគ្គតួស្រីត្រូវគេទះ...",
         speaker: "user",
         sound: `The Adhan begins, softly (the app's licensed Adhan preset).`,
+        ambient: { track: "adhan", at: 2.5 },
       },
       {
         act: "turn",
@@ -91,6 +97,11 @@ export const REEL_SCRIPTS: ReelScript[] = [
         voice: `មើលរឿងអេអាយ គេទះកំផ្លៀងគ្នា ឯងភ័យជំនួសគេ! ដល់សំឡេង${G.ADHAN}ហៅ${G.SEMBAHYANG} ធ្វើមិនឮ! តោះ! ក្រោកទៅ${G.WUDU}ភ្លាម!`,
         speaker: "sophea",
         sound: `The Adhan continues under the voice.`,
+        // The record scratch as Sophea appears; the thud lands after the punchline.
+        sfx: [
+          { id: "record_scratch", at: 0 },
+          { id: "dramatic_thud", at: 7.5 },
+        ],
       },
       {
         act: "resolution",
@@ -98,6 +109,11 @@ export const REEL_SCRIPTS: ReelScript[] = [
         visual: "The phone drops on the sofa, the viewer dashes off; water from the tap for wudu; Sophea nods once.",
         onScreen: [`រឿងអេអាយគេមិនរត់ចោលទេ... តែម៉ោង${G.SEMBAHYANG}មិនចាំយើងឡើយ!`, "ពិនិត្យម៉ោងថ្វាយបង្គំលើ app.luychlat.com"],
         appScreen: { route: "/islamic", what: "today's prayer times (Phnom Penh) and the prayer-time alert with the Adhan" },
+        // The dash to wudu; the chime as the call to the app rises in (its second line).
+        sfx: [
+          { id: "cartoon_dash", at: 0.1 },
+          { id: "pop_chime", withLine: 1 },
+        ],
       },
     ],
     caption: [

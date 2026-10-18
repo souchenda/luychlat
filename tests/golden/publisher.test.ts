@@ -74,11 +74,15 @@ describe("GOLDEN · video and humour: the founder's private preview first, never
   it("reels: only a script the founder approved is rendered; the reel modules cannot publish anything", () => {
     for (const s of REEL_SCRIPTS) assert.equal(reelRenderable(s), s.status === "APPROVED", s.id)
     assert.equal(reelRenderable({ ...REEL_SCRIPTS[0], status: "DRAFT" }), false)
-    for (const f of ["lib/islamic/reels-scripts.ts", "lib/islamic/reels-timeline.ts"]) {
+    for (const f of ["lib/islamic/reels-scripts.ts", "lib/islamic/reels-timeline.ts", "lib/islamic/reels-audio.ts"]) {
       const src = readFileSync(join(ROOT, f), "utf8")
       const imports = src.match(/^import .*$/gm) ?? []
       for (const i of imports) assert.doesNotMatch(i, /lib\/server\/|channel|facebook|scheduled-posts|telegram/i, `${f}: ${i}`)
       assert.doesNotMatch(src, /\bfetch\(|sendVideo|founderApproved/, f)
     }
+    // The voice service makes audio only: it imports nothing that publishes.
+    const tts = readFileSync(join(ROOT, "lib/server/reels-tts.ts"), "utf8")
+    for (const i of tts.match(/^import .*$/gm) ?? []) assert.doesNotMatch(i, /channel|facebook|scheduled-posts|telegram/i, i)
+    assert.doesNotMatch(tts, /founderApproved|sendVideo|sendMessage/)
   })
 })

@@ -45,6 +45,9 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       # Server-only, optional: Gemini transcribes Khmer voice notes (much better at Khmer than Whisper).
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # Server-only, optional: Azure AI Speech, the short videos' Khmer voices (lib/server/reels-tts.ts).
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-}
       # Optional: phone push notifications (07:00 morning message). The private key is server-only.
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}

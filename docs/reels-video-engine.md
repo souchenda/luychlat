@@ -37,17 +37,34 @@ Episodes 01 and 02 share the AI-drama theme — the founder may keep both (diffe
   at `cueProgress(cue, t)` (opacity + 40 px rise), inside `REEL_FORMAT.safe` (clear of the platform buttons).
 - **Why Skia and not FFmpeg `drawtext`:** drawtext does not shape Khmer subscripts and vowels reliably; Skia does
   (the posters prove it). FFmpeg only encodes images and sound.
-- **Mascot:** the rabbit needs a master at ≥ 1024 px (today `public/logo.png` is 256 px — CLAUDE.md E). Simple
-  motion (float, blink, eyebrow raise) is drawn as transforms of layered PNGs (body, eyes, brows) the founder supplies.
+- **Mascot:** `public/rabbit-kopiah.png` (1024 × 1024) is Sophea's master. Simple motion (float, blink, eyebrow
+  raise) needs layered PNGs (body, eyes, brows) cut from it.
 - **Real app screens:** captured from the running app (Playwright, a demo workspace with demo data — never a real
   user's data, balances hidden), then placed in a phone frame. Never mocked up (CLAUDE.md video standard).
 
-## Phase 3 — voice and sound (licensed only)
+## Phase 3 — voice and sound ✅ engine (`src/lib/islamic/reels-audio.ts`, `src/lib/server/reels-tts.ts`)
 
-- Khmer voice-over: Azure AI Speech (`km-KH` neural voices) or Google Cloud TTS, or a recorded human voice —
-  natural pauses, never robotic (CLAUDE.md Licensing). The key is the founder's, entered on the Droplet console.
-- Music / effects: royalty-free with a licence on file. No Quran recitation unless the recording's licence allows
-  this use; the Adhan only from the licensed files already in the app.
+- **Voices: Azure AI Speech only** (the licensed service; never Edge-TTS — CLAUDE.md Licensing). Sophea:
+  `km-KH-PisethNeural` (the founder's choice — Azure's male Khmer voice); the viewer and the narrator:
+  `km-KH-SreymomNeural`. SSML with `rate="+5%"` (1.05×), `pitch="+4%"`, pauses after «!», «?» (320 ms), «...»
+  (550 ms) and «·» (250 ms, not read aloud). A clip too long for its beat is re-spoken up to +20%, else the line is
+  rewritten (`voiceRateFor`).
+- **Pronunciation of «សំប៉ាយ៉ាង», «យកទឹកសំយាំង», «អាហ្សាន», «ហូបបាយបួស»:** read as written until the founder hears
+  a sample; a word Azure misreads gets an SSML `<sub alias>` in `REEL_LEXICON` — tuned by ear, never guessed.
+- **Sound effects** (`public/audio/sfx/`, made in-house by `scripts/reels-sfx.sh` from sine waves and noise —
+  ours, no licence to track): `record_scratch` (Sophea catches the binge), `dramatic_thud` (the punchline),
+  `cartoon_dash` (off to wudu), `pop_chime` (the call to the app — tied to its on-screen line, `withLine`).
+  They live in `public/`, not `src/assets/`, because only `public/` reaches the server image (Dockerfile).
+- **Ambient:** the app's CC0 Adhan (`public/adhan/commons-cc0-short.mp3`).
+- **Mix** (`mixArgs`, one FFmpeg filtergraph): each input `adelay`ed to its cue; voices `loudnorm` −16 LUFS at
+  `volume=1.0`; the Adhan at `volume=0.15`, faded out over the last 1.5 s; effects at their levels;
+  `amix normalize=0`, padded and cut at the exact length (`-t`), `alimiter` 0.95; 48 kHz stereo AAC.
+- **Verified on the production FFmpeg 8.1** (18/10/2026) with Episode 01's cues and stand-in voice tones: 20.000 s,
+  48 kHz stereo; voices ≈ −17 dB, the Adhan under them and faded out, the effects on their cues, peak −6.9 dB.
+- **Waiting for the founder:** an Azure AI Speech resource (Speech service, region e.g. `southeastasia`); the key
+  and region entered on the Droplet console as `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` (listed in
+  docker-compose.yml). Then the samples of the four words and the two voices, for the founder's ear.
+- **Mascot:** `public/rabbit-kopiah.png` (1024 × 1024, the rabbit in a kopiah) is the master for Sophea.
 
 ## Phase 4 — rendering on the Droplet
 
