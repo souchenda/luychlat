@@ -140,8 +140,8 @@ export type IslamicPostContent = {
   title: string
   /** The caption's first line when it differs from the poster's title (the fast reminder: «…ស្អែកនេះ…»). */
   lead?: string
-  /** The poster's single date line, when given (the fast day: Gregorian · Hijri, e.g. «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ …»). */
-  posterDate?: string
+  /** The Arabic under the hero title, where the Khmer transliteration is hard to read (Jumu'ah, the fasts, the morning). */
+  titleArabic?: string
   paragraphs: string[]
   /** Shorter text for the poster when the caption's would not fit (the caption always has it all). */
   posterParagraphs?: string[]
@@ -153,6 +153,23 @@ export type IslamicPostContent = {
   /** The day's five prayer times (Phnom Penh), on the poster and in the caption. */
   prayers?: { label: string; time: string }[]
 }
+
+/**
+ * The poster's dateline: the Gregorian day, then the Hijri day it corresponds to (founder, 18/10/2026):
+ * «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ (ត្រូវនឹង ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.)».
+ */
+export const posterDateline = (c: Pick<IslamicPostContent, "date" | "hijriShort">) =>
+  c.hijriShort ? `${c.date} (${G.HIJRI_CORRESPONDS} ${c.hijriShort})` : c.date
+
+/**
+ * The call to action above the poster's links (founder, 18/10/2026): the du'a posters of the morning and the night
+ * invite to listen to the Quran; the others to the Islamic features and money management.
+ */
+export const POSTER_CTA = {
+  audio: "ចូលស្ដាប់គួរអាន និងគណនាហ្សាកាត់ដោយឥតគិតថ្លៃ",
+  general: "ប្រើប្រាស់មុខងារឥស្លាម និងគ្រប់គ្រងលុយកាក់ដោយឥតគិតថ្លៃ",
+} as const
+export const posterCta = (kind: IslamicKind) => (kind === "ISLAMIC_MORNING" || kind === "ISLAMIC_NIGHT" ? POSTER_CTA.audio : POSTER_CTA.general)
 
 const FAST_PLACE = PROVINCES[0] // ភ្នំពេញ
 const kmClockOf = (minutes: number) => khmerDigits(formatMinutes(minutes))
@@ -192,9 +209,12 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       ...dated,
       pill: "ឌុអាពេលភ្ញាក់ពីដំណេក",
       title: "អរុណសួស្តីថ្ងៃថ្មី",
+      titleArabic: G.MORNING_ARABIC,
       lead: "🌅 <b>អរុណសួស្តីថ្ងៃថ្មី — ឌុអាពេលភ្ញាក់ពីដំណេក</b>",
       arabic: wake.arabic,
       paragraphs: [...duaLines(wake), `សូមឱ្យថ្ងៃថ្មីនេះពោរពេញដោយ${G.BARAKAH} និងការរកស៊ីសុចរិត។`],
+      // The poster: the reading and the meaning (the blessing stays in the caption — room for the title's Arabic).
+      posterParagraphs: duaLines(wake),
       source: duaSource(wake.source),
       prayers: dayPrayers(day),
     }
@@ -251,10 +271,8 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       date: kmDay(day),
       // The hero is short (one line, the largest text); the Arabic below it, centred (founder, 18/10/2026).
       title: monday ? G.FAST_HERO_TITLES.monday : G.FAST_HERO_TITLES.thursday,
-      arabic: monday ? G.FAST_ARABIC.monday : G.FAST_ARABIC.thursday,
+      titleArabic: monday ? G.FAST_ARABIC.monday : G.FAST_ARABIC.thursday,
       lead: `🌙 <b>${G.fastReminderLead(monday ? "monday" : "thursday")}</b>`,
-      // One line on the poster: the publish day, Gregorian and Hijri («ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ៧ … ហ.ស.»).
-      posterDate: `${kmDay(day)}${hijri ? ` · ${formatHijri(hijri, "km", { short: true })}` : ""}`,
       paragraphs: [
         G.sahurReminder(times.imsak),
         `ការបួសនេះជាស៊ុណ្ណា — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
@@ -275,6 +293,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
       date: kmDay(day),
       title: `${G.JUMUAH} មូបារ៉ក់`,
+      titleArabic: G.JUMUAH_MUBARAK_ARABIC,
       paragraphs: [
         `ថ្ងៃសុក្រដ៏មាន${G.BARAKAH}! អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំ${G.JUMUAH_LABEL} នៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។`,
         `ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំ${G.JUMUAH} — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយ${G.BARAKAH_LABEL}។`,

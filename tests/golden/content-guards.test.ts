@@ -11,7 +11,7 @@ import { SPOTLIGHT_CALL, SPOTLIGHT_HOOK, SPOTLIGHT_PILLARS } from "../../src/lib
 import { TIPS } from "../../src/lib/tips"
 import { ISLAMIC_TIPS } from "../../src/lib/islamic-tips"
 import { MONEY_DILEMMAS } from "../../src/lib/money-dilemmas"
-import { islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS } from "../../src/lib/islamic-channel"
+import { islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS, posterDateline } from "../../src/lib/islamic-channel"
 
 /** Banned anywhere in published wording (founder, 18/10/2026). */
 const BANNED = ["ធនាគារឪពុកម្តាយ", "បង់ពេញចំនួន", "តាក់ស៊ី"]
@@ -71,10 +71,11 @@ describe("GOLDEN · published wording", () => {
     // (founder, 18/10/2026 typography hotfix — the long title wrapped and split the Arabic).
     assert.equal(sunday.title, "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ")
     assert.equal(sunday.pill, "រំលឹកត្រៀមបួសស្អែក")
-    assert.equal(sunday.arabic, "صِيَام الإِثْنَيْن")
+    assert.equal(sunday.titleArabic, "صِيَام يَوْم الإِثْنَيْن")
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).title, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍")
-    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).arabic, "صِيَام الخَمِيس")
-    assert.equal(sunday.posterDate, "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.") // the publish day
+    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).titleArabic, "صِيَام يَوْم الخَمِيس")
+    // The publish day; «Gregorian (ត្រូវនឹង Hijri)» (founder, 18/10/2026).
+    assert.equal(posterDateline(sunday), "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ (ត្រូវនឹង ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.)")
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).date, "ថ្ងៃពុធ ២១ តុលា ២០២៦")
     assert.equal(sunday.fast?.day, "ថ្ងៃច័ន្ទ") // the boxes are tomorrow's
     const caption = islamicCaptionHtml(sunday)

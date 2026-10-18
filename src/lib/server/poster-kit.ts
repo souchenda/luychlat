@@ -35,6 +35,13 @@ export const FAMILIES =
   process.env.POSTER_FONT === "kantumruy"
     ? `"Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", "Noto Naskh Arabic", "Noto Sans Arabic", "Arial", sans-serif`
     : `"MiSans Khmer", "Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", "Noto Naskh Arabic", "Noto Sans Arabic", "Arial", sans-serif`
+/**
+ * Arabic lines (a du'a, a title's Arabic): Amiri, a classical Naskh with clear tashkeel, bundled in public/fonts
+ * (SIL OFL 1.1, Amiri-OFL.txt) so local, test and the Alpine container draw the same (founder, 18/10/2026).
+ * Only whole Arabic lines: a short Arabic word inside Khmer text stays on Noto Sans Arabic (Amiri's marks split
+ * when the font falls back mid-run — «الجُمُعَة» came out broken).
+ */
+export const ARABIC_FAMILIES = `"Amiri", ${FAMILIES}`
 
 let fontsLoaded = false
 export function loadFonts() {
@@ -44,6 +51,7 @@ export function loadFonts() {
   const dir = path.join(process.cwd(), "public", "fonts")
   for (const weight of [400, 600, 700]) GlobalFonts.registerFromPath(path.join(dir, `KantumruyPro-${weight}.ttf`), "Kantumruy Pro")
   for (const w of ["Regular", "Medium", "Semibold", "Bold"]) GlobalFonts.registerFromPath(path.join(dir, `MiSansKhmer-${w}.woff2`), "MiSans Khmer")
+  for (const w of ["Regular", "Bold"]) GlobalFonts.registerFromPath(path.join(dir, `Amiri-${w}.ttf`), "Amiri")
   for (const sys of ["/usr/share/fonts", "C:/Windows/Fonts"]) GlobalFonts.loadFontsFromDir(sys)
 }
 

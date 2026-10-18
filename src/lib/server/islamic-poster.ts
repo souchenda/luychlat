@@ -14,10 +14,10 @@ import path from "node:path"
 
 import { createCanvas, type Image, loadImage, type SKRSContext2D } from "@napi-rs/canvas"
 
-import type { IslamicPostContent } from "@/lib/islamic-channel"
+import { posterCta, posterDateline, type IslamicPostContent } from "@/lib/islamic-channel"
 import * as G from "@/lib/islamic/glossary"
 
-import { drawIcon, FAMILIES, loadFonts, roundRect, wrap } from "./poster-kit"
+import { ARABIC_FAMILIES, drawIcon, FAMILIES, loadFonts, roundRect, wrap } from "./poster-kit"
 
 export const ISLAMIC_POSTER = { W: 1080, H: 1350 } as const
 const { W, H } = ISLAMIC_POSTER
@@ -33,11 +33,17 @@ const SIDE = 120
 export const POSTER_TYPE = {
   title: [66, 60, 54, 48],
   titleTwoLines: 54,
-  arabic: [50, 46, 42, 38],
+  /** The Arabic under the title (Amiri): a companion, smaller than the du'a. */
+  titleArabic: [44, 40, 36],
+  /** A du'a (Amiri). */
+  arabic: [54, 50, 46, 42],
   bodyMax: 40,
   dateline: [30, 28, 26],
+  /** The call to action above the links (~11 px on a phone). */
+  cta: [30, 28, 26],
 } as const
-const FOOTER_TOP = H - 150
+/** The footer: the rule, the call to action, the links (founder, 18/10/2026 — the links alone gave no reason to open). */
+const FOOTER_TOP = H - 204
 
 let logoImage: Image | null = null
 /** The kopiah logo, decoded once (@napi-rs/canvas decodes only through the async loadImage). */
@@ -158,10 +164,19 @@ function header(ctx: SKRSContext2D) {
   ctx.fillText("សហគមន៍ឥស្លាម", x + mark + 22, top + 86)
 }
 
-function footer(ctx: SKRSContext2D) {
+function footer(ctx: SKRSContext2D, cta: string) {
   ctx.fillStyle = GOLD_SOFT
   ctx.fillRect(SIDE, FOOTER_TOP, W - 2 * SIDE, 1.5)
-  const y = FOOTER_TOP + 72
+  // The call to action: medium weight, soft amber, centred — an invitation, quieter than the content.
+  ctx.textAlign = "center"
+  ctx.textBaseline = "alphabetic"
+  ctx.fillStyle = "rgba(253,230,138,0.9)"
+  for (const size of POSTER_TYPE.cta) {
+    ctx.font = `500 ${size}px ${FAMILIES}`
+    if (ctx.measureText(cta).width <= W - 2 * SIDE) break
+  }
+  ctx.fillText(cta, W / 2, FOOTER_TOP + 58)
+  const y = FOOTER_TOP + 128
   ctx.font = `600 30px ${FAMILIES}`
   ctx.textBaseline = "alphabetic"
   ctx.textAlign = "left"
@@ -189,7 +204,7 @@ function footer(ctx: SKRSContext2D) {
 export const posterText = (s: string) => s
 
 /** The px sizes a render used (the hierarchy test reads them); `arabic` is null without a du'a. */
-export type PosterTypeUsed = { dateline: number; title: number; titleLines: 1 | 2; arabic: number | null; body: number }
+export type PosterTypeUsed = { dateline: number; title: number; titleLines: 1 | 2; titleArabic: number | null; arabic: number | null; body: number; cta: string }
 
 /** Draws the poster; `truncated` says whether any text had to be cut («…») to fit; `type` the sizes it used. */
 export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; truncated: boolean; type: PosterTypeUsed } {
@@ -197,12 +212,12 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   const canvas = createCanvas(W, H)
   const ctx = canvas.getContext("2d")
   let truncated = false
-  const type: PosterTypeUsed = { dateline: 0, title: 0, titleLines: 1, arabic: null, body: 0 }
+  const type: PosterTypeUsed = { dateline: 0, title: 0, titleLines: 1, titleArabic: null, arabic: null, body: 0, cta: posterCta(c.kind) }
   let fitted = 0
   /** Sets the largest of `sizes` at which `text` fits one line; false (smallest set) when none does. */
-  const fitLine = (text: string, weight: number, sizes: number[]) => {
+  const fitLine = (text: string, weight: number, sizes: number[], families = FAMILIES) => {
     for (const size of sizes) {
-      ctx.font = `${weight} ${size}px ${FAMILIES}`
+      ctx.font = `${weight} ${size}px ${families}`
       fitted = size
       if (ctx.measureText(text).width <= W - 2 * SIDE) return true
     }
@@ -228,12 +243,12 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   ctx.fillStyle = glow
   ctx.fillRect(0, 0, W, H)
   border(ctx)
-  arch(ctx, 200, FOOTER_TOP - 24)
+  arch(ctx, 186, FOOTER_TOP - 24)
   header(ctx)
 
   ctx.textAlign = "center"
   ctx.textBaseline = "alphabetic"
-  let y = 322
+  let y = 302
 
   // The gold pill.
   ctx.font = `700 30px ${FAMILIES}`
@@ -246,18 +261,18 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   ctx.stroke()
   ctx.fillStyle = GOLD
   ctx.fillText(c.pill, W / 2, y)
-  y += 82
+  y += 76
 
   // The dateline: quiet metadata, one line, never competing with the title (founder, 18/10/2026 — the Hijri date
-  // was drawn larger than the title). Gregorian · Hijri.
-  const dateline = c.posterDate ?? [c.date, c.hijriShort].filter(Boolean).join(" · ")
+  // was drawn larger than the title). «Gregorian (ត្រូវនឹង Hijri)».
+  const dateline = posterDateline(c)
   ctx.fillStyle = "rgba(167,243,208,0.8)"
   fitLine(dateline, 400, [...POSTER_TYPE.dateline])
   type.dateline = fitted
   ctx.fillText(dateline, W / 2, y - 6)
   y += 30
   ornament(ctx, y)
-  y += 88
+  y += 80
 
   // The hero title — the post's real subject, the largest text on the poster; one line when it fits, else two.
   ctx.fillStyle = "#ffffff"
@@ -276,17 +291,28 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
     y += 6
   }
 
-  // A du'a in Arabic: gold, centred, crisp — the largest size that fits on one line (else two).
+  // The title's Arabic companion (Amiri): soft gold, one line, under the hero.
+  if (c.titleArabic) {
+    ctx.textAlign = "center"
+    ctx.fillStyle = "rgba(253,230,138,0.92)"
+    fitLine(c.titleArabic, 400, [...POSTER_TYPE.titleArabic], ARABIC_FAMILIES)
+    type.titleArabic = fitted
+    ctx.fillText(c.titleArabic, W / 2, y - 8)
+    y += c.arabic ? 78 : 58
+  }
+
+  // A du'a in Arabic (Amiri): gold, centred, crisp — the largest size that fits on one line (else two).
   if (c.arabic) {
+    if (!c.titleArabic) y += 14 // room for Amiri's tall marks under the title
     ctx.textAlign = "center"
     ctx.fillStyle = GOLD
-    const oneLine = fitLine(c.arabic, 600, [...POSTER_TYPE.arabic])
+    const oneLine = fitLine(c.arabic, 700, [...POSTER_TYPE.arabic], ARABIC_FAMILIES)
     type.arabic = fitted
     if (oneLine) {
       ctx.fillText(c.arabic, W / 2, y + 6)
       y += 78
     } else {
-      ctx.font = `600 ${POSTER_TYPE.arabic[POSTER_TYPE.arabic.length - 1]}px ${FAMILIES}`
+      ctx.font = `700 ${POSTER_TYPE.arabic[POSTER_TYPE.arabic.length - 1]}px ${ARABIC_FAMILIES}`
       for (const l of lines(c.arabic, W - 2 * SIDE, 2)) {
         ctx.fillText(l, W / 2, y + 6)
         y += 60
@@ -296,7 +322,7 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   }
 
   // Reserve the fast times, the source and the footer; the text takes what is left.
-  const fastH = c.fast ? 168 : c.prayers ? 150 : 0
+  const fastH = c.fast ? 168 : c.prayers ? 138 : 0
   const sourceH = 58
   const bodyBottom = FOOTER_TOP - 32 - sourceH - fastH
   // The text: the largest size that fits (40 → 27 px), centred in the space left; cut only as a last resort.
@@ -370,7 +396,7 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
     const boxW = (W - 2 * SIDE - gap * (c.prayers.length - 1)) / c.prayers.length
     c.prayers.forEach((p, i) => {
       const x = SIDE + i * (boxW + gap)
-      roundRect(ctx, x, top, boxW, 104, 22)
+      roundRect(ctx, x, top, boxW, 96, 22)
       ctx.fillStyle = "rgba(255,255,255,0.07)"
       ctx.fill()
       ctx.lineWidth = 1.5
@@ -382,12 +408,12 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
       ctx.fillText(p.label, x + boxW / 2, top + 38)
       ctx.font = `700 34px ${FAMILIES}`
       ctx.fillStyle = GOLD
-      ctx.fillText(p.time, x + boxW / 2, top + 84)
+      ctx.fillText(p.time, x + boxW / 2, top + 78)
     })
     ctx.font = `400 24px ${FAMILIES}`
     ctx.fillStyle = "rgba(209,250,229,0.7)"
     ctx.textAlign = "center"
-    ctx.fillText("ម៉ោងថ្វាយបង្គំថ្ងៃនេះ · ភ្នំពេញ", W / 2, top + 136)
+    ctx.fillText("ម៉ោងថ្វាយបង្គំថ្ងៃនេះ · ភ្នំពេញ", W / 2, top + 126)
   }
 
   // The source.
@@ -396,7 +422,7 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   ctx.fillStyle = GOLD
   ctx.fillText(lines(`ប្រភព៖ ${c.source.label}`, W - 2 * SIDE, 1)[0] ?? "", W / 2, FOOTER_TOP - 34)
 
-  footer(ctx)
+  footer(ctx, type.cta)
   return { png: canvas.toBuffer("image/png"), truncated, type }
 }
 

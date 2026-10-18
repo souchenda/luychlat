@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { before, describe, it } from "node:test"
 
-import { islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS } from "@/lib/islamic-channel"
+import { islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS, POSTER_CTA, posterCta, posterDateline } from "@/lib/islamic-channel"
 import type { HijriDate } from "@/lib/islamic"
 import { ISLAMIC_TIPS } from "@/lib/islamic-tips"
 
@@ -50,6 +50,7 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
       assert.ok(type.title > type.dateline, label)
       assert.ok(type.title >= type.body, label)
       if (type.arabic !== null) assert.ok(type.title > type.arabic, label)
+      if (type.titleArabic !== null) assert.ok(type.title > type.titleArabic && type.titleArabic > type.dateline, label)
       assert.ok(type.dateline >= 26 && type.dateline <= 30, label)
     }
   })
@@ -67,11 +68,44 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
       assert.equal(type.titleLines, 1, title)
       assert.equal(type.title, POSTER_TYPE.title[0], title)
     }
-    // The fast poster's Arabic is its own centred line, not part of a title that wraps.
-    const fast = islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7))
-    assert.equal(fast.arabic, "صِيَام الإِثْنَيْن")
-    assert.doesNotMatch(fast.title, /[\u0600-\u06FF]/)
-    assert.ok(renderIslamicPoster(fast).type.arabic! >= POSTER_TYPE.arabic[1])
+    // The Arabic companion is its own centred line under the hero, never part of a title that wraps.
+    const companions = [
+      ["ISLAMIC_MORNING", "2026-10-19", "صَبَاح الخَيْر"],
+      ["ISLAMIC_FAST", "2026-10-18", "صِيَام يَوْم الإِثْنَيْن"],
+      ["ISLAMIC_FAST", "2026-10-21", "صِيَام يَوْم الخَمِيس"],
+      ["ISLAMIC_JUMUAH", "2026-10-23", "جُمُعَة مُبَارَك"],
+    ] as const
+    for (const [kind, d, arabic] of companions) {
+      const c = islamicPostContent(kind, d, h(8))
+      assert.equal(c.titleArabic, arabic)
+      assert.doesNotMatch(c.title, /[\u0600-\u06FF]/)
+      assert.equal(renderIslamicPoster(c).type.titleArabic, POSTER_TYPE.titleArabic[0], arabic) // full size, one line
+    }
+  })
+  it("the dateline: «Gregorian (ត្រូវនឹង Hijri)» on one line; the Gregorian alone without a Hijri date", () => {
+    const c = islamicPostContent("ISLAMIC_MORNING", "2026-10-19", h(8))
+    assert.equal(posterDateline(c), "ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ (ត្រូវនឹង ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.)")
+    assert.equal(posterDateline(islamicPostContent("ISLAMIC_MORNING", "2026-10-19", null)), "ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦")
+    // The longest month name still fits one line at a dateline size.
+    const longest = islamicPostContent("ISLAMIC_DAILY", "2026-09-30", { day: 29, month: 6, year: 1448 })
+    assert.ok(renderIslamicPoster(longest).type.dateline >= POSTER_TYPE.dateline[POSTER_TYPE.dateline.length - 1])
+  })
+  it("a call to action above the links: listening to the Quran on the du'a posters, the Islamic features on the others", () => {
+    assert.equal(posterCta("ISLAMIC_MORNING"), "ចូលស្ដាប់គួរអាន និងគណនាហ្សាកាត់ដោយឥតគិតថ្លៃ")
+    assert.equal(posterCta("ISLAMIC_NIGHT"), POSTER_CTA.audio)
+    for (const k of ["ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR"] as const) assert.equal(posterCta(k), "ប្រើប្រាស់មុខងារឥស្លាម និងគ្រប់គ្រងលុយកាក់ដោយឥតគិតថ្លៃ", k)
+    for (const k of ISLAMIC_KINDS) assert.equal(renderIslamicPoster(islamicPostContent(k, "2026-10-19", h(8))).type.cta, posterCta(k), k)
+    const src = readFileSync(join(process.cwd(), "src/lib/server/islamic-poster.ts"), "utf8")
+    assert.match(src, /footer\(ctx, type\.cta\)/)
+  })
+  it("Arabic is drawn with the bundled Amiri (public/fonts, SIL OFL), the same everywhere", async () => {
+    for (const f of ["Amiri-Regular.ttf", "Amiri-Bold.ttf", "Amiri-OFL.txt"]) assert.ok(readFileSync(join(process.cwd(), "public/fonts", f)).length > 1000, f)
+    const kit = readFileSync(join(process.cwd(), "src/lib/server/poster-kit.ts"), "utf8")
+    assert.match(kit, /registerFromPath\(path\.join\(dir, `Amiri-\$\{w\}\.ttf`\), "Amiri"\)/)
+    assert.match(kit, /export const ARABIC_FAMILIES = `"Amiri", \$\{FAMILIES\}`/)
+    // Never for Arabic words inside Khmer text (Amiri broke «الجُمُعَة» in the pill) — only whole Arabic lines.
+    const { FAMILIES } = await import("./poster-kit")
+    assert.ok(!FAMILIES.includes("Amiri"), FAMILIES)
   })
   it("every caption fits a Telegram photo caption (1024)", () => {
     for (let i = 0; i < ISLAMIC_TIPS.length; i++) assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_DAILY", day(i), h(7))).replace(/<[^>]+>/g, "").length <= 1024)

@@ -61,8 +61,11 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     assert.equal(G.REMINDER_TITLES.thursday, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ស្អែក (صِيَام الخَمِيس)")
     assert.equal(G.FAST_HERO_TITLES.monday, "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ") // the poster's hero (typography hotfix, 18/10/2026)
     assert.equal(G.FAST_HERO_TITLES.thursday, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍")
-    assert.equal(G.FAST_ARABIC.monday, "صِيَام الإِثْنَيْن")
-    assert.equal(G.FAST_ARABIC.thursday, "صِيَام الخَمِيس")
+    assert.equal(G.FAST_ARABIC.monday, "صِيَام يَوْم الإِثْنَيْن")
+    assert.equal(G.FAST_ARABIC.thursday, "صِيَام يَوْم الخَمِيس")
+    assert.equal(G.JUMUAH_MUBARAK_ARABIC, "جُمُعَة مُبَارَك")
+    assert.equal(G.MORNING_ARABIC, "صَبَاح الخَيْر")
+    assert.equal(G.HIJRI_CORRESPONDS, "ត្រូវនឹង")
     assert.equal(G.fastReminderLead("monday"), "រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖")
     assert.equal(
       G.sahurReminder("០៤:២៣"),

@@ -43,7 +43,12 @@ export const FAST_HERO_TITLES = {
   monday: `${SUNNAH_FAST} ថ្ងៃច័ន្ទ`,
   thursday: `${SUNNAH_FAST} ថ្ងៃព្រហស្បតិ៍`,
 } as const
-export const FAST_ARABIC = { monday: "صِيَام الإِثْنَيْن", thursday: "صِيَام الخَمِيس" } as const
+export const FAST_ARABIC = { monday: "صِيَام يَوْم الإِثْنَيْن", thursday: "صِيَام يَوْم الخَمِيس" } as const
+/** The Arabic under the Jumu'ah and morning heroes (founder, 18/10/2026). */
+export const JUMUAH_MUBARAK_ARABIC = "جُمُعَة مُبَارَك"
+export const MORNING_ARABIC = "صَبَاح الخَيْر"
+/** The poster's dateline joins the two calendars: «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ (ត្រូវនឹង ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.)». */
+export const HIJRI_CORRESPONDS = "ត្រូវនឹង"
 
 /** The caption's timely first line (after «🌙»): «រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖». */
 export const fastReminderLead = (weekday: "monday" | "thursday") =>
