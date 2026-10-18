@@ -40,7 +40,8 @@ export function morningText(day: string): string {
   return [
     "☀️ <b>អរុណសួស្តីថ្ងៃថ្មី · ថាមពលហិរញ្ញវត្ថុ</b>",
     "",
-    `<i>${esc(`«${morningQuote(day)}»`)}</i>`,
+    // Never italic: Khmer script distorts when slanted (founder, 18/10/2026).
+    esc(`«${morningQuote(day)}»`),
     "",
     "— អេប លុយឆ្លាត",
   ].join("\n")

@@ -47,12 +47,13 @@ use come before feature count: no half-baked features, broken links or untested 
    expected behaviour permanently (e.g. the ABA-slip-booked-to-ACLEDA case in `bank-slip.test.ts`).
 3. **Golden paths must never break** — `tests/golden/` (`npm run test:golden`):
    1. Bot receipt intake — exact amounts, never another bank's wallet by number, loans recognised.
-   2. Publisher pipeline — 06:15 preview, 07:00 auto-publish once, ❌ stops every channel, curated Facebook.
+   2. Publisher pipeline — 06:15 preview, published only with the founder's ✅ (never without), ❌ stops
+      every channel, curated Facebook.
    3. SoundBox alerts — sales only, the Khmer amount, stays on, the locked-screen push.
    4. Privacy by default — balances hidden on launch, ***** never a digit, the bot masks numbers.
    5. Wallet accounting — exact money, 100 ៛ rounding only where computed, repayments ≤ what is left.
-   Plus the SoundBox isolation guard (`6-soundbox-isolation.test.ts`) and the home hero layout guard
-   (`layout-guards.test.ts`).
+   Plus the SoundBox isolation guard (`6-soundbox-isolation.test.ts`), the home hero layout guard
+   (`layout-guards.test.ts`) and the published-wording guard (`content-guards.test.ts`).
 4. **Pre-deploy smoke gate:** the Dockerfile runs `npm run test:golden` before `npm test` and the build —
    one failure aborts the deploy and the running version stays live. Locally, `.githooks/pre-push`
    (`git config core.hooksPath .githooks`) runs the golden paths and the typecheck before every push.
@@ -73,12 +74,17 @@ use come before feature count: no half-baked features, broken links or untested 
     no known previous period) → Telegram only.
   - 20:00 nightly reminder → Telegram **only**, never the Page.
   - Holiday notes (eve 18:00, day back 07:30) and the Saturday 17:00 core-value spotlight → both.
-- **Preview-first with auto-publish fallback** (`src/lib/server/scheduled-posts.ts`): the 07:00
-  poster, holiday notes and fuel changes reach the founder's private chat 45 min before (06:15 for
-  07:00) with the destination badge «📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel + 🔵 Facebook Page ]» (or
-  «… តែប៉ុណ្ណោះ»), [ 🚀 ផុសភ្លាមៗ ] / [ ❌ ផ្អាកថ្ងៃនេះ ] and «⏰ នឹងផ្សាយស្វ័យប្រវត្តិទៅកាន់ […] នៅម៉ោង …
-  ប្រសិនបើគ្មានសកម្មភាព។»; no action → published at its time. Each post leaves PENDING exactly once
-  (`bot_post_take`), so it is never posted twice; more than 90 min late → dropped, never posted late.
+- **Zero public posts without the founder's approval (founder, 18/10/2026 — replaces the 12/10 auto-publish
+  fallback).** Preview-first (`src/lib/server/scheduled-posts.ts`): the 07:00 poster, holiday notes and fuel
+  changes reach the founder's private chat 45 min before (06:15 for 07:00) with the destination badge
+  «📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel + 🔵 Facebook Page ]» and [ ✅ យល់ព្រម ] (published at its time),
+  [ 🚀 ផុសភ្លាមៗ ] (now), [ ❌ ផ្អាកថ្ងៃនេះ ]. **No tap → never published** (held, expired 90 min after its
+  time). The database enforces it: `bot_post_take` lets the timer publish only an APPROVED post. The 12:00
+  tip is posted only after the founder's «✅ អនុម័តផ្សាយ» (`bot_tip_auto_approve` is a no-op). Each post
+  leaves PENDING / APPROVED once, so it is never posted twice; the channel message id and the Facebook post
+  id are recorded (`scheduled_posts.telegram_message_id`, `facebook_post_id`).
+- **Wording guards:** never italicise Khmer in a caption (no `<i>`); banned phrases in quotes, tips and the
+  spotlight fail the build (`tests/golden/content-guards.test.ts`).
 - **Video (Reels / MP4), whenever added:** length follows substance — 30–60 s with a complete
   beginning and end, never cut at an arbitrary 15 s. Three acts: (1) a real Cambodian pain point
   (hesitating over a debt, shop and household money mixed, a missed loan date); (2) the resolution

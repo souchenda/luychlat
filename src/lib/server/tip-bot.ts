@@ -72,9 +72,10 @@ export function statusLine(t: Pick<DailyTip, "status" | "day" | "auto_approved" 
   if (t.status === "SKIPPED") return "❌ បានផ្អាកថ្ងៃនេះ — មិនផ្សាយទេ។"
   const when = t.day === today ? "នៅម៉ោង ១២:០០ ថ្ងៃត្រង់" : `ថ្ងៃ ${kmDigits(t.day.split("-").reverse().join("/"))} ម៉ោង ១២:០០`
   if (t.status === "APPROVED") return t.auto_approved ? `✅ អនុម័តដោយស្វ័យប្រវត្តិ — កំពុងចេញផ្សាយ។` : `✅ បានអនុម័ត! នឹងចេញផ្សាយ${when}។`
-  if (needsFounderApproval(t, TIPS)) return `⚠️ អត្ថបទត្រូវបានកែ ឬមិនទាន់ពេញលេញ — មិនផ្សាយដោយស្វ័យប្រវត្តិទេ។ ចុច «✅ អនុម័តផ្សាយ» ដើម្បីផ្សាយ${when}។`
-  if (locked) return "⏰ ផុតម៉ោង ១២:០០ — កំពុងចេញផ្សាយដោយស្វ័យប្រវត្តិ។"
-  return `⏳ រង់ចាំការពិនិត្យ — បើគ្មានការកែ ឬផ្អាកមុនម៉ោង ១២:០០ នឹងចេញផ្សាយដោយស្វ័យប្រវត្តិ${when}។`
+  // Founder, 18/10/2026: never published without the founder's ✅ — no system approval at 12:00.
+  if (needsFounderApproval(t, TIPS)) return `⚠️ អត្ថបទត្រូវបានកែ ឬមិនទាន់ពេញលេញ — ពិនិត្យឱ្យបានល្អ។ 🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់ចុច «✅ អនុម័តផ្សាយ»${when}។`
+  if (locked) return "🔒 ផុតម៉ោង ១២:០០ ហើយមិនទាន់អនុម័ត — មិនផ្សាយទេ (អាចចុច «✅ អនុម័តផ្សាយ» បានរហូតដល់ម៉ោង ១៣:០០)។"
+  return `🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់ចុច «✅ អនុម័តផ្សាយ» — បើអនុម័ត នឹងចេញផ្សាយ${when}។`
 }
 
 /** The preview's caption: what will be posted, its status, and how to edit. */
@@ -266,7 +267,8 @@ export async function dailyTipTick() {
     return
   }
 
-  // 12:00–12:59: a tip still waiting is approved by the system, then the approved tip is posted (claimed once).
+  // 12:00–12:59: only a tip the founder approved is posted (claimed once). A tip still waiting is NEVER
+  // approved by the system (founder, 18/10/2026) — it stays unpublished.
   const chat = communityChat()
   if (!chat) return
   if (!(await getTip(now.day))) {
@@ -274,13 +276,9 @@ export async function dailyTipTick() {
     const tip = await pickTip(now.day)
     await db.rpc("bot_tip_ensure", { p_key: botKey(), p_day: now.day, p_tip_id: tip.id, p_title: tip.title.km, p_body: tip.body.km })
   }
-  // Strict review: an edited or flagged tip is never approved by the system — only the founder's ✅.
   const waiting = await getTip(now.day)
-  const strict = waiting?.status === "DRAFT" && needsFounderApproval(waiting, TIPS)
-  if (strict && (await claim("tip-strict-notice", now.day)))
-    logEvent("warn", "daily-tip", `Tip v${waiting.version} was edited or flagged — not auto-published; waiting for the founder's ✅`)
-  const { data: auto } = strict ? { data: null } : await db.rpc("bot_tip_auto_approve", { p_key: botKey() })
-  if ((auto as DailyTip | null)?.day) logEvent("info", "daily-tip", `No approval by 12:00 — tip v${(auto as DailyTip).version} approved by the system`)
+  if (waiting?.status === "DRAFT" && (await claim("tip-strict-notice", now.day)))
+    logEvent("warn", "daily-tip", `Tip v${waiting.version} not approved by 12:00 — not published (the founder's ✅ is required)`)
   const { data } = await db.rpc("bot_tip_claim_post", { p_key: botKey() })
   const t = data as DailyTip | null
   if (!t?.day) return

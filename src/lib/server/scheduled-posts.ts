@@ -1,9 +1,9 @@
-// Server only: preview-first channel posts with an auto-publish fallback (lib/scheduled-posts.ts).
+// Server only: preview-first channel posts, published ONLY with the founder's approval (lib/scheduled-posts.ts).
 //
 //   T−45 min  the founder's private chat gets the preview: where it goes, the poster or text, and
-//             [ 🚀 ផុសភ្លាមៗ ] / [ ❌ ផ្អាកថ្ងៃនេះ ]
-//   button    publish now (Telegram Channel and/or Facebook Page) or pause today's post
-//   T         nobody pressed anything → published by the timer
+//             [ ✅ យល់ព្រម ] / [ 🚀 ផុសភ្លាមៗ ] / [ ❌ ផ្អាកថ្ងៃនេះ ]
+//   button    approve (published at T), publish now, or pause today's post
+//   T         approved → published by the timer; not approved → held, never published (founder, 18/10/2026)
 //
 // Every post is a public.scheduled_posts row that leaves PENDING exactly once (bot_post_take), so a
 // button pressed at 06:59:59 and the 07:00 timer can never both publish. The orchestration takes its
@@ -46,6 +46,8 @@ export type SchedulerDeps = {
   schedule(kind: PostKind, postKey: string, payload: Record<string, string | null>, publishAt: string): Promise<(PostRow & { created: boolean }) | null>
   /** PENDING → status once; null when it had already left PENDING. Throws «super admin only» for another chat. */
   take(id: number, status: Exclude<PostStatus, "PENDING">, chatId?: number): Promise<PostRow | null>
+  /** Where it went: the channel message id and the Facebook post id — so it can be edited or removed later. */
+  recordIds(id: number, ids: Published): Promise<void>
   get(id: number): Promise<PostRow | null>
   due(): Promise<PostRow[]>
   setPreviews(id: number, previews: Preview[]): Promise<void>
@@ -53,13 +55,15 @@ export type SchedulerDeps = {
   /** The preview's content: the poster (or null for a text post) and the post as plain text. */
   content(row: PostRow): Promise<{ png: Buffer | null; body: string }>
   targets(row: PostRow): Targets
-  publish(row: PostRow): Promise<void>
+  publish(row: PostRow): Promise<Published>
   sendPreview(chat: number, png: Buffer | null, text: string, buttons: ReturnType<typeof previewButtons>): Promise<number | null>
   editPreview(p: Preview, text: string, buttons: ReturnType<typeof previewButtons>): Promise<void>
   answer(callbackId: string, text: string, alert?: boolean): Promise<void>
   now(): number
   log(level: "info" | "warn" | "error", message: string): void
 }
+
+export type Published = { telegram: number | null; facebook: string | null }
 
 export type Callback = { id: string; data?: string; from?: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } }
 
@@ -78,7 +82,7 @@ export function createScheduler(d: SchedulerDeps) {
       if (msg) previews.push({ chat, msg, photo: Boolean(png) })
     }
     await d.setPreviews(row.id, previews)
-    d.log(previews.length ? "info" : "warn", previews.length ? `Preview of ${row.kind} ${row.post_key} sent to ${previews.length} chat(s)` : `Preview of ${row.kind} ${row.post_key}: no super admin chat — it will publish at its time`)
+    d.log(previews.length ? "info" : "warn", previews.length ? `Preview of ${row.kind} ${row.post_key} sent to ${previews.length} chat(s)` : `Preview of ${row.kind} ${row.post_key}: no super admin chat — it can't be approved, so it will NOT be published`)
   }
 
   async function refresh(row: PostRow) {
@@ -88,8 +92,9 @@ export function createScheduler(d: SchedulerDeps) {
 
   async function publishTaken(row: PostRow, how: string) {
     try {
-      await d.publish(row)
-      d.log("info", `${row.kind} ${row.post_key} published (${how})`)
+      const ids = await d.publish(row)
+      await d.recordIds(row.id, ids)
+      d.log("info", `${row.kind} ${row.post_key} published (${how}) · Telegram ${ids.telegram ?? "—"} · Facebook ${ids.facebook ?? "—"}`)
     } catch (e) {
       d.log("error", `${row.kind} ${row.post_key} publish failed (${how}): ${e instanceof Error ? e.message : String(e)}`)
     }
@@ -107,16 +112,20 @@ export function createScheduler(d: SchedulerDeps) {
     return row
   }
 
-  /** The timer: pending posts at (or past) their time are published once — or expired when far too late. */
+  /**
+   * The timer: an APPROVED post at its time is published once; one nobody approved is held (never
+   * published by the timer) and expires when far too late. The database refuses a timer publish of
+   * anything not approved (bot_post_take), so this can never post an unvetted text.
+   */
   async function processDue() {
     for (const row of await d.due()) {
-      const action = dueAction(row.publish_at, d.now())
-      if (action === "wait") continue
+      const action = dueAction(row.publish_at, d.now(), row.status)
+      if (action === "wait" || action === "hold") continue
       const taken = await d.take(row.id, action === "publish" ? "PUBLISHED" : "EXPIRED")
       if (!taken) continue // a button got there first
-      if (action === "publish") await publishTaken(taken, "auto")
+      if (action === "publish") await publishTaken(taken, "approved")
       else {
-        d.log("warn", `${row.kind} ${row.post_key} expired unpublished (more than 90 min late)`)
+        d.log("warn", `${row.kind} ${row.post_key} not published — ${row.status === "APPROVED" ? "approved but more than 90 min late" : "never approved"}`)
         await refresh(taken)
       }
     }
@@ -128,7 +137,7 @@ export function createScheduler(d: SchedulerDeps) {
     await processDue()
   }
 
-  /** [ 🚀 ផុសភ្លាមៗ ] / [ ❌ ផ្អាកថ្ងៃនេះ ] — from a super admin: their private chat, or the marketing group (the person who tapped is checked). */
+  /** [ ✅ យល់ព្រម ] / [ 🚀 ផុសភ្លាមៗ ] / [ ❌ ផ្អាកថ្ងៃនេះ ] — from a super admin: their private chat, or the marketing group (the person who tapped is checked). */
   async function onCallback(cb: Callback) {
     const parsed = parseScheduledPostCallback(cb.data)
     const chat = cb.message?.chat
@@ -136,7 +145,7 @@ export function createScheduler(d: SchedulerDeps) {
     if (!parsed || !chat || !actor) return d.answer(cb.id, "")
     let taken: PostRow | null
     try {
-      taken = await d.take(parsed.id, parsed.action === "publish" ? "PUBLISHED" : "PAUSED", actor)
+      taken = await d.take(parsed.id, parsed.action === "publish" ? "PUBLISHED" : parsed.action === "approve" ? "APPROVED" : "PAUSED", actor)
     } catch (e) {
       return d.answer(cb.id, /super admin only/.test(e instanceof Error ? e.message : String(e)) ? "សម្រាប់ Super Admin ប៉ុណ្ណោះ។" : "មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។", true)
     }
@@ -149,6 +158,9 @@ export function createScheduler(d: SchedulerDeps) {
     if (parsed.action === "publish") {
       await d.answer(cb.id, "🚀 កំពុងផ្សាយ…")
       await publishTaken(taken, "founder")
+    } else if (parsed.action === "approve") {
+      await d.answer(cb.id, "✅ បានយល់ព្រម — នឹងផ្សាយតាមម៉ោង")
+      await refresh(taken)
     } else {
       await d.answer(cb.id, "❌ បានផ្អាក")
       await refresh(taken)
@@ -178,6 +190,10 @@ const realDeps = (): SchedulerDeps => ({
     if (error) throw new Error(error.message)
     const row = data as PostRow | null
     return row?.id ? row : null
+  },
+  async recordIds(id, ids) {
+    const { error } = await botDb().rpc("bot_post_record_ids", { p_key: botKey(), p_id: id, p_telegram: ids.telegram, p_facebook: ids.facebook })
+    if (error) logEvent("warn", "scheduled-posts", `Post ${id}: ids not recorded: ${error.message}`, { fold: true })
   },
   async get(id) {
     const { data } = await botDb().rpc("bot_post_get", { p_key: botKey(), p_id: id })
@@ -221,37 +237,44 @@ const realDeps = (): SchedulerDeps => ({
   async publish(row) {
     const chat = communityChat()
     const buttons = await getChannelPostButtons()
+    const ids: Published = { telegram: null, facebook: null }
+    const sentText = async (text: string, html: boolean) => {
+      const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, text, ...(html ? { parse_mode: "HTML" } : {}), disable_web_page_preview: true, ...buttons })
+      return res.ok && res.result ? res.result.message_id : null
+    }
     if (row.kind === "MORNING") {
       const day = String(row.payload.day)
-      if (chat) {
-        const id = await sendPosterPhoto(chat, morningPoster(day), morningText(day), { reply_markup: buttons.reply_markup })
-        if (!id) await tg("sendMessage", { chat_id: chat, text: morningText(day), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
+      if (chat) ids.telegram = (await sendPosterPhoto(chat, morningPoster(day), morningText(day), { reply_markup: buttons.reply_markup })) ?? (await sentText(morningText(day), true))
+      if (facebookConfig() && shouldPublishToFacebook({ kind: "morning" })) {
+        const fb = await publishMorningToFacebook(day)
+        if (fb?.ok) ids.facebook = fb.postId
       }
-      if (facebookConfig() && shouldPublishToFacebook({ kind: "morning" })) await publishMorningToFacebook(day)
       // Phones that turned on notifications: the same quote, only now that it is published (a pause
       // stops it too) and once a day. The in-app ☀️ card follows the same status (morning_post_published).
       const { data: first } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "push-morning", p_day: day })
       if (first === true) await sendMorningPush()
-      return
+      return ids
     }
     if (row.kind === "HOLIDAY") {
       const m = holidayOf(row)
-      if (!m) return
+      if (!m) return ids
       // The poster with the note as its caption (text only if the image can't be sent).
       const png = holidayPoster(m)
-      if (chat) {
-        const id = await sendPosterPhoto(chat, png, holidayPostHtml(m), { reply_markup: buttons.reply_markup })
-        if (!id) await tg("sendMessage", { chat_id: chat, text: holidayPostHtml(m), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
-      }
+      if (chat) ids.telegram = (await sendPosterPhoto(chat, png, holidayPostHtml(m), { reply_markup: buttons.reply_markup })) ?? (await sentText(holidayPostHtml(m), true))
       if (facebookConfig() && shouldPublishToFacebook({ kind: "holiday" })) {
         const { title, body } = holidayMessage(m)
-        await publishLogged(`holiday note (${row.post_key})`, () => publishPhotoToFacebook(png, facebookHolidayMessage(title, body)), fbLog)
+        const fb = await publishLogged(`holiday note (${row.post_key})`, () => publishPhotoToFacebook(png, facebookHolidayMessage(title, body)), fbLog)
+        if (fb?.ok) ids.facebook = fb.postId
       }
-      return
+      return ids
     }
-    if (chat && row.payload.telegram) await tg("sendMessage", { chat_id: chat, text: row.payload.telegram, disable_web_page_preview: true, ...buttons })
+    if (chat && row.payload.telegram) ids.telegram = await sentText(row.payload.telegram, false)
     const fbMessage = row.payload.facebook
-    if (fbMessage && facebookConfig()) await publishLogged("fuel price change", () => publishTextToFacebook(fbMessage), fbLog)
+    if (fbMessage && facebookConfig()) {
+      const fb = await publishLogged("fuel price change", () => publishTextToFacebook(fbMessage), fbLog)
+      if (fb?.ok) ids.facebook = fb.postId
+    }
+    return ids
   },
   async sendPreview(chat, png, text, buttons) {
     const reply_markup = { inline_keyboard: buttons }
@@ -280,7 +303,7 @@ export async function scheduledPostsTick() {
   await real().tick(now.day, now.hour * 60 + now.minute)
 }
 
-/** A fuel price change: previewed now, published 45 minutes later unless the founder decides first. */
+/** A fuel price change: previewed now; published only once the founder approves (at the earliest 45 minutes later, or at once with 🚀). */
 export const scheduleFuelPost = (noticeId: number, telegram: string, facebook: string | null, publishAt: string) =>
   real().schedulePost("FUEL", `notice-${noticeId}`, { telegram, facebook }, publishAt)
 

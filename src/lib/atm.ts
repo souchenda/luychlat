@@ -146,7 +146,7 @@ ${SPARSE_HINT}`
     lines.push(`   👉 <a href="${directionsUrl(r.latitude, r.longitude)}">🗺️ បើកផែនទីនាំផ្លូវ</a>`, "")
   })
   if (rows.length < SPARSE_RESULTS) lines.push(SPARSE_HINT, "")
-  lines.push("<i>ទិន្នន័យ៖ © OpenStreetMap contributors</i>")
+  lines.push("ទិន្នន័យ៖ © OpenStreetMap contributors")
   return lines.join("\n")
 }
 

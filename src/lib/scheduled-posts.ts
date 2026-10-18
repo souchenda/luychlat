@@ -1,8 +1,10 @@
 /**
- * Preview-first channel posts with an auto-publish fallback (founder, 12/10/2026): 45 minutes before
- * the 07:00 poster, a holiday note or a fuel price change goes out, the founder gets a preview in
- * their private chat — where it will go (Telegram Channel, Facebook Page or both), the poster or text,
- * [ 🚀 ផុសភ្លាមៗ ] and [ ❌ ផ្អាកថ្ងៃនេះ ]. With no action it publishes at its time. Pure
+ * Preview-first channel posts, published ONLY with the founder's approval (founder, 18/10/2026 — the
+ * auto-publish fallback of 12/10 is gone: an unvetted quote went public). 45 minutes before the 07:00
+ * poster, a holiday note or a fuel price change, the founder gets a preview — where it will go, the
+ * poster or text, [ ✅ យល់ព្រម ] (published at its time), [ 🚀 ផុសភ្លាមៗ ] (now) and [ ❌ ផ្អាក ].
+ * No tap → it is never published (on hold, expired 90 minutes after its time). The database enforces
+ * it too: the timer can only publish a post the founder approved (bot_post_take). Pure
  * (scheduled-posts.test.ts); the bot side is lib/server/scheduled-posts.ts.
  */
 import { khmerDigits } from "@/lib/dates"
@@ -10,7 +12,7 @@ import { HOLIDAY_POST_MINUTE, HOLIDAY_PRE_MINUTE, holidayMoment } from "@/lib/ho
 
 export type PostKind = "MORNING" | "HOLIDAY" | "FUEL"
 export type Targets = { telegram: boolean; facebook: boolean }
-export type PostStatus = "PENDING" | "PUBLISHED" | "PAUSED" | "EXPIRED"
+export type PostStatus = "PENDING" | "APPROVED" | "PUBLISHED" | "PAUSED" | "EXPIRED"
 
 /** The preview goes out this long before the post. */
 export const PREVIEW_LEAD_MIN = 45
@@ -37,11 +39,15 @@ export function plannedPosts(day: string, minutes: number): { kind: PostKind; po
   return out
 }
 
-/** What the timer does with a pending post: not yet, publish now, or too late (never posted). */
-export function dueAction(publishAt: string, now: number): "wait" | "publish" | "expire" {
+/**
+ * What the timer does: not yet; publish — ONLY a post the founder approved; hold — its time has come
+ * but nobody approved it (never published by the timer); or too late (expired, never posted).
+ */
+export function dueAction(publishAt: string, now: number, status: PostStatus): "wait" | "publish" | "hold" | "expire" {
   const t = Date.parse(publishAt)
   if (now < t) return "wait"
-  return now - t > LATE_LIMIT_MIN * 60_000 ? "expire" : "publish"
+  if (now - t > LATE_LIMIT_MIN * 60_000) return "expire"
+  return status === "APPROVED" ? "publish" : "hold"
 }
 
 /** «✈️ Telegram Channel + 🔵 Facebook Page» / «… តែប៉ុណ្ណោះ». */
@@ -79,25 +85,47 @@ export function previewText(o: { kind: PostKind; targets: Targets; publishAt: st
 export function statusLine(status: PostStatus, where: string, publishAt: string): string {
   switch (status) {
     case "PENDING":
-      return `⏰ នឹងផ្សាយស្វ័យប្រវត្តិទៅកាន់ [ ${where} ] នៅម៉ោង ${kmClock(publishAt)} ប្រសិនបើគ្មានសកម្មភាព។`
+      return `🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម — ចុច «✅ យល់ព្រម» ដើម្បីផ្សាយទៅ [ ${where} ] នៅម៉ោង ${kmClock(publishAt)}។`
+    case "APPROVED":
+      return `✅ បានយល់ព្រម — នឹងផ្សាយទៅ [ ${where} ] នៅម៉ោង ${kmClock(publishAt)}។`
     case "PUBLISHED":
       return "✅ បានផ្សាយរួចរាល់"
     case "PAUSED":
       return "❌ បានផ្អាកការផ្សាយថ្ងៃនេះ"
     case "EXPIRED":
-      return "⌛ ផុតពេល — មិនបានផ្សាយ"
+      return "⌛ មិនបានផ្សាយ — គ្មានការយល់ព្រមទាន់ពេល"
   }
 }
 
-/** The publish button names its destination; both buttons only while pending. */
+/**
+ * Pending: [ ✅ យល់ព្រម ] (published at its time), [ 🚀 ផុសភ្លាមៗ ] (now) and [ ❌ ផ្អាក ]. Approved: publish now
+ * or pause. Nothing once it has been published, paused or expired.
+ */
 export function previewButtons(id: number, status: PostStatus, targets: Targets): { text: string; callback_data: string }[][] {
-  if (status !== "PENDING") return []
+  if (status !== "PENDING" && status !== "APPROVED") return []
   const short = targets.telegram && targets.facebook ? "Telegram + Facebook" : targets.facebook ? "Facebook" : "Telegram"
-  return [[{ text: `🚀 ផុសភ្លាមៗ (${short})`, callback_data: `sp:${id}:p` }], [{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }]]
+  return [
+    ...(status === "PENDING" ? [[{ text: "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)", callback_data: `sp:${id}:a` }]] : []),
+    [{ text: `🚀 ផុសភ្លាមៗ (${short})`, callback_data: `sp:${id}:p` }],
+    [{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }],
+  ]
 }
 
-export const isScheduledPostCallback = (data: string | undefined) => Boolean(data && /^sp:\d+:[px]$/.test(data))
-export function parseScheduledPostCallback(data: string | undefined): { id: number; action: "publish" | "pause" } | null {
-  const m = /^sp:(\d+):([px])$/.exec(data ?? "")
-  return m ? { id: Number(m[1]), action: m[2] === "p" ? "publish" : "pause" } : null
+export const isScheduledPostCallback = (data: string | undefined) => Boolean(data && /^sp:\d+:[pxa]$/.test(data))
+export function parseScheduledPostCallback(data: string | undefined): { id: number; action: "publish" | "pause" | "approve" } | null {
+  const m = /^sp:(\d+):([pxa])$/.exec(data ?? "")
+  return m ? { id: Number(m[1]), action: m[2] === "p" ? "publish" : m[2] === "a" ? "approve" : "pause" } : null
+}
+
+/**
+ * Which state change is allowed — the same rule as the database's bot_post_take (founder, 18/10/2026):
+ * the founder (a super admin's tap) approves, publishes now or pauses a pending or approved post; the
+ * timer publishes ONLY an approved one and expires what is left. Nothing leaves PUBLISHED, PAUSED or
+ * EXPIRED.
+ */
+export function takeAllowed(from: PostStatus, to: Exclude<PostStatus, "PENDING">, byFounder: boolean): boolean {
+  if (to === "APPROVED") return byFounder && from === "PENDING"
+  if (to === "PUBLISHED") return byFounder ? from === "PENDING" || from === "APPROVED" : from === "APPROVED"
+  if (to === "PAUSED") return byFounder && (from === "PENDING" || from === "APPROVED")
+  return !byFounder && (from === "PENDING" || from === "APPROVED")
 }

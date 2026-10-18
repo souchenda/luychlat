@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { atMinute, type PostKind, type PostStatus } from "../scheduled-posts"
+import { atMinute, takeAllowed, type PostKind } from "../scheduled-posts"
 
 import { createScheduler, type PostRow, type Preview, type SchedulerDeps } from "./scheduled-posts"
 
@@ -10,11 +10,12 @@ const STRANGER = 222
 const DAY = "2026-10-16" // an ordinary Friday
 const clock = (h: number, m: number) => Date.parse(atMinute(DAY, h * 60 + m))
 
-/** An in-memory scheduled_posts table with the same once-only take() as the database. */
+/** An in-memory scheduled_posts table with the database's take() rule (takeAllowed = bot_post_take). */
 function fake(start: number) {
   let now = start
   const rows: PostRow[] = []
   const published: number[] = []
+  const recorded: { id: number; telegram: number | null; facebook: string | null }[] = []
   const previewsSent: { chat: number; text: string; png: boolean }[] = []
   const edits: { msg: number; text: string; buttons: number }[] = []
   const answers: { text: string; alert: boolean }[] = []
@@ -29,16 +30,19 @@ function fake(start: number) {
     async take(id, status, chatId) {
       if (chatId !== undefined && chatId !== ADMIN) throw new Error("super admin only")
       const row = rows.find((r) => r.id === id)
-      if (!row || row.status !== "PENDING") return null
-      row.status = status as PostStatus
+      if (!row || !takeAllowed(row.status, status, chatId !== undefined)) return null
+      row.status = status
       return { ...row }
+    },
+    async recordIds(id, ids) {
+      recorded.push({ id, ...ids })
     },
     async get(id) {
       const row = rows.find((r) => r.id === id)
       return row ? { ...row } : null
     },
     async due() {
-      return rows.filter((r) => r.status === "PENDING" && Date.parse(r.publish_at) <= now).map((r) => ({ ...r }))
+      return rows.filter((r) => (r.status === "PENDING" || r.status === "APPROVED") && Date.parse(r.publish_at) <= now).map((r) => ({ ...r }))
     },
     async setPreviews(id, previews: Preview[]) {
       rows.find((r) => r.id === id)!.previews = previews
@@ -52,6 +56,7 @@ function fake(start: number) {
     targets: () => ({ telegram: true, facebook: true }),
     async publish(row) {
       published.push(row.id)
+      return { telegram: 60 + row.id, facebook: `page_${row.id}` }
     },
     async sendPreview(chat, png, text) {
       previewsSent.push({ chat, text, png: Boolean(png) })
@@ -72,23 +77,92 @@ function fake(start: number) {
     await s.tick(DAY, h * 60 + m)
   }
   const press = (data: string, chat = ADMIN) => s.onCallback({ id: "cb", data, message: { message_id: 901, chat: { id: chat, type: "private" } } })
-  return { rows, published, previewsSent, edits, answers, at, press, s }
+  return { rows, published, recorded, previewsSent, edits, answers, at, press, s }
 }
 
+describe("the approval rule (= bot_post_take)", () => {
+  it("only the founder approves, publishes now or pauses; the timer publishes only an approved post", () => {
+    assert.equal(takeAllowed("PENDING", "PUBLISHED", false), false)
+    assert.equal(takeAllowed("APPROVED", "PUBLISHED", false), true)
+    assert.equal(takeAllowed("PENDING", "APPROVED", true), true)
+    assert.equal(takeAllowed("PENDING", "APPROVED", false), false)
+    assert.equal(takeAllowed("PENDING", "PUBLISHED", true), true)
+    assert.equal(takeAllowed("APPROVED", "PAUSED", true), true)
+    assert.equal(takeAllowed("PENDING", "EXPIRED", false), true)
+    for (const done of ["PUBLISHED", "PAUSED", "EXPIRED"] as const) for (const to of ["APPROVED", "PUBLISHED", "PAUSED", "EXPIRED"] as const) for (const f of [true, false]) assert.equal(takeAllowed(done, to, f), false)
+  })
+})
+
 describe("preview-first — the preview at 06:15", () => {
-  it("nothing before 06:15; one preview at 06:15 with the destination; never sent twice", async () => {
+  it("nothing before 06:15; one preview at 06:15 with the destination; it says nothing goes out without approval", async () => {
     const f = fake(clock(6, 0))
     await f.at(6, 14)
     assert.equal(f.previewsSent.length, 0)
     await f.at(6, 15)
     assert.equal(f.previewsSent.length, 1)
     assert.match(f.previewsSent[0].text, /^📢 គោលដៅផ្សាយ៖ \[ ✈️ Telegram Channel \+ 🔵 Facebook Page \]/)
-    assert.match(f.previewsSent[0].text, /នៅម៉ោង ០៧:០០ ព្រឹក ប្រសិនបើគ្មានសកម្មភាព។$/)
+    assert.match(f.previewsSent[0].text, /🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម/)
+    assert.doesNotMatch(f.previewsSent[0].text, /ស្វ័យប្រវត្តិ/)
     assert.equal(f.previewsSent[0].png, true) // the poster, never text-only
     await f.at(6, 16)
     await f.at(6, 59)
     assert.equal(f.previewsSent.length, 1)
     assert.equal(f.published.length, 0)
+  })
+})
+
+describe("strict approval — nothing goes public without the founder (founder, 18/10/2026)", () => {
+  it("no tap: NOT published at 07:00, nor at 08:00; expired after 90 minutes; the preview says so", async () => {
+    const f = fake(clock(6, 0))
+    await f.at(6, 15)
+    await f.at(7, 0)
+    await f.at(7, 1)
+    await f.at(8, 0)
+    assert.deepEqual(f.published, [])
+    await f.at(8, 31)
+    assert.deepEqual(f.published, [])
+    assert.equal(f.rows[0].status, "EXPIRED")
+    assert.match(f.edits.at(-1)!.text, /⌛ មិនបានផ្សាយ — គ្មានការយល់ព្រមទាន់ពេល$/)
+  })
+  it("✅ at 06:30: held until 07:00, then published exactly once; ids recorded", async () => {
+    const f = fake(clock(6, 0))
+    await f.at(6, 15)
+    await f.press("sp:1:a")
+    assert.deepEqual(f.published, [])
+    assert.match(f.edits.at(-1)!.text, /✅ បានយល់ព្រម — នឹងផ្សាយទៅ/)
+    assert.equal(f.edits.at(-1)!.buttons, 2) // publish now / pause remain
+    await f.at(6, 59)
+    assert.deepEqual(f.published, [])
+    await f.at(7, 0)
+    await f.at(7, 1)
+    assert.deepEqual(f.published, [1])
+    assert.deepEqual(f.recorded, [{ id: 1, telegram: 61, facebook: "page_1" }])
+  })
+  it("✅ then ❌ before 07:00: never published", async () => {
+    const f = fake(clock(6, 0))
+    await f.at(6, 15)
+    await f.press("sp:1:a")
+    await f.press("sp:1:x")
+    await f.at(7, 0)
+    assert.deepEqual(f.published, [])
+  })
+  it("the server was down until 07:20: the preview is still sent, nothing is published without a tap", async () => {
+    const f = fake(clock(7, 20))
+    await f.at(7, 20)
+    assert.deepEqual(f.published, [])
+    await f.at(7, 21)
+    assert.deepEqual(f.published, [])
+  })
+  it("a fuel change: previewed now, not published at its time without approval; ✅ → published at its time", async () => {
+    const f = fake(clock(12, 0))
+    const publishAt = new Date(clock(12, 45)).toISOString()
+    await f.s.schedulePost("FUEL", "notice-42", { telegram: "⛽ …", facebook: "⛽ …" }, publishAt)
+    assert.equal(f.previewsSent.length, 1)
+    await f.at(12, 45)
+    assert.deepEqual(f.published, [])
+    await f.press("sp:1:a")
+    await f.at(12, 46)
+    assert.deepEqual(f.published, [1])
   })
 })
 
@@ -112,9 +186,10 @@ describe("preview-first — the buttons", () => {
     assert.deepEqual(f.published, [])
     assert.match(f.edits.at(-1)!.text, /❌ បានផ្អាកការផ្សាយថ្ងៃនេះ$/)
   })
-  it("🚀 pressed after the timer published: no second post, told it is already out", async () => {
+  it("🚀 pressed after it was published: no second post, told it is already out", async () => {
     const f = fake(clock(6, 0))
     await f.at(6, 15)
+    await f.press("sp:1:a")
     await f.at(7, 0)
     await f.press("sp:1:p")
     assert.deepEqual(f.published, [1])
@@ -126,17 +201,19 @@ describe("preview-first — the buttons", () => {
     await Promise.all([f.press("sp:1:p"), f.press("sp:1:p")])
     assert.deepEqual(f.published, [1])
   })
-  it("someone else's chat cannot decide", async () => {
+  it("someone else's chat cannot decide (approve or publish)", async () => {
     const f = fake(clock(6, 0))
     await f.at(6, 15)
     await f.press("sp:1:p", STRANGER)
+    await f.press("sp:1:a", STRANGER)
+    await f.at(7, 0)
     assert.deepEqual(f.published, [])
     assert.deepEqual(f.answers.at(-1), { text: "សម្រាប់ Super Admin ប៉ុណ្ណោះ។", alert: true })
   })
 })
 
 describe("preview-first — a fresh preview for a re-armed post", () => {
-  it("paused, then re-armed (PENDING again, no previews, a later time): one fresh preview, then published at the new time", async () => {
+  it("paused, then re-armed (PENDING again, no previews, a later time): one fresh preview; published only once approved", async () => {
     const f = fake(clock(6, 0))
     await f.at(6, 15)
     await f.press("sp:1:x")
@@ -146,28 +223,10 @@ describe("preview-first — a fresh preview for a re-armed post", () => {
     assert.equal(f.previewsSent.length, 2)
     await f.at(7, 11)
     assert.equal(f.previewsSent.length, 2)
-    assert.deepEqual(f.published, [])
     await f.at(7, 40)
-    assert.deepEqual(f.published, [1])
-  })
-})
-
-describe("preview-first — the auto-publish fallback", () => {
-  it("no action: published at 07:00 exactly once; the preview says ✅", async () => {
-    const f = fake(clock(6, 0))
-    await f.at(6, 15)
-    await f.at(6, 59)
     assert.deepEqual(f.published, [])
-    await f.at(7, 0)
-    await f.at(7, 1)
-    await f.at(8, 0)
-    assert.deepEqual(f.published, [1])
-    assert.match(f.edits.at(-1)!.text, /✅ បានផ្សាយរួចរាល់$/)
-  })
-  it("the server was down until 07:20: no preview (too late), published at once", async () => {
-    const f = fake(clock(7, 20))
-    await f.at(7, 20)
-    assert.equal(f.previewsSent.length, 0)
+    await f.press("sp:1:a")
+    await f.at(7, 41)
     assert.deepEqual(f.published, [1])
   })
   it("down until 08:30: nothing is posted hours late", async () => {
@@ -175,15 +234,5 @@ describe("preview-first — the auto-publish fallback", () => {
     await f.at(8, 30)
     assert.equal(f.rows.length, 0)
     assert.deepEqual(f.published, [])
-  })
-  it("a fuel change scheduled for 45 minutes later: preview now, published at its time", async () => {
-    const f = fake(clock(12, 0))
-    const publishAt = new Date(clock(12, 45)).toISOString()
-    await f.s.schedulePost("FUEL", "notice-42", { telegram: "⛽ …", facebook: "⛽ …" }, publishAt)
-    assert.equal(f.previewsSent.length, 1)
-    await f.at(12, 44)
-    assert.deepEqual(f.published, [])
-    await f.at(12, 45)
-    assert.deepEqual(f.published, [1])
   })
 })
