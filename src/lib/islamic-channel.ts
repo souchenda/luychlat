@@ -124,7 +124,6 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
     // «ស្អែកថ្ងៃច័ន្ទ» confused people) — never «ស្អែក» / «យប់នេះ» on it; the caption is the timely reminder.
     const monday = weekdayOf(day) === 0
     const fastDay = addDays(day, 1)
-    const [, , d] = fastDay.split("-").map(Number)
     const times = fastTimes(day)
     return {
       kind,
