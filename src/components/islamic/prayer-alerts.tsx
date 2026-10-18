@@ -9,7 +9,7 @@ import { useIslamicLocation } from "@/components/islamic/location-picker"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { availablePresets, CUSTOM_ADHAN, FAJR_ADHAN, presetById } from "@/lib/adhan-presets"
+import { availablePresets, CUSTOM_ADHAN, FAJR_ADHAN, presetById, resolvePreset } from "@/lib/adhan-presets"
 import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { cambodiaNow, formatMinutes, prayerTimes, type PrayerKey } from "@/lib/prayer"
@@ -34,9 +34,9 @@ import { useIslamicLocalStore, type AlertSound } from "@/stores/islamic-local-st
 import { useLocaleStore } from "@/stores/locale-store"
 
 /** The recording for a prayer: the Fajr Adhan at Fajr (when on), else the chosen preset, else the phone's file. */
-function adhanFor(prayer: PrayerKey | null, presetId: string, fajrAdhan: boolean): { presetFile?: string; presetId?: string } {
+function adhanFor(prayer: PrayerKey | null, presetId: string, fajrAdhan: boolean, hasCustomFile: boolean): { presetFile?: string; presetId?: string } {
   if (prayer === "fajr" && fajrAdhan && FAJR_ADHAN.file) return { presetFile: FAJR_ADHAN.file, presetId: FAJR_ADHAN.id }
-  const preset = presetById(presetId)
+  const preset = resolvePreset(presetId, hasCustomFile)
   return preset?.file ? { presetFile: preset.file, presetId: preset.id } : {}
 }
 
@@ -48,15 +48,15 @@ const usePlaying = () => useSyncExternalStore(onPlaybackChange, currentSource, (
  */
 export function PrayerAlertScheduler() {
   const t = useT()
-  const { alertsOn, alertSound, adhanPreset, fajrAdhan } = useIslamicLocalStore()
+  const { alertsOn, alertSound, adhanPreset, adhanName, fajrAdhan } = useIslamicLocalStore()
   const location = useIslamicLocation()
-  const latest = useRef({ t, alertSound, adhanPreset, fajrAdhan, location })
-  latest.current = { t, alertSound, adhanPreset, fajrAdhan, location }
+  const latest = useRef({ t, alertSound, adhanPreset, adhanName, fajrAdhan, location })
+  latest.current = { t, alertSound, adhanPreset, adhanName, fajrAdhan, location }
 
   useEffect(() => {
     if (!alertsOn) return
     const tick = () => {
-      const { t, alertSound, adhanPreset, fajrAdhan, location } = latest.current
+      const { t, alertSound, adhanPreset, adhanName, fajrAdhan, location } = latest.current
       const clock = cambodiaNow()
       const times = prayerTimes(clock.date, location.lat, location.lng)
       const key = duePrayer(times, clock.minutes)
@@ -66,7 +66,7 @@ export function PrayerAlertScheduler() {
       const body = t("prayerAlert.body", { time: formatMinutes(times[key]), place: location.label })
       void showPrayerNotification(title, body, `prayer-${key}`)
       if (alertSound === "chime") playChime()
-      if (alertSound === "adhan") void playAdhan(adhanFor(key, adhanPreset, fajrAdhan))
+      if (alertSound === "adhan") void playAdhan(adhanFor(key, adhanPreset, fajrAdhan, !!adhanName))
       if (document.visibilityState === "visible") {
         toast(title, {
           description: body,
@@ -109,8 +109,8 @@ export function PrayerAlertSettings() {
   useEffect(() => () => stopSound(), [])
 
   const presets = availablePresets()
-  // Without built-in recordings, the phone's file is the only Adhan choice.
-  const selected = presetById(adhanPreset) ? adhanPreset : CUSTOM_ADHAN
+  // The recording that will actually play (lib/adhan-presets resolvePreset); the phone's file otherwise.
+  const selected = resolvePreset(adhanPreset, !!adhanName)?.id ?? CUSTOM_ADHAN
 
   const toggle = async (on: boolean) => {
     if (!on) return setAlerts({ alertsOn: false })
