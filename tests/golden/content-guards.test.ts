@@ -67,8 +67,13 @@ describe("GOLDEN · published wording", () => {
         assert.ok(!(c.pill + c.title + islamicCaptionHtml(c)).includes("អាហារសាហួរ"), `${kind} ${d}: «អាហារសាហួរ»`)
       }
     const sunday = islamicPostContent("ISLAMIC_FAST", "2026-10-18", today)
-    assert.equal(sunday.title, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃច័ន្ទស្អែក (صِيَام الإِثْنَيْن)")
-    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).title, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ស្អែក (صِيَام الخَمِيس)")
+    // The poster's hero is short and one line; «tomorrow» is in the pill and the caption; the Arabic on its own line
+    // (founder, 18/10/2026 typography hotfix — the long title wrapped and split the Arabic).
+    assert.equal(sunday.title, "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ")
+    assert.equal(sunday.pill, "រំលឹកត្រៀមបួសស្អែក")
+    assert.equal(sunday.arabic, "صِيَام الإِثْنَيْن")
+    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).title, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍")
+    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).arabic, "صِيَام الخَمِيس")
     assert.equal(sunday.posterDate, "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.") // the publish day
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).date, "ថ្ងៃពុធ ២១ តុលា ២០២៦")
     assert.equal(sunday.fast?.day, "ថ្ងៃច័ន្ទ") // the boxes are tomorrow's

@@ -59,6 +59,10 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     assert.equal(G.BARAKAH_LABEL, "បារ៉ាកាត់ (Barakah / بَرَكَة)")
     assert.equal(G.REMINDER_TITLES.monday, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃច័ន្ទស្អែក (صِيَام الإِثْنَيْن)")
     assert.equal(G.REMINDER_TITLES.thursday, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ស្អែក (صِيَام الخَمِيس)")
+    assert.equal(G.FAST_HERO_TITLES.monday, "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ") // the poster's hero (typography hotfix, 18/10/2026)
+    assert.equal(G.FAST_HERO_TITLES.thursday, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍")
+    assert.equal(G.FAST_ARABIC.monday, "صِيَام الإِثْنَيْن")
+    assert.equal(G.FAST_ARABIC.thursday, "صِيَام الخَمِيس")
     assert.equal(G.fastReminderLead("monday"), "រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖")
     assert.equal(
       G.sahurReminder("០៤:២៣"),

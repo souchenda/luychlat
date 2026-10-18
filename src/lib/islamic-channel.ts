@@ -245,11 +245,13 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
     const times = fastTimes(day)
     return {
       kind,
-      pill: `កាលវិភាគ${G.SUNNAH_FAST}`,
+      pill: "រំលឹកត្រៀមបួសស្អែក",
       hijri: hijri ? formatHijri(hijri, "km") : null,
       hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
       date: kmDay(day),
-      title: monday ? G.REMINDER_TITLES.monday : G.REMINDER_TITLES.thursday,
+      // The hero is short (one line, the largest text); the Arabic below it, centred (founder, 18/10/2026).
+      title: monday ? G.FAST_HERO_TITLES.monday : G.FAST_HERO_TITLES.thursday,
+      arabic: monday ? G.FAST_ARABIC.monday : G.FAST_ARABIC.thursday,
       lead: `🌙 <b>${G.fastReminderLead(monday ? "monday" : "thursday")}</b>`,
       // One line on the poster: the publish day, Gregorian and Hijri («ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ៧ … ហ.ស.»).
       posterDate: `${kmDay(day)}${hijri ? ` · ${formatHijri(hijri, "km", { short: true })}` : ""}`,
@@ -272,11 +274,17 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       hijri: hijri ? formatHijri(hijri, "km") : null,
       hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
       date: kmDay(day),
-      title: `${G.JUMUAH} មូបារ៉ក់ — ថ្ងៃសុក្រដ៏មាន${G.BARAKAH}`,
+      title: `${G.JUMUAH} មូបារ៉ក់`,
       paragraphs: [
-        `អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំ${G.JUMUAH_LABEL} នៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។`,
+        `ថ្ងៃសុក្រដ៏មាន${G.BARAKAH}! អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំ${G.JUMUAH_LABEL} នៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។`,
         `ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំ${G.JUMUAH} — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយ${G.BARAKAH_LABEL}។`,
         `កុំភ្លេចអាន ${G.SURAH_AL_KAHF} ថ្ងៃនេះ — អ្នកណាអាន ${G.SURAH_AL_KAHF} នៅថ្ងៃសុក្រ ពន្លឺនឹងភ្លឺសម្រាប់គាត់ រហូតដល់ថ្ងៃសុក្រក្រោយ (al-Hakim · Sahih al-Jami' 6470)។`,
+      ],
+      // The poster: the same, without a term or a reference split by a line break (the caption keeps them whole).
+      posterParagraphs: [
+        `ថ្ងៃសុក្រដ៏មាន${G.BARAKAH}! អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំ${G.JUMUAH_LABEL} នៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។`,
+        `ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំ${G.JUMUAH} — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយ${G.BARAKAH}។`,
+        `កុំភ្លេចអាន ${G.SURAH_AL_KAHF} ថ្ងៃនេះ — អ្នកណាអាន ${G.SURAH_AL_KAHF} នៅថ្ងៃសុក្រ ពន្លឺនឹងភ្លឺសម្រាប់គាត់ រហូតដល់ថ្ងៃសុក្រក្រោយ។`,
       ],
       source: { label: "Al-Jumu'ah 62:9–10", url: "https://quran.com/62/9-10" },
     }

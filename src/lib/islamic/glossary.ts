@@ -35,6 +35,16 @@ export const REMINDER_TITLES = {
   thursday: `រំលឹកត្រៀម${SUNNAH_FAST} ថ្ងៃព្រហស្បតិ៍ស្អែក (صِيَام الخَمِيس)`,
 } as const
 
+/**
+ * The fast reminder poster's hero (founder, 18/10/2026 typography hotfix): short, one line, the largest text; the
+ * Arabic sits centred on its own line below (never split by a line break inside the title).
+ */
+export const FAST_HERO_TITLES = {
+  monday: `${SUNNAH_FAST} ថ្ងៃច័ន្ទ`,
+  thursday: `${SUNNAH_FAST} ថ្ងៃព្រហស្បតិ៍`,
+} as const
+export const FAST_ARABIC = { monday: "صِيَام الإِثْنَيْن", thursday: "صِيَام الخَمِيس" } as const
+
 /** The caption's timely first line (after «🌙»): «រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖». */
 export const fastReminderLead = (weekday: "monday" | "thursday") =>
   `រំលឹកត្រៀម${SUNNAH_FAST} (សម្រាប់${weekday === "monday" ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"} ស្អែកនេះ)៖`

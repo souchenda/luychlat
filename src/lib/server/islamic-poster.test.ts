@@ -7,7 +7,7 @@ import { islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS } from "@/lib/isl
 import type { HijriDate } from "@/lib/islamic"
 import { ISLAMIC_TIPS } from "@/lib/islamic-tips"
 
-import { ISLAMIC_POSTER, islamicPosterReady, posterText, renderIslamicPoster } from "./islamic-poster"
+import { ISLAMIC_POSTER, islamicPosterReady, POSTER_TYPE, posterText, renderIslamicPoster } from "./islamic-poster"
 
 const h = (day: number, month = 5): HijriDate => ({ day, month, year: 1448 })
 /** Width and height from a PNG's IHDR chunk. */
@@ -30,6 +30,48 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-18", null)).truncated, false, "fast (Sunday)")
     assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-21", null)).truncated, false, "fast (Wednesday)")
     assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12))).truncated, false, "jumuah")
+  })
+  it("type hierarchy: the hero title is the largest text, then the Arabic, the text; the date is quiet metadata", () => {
+    // The scale itself, largest first (founder, 18/10/2026 — the Hijri date had been drawn larger than the title).
+    assert.ok(POSTER_TYPE.title[0] > POSTER_TYPE.arabic[0] && POSTER_TYPE.arabic[0] > POSTER_TYPE.bodyMax && POSTER_TYPE.bodyMax > POSTER_TYPE.dateline[0])
+    assert.ok(POSTER_TYPE.dateline[0] <= 30) // ~11 px on a phone (the poster shows at ~⅓ of 1080 px)
+    assert.ok(POSTER_TYPE.titleTwoLines > POSTER_TYPE.dateline[0])
+    // Each render, as drawn: every kind on several days, all 14 lessons.
+    const renders = [
+      ...ISLAMIC_KINDS.map((k) => islamicPostContent(k, "2026-10-19", h(8))),
+      islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7)),
+      islamicPostContent("ISLAMIC_FAST", "2026-10-21", h(10)),
+      islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12)),
+      ...ISLAMIC_TIPS.map((_, i) => islamicPostContent("ISLAMIC_DAILY", day(i), h(7))),
+    ]
+    for (const c of renders) {
+      const { type } = renderIslamicPoster(c)
+      const label = `${c.kind} «${c.title}»`
+      assert.ok(type.title > type.dateline, label)
+      assert.ok(type.title >= type.body, label)
+      if (type.arabic !== null) assert.ok(type.title > type.arabic, label)
+      assert.ok(type.dateline >= 26 && type.dateline <= 30, label)
+    }
+  })
+  it("the hero is one line, at full size, for the morning, the fast reminders and Jumu'ah; the Arabic stays whole", () => {
+    const hero = [
+      ["ISLAMIC_MORNING", "2026-10-19", "អរុណសួស្តីថ្ងៃថ្មី"],
+      ["ISLAMIC_FAST", "2026-10-18", "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ"],
+      ["ISLAMIC_FAST", "2026-10-21", "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍"],
+      ["ISLAMIC_JUMUAH", "2026-10-23", "ជូម៉ាអះ មូបារ៉ក់"],
+    ] as const
+    for (const [kind, d, title] of hero) {
+      const c = islamicPostContent(kind, d, h(8))
+      assert.equal(c.title, title)
+      const { type } = renderIslamicPoster(c)
+      assert.equal(type.titleLines, 1, title)
+      assert.equal(type.title, POSTER_TYPE.title[0], title)
+    }
+    // The fast poster's Arabic is its own centred line, not part of a title that wraps.
+    const fast = islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7))
+    assert.equal(fast.arabic, "صِيَام الإِثْنَيْن")
+    assert.doesNotMatch(fast.title, /[\u0600-\u06FF]/)
+    assert.ok(renderIslamicPoster(fast).type.arabic! >= POSTER_TYPE.arabic[1])
   })
   it("every caption fits a Telegram photo caption (1024)", () => {
     for (let i = 0; i < ISLAMIC_TIPS.length; i++) assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_DAILY", day(i), h(7))).replace(/<[^>]+>/g, "").length <= 1024)
