@@ -485,6 +485,11 @@ export async function POST(request: Request) {
     // Admins only: preview a festival poster here (/poster pchumben); nothing is posted publicly.
     const problem = await sendFestivalPoster(chatId, payload)
     if (problem) await sendText(chatId, problem)
+  } else if (/^\/islamicpreview(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
+    // Admins only: today's @LuyChlatIslamic previews now (✅ / 🚀 / ❌ as always; nothing is posted without a tap).
+    const { previewIslamicNow } = await import("@/lib/server/scheduled-posts")
+    const done = await previewIslamicNow()
+    await sendText(chatId, done.length ? ["🌙 Preview Channel ឥស្លាម៖", ...done].join("\n") : "🌙 គ្មានការផ្សាយ Channel ឥស្លាមដែលនៅសល់សម្រាប់ថ្ងៃនេះទេ។")
   } else if (/^\/fuelsync(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {
     // Admins only: check the MoC channel now (a late notice), instead of waiting for the next slot.
     await sendText(chatId, "⛽ កំពុងពិនិត្យ t.me/mocnewsfeed …")

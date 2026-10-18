@@ -74,3 +74,16 @@ describe("In-app community link follows Islamic Mode", () => {
     assert.match(dict, /"support\.communityIslamic": "សហគមន៍ អេប លុយឆ្លាត ឥស្លាម"/)
   })
 })
+
+describe("/islamicpreview — today's Islamic previews now (admins only, still ✅ / 🚀 / ❌)", () => {
+  it("is an admin command that only schedules (previews); nothing is published without a tap", () => {
+    const hook = readFileSync(join(process.cwd(), "src/app/api/telegram/webhook/route.ts"), "utf8")
+    assert.ok(hook.includes("/^\\/islamicpreview(@\\w+)?$/i.test(command) && (await isAdminChat(chatId))"))
+    const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    const fn = sp.slice(sp.indexOf("export async function previewIslamicNow"), sp.indexOf("/** A fuel price change"))
+    assert.match(fn, /real\(\)\.schedulePost\(/)
+    assert.doesNotMatch(fn, /islamicChannel\(|publishTaken|\.publish\(|sendMessage/)
+    assert.match(fn, /\(at\) => minutes < at/) // only posts still ahead today
+  })
+})
+

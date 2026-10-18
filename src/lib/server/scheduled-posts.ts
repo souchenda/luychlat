@@ -27,7 +27,7 @@ import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLo
 import { bulletinPreview, publishBulletin } from "@/lib/server/community-bulletin"
 import { communityChannel, communityChannelConfigured, founderApproved, islamicChannel, islamicChannelConfigured } from "@/lib/server/channel"
 import { toHijri, type HijriDate } from "@/lib/islamic"
-import { dateOf, isIslamicKind, islamicDailyHtml, jumuahHtml, sunnahFastHtml } from "@/lib/islamic-channel"
+import { dateOf, isIslamicKind, islamicDailyHtml, islamicPlannedPosts, jumuahHtml, sunnahFastHtml } from "@/lib/islamic-channel"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
@@ -392,6 +392,24 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
+}
+
+/**
+ * /islamicpreview (admins): today's Islamic-channel posts whose time is still ahead are scheduled and previewed
+ * NOW instead of 45 minutes before — published only on ✅ / 🚀 as always. Already previewed → not sent again
+ * (schedulePost is idempotent), so the regular tick later never duplicates it.
+ */
+export async function previewIslamicNow(): Promise<string[]> {
+  const now = phnomPenhToday()
+  const minutes = now.hour * 60 + now.minute
+  const offset = await hijriOffset()
+  const plans = islamicPlannedPosts(now.day, (d) => toHijri(dateOf(d), offset), (at) => minutes < at)
+  const out: string[] = []
+  for (const p of plans) {
+    const row = await real().schedulePost(p.kind, p.postKey, p.payload, atMinute(now.day, p.publishMinute))
+    out.push(`${p.kind} ${p.postKey} → ${row ? `${row.status}${row.created ? " (ថ្មី)" : " (មានរួចហើយ)"}` : "មិនអាចរៀបចំបានទេ"}`)
+  }
+  return out
 }
 
 /** A fuel price change: previewed now; published only once the founder approves (at the earliest 45 minutes later, or at once with 🚀). */
