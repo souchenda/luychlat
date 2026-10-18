@@ -10,6 +10,7 @@
 import { khmerDigits } from "@/lib/dates"
 import { formatHijri, type HijriDate } from "@/lib/islamic"
 import { ISLAMIC_TIPS, islamicTipOfTheDay } from "@/lib/islamic-tips"
+import { formatMinutes, imsakTime, prayerTimes, PROVINCES } from "@/lib/prayer"
 
 export const ISLAMIC_KINDS = ["ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH"] as const
 export type IslamicKind = (typeof ISLAMIC_KINDS)[number]
@@ -78,59 +79,116 @@ export function kmDay(day: string) {
   return `ថ្ងៃ${KM_WEEKDAY[weekdayOf(day)]} ${khmerDigits(String(d))} ${KM_MONTH[m - 1]} ${khmerDigits(String(y))}`
 }
 
-const dateLine = (day: string, hijri: HijriDate | null) => `🌙 <b>${hijri ? esc(formatHijri(hijri, "km")) : ""}</b>${hijri ? " · " : ""}${kmDay(day)}`
-
 /** The day number the in-app Islamic tip uses (lib/tips.ts), so the channel and the app show the same lesson. */
 export const tipDayNumber = (day: string) => Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000)
 
-/** 08:00 — the Hijri date and today's halal-finance lesson (one of the 14), with its exact source. */
-export function islamicDailyHtml(day: string, hijri: HijriDate | null): string {
+/**
+ * One post's content — the poster (lib/server/islamic-poster.ts) and its caption are drawn from this, so they
+ * can never disagree. `fast`: tomorrow's Imsak / Iftar in Phnom Penh (the place is always named).
+ */
+export type IslamicPostContent = {
+  kind: IslamicKind
+  /** The gold pill at the top of the poster. */
+  pill: string
+  /** The Hijri date in full for the caption (the day of the post; for the fast reminder, tomorrow). */
+  hijri: string | null
+  /** The same, short («៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ម.ស.») — one line on the poster. */
+  hijriShort: string | null
+  /** The Gregorian day, «ថ្ងៃសុក្រ ២៣ តុលា ២០២៦». */
+  date: string
+  title: string
+  paragraphs: string[]
+  /** Shorter text for the poster when the caption's would not fit (the caption always has it all). */
+  posterParagraphs?: string[]
+  source: { label: string; url: string }
+  fast?: { imsak: string; iftar: string; place: string }
+}
+
+const FAST_PLACE = PROVINCES[0] // ភ្នំពេញ
+const kmClockOf = (minutes: number) => khmerDigits(formatMinutes(minutes))
+
+/** Tomorrow's Imsak and Iftar in Phnom Penh, «០៤:២៣» / «១៧:៥៨». */
+export function fastTimes(day: string): { imsak: string; iftar: string; place: string } {
+  const [y, m, d] = addDays(day, 1).split("-").map(Number)
+  const t = prayerTimes({ year: y, month: m, day: d }, FAST_PLACE.lat, FAST_PLACE.lng)
+  return { imsak: kmClockOf(imsakTime(t)), iftar: kmClockOf(t.maghrib), place: FAST_PLACE.km }
+}
+
+export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriDate | null, hijriTomorrow: HijriDate | null = null): IslamicPostContent {
+  if (kind === "ISLAMIC_FAST") {
+    const tomorrow = weekdayOf(day) === 0 ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"
+    return {
+      kind,
+      pill: "រំលឹកបួសស៊ុណ្ណះ",
+      hijri: hijriTomorrow ? formatHijri(hijriTomorrow, "km") : null,
+      hijriShort: hijriTomorrow ? formatHijri(hijriTomorrow, "km", { short: true }) : null,
+      date: kmDay(addDays(day, 1)),
+      title: `ស្អែក${tomorrow} ជាថ្ងៃបួសស៊ុណ្ណះ`,
+      paragraphs: [
+        "ព្យាការី ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
+        "កុំភ្លេចស៊ូហួរ (អាហារមុនរះអរុណ) ហើយដាក់ចិត្ត (នីយ៉ាត់) តាំងពីយប់នេះ។ ការបួសជាការស្ម័គ្រចិត្ត — តាមលទ្ធភាពសុខភាពរបស់អ្នក។",
+      ],
+      posterParagraphs: [
+        "ព្យាការី ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
+        "កុំភ្លេចស៊ូហួរ ហើយដាក់នីយ៉ាត់តាំងពីយប់នេះ។",
+      ],
+      source: { label: "Jami' at-Tirmidhi 747", url: "https://sunnah.com/tirmidhi:747" },
+      fast: fastTimes(day),
+    }
+  }
+  if (kind === "ISLAMIC_JUMUAH") {
+    return {
+      kind,
+      pill: "ជុមអះ មូបារ៉ក់",
+      hijri: hijri ? formatHijri(hijri, "km") : null,
+      hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
+      date: kmDay(day),
+      title: "ជុមអះ មូបារ៉ក់ — ថ្ងៃសុក្រដ៏មានពរ",
+      paragraphs: [
+        "អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំនៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។",
+        "ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំជុមអះ — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយពរជ័យ។",
+      ],
+      source: { label: "Al-Jumu'ah 62:9–10", url: "https://quran.com/62/9-10" },
+    }
+  }
   const tip = islamicTipOfTheDay(tipDayNumber(day))
   const lesson = ISLAMIC_TIPS.indexOf(tip) + 1
+  return {
+    kind,
+    pill: `មេរៀនហិរញ្ញវត្ថុហាឡាល់ ${khmerDigits(String(lesson))}/${khmerDigits(String(ISLAMIC_TIPS.length))}`,
+    hijri: hijri ? formatHijri(hijri, "km") : null,
+    hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
+    date: kmDay(day),
+    title: tip.title.km,
+    paragraphs: [tip.body.km],
+    source: tip.ref,
+  }
+}
+
+/** The caption under the poster (Telegram HTML, ≤ 1024 characters as a photo caption). */
+export function islamicCaptionHtml(c: IslamicPostContent): string {
+  const head = c.kind === "ISLAMIC_FAST" ? `🌙 <b>រំលឹក៖ ${esc(c.title)}</b>` : c.kind === "ISLAMIC_JUMUAH" ? `🕌 <b>${esc(c.title)}</b>` : `📗 <b>${esc(c.pill)}៖ ${esc(c.title)}</b>`
   return [
-    dateLine(day, hijri),
+    `🌙 <b>${c.hijri ? esc(c.hijri) : ""}</b>${c.hijri ? " · " : ""}${c.date}`,
     "",
-    `📗 <b>មេរៀនហិរញ្ញវត្ថុហាឡាល់ ${khmerDigits(String(lesson))}/${khmerDigits(String(ISLAMIC_TIPS.length))}៖ ${esc(tip.title.km)}</b>`,
-    esc(tip.body.km),
+    head,
+    ...c.paragraphs.map(esc),
+    ...(c.fast ? ["", `⏰ ម៉ោងនៅ${c.fast.place}៖ ឈប់ញ៉ាំ (Imsak) ${c.fast.imsak} · បើកបួស (Iftar) ${c.fast.iftar}`] : []),
     "",
-    `📖 ប្រភព៖ <a href="${tip.ref.url}">${esc(tip.ref.label)}</a>`,
+    `📖 ប្រភព៖ <a href="${c.source.url}">${esc(c.source.label)}</a>`,
     "",
     SIGN,
   ].join("\n")
 }
 
-/** Sunday / Wednesday 19:00 — tomorrow's sunnah fast (Monday / Thursday). */
-export function sunnahFastHtml(day: string, hijriTomorrow: HijriDate | null): string {
-  const tomorrow = weekdayOf(day) === 0 ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"
-  return [
-    `🌙 <b>រំលឹក៖ ស្អែក${tomorrow} ជាថ្ងៃបួសស៊ុណ្ណះ</b>${hijriTomorrow ? ` (${esc(formatHijri(hijriTomorrow, "km"))})` : ""}`,
-    "",
-    "ព្យាការី ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
-    "",
-    "🍽 កុំភ្លេចស៊ូហួរ (អាហារមុនរះអរុណ) ហើយដាក់ចិត្ត (នីយ៉ាត់) តាំងពីយប់នេះ។ ការបួសជាការស្ម័គ្រចិត្ត — តាមលទ្ធភាពសុខភាពរបស់អ្នក។",
-    "",
-    `📖 ប្រភព៖ <a href="https://sunnah.com/tirmidhi:747">Jami' at-Tirmidhi 747</a>`,
-    "",
-    SIGN,
-  ].join("\n")
-}
+/** 08:00 — the Hijri date and today's halal-finance lesson (one of the 14), with its exact source. */
+export const islamicDailyHtml = (day: string, hijri: HijriDate | null) => islamicCaptionHtml(islamicPostContent("ISLAMIC_DAILY", day, hijri))
+
+/** Sunday / Wednesday 19:00 — tomorrow's sunnah fast (Monday / Thursday), with Imsak and Iftar. */
+export const sunnahFastHtml = (day: string, hijriTomorrow: HijriDate | null) => islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", day, null, hijriTomorrow))
 
 /** Friday 09:00 — Jumu'ah. */
-export function jumuahHtml(day: string, hijri: HijriDate | null): string {
-  return [
-    dateLine(day, hijri),
-    "",
-    "🕌 <b>ជុមអះ មូបារ៉ក់ — ថ្ងៃសុក្រដ៏មានពរ</b>",
-    "",
-    "អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំនៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។",
-    "",
-    "🏪 ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំជុមអះ — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយពរជ័យ។",
-    "",
-    `📖 ប្រភព៖ <a href="https://quran.com/62/9-10">Al-Jumu'ah 62:9–10</a>`,
-    "",
-    SIGN,
-  ].join("\n")
-}
+export const jumuahHtml = (day: string, hijri: HijriDate | null) => islamicCaptionHtml(islamicPostContent("ISLAMIC_JUMUAH", day, hijri))
 
 // ─── In-app community link ─────────────────────────────────────────────────────────────────────
 

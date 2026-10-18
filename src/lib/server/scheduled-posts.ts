@@ -27,7 +27,8 @@ import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLo
 import { bulletinPreview, publishBulletin } from "@/lib/server/community-bulletin"
 import { communityChannel, communityChannelConfigured, founderApproved, islamicChannel, islamicChannelConfigured } from "@/lib/server/channel"
 import { toHijri, type HijriDate } from "@/lib/islamic"
-import { dateOf, isIslamicKind, islamicDailyHtml, islamicPlannedPosts, jumuahHtml, sunnahFastHtml } from "@/lib/islamic-channel"
+import { dateOf, isIslamicKind, islamicCaptionHtml, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
+import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
@@ -253,8 +254,12 @@ const realDeps = (): SchedulerDeps => ({
         return { png: null, body: String(row.payload.text ?? "—") }
       case "ISLAMIC_DAILY":
       case "ISLAMIC_FAST":
-      case "ISLAMIC_JUMUAH":
-        return { png: null, body: stripHtml(await islamicHtml(row.kind, day)) }
+      case "ISLAMIC_JUMUAH": {
+        // The poster the channel will get, with its caption (founder, 18/10/2026: never text-only).
+        const c = await islamicContent(row.kind, day)
+        await islamicPosterReady
+        return { png: poster(() => islamicPoster(c)), body: stripHtml(islamicCaptionHtml(c)) }
+      }
       default:
         return { png: null, body: String(row.payload.telegram ?? "—") }
     }
@@ -284,7 +289,11 @@ const realDeps = (): SchedulerDeps => ({
       return res.ok && res.result ? res.result.message_id : null
     }
     if (islamic) {
-      if (chat) ids.telegram = await sentText(await islamicHtml(row.kind, String(row.payload.day)), true)
+      // The poster with its caption (text only if the image can't be sent, so the post is never lost).
+      const c = await islamicContent(row.kind as IslamicKind, String(row.payload.day))
+      await islamicPosterReady
+      const caption = islamicCaptionHtml(c)
+      if (chat) ids.telegram = (await sendPosterPhoto(chat, islamicPoster(c), caption, { reply_markup: buttons.reply_markup })) ?? (await sentText(caption, true))
       return ids
     }
     if (row.kind === "MORNING") {
@@ -377,11 +386,10 @@ async function hijriOffset(): Promise<number> {
 }
 const nextDay = (day: string) => new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
 
-async function islamicHtml(kind: string, day: string): Promise<string> {
+/** One Islamic post's content (poster and caption), with the admin's Hijri offset. */
+async function islamicContent(kind: IslamicKind, day: string) {
   const offset = await hijriOffset()
-  if (kind === "ISLAMIC_FAST") return sunnahFastHtml(day, toHijri(dateOf(nextDay(day)), offset))
-  if (kind === "ISLAMIC_JUMUAH") return jumuahHtml(day, toHijri(dateOf(day), offset))
-  return islamicDailyHtml(day, toHijri(dateOf(day), offset))
+  return islamicPostContent(kind, day, toHijri(dateOf(day), offset), toHijri(dateOf(nextDay(day)), offset))
 }
 
 let scheduler: ReturnType<typeof createScheduler> | null = null

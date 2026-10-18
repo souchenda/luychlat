@@ -70,6 +70,8 @@ function pieces(paragraph: string): string[] {
   let open = ""
   for (const { segment } of words.segment(paragraph.trim())) {
     if (/^[(\[«“‘]+$/.test(segment)) open += segment
+    // Closing punctuation («។», «៕», «»», «)», «,»…) stays with the word before it — a line never starts with it.
+    else if (/^\s*[។៕)\]»”’,.:;!?]+$/.test(segment) && out.length && !open) out[out.length - 1] += segment
     else {
       out.push(open + segment)
       open = ""
