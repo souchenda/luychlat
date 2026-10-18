@@ -4,6 +4,7 @@ import { ArrowLeftIcon, BookHeartIcon, BookOpenTextIcon, CoinsIcon, CompassIcon,
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
+import { BrandMark } from "@/components/brand-mark"
 import { Button } from "@/components/ui/button"
 import { IslamicModeOff } from "@/components/islamic/islamic-mode"
 import { type MessageKey, contentLocale } from "@/lib/i18n/dictionaries"
@@ -42,6 +43,8 @@ export default function IslamicLayout({ children }: { children: React.ReactNode 
             <ArrowLeftIcon />
           </Link>
         </Button>
+        {/* The logo: with the crescent badge while Islamic Mode is on, the plain one when it is off. */}
+        <BrandMark className="mr-2 size-10 rounded-xl shadow-none" islamic={settings.enabled} />
         <div className="min-w-0">
           <h1 className="text-xl font-bold">{t("islamic.title")}</h1>
           {hijri && (

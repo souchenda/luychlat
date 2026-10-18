@@ -12,6 +12,7 @@ describe("Islamic logo variant (founder, 18/10/2026)", () => {
   })
   it("the nav shows it only with Islamic Mode on, never in a business workspace", () => {
     assert.match(read("src/components/brand-mark.tsx"), /src=\{islamic \? "\/icon-islamic\.png" : "\/logo\.png"\}/)
+    assert.match(read("src/app/(app)/islamic/layout.tsx"), /<BrandMark className="mr-2 size-10 rounded-xl shadow-none" islamic=\{settings\.enabled\} \/>/)
     assert.match(read("src/components/layout/app-nav.tsx"), /<BrandMark className="size-9 rounded-xl shadow-none" islamic=\{islamic && workspace\?\.type !== "BUSINESS"\} \/>/)
   })
 })
