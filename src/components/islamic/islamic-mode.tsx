@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { useT } from "@/lib/i18n/use-t"
+import { canManageIslamicMode } from "@/lib/islamic-access"
 import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
+import { usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -41,6 +43,8 @@ function useChoose() {
 export function IslamicModeOff() {
   const t = useT()
   const { choose, pending } = useChoose()
+  // Admin / owner only (founder, 18/10/2026): a regular user is told who manages it, with no button.
+  const canManage = canManageIslamicMode(usePlan().plan)
   return (
     <Card className="items-center gap-3 px-6 py-8 text-center">
       <span className="flex size-12 items-center justify-center rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400">
@@ -48,10 +52,14 @@ export function IslamicModeOff() {
       </span>
       <p className="font-semibold">{t("islamic.mode")}</p>
       <p className="text-sm text-muted-foreground">{t("islamic.offBody")}</p>
-      <Button className="mt-1 min-w-32" onClick={() => choose(true)} disabled={pending}>
-        {pending && <Loader2Icon className="animate-spin" />}
-        {t("islamic.enable")}
-      </Button>
+      {canManage ? (
+        <Button className="mt-1 min-w-32" onClick={() => choose(true)} disabled={pending}>
+          {pending && <Loader2Icon className="animate-spin" />}
+          {t("islamic.enable")}
+        </Button>
+      ) : (
+        <p className="mt-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">🔒 {t("islamic.managedByAdmin")}</p>
+      )}
     </Card>
   )
 }
@@ -71,8 +79,10 @@ export function ExperienceSelector() {
   const [done, setDone] = useState(false)
   // One dialog at a time: «how did you hear of us» first, then this.
   const sourceOpen = useSourcePromptOpen()
+  // Only someone who may change the mode is asked to choose it (admin / owner only, founder 18/10/2026).
+  const canManage = canManageIslamicMode(usePlan().plan)
   const isNew = createdAt ? Date.now() - new Date(createdAt).getTime() < PROMPT_DAYS * 86_400_000 : false
-  const open = loaded && isNew && !settings.decided && !settings.enabled && !later && !done && !sourceOpen
+  const open = canManage && loaded && isNew && !settings.decided && !settings.enabled && !later && !done && !sourceOpen
 
   const option = (islamic: boolean) => {
     const busy = pending && choosing === islamic

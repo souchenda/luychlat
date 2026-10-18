@@ -23,6 +23,7 @@ import { signOutEverywhere } from "@/lib/auth/sign-out"
 import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
 import { useSaveExchangeRate } from "@/lib/exchange-rate"
 import { useT } from "@/lib/i18n/use-t"
+import { canManageIslamicMode } from "@/lib/islamic-access"
 import { khmerLunarDate } from "@/lib/khmer-lunar"
 import { todayDate } from "@/lib/debts"
 import { khmerDigits } from "@/lib/dates"
@@ -53,17 +54,19 @@ function IslamicToolsRow() {
   const locale = useLocaleStore((s) => s.locale)
   const { settings, loading } = useIslamicSettings()
   const { setEnabled } = useIslamicMutations()
+  // Admin / owner only (founder, 18/10/2026): everyone else sees it locked 🔒; the database refuses the change too.
+  const canManage = canManageIslamicMode(usePlan().plan)
   return (
     <>
       <SettingsRow
         icon={<MoonStarIcon />}
         tile="teal"
         title={t("islamic.mode")}
-        hint={`${t("islamic.modeHint")} · ${t("islamic.modeCalendar", calendarExamples(locale))}`}
+        hint={canManage ? `${t("islamic.modeHint")} · ${t("islamic.modeCalendar", calendarExamples(locale))}` : `🔒 ${t("islamic.managedByAdmin")}`}
       >
         <Switch
           checked={settings.enabled}
-          disabled={loading || setEnabled.isPending}
+          disabled={!canManage || loading || setEnabled.isPending}
           onCheckedChange={(on) =>
             setEnabled.mutate(on, {
               onSuccess: () => toast.success(t(on ? "islamic.enabled" : "islamic.disabled")),

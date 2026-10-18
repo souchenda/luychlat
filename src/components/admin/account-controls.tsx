@@ -1,6 +1,6 @@
 "use client"
 
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { BanIcon, BuildingIcon, FlaskConicalIcon, CheckCircle2Icon, IdCardIcon, ShieldCheckIcon, ShieldIcon, SmartphoneIcon } from "lucide-react"
 import { toast } from "sonner"
 
@@ -115,6 +115,14 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
   const queryClient = useQueryClient()
   const superAdmin = usePlan().plan.staff_role === "super_admin"
   const label = user.display_name || loginLabel(user.email) || user.user_id
+  const islamicMode = useQuery({
+    queryKey: ["admin", "islamic-mode", user.user_id],
+    queryFn: async () => {
+      const { data, error } = await getSupabaseBrowserClient()!.rpc("admin_islamic_mode", { p_user_id: user.user_id })
+      if (error) throw error
+      return Boolean(data)
+    },
+  })
   const act = useMutation({
     mutationFn: ({ name, args }: { name: string; args: Record<string, unknown> }) => rpc(name, args),
     onSuccess: () => {
@@ -179,6 +187,19 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
         </Button>
       </div>
       {user.require_2fa && !user.mfa_enabled && <p className="text-xs text-amber-600">{t("admin.require2faPending")}</p>}
+      {/* Islamic Mode is managed by an admin (founder, 18/10/2026): read only here, never in the directory. */}
+      <label className="flex items-center justify-between gap-3 border-t pt-2 text-sm">
+        <span>
+          <span className="block font-medium">🌙 {t("islamic.mode")}</span>
+          <span className="block text-xs text-muted-foreground">{t("admin.islamicModeHint")}</span>
+        </span>
+        <Switch
+          checked={Boolean(islamicMode.data)}
+          disabled={act.isPending || islamicMode.isLoading}
+          aria-label={t("islamic.mode")}
+          onCheckedChange={(on) => void run("admin_set_islamic_mode", "p_on", on, t(on ? "admin.islamicOnPrompt" : "admin.islamicOffPrompt", { name: label }))}
+        />
+      </label>
       {superAdmin && (
         <label className="flex items-center justify-between gap-3 border-t pt-2 text-sm">
           <span>
