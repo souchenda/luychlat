@@ -30,17 +30,23 @@ Episodes 01 and 02 share the AI-drama theme — the founder may keep both (diffe
   app's own values (`{imsak}` from `lib/prayer.ts`, never guessed), and the FFmpeg arguments.
 - Tests: `reels-scripts.test.ts`; Islamic terms come from the glossary (`SEMBAHYANG` «សំប៉ាយ៉ាង» added).
 
-## Phase 2 — the frame renderer (Skia)
+## Phase 2 — the frame renderer ✅ (`src/lib/islamic/reels-renderer.ts`, `src/lib/server/reels-frames.ts`)
 
-- `src/lib/server/reel-frames.ts`: draws each of the `frameCount(script)` frames (1080 × 1920, 30 fps) with
-  `@napi-rs/canvas` — the posters' fonts (MiSans Khmer, Amiri for Arabic), the emerald / gold frame, the cues
-  at `cueProgress(cue, t)` (opacity + 40 px rise), inside `REEL_FORMAT.safe` (clear of the platform buttons).
-- **Why Skia and not FFmpeg `drawtext`:** drawtext does not shape Khmer subscripts and vowels reliably; Skia does
-  (the posters prove it). FFmpeg only encodes images and sound.
-- **Mascot:** `public/rabbit-kopiah.png` (1024 × 1024) is Sophea's master. Simple motion (float, blink, eyebrow
-  raise) needs layered PNGs (body, eyes, brows) cut from it.
-- **Real app screens:** captured from the running app (Playwright, a demo workspace with demo data — never a real
-  user's data, balances hidden), then placed in a phone frame. Never mocked up (CLAUDE.md video standard).
+- **The scene (pure, tested):** for any moment, the layers — the emerald field with a wandering glow and a slowly
+  drifting lattice, the gold mihrab frame, the brand; the hook's phone binging AI drama (episode counter climbing,
+  the feed scrolling, a shake when the Adhan begins); Sophea popping in with an overshoot bounce, breathing, shaking
+  on the record scratch, then moving up for the end card; the Adhan crescent pulsing (never over Sophea or the phone);
+  speed lines with the dash; the end card (app.luychlat.com, @LuyChlatIslamic); kinetic subtitles in sync with the
+  dialogue (newest rising in, earlier dialogue dimmed, Sophea's lines gold with her name, captions full).
+- **Drawing:** Skia (`@napi-rs/canvas`, the posters' fonts — Khmer shaped correctly), frames streamed raw (RGBA) into
+  FFmpeg's stdin — no image files; ~20 ms a frame locally.
+- **Sophea's art:** `public/rabbit-kopiah.png` (1024²), cropped to its tile (`SOPHEA_ART`), gold-ringed, glowing.
+- **Draft safety:** a script the founder has not approved renders with «DRAFT · មិនទាន់អនុម័ត» on every frame; every
+  render writes `<out>.json` with `status: "DRAFT"`; the renderer imports nothing that publishes (golden guard).
+- **CLI:** `npx tsx scripts/reels-render.ts <script-id> <out.mp4> [voices…]` (without voices: subtitles, effects and
+  the Adhan).
+- **Verified on production** (18/10/2026, the app container, FFmpeg 8.1, `nice 15`): Episode 01 → 20.000 s, H.264
+  1080 × 1920 30 fps + AAC 48 kHz stereo, 3.4 MB, in 74 s.
 
 ## Phase 3 — voice and sound ✅ engine (`src/lib/islamic/reels-audio.ts`, `src/lib/server/reels-tts.ts`)
 

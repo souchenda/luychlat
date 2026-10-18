@@ -74,21 +74,20 @@ export function fillReel(script: ReelScript, values: Partial<Record<(typeof REEL
 }
 
 /**
- * The FFmpeg arguments: the rendered PNG sequence (frame-00001.png …) and the audio track → a 9:16 H.264 / AAC MP4
- * that plays everywhere (yuv420p, +faststart for streaming). Without audio, a silent track keeps the platforms happy.
+ * The FFmpeg arguments: the frames drawn by Skia arrive raw on stdin (RGBA, 1080 × 1920, 30 fps — no image files on
+ * disk), the mixed sound is the second input; out comes a 9:16 H.264 / AAC MP4 that plays everywhere (yuv420p,
+ * +faststart for streaming).
  */
-export function ffmpegArgs(o: { framesDir: string; audio: string | null; seconds: number; out: string }): string[] {
+export function ffmpegArgs(o: { audio: string; seconds: number; out: string }): string[] {
   const { fps, width, height } = REEL_FORMAT
   return [
     "-y",
-    "-framerate", String(fps),
-    "-i", `${o.framesDir}/frame-%05d.png`,
-    ...(o.audio ? ["-i", o.audio] : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
+    "-f", "rawvideo", "-pix_fmt", "rgba", "-s", `${width}x${height}`, "-framerate", String(fps), "-i", "pipe:0",
+    "-i", o.audio,
+    "-map", "0:v", "-map", "1:a",
     "-t", String(o.seconds),
-    "-vf", `scale=${width}:${height}:flags=lanczos,format=yuv420p`,
-    "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-r", String(fps),
-    "-c:a", "aac", "-b:a", "160k",
-    "-shortest",
+    "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p", "-r", String(fps),
+    "-c:a", "copy",
     "-movflags", "+faststart",
     o.out,
   ]

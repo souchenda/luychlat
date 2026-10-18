@@ -74,7 +74,7 @@ describe("GOLDEN · video and humour: the founder's private preview first, never
   it("reels: only a script the founder approved is rendered; the reel modules cannot publish anything", () => {
     for (const s of REEL_SCRIPTS) assert.equal(reelRenderable(s), s.status === "APPROVED", s.id)
     assert.equal(reelRenderable({ ...REEL_SCRIPTS[0], status: "DRAFT" }), false)
-    for (const f of ["lib/islamic/reels-scripts.ts", "lib/islamic/reels-timeline.ts", "lib/islamic/reels-audio.ts"]) {
+    for (const f of ["lib/islamic/reels-scripts.ts", "lib/islamic/reels-timeline.ts", "lib/islamic/reels-audio.ts", "lib/islamic/reels-renderer.ts"]) {
       const src = readFileSync(join(ROOT, f), "utf8")
       const imports = src.match(/^import .*$/gm) ?? []
       for (const i of imports) assert.doesNotMatch(i, /lib\/server\/|channel|facebook|scheduled-posts|telegram/i, `${f}: ${i}`)
@@ -84,5 +84,16 @@ describe("GOLDEN · video and humour: the founder's private preview first, never
     const tts = readFileSync(join(ROOT, "lib/server/reels-tts.ts"), "utf8")
     for (const i of tts.match(/^import .*$/gm) ?? []) assert.doesNotMatch(i, /channel|facebook|scheduled-posts|telegram/i, i)
     assert.doesNotMatch(tts, /founderApproved|sendVideo|sendMessage/)
+  })
+  it("every rendered video is a DRAFT artifact: marked on every frame until approved, recorded DRAFT, published nowhere by the renderer", () => {
+    const frames = readFileSync(join(ROOT, "lib/server/reels-frames.ts"), "utf8")
+    for (const i of frames.match(/^import .*$/gm) ?? []) assert.doesNotMatch(i, /channel|facebook|scheduled-posts|telegram/i, i)
+    assert.doesNotMatch(frames, /founderApproved|sendVideo|sendMessage|sendDocument/)
+    assert.match(frames, /status: "DRAFT"/)
+    assert.doesNotMatch(frames, /status: "(APPROVED|PUBLISHED)"/)
+    assert.match(frames, /const approved = reelRenderable\(o\.script\)/) // the DRAFT mark unless the founder approved the script
+    assert.match(frames, /if \(s\.draft\) draftMark\(ctx\)/)
+    const cli = readFileSync(join(process.cwd(), "scripts/reels-render.ts"), "utf8")
+    for (const i of cli.match(/^import .*$/gm) ?? []) assert.doesNotMatch(i, /channel|facebook|scheduled-posts|telegram/i, i)
   })
 })

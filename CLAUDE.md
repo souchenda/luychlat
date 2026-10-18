@@ -90,8 +90,9 @@ use come before feature count: no half-baked features, broken links or untested 
   scheduler, the approved tip and the founder's 📢 (`tests/golden/publish-approval.test.ts`).
 - **Video, reels and humour (founder, 18/10/2026 — hard rule):** never auto-published. Every rendered MP4, script
   and humour post goes to the founder's private chat first with [ ✅ យល់ព្រម ] [ 🚀 ផុសភ្លាមៗ ] [ ❌ ផ្អាក / បដិសេធ ];
-  silence = HOLD; only a super admin's tap lets it out. Only a script with `status: "APPROVED"` is rendered
-  (`reelRenderable`). Guard: `tests/golden/publisher.test.ts` (video sends and Facebook calls only via the approved
+  silence = HOLD; only a super admin's tap lets it out. A script the founder has not approved (`reelRenderable`)
+  renders only as a draft preview with «DRAFT · មិនទាន់អនុម័ត» on every frame; every render is a DRAFT artifact
+  (`<out>.json`), published by nothing in the renderer. Guard: `tests/golden/publisher.test.ts` (video sends and Facebook calls only via the approved
   publisher, the timer never publishes unapproved, the reel modules import nothing that publishes).
 - **Wording guards:** never italicise Khmer in a caption (no `<i>`); banned phrases in quotes, tips and the
   spotlight fail the build (`tests/golden/content-guards.test.ts`).

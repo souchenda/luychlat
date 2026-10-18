@@ -145,14 +145,17 @@ export function mixArgs(o: { voices: { file: string; at: number }[]; ambient: { 
   return ["-y", ...inputs, "-filter_complex", graph, "-map", "[mix]", "-t", String(o.seconds), "-c:a", "aac", "-b:a", "192k", o.out]
 }
 
-/** The mix plan of a script, given the synthesized voice files (one per voice cue, in order) and a root path. */
-export function scriptMixArgs(script: ReelScript, voiceFiles: string[], root: string, out: string): string[] {
+/**
+ * The mix plan of a script, given the synthesized voice files (one per voice cue, in order) and a root path.
+ * `voiceFiles: null` mixes without voices — a draft preview made before the voices exist (the subtitles carry the lines).
+ */
+export function scriptMixArgs(script: ReelScript, voiceFiles: string[] | null, root: string, out: string): string[] {
   const cues = audioCues(script)
-  const voices = cues.filter((c) => c.kind === "voice")
-  if (voices.length !== voiceFiles.length) throw new Error(`reel ${script.id}: ${voices.length} voice lines, ${voiceFiles.length} files`)
+  const voices = voiceFiles === null ? [] : cues.filter((c) => c.kind === "voice")
+  if (voiceFiles !== null && voices.length !== voiceFiles.length) throw new Error(`reel ${script.id}: ${voices.length} voice lines, ${voiceFiles.length} files`)
   const ambient = cues.find((c) => c.kind === "ambient")
   return mixArgs({
-    voices: voices.map((v, i) => ({ file: voiceFiles[i], at: v.at })),
+    voices: voices.map((v, i) => ({ file: voiceFiles![i], at: v.at })),
     ambient: ambient && ambient.kind === "ambient" ? { file: `${root}/${ambient.file}`, at: ambient.at } : null,
     sfx: cues.flatMap((c) => (c.kind === "sfx" ? [{ file: `${root}/${REEL_SFX[c.id].file}`, at: c.at, volume: REEL_SFX[c.id].volume }] : [])),
     seconds: script.beats.reduce((t, b) => t + b.seconds, 0),

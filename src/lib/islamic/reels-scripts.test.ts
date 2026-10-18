@@ -88,14 +88,12 @@ describe("Humour shorts — the timeline and the FFmpeg plan", () => {
     assert.equal(cueProgress(c, c.start + 0.5), 1)
     assert.equal(cueProgress(c, c.end), 0)
   })
-  it("FFmpeg encodes a 9:16 PNG sequence and the audio to H.264 / AAC — the Khmer text is never drawn by FFmpeg", () => {
-    const args = ffmpegArgs({ framesDir: "/tmp/reel", audio: "/tmp/voice.wav", seconds: 18, out: "/tmp/reel.mp4" })
+  it("FFmpeg encodes the raw 9:16 frames from stdin and the mixed sound to H.264 / AAC — the Khmer text is never drawn by FFmpeg", () => {
+    const args = ffmpegArgs({ audio: "/tmp/mix.m4a", seconds: 18, out: "/tmp/reel.mp4" })
     const cmd = args.join(" ")
-    assert.match(cmd, /-framerate 30 -i \/tmp\/reel\/frame-%05d\.png -i \/tmp\/voice\.wav/)
-    assert.match(cmd, /scale=1080:1920/)
-    assert.match(cmd, /-c:v libx264 .*-c:a aac .*-movflags \+faststart \/tmp\/reel\.mp4$/)
+    assert.match(cmd, /-f rawvideo -pix_fmt rgba -s 1080x1920 -framerate 30 -i pipe:0 -i \/tmp\/mix\.m4a -map 0:v -map 1:a -t 18/)
+    assert.match(cmd, /-c:v libx264 .*-pix_fmt yuv420p .*-c:a copy -movflags \+faststart \/tmp\/reel\.mp4$/)
     assert.doesNotMatch(cmd, /drawtext/)
-    assert.match(ffmpegArgs({ framesDir: "/f", audio: null, seconds: 15, out: "/o.mp4" }).join(" "), /anullsrc/) // a silent track
     assert.equal(REEL_FORMAT.width / REEL_FORMAT.height, 9 / 16)
     assert.equal(frameCount(byId("sahur-snooze")), reelSeconds(byId("sahur-snooze")) * 30)
   })
