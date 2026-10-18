@@ -238,3 +238,15 @@ export const FASTING_HADITHS = [
     en: "In Paradise there is a gate called Ar-Rayyan: on the Day of Resurrection those who fasted enter through it, and no one else enters through it.",
   },
 ] as const
+
+/**
+ * The fasting card's ruling for today (founder, 18/10/2026): Ramadan (month 9) is WAJIB — an obligation;
+ * every other month's fasting is SUNNAH — voluntary. Unknown date → null (no badge rather than a guess).
+ */
+export function fastingRuling(h: HijriDate | null): "wajib" | "sunnah" | null {
+  if (!h) return null
+  return h.month === 9 ? "wajib" : "sunnah"
+}
+
+/** The Sunnah fast's extra reward (founder, 18/10/2026). */
+export const SUNNAH_FAST_HADITH = { source: "Sahih al-Bukhari 2840", url: "https://sunnah.com/bukhari:2840" } as const

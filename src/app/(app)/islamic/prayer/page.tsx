@@ -10,7 +10,8 @@ import { Card } from "@/components/ui/card"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { cambodiaNow, formatMinutes, imsakTime, nextFastingEvent, nextPrayer, PRAYER_ORDER, prayerTimes } from "@/lib/prayer"
-import { ISLAMIC_ARABIC } from "@/lib/islamic"
+import { fastingRuling, ISLAMIC_ARABIC, toHijri } from "@/lib/islamic"
+import { useIslamicDefaults } from "@/lib/islamic-settings"
 import { FastingWisdomSheet } from "@/components/islamic/fasting-wisdom-sheet"
 import { cn } from "@/lib/utils"
 
@@ -27,6 +28,8 @@ function countdown(totalSeconds: number): string {
 export default function PrayerTimesPage() {
   const t = useT()
   const [wisdomOpen, setWisdomOpen] = useState(false)
+  // Wajib in Ramadan, Sunnah in every other month — by today's Hijri date with the admin's offset.
+  const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
   const location = useIslamicLocation()
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
@@ -47,6 +50,7 @@ export default function PrayerTimesPage() {
   const nextTime = afterIsha ? tomorrow.fajr : today[next.key]
   const fast = nextFastingEvent(today, tomorrow, clock.minutes, clock.seconds)
   const nowMinutes = clock.minutes
+  const ruling = fastingRuling(toHijri(now, hijriOffset))
 
   return (
     <div className="space-y-3">
@@ -102,6 +106,16 @@ export default function PrayerTimesPage() {
             {t(fast.kind === "imsak" ? "fasting.imsakIn" : "fasting.iftarIn", { time: countdown(fast.inSeconds) })}
           </p>
         </div>
+        {ruling && (
+          <p
+            className={cn(
+              "rounded-lg px-3 py-2 text-[13px] font-medium",
+              ruling === "wajib" ? "bg-rose-50 text-rose-800 dark:bg-rose-500/10 dark:text-rose-200" : "bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200",
+            )}
+          >
+            {t(ruling === "wajib" ? "fasting.badgeWajib" : "fasting.badgeSunnah")}
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <div className={cn("flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2", fast.kind === "imsak" && "ring-1 ring-primary")}>
             <MoonIcon className="size-4 text-indigo-500" aria-hidden />

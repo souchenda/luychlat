@@ -6,7 +6,7 @@ import { ExternalLinkIcon } from "lucide-react"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { contentLocale } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { FASTING_HADITHS, FASTING_VERSES } from "@/lib/islamic"
+import { FASTING_HADITHS, FASTING_VERSES, SUNNAH_FAST_HADITH } from "@/lib/islamic"
 import { QURAN_TRANSLATION, type QuranSurahText } from "@/lib/quran"
 import { useLocaleStore } from "@/stores/locale-store"
 
@@ -69,6 +69,28 @@ export function FastingWisdomSheet({ open, onOpenChange }: { open: boolean; onOp
             ? "ការតមចាប់ផ្តើមនៅពេលអរុណោទ័យ (ស៊ុពហ៍) — អ៊ឹមសាក់ ១០ នាទីមុននោះ ជាការប្រុងប្រយ័ត្ន — ហើយបញ្ចប់នៅពេលយប់ចូល (ម៉ាហ្គ្រិប) ជាពេលស្រាយបួស។"
             : "The fast begins at dawn (Fajr) — Imsak, 10 minutes earlier, is a precaution — and ends at nightfall (Maghrib), the time of Iftar.",
         )}
+        {/* Wajib or Sunnah, and what each means (founder, 18/10/2026). */}
+        <section className="space-y-3">
+          <h3 className="text-base font-semibold">{t("fasting.rulingTitle")}</h3>
+          <div className="space-y-2">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50/60 px-4 py-3 dark:border-rose-900/50 dark:bg-rose-500/5">
+              <p className="font-medium">{t("fasting.badgeWajib")}</p>
+              <p className="mt-1 text-[15px] leading-relaxed text-foreground/90">{t("fasting.wajibBody")}</p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 dark:border-emerald-900/50 dark:bg-emerald-500/5">
+              <p className="font-medium">{t("fasting.badgeSunnah")}</p>
+              <p className="mt-1 text-[15px] leading-relaxed text-foreground/90">{t("fasting.sunnahBody")}</p>
+              <a href={SUNNAH_FAST_HADITH.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-8 items-center gap-1 text-xs font-medium text-emerald-800 underline-offset-4 hover:underline dark:text-emerald-300">
+                {SUNNAH_FAST_HADITH.source}
+                <ExternalLinkIcon className="size-3" aria-hidden />
+              </a>
+            </div>
+            <div className="rounded-2xl border px-4 py-3">
+              <p className="font-medium">{t("fasting.imsak")}</p>
+              <p className="mt-1 text-[15px] leading-relaxed text-foreground/90">{t("fasting.imsakBody")}</p>
+            </div>
+          </div>
+        </section>
         <section className="space-y-3">
           <h3 className="text-base font-semibold">{t("fasting.rewardsTitle")}</h3>
           <ol className="space-y-3">

@@ -6,7 +6,7 @@ import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { dictionaries } from "../src/lib/i18n/dictionaries"
-import { FASTING_HADITHS, FASTING_VERSES, ISLAMIC_ARABIC } from "../src/lib/islamic"
+import { FASTING_HADITHS, FASTING_VERSES, fastingRuling, ISLAMIC_ARABIC, SUNNAH_FAST_HADITH, toHijri } from "../src/lib/islamic"
 
 const km = dictionaries.km as Record<string, string>
 const all = (p: string) => readFileSync(join(process.cwd(), "src", p), "utf8")
@@ -35,5 +35,18 @@ describe("Islamic hub — the founder's terms", () => {
   })
   it("the tab row scrolls without the grey scrollbar", () => {
     assert.match(all("app/(app)/islamic/layout.tsx"), /\[scrollbar-width:none\] \[&::-webkit-scrollbar\]:hidden/)
+  })
+  it("the fasting card: Wajib in Ramadan, Sunnah in every other month; no date → no badge", () => {
+    assert.equal(fastingRuling({ day: 1, month: 9, year: 1448 }), "wajib")
+    assert.equal(fastingRuling({ day: 29, month: 9, year: 1448 }), "wajib")
+    assert.equal(fastingRuling(toHijri(new Date(2026, 9, 18))), "sunnah") // 7 Jumada al-Ula 1448
+    assert.equal(fastingRuling(null), null)
+    assert.match(km["fasting.badgeWajib"], /^🔴 វ៉ាជីប \(Wajib \/ واجب\) — កាតព្វកិច្ច/)
+    assert.match(km["fasting.badgeSunnah"], /^🟢 ស៊ូណាត់ \(Sunnah \/ سنة\) — ស្ម័គ្រចិត្ត/)
+  })
+  it("the evidence sheet explains Wajib, Sunnah (Bukhari 2840) and Imsak", () => {
+    const sheet = all("components/islamic/fasting-wisdom-sheet.tsx")
+    for (const key of ["fasting.rulingTitle", "fasting.wajibBody", "fasting.sunnahBody", "fasting.imsakBody"]) assert.ok(sheet.includes(key), key)
+    assert.equal(SUNNAH_FAST_HADITH.url, "https://sunnah.com/bukhari:2840")
   })
 })
