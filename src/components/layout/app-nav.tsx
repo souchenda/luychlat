@@ -276,7 +276,8 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
       {business && <BusinessProfileSheet open={editOpen} onOpenChange={setEditOpen} workspace={business} />}
 
       <div className="flex items-center gap-2 border-t px-5 py-3 text-[11px] text-muted-foreground">
-        <BrandMark className="size-9 rounded-xl shadow-none" />
+        {/* Islamic Mode (never in a business workspace, like the Islamic tools): the logo with the crescent badge. */}
+        <BrandMark className="size-9 rounded-xl shadow-none" islamic={islamic && workspace?.type !== "BUSINESS"} />
         អេប លុយឆ្លាត · App Luy Chlat v{APP_VERSION}
       </div>
     </div>
