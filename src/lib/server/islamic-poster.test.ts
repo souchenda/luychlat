@@ -27,15 +27,15 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
   })
   it("nothing is ever cut («…»): all 14 lessons, the fast reminder (Sunday and Wednesday) and Jumu'ah", () => {
     for (let i = 0; i < ISLAMIC_TIPS.length; i++) assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_DAILY", day(i), h(7))).truncated, false, `lesson ${i}`)
-    assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-18", null, h(8))).truncated, false)
-    assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-21", null, h(11))).truncated, false)
-    assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12))).truncated, false)
+    assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-18", null, h(8))).truncated, false, "fast (Sunday)")
+    assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-21", null, h(11))).truncated, false, "fast (Wednesday)")
+    assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12))).truncated, false, "jumuah")
   })
   it("every caption fits a Telegram photo caption (1024)", () => {
     for (let i = 0; i < ISLAMIC_TIPS.length; i++) assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_DAILY", day(i), h(7))).replace(/<[^>]+>/g, "").length <= 1024)
     for (const kind of ISLAMIC_KINDS) assert.ok(islamicCaptionHtml(islamicPostContent(kind, "2026-10-18", h(7), h(8))).replace(/<[^>]+>/g, "").length <= 1024, kind)
   })
-  it("the fast poster names the place of its Imsak / Iftar times; «ﷺ» is written out (no Arabic font on the server)", () => {
+  it("the fast poster names the place of its Imsak / Iftar times; «ﷺ» is written in Arabic letters on the poster", () => {
     const c = islamicPostContent("ISLAMIC_FAST", "2026-10-18", null, h(8))
     assert.equal(c.fast?.place, "ភ្នំពេញ")
     assert.match(c.fast!.imsak, /^[០-៩]{2}:[០-៩]{2}$/)

@@ -247,10 +247,10 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   y += 10
 
   // Reserve the fast times, the source and the footer; the text takes what is left.
-  const fastH = c.fast ? 186 : 0
+  const fastH = c.fast ? 168 : 0
   const sourceH = 58
   const bodyBottom = FOOTER_TOP - 32 - sourceH - fastH
-  // The text: the largest size that fits (40 → 31 px), centred in the space left; cut only as a last resort.
+  // The text: the largest size that fits (40 → 27 px), centred in the space left; cut only as a last resort.
   ctx.textAlign = "left"
   const bodyW = W - 2 * SIDE
   const paragraphs = (c.posterParagraphs ?? c.paragraphs).map(posterText)
@@ -258,7 +258,7 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   let size = 36
   let lineH = 58
   let laidOut: string[][] = []
-  for (const [s, h] of [[40, 64], [36, 58], [33, 54], [31, 50]] as const) {
+  for (const [s, h] of [[40, 64], [36, 58], [33, 54], [31, 50], [29, 46], [27, 42]] as const) {
     ctx.font = `400 ${s}px ${FAMILIES}`
     laidOut = paragraphs.map((p) => wrap(ctx, p, bodyW, 99))
     size = s
@@ -293,7 +293,7 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
     ]
     boxes.forEach(([label, time], i) => {
       const x = SIDE + i * (boxW + 28)
-      roundRect(ctx, x, top, boxW, 140, 28)
+      roundRect(ctx, x, top, boxW, 124, 28)
       ctx.fillStyle = "rgba(255,255,255,0.07)"
       ctx.fill()
       ctx.lineWidth = 1.5
@@ -302,15 +302,15 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
       ctx.textAlign = "center"
       ctx.font = `500 28px ${FAMILIES}`
       ctx.fillStyle = "rgba(209,250,229,0.85)"
-      ctx.fillText(label, x + boxW / 2, top + 48)
+      ctx.fillText(label, x + boxW / 2, top + 44)
       ctx.font = `700 56px ${FAMILIES}`
       ctx.fillStyle = GOLD
-      ctx.fillText(time, x + boxW / 2, top + 114)
+      ctx.fillText(time, x + boxW / 2, top + 104)
     })
     ctx.font = `400 24px ${FAMILIES}`
     ctx.fillStyle = "rgba(209,250,229,0.7)"
     ctx.textAlign = "center"
-    ctx.fillText(`ម៉ោងនៅ${c.fast.place} · ស្អែក`, W / 2, top + 176)
+    ctx.fillText(`ម៉ោងនៅ${c.fast.place} · ស្អែក`, W / 2, top + 158)
   }
 
   // The source.

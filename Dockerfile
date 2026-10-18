@@ -21,7 +21,8 @@ RUN npm ci --no-audit --no-fund
 # ---- 2. Build ----------------------------------------------------------------
 FROM node:${NODE_VERSION} AS builder
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
+# The poster tests draw Arabic: the same font as the runner (font-noto-arabic), so they test what is published.
+RUN apk add --no-cache libc6-compat font-noto-arabic
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
