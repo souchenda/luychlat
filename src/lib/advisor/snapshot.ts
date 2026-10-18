@@ -24,6 +24,8 @@ export type Snapshot = {
   months: { month: string; income: number; expense: number }[]
   avgIncome: number
   avgExpense: number
+  /** Where the averages come from: previous months with records (how many), or this month (expense projected). */
+  basis: { income: "history" | "this_month"; expense: "history" | "this_month_projected"; incomeMonths: number; expenseMonths: number }
   thisMonth: { income: number; expense: number; net: number; daysElapsed: number; daysInMonth: number }
   /** (avgIncome - avgExpense) / avgIncome, or null without income. */
   savingsRate: number | null
@@ -111,16 +113,24 @@ export function computeSnapshot(input: {
     return { month: m, income: sum("INCOME"), expense: sum("EXPENSE") }
   })
   const current = months[months.length - 1]
-  const previous = months.slice(0, -1).filter((m) => m.income > 0 || m.expense > 0)
-  // Average of previous active months. Without history, use this month: income
-  // as-is (salaries arrive once), expenses projected to a full month.
+  // Averages of the previous months that actually HAVE records of that kind (founder, 18/10/2026: a month
+  // with income but no expense recorded made «average expense $0» while this month listed $385 of spending).
+  // Without such months, this month: income as-is (salaries arrive once), expenses projected to a full month.
+  const previousIncome = months.slice(0, -1).filter((m) => m.income > 0)
+  const previousExpense = months.slice(0, -1).filter((m) => m.expense > 0)
   const daysElapsed = now.getDate()
   const daysInMonth = getDaysInMonth(now)
   const projection = daysInMonth / Math.max(daysElapsed, 1)
-  const avgIncome = r2(previous.length ? previous.reduce((a, m) => a + m.income, 0) / previous.length : current.income)
+  const avgIncome = r2(previousIncome.length ? previousIncome.reduce((a, m) => a + m.income, 0) / previousIncome.length : current.income)
   const avgExpense = r2(
-    previous.length ? previous.reduce((a, m) => a + m.expense, 0) / previous.length : current.expense * projection,
+    previousExpense.length ? previousExpense.reduce((a, m) => a + m.expense, 0) / previousExpense.length : current.expense * projection,
   )
+  const basis: Snapshot["basis"] = {
+    income: previousIncome.length ? "history" : "this_month",
+    expense: previousExpense.length ? "history" : "this_month_projected",
+    incomeMonths: previousIncome.length,
+    expenseMonths: previousExpense.length,
+  }
   const savingsRate = avgIncome > 0 ? Math.round(((avgIncome - avgExpense) / avgIncome) * 1000) / 1000 : null
 
   // --- spending by category this month, and anomalies vs previous months
@@ -208,6 +218,7 @@ export function computeSnapshot(input: {
       months,
       avgIncome,
       avgExpense,
+      basis,
       thisMonth: { income: current.income, expense: current.expense, net: r2(current.income - current.expense), daysElapsed, daysInMonth },
       savingsRate,
       topExpenses,

@@ -25,7 +25,10 @@ function systemPrompt(req: AdvisorRequest) {
     DOMAIN_RULE,
     "You are App Luy Chlat's financial advisor for people and small businesses in Cambodia.",
     `Always answer in ${language}. Keep answers short and practical for a phone screen: a one-line summary, then at most 5 bullet points.`,
+    "Answer the person's exact question first, specifically; never reply with a generic summary of their data, and never repeat an earlier answer — build on the conversation so far.",
     "Base every number on the JSON data below; never invent figures. Amounts are USD equivalents; khrPerUsd converts to riel (៛).",
+    "avgIncome / avgExpense come from `basis`: \"history\" = the average of incomeMonths / expenseMonths previous months that have records, \"this_month\" = this month (expense projected to a full month). Say which when you quote them. thisMonth is the current month so far; topExpenses are this month's.",
+    "Money left to save each month = avgIncome − avgExpense − monthlyDebtService; say it is an estimate.",
     "Debts are anonymous references (P1, P2 = money the user owes; R1 = money owed to the user). Refer to them by these references.",
     "When asked which debt to pay first, compare Debt Snowball (smallest balance first) and Debt Avalanche (highest interest first) using the balances, rates and due dates.",
     "Debt-to-income (dti) is monthlyDebtService / avgIncome; above 0.36 is high, above 0.5 is risky. shortfall30 > 0 means payables due within 30 days exceed projected cash.",
@@ -118,6 +121,11 @@ async function askLuyChlat(req: AdvisorRequest) {
     if (error instanceof Anthropic.RateLimitError) return NextResponse.json({ error: "rate_limited" }, { status: 429 })
     return NextResponse.json({ error: "provider_error" }, { status: 502 })
   }
+}
+
+/** Whether LuyChlat AI (the server's own key) is configured — the app then uses it for Pro accounts by default. */
+export async function GET() {
+  return NextResponse.json({ luysmart: Boolean(process.env.ANTHROPIC_API_KEY) })
 }
 
 export async function POST(request: Request) {

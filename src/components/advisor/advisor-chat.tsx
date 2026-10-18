@@ -5,14 +5,15 @@ import { Fragment, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { answer, detectIntent, type Intent, type Lang } from "@/lib/advisor/engine"
+import { answer, clarifyReply, resolveIntent, type Intent, type Lang } from "@/lib/advisor/engine"
 import { toAnonymousPayload } from "@/lib/advisor/payload"
 import type { Snapshot, SnapshotLabels } from "@/lib/advisor/snapshot"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { showUpgrade, usePlan, useRefreshPlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
-import { effectiveProvider, useAiStore } from "@/stores/ai-store"
+import { useAdvisorProvider } from "@/lib/advisor/use-provider"
+import { useAiStore } from "@/stores/ai-store"
 
 type ChatMessage = { role: "user" | "assistant"; content: string; offline?: boolean }
 
@@ -54,11 +55,13 @@ export function AdvisorChat({
 }) {
   const t = useT()
   const ai = useAiStore()
-  const provider = effectiveProvider(ai)
+  const provider = useAdvisorProvider()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [pending, setPending] = useState(false)
   const [showPayload, setShowPayload] = useState(false)
+  // The conversation's subject so far (memory for follow-ups; the overview is never repeated).
+  const lastIntent = useRef<Intent | null>(null)
   const { plan, isPro } = usePlan()
   const refreshPlan = useRefreshPlan()
   const endRef = useRef<HTMLDivElement>(null)
@@ -75,7 +78,9 @@ export function AdvisorChat({
     setInput("")
     setPending(true)
 
-    const offline = () => answer(intent ?? detectIntent(text), snapshot, labels, lang)
+    const resolved = intent ?? resolveIntent(text, lastIntent.current)
+    if (resolved !== "clarify") lastIntent.current = resolved
+    const offline = () => (resolved === "clarify" ? clarifyReply(lang) : answer(resolved, snapshot, labels, lang))
     // LuyChlat AI is a Pro feature: without Pro, answer offline and offer the upgrade.
     if (provider === "luysmart" && !isPro) {
       setMessages((m) => [...m, { role: "assistant", content: `${t("advisor.proOnly")}\n\n${offline()}`, offline: true }])

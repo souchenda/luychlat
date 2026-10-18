@@ -21,6 +21,14 @@ export const anonymousSnapshotSchema = z
     months: z.array(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/), income: amount, expense: amount }).strict()).max(12),
     avgIncome: amount,
     avgExpense: amount,
+    basis: z
+      .object({
+        income: z.enum(["history", "this_month"]),
+        expense: z.enum(["history", "this_month_projected"]),
+        incomeMonths: z.number().int().min(0).max(12),
+        expenseMonths: z.number().int().min(0).max(12),
+      })
+      .strict(),
     thisMonth: z
       .object({ income: amount, expense: amount, net: amount, daysElapsed: z.number().int(), daysInMonth: z.number().int() })
       .strict(),
