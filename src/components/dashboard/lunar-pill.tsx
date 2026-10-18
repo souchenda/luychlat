@@ -30,7 +30,7 @@ const RED = "border-red-200/80 bg-red-50 text-red-800 hover:bg-red-100 dark:bord
  * 3 days ("ថ្ងៃសែននំអ៊ី (២ថ្ងៃ)"), else the lunar day and the next holy day
  * ("១០រោច · ថ្ងៃសីល (៥ថ្ងៃ)"). Chinese days are red and gold.
  */
-export function LunarPill() {
+export function LunarPill({ onOpen }: { onOpen?: () => void } = {}) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const [today, setToday] = useState<string | null>(null)
@@ -70,15 +70,24 @@ export function LunarPill() {
   const red = key !== null && CHINESE_KEYS.has(key)
   const Icon = key ? CULTURAL_ICON[key] : MoonIcon
 
-  return (
-    <Link
-      href="/bills"
-      aria-label={t("home.openHolyDays")}
-      className={`group inline-flex max-w-[58%] shrink-0 items-center gap-1.5 rounded-full border py-1 pr-1.5 pl-2 text-xs font-medium shadow-xs transition-all active:scale-[0.97] ${red ? RED : AMBER}`}
-    >
+  const className = `group inline-flex max-w-[58%] shrink-0 items-center gap-1.5 rounded-full border py-1 pr-1.5 pl-2 text-xs font-medium shadow-xs transition-all active:scale-[0.97] ${red ? RED : AMBER}`
+  const inner = (
+    <>
       <Icon className={`size-3.5 shrink-0 ${red ? "text-red-600 dark:text-red-300" : key ? "text-amber-600" : "fill-amber-300 text-amber-500"}`} aria-hidden />
       <span className="truncate">{locale === "km" ? khmerDigits(text) : text}</span>
       <ChevronRightIcon className="size-3.5 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5" aria-hidden />
+    </>
+  )
+  // On Home: a tap opens the calendar switch (Khmer lunar ↔ Hijri) — founder, 18/10/2026.
+  if (onOpen)
+    return (
+      <button type="button" onClick={onOpen} aria-label={t("calendar.title")} className={className}>
+        {inner}
+      </button>
+    )
+  return (
+    <Link href="/bills" aria-label={t("home.openHolyDays")} className={className}>
+      {inner}
     </Link>
   )
 }

@@ -52,6 +52,7 @@ import { useFeatures } from "@/lib/features"
 import { BirthdayCard } from "@/components/dashboard/birthday-card"
 import { BirthdayCelebrationModal } from "@/components/birthday/birthday-celebration-modal"
 import { LunarPill } from "@/components/dashboard/lunar-pill"
+import { CalendarSwitchSheet } from "@/components/dashboard/calendar-switch-sheet"
 import { FestivalBanner } from "@/components/dashboard/festival-banner"
 import { HolyDayReminder } from "@/components/dashboard/holy-day-reminder"
 import { WalletPreviewGrid } from "@/components/wallets/wallet-preview-grid"
@@ -114,6 +115,7 @@ export default function HomePage() {
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
   const hijri = islamic ? toHijri(today, hijriOffset) : null
   const badge = headerBadge({ islamic, hijri, locale })
+  const [calendarOpen, setCalendarOpen] = useState(false)
 
   return (
     // «dash»: readable Khmer on the dashboard (globals.css — line-height 1.6, nothing under 13 px).
@@ -148,16 +150,20 @@ export default function HomePage() {
               <span className="truncate">{t(badge.key)}</span>
             </span>
           ) : badge.kind === "hijri" ? (
-            // Islamic Mode: today's Hijri date instead of the Buddhist lunar day and «ថ្ងៃសីល» (founder, 18/10/2026).
-            <Link
-              href="/islamic/prayer"
+            // Islamic Mode: today's Hijri date instead of the Buddhist lunar day and «ថ្ងៃសីល» (founder, 18/10/2026);
+            // a tap opens the calendar switch.
+            <button
+              type="button"
+              onClick={() => setCalendarOpen(true)}
+              aria-label={t("calendar.title")}
               className="inline-flex max-w-[58%] shrink-0 items-center truncate rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900 shadow-xs dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200"
             >
               <span className="truncate">{badge.text}</span>
-            </Link>
+            </button>
           ) : badge.kind === "lunar" ? (
-            <LunarPill />
+            <LunarPill onOpen={() => setCalendarOpen(true)} />
           ) : null}
+          <CalendarSwitchSheet open={calendarOpen} onOpenChange={setCalendarOpen} />
         </div>
         {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
         <BusinessTrialTag workspace={workspace} className="mt-1.5" />

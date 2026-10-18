@@ -23,6 +23,10 @@ import { signOutEverywhere } from "@/lib/auth/sign-out"
 import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
 import { useSaveExchangeRate } from "@/lib/exchange-rate"
 import { useT } from "@/lib/i18n/use-t"
+import { khmerLunarDate } from "@/lib/khmer-lunar"
+import { todayDate } from "@/lib/debts"
+import { khmerDigits } from "@/lib/dates"
+import { formatHijri, toHijri } from "@/lib/islamic"
 import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
 import { parseAmount } from "@/lib/money"
 import { usePlan } from "@/lib/plan"
@@ -34,14 +38,29 @@ import { loginLabel } from "@/lib/auth-identifier"
 import { DeleteAccountSheet } from "@/components/settings/delete-account"
 import { useOnboardingStore } from "@/lib/onboarding"
 
+/** Today in each calendar — what the Islamic Mode switch changes in the home header (founder, 18/10/2026). */
+function calendarExamples(locale: string): { lunar: string; hijri: string } {
+  const l = khmerLunarDate(todayDate())
+  const km = locale === "km"
+  const lunar = km ? khmerDigits(`${l.day}${l.phase === "kert" ? "កើត" : "រោច"} · ថ្ងៃសីល`) : `${l.day} ${l.phase === "kert" ? "waxing" : "waning"} · holy day`
+  const h = toHijri(new Date())
+  return { lunar, hijri: h ? formatHijri(h, km ? "km" : "en", { short: true }) : "—" }
+}
+
 /** Islamic Lifestyle & Finance Mode (off by default, 100% free); private to the user (synced, never shown to family). */
 function IslamicToolsRow() {
   const t = useT()
+  const locale = useLocaleStore((s) => s.locale)
   const { settings, loading } = useIslamicSettings()
   const { setEnabled } = useIslamicMutations()
   return (
     <>
-      <SettingsRow icon={<MoonStarIcon />} tile="teal" title={t("islamic.mode")} hint={t("islamic.modeHint")}>
+      <SettingsRow
+        icon={<MoonStarIcon />}
+        tile="teal"
+        title={t("islamic.mode")}
+        hint={`${t("islamic.modeHint")} · ${t("islamic.modeCalendar", calendarExamples(locale))}`}
+      >
         <Switch
           checked={settings.enabled}
           disabled={loading || setEnabled.isPending}
