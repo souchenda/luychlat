@@ -10,7 +10,7 @@ import { headerBadge, toHijri } from "../src/lib/islamic"
 const today = new Date(2026, 9, 18) // 18 October 2026 = 7 Jumada al-Ula 1448
 
 describe("home header — Islamic Mode shows the Hijri date, never «ថ្ងៃសីល»", () => {
-  it("Islamic Mode on: «🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ម.ស.» (English «7 Jumada al-Ula 1448 AH»), no lunar badge", () => {
+  it("Islamic Mode on: «🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨» (English «7 Jumada al-Ula 1448 AH»), no lunar badge", () => {
     const h = toHijri(today)
     assert.deepEqual(h, { day: 7, month: 5, year: 1448 })
     assert.deepEqual(headerBadge({ islamic: true, hijri: h, locale: "km" }), { kind: "hijri", text: "🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨" })

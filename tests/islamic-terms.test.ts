@@ -6,7 +6,8 @@ import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { dictionaries } from "../src/lib/i18n/dictionaries"
-import { FASTING_HADITHS, FASTING_VERSES, fastingRuling, ISLAMIC_ARABIC, SUNNAH_FAST_HADITH, toHijri } from "../src/lib/islamic"
+import { FASTING_HADITHS, FASTING_VERSES, fastingRuling, formatHijri, ISLAMIC_ARABIC, SUNNAH_FAST_HADITH, toHijri } from "../src/lib/islamic"
+import { islamicCaptionHtml, islamicPostContent } from "../src/lib/islamic-channel"
 
 const km = dictionaries.km as Record<string, string>
 const all = (p: string) => readFileSync(join(process.cwd(), "src", p), "utf8")
@@ -48,5 +49,23 @@ describe("Islamic hub — the founder's terms", () => {
     const sheet = all("components/islamic/fasting-wisdom-sheet.tsx")
     for (const key of ["fasting.rulingTitle", "fasting.wajibBody", "fasting.sunnahBody", "fasting.imsakBody"]) assert.ok(sheet.includes(key), key)
     assert.equal(SUNNAH_FAST_HADITH.url, "https://sunnah.com/bukhari:2840")
+  })
+  it("the channel (founder, 18/10/2026): អ៊ឹមសាក់ / ស្រាយបួស / អាហារសាហួរ / នីយ៉ាត់ / ជូម៉ាអះ / បារ៉ាកាត់ with their Arabic; never the machine words", () => {
+    const fast = islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", "2026-10-18", null, { day: 8, month: 5, year: 1448 }))
+    const jumuah = islamicCaptionHtml(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", { day: 12, month: 5, year: 1448 }))
+    assert.match(fast, /អ៊ឹមសាក់ \(Imsak \/ الإمساك\) [០-៩]{2}:[០-៩]{2} · ស្រាយបួស \(Iftar \/ الإفطار\) [០-៩]{2}:[០-៩]{2}/)
+    assert.match(fast, /អាហារសាហួរ \(Sahur \/ السَّحُور\)/)
+    assert.match(fast, /នីយ៉ាត់ \(Niyyah \/ النِّيَّة\)/)
+    assert.match(fast, /ព្យាការី មូហាំម៉ាត់ ﷺ/)
+    assert.match(jumuah, /ជូម៉ាអះ \(Jumu'ah \/ الجُمُعَة\)/)
+    assert.match(jumuah, /បារ៉ាកាត់ \(Barakah \/ بَرَكَة\)/)
+    const poster = all("lib/server/islamic-poster.ts")
+    assert.ok(poster.includes('["អ៊ឹមសាក់ (Imsak)", c.fast.imsak]') && poster.includes('["ស្រាយបួស (Iftar)", c.fast.iftar]'))
+    for (const f of ["lib/islamic-channel.ts", "lib/server/islamic-poster.ts", "lib/scheduled-posts.ts", "lib/islamic.ts", "lib/islamic-tips.ts"])
+      for (const bad of ["ឈប់ញ៉ាំ", "បើកបួស", "ស្ទូហួរ", "ស៊ូហួរ", "ជុមអះ", "ម.ស.", "មហាម៉ាត់សករាជ"]) assert.ok(!all(f).includes(bad), `${f}: ${bad}`)
+  })
+  it("the Hijri era is «ហ.ស.» (ហ៊ីចរ៉ោះសករាជ) — «ម.ស.» is the Buddhist Maha Sakaraj", () => {
+    assert.equal(formatHijri({ day: 7, month: 5, year: 1448 }, "km", { short: true }), "៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.")
+    assert.match(formatHijri({ day: 7, month: 5, year: 1448 }, "km"), /ហ៊ីចរ៉ោះសករាជ \(ហ\.ស\.\)$/)
   })
 })

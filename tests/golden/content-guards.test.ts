@@ -10,6 +10,7 @@ import { MORNING_QUOTES } from "../../src/lib/morning"
 import { SPOTLIGHT_CALL, SPOTLIGHT_HOOK, SPOTLIGHT_PILLARS } from "../../src/lib/spotlight"
 import { TIPS } from "../../src/lib/tips"
 import { ISLAMIC_TIPS } from "../../src/lib/islamic-tips"
+import { islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS } from "../../src/lib/islamic-channel"
 
 /** Banned anywhere in published wording (founder, 18/10/2026). */
 const BANNED = ["ធនាគារឪពុកម្តាយ", "បង់ពេញចំនួន", "តាក់ស៊ី"]
@@ -42,5 +43,15 @@ describe("GOLDEN · published wording", () => {
       const src = readFileSync(join(process.cwd(), "src", file), "utf8")
       assert.doesNotMatch(src, /<i>|<em>/, `${file} italicises text`)
     }
+  })
+  it("@LuyChlatIslamic: the founder's Islamic terms, never the machine words (18/10/2026)", () => {
+    const MACHINE = ["ឈប់ញ៉ាំ", "បើកបួស", "ស្ទូហួរ", "ស៊ូហួរ", "ជុមអះ", "ម.ស."]
+    const hijri = { day: 8, month: 5, year: 1448 }
+    for (const kind of ISLAMIC_KINDS)
+      for (const d of ["2026-10-18", "2026-10-21", "2026-10-23"]) {
+        const c = islamicPostContent(kind, d, hijri, hijri)
+        const text = [islamicCaptionHtml(c), ...(c.posterParagraphs ?? []), c.pill, c.title, c.hijriShort ?? ""].join("\n")
+        for (const bad of MACHINE) assert.ok(!text.includes(bad), `${kind} ${d}: «${bad}»`)
+      }
   })
 })

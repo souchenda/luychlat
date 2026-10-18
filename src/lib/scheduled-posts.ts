@@ -101,7 +101,7 @@ const KIND_LABEL: Record<PostKind, string> = {
   HOLYDAY: "សារថ្ងៃសីល",
   ISLAMIC_DAILY: "ហ៊ីជរី និងមេរៀនហិរញ្ញវត្ថុហាឡាល់",
   ISLAMIC_FAST: "រំលឹកបួសស៊ុណ្ណះ (ច័ន្ទ / ព្រហស្បតិ៍)",
-  ISLAMIC_JUMUAH: "ជុមអះ (ថ្ងៃសុក្រ)",
+  ISLAMIC_JUMUAH: "ជូម៉ាអះ (ថ្ងៃសុក្រ)",
 }
 
 /** The preview's header (destination first), the post itself, then the status line. */

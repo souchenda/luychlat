@@ -55,7 +55,7 @@ ENV NODE_ENV=production \
 RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
 # ffmpeg: voice notes are cleaned up (level, padding, 16 kHz mono) before speech-to-text.
 # Fonts: receipt images (Latin, Khmer, Chinese).
-RUN apk add --no-cache ffmpeg font-noto font-noto-khmer font-wqy-zenhei
+RUN apk add --no-cache ffmpeg font-noto font-noto-khmer font-noto-arabic font-wqy-zenhei
 
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

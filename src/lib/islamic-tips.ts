@@ -69,7 +69,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
     topic: "islamic",
     title: { km: "កុំបោកប្រាស់អតិថិជន", en: "Never cheat a customer" },
     body: {
-      km: "ព្យាការីបានឃើញគំនរអាហារដែលសើមនៅខាងក្រោម ហើយមានប្រសាសន៍ថា អ្នកណាបោកប្រាស់ មិនមែនជាពួកយើងទេ។ ទំនិញល្អដាក់ខាងមុខ ទំនិញខូចលាក់ខាងក្រោយ — កុំធ្វើ។",
+      km: "ព្យាការី មូហាំម៉ាត់ ﷺ បានឃើញគំនរអាហារដែលសើមនៅខាងក្រោម ហើយមានប្រសាសន៍ថា អ្នកណាបោកប្រាស់ មិនមែនជាពួកយើងទេ។ ទំនិញល្អដាក់ខាងមុខ ទំនិញខូចលាក់ខាងក្រោយ — កុំធ្វើ។",
       en: "The Prophet ﷺ found a pile of food wet underneath and said: whoever cheats is not one of us. Good goods on top, spoiled ones hidden below — never.",
     },
     ref: muslim(102),
@@ -149,7 +149,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
     topic: "islamic",
     title: { km: "កុំជំពាក់បំណុលដោយមិនចាំបាច់", en: "Avoid unnecessary debt" },
     body: {
-      km: "ព្យាការីតែងសុំការការពារពីអល់ឡោះ ពីបាបកម្ម និងពីបំណុល ព្រោះអ្នកជំពាក់បំណុល ងាយនិយាយកុហក និងមិនរក្សាការសន្យា។ ខ្ចីតែពេលចាំបាច់ ហើយមានផែនការសងច្បាស់លាស់។",
+      km: "ព្យាការី មូហាំម៉ាត់ ﷺ តែងសុំការការពារពីអល់ឡោះ ពីបាបកម្ម និងពីបំណុល ព្រោះអ្នកជំពាក់បំណុល ងាយនិយាយកុហក និងមិនរក្សាការសន្យា។ ខ្ចីតែពេលចាំបាច់ ហើយមានផែនការសងច្បាស់លាស់។",
       en: "The Prophet ﷺ often sought Allah's protection from sin and from debt, for a person in debt is drawn to lie and to break promises. Borrow only when needed, with a clear plan to repay.",
     },
     ref: bukhari(2397),

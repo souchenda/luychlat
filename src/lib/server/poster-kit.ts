@@ -31,8 +31,8 @@ export const FRAME = {
 export const GOLD = "#fcd34d"
 export const FAMILIES =
   process.env.POSTER_FONT === "kantumruy"
-    ? `"Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", sans-serif`
-    : `"MiSans Khmer", "Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", sans-serif`
+    ? `"Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", "Noto Naskh Arabic", "Noto Sans Arabic", "Arial", sans-serif`
+    : `"MiSans Khmer", "Kantumruy Pro", "Noto Sans Khmer", "Khmer UI", "Noto Sans", "Noto Naskh Arabic", "Noto Sans Arabic", "Arial", sans-serif`
 
 let fontsLoaded = false
 export function loadFonts() {

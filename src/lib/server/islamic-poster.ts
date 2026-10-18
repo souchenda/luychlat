@@ -172,10 +172,10 @@ function footer(ctx: SKRSContext2D) {
 }
 
 /**
- * The server has no Arabic font, so «ﷺ» would draw as an empty box: on the poster it is written out in Khmer
- * (the caption keeps «ﷺ», which phones show).
+ * «ﷺ» is a single ligature many fonts lack; on the poster it is written in Arabic letters «(صلى الله عليه وسلم)»,
+ * which any Arabic font draws (Noto Arabic in the container — Dockerfile). The caption keeps «ﷺ» (phones show it).
  */
-export const posterText = (s: string) => s.replace(/\s*ﷺ/g, " (សូមអល់ឡោះប្រទានពរ និងសន្តិភាពដល់លោក)")
+export const posterText = (s: string) => s.replace(/\s*ﷺ/g, " (صلى الله عليه وسلم)")
 
 /** Draws the poster; `truncated` says whether any text had to be cut («…») to fit. */
 export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; truncated: boolean } {
@@ -288,8 +288,8 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
     const top = FOOTER_TOP - 32 - sourceH - fastH + 14
     const boxW = (W - 2 * SIDE - 28) / 2
     const boxes: [string, string][] = [
-      ["ឈប់ញ៉ាំ (Imsak)", c.fast.imsak],
-      ["បើកបួស (Iftar)", c.fast.iftar],
+      ["អ៊ឹមសាក់ (Imsak)", c.fast.imsak],
+      ["ស្រាយបួស (Iftar)", c.fast.iftar],
     ]
     boxes.forEach(([label, time], i) => {
       const x = SIDE + i * (boxW + 28)

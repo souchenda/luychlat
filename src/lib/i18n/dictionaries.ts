@@ -939,7 +939,7 @@ const km = {
   "support.community": "សហគមន៍អ្នកប្រើ",
   "support.communityHint": "គន្លឹះ និងព័ត៌មានថ្មីៗ",
   "support.communityIslamic": "សហគមន៍ អេប លុយឆ្លាត ឥស្លាម",
-  "support.communityIslamicHint": "ហ៊ីជរី មេរៀនហាឡាល់ និងជុមអះ",
+  "support.communityIslamicHint": "ហ៊ីជរី មេរៀនហាឡាល់ និងជូម៉ាអះ",
   "support.hours": "ម៉ោងបម្រើ៖ {hours}",
   "support.tryGuide": "មើល «របៀបប្រើប្រាស់» ជាមុនសិន — ចម្លើយភាគច្រើននៅទីនោះ",
   "support.report": "ផ្ញើសារ ឬរាយការណ៍បញ្ហា",
