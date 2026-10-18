@@ -310,7 +310,7 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
     ctx.font = `400 24px ${FAMILIES}`
     ctx.fillStyle = "rgba(209,250,229,0.7)"
     ctx.textAlign = "center"
-    ctx.fillText(`ម៉ោងនៅ${c.fast.place} · ស្អែក`, W / 2, top + 158)
+    ctx.fillText(`ម៉ោងនៅ${c.fast.place}`, W / 2, top + 158)
   }
 
   // The source.

@@ -54,4 +54,22 @@ describe("GOLDEN · published wording", () => {
         for (const bad of MACHINE) assert.ok(!text.includes(bad), `${kind} ${d}: «${bad}»`)
       }
   })
+  it("@LuyChlatIslamic posters are timeless: never «ស្អែក» / «យប់នេះ» on the image — only in the caption (18/10/2026)", () => {
+    const hijri = { day: 8, month: 5, year: 1448 }
+    for (const kind of ISLAMIC_KINDS)
+      for (const d of ["2026-10-18", "2026-10-21", "2026-10-23"]) {
+        const c = islamicPostContent(kind, d, hijri, hijri)
+        const poster = [c.pill, c.title, c.date, c.hijriShort ?? "", ...(c.posterParagraphs ?? c.paragraphs)].join(" | ")
+        for (const relative of ["ស្អែក", "យប់នេះ", "ថ្ងៃនេះ"]) assert.ok(!poster.includes(relative), `${kind} ${d}: «${relative}» on the poster`)
+      }
+    const sunday = islamicPostContent("ISLAMIC_FAST", "2026-10-18", null, hijri)
+    assert.equal(sunday.title, "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ (صِيَام يَوْم الإِثْنَيْن)")
+    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", null, hijri).title, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ (صِيَام يَوْم الخَمِيس)")
+    assert.equal(sunday.date, "ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦") // the fast day itself
+    const caption = islamicCaptionHtml(sunday)
+    assert.ok(caption.includes("🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណាស្អែក (ថ្ងៃច័ន្ទ ទី១៩ តុលា)៖</b>"), caption)
+    assert.ok(caption.includes("សូមបងប្អូនកុំភ្លេចទទួលទានអាហារសាហួរ (Sahur / السَّحُور) នៅទៀបភ្លឺមុនម៉ោងអ៊ឹមសាក់ ០៤:២៣ និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ"))
+    assert.ok(!readFileSync(join(process.cwd(), "src/lib/server/islamic-poster.ts"), "utf8").includes("ស្អែក"))
+  })
 })
+

@@ -97,6 +97,8 @@ export type IslamicPostContent = {
   /** The Gregorian day, «ថ្ងៃសុក្រ ២៣ តុលា ២០២៦». */
   date: string
   title: string
+  /** The caption's first line when it differs from the poster's title (the fast reminder: «…ស្អែក…»). */
+  lead?: string
   paragraphs: string[]
   /** Shorter text for the poster when the caption's would not fit (the caption always has it all). */
   posterParagraphs?: string[]
@@ -116,24 +118,30 @@ export function fastTimes(day: string): { imsak: string; iftar: string; place: s
 
 export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriDate | null, hijriTomorrow: HijriDate | null = null): IslamicPostContent {
   if (kind === "ISLAMIC_FAST") {
-    const tomorrow = weekdayOf(day) === 0 ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"
+    // The poster is a timeless card for the fast day itself (founder, 18/10/2026: «ថ្ងៃច័ន្ទ ១៩ តុលា» beside
+    // «ស្អែកថ្ងៃច័ន្ទ» confused people) — never «ស្អែក» / «យប់នេះ» on it; the caption is the timely reminder.
+    const monday = weekdayOf(day) === 0
+    const fastDay = addDays(day, 1)
+    const [, , d] = fastDay.split("-").map(Number)
+    const times = fastTimes(day)
     return {
       kind,
-      pill: "រំលឹកបួសស៊ុណ្ណះ",
+      pill: "កាលវិភាគបួសស៊ុណ្ណា",
       hijri: hijriTomorrow ? formatHijri(hijriTomorrow, "km") : null,
       hijriShort: hijriTomorrow ? formatHijri(hijriTomorrow, "km", { short: true }) : null,
-      date: kmDay(addDays(day, 1)),
-      title: `ស្អែក${tomorrow} ជាថ្ងៃបួសស៊ុណ្ណះ`,
+      date: kmDay(fastDay),
+      title: monday ? "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ (صِيَام يَوْم الإِثْنَيْن)" : "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ (صِيَام يَوْم الخَمِيس)",
+      lead: `🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណាស្អែក (${monday ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"} ទី${khmerDigits(String(d))} ${KM_MONTH[Number(fastDay.slice(5, 7)) - 1]})៖</b>`,
       paragraphs: [
+        `សូមបងប្អូនកុំភ្លេចទទួលទានអាហារសាហួរ (Sahur / السَّحُور) នៅទៀបភ្លឺមុនម៉ោងអ៊ឹមសាក់ ${times.imsak} និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។ ការបួសនេះជាស៊ុណ្ណា — តាមលទ្ធភាពសុខភាពរបស់អ្នក។`,
         "ព្យាការី មូហាំម៉ាត់ ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
-        "កុំភ្លេចអាហារសាហួរ (Sahur / السَّحُور) មុនពេលអ៊ឹមសាក់ ហើយដាក់នីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។ ការបួសនេះជាស៊ូណាត់ — តាមលទ្ធភាពសុខភាពរបស់អ្នក។",
       ],
       posterParagraphs: [
         "ព្យាការី មូហាំម៉ាត់ ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
-        "កុំភ្លេចអាហារសាហួរ (السَّحُور) និងនីយ៉ាត់ (النِّيَّة) តាំងពីយប់នេះ។",
+        "ទទួលទានអាហារសាហួរ (السَّحُور) មុនម៉ោងអ៊ឹមសាក់ ហើយតាំងចិត្តនីយ៉ាត់ (النِّيَّة) ពីយប់មុន។",
       ],
       source: { label: "Jami' at-Tirmidhi 747", url: "https://sunnah.com/tirmidhi:747" },
-      fast: fastTimes(day),
+      fast: times,
     }
   }
   if (kind === "ISLAMIC_JUMUAH") {
@@ -167,7 +175,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
 
 /** The caption under the poster (Telegram HTML, ≤ 1024 characters as a photo caption). */
 export function islamicCaptionHtml(c: IslamicPostContent): string {
-  const head = c.kind === "ISLAMIC_FAST" ? `🌙 <b>រំលឹក៖ ${esc(c.title)}</b>` : c.kind === "ISLAMIC_JUMUAH" ? `🕌 <b>${esc(c.title)}</b>` : `📗 <b>${esc(c.pill)}៖ ${esc(c.title)}</b>`
+  const head = c.lead ?? (c.kind === "ISLAMIC_JUMUAH" ? `🕌 <b>${esc(c.title)}</b>` : `📗 <b>${esc(c.pill)}៖ ${esc(c.title)}</b>`)
   return [
     `🌙 <b>${c.hijri ? esc(c.hijri) : ""}</b>${c.hijri ? " · " : ""}${c.date}`,
     "",
