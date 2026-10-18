@@ -106,7 +106,7 @@ export const SCRIPTURE: Record<ScriptureTopic, Citation[]> = {
     {
       source: "Method",
       kind: "note",
-      km: "ការគណនា៖ ស៊ូពុហ៍ ពេលព្រះអាទិត្យនៅក្រោមជើងមេឃ ២០°, អ៊ីស្យា ១៨°, អាសារ តាមមាសហាប់សាហ្វីអ៊ី (ស្រមោល = ១ ដងនៃកម្ពស់) និងបន្ថែម ២ នាទីប្រុងប្រយ័ត្ន — វិធីដែលប្រតិទិនក្នុងតំបន់ (ម៉ាឡេស៊ី សិង្ហបុរី) ប្រើ។ មិនមែនជាប្រតិទិនផ្លូវការរបស់មូហ្វទីកម្ពុជាទេ — សូមផ្ទៀងផ្ទាត់ជាមួយម៉ាស្ជិទ ឬមូហ្វទីក្នុងស្រុក។",
+      km: "ការគណនា៖ ស៊ុពហ៍ ពេលព្រះអាទិត្យនៅក្រោមជើងមេឃ ២០°, អ៊ីស្យា ១៨°, អាសារ តាមមាសហាប់សាហ្វីអ៊ី (ស្រមោល = ១ ដងនៃកម្ពស់) និងបន្ថែម ២ នាទីប្រុងប្រយ័ត្ន — វិធីដែលប្រតិទិនក្នុងតំបន់ (ម៉ាឡេស៊ី សិង្ហបុរី) ប្រើ។ មិនមែនជាប្រតិទិនផ្លូវការរបស់មូហ្វទីកម្ពុជាទេ — សូមផ្ទៀងផ្ទាត់ជាមួយម៉ាស្ជិទ ឬមូហ្វទីក្នុងស្រុក។",
       en: "Calculation: Fajr at 20° below the horizon, Isha at 18°, Shafi'i Asr (shadow = 1× height) and a 2-minute safety margin — the method the regional (Malaysia, Singapore) calendars use. This is not an official Mufti of Cambodia timetable — please check it against your local mosque or Mufti.",
     },
   ],
@@ -121,7 +121,7 @@ export const SCRIPTURE: Record<ScriptureTopic, Citation[]> = {
     {
       source: "Imsak",
       kind: "note",
-      km: "អ៊ិមសាក់ = ១០ នាទីមុនស៊ូពុហ៍ ជាការប្រុងប្រយ័ត្នតាមទម្លាប់អាស៊ីអាគ្នេយ៍។ ការតមចាប់ផ្ដើមពិតប្រាកដនៅពេលស៊ូពុហ៍ ហើយបើកបួសនៅពេលម៉ាហ្គ្រិប។",
+      km: "អ៊ឹមសាក់ = ១០ នាទីមុនស៊ុពហ៍ ជាការប្រុងប្រយ័ត្នតាមទម្លាប់អាស៊ីអាគ្នេយ៍។ ការតមចាប់ផ្ដើមពិតប្រាកដនៅពេលស៊ុពហ៍ ហើយស្រាយបួសនៅពេលម៉ាហ្គ្រិប។",
       en: "Imsak = 10 minutes before Fajr, a precaution customary in Southeast Asia. The fast itself begins at Fajr and is broken at Maghrib.",
     },
   ],

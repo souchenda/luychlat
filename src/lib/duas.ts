@@ -80,7 +80,7 @@ export const DUAS: Dua[] = [
   },
   {
     id: "iftar",
-    title: { km: "ពេលបើកបួស (អ៊ីហ្វតារ)", en: "Breaking the fast (iftar)" },
+    title: { km: "ពេលស្រាយបួស (អ៊ីហ្វតារ)", en: "Breaking the fast (iftar)" },
     arabic: "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ",
     phonetic: "ហ្សាហាបាហ្ស ហ្សោម៉អ៊ុ វ៉ាប់តាល់ឡាទិល អ៊ូរ៉ូគុ វ៉ាសាបាតាល់ អាជរុ អ៊ិនស្សាអាល់ឡោះ",
     latin: "Dhahabaẓ-ẓama’u wabtallatil-‘urūqu wa thabatal-ajru in shā’ Allāh",

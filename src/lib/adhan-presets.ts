@@ -27,7 +27,7 @@ export const ADHAN_PRESETS: AdhanPreset[] = [
 ]
 
 /** Fajr only: includes "As-salatu khayrun minan-nawm". */
-export const FAJR_ADHAN: AdhanPreset = { id: "fajr", name: { km: "អាហ្សានស៊ូពុហ៍", en: "Fajr Adhan" }, file: null, credit: null }
+export const FAJR_ADHAN: AdhanPreset = { id: "fajr", name: { km: "អាហ្សានស៊ុពហ៍", en: "Fajr Adhan" }, file: null, credit: null }
 
 export const CUSTOM_ADHAN = "custom"
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { BellRingIcon, MoonIcon, SunriseIcon, UtensilsIcon } from "lucide-react"
+import { BellRingIcon, ChevronRightIcon, MoonIcon, SunriseIcon, UtensilsIcon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import { LocationPicker, useIslamicLocation } from "@/components/islamic/location-picker"
@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { cambodiaNow, formatMinutes, imsakTime, nextFastingEvent, nextPrayer, PRAYER_ORDER, prayerTimes } from "@/lib/prayer"
+import { ISLAMIC_ARABIC } from "@/lib/islamic"
+import { FastingWisdomSheet } from "@/components/islamic/fasting-wisdom-sheet"
 import { cn } from "@/lib/utils"
 
 const LATIN: Record<string, string> = { fajr: "Fajr", sunrise: "Shuruq", dhuhr: "Dhuhr", asr: "Asr", maghrib: "Maghrib", isha: "Isha" }
@@ -24,6 +26,7 @@ function countdown(totalSeconds: number): string {
 /** Today's five prayers (plus sunrise) for the chosen place, with a live countdown to the next one. */
 export default function PrayerTimesPage() {
   const t = useT()
+  const [wisdomOpen, setWisdomOpen] = useState(false)
   const location = useIslamicLocation()
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
@@ -84,7 +87,9 @@ export default function PrayerTimesPage() {
               <p className={cn("font-mono text-lg leading-tight tabular-nums", active ? "font-bold text-primary" : sunrise && "text-muted-foreground")}>
                 {formatMinutes(today[key])}
               </p>
-              <p className="text-[10px] text-muted-foreground">{LATIN[key]}</p>
+              <p dir="rtl" lang="ar" className="font-arabic text-sm leading-snug text-muted-foreground" title={LATIN[key]}>
+                {ISLAMIC_ARABIC[key]}
+              </p>
             </li>
           )
         })}
@@ -101,19 +106,32 @@ export default function PrayerTimesPage() {
           <div className={cn("flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2", fast.kind === "imsak" && "ring-1 ring-primary")}>
             <MoonIcon className="size-4 text-indigo-500" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-[11px] text-muted-foreground">{t("fasting.imsak")}</span>
+              <span className="block text-[11px] text-muted-foreground">
+                {t("fasting.imsak")} (<span dir="rtl" lang="ar" className="font-arabic text-[13px]">{ISLAMIC_ARABIC.imsak}</span> / Imsak)
+              </span>
               <span className="block font-mono font-semibold tabular-nums">{formatMinutes(fast.kind === "imsak" ? fast.at : imsakTime(today))}</span>
             </span>
           </div>
           <div className={cn("flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2", fast.kind === "iftar" && "ring-1 ring-primary")}>
             <UtensilsIcon className="size-4 text-amber-500" aria-hidden />
             <span className="min-w-0 flex-1">
-              <span className="block text-[11px] text-muted-foreground">{t("fasting.iftar")}</span>
+              <span className="block text-[11px] text-muted-foreground">
+                {t("fasting.iftar")} (<span dir="rtl" lang="ar" className="font-arabic text-[13px]">{ISLAMIC_ARABIC.iftar}</span> / Iftar)
+              </span>
               <span className="block font-mono font-semibold tabular-nums">{formatMinutes(today.maghrib)}</span>
             </span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setWisdomOpen(true)}
+          className="-mx-1 flex min-h-11 items-center justify-between gap-2 rounded-lg px-1 text-left text-sm font-medium text-emerald-800 hover:bg-muted dark:text-emerald-300"
+        >
+          <span>{t("fasting.wisdomLink")}</span>
+          <ChevronRightIcon className="size-4 shrink-0" aria-hidden />
+        </button>
       </Card>
+      <FastingWisdomSheet open={wisdomOpen} onOpenChange={setWisdomOpen} />
 
       <PrayerAlertSettings />
 

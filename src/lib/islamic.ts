@@ -186,3 +186,55 @@ export function headerBadge(o: { islamic: boolean; hijri: HijriDate | null; loca
   if (!o.hijri) return { kind: "none" }
   return { kind: "hijri", text: `🌙 ${formatHijri(o.hijri, o.locale === "km" ? "km" : "en", { short: true })}` }
 }
+
+/** The Arabic name shown beside the Khmer one in the Islamic hub (founder, 18/10/2026). */
+export const ISLAMIC_ARABIC = {
+  prayer: "الصلاة",
+  tasbih: "التسبيح",
+  duas: "الدعاء",
+  quran: "القرآن",
+  finance: "الزكاة",
+  qibla: "القبلة",
+  fajr: "الفجر",
+  sunrise: "الشروق",
+  dhuhr: "الظهر",
+  asr: "العصر",
+  maghrib: "المغرب",
+  isha: "العشاء",
+  imsak: "الإمساك",
+  iftar: "الإفطار",
+} as const
+
+/**
+ * The fasting evidence sheet: the two verses are fetched from the Quran reader (/api/quran/2 — the Uthmani
+ * text and the official Khmer translation, unmodified); the hadiths are the meaning in Khmer / English with
+ * their sunnah.com reference (Bukhari: Fath al-Bari numbering), to be checked with a local Imam.
+ */
+export const FASTING_VERSES = [
+  { aya: 183, topic: "why" as const },
+  { aya: 187, topic: "imsakIftar" as const },
+]
+
+export const FASTING_HADITHS = [
+  {
+    source: "Sahih al-Bukhari 1894",
+    url: "https://sunnah.com/bukhari:1894",
+    title: { km: "ផលបុណ្យគ្មានដែនកំណត់ ដែលអល់ឡោះប្រទានផ្ទាល់", en: "A reward without limit, given by Allah Himself" },
+    km: "អល់ឡោះមានបន្ទូលថា៖ «ការតមបួសគឺសម្រាប់យើង ហើយយើងផ្ទាល់ជាអ្នកតបស្នងផលបុណ្យរបស់វា» — អ្នកតមបួសបានលះបង់អាហារ ភេសជ្ជៈ និងតណ្ហារបស់ខ្លួន ដើម្បីអល់ឡោះ។",
+    en: "Allah says: «Fasting is for Me, and I Myself will reward it» — the one fasting leaves food, drink and desire for My sake.",
+  },
+  {
+    source: "Sahih al-Bukhari 38",
+    url: "https://sunnah.com/bukhari:38",
+    title: { km: "អភ័យទោសបាបកម្មពីអតីតកាល", en: "Past sins forgiven" },
+    km: "អ្នកណាតមបួសក្នុងខែរ៉ាម៉ាឌន ដោយសេចក្តីជំនឿ និងសង្ឃឹមផលបុណ្យពីអល់ឡោះ បាបកម្មពីអតីតកាលរបស់គេនឹងត្រូវបានអភ័យទោស។",
+    en: "Whoever fasts Ramadan out of faith and hoping for Allah's reward will have their past sins forgiven.",
+  },
+  {
+    source: "Sahih al-Bukhari 1896",
+    url: "https://sunnah.com/bukhari:1896",
+    title: { km: "ទ្វារឋានសួគ៌ពិសេស «អ័ររ៉ាយយ៉ាន (Bab Ar-Rayyan)»", en: "The special gate of Paradise, «Ar-Rayyan»" },
+    km: "នៅក្នុងឋានសួគ៌ មានទ្វារមួយឈ្មោះថា អ័ររ៉ាយយ៉ាន សម្រាប់អ្នកតមបួស — នៅថ្ងៃបរលោក ពួកគេចូលតាមទ្វារនោះ ហើយគ្មាននរណាផ្សេងចូលតាមទ្វារនោះឡើយ។",
+    en: "In Paradise there is a gate called Ar-Rayyan: on the Day of Resurrection those who fasted enter through it, and no one else enters through it.",
+  },
+] as const
