@@ -31,6 +31,8 @@ import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
+import { handleNasheedCallback } from "@/lib/server/nasheed-review"
+import { isNasheedCallback } from "@/lib/nasheed"
 import { handleAccountCallback, handleAccountGoalReply } from "@/lib/server/account-bot"
 import { isAccountCallback } from "@/lib/bot/account-intake"
 import { isDebtLinkCallback } from "@/lib/bot/debt-match"
@@ -345,6 +347,8 @@ export async function POST(request: Request) {
       await handleAccountCallback(update.callback_query)
     } else if (isScheduledPostCallback(update.callback_query.data)) {
       await handleScheduledPostCallback(update.callback_query)
+    } else if (isNasheedCallback(update.callback_query.data)) {
+      await handleNasheedCallback(update.callback_query)
     } else if (isPosterCallback(update.callback_query.data)) {
       await handlePosterCallback(update.callback_query)
     } else if (isGroupSlipCallback(update.callback_query.data)) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { ExternalLinkIcon, Loader2Icon, PlusIcon, Trash2Icon } from "lucide-react"
+import { ExternalLinkIcon, HeartIcon, Loader2Icon, PlusIcon, Trash2Icon, UploadIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -12,14 +12,17 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useT } from "@/lib/i18n/use-t"
-import { nasheedQueue, useNasheedMutations, useNasheedTracks, type NasheedTrack } from "@/lib/nasheed-data"
+import { submissionError } from "@/lib/nasheed"
+import { nasheedQueue, useMyNasheedLikes, useNasheedMutations, useNasheedTracks, useSubmitNasheed, useToggleNasheedLike, type NasheedTrack } from "@/lib/nasheed-data"
 import { usePlan } from "@/lib/plan"
+import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 
 /**
  * /islamic/nasheed — «កសាដះ និងណាស្សីដ (قصائد وأناشيد)» (founder, 18/10/2026): recordings we hold the rights to
  * play here (the shared player: ⏮︎ ⏯︎ ⏭︎, sleep timer, car / lock-screen controls); commercial artists open
  * on their official channels. The super admin adds entries — a streamed one only with its rights note.
+ * Members share a qasidah (📤): it stays private until the founder's ✅ in Telegram; ❤️ lifts the favourites.
  */
 export default function NasheedPage() {
   const t = useT()
@@ -28,9 +31,14 @@ export default function NasheedPage() {
   const owner = plan.staff_role === "super_admin"
   const tracks = useNasheedTracks()
   const { remove } = useNasheedMutations()
+  const likes = useMyNasheedLikes()
+  const toggleLike = useToggleNasheedLike()
   const [adding, setAdding] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const list = tracks.data ?? []
-  const streamed = list.filter((x) => x.kind === "STREAM")
+  const streamed = list.filter((x) => x.kind === "STREAM" && x.status === "APPROVED")
+  // Only the submitter (and the super admin) can see a track that is not approved (RLS).
+  const waiting = list.filter((x) => x.kind === "STREAM" && x.status !== "APPROVED")
   const links = list.filter((x) => x.kind === "LINK")
   const queue = () => nasheedQueue(list, locale)
   const title = (x: NasheedTrack) => (locale === "km" ? x.title_km : (x.title_en ?? x.title_km))
@@ -64,13 +72,44 @@ export default function NasheedPage() {
           </Card>
         ) : (
           <Card className="gap-0 divide-y py-0">
-            {streamed.map((x) => (
+            {streamed.map((x) => {
+              const liked = !!likes.data?.has(x.id)
+              return (
+                <div key={x.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <PlayButton kind="nasheed" queue={queue} index={queue().findIndex((q) => q.key === `nasheed:${x.id}`)} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{title(x)}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{x.artist}</span>
+                    {(x.credit || x.submitted_by) && (
+                      <span className="block truncate text-[11px] text-muted-foreground/80">{x.credit ?? t("nasheed.byMember")}</span>
+                    )}
+                  </span>
+                  <LikeButton
+                    liked={liked}
+                    count={x.likes}
+                    label={t("nasheed.like")}
+                    onToggle={() => toggleLike.mutate({ id: x.id, liked }, { onError: () => toast.error(t("common.error")) })}
+                  />
+                  {removeButton(x)}
+                </div>
+              )
+            })}
+          </Card>
+        )}
+
+        <Button type="button" variant="outline" className="h-11 w-full" onClick={() => setSharing(true)}>
+          <UploadIcon />
+          {t("nasheed.share")}
+        </Button>
+        {waiting.length > 0 && (
+          <Card className="gap-0 divide-y py-0">
+            {waiting.map((x) => (
               <div key={x.id} className="flex items-center gap-3 px-4 py-2.5">
-                <PlayButton kind="nasheed" queue={queue} index={queue().findIndex((q) => q.key === `nasheed:${x.id}`)} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{title(x)}</span>
+                  <span className="block truncate text-sm font-medium">{x.title_km}</span>
                   <span className="block truncate text-xs text-muted-foreground">{x.artist}</span>
                 </span>
+                <span className="shrink-0 text-xs text-muted-foreground">{t(x.status === "PENDING" ? "nasheed.pending" : "nasheed.rejected")}</span>
                 {removeButton(x)}
               </div>
             ))}
@@ -105,7 +144,88 @@ export default function NasheedPage() {
         </Button>
       )}
       {owner && <AddSheet open={adding} onOpenChange={setAdding} />}
+      <ShareSheet open={sharing} onOpenChange={setSharing} />
     </div>
+  )
+}
+
+function LikeButton({ liked, count, label, onToggle }: { liked: boolean; count: number; label: string; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={liked}
+      onClick={onToggle}
+      className="flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full px-2 text-xs text-muted-foreground hover:bg-muted"
+    >
+      <HeartIcon className={cn("size-4", liked && "fill-rose-500 text-rose-500")} />
+      {count > 0 && <span className="tabular-nums">{count}</span>}
+    </button>
+  )
+}
+
+/** «📤 ចែករំលែកបទកសាដះ»: a member's recording, private until the founder approves it in Telegram. */
+function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const t = useT()
+  const submit = useSubmitNasheed()
+  const [title, setTitle] = useState("")
+  const [artist, setArtist] = useState("")
+  const [file, setFile] = useState<File | null>(null)
+  const [authentic, setAuthentic] = useState(false)
+  const [rights, setRights] = useState(false)
+
+  const send = (e: React.FormEvent) => {
+    e.preventDefault()
+    const problem = submissionError({ title, artist, file, authentic, rights })
+    if (problem || !file) return void toast.error(t(problem ?? "nasheed.fileRequired"))
+    submit.mutate(
+      { title: title.trim(), artist: artist.trim(), file, authentic, rights },
+      {
+        onSuccess: () => {
+          toast.success(t("nasheed.shared"))
+          setTitle("")
+          setArtist("")
+          setFile(null)
+          setAuthentic(false)
+          setRights(false)
+          onOpenChange(false)
+        },
+        onError: (err) => toast.error(t(err.message === "too_many" ? "nasheed.tooMany" : "common.error")),
+      },
+    )
+  }
+
+  const check = (id: string, checked: boolean, onChange: (v: boolean) => void, text: string) => (
+    <label htmlFor={id} className="flex min-h-11 items-start gap-3 rounded-xl bg-muted/50 px-3 py-2.5 text-sm">
+      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 size-5 shrink-0 accent-emerald-600" />
+      <span>{text}</span>
+    </label>
+  )
+
+  return (
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("nasheed.share")}>
+      <form onSubmit={send} className="space-y-3">
+        <p className="text-xs text-muted-foreground">{t("nasheed.shareIntro")}</p>
+        <div className="space-y-1.5">
+          <Label htmlFor="s-title">{t("nasheed.shareTitle")}</Label>
+          <Input id="s-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="s-artist">{t("nasheed.artist")}</Label>
+          <Input id="s-artist" value={artist} onChange={(e) => setArtist(e.target.value)} maxLength={120} className="h-11" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="s-file">{t("nasheed.shareFile")}</Label>
+          <Input id="s-file" type="file" accept="audio/mpeg,audio/mp4,audio/aac,audio/x-m4a,.mp3,.m4a" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="h-11" />
+        </div>
+        {check("s-authentic", authentic, setAuthentic, t("nasheed.confirmAuthentic"))}
+        {check("s-rights", rights, setRights, t("nasheed.confirmRights"))}
+        <Button type="submit" className="h-11 w-full" disabled={submit.isPending}>
+          {submit.isPending && <Loader2Icon className="animate-spin" />}
+          {t("nasheed.send")}
+        </Button>
+      </form>
+    </BottomSheet>
   )
 }
 

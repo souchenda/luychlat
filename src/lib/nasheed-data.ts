@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { Track } from "@/lib/audio-queue"
+import { audioSrc, contentTypeOf, rankTracks, submissionExt, SUBMISSIONS_BUCKET } from "@/lib/nasheed"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 /**
@@ -21,6 +22,11 @@ export type NasheedTrack = {
   rights_note: string | null
   sort: number
   active: boolean
+  status: "PENDING" | "APPROVED" | "REJECTED"
+  credit: string | null
+  submitted_by: string | null
+  likes: number
+  created_at: string
 }
 
 export const NASHEED_BUCKET = "nasheed-audio"
@@ -34,22 +40,87 @@ export function useNasheedTracks() {
     queryFn: async () => {
       const { data, error } = await db().from("nasheed_tracks").select("*").order("sort").order("created_at")
       if (error) throw error
-      return (data ?? []) as NasheedTrack[]
+      // The community's favourites rise (lib/nasheed rankTracks).
+      return rankTracks((data ?? []) as NasheedTrack[])
     },
   })
 }
 
-/** The streamed tracks as the player's queue (the bucket is public: a plain https address). */
+/** The approved streamed tracks as the player's queue: the app's own files, or the public bucket's address. */
 export function nasheedQueue(tracks: NasheedTrack[], locale: string): Track[] {
   const supabase = getSupabaseBrowserClient()
-  return tracks
-    .filter((t) => t.kind === "STREAM" && t.audio_path && t.active)
-    .map((t) => ({
-      key: `nasheed:${t.id}`,
-      title: locale === "km" ? t.title_km : (t.title_en ?? t.title_km),
-      subtitle: t.artist,
-      src: supabase ? supabase.storage.from(NASHEED_BUCKET).getPublicUrl(t.audio_path!).data.publicUrl : "",
-    }))
+  const publicUrl = (path: string) => (supabase ? supabase.storage.from(NASHEED_BUCKET).getPublicUrl(path).data.publicUrl : "")
+  return tracks.flatMap((t) => {
+    const src = t.kind === "STREAM" && t.active && t.status === "APPROVED" ? audioSrc(t.audio_path, publicUrl) : null
+    return src !== null ? [{ key: `nasheed:${t.id}`, title: locale === "km" ? t.title_km : (t.title_en ?? t.title_km), subtitle: t.artist, src }] : []
+  })
+}
+
+const LIKES_KEY = ["nasheed-likes"]
+
+/** The tracks this person has liked (their own rows only — RLS). */
+export function useMyNasheedLikes() {
+  return useQuery({
+    queryKey: LIKES_KEY,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await db().from("nasheed_likes").select("track_id")
+      if (error) throw error
+      return new Set(((data ?? []) as { track_id: string }[]).map((r) => r.track_id))
+    },
+  })
+}
+
+/** ❤️ on / off, shown at once and put right if the database refuses. */
+export function useToggleNasheedLike() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, liked }: { id: string; liked: boolean }) => {
+      const { error } = liked ? await db().from("nasheed_likes").delete().eq("track_id", id) : await db().from("nasheed_likes").insert({ track_id: id })
+      if (error) throw error
+    },
+    onMutate: ({ id, liked }) => {
+      queryClient.setQueryData<Set<string>>(LIKES_KEY, (old) => {
+        const next = new Set(old)
+        if (liked) next.delete(id)
+        else next.add(id)
+        return next
+      })
+      queryClient.setQueryData<NasheedTrack[]>(KEY, (old) => old?.map((t) => (t.id === id ? { ...t, likes: Math.max(0, t.likes + (liked ? -1 : 1)) } : t)))
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: LIKES_KEY })
+      void queryClient.invalidateQueries({ queryKey: KEY })
+    },
+  })
+}
+
+export type SubmitInput = { title: string; artist: string; file: File; authentic: boolean; rights: boolean }
+
+/** «📤 ចែករំលែកបទកសាដះ»: the file to the member's private folder, then the server records it and alerts the founder. */
+export function useSubmitNasheed() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (v: SubmitInput) => {
+      const { data: auth } = await db().auth.getUser()
+      const ext = submissionExt(v.file)
+      if (!auth.user || !ext) throw new Error("invalid")
+      const path = `${auth.user.id}/${crypto.randomUUID()}.${ext}`
+      const up = await db().storage.from(SUBMISSIONS_BUCKET).upload(path, v.file, { contentType: contentTypeOf(ext), upsert: false })
+      if (up.error) throw up.error
+      const res = await fetch("/api/nasheed/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: v.title, artist: v.artist, path, authentic: v.authentic, rights: v.rights }),
+      })
+      if (!res.ok) {
+        await db().storage.from(SUBMISSIONS_BUCKET).remove([path])
+        const body = (await res.json().catch(() => null)) as { error?: string } | null
+        throw new Error(body?.error ?? "failed")
+      }
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: KEY }),
+  })
 }
 
 export type NasheedInput = { kind: "STREAM" | "LINK"; title_km: string; title_en: string | null; artist: string; url: string | null; rights_note: string | null; file: File | null }
@@ -82,7 +153,9 @@ export function useNasheedMutations() {
     mutationFn: async (t: NasheedTrack) => {
       const { error } = await db().from("nasheed_tracks").delete().eq("id", t.id)
       if (error) throw error
-      if (t.audio_path) await db().storage.from(NASHEED_BUCKET).remove([t.audio_path])
+      // The app's own CC files ship with the app; a submission's file lives in the private bucket.
+      if (t.audio_path?.startsWith("sub:")) await db().storage.from(SUBMISSIONS_BUCKET).remove([t.audio_path.slice(4)])
+      else if (t.audio_path && !t.audio_path.startsWith("/")) await db().storage.from(NASHEED_BUCKET).remove([t.audio_path])
     },
     onSuccess: done,
   })
