@@ -31,12 +31,16 @@ describe("Adhan presets — only licensed recordings, each with its source", () 
 
 describe("resolvePreset — what plays for the stored choice", () => {
   it("the old default «makkah» (no file) plays the built-in recording, never silence", () => {
-    assert.equal(resolvePreset("makkah", false)?.id, "commons-cc0")
-    assert.equal(resolvePreset(undefined, false)?.id, "commons-cc0")
+    assert.equal(resolvePreset("makkah", false)?.id, "commons-cc0-natural")
+    assert.equal(resolvePreset(undefined, false)?.id, "commons-cc0-natural")
   })
   it("a phone file the person chose is kept", () => {
     assert.equal(resolvePreset(CUSTOM_ADHAN, true), undefined)
     assert.equal(resolvePreset("makkah", true), undefined)
+  })
+  it("Natural Pace is the default; Short Alert and Traditional Full are one tap away", () => {
+    assert.deepEqual(availablePresets().map((p) => p.id), ["commons-cc0-natural", "commons-cc0-short", "commons-cc0"])
+    assert.equal(resolvePreset("commons-cc0-short", false)?.file, "/adhan/commons-cc0-short.mp3")
   })
   it("a chosen preset with a file plays itself", () => {
     assert.equal(resolvePreset("commons-cc0", true)?.id, "commons-cc0")

@@ -20,14 +20,30 @@ export type AdhanPreset = {
 
 /** General presets (any prayer). */
 export const ADHAN_PRESETS: AdhanPreset[] = [
-  // https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg — CC0 1.0 (own work of the uploader), 2 min 34 s;
-  // downloaded 18/10/2026, SHA-1 a1fa4fd942401922c5c3301816384aae86956522, encoded with scripts/adhan-encode.sh.
-  // The page does not name the muezzin or say it is a Fajr Adhan, so it stays a general preset.
+  // All three from https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg — CC0 1.0 (own work of the uploader),
+  // 2 min 34 s; downloaded 18/10/2026, SHA-1 a1fa4fd942401922c5c3301816384aae86956522. 12 sung phrases with ~1–2.5 s
+  // between them. The page does not name the muezzin or say it is a Fajr Adhan, so they stay general presets.
+  // Natural Pace (the default, first): every phrase kept; pauses capped at 1.5 s and atempo=1.15 → 2 min 14 s:
+  //   silenceremove=stop_periods=-1:stop_duration=1.5:stop_threshold=-25dB:stop_silence=1.5,atempo=1.15,loudnorm
+  {
+    id: "commons-cc0-natural",
+    name: { km: "អាហ្សានល្បឿនធម្មជាតិ (Natural Pace)", en: "Adhan — Natural Pace" },
+    file: "/adhan/commons-cc0-natural.mp3",
+    credit: "Adam-synagda · Wikimedia Commons · CC0 1.0 · ២ នាទី ១៤ វិនាទី",
+  },
+  // Short Alert: the opening Takbeer (Allahu Akbar ×4, 0–31.1 s, cut in the pause after it), same pace, faded → 27 s.
+  {
+    id: "commons-cc0-short",
+    name: { km: "អាហ្សានកម្រិតខ្លី (Short Alert)", en: "Adhan — Short Alert" },
+    file: "/adhan/commons-cc0-short.mp3",
+    credit: "តាក់បៀរដំបូង (Allahu Akbar ×៤) · ២៧ វិនាទី · CC0 1.0",
+  },
+  // Traditional Full: the recording as published (scripts/adhan-encode.sh). Its id is kept for those who chose it.
   {
     id: "commons-cc0",
-    name: { km: "អាហ្សាន (Wikimedia Commons)", en: "Adhan (Wikimedia Commons)" },
+    name: { km: "អាហ្សានដើម (Traditional Full)", en: "Adhan — Traditional Full" },
     file: "/adhan/commons-cc0.mp3",
-    credit: "Adam-synagda · Wikimedia Commons · CC0 1.0",
+    credit: "Adam-synagda · Wikimedia Commons · CC0 1.0 · ២ នាទី ៣៤ វិនាទី",
   },
   { id: "makkah", name: { km: "ម៉ាក្កះ (Masjid al-Haram)", en: "Makkah (Masjid al-Haram)" }, file: null, credit: null },
   { id: "madinah", name: { km: "ម៉ាឌីណះ (Masjid an-Nabawi)", en: "Madinah (Masjid an-Nabawi)" }, file: null, credit: null },
