@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { eveningHtml, eveningLines } from "./evening-reminder"
+import { eveningButtons, eveningHtml, eveningLines } from "./evening-reminder"
 
 describe("20:00 reminder — short, a different one each day of the week", () => {
   it("Monday 12/10/2026 … Sunday 18/10/2026: the day's own lines", () => {
@@ -21,3 +23,18 @@ describe("20:00 reminder — short, a different one each day of the week", () =>
     for (let d = 12; d <= 18; d++) assert.doesNotMatch(eveningHtml(`2026-10-${d}`), /អែប|កម្មវិធី/)
   })
 })
+
+describe("the 20:00 post's button to the bot (founder, 18/10/2026)", () => {
+  it("one inline URL button «🤖 ចុចទីនេះដើម្បីបិទបញ្ជី» → https://t.me/luychlat_bot", () => {
+    assert.deepEqual(eveningButtons(), { inline_keyboard: [[{ text: "🤖 ចុចទីនេះដើម្បីបិទបញ្ជី", url: "https://t.me/luychlat_bot" }]] })
+  })
+  it("the publisher sends the 20:00 post as text with that keyboard", () => {
+    const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    const evening = sp.slice(sp.indexOf('if (row.kind === "EVENING") {', sp.indexOf("async publish(row)")), sp.indexOf('if (row.kind === "SPOTLIGHT") {', sp.indexOf("async publish(row)")))
+    assert.match(evening, /tg<\{ message_id: number \}>\("sendMessage", \{/)
+    assert.match(evening, /text: eveningText\(String\(row\.payload\.day\)\)/)
+    assert.match(evening, /reply_markup: eveningButtons\(\)/)
+    assert.doesNotMatch(evening, /sendPosterPhoto/) // light text, no poster
+  })
+})
+

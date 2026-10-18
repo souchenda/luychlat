@@ -27,3 +27,13 @@ export function eveningHtml(day: string): string {
   const [title, ask, how] = eveningLines(day)
   return [`<b>${esc(title)}</b>`, esc(ask), esc(how)].join("\n")
 }
+
+/** The bot the 20:00 post sends people to (the channel post's only button). */
+export const EVENING_BOT_URL = "https://t.me/luychlat_bot"
+export const EVENING_BUTTON_TEXT = "🤖 ចុចទីនេះដើម្បីបិទបញ្ជី"
+
+/**
+ * The 20:00 channel post's button (founder, 18/10/2026 — the text says «send today's figures to the Bot» but
+ * readers had nothing to tap): one URL button to the bot, the post itself stays a light text message.
+ */
+export const eveningButtons = () => ({ inline_keyboard: [[{ text: EVENING_BUTTON_TEXT, url: EVENING_BOT_URL }]] })

@@ -22,6 +22,7 @@ import {
   type PostStatus,
   type Targets,
 } from "@/lib/scheduled-posts"
+import { eveningButtons } from "@/lib/evening-reminder"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
 import { bulletinPreview, publishBulletin } from "@/lib/server/community-bulletin"
@@ -323,7 +324,17 @@ const realDeps = (): SchedulerDeps => ({
       return ids
     }
     if (row.kind === "EVENING") {
-      if (chat) ids.telegram = await sentText(eveningText(String(row.payload.day)), true)
+      // A light text message with ONE button to the bot (lib/evening-reminder.ts eveningButtons).
+      if (chat) {
+        const res = await tg<{ message_id: number }>("sendMessage", {
+          chat_id: chat,
+          text: eveningText(String(row.payload.day)),
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+          reply_markup: eveningButtons(),
+        })
+        ids.telegram = res.ok && res.result ? res.result.message_id : null
+      }
       return ids
     }
     if (row.kind === "SPOTLIGHT") {
