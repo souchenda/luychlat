@@ -3,7 +3,8 @@ import { existsSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { ADHAN_PRESETS, availablePresets, CUSTOM_ADHAN, FAJR_ADHAN, resolvePreset } from "./adhan-presets"
+import { ADHAN_PRESETS, adhanForPrayer, availablePresets, CUSTOM_ADHAN, FAJR_ADHAN, hasFajrRecording, resolvePreset } from "./adhan-presets"
+import { ISLAMIC_ARABIC } from "./islamic"
 
 describe("Adhan presets — only licensed recordings, each with its source", () => {
   it("every preset with a file has a credit line and the file is in /public", () => {
@@ -44,5 +45,24 @@ describe("resolvePreset — what plays for the stored choice", () => {
   })
   it("a chosen preset with a file plays itself", () => {
     assert.equal(resolvePreset("commons-cc0", true)?.id, "commons-cc0")
+  })
+})
+
+describe("Fajr Adhan — the Tathweeb at Fajr only", () => {
+  const fajr = { id: "fajr", name: { km: "អាហ្សានស៊ុពហ៍", en: "Fajr Adhan" }, file: "/adhan/fajr.mp3", credit: "test" }
+  it("with a Fajr recording: it plays at Fajr (switch on), never at the other four", () => {
+    assert.equal(adhanForPrayer("fajr", "commons-cc0-natural", true, false, fajr).presetFile, "/adhan/fajr.mp3")
+    for (const p of ["dhuhr", "asr", "maghrib", "isha"]) assert.equal(adhanForPrayer(p, "commons-cc0-natural", true, false, fajr).presetFile, "/adhan/commons-cc0-natural.mp3")
+    assert.equal(adhanForPrayer("fajr", "commons-cc0-natural", false, false, fajr).presetFile, "/adhan/commons-cc0-natural.mp3")
+  })
+  it("without one (today): Fajr plays the chosen general Adhan, and the prayer page says so", () => {
+    assert.equal(hasFajrRecording(), false)
+    assert.equal(adhanForPrayer("fajr", "commons-cc0-short", true, false).presetFile, "/adhan/commons-cc0-short.mp3")
+    const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/prayer/page.tsx"), "utf8")
+    assert.match(page, /\{!hasFajrRecording\(\) && <p[^>]*>\{t\("prayer\.fajrNoteNoRecording"\)\}/)
+  })
+  it("the phrase is written in Arabic letters only (no Khmer «ម» in «النوم»)", () => {
+    assert.equal(ISLAMIC_ARABIC.tathweeb, "الصَّلَاةُ خَيْرٌ مِنَ النَّوْمِ")
+    assert.doesNotMatch(ISLAMIC_ARABIC.tathweeb, /[ក-៿]/)
   })
 })

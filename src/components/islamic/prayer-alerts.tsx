@@ -9,10 +9,10 @@ import { useIslamicLocation } from "@/components/islamic/location-picker"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { availablePresets, CUSTOM_ADHAN, FAJR_ADHAN, presetById, resolvePreset } from "@/lib/adhan-presets"
+import { adhanForPrayer, availablePresets, CUSTOM_ADHAN, FAJR_ADHAN, presetById, resolvePreset } from "@/lib/adhan-presets"
 import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { cambodiaNow, formatMinutes, prayerTimes, type PrayerKey } from "@/lib/prayer"
+import { cambodiaNow, formatMinutes, prayerTimes } from "@/lib/prayer"
 import {
   ADHAN_MAX_BYTES,
   alertId,
@@ -34,12 +34,6 @@ import { cn } from "@/lib/utils"
 import { useIslamicLocalStore, type AlertSound } from "@/stores/islamic-local-store"
 import { useLocaleStore } from "@/stores/locale-store"
 
-/** The recording for a prayer: the Fajr Adhan at Fajr (when on), else the chosen preset, else the phone's file. */
-function adhanFor(prayer: PrayerKey | null, presetId: string, fajrAdhan: boolean, hasCustomFile: boolean): { presetFile?: string; presetId?: string } {
-  if (prayer === "fajr" && fajrAdhan && FAJR_ADHAN.file) return { presetFile: FAJR_ADHAN.file, presetId: FAJR_ADHAN.id }
-  const preset = resolvePreset(presetId, hasCustomFile)
-  return preset?.file ? { presetFile: preset.file, presetId: preset.id } : {}
-}
 
 const usePlaying = () => useSyncExternalStore(onPlaybackChange, currentSource, () => null)
 
@@ -71,7 +65,7 @@ export function PrayerAlertScheduler() {
       const adhan = alertSound === "adhan"
       void showPrayerNotification(title, body, `prayer-${key}`, adhan ? t("prayerAlert.stopAdhan") : undefined)
       if (alertSound === "chime") playChime()
-      if (adhan) void playAdhan({ ...adhanFor(key, adhanPreset, fajrAdhan, !!adhanName), title })
+      if (adhan) void playAdhan({ ...adhanForPrayer(key, adhanPreset, fajrAdhan, !!adhanName), title })
       if (document.visibilityState === "visible") {
         toast(title, {
           description: body,

@@ -12,6 +12,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { cambodiaNow, formatMinutes, imsakTime, nextFastingEvent, nextPrayer, PRAYER_ORDER, prayerTimes } from "@/lib/prayer"
 import { fastingRuling, ISLAMIC_ARABIC, toHijri } from "@/lib/islamic"
 import { useIslamicDefaults } from "@/lib/islamic-settings"
+import { hasFajrRecording } from "@/lib/adhan-presets"
 import { FastingWisdomSheet } from "@/components/islamic/fasting-wisdom-sheet"
 import { cn } from "@/lib/utils"
 
@@ -98,6 +99,17 @@ export default function PrayerTimesPage() {
           )
         })}
       </ul>
+
+      {/* The Fajr Adhan's Tathweeb — at Fajr only (lib/adhan-presets adhanForPrayer). */}
+      <Card className="gap-1.5 px-4 py-3">
+        <p className="text-sm">{t("prayer.fajrNote")}</p>
+        <p dir="rtl" lang="ar" className="text-center font-arabic text-xl leading-relaxed text-emerald-800 dark:text-emerald-300">
+          {ISLAMIC_ARABIC.tathweeb}
+        </p>
+        <p className="text-center text-xs text-muted-foreground">{t("prayer.fajrNoteMeaning")}</p>
+        <p className="text-xs text-muted-foreground">{t("prayer.fajrNoteOthers")}</p>
+        {!hasFajrRecording() && <p className="text-[11px] text-muted-foreground">{t("prayer.fajrNoteNoRecording")}</p>}
+      </Card>
 
       <Card className="gap-2 px-4 py-3">
         <div className="flex items-center justify-between gap-2">

@@ -190,6 +190,8 @@ export function headerBadge(o: { islamic: boolean; hijri: HijriDate | null; loca
 /** The Arabic name shown beside the Khmer one in the Islamic hub (founder, 18/10/2026). */
 export const ISLAMIC_ARABIC = {
   prayer: "الصلاة",
+  /** The Fajr Adhan's Tathweeb, said twice after «حي على الفلاح» — at Fajr only. */
+  tathweeb: "الصَّلَاةُ خَيْرٌ مِنَ النَّوْمِ",
   tasbih: "التسبيح",
   duas: "الدعاء",
   quran: "القرآن",

@@ -51,7 +51,11 @@ export const ADHAN_PRESETS: AdhanPreset[] = [
   { id: "aqsa", name: { km: "អាល់អាក់សា (Al-Aqsa)", en: "Al-Aqsa (Jerusalem)" }, file: null, credit: null },
 ]
 
-/** Fajr only: includes "As-salatu khayrun minan-nawm". */
+/**
+ * Fajr only: the Fajr Adhan has the Tathweeb «الصَّلَاةُ خَيْرٌ مِنَ النَّوْمِ» twice after «حَيَّ عَلَى الْفَلَاحِ»; the
+ * other four never do. Set `file` (and `credit`) once a licensed Fajr recording is added — it then plays at Fajr
+ * only, and the «អាហ្សានស៊ុពហ៍» switch appears in the alert settings.
+ */
 export const FAJR_ADHAN: AdhanPreset = { id: "fajr", name: { km: "អាហ្សានស៊ុពហ៍", en: "Fajr Adhan" }, file: null, credit: null }
 
 export const CUSTOM_ADHAN = "custom"
@@ -70,3 +74,22 @@ export function resolvePreset(id: string | null | undefined, hasCustomFile: bool
   if (chosen) return chosen
   return hasCustomFile ? undefined : availablePresets()[0]
 }
+
+/**
+ * The recording for a prayer: the Fajr Adhan (with the Tathweeb) at Fajr only — when it exists and the switch is
+ * on — else the chosen preset, else the phone's file ({}). Dhuhr, Asr, Maghrib and Isha never get the Fajr Adhan.
+ */
+export function adhanForPrayer(
+  prayer: string | null,
+  presetId: string | null | undefined,
+  fajrSwitch: boolean,
+  hasCustomFile: boolean,
+  fajr: AdhanPreset = FAJR_ADHAN,
+): { presetFile?: string; presetId?: string } {
+  if (prayer === "fajr" && fajrSwitch && fajr.file) return { presetFile: fajr.file, presetId: fajr.id }
+  const preset = resolvePreset(presetId, hasCustomFile)
+  return preset?.file ? { presetFile: preset.file, presetId: preset.id } : {}
+}
+
+/** Whether the app has its own Fajr recording yet (the prayer page says so honestly when not). */
+export const hasFajrRecording = () => Boolean(FAJR_ADHAN.file)
