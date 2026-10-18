@@ -2,7 +2,8 @@ import Anthropic from "@anthropic-ai/sdk"
 import { NextResponse } from "next/server"
 
 import { advisorRequestSchema, type AdvisorRequest } from "@/lib/advisor/payload"
-import { DOMAIN_RULE, isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
+import { isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
+import { advisorPlainText, advisorSystemPrompt } from "@/lib/advisor/prompt"
 import { guardRequest, readJson } from "@/lib/server/guard"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -19,26 +20,7 @@ export const maxDuration = 60
 
 const CLAUDE_MODEL = "claude-opus-5-5"
 
-function systemPrompt(req: AdvisorRequest) {
-  const language = req.language === "km" ? "Khmer (ភាសាខ្មែរ)" : "English"
-  return [
-    DOMAIN_RULE,
-    "You are App Luy Chlat's financial advisor for people and small businesses in Cambodia.",
-    `Always answer in ${language}. Keep answers short and practical for a phone screen: a one-line summary, then at most 5 bullet points.`,
-    "Answer the person's exact question first, specifically; never reply with a generic summary of their data, and never repeat an earlier answer — build on the conversation so far.",
-    "Base every number on the JSON data below; never invent figures. Amounts are USD equivalents; khrPerUsd converts to riel (៛).",
-    "avgIncome / avgExpense come from `basis`: \"history\" = the average of incomeMonths / expenseMonths previous months that have records, \"this_month\" = this month (expense projected to a full month). Say which when you quote them. thisMonth is the current month so far; topExpenses are this month's.",
-    "Money left to save each month = avgIncome − avgExpense − monthlyDebtService; say it is an estimate.",
-    "Debts are anonymous references (P1, P2 = money the user owes; R1 = money owed to the user). Refer to them by these references.",
-    "When asked which debt to pay first, compare Debt Snowball (smallest balance first) and Debt Avalanche (highest interest first) using the balances, rates and due dates.",
-    "Debt-to-income (dti) is monthlyDebtService / avgIncome; above 0.36 is high, above 0.5 is risky. shortfall30 > 0 means payables due within 30 days exceed projected cash.",
-    "score is a 300–850 financial health score (like a credit score): 740+ excellent, 670+ good, 580+ fair, below that needs work. scoreFactors (0–1 each) are its weighted parts: repayment 40% (no overdue payables), dti 30%, savings 20% (savings rate), buffer 10% (months of spending held as cash). When asked how to raise the score, start with the factor that has the most points left (weight × (1 − value) × 550) and give concrete, numbered steps with amounts.",
-    "You give general guidance, not licensed financial advice; mention this briefly only when recommending a significant decision.",
-    "",
-    "Financial data (JSON):",
-    JSON.stringify(req.snapshot),
-  ].join("\n")
-}
+const systemPrompt = (req: AdvisorRequest) => advisorSystemPrompt(req)
 
 function conversation(req: AdvisorRequest) {
   // The API expects the conversation to start with a user turn.
@@ -90,17 +72,77 @@ async function askOpenAI(req: AdvisorRequest): Promise<string> {
   return data?.choices?.[0]?.message?.content?.trim() ?? ""
 }
 
+/** Gemini Flash — the server's GEMINI_API_KEY (the model the Telegram bot uses). */
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+
+type GeminiResponse = {
+  candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[]
+  promptFeedback?: { blockReason?: string }
+}
+
+/** The answer from Gemini; throws on HTTP / network errors (the client then answers offline). */
+async function askGemini(req: AdvisorRequest, apiKey: string): Promise<string> {
+  const contents = conversation(req).map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }))
+  const request = () =>
+    fetch(GEMINI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt(req) }] },
+        contents,
+        // Low thinking: ~5 s instead of 40–100 s (measured on production, 18/10/2026); "minimal" is refused.
+        generationConfig: { temperature: 0.4, maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "low" } },
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(45_000),
+    })
+  // "High demand" (503) and rate limits (429) are usually brief: try again — only while the 60 s route has time.
+  const started = Date.now()
+  let res = await request()
+  for (const wait of [1500, 4000]) {
+    if (res.ok || !(res.status === 429 || res.status >= 500) || Date.now() - started > 12_000) break
+    await new Promise((resolve) => setTimeout(resolve, wait))
+    res = await request()
+  }
+  if (!res.ok) {
+    console.error(`[advisor] gemini failed: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`)
+    const error = new Error(`gemini ${res.status}`) as Error & { status: number }
+    error.status = res.status === 429 ? 429 : 502
+    throw error
+  }
+  const body = (await res.json()) as GeminiResponse
+  const candidate = body.candidates?.[0]
+  if (body.promptFeedback?.blockReason || candidate?.finishReason === "SAFETY" || candidate?.finishReason === "PROHIBITED_CONTENT") {
+    return req.language === "km" ? "សូមអភ័យទោស ខ្ញុំមិនអាចឆ្លើយសំណួរនេះបានទេ។" : "Sorry, I can't help with that request."
+  }
+  const text = advisorPlainText(
+    (candidate?.content?.parts ?? [])
+      .filter((p) => !p.thought)
+      .map((p) => p.text ?? "")
+      .join(""),
+  )
+  if (!text) throw Object.assign(new Error("gemini empty"), { status: 502 })
+  return text
+}
+
+/** LuyChlat AI's model: Gemini (GEMINI_API_KEY, founder 18/10/2026) first; Claude only when that key is set instead. */
+const luyChlatModel = (): { name: "gemini" | "claude"; key: string } | null => {
+  const gemini = process.env.GEMINI_API_KEY?.trim()
+  if (gemini) return { name: "gemini", key: gemini }
+  const claude = process.env.ANTHROPIC_API_KEY?.trim()
+  return claude ? { name: "claude", key: claude } : null
+}
+
 type Quota = { ok: boolean; reason?: "plan_required" | "quota_exceeded" | "daily_quota"; used: number; limit: number; daily?: boolean }
 
 /**
- * Pro AI: LuyChlat's own Anthropic key (server-only ANTHROPIC_API_KEY). The
- * signed-in user is verified with auth.getUser(), the plan and monthly quota
- * are checked in the database before the call, and one query is counted
- * only after a successful answer.
+ * Pro AI with the server's own key (luyChlatModel: Gemini, else Claude). The signed-in user is verified with
+ * auth.getUser(), the plan and monthly quota are checked in the database before the call, and one query is
+ * counted only after a successful answer. A failure → an error code, and the app answers offline.
  */
 async function askLuyChlat(req: AdvisorRequest) {
-  const serverKey = process.env.ANTHROPIC_API_KEY
-  if (!serverKey) return NextResponse.json({ error: "ai_unavailable" }, { status: 503 })
+  const model = luyChlatModel()
+  if (!model) return NextResponse.json({ error: "ai_unavailable" }, { status: 503 })
   const supabase = await createSupabaseServerClient()
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) return NextResponse.json({ error: "not_signed_in" }, { status: 401 })
@@ -113,19 +155,19 @@ async function askLuyChlat(req: AdvisorRequest) {
   if (!quota.ok) return NextResponse.json({ error: quota.reason, quota }, { status: 402 })
 
   try {
-    const text = await askClaude(req, serverKey)
+    const text = model.name === "gemini" ? await askGemini(req, model.key) : await askClaude(req, model.key)
     const used = await supabase.rpc("use_ai_query", { p_commit: true })
     return NextResponse.json({ text, quota: used.data ?? quota })
   } catch (error) {
     // Never blame the user's key here: it's ours.
-    if (error instanceof Anthropic.RateLimitError) return NextResponse.json({ error: "rate_limited" }, { status: 429 })
+    if (error instanceof Anthropic.RateLimitError || (error as { status?: number }).status === 429) return NextResponse.json({ error: "rate_limited" }, { status: 429 })
     return NextResponse.json({ error: "provider_error" }, { status: 502 })
   }
 }
 
 /** Whether LuyChlat AI (the server's own key) is configured — the app then uses it for Pro accounts by default. */
 export async function GET() {
-  return NextResponse.json({ luysmart: Boolean(process.env.ANTHROPIC_API_KEY) })
+  return NextResponse.json({ luysmart: Boolean(luyChlatModel()) })
 }
 
 export async function POST(request: Request) {
