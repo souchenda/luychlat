@@ -395,12 +395,11 @@ async function hijriOffset(): Promise<number> {
   hijriOffsetCache = { value, at: Date.now() }
   return value
 }
-const nextDay = (day: string) => new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
 
 /** One Islamic post's content (poster and caption), with the admin's Hijri offset. */
 async function islamicContent(kind: IslamicKind, day: string) {
   const offset = await hijriOffset()
-  return islamicPostContent(kind, day, toHijri(dateOf(day), offset), toHijri(dateOf(nextDay(day)), offset))
+  return islamicPostContent(kind, day, toHijri(dateOf(day), offset))
 }
 
 let scheduler: ReturnType<typeof createScheduler> | null = null

@@ -49,31 +49,28 @@ describe("GOLDEN · published wording", () => {
     const hijri = { day: 8, month: 5, year: 1448 }
     for (const kind of ISLAMIC_KINDS)
       for (const d of ["2026-10-18", "2026-10-21", "2026-10-23"]) {
-        const c = islamicPostContent(kind, d, hijri, hijri)
+        const c = islamicPostContent(kind, d, hijri)
         const text = [islamicCaptionHtml(c), ...(c.posterParagraphs ?? []), c.pill, c.title, c.hijriShort ?? ""].join("\n")
         for (const bad of MACHINE) assert.ok(!text.includes(bad), `${kind} ${d}: «${bad}»`)
       }
   })
-  it("@LuyChlatIslamic posters are timeless: never «ស្អែក» on the image — only in the caption; «ហូបបាយបួស (សាហួរ)», never «អាហារសាហួរ» (18/10/2026)", () => {
-    const hijri = { day: 8, month: 5, year: 1448 }
+  it("@LuyChlatIslamic fast reminder: dated the day it is posted, titled for tomorrow; «ហូបបាយបួស (សាហួរ)», never «អាហារសាហួរ» (founder, 18/10/2026 evening)", () => {
+    const today = { day: 7, month: 5, year: 1448 }
     for (const kind of ISLAMIC_KINDS)
       for (const d of ["2026-10-18", "2026-10-21", "2026-10-23"]) {
-        const c = islamicPostContent(kind, d, hijri, hijri)
-        const poster = [c.pill, c.title, c.date, c.posterDate ?? "", c.hijriShort ?? "", ...(c.posterParagraphs ?? c.paragraphs)].join(" | ")
-        assert.ok(!poster.includes("ស្អែក"), `${kind} ${d}: «ស្អែក» on the poster`)
-        assert.ok(!(poster + islamicCaptionHtml(c)).includes("អាហារសាហួរ"), `${kind} ${d}: «អាហារសាហួរ»`)
+        const c = islamicPostContent(kind, d, today)
+        assert.ok(!(c.pill + c.title + islamicCaptionHtml(c)).includes("អាហារសាហួរ"), `${kind} ${d}: «អាហារសាហួរ»`)
       }
-    const sunday = islamicPostContent("ISLAMIC_FAST", "2026-10-18", null, hijri)
-    assert.equal(sunday.title, "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ (صِيَام يَوْم الإِثْنَيْن)")
-    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", null, hijri).title, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ (صِيَام يَوْم الخَمِيس)")
-    assert.equal(sunday.date, "ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦") // the fast day itself
+    const sunday = islamicPostContent("ISLAMIC_FAST", "2026-10-18", today)
+    assert.equal(sunday.title, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃច័ន្ទស្អែក (صِيَام الإِثْنَيْن)")
+    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).title, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ស្អែក (صِيَام الخَمِيس)")
+    assert.equal(sunday.posterDate, "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.") // the publish day
+    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).date, "ថ្ងៃពុធ ២១ តុលា ២០២៦")
+    assert.equal(sunday.fast?.day, "ថ្ងៃច័ន្ទ") // the boxes are tomorrow's
     const caption = islamicCaptionHtml(sunday)
+    assert.ok(caption.startsWith("🌙 <b>ថ្ងៃទី០៧ ខែជូម៉ាដាល់អ៊ូឡា ឆ្នាំ១៤៤៨"), caption) // the caption is dated the same day
     assert.ok(caption.includes("🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖</b>"), caption)
-    const sahur = "សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ០៤:២៣ និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។"
-    assert.ok(caption.includes(sahur))
-    assert.ok((sunday.posterParagraphs ?? []).includes(sahur)) // on the poster too
-    assert.equal(sunday.posterDate, "ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.")
-    assert.ok(!readFileSync(join(process.cwd(), "src/lib/server/islamic-poster.ts"), "utf8").includes("ស្អែក"))
+    assert.ok(caption.includes("សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ០៤:២៣ និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។"))
   })
 })
 

@@ -51,7 +51,7 @@ describe("Islamic hub — the founder's terms", () => {
     assert.equal(SUNNAH_FAST_HADITH.url, "https://sunnah.com/bukhari:2840")
   })
   it("the channel (founder, 18/10/2026): អ៊ឹមសាក់ / ស្រាយបួស / ហូបបាយបួស (សាហួរ) / នីយ៉ាត់ / ជូម៉ាអះ / បារ៉ាកាត់ with their Arabic; never the machine words", () => {
-    const fast = islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", "2026-10-18", null, { day: 8, month: 5, year: 1448 }))
+    const fast = islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", "2026-10-18", null))
     const jumuah = islamicCaptionHtml(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", { day: 12, month: 5, year: 1448 }))
     assert.match(fast, /អ៊ឹមសាក់ \(Imsak \/ الإمساك\) [០-៩]{2}:[០-៩]{2} · ស្រាយបួស \(Iftar \/ الإفطار\) [០-៩]{2}:[០-៩]{2}/)
     assert.match(fast, /ហូបបាយបួស \(សាហួរ \/ السَّحُور\)/)

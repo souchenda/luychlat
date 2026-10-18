@@ -25,10 +25,14 @@ export const IFTAR_CARD = `${IFTAR} (Iftar)`
 export const NIYYAH = "នីយ៉ាត់"
 export const NIYYAH_LABEL = `${NIYYAH} (Niyyah / النِّيَّة)`
 
-/** The fast-day poster titles — the day itself, never «ស្អែក…» on a poster. */
-export const SCHEDULE_TITLES = {
-  monday: `${SUNNAH_FAST} ថ្ងៃច័ន្ទ (صِيَام يَوْم الإِثْنَيْن)`,
-  thursday: `${SUNNAH_FAST} ថ្ងៃព្រហស្បតិ៍ (صِيَام يَوْم الخَمِيس)`,
+/**
+ * The fast reminder's poster titles. The poster is dated the day it is POSTED (Sunday / Wednesday evening) and
+ * reminds of tomorrow's fast (founder, 18/10/2026 evening — replaces the afternoon's «fast-day card» dated
+ * tomorrow, which readers took for today's date).
+ */
+export const REMINDER_TITLES = {
+  monday: `រំលឹកត្រៀម${SUNNAH_FAST} ថ្ងៃច័ន្ទស្អែក (صِيَام الإِثْنَيْن)`,
+  thursday: `រំលឹកត្រៀម${SUNNAH_FAST} ថ្ងៃព្រហស្បតិ៍ស្អែក (صِيَام الخَمِيس)`,
 } as const
 
 /** The caption's timely first line (after «🌙»): «រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖». */

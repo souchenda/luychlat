@@ -106,7 +106,8 @@ export type IslamicPostContent = {
   /** Shorter text for the poster when the caption's would not fit (the caption always has it all). */
   posterParagraphs?: string[]
   source: { label: string; url: string }
-  fast?: { imsak: string; iftar: string; place: string }
+  /** Tomorrow's Imsak / Iftar (`day`: the fast day's name, «ថ្ងៃច័ន្ទ»). */
+  fast?: { imsak: string; iftar: string; place: string; day?: string }
 }
 
 const FAST_PLACE = PROVINCES[0] // ភ្នំពេញ
@@ -119,23 +120,22 @@ export function fastTimes(day: string): { imsak: string; iftar: string; place: s
   return { imsak: kmClockOf(imsakTime(t)), iftar: kmClockOf(t.maghrib), place: FAST_PLACE.km }
 }
 
-export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriDate | null, hijriTomorrow: HijriDate | null = null): IslamicPostContent {
+export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriDate | null): IslamicPostContent {
   if (kind === "ISLAMIC_FAST") {
-    // The poster is a timeless card for the fast day itself (founder, 18/10/2026: «ថ្ងៃច័ន្ទ ១៩ តុលា» beside
-    // «ស្អែកថ្ងៃច័ន្ទ» confused people) — never «ស្អែក» / «យប់នេះ» on it; the caption is the timely reminder.
+    // Dated the day it is POSTED (Sunday / Wednesday) and titled for tomorrow's fast (founder, 18/10/2026
+    // evening); the Imsak / Iftar boxes are tomorrow's, and say so.
     const monday = weekdayOf(day) === 0
-    const fastDay = addDays(day, 1)
     const times = fastTimes(day)
     return {
       kind,
       pill: `កាលវិភាគ${G.SUNNAH_FAST}`,
-      hijri: hijriTomorrow ? formatHijri(hijriTomorrow, "km") : null,
-      hijriShort: hijriTomorrow ? formatHijri(hijriTomorrow, "km", { short: true }) : null,
-      date: kmDay(fastDay),
-      title: monday ? G.SCHEDULE_TITLES.monday : G.SCHEDULE_TITLES.thursday,
+      hijri: hijri ? formatHijri(hijri, "km") : null,
+      hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
+      date: kmDay(day),
+      title: monday ? G.REMINDER_TITLES.monday : G.REMINDER_TITLES.thursday,
       lead: `🌙 <b>${G.fastReminderLead(monday ? "monday" : "thursday")}</b>`,
-      // One line on the poster: the fast day, Gregorian and Hijri (founder, 18/10/2026).
-      posterDate: `${kmDay(fastDay)}${hijriTomorrow ? ` · ${formatHijri(hijriTomorrow, "km", { short: true })}` : ""}`,
+      // One line on the poster: the publish day, Gregorian and Hijri («ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ៧ … ហ.ស.»).
+      posterDate: `${kmDay(day)}${hijri ? ` · ${formatHijri(hijri, "km", { short: true })}` : ""}`,
       paragraphs: [
         G.sahurReminder(times.imsak),
         `ការបួសនេះជាស៊ុណ្ណា — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
@@ -145,7 +145,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
         `${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ព្រោះអំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
       ],
       source: { label: "Jami' at-Tirmidhi 747", url: "https://sunnah.com/tirmidhi:747" },
-      fast: times,
+      fast: { ...times, day: monday ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍" },
     }
   }
   if (kind === "ISLAMIC_JUMUAH") {
@@ -196,8 +196,8 @@ export function islamicCaptionHtml(c: IslamicPostContent): string {
 /** 08:00 — the Hijri date and today's halal-finance lesson (one of the 14), with its exact source. */
 export const islamicDailyHtml = (day: string, hijri: HijriDate | null) => islamicCaptionHtml(islamicPostContent("ISLAMIC_DAILY", day, hijri))
 
-/** Sunday / Wednesday 19:00 — tomorrow's sunnah fast (Monday / Thursday), with Imsak and Iftar. */
-export const sunnahFastHtml = (day: string, hijriTomorrow: HijriDate | null) => islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", day, null, hijriTomorrow))
+/** Sunday / Wednesday 19:00 (dated that day) — tomorrow's sunnah fast (Monday / Thursday), with Imsak and Iftar. */
+export const sunnahFastHtml = (day: string, hijri: HijriDate | null) => islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", day, hijri))
 
 /** Friday 09:00 — Jumu'ah. */
 export const jumuahHtml = (day: string, hijri: HijriDate | null) => islamicCaptionHtml(islamicPostContent("ISLAMIC_JUMUAH", day, hijri))

@@ -41,7 +41,7 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     assert.deepEqual(hits, [])
   })
   it("every glossary term comes from the glossary — none typed by hand elsewhere", () => {
-    const terms = [G.IMSAK, G.IFTAR, G.SAHUR, G.NIYYAH, G.JUMUAH, G.BARAKAH, G.HIJRI_ERA, G.PROPHET, G.SUNNAH_FAST, "صِيَام يَوْم", G.JUMUAH_ARABIC]
+    const terms = [G.IMSAK, G.IFTAR, G.SAHUR, G.NIYYAH, G.JUMUAH, G.BARAKAH, G.HIJRI_ERA, G.PROPHET, G.SUNNAH_FAST, "صِيَام", G.JUMUAH_ARABIC]
     const hits = files.flatMap(({ f, src }) => terms.filter((t) => src.includes(t)).map((t) => `${f}: «${t}» → import it from lib/islamic/glossary`))
     assert.deepEqual(hits, [])
   })
@@ -57,14 +57,13 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     assert.equal(G.HIJRI_ERA, "ហ.ស.")
     assert.equal(G.JUMUAH_LABEL, "ជូម៉ាអះ (Jumu'ah / الجُمُعَة)")
     assert.equal(G.BARAKAH_LABEL, "បារ៉ាកាត់ (Barakah / بَرَكَة)")
-    assert.equal(G.SCHEDULE_TITLES.monday, "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ (صِيَام يَوْم الإِثْنَيْن)")
-    assert.equal(G.SCHEDULE_TITLES.thursday, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ (صِيَام يَوْم الخَمِيس)")
+    assert.equal(G.REMINDER_TITLES.monday, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃច័ន្ទស្អែក (صِيَام الإِثْنَيْن)")
+    assert.equal(G.REMINDER_TITLES.thursday, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ស្អែក (صِيَام الخَمِيس)")
     assert.equal(G.fastReminderLead("monday"), "រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖")
     assert.equal(
       G.sahurReminder("០៤:២៣"),
       "សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ០៤:២៣ និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។",
     )
-    for (const t of Object.values(G.SCHEDULE_TITLES)) assert.ok(!t.includes("ស្អែក"))
   })
   it("the posters, the channel captions and the AI advisor import the glossary", () => {
     for (const f of ["lib/islamic-channel.ts", "lib/server/islamic-poster.ts", "lib/server/poster-kit.ts", "lib/advisor/prompt.ts", "lib/islamic.ts", "lib/i18n/dictionaries.ts"]) {
