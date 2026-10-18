@@ -185,14 +185,16 @@ export default function HomePage() {
                 onClick={() => setTransferOpen(true)}
                 disabled={active.length < 2}
               />
-      {/* The signature dashboard (founder, 17/10/2026): the spending pulse, then the smart hub — the K-Score
-          (the person's own: Personal only) and the next obligation within a week. */}
-      <SpendingTrendCard transactions={transactions} categories={categoriesQuery.data ?? []} />
-      <SmartHub workspaceId={ws} personal={workspace?.type === "PERSONAL"} />
             </>
           )
         }
       />
+
+      {/* The signature dashboard (founder, 17/10/2026): the spending pulse, then the smart hub — the K-Score
+          (the person's own: Personal only) and the next obligation within a week. Siblings BELOW the hero card,
+          full width — never inside its action column (18/10/2026: nested, they were squashed into ~100 px). */}
+      <SpendingTrendCard transactions={transactions} categories={categoriesQuery.data ?? []} />
+      <SmartHub workspaceId={ws} personal={workspace?.type === "PERSONAL"} />
 
 
       {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}

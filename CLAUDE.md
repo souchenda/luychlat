@@ -16,6 +16,9 @@ use come before feature count: no half-baked features, broken links or untested 
 4. **Tests before push:** `npm test` (0 failures), `npx tsc --noEmit -p .`, `npx eslint <files>`.
    Pure logic lives in `src/lib/**` with a `*.test.ts` beside it.
 5. **Mobile-first:** glanceable, large touch targets, iPhone safe areas, clean Khmer typography.
+6. **Dashboard layout (founder, 18/10/2026):** dashboard components (charts, lists, hubs) must be standalone
+   siblings below the hero card, never nested inside it. The hero holds only the balance, the three stacked
+   actions and the NBC / gold ticker (`tests/golden/layout-guards.test.ts`).
 
 ## Standards
 
@@ -48,7 +51,8 @@ use come before feature count: no half-baked features, broken links or untested 
    3. SoundBox alerts — sales only, the Khmer amount, stays on, the locked-screen push.
    4. Privacy by default — balances hidden on launch, ***** never a digit, the bot masks numbers.
    5. Wallet accounting — exact money, 100 ៛ rounding only where computed, repayments ≤ what is left.
-   Plus the SoundBox isolation guard (`6-soundbox-isolation.test.ts`).
+   Plus the SoundBox isolation guard (`6-soundbox-isolation.test.ts`) and the home hero layout guard
+   (`layout-guards.test.ts`).
 4. **Pre-deploy smoke gate:** the Dockerfile runs `npm run test:golden` before `npm test` and the build —
    one failure aborts the deploy and the running version stays live. Locally, `.githooks/pre-push`
    (`git config core.hooksPath .githooks`) runs the golden paths and the typecheck before every push.
