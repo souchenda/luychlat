@@ -1603,6 +1603,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "prayerAlert.title": "{name} 礼拜时间到了",
   "prayerAlert.body": "{time} · {place}",
   "prayerAlert.stop": "停止",
+  "prayerAlert.stopAdhan": "🔇 停止宣礼",
   "prayerAlert.on": "礼拜通知已开启",
   "prayerAlert.onInApp": "已开启 — 提醒将在应用内响起（浏览器未允许通知）",
   "prayerAlert.blocked": "浏览器已阻止通知。请在网站设置（🔒 › 通知）中重新开启，以便应用在后台时也能收到提醒。",

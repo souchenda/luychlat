@@ -26,6 +26,7 @@ import {
   playChime,
   playPreset,
   saveAdhan,
+  listenForStopAdhan,
   showPrayerNotification,
   stopSound,
 } from "@/lib/prayer-alerts"
@@ -53,6 +54,9 @@ export function PrayerAlertScheduler() {
   const latest = useRef({ t, alertSound, adhanPreset, adhanName, fajrAdhan, location })
   latest.current = { t, alertSound, adhanPreset, adhanName, fajrAdhan, location }
 
+  // The notification's «🔇 បិទសំឡេង» reaches the app through the service worker.
+  useEffect(() => listenForStopAdhan(), [])
+
   useEffect(() => {
     if (!alertsOn) return
     const tick = () => {
@@ -64,14 +68,16 @@ export function PrayerAlertScheduler() {
       const name = t(`prayer.${key}` as MessageKey)
       const title = t("prayerAlert.title", { name })
       const body = t("prayerAlert.body", { time: formatMinutes(times[key]), place: location.label })
-      void showPrayerNotification(title, body, `prayer-${key}`)
+      const adhan = alertSound === "adhan"
+      void showPrayerNotification(title, body, `prayer-${key}`, adhan ? t("prayerAlert.stopAdhan") : undefined)
       if (alertSound === "chime") playChime()
-      if (alertSound === "adhan") void playAdhan(adhanFor(key, adhanPreset, fajrAdhan, !!adhanName))
+      if (adhan) void playAdhan({ ...adhanFor(key, adhanPreset, fajrAdhan, !!adhanName), title })
       if (document.visibilityState === "visible") {
         toast(title, {
           description: body,
           duration: alertSound === "adhan" ? 60_000 : 10_000,
-          action: alertSound === "adhan" ? { label: t("prayerAlert.stop"), onClick: stopSound } : undefined,
+          // 🔇 one tap: stops at once and resets to the start (also on the lock screen and the notification).
+          action: adhan ? { label: t("prayerAlert.stopAdhan"), onClick: stopSound } : undefined,
         })
       }
     }

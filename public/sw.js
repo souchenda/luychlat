@@ -60,8 +60,17 @@ self.addEventListener("push", (event) => {
   )
 })
 
+// 🔇 «បិទសំឡេង» on a prayer notification (lib/prayer-alerts.ts): tell every open window to stop the Adhan.
+const stopAdhan = () =>
+  self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => windows.forEach((w) => w.postMessage({ type: "luychlat-stop-adhan" })))
+
+self.addEventListener("notificationclose", (event) => {
+  if (event.notification.data && event.notification.data.adhan) event.waitUntil(stopAdhan())
+})
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close()
+  if (event.action === "stop-adhan") return event.waitUntil(stopAdhan())
   const target = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin)
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
@@ -125,15 +134,4 @@ self.addEventListener("fetch", (event) => {
   }
 })
 
-// Prayer-time alerts (lib/prayer-alerts.ts): tapping one opens or focuses the prayer page.
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close()
-  const url = (event.notification.data && event.notification.data.url) || "/home"
-  event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-      const open = list.find((c) => new URL(c.url).origin === self.location.origin)
-      if (open) return open.focus().then((c) => c && "navigate" in c ? c.navigate(url) : undefined)
-      return self.clients.openWindow(url)
-    }),
-  )
-})
+// Prayer-time alerts (lib/prayer-alerts.ts) open their page (data.url) through the click handler above.

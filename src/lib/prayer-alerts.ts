@@ -88,17 +88,62 @@ export function onPlaybackChange(listener: () => void) {
 }
 export const currentSource = () => playingSource
 
-/** Stops the Adhan if it is playing. */
+// ---------------------------------------------------------------- 🔇 Stop Adhan (founder, 18/10/2026)
+
+/** The notification's «🔇 បិទសំឡេង» action, and the service worker's message to the open app (public/sw.js). */
+export const STOP_ADHAN_ACTION = "stop-adhan"
+export const STOP_ADHAN_MESSAGE = "luychlat-stop-adhan"
+export const isStopAdhanMessage = (data: unknown) => !!data && typeof data === "object" && (data as { type?: unknown }).type === STOP_ADHAN_MESSAGE
+
+/** Whether the lock-screen controls are ours (never taken from the Quran / nasheed player). */
+let ownsMediaSession = false
+
+function claimMediaSession(title: string) {
+  if (typeof navigator === "undefined" || !("mediaSession" in navigator) || navigator.mediaSession.metadata) return
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title, artist: "អេប លុយឆ្លាត", artwork: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }] })
+    for (const action of ["pause", "stop"] as MediaSessionAction[]) navigator.mediaSession.setActionHandler(action, stopSound)
+    ownsMediaSession = true
+  } catch {
+    // An older browser without these actions: the in-app banner still stops it.
+  }
+}
+
+function releaseMediaSession() {
+  if (!ownsMediaSession) return
+  ownsMediaSession = false
+  try {
+    for (const action of ["pause", "stop"] as MediaSessionAction[]) navigator.mediaSession.setActionHandler(action, null)
+    navigator.mediaSession.metadata = null
+  } catch {
+    // nothing to release
+  }
+}
+
+/** Stops the Adhan at once and resets it to the start: the banner, the lock screen and the notification all call this. */
 export function stopSound() {
   if (!playing) return
-  playing.pause()
-  if (playing.src.startsWith("blob:")) URL.revokeObjectURL(playing.src)
+  const audio = playing
   playing = null
   playingSource = null
+  audio.pause()
+  audio.currentTime = 0
+  if (audio.src.startsWith("blob:")) URL.revokeObjectURL(audio.src)
+  releaseMediaSession()
   notify()
 }
 
-async function play(src: string, source: string) {
+/** The open app listens for the notification's 🔇 (relayed by the service worker). Returns the unsubscribe. */
+export function listenForStopAdhan() {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return () => {}
+  const onMessage = (e: MessageEvent) => {
+    if (isStopAdhanMessage(e.data)) stopSound()
+  }
+  navigator.serviceWorker.addEventListener("message", onMessage)
+  return () => navigator.serviceWorker.removeEventListener("message", onMessage)
+}
+
+async function play(src: string, source: string, title = "Adhan · الأذان") {
   stopSound()
   const audio = new Audio(src)
   playing = audio
@@ -106,6 +151,7 @@ async function play(src: string, source: string) {
   audio.onended = stopSound
   notify()
   await audio.play()
+  if (playing === audio) claimMediaSession(title)
 }
 
 /** A soft three-note bell, synthesised (no audio file needed). */
@@ -140,15 +186,15 @@ export async function playPreset(file: string, id: string) {
  * from the phone. Falls back to the chime when there is none or the browser
  * blocks playback.
  */
-export async function playAdhan(choice: { presetFile?: string | null; presetId?: string } = {}): Promise<"adhan" | "chime"> {
+export async function playAdhan(choice: { presetFile?: string | null; presetId?: string; title?: string } = {}): Promise<"adhan" | "chime"> {
   try {
     if (choice.presetFile) {
-      await play(choice.presetFile, choice.presetId ?? "preset")
+      await play(choice.presetFile, choice.presetId ?? "preset", choice.title)
       return "adhan"
     }
     const blob = await loadAdhan()
     if (blob) {
-      await play(URL.createObjectURL(blob), "custom")
+      await play(URL.createObjectURL(blob), "custom", choice.title)
       return "adhan"
     }
   } catch {
@@ -162,18 +208,35 @@ export async function playAdhan(choice: { presetFile?: string | null; presetId?:
 
 export const notificationsSupported = () => typeof window !== "undefined" && "Notification" in window
 
-/** Shows a system notification (through the service worker when there is one, so it works on Android). */
-export async function showPrayerNotification(title: string, body: string, tag: string) {
+/** The service worker notification's options; with the Adhan playing it carries the «🔇 បិទសំឡេង» action. */
+export function prayerNotificationOptions(body: string, tag: string, stopLabel?: string) {
+  return {
+    body,
+    tag,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { url: "/islamic/prayer", adhan: Boolean(stopLabel) },
+    ...(stopLabel ? { actions: [{ action: STOP_ADHAN_ACTION, title: stopLabel }], requireInteraction: true } : {}),
+  }
+}
+
+/**
+ * Shows a system notification (through the service worker when there is one, so it works on Android). With
+ * `stopLabel` (the Adhan is playing) it has a «🔇 បិទសំឡេង» button; swiping it away stops the Adhan too.
+ */
+export async function showPrayerNotification(title: string, body: string, tag: string, stopLabel?: string) {
   if (!notificationsSupported() || Notification.permission !== "granted") return
-  const options: NotificationOptions = { body, tag, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", data: { url: "/islamic/prayer" } }
+  const options = prayerNotificationOptions(body, tag, stopLabel)
   try {
     const reg = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration() : undefined
-    if (reg) return void (await reg.showNotification(title, options))
+    if (reg) return void (await reg.showNotification(title, options as NotificationOptions))
   } catch {
     // fall through to a page notification
   }
   try {
-    new Notification(title, options)
+    const { actions: _actions, ...page } = options as NotificationOptions & { actions?: unknown }
+    void _actions
+    new Notification(title, page)
   } catch {
     // Some mobile browsers only allow service-worker notifications.
   }
