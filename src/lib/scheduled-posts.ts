@@ -10,6 +10,7 @@
 import { khmerDigits } from "@/lib/dates"
 import { HOLIDAY_POST_MINUTE, HOLIDAY_PRE_MINUTE, holidayMoment } from "@/lib/holiday-lifecycle"
 import { SPOTLIGHT } from "@/lib/spotlight"
+import { DILEMMA_MINUTE, DILEMMA_WEEKDAYS } from "@/lib/money-dilemmas"
 import * as G from "@/lib/islamic/glossary"
 import { toHijri, type HijriDate } from "@/lib/islamic"
 import { dateOf, islamicPlannedPosts, type IslamicKind } from "@/lib/islamic-channel"
@@ -19,7 +20,7 @@ import { dateOf, islamicPlannedPosts, type IslamicKind } from "@/lib/islamic-cha
  * notices, the 20:00 reminder, the Saturday spotlight, the market bulletin, the evening NBC rates,
  * festival posters and holy-day notes.
  */
-export type PostKind = "MORNING" | "HOLIDAY" | "FUEL" | "EVENING" | "SPOTLIGHT" | "BULLETIN" | "RATES" | "POSTER" | "HOLYDAY" | IslamicKind
+export type PostKind = "MORNING" | "HOLIDAY" | "FUEL" | "EVENING" | "SPOTLIGHT" | "BULLETIN" | "RATES" | "POSTER" | "HOLYDAY" | "DILEMMA" | IslamicKind
 /** `channel`: which Telegram channel (lib/islamic-channel.ts channelFor) — the general one unless said. */
 export type Targets = { telegram: boolean; facebook: boolean; channel?: "community" | "islamic" }
 export type PostStatus = "PENDING" | "APPROVED" | "PUBLISHED" | "PAUSED" | "EXPIRED"
@@ -46,6 +47,9 @@ export function plannedPosts(day: string, minutes: number): { kind: PostKind; po
   const out: { kind: PostKind; postKey: string; publishMinute: number; payload: Record<string, string> }[] = []
   if (open(MORNING_POST_MINUTE)) out.push({ kind: "MORNING", postKey: day, publishMinute: MORNING_POST_MINUTE, payload: { day } })
   if (open(EVENING_POST_MINUTE)) out.push({ kind: "EVENING", postKey: day, publishMinute: EVENING_POST_MINUTE, payload: { day } })
+  // Tuesday / Friday 18:30: a money dilemma for the community and the Facebook Page (founder, 18/10/2026).
+  if (DILEMMA_WEEKDAYS.includes(new Date(`${day}T00:00:00Z`).getUTCDay()) && open(DILEMMA_MINUTE))
+    out.push({ kind: "DILEMMA", postKey: day, publishMinute: DILEMMA_MINUTE, payload: { day } })
   if (new Date(`${day}T00:00:00Z`).getUTCDay() === SPOTLIGHT.weekday && open(SPOTLIGHT.from))
     out.push({ kind: "SPOTLIGHT", postKey: day, publishMinute: SPOTLIGHT.from, payload: { day } })
   const m = holidayMoment(day)
@@ -100,6 +104,7 @@ const KIND_LABEL: Record<PostKind, string> = {
   RATES: "អត្រាប្តូរប្រាក់ NBC ពេលល្ងាច",
   POSTER: "Poster ពិធីបុណ្យ",
   HOLYDAY: "សារថ្ងៃសីល",
+  DILEMMA: "សំណួរហិរញ្ញវត្ថុពិភាក្សា (Money Dilemma)",
   ISLAMIC_DAILY: "ហ៊ីជរី និងមេរៀនហិរញ្ញវត្ថុហាឡាល់",
   ISLAMIC_FAST: "រំលឹកបួសស៊ុណ្ណះ (ច័ន្ទ / ព្រហស្បតិ៍)",
   ISLAMIC_JUMUAH: `${G.JUMUAH} (ថ្ងៃសុក្រ)`,

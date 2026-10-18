@@ -74,6 +74,7 @@ use come before feature count: no half-baked features, broken links or untested 
     no known previous period) → Telegram only.
   - 20:00 nightly reminder → Telegram **only**, never the Page.
   - Holiday notes (eve 18:00, day back 07:30) and the Saturday 17:00 core-value spotlight → both.
+  - Tuesday / Friday 18:30 money dilemma (`lib/money-dilemmas.ts`, an open question + the app CTA) → both.
 - **Zero public posts without the founder's approval (founder, 18/10/2026 — replaces the 12/10 auto-publish
   fallback).** Preview-first (`src/lib/server/scheduled-posts.ts`): the 07:00 poster, holiday notes and fuel
   changes reach the founder's private chat 45 min before (06:15 for 07:00) with the destination badge

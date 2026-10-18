@@ -67,6 +67,8 @@ export type ChannelPostKind =
   | { kind: "holiday" }
   | { kind: "spotlight" }
   | { kind: "evening" }
+  /** The Tuesday / Friday money dilemma: a conversation starter — Page and channel. */
+  | { kind: "dilemma" }
   | { kind: "fuel"; now: FuelPair; previous: FuelPair | null }
 
 export function shouldPublishToFacebook(post: ChannelPostKind): boolean {
@@ -74,6 +76,7 @@ export function shouldPublishToFacebook(post: ChannelPostKind): boolean {
     case "morning":
     case "holiday":
     case "spotlight":
+    case "dilemma":
       return true
     case "evening":
       return false

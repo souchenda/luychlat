@@ -31,6 +31,7 @@ import { toHijri, type HijriDate } from "@/lib/islamic"
 import { dateOf, isIslamicKind, islamicCaptionHtml, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { quizTeaserButtons, quizTeaserHtml } from "@/lib/islamic-quiz"
+import { dilemmaOfDay, dilemmaPostText } from "@/lib/money-dilemmas"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
@@ -254,6 +255,8 @@ const realDeps = (): SchedulerDeps => ({
       }
       case "HOLYDAY":
         return { png: null, body: String(row.payload.text ?? "—") }
+      case "DILEMMA":
+        return { png: null, body: dilemmaPostText(dilemmaOfDay(day)) }
       case "ISLAMIC_QUIZ":
         // A short teaser with a button into the in-app quiz (no poster).
         return { png: null, body: stripHtml(quizTeaserHtml(day)) }
@@ -280,6 +283,7 @@ const realDeps = (): SchedulerDeps => ({
     if (row.kind === "MORNING") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "morning" }) }
     if (row.kind === "HOLIDAY") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "holiday" }) }
     if (row.kind === "SPOTLIGHT") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "spotlight" }) }
+    if (row.kind === "DILEMMA") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "dilemma" }) }
     if (row.kind === "EVENING" || row.kind === "BULLETIN" || row.kind === "RATES" || row.kind === "POSTER" || row.kind === "HOLYDAY") return { telegram, facebook: false }
     return { telegram: telegram && Boolean(row.payload.telegram), facebook: fb && Boolean(row.payload.facebook) }
   },
@@ -373,6 +377,16 @@ const realDeps = (): SchedulerDeps => ({
     }
     if (row.kind === "POSTER") {
       ids.telegram = await publishFestivalPoster(approval, String(row.payload.key))
+      return ids
+    }
+    if (row.kind === "DILEMMA") {
+      // The same plain text on the community channel and the Facebook Page.
+      const text = dilemmaPostText(dilemmaOfDay(String(row.payload.day)))
+      if (chat) ids.telegram = await sentText(text, false)
+      if (facebookConfig() && shouldPublishToFacebook({ kind: "dilemma" })) {
+        const fb = await publishLogged(`money dilemma (${row.post_key})`, () => publishTextToFacebook(approval, text), fbLog)
+        if (fb?.ok) ids.facebook = fb.postId
+      }
       return ids
     }
     if (row.kind === "HOLYDAY") {

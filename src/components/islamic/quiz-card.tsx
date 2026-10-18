@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { khmerDigits } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
 import { useT } from "@/lib/i18n/use-t"
+import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { answerQuestion, dailyQuizSet, EMPTY_PROGRESS, progressFor, scoreOf, TOPIC_LABEL, type QuizProgress } from "@/lib/islamic-quiz"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -37,6 +38,7 @@ function save(userId: string | undefined, p: QuizProgress) {
  * «ល្បងប្រាជ្ញាច្បាប់សាសនា (Islamic Quiz Challenge)» on /islamic (founder, 18/10/2026): five questions a day, one at
  * a time; tap an answer → green if right (red on a wrong pick, the right one green), the explanation and its source;
  * the day's score and the streak of days played. /islamic?tab=quiz (the channel's 12:30 button) scrolls here.
+ * Only for Islamic Mode users: hidden otherwise, and /islamic itself shows the locked notice (layout.tsx).
  */
 export function IslamicQuizCard() {
   const t = useT()
@@ -62,7 +64,9 @@ export function IslamicQuizCard() {
   }, [userId])
 
   const set = useMemo(() => (today ? dailyQuizSet(today) : []), [today])
-  if (!today || !set.length) return null
+  // Islamic Mode users only (the admin turns it on — founder, 18/10/2026); /islamic's layout also locks the page.
+  const islamic = useIslamicEnabled()
+  if (!islamic || !today || !set.length) return null
 
   const q = set[index]
   const chosen = progress.answers[q.id]
