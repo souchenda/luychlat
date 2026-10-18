@@ -103,6 +103,7 @@ const KIND_LABEL: Record<PostKind, string> = {
   ISLAMIC_DAILY: "ហ៊ីជរី និងមេរៀនហិរញ្ញវត្ថុហាឡាល់",
   ISLAMIC_FAST: "រំលឹកបួសស៊ុណ្ណះ (ច័ន្ទ / ព្រហស្បតិ៍)",
   ISLAMIC_JUMUAH: `${G.JUMUAH} (ថ្ងៃសុក្រ)`,
+  ISLAMIC_QUIZ: "Quiz ហិរញ្ញវត្ថុហាឡាល់ (Telegram Poll)",
 }
 
 /** The preview's header (destination first), the post itself, then the status line. */

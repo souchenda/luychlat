@@ -30,6 +30,7 @@ import { communityChannel, communityChannelConfigured, founderApproved, islamicC
 import { toHijri, type HijriDate } from "@/lib/islamic"
 import { dateOf, isIslamicKind, islamicCaptionHtml, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
+import { quizOfDay, quizPollBody, quizPreviewText } from "@/lib/islamic-quiz"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
@@ -253,6 +254,9 @@ const realDeps = (): SchedulerDeps => ({
       }
       case "HOLYDAY":
         return { png: null, body: String(row.payload.text ?? "—") }
+      case "ISLAMIC_QUIZ":
+        // A quiz poll: the preview shows the question, the answers (✅ the correct one) and the explanation.
+        return { png: null, body: quizPreviewText(quizOfDay(day)) }
       case "ISLAMIC_DAILY":
       case "ISLAMIC_FAST":
       case "ISLAMIC_JUMUAH": {
@@ -288,6 +292,14 @@ const realDeps = (): SchedulerDeps => ({
     const sentText = async (text: string, html: boolean) => {
       const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, text, ...(html ? { parse_mode: "HTML" } : {}), disable_web_page_preview: true, ...buttons })
       return res.ok && res.result ? res.result.message_id : null
+    }
+    if (row.kind === "ISLAMIC_QUIZ") {
+      // A native Telegram quiz (sendPoll, type "quiz") — approved like every post.
+      if (chat) {
+        const res = await tg<{ message_id: number }>("sendPoll", quizPollBody(chat, quizOfDay(String(row.payload.day))))
+        ids.telegram = res.ok && res.result ? res.result.message_id : null
+      }
+      return ids
     }
     if (islamic) {
       // The poster with its caption (text only if the image can't be sent, so the post is never lost).

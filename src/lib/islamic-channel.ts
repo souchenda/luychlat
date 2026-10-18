@@ -13,7 +13,8 @@ import * as G from "@/lib/islamic/glossary"
 import { ISLAMIC_TIPS, islamicTipOfTheDay } from "@/lib/islamic-tips"
 import { formatMinutes, imsakTime, prayerTimes, PROVINCES } from "@/lib/prayer"
 
-export const ISLAMIC_KINDS = ["ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH"] as const
+/** ISLAMIC_QUIZ: a Telegram quiz poll (lib/islamic-quiz.ts), not a poster. */
+export const ISLAMIC_KINDS = ["ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH", "ISLAMIC_QUIZ"] as const
 export type IslamicKind = (typeof ISLAMIC_KINDS)[number]
 
 export const isIslamicKind = (kind: string): kind is IslamicKind => (ISLAMIC_KINDS as readonly string[]).includes(kind)
@@ -24,6 +25,9 @@ export const channelFor = (kind: string): "islamic" | "community" => (isIslamicK
 export const ISLAMIC_DAILY_MINUTE = 8 * 60
 export const ISLAMIC_FAST_MINUTE = 19 * 60
 export const ISLAMIC_JUMUAH_MINUTE = 9 * 60
+/** The quiz: Tuesday and Saturday at noon. */
+export const ISLAMIC_QUIZ_MINUTE = 12 * 60
+export const ISLAMIC_QUIZ_WEEKDAYS = [2, 6]
 
 export const ISLAMIC_COMMUNITY_URL = "https://t.me/LuyChlatIslamic"
 
@@ -64,6 +68,7 @@ export function islamicPlannedPosts(day: string, hijriOf: (day: string) => Hijri
   if ((weekday === 0 || weekday === 3) && open(ISLAMIC_FAST_MINUTE) && sunnahFastTomorrow(hijriOf(addDays(day, 1))))
     out.push({ kind: "ISLAMIC_FAST", postKey: day, publishMinute: ISLAMIC_FAST_MINUTE, payload: { day } })
   if (weekday === 5 && open(ISLAMIC_JUMUAH_MINUTE)) out.push({ kind: "ISLAMIC_JUMUAH", postKey: day, publishMinute: ISLAMIC_JUMUAH_MINUTE, payload: { day } })
+  if (ISLAMIC_QUIZ_WEEKDAYS.includes(weekday) && open(ISLAMIC_QUIZ_MINUTE)) out.push({ kind: "ISLAMIC_QUIZ", postKey: day, publishMinute: ISLAMIC_QUIZ_MINUTE, payload: { day } })
   return out
 }
 
