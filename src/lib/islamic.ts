@@ -170,3 +170,19 @@ export function hawlStatus(start: string, today: Date = new Date()): HawlStatus 
 export function purificationBalance(interestReceived: number, purified: number): number {
   return Math.max(0, cents(interestReceived - purified))
 }
+
+/**
+ * The home header's right badge (founder, 18/10/2026). Islamic Mode never shows the Buddhist lunar day or
+ * «ថ្ងៃសីល»: its season greeting (Ramadan, the two Eids), else today's Hijri date («🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨
+ * ម.ស.»), else nothing — a browser without the Islamic calendar shows no badge rather than the lunar one.
+ * Islamic Mode off: the traditional lunar pill.
+ */
+export type HeaderBadge = { kind: "lunar" } | { kind: "greeting"; key: Exclude<IslamicGreeting, null> } | { kind: "hijri"; text: string } | { kind: "none" }
+
+export function headerBadge(o: { islamic: boolean; hijri: HijriDate | null; locale: string }): HeaderBadge {
+  if (!o.islamic) return { kind: "lunar" }
+  const greeting = islamicGreeting(o.hijri)
+  if (greeting) return { kind: "greeting", key: greeting }
+  if (!o.hijri) return { kind: "none" }
+  return { kind: "hijri", text: `🌙 ${formatHijri(o.hijri, o.locale === "km" ? "km" : "en", { short: true })}` }
+}

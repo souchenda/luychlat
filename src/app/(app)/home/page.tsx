@@ -40,7 +40,7 @@ import { liabilitiesUsd } from "@/lib/debts"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { khmerDigits, longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
-import { islamicGreeting, toHijri } from "@/lib/islamic"
+import { headerBadge, toHijri } from "@/lib/islamic"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { isCard } from "@/lib/credit-card"
@@ -113,7 +113,7 @@ export default function HomePage() {
   const islamic = useIslamicEnabled()
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
   const hijri = islamic ? toHijri(today, hijriOffset) : null
-  const islamicKey = islamicGreeting(hijri)
+  const badge = headerBadge({ islamic, hijri, locale })
 
   return (
     // «dash»: readable Khmer on the dashboard (globals.css — line-height 1.6, nothing under 13 px).
@@ -142,14 +142,22 @@ export default function HomePage() {
           </div>
           {/* Right: a small gold pill with today's lunar day and the next holy day (opens /bills).
               Islamic Mode in season shows its greeting instead. */}
-          {islamicKey ? (
+          {badge.kind === "greeting" ? (
             <span className="inline-flex max-w-[58%] shrink-0 items-center gap-1 truncate rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
               <SparklesIcon className="size-3.5 shrink-0" aria-hidden />
-              <span className="truncate">{t(islamicKey)}</span>
+              <span className="truncate">{t(badge.key)}</span>
             </span>
-          ) : (
+          ) : badge.kind === "hijri" ? (
+            // Islamic Mode: today's Hijri date instead of the Buddhist lunar day and «ថ្ងៃសីល» (founder, 18/10/2026).
+            <Link
+              href="/islamic/prayer"
+              className="inline-flex max-w-[58%] shrink-0 items-center truncate rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900 shadow-xs dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200"
+            >
+              <span className="truncate">{badge.text}</span>
+            </Link>
+          ) : badge.kind === "lunar" ? (
             <LunarPill />
-          )}
+          ) : null}
         </div>
         {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}
         <BusinessTrialTag workspace={workspace} className="mt-1.5" />
