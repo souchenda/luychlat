@@ -1,3 +1,4 @@
+import * as G from "@/lib/islamic/glossary"
 /**
  * Quran and Hadith evidence shown next to the Islamic tools.
  *
@@ -121,7 +122,7 @@ export const SCRIPTURE: Record<ScriptureTopic, Citation[]> = {
     {
       source: "Imsak",
       kind: "note",
-      km: "អ៊ឹមសាក់ = ១០ នាទីមុនស៊ុពហ៍ ជាការប្រុងប្រយ័ត្នតាមទម្លាប់អាស៊ីអាគ្នេយ៍។ ការតមចាប់ផ្ដើមពិតប្រាកដនៅពេលស៊ុពហ៍ ហើយស្រាយបួសនៅពេលម៉ាហ្គ្រិប។",
+      km: `${G.IMSAK} = ១០ នាទីមុនស៊ុពហ៍ ជាការប្រុងប្រយ័ត្នតាមទម្លាប់អាស៊ីអាគ្នេយ៍។ ការតមចាប់ផ្ដើមពិតប្រាកដនៅពេលស៊ុពហ៍ ហើយ${G.IFTAR}នៅពេលម៉ាហ្គ្រិប។`,
       en: "Imsak = 10 minutes before Fajr, a precaution customary in Southeast Asia. The fast itself begins at Fajr and is broken at Maghrib.",
     },
   ],

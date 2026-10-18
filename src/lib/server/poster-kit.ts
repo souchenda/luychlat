@@ -18,6 +18,8 @@ import path from "node:path"
 
 import { GlobalFonts, type Image, loadImage, type SKRSContext2D } from "@napi-rs/canvas"
 
+import { UNBREAKABLE_TERMS } from "@/lib/islamic/glossary"
+
 export const FRAME = {
   W: 1080,
   H: 1080,
@@ -91,10 +93,10 @@ function pieces(paragraph: string): string[] {
 }
 
 /**
- * Loanwords the Khmer word breaker splits («អ៊ឹម|សាក់»): kept whole on a line. Add a term here when a poster
- * breaks one.
+ * Loanwords the Khmer word breaker splits: kept whole on a line (lib/islamic/glossary.ts UNBREAKABLE_TERMS —
+ * add a term there when a poster breaks one).
  */
-const KEEP_TOGETHER = ["អ៊ឹមសាក់", "ស្រាយបួស", "ហូបបាយបួស", "នីយ៉ាត់", "ស៊ុណ្ណា", "សាហួរ", "ជូម៉ាអះ", "បារ៉ាកាត់", "មូហាំម៉ាត់", "ហ៊ីចរ៉ោះ"]
+const KEEP_TOGETHER = UNBREAKABLE_TERMS
 
 function keepTerms(pieces: string[]): string[] {
   const out: string[] = []

@@ -4,6 +4,7 @@
  * common guidelines; scholars differ on details (which assets count, gold vs
  * silver Nisab), so the UI always shows a "consult a local scholar" note.
  */
+import * as G from "@/lib/islamic/glossary"
 
 export const NISAB_GOLD_GRAMS = 85
 export const NISAB_SILVER_GRAMS = 595
@@ -80,17 +81,17 @@ export const HIJRI_MONTHS_KM = [
 ]
 
 /**
- * Khmer: "ថ្ងៃទី២១ ខែរ៉ាប៊ីអ៊ុលអាឃីរ ឆ្នាំ១៤៤៨ ហ៊ីចរ៉ោះសករាជ (ហ.ស.)" (short: "២១ រ៉ាប៊ីអ៊ុលអាឃីរ ១៤៤៨ ហ.ស.").
+ * Khmer: "ថ្ងៃទី២១ ខែរ៉ាប៊ីអ៊ុលអាឃីរ ឆ្នាំ១៤៤៨ ${G.HIJRI_ERA_FULL}" (short: "២១ រ៉ាប៊ីអ៊ុលអាឃីរ ១៤៤៨ ${G.HIJRI_ERA}").
  * English: "21 Rabiʻ al-Thani 1448 AH".
  */
 export function formatHijri(h: HijriDate, locale: "km" | "en", opts?: { short?: boolean; era?: boolean }): string {
-  // `era: false` (the home header badge): without «ហ.ស.» / "AH", to fit a phone's header row.
+  // `era: false` (the home header badge): without «${G.HIJRI_ERA}» / "AH", to fit a phone's header row.
   const era = opts?.era !== false
   if (locale === "en") return `${h.day} ${HIJRI_MONTHS[h.month - 1]} ${h.year}${era ? " AH" : ""}`
   const day = khmerDigits(String(h.day).padStart(2, "0"))
   const month = HIJRI_MONTHS_KM[h.month - 1]
   const year = khmerDigits(String(h.year))
-  return opts?.short ? `${khmerDigits(String(h.day))} ${month} ${year}${era ? " ហ.ស." : ""}` : `ថ្ងៃទី${day} ខែ${month} ឆ្នាំ${year} ហ៊ីចរ៉ោះសករាជ (ហ.ស.)`
+  return opts?.short ? `${khmerDigits(String(h.day))} ${month} ${year}${era ? ` ${G.HIJRI_ERA}` : ""}` : `ថ្ងៃទី${day} ខែ${month} ឆ្នាំ${year} ${G.HIJRI_ERA_FULL}`
 }
 
 export type IslamicGreeting = "islamic.ramadan" | "islamic.eidFitr" | "islamic.eidAdha" | null
@@ -176,7 +177,7 @@ export function purificationBalance(interestReceived: number, purified: number):
 /**
  * The home header's right badge (founder, 18/10/2026). Islamic Mode never shows the Buddhist lunar day or
  * «ថ្ងៃសីល»: its season greeting (Ramadan, the two Eids), else today's Hijri date («🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨
- * ហ.ស.»), else nothing — a browser without the Islamic calendar shows no badge rather than the lunar one.
+ * ${G.HIJRI_ERA}»), else nothing — a browser without the Islamic calendar shows no badge rather than the lunar one.
  * Islamic Mode off: the traditional lunar pill.
  */
 export type HeaderBadge = { kind: "lunar" } | { kind: "greeting"; key: Exclude<IslamicGreeting, null> } | { kind: "hijri"; text: string } | { kind: "none" }

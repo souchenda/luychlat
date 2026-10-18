@@ -60,7 +60,7 @@ describe("Islamic hub — the founder's terms", () => {
     assert.match(jumuah, /ជូម៉ាអះ \(Jumu'ah \/ الجُمُعَة\)/)
     assert.match(jumuah, /បារ៉ាកាត់ \(Barakah \/ بَرَكَة\)/)
     const poster = all("lib/server/islamic-poster.ts")
-    assert.ok(poster.includes('["អ៊ឹមសាក់ (Imsak)", c.fast.imsak]') && poster.includes('["ស្រាយបួស (Iftar)", c.fast.iftar]'))
+    assert.ok(poster.includes("[G.IMSAK_CARD, c.fast.imsak]") && poster.includes("[G.IFTAR_CARD, c.fast.iftar]"))
     for (const f of ["lib/islamic-channel.ts", "lib/server/islamic-poster.ts", "lib/scheduled-posts.ts", "lib/islamic.ts", "lib/islamic-tips.ts"])
       for (const bad of ["ឈប់ញ៉ាំ", "បើកបួស", "ស្ទូហួរ", "ស៊ូហួរ", "អាហារសាហួរ", "ជុមអះ", "ម.ស.", "មហាម៉ាត់សករាជ"]) assert.ok(!all(f).includes(bad), `${f}: ${bad}`)
   })

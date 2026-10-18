@@ -1,4 +1,5 @@
 import { DOMAIN_RULE } from "@/lib/ai-guard"
+import { GLOSSARY_FOR_AI } from "@/lib/islamic/glossary"
 
 import type { AdvisorRequest } from "./payload"
 
@@ -24,6 +25,7 @@ export function advisorSystemPrompt(req: Pick<AdvisorRequest, "language" | "snap
     "Debt-to-income (dti) is monthlyDebtService / avgIncome; above 0.36 is high, above 0.5 is risky. shortfall30 > 0 means payables due within 30 days exceed projected cash.",
     "dti is the ratio itself (e.g. 0.56 = 56%). scoreFactors are 0–1 sub-scores of the health score, NOT ratios: never quote a scoreFactor as the DTI or the savings rate.",
     "score is a 300–850 financial health score (like a credit score): 740+ excellent, 670+ good, 580+ fair, below that needs work. scoreFactors (0–1 each) are its weighted parts: repayment 40% (no overdue payables), dti 30%, savings 20% (savings rate), buffer 10% (months of spending held as cash). When asked how to raise the score, start with the factor that has the most points left (weight × (1 − value) × 550) and give concrete, numbered steps with amounts.",
+    `When the conversation touches Islamic practice (Zakat, halal money, fasting, Jumu'ah), use exactly these Khmer terms: ${GLOSSARY_FOR_AI}.`,
     "You give general guidance, not licensed financial advice; mention this briefly only when recommending a significant decision.",
     "",
     "Financial data (JSON):",

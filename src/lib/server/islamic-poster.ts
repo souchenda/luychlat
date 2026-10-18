@@ -15,6 +15,7 @@ import path from "node:path"
 import { createCanvas, type Image, loadImage, type SKRSContext2D } from "@napi-rs/canvas"
 
 import type { IslamicPostContent } from "@/lib/islamic-channel"
+import * as G from "@/lib/islamic/glossary"
 
 import { drawIcon, FAMILIES, loadFonts, roundRect, wrap } from "./poster-kit"
 
@@ -171,11 +172,8 @@ function footer(ctx: SKRSContext2D) {
   ctx.fillText(b, x + 40, y)
 }
 
-/**
- * «ﷺ» is a single ligature many fonts lack; on the poster it is written in Arabic letters «(صلى الله عليه وسلم)»,
- * which any Arabic font draws (Noto Arabic in the container — Dockerfile). The caption keeps «ﷺ» (phones show it).
- */
-export const posterText = (s: string) => s.replace(/\s*ﷺ/g, " (صلى الله عليه وسلم)")
+/** The poster text as written: «ﷺ» stays the ligature (Noto Sans Arabic in the container draws it — Dockerfile). */
+export const posterText = (s: string) => s
 
 /** Draws the poster; `truncated` says whether any text had to be cut («…») to fit. */
 export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; truncated: boolean } {
@@ -309,8 +307,8 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
     const top = FOOTER_TOP - 32 - sourceH - fastH + 14
     const boxW = (W - 2 * SIDE - 28) / 2
     const boxes: [string, string][] = [
-      ["អ៊ឹមសាក់ (Imsak)", c.fast.imsak],
-      ["ស្រាយបួស (Iftar)", c.fast.iftar],
+      [G.IMSAK_CARD, c.fast.imsak],
+      [G.IFTAR_CARD, c.fast.iftar],
     ]
     boxes.forEach(([label, time], i) => {
       const x = SIDE + i * (boxW + 28)

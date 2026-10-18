@@ -10,6 +10,7 @@
 import { khmerDigits } from "@/lib/dates"
 import { HOLIDAY_POST_MINUTE, HOLIDAY_PRE_MINUTE, holidayMoment } from "@/lib/holiday-lifecycle"
 import { SPOTLIGHT } from "@/lib/spotlight"
+import * as G from "@/lib/islamic/glossary"
 import { toHijri, type HijriDate } from "@/lib/islamic"
 import { dateOf, islamicPlannedPosts, type IslamicKind } from "@/lib/islamic-channel"
 
@@ -101,7 +102,7 @@ const KIND_LABEL: Record<PostKind, string> = {
   HOLYDAY: "សារថ្ងៃសីល",
   ISLAMIC_DAILY: "ហ៊ីជរី និងមេរៀនហិរញ្ញវត្ថុហាឡាល់",
   ISLAMIC_FAST: "រំលឹកបួសស៊ុណ្ណះ (ច័ន្ទ / ព្រហស្បតិ៍)",
-  ISLAMIC_JUMUAH: "ជូម៉ាអះ (ថ្ងៃសុក្រ)",
+  ISLAMIC_JUMUAH: `${G.JUMUAH} (ថ្ងៃសុក្រ)`,
 }
 
 /** The preview's header (destination first), the post itself, then the status line. */

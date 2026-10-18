@@ -9,6 +9,7 @@
  */
 import { khmerDigits } from "@/lib/dates"
 import { formatHijri, type HijriDate } from "@/lib/islamic"
+import * as G from "@/lib/islamic/glossary"
 import { ISLAMIC_TIPS, islamicTipOfTheDay } from "@/lib/islamic-tips"
 import { formatMinutes, imsakTime, prayerTimes, PROVINCES } from "@/lib/prayer"
 
@@ -92,14 +93,14 @@ export type IslamicPostContent = {
   pill: string
   /** The Hijri date in full for the caption (the day of the post; for the fast reminder, tomorrow). */
   hijri: string | null
-  /** The same, short («៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.») — one line on the poster. */
+  /** The same, short («៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ + the Hijri era») — one line on the poster. */
   hijriShort: string | null
   /** The Gregorian day, «ថ្ងៃសុក្រ ២៣ តុលា ២០២៦». */
   date: string
   title: string
   /** The caption's first line when it differs from the poster's title (the fast reminder: «…ស្អែកនេះ…»). */
   lead?: string
-  /** The poster's single date line, when given (the fast day: «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.»). */
+  /** The poster's single date line, when given (the fast day: Gregorian · Hijri, e.g. «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ …»). */
   posterDate?: string
   paragraphs: string[]
   /** Shorter text for the poster when the caption's would not fit (the caption always has it all). */
@@ -127,21 +128,21 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
     const times = fastTimes(day)
     return {
       kind,
-      pill: "កាលវិភាគបួសស៊ុណ្ណា",
+      pill: `កាលវិភាគ${G.SUNNAH_FAST}`,
       hijri: hijriTomorrow ? formatHijri(hijriTomorrow, "km") : null,
       hijriShort: hijriTomorrow ? formatHijri(hijriTomorrow, "km", { short: true }) : null,
       date: kmDay(fastDay),
-      title: monday ? "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ (صِيَام يَوْم الإِثْنَيْن)" : "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ (صِيَام يَوْم الخَمِيس)",
-      lead: `🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់${monday ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"} ស្អែកនេះ)៖</b>`,
+      title: monday ? G.SCHEDULE_TITLES.monday : G.SCHEDULE_TITLES.thursday,
+      lead: `🌙 <b>${G.fastReminderLead(monday ? "monday" : "thursday")}</b>`,
       // One line on the poster: the fast day, Gregorian and Hijri (founder, 18/10/2026).
       posterDate: `${kmDay(fastDay)}${hijriTomorrow ? ` · ${formatHijri(hijriTomorrow, "km", { short: true })}` : ""}`,
       paragraphs: [
-        `សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ${times.imsak} និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។`,
-        "ការបួសនេះជាស៊ុណ្ណា — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ព្យាការី មូហាំម៉ាត់ ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
+        G.sahurReminder(times.imsak),
+        `ការបួសនេះជាស៊ុណ្ណា — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
       ],
       posterParagraphs: [
-        `សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ${times.imsak} និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។`,
-        "ព្យាការី មូហាំម៉ាត់ ﷺ តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ព្រោះអំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។",
+        G.sahurReminder(times.imsak),
+        `${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ព្រោះអំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
       ],
       source: { label: "Jami' at-Tirmidhi 747", url: "https://sunnah.com/tirmidhi:747" },
       fast: times,
@@ -150,14 +151,14 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
   if (kind === "ISLAMIC_JUMUAH") {
     return {
       kind,
-      pill: "ជូម៉ាអះ មូបារ៉ក់ (الجُمُعَة)",
+      pill: `${G.JUMUAH} មូបារ៉ក់ (${G.JUMUAH_ARABIC})`,
       hijri: hijri ? formatHijri(hijri, "km") : null,
       hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
       date: kmDay(day),
-      title: "ជូម៉ាអះ មូបារ៉ក់ — ថ្ងៃសុក្រដ៏មានបារ៉ាកាត់",
+      title: `${G.JUMUAH} មូបារ៉ក់ — ថ្ងៃសុក្រដ៏មាន${G.BARAKAH}`,
       paragraphs: [
-        "អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំជូម៉ាអះ (Jumu'ah / الجُمُعَة) នៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។",
-        "ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំជូម៉ាអះ — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយបារ៉ាកាត់ (Barakah / بَرَكَة)។",
+        `អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំ${G.JUMUAH_LABEL} នៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។`,
+        `ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំ${G.JUMUAH} — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយ${G.BARAKAH_LABEL}។`,
       ],
       source: { label: "Al-Jumu'ah 62:9–10", url: "https://quran.com/62/9-10" },
     }
@@ -184,7 +185,7 @@ export function islamicCaptionHtml(c: IslamicPostContent): string {
     "",
     head,
     ...c.paragraphs.map(esc),
-    ...(c.fast ? ["", `⏰ ម៉ោងនៅ${c.fast.place}៖ អ៊ឹមសាក់ (Imsak / الإمساك) ${c.fast.imsak} · ស្រាយបួស (Iftar / الإفطار) ${c.fast.iftar}`] : []),
+    ...(c.fast ? ["", `⏰ ម៉ោងនៅ${c.fast.place}៖ ${G.IMSAK_LABEL} ${c.fast.imsak} · ${G.IFTAR_LABEL} ${c.fast.iftar}`] : []),
     "",
     `📖 ប្រភព៖ <a href="${c.source.url}">${esc(c.source.label)}</a>`,
     "",

@@ -1,3 +1,5 @@
+import * as G from "@/lib/islamic/glossary"
+
 import { zh } from "./zh"
 
 export type Locale = "km" | "en" | "zh"
@@ -939,7 +941,7 @@ const km = {
   "support.community": "សហគមន៍អ្នកប្រើ",
   "support.communityHint": "គន្លឹះ និងព័ត៌មានថ្មីៗ",
   "support.communityIslamic": "សហគមន៍ អេប លុយឆ្លាត ឥស្លាម",
-  "support.communityIslamicHint": "ហ៊ីជរី មេរៀនហាឡាល់ និងជូម៉ាអះ",
+  "support.communityIslamicHint": `ហ៊ីជរី មេរៀនហាឡាល់ និង${G.JUMUAH}`,
   "support.hours": "ម៉ោងបម្រើ៖ {hours}",
   "support.tryGuide": "មើល «របៀបប្រើប្រាស់» ជាមុនសិន — ចម្លើយភាគច្រើននៅទីនោះ",
   "support.report": "ផ្ញើសារ ឬរាយការណ៍បញ្ហា",
@@ -1655,10 +1657,10 @@ const km = {
   "prayer.gpsHelpProvince": "ឬជ្រើសខេត្តរបស់អ្នកពីបញ្ជីខាងលើ — ម៉ោងសឡាតខុសគ្នាតិចតួចប៉ុណ្ណោះក្នុងខេត្តតែមួយ។",
   "prayer.gpsRetry": "សាកម្តងទៀត",
   "fasting.title": "ការតមបួស",
-  "fasting.imsak": "អ៊ឹមសាក់",
-  "fasting.iftar": "ស្រាយបួស",
-  "fasting.imsakIn": "អ៊ឹមសាក់ក្នុង {time}",
-  "fasting.iftarIn": "ស្រាយបួសក្នុង {time}",
+  "fasting.imsak": G.IMSAK,
+  "fasting.iftar": G.IFTAR,
+  "fasting.imsakIn": `${G.IMSAK}ក្នុង {time}`,
+  "fasting.iftarIn": `${G.IFTAR}ក្នុង {time}`,
   "fasting.wisdomLink": "📖 អត្ថន័យ និងផលបុណ្យនៃការតមបួស (ភស្តុតាង)",
   "fasting.badgeSunnah": "🟢 ស៊ូណាត់ (Sunnah / سنة) — ស្ម័គ្រចិត្ត (មិនបួសមិនជាប់បាប)",
   "fasting.badgeWajib": "🔴 វ៉ាជីប (Wajib / واجب) — កាតព្វកិច្ច (ចេតនាមិនបួសជាប់បាបធ្ងន់)",
@@ -1668,7 +1670,7 @@ const km = {
   "fasting.imsakBody": "ការផ្អាកអាហារ និងទប់ចិត្តមុនពេលចូលស៊ុពហ៍ — ការប្រុងប្រយ័ត្ន ១០ នាទី (ការតមពិតចាប់ផ្តើមនៅពេលស៊ុពហ៍)។",
   "fasting.wisdomTitle": "ការតមបួស និងផលបុណ្យ",
   "fasting.whyTitle": "ហេតុអ្វីត្រូវតមបួស?",
-  "fasting.imsakIftarTitle": "អត្ថន័យនៃ អ៊ឹមសាក់ និងស្រាយបួស",
+  "fasting.imsakIftarTitle": `អត្ថន័យនៃ ${G.IMSAK} និង${G.IFTAR}`,
   "fasting.rewardsTitle": "មហាផលបុណ្យនៃការតមបួស",
   "fasting.quranCredit": "អត្ថបទអារ៉ាប់ (Uthmani) និងការបកប្រែអត្ថន័យជាភាសាខ្មែរ៖ {publisher} · {source}",
   "fasting.hadithNote": "ការបកប្រែអត្ថន័យហាទីស — សូមពិនិត្យជាមួយអ៊ីម៉ាំ ឬមូហ្វទីក្នុងស្រុក។",
@@ -2095,7 +2097,7 @@ const km = {
   "islamic.discoverLink": "មើលមុខងារពិសេស",
   "islamic.discoverIntro": "មុខងារសម្រាប់សាសនិកឥស្លាម — ឥតគិតថ្លៃគ្រប់គម្រោង ហើយបិទតាមលំនាំដើម",
   "islamic.featPrayer": "ម៉ោងសឡាត",
-  "islamic.featPrayerHint": "តាមខេត្ត ឬ GPS ព្រមទាំងម៉ោងអ៊ឹមសាក់ និងស្រាយបួស",
+  "islamic.featPrayerHint": `តាមខេត្ត ឬ GPS ព្រមទាំងម៉ោង${G.IMSAK} និង${G.IFTAR}`,
   "islamic.featAdhan": "ការរំលឹកអាហ្សាន",
   "islamic.featAdhanHint": "ជូនដំណឹងពេលដល់ម៉ោងសឡាត ក្នុងអេប ឬតាម Telegram",
   "islamic.featQuran": "គម្ពីរគូអាន ជាមួយការបកប្រែខ្មែរ",

@@ -35,11 +35,12 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     for (let i = 0; i < ISLAMIC_TIPS.length; i++) assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_DAILY", day(i), h(7))).replace(/<[^>]+>/g, "").length <= 1024)
     for (const kind of ISLAMIC_KINDS) assert.ok(islamicCaptionHtml(islamicPostContent(kind, "2026-10-18", h(7), h(8))).replace(/<[^>]+>/g, "").length <= 1024, kind)
   })
-  it("the fast poster names the place of its Imsak / Iftar times; «ﷺ» is written in Arabic letters on the poster", () => {
+  it("the fast poster names the place of its Imsak / Iftar times; «ﷺ» stays the ligature on the poster (never spelled out)", () => {
     const c = islamicPostContent("ISLAMIC_FAST", "2026-10-18", null, h(8))
     assert.equal(c.fast?.place, "ភ្នំពេញ")
     assert.match(c.fast!.imsak, /^[០-៩]{2}:[០-៩]{2}$/)
-    assert.doesNotMatch(posterText("ព្យាការី ﷺ តែង"), /ﷺ/)
+    assert.equal(posterText("ព្យាការី ﷺ តែង"), "ព្យាការី ﷺ តែង")
+    assert.doesNotMatch(readFileSync(join(process.cwd(), "src/lib/server/islamic-poster.ts"), "utf8"), /صلى الله عليه وسلم/)
     assert.match(islamicCaptionHtml(c), /ﷺ/) // the caption keeps it (phones show it)
   })
   it("published as sendPhoto with the caption — never text-only (text only if the image fails)", () => {
