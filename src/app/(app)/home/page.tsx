@@ -41,6 +41,7 @@ import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useT
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { khmerDigits, longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { headerBadge, toHijri } from "@/lib/islamic"
+import { homeGreeting } from "@/lib/islamic-expressions"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { isCard } from "@/lib/credit-card"
@@ -115,6 +116,7 @@ export default function HomePage() {
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
   const hijri = islamic ? toHijri(today, hijriOffset) : null
   const badge = headerBadge({ islamic, hijri, locale })
+  const greeting = homeGreeting(islamic, givenName)
   const [calendarOpen, setCalendarOpen] = useState(false)
 
   return (
@@ -132,8 +134,14 @@ export default function HomePage() {
               </h1>
             ) : (
               <h1 className="min-w-0 truncate pt-0.5 text-lg font-bold">
-                {givenName ? t("home.greetingName", { name: givenName }) : t("home.greeting")}{" "}
-                <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
+                {/* Islamic Mode: «អស្សាឡាមុអាឡៃកុមក៍, [ឈ្មោះ]» without the waving hand (lib/islamic-expressions). */}
+                {t(greeting.key, greeting.params)}
+                {greeting.wave && (
+                  <>
+                    {" "}
+                    <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
+                  </>
+                )}
               </h1>
             )}
             <p className="mt-0.5 truncate text-xs text-muted-foreground">

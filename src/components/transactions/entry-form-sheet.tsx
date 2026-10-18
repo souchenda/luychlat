@@ -25,6 +25,7 @@ import { DebtLinkedError, type CategoryType, type Currency, type EntryInput, typ
 import { fromDateInput, toDateInput } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { savedMessage } from "@/lib/islamic-expressions"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { defaultNeedWant } from "@/lib/need-want"
@@ -172,7 +173,8 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
       }
       if (transaction) await mutations.update.mutateAsync({ id: transaction.id, input })
       else await mutations.createEntry.mutateAsync(input)
-      toast.success(t("entry.saved"))
+      // Islamic Mode: Alhamdulillah for income, Barakallahu Feek for a payment (lib/islamic-expressions).
+      toast.success(t(savedMessage(type, islamic, !transaction)))
       onOpenChange(false)
     } catch (error) {
       toast.error(error instanceof DebtLinkedError ? t("ledger.debtLinked") : t("common.error"))

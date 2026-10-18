@@ -17,6 +17,7 @@ import { removeGoalCover, uploadGoalCover, useGoalCoverUrl } from "@/lib/goal-co
 import { GOAL_PRESETS } from "@/lib/goals"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { savedMessage } from "@/lib/islamic-expressions"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { accountTitle, type AccountRead } from "@/lib/scan"
@@ -138,7 +139,8 @@ export function GoalFormSheet({
           ...extra,
         })
       }
-      toast.success(t("goals.saved"))
+      // Islamic Mode: «អ៊ីនស៊ាអល់ឡោះ (Insha Allah)» for a new goal (lib/islamic-expressions).
+      toast.success(t(savedMessage("GOAL", islamic, !goal)))
       onOpenChange(false)
     } catch {
       toast.error(t("common.error"))

@@ -66,6 +66,11 @@ const km = {
 
   "home.greeting": "សួស្តី",
   "home.greetingName": "សួស្តី {name}",
+  "islamic.greeting": "អស្សាឡាមុអាឡៃកុមក៍",
+  "islamic.greetingName": "អស្សាឡាមុអាឡៃកុមក៍, {name}",
+  "islamic.saved.income": "អាល់ហាំឌុលីលឡាហ៍ (Alhamdulillah) — បានកត់ត្រាចំណូលជោគជ័យ!",
+  "islamic.saved.goal": "អ៊ីនស៊ាអល់ឡោះ (Insha Allah) — គោលដៅត្រូវបានបង្កើត!",
+  "islamic.saved.expense": "បារ៉ាកាឡាហុហ្វីក (Barakallahu Feek) — បានកត់ត្រារួចរាល់!",
   "home.createAccount": "បង្កើតគណនី និងរក្សាទិន្នន័យ",
 
   "settings.title": "ការកំណត់",
@@ -3931,6 +3936,11 @@ const en: Record<MessageKey, string> = {
 
   "home.greeting": "Hello",
   "home.greetingName": "Hello, {name}",
+  "islamic.greeting": "Assalamu Alaikum",
+  "islamic.greetingName": "Assalamu Alaikum, {name}",
+  "islamic.saved.income": "Alhamdulillah — income recorded!",
+  "islamic.saved.goal": "Insha Allah — goal created!",
+  "islamic.saved.expense": "Barakallahu Feek — recorded!",
   "home.createAccount": "Create account & keep my data",
 
   "settings.title": "Settings",
