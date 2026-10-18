@@ -39,7 +39,7 @@ import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { liabilitiesUsd } from "@/lib/debts"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
-import { khmerDigits, longDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
+import { headerDate, khmerDigits, monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { headerBadge, toHijri } from "@/lib/islamic"
 import { homeGreeting } from "@/lib/islamic-expressions"
 import { useAssetsTotal } from "@/lib/assets-total"
@@ -122,51 +122,49 @@ export default function HomePage() {
   return (
     // «dash»: readable Khmer on the dashboard (globals.css — line-height 1.6, nothing under 13 px).
     <div className="dash space-y-4">
-      {/* One row: greeting with today's date under it on the left, the lunar day / next holy day pill on the right. */}
+      {/* Two lines (founder, 18/10/2026 — on a 360 px phone the greeting and the Hijri badge squeezed each other
+          into «…»): the greeting on its own full-width line, never cut; under it the short date (left) and the
+          lunar / Hijri pill (right), wrapping rather than overlapping. tests/home-header.test.ts */}
       <header>
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            {workspace?.type === "BUSINESS" ? (
-              // Business workspace: the business's logo and name instead of a personal greeting.
-              <h1 className="flex min-w-0 items-center gap-2 text-lg font-bold">
-                <ProfileAvatar path={workspace.logo_path} name={workspace.name} business className="size-8 rounded-lg text-xs" />
-                <span className="truncate">{workspace.name}</span>
-              </h1>
-            ) : (
-              <h1 className="min-w-0 truncate pt-0.5 text-lg font-bold">
-                {/* Islamic Mode: «អស្សាឡាមុអាឡៃកុមក៍, [ឈ្មោះ]» without the waving hand (lib/islamic-expressions). */}
-                {t(greeting.key, greeting.params)}
-                {greeting.wave && (
-                  <>
-                    {" "}
-                    <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
-                  </>
-                )}
-              </h1>
+        {workspace?.type === "BUSINESS" ? (
+          // Business workspace: the business's logo and name instead of a personal greeting.
+          <h1 className="flex min-w-0 items-center gap-2 text-lg font-bold">
+            <ProfileAvatar path={workspace.logo_path} name={workspace.name} business className="size-8 shrink-0 rounded-lg text-xs" />
+            <span className="min-w-0 break-words">{workspace.name}</span>
+          </h1>
+        ) : (
+          <h1 className="block w-full break-words pt-0.5 text-lg leading-snug font-bold">
+            {/* Islamic Mode: «អស្សាឡាមុអាឡៃកុមក៍, [ឈ្មោះ]» without the waving hand (lib/islamic-expressions). */}
+            {t(greeting.key, greeting.params)}
+            {greeting.wave && (
+              <>
+                {" "}
+                <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
+              </>
             )}
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
-                {longDate(today, locale)}
-              </time>
-            </p>
-          </div>
-          {/* Right: a small gold pill with today's lunar day and the next holy day (opens /bills).
-              Islamic Mode in season shows its greeting instead. */}
+          </h1>
+        )}
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
+              {headerDate(today, locale)}
+            </time>
+          </p>
+          {/* A small gold pill with today's lunar day and the next holy day (opens the calendar switch).
+              Islamic Mode: today's Hijri date instead (founder, 18/10/2026), or its greeting in season. */}
           {badge.kind === "greeting" ? (
-            <span className="inline-flex max-w-[58%] shrink-0 items-center gap-1 truncate rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+            <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
               <SparklesIcon className="size-3.5 shrink-0" aria-hidden />
               <span className="truncate">{t(badge.key)}</span>
             </span>
           ) : badge.kind === "hijri" ? (
-            // Islamic Mode: today's Hijri date instead of the Buddhist lunar day and «ថ្ងៃសីល» (founder, 18/10/2026);
-            // a tap opens the calendar switch.
             <button
               type="button"
               onClick={() => setCalendarOpen(true)}
               aria-label={t("calendar.title")}
-              className="inline-flex max-w-[58%] shrink-0 items-center truncate rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900 shadow-xs dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200"
+              className="inline-flex max-w-full items-center rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-emerald-900 shadow-xs dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200"
             >
-              <span className="truncate">{badge.text}</span>
+              {badge.text}
             </button>
           ) : badge.kind === "lunar" ? (
             <LunarPill onOpen={() => setCalendarOpen(true)} />

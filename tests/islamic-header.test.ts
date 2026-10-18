@@ -13,8 +13,8 @@ describe("home header — Islamic Mode shows the Hijri date, never «ថ្ង�
   it("Islamic Mode on: «🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ម.ស.» (English «7 Jumada al-Ula 1448 AH»), no lunar badge", () => {
     const h = toHijri(today)
     assert.deepEqual(h, { day: 7, month: 5, year: 1448 })
-    assert.deepEqual(headerBadge({ islamic: true, hijri: h, locale: "km" }), { kind: "hijri", text: "🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ម.ស." })
-    assert.deepEqual(headerBadge({ islamic: true, hijri: h, locale: "en" }), { kind: "hijri", text: "🌙 7 Jumada al-Ula 1448 AH" })
+    assert.deepEqual(headerBadge({ islamic: true, hijri: h, locale: "km" }), { kind: "hijri", text: "🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨" })
+    assert.deepEqual(headerBadge({ islamic: true, hijri: h, locale: "en" }), { kind: "hijri", text: "🌙 7 Jumada al-Ula 1448" })
   })
   it("Islamic Mode on, any day of the year: never the lunar badge, never «ថ្ងៃសីល» / «សីល»", () => {
     for (let d = 0; d < 366; d++) {

@@ -83,12 +83,14 @@ export const HIJRI_MONTHS_KM = [
  * Khmer: "ថ្ងៃទី២១ ខែរ៉ាប៊ីអ៊ុលអាឃីរ ឆ្នាំ១៤៤៨ មហាម៉ាត់សករាជ (ម.ស.)" (short: "២១ រ៉ាប៊ីអ៊ុលអាឃីរ ១៤៤៨ ម.ស.").
  * English: "21 Rabiʻ al-Thani 1448 AH".
  */
-export function formatHijri(h: HijriDate, locale: "km" | "en", opts?: { short?: boolean }): string {
-  if (locale === "en") return `${h.day} ${HIJRI_MONTHS[h.month - 1]} ${h.year} AH`
+export function formatHijri(h: HijriDate, locale: "km" | "en", opts?: { short?: boolean; era?: boolean }): string {
+  // `era: false` (the home header badge): without «ម.ស.» / "AH", to fit a phone's header row.
+  const era = opts?.era !== false
+  if (locale === "en") return `${h.day} ${HIJRI_MONTHS[h.month - 1]} ${h.year}${era ? " AH" : ""}`
   const day = khmerDigits(String(h.day).padStart(2, "0"))
   const month = HIJRI_MONTHS_KM[h.month - 1]
   const year = khmerDigits(String(h.year))
-  return opts?.short ? `${khmerDigits(String(h.day))} ${month} ${year} ម.ស.` : `ថ្ងៃទី${day} ខែ${month} ឆ្នាំ${year} មហាម៉ាត់សករាជ (ម.ស.)`
+  return opts?.short ? `${khmerDigits(String(h.day))} ${month} ${year}${era ? " ម.ស." : ""}` : `ថ្ងៃទី${day} ខែ${month} ឆ្នាំ${year} មហាម៉ាត់សករាជ (ម.ស.)`
 }
 
 export type IslamicGreeting = "islamic.ramadan" | "islamic.eidFitr" | "islamic.eidAdha" | null
@@ -184,7 +186,7 @@ export function headerBadge(o: { islamic: boolean; hijri: HijriDate | null; loca
   const greeting = islamicGreeting(o.hijri)
   if (greeting) return { kind: "greeting", key: greeting }
   if (!o.hijri) return { kind: "none" }
-  return { kind: "hijri", text: `🌙 ${formatHijri(o.hijri, o.locale === "km" ? "km" : "en", { short: true })}` }
+  return { kind: "hijri", text: `🌙 ${formatHijri(o.hijri, o.locale === "km" ? "km" : "en", { short: true, era: false })}` }
 }
 
 /** The Arabic name shown beside the Khmer one in the Islamic hub (founder, 18/10/2026). */

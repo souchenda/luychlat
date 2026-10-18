@@ -57,6 +57,13 @@ export function longDate(date: Date, locale: Locale): string {
   return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${khmerDigits(String(date.getFullYear()))}`
 }
 
+/** The home header's short date (founder, 18/10/2026): «ថ្ងៃអាទិត្យ ទី១៨ តុលា» / "Sunday, 18 October" / "10月18日 星期日". */
+export function headerDate(date: Date, locale: Locale): string {
+  if (locale === "zh") return format(date, "M月d日 EEEE", { locale: zhCN })
+  if (locale === "en") return format(date, "EEEE, d MMMM")
+  return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ទី${khmerDigits(String(date.getDate()))} ${KM_MONTHS[date.getMonth()]}`
+}
+
 /** "ទី០១ ខែកញ្ញា ឆ្នាំ២០២៦" / "01 September 2026" (no weekday). */
 export function dayDate(date: Date, locale: Locale): string {
   if (locale === "zh") return format(date, "yyyy年M月d日")

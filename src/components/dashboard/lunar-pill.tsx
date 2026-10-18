@@ -70,7 +70,7 @@ export function LunarPill({ onOpen }: { onOpen?: () => void } = {}) {
   const red = key !== null && CHINESE_KEYS.has(key)
   const Icon = key ? CULTURAL_ICON[key] : MoonIcon
 
-  const className = `group inline-flex max-w-[58%] shrink-0 items-center gap-1.5 rounded-full border py-1 pr-1.5 pl-2 text-xs font-medium shadow-xs transition-all active:scale-[0.97] ${red ? RED : AMBER}`
+  const className = `group inline-flex max-w-full items-center gap-1.5 rounded-full border py-1 pr-1.5 pl-2 text-xs font-medium shadow-xs transition-all active:scale-[0.97] ${red ? RED : AMBER}`
   const inner = (
     <>
       <Icon className={`size-3.5 shrink-0 ${red ? "text-red-600 dark:text-red-300" : key ? "text-amber-600" : "fill-amber-300 text-amber-500"}`} aria-hidden />
