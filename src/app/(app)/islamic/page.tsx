@@ -11,6 +11,7 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { ScriptureRefs } from "@/components/islamic/scripture-refs"
 import { DailyTipCard } from "@/components/dashboard/daily-tip-card"
+import { IslamicQuizCard } from "@/components/islamic/quiz-card"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -283,6 +284,7 @@ export default function IslamicPage() {
     <div className="space-y-5">
       {/* Today's Islamic financial wisdom, with its Quran / Hadith source (founder, 18/10/2026). */}
       <DailyTipCard />
+      <IslamicQuizCard />
       {/* Zakat calculator */}
       <section className="space-y-2">
         <h2 className="flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground">

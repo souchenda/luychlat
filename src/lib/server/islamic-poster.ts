@@ -265,8 +265,25 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   }
   y += 10
 
+  // A du'a in Arabic: gold, centred, the largest size that fits on one line (else two).
+  if (c.arabic) {
+    ctx.textAlign = "center"
+    ctx.fillStyle = GOLD
+    if (fitLine(c.arabic, 600, [46, 42, 38, 34])) {
+      ctx.fillText(c.arabic, W / 2, y + 10)
+      y += 76
+    } else {
+      ctx.font = `600 36px ${FAMILIES}`
+      for (const l of lines(c.arabic, W - 2 * SIDE, 2)) {
+        ctx.fillText(l, W / 2, y + 10)
+        y += 58
+      }
+      y += 14
+    }
+  }
+
   // Reserve the fast times, the source and the footer; the text takes what is left.
-  const fastH = c.fast ? 168 : 0
+  const fastH = c.fast ? 168 : c.prayers ? 150 : 0
   const sourceH = 58
   const bodyBottom = FOOTER_TOP - 32 - sourceH - fastH
   // The text: the largest size that fits (40 → 27 px), centred in the space left; cut only as a last resort.
@@ -330,6 +347,33 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
     ctx.fillStyle = "rgba(209,250,229,0.7)"
     ctx.textAlign = "center"
     ctx.fillText(c.fast.day ? `ម៉ោងបួស${c.fast.day} · ${c.fast.place}` : `ម៉ោងនៅ${c.fast.place}`, W / 2, top + 158)
+  }
+
+  // The day's five prayer times (Phnom Penh).
+  if (c.prayers) {
+    const top = FOOTER_TOP - 32 - sourceH - fastH + 10
+    const gap = 12
+    const boxW = (W - 2 * SIDE - gap * (c.prayers.length - 1)) / c.prayers.length
+    c.prayers.forEach((p, i) => {
+      const x = SIDE + i * (boxW + gap)
+      roundRect(ctx, x, top, boxW, 104, 22)
+      ctx.fillStyle = "rgba(255,255,255,0.07)"
+      ctx.fill()
+      ctx.lineWidth = 1.5
+      ctx.strokeStyle = GOLD_SOFT
+      ctx.stroke()
+      ctx.textAlign = "center"
+      ctx.font = `500 24px ${FAMILIES}`
+      ctx.fillStyle = "rgba(209,250,229,0.85)"
+      ctx.fillText(p.label, x + boxW / 2, top + 38)
+      ctx.font = `700 34px ${FAMILIES}`
+      ctx.fillStyle = GOLD
+      ctx.fillText(p.time, x + boxW / 2, top + 84)
+    })
+    ctx.font = `400 24px ${FAMILIES}`
+    ctx.fillStyle = "rgba(209,250,229,0.7)"
+    ctx.textAlign = "center"
+    ctx.fillText("ម៉ោងថ្វាយបង្គំថ្ងៃនេះ · ភ្នំពេញ", W / 2, top + 136)
   }
 
   // The source.

@@ -2,19 +2,23 @@
  * The Islamic community channel (@LuyChlatIslamic, founder, 18/10/2026) — kept 100 % apart from the general
  * channel (@LuyChlatCommunity):
  *   general  market news, fuel prices, Buddhist holy days (ថ្ងៃសីល), the 07:00 poster…
- *   Islamic  the Hijri date with one of the 14 halal-finance lessons (08:00 daily), the Monday / Thursday sunnah
- *            fast reminder (19:00 the evening before) and Jumu'ah (Friday 09:00). Never a holy-day note.
+ *   Islamic  the 24-hour lifecycle (founder, 18/10/2026 — ISLAMIC_SCHEDULE below): 05:30 the waking du'a and
+ *            the day's prayer times · 08:00 the Hijri date and a halal-finance lesson · Friday 11:30 Jumu'ah
+ *            and Surah Al-Kahf · 12:30 the quiz poll · 17:30 the iftar du'a (Monday / Thursday, all of
+ *            Ramadan) · Sunday / Wednesday 19:00 tomorrow's sunnah fast · 21:00 the bedtime du'a. Never a
+ *            holy-day note.
  * Every post is preview-first with the founder's ✅ — the same gate as the general channel (lib/scheduled-posts.ts).
  * Pure (islamic-channel.test.ts).
  */
 import { khmerDigits } from "@/lib/dates"
 import { formatHijri, type HijriDate } from "@/lib/islamic"
 import * as G from "@/lib/islamic/glossary"
+import { DUAS, type Dua } from "@/lib/duas"
 import { ISLAMIC_TIPS, islamicTipOfTheDay } from "@/lib/islamic-tips"
 import { formatMinutes, imsakTime, prayerTimes, PROVINCES } from "@/lib/prayer"
 
 /** ISLAMIC_QUIZ: a Telegram quiz poll (lib/islamic-quiz.ts), not a poster. */
-export const ISLAMIC_KINDS = ["ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH", "ISLAMIC_QUIZ"] as const
+export const ISLAMIC_KINDS = ["ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_QUIZ", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"] as const
 export type IslamicKind = (typeof ISLAMIC_KINDS)[number]
 
 export const isIslamicKind = (kind: string): kind is IslamicKind => (ISLAMIC_KINDS as readonly string[]).includes(kind)
@@ -22,12 +26,26 @@ export const isIslamicKind = (kind: string): kind is IslamicKind => (ISLAMIC_KIN
 /** Which channel a post kind goes to — the only routing rule (a Buddhist holy-day note is never Islamic). */
 export const channelFor = (kind: string): "islamic" | "community" => (isIslamicKind(kind) ? "islamic" : "community")
 
-export const ISLAMIC_DAILY_MINUTE = 8 * 60
-export const ISLAMIC_FAST_MINUTE = 19 * 60
-export const ISLAMIC_JUMUAH_MINUTE = 9 * 60
-/** The quiz: Tuesday and Saturday at noon. */
-export const ISLAMIC_QUIZ_MINUTE = 12 * 60
-export const ISLAMIC_QUIZ_WEEKDAYS = [2, 6]
+/**
+ * The 24-hour schedule (founder, 18/10/2026), minutes after midnight, Cambodia time — locked by
+ * tests/golden/islamic-schedule.test.ts. Every slot is previewed to the founder and published only on ✅ / 🚀.
+ */
+export const ISLAMIC_SCHEDULE = {
+  ISLAMIC_MORNING: 5 * 60 + 30, // the waking du'a + the five prayer times (daily)
+  ISLAMIC_DAILY: 8 * 60, // the Hijri date + a halal-finance lesson (daily)
+  ISLAMIC_JUMUAH: 11 * 60 + 30, // Jumu'ah + Surah Al-Kahf (Friday)
+  ISLAMIC_QUIZ: 12 * 60 + 30, // the quiz poll (daily)
+  ISLAMIC_IFTAR: 17 * 60 + 30, // the iftar du'a (fast days: Monday / Thursday, every day of Ramadan)
+  ISLAMIC_FAST: 19 * 60, // tomorrow's sunnah fast (Sunday / Wednesday)
+  ISLAMIC_NIGHT: 21 * 60, // the bedtime du'a (daily)
+} as const satisfies Record<IslamicKindName, number>
+type IslamicKindName = "ISLAMIC_MORNING" | "ISLAMIC_DAILY" | "ISLAMIC_JUMUAH" | "ISLAMIC_QUIZ" | "ISLAMIC_IFTAR" | "ISLAMIC_FAST" | "ISLAMIC_NIGHT"
+/** 05:30 is too early for a 04:45 preview: it is previewed the evening before, from 21:30. */
+export const MORNING_PREVIEW_EVENING_MINUTE = 21 * 60 + 30
+export const ISLAMIC_DAILY_MINUTE = ISLAMIC_SCHEDULE.ISLAMIC_DAILY
+export const ISLAMIC_FAST_MINUTE = ISLAMIC_SCHEDULE.ISLAMIC_FAST
+export const ISLAMIC_JUMUAH_MINUTE = ISLAMIC_SCHEDULE.ISLAMIC_JUMUAH
+export const ISLAMIC_QUIZ_MINUTE = ISLAMIC_SCHEDULE.ISLAMIC_QUIZ
 
 export const ISLAMIC_COMMUNITY_URL = "https://t.me/LuyChlatIslamic"
 
@@ -54,21 +72,38 @@ export function sunnahFastTomorrow(tomorrow: HijriDate | null): boolean {
   return true
 }
 
+/** A day someone fasts: every day of Ramadan, or Monday / Thursday when fasting is allowed (not Eid / Tashreeq). */
+export function isFastDay(day: string, hijri: HijriDate | null): boolean {
+  if (!hijri) return false
+  if (hijri.month === 9) return true
+  const weekday = weekdayOf(day)
+  return (weekday === 1 || weekday === 4) && sunnahFastTomorrow(hijri)
+}
+
 export type IslamicPlan = { kind: IslamicKind; postKey: string; publishMinute: number; payload: Record<string, string> }
 
 /**
  * The Islamic posts whose preview window is open at this Cambodian minute (the same window as the general
  * posts: from 45 min before until 90 min after). `hijriOf` converts a day with the admin's Hijri offset.
  */
-export function islamicPlannedPosts(day: string, hijriOf: (day: string) => HijriDate | null, open: (at: number) => boolean): IslamicPlan[] {
+export function islamicPlannedPosts(day: string, hijriOf: (day: string) => HijriDate | null, open: (at: number) => boolean, minutes = -1): IslamicPlan[] {
   const out: IslamicPlan[] = []
-  if (open(ISLAMIC_DAILY_MINUTE)) out.push({ kind: "ISLAMIC_DAILY", postKey: day, publishMinute: ISLAMIC_DAILY_MINUTE, payload: { day } })
+  const S = ISLAMIC_SCHEDULE
+  const plan = (kind: IslamicKind) => out.push({ kind, postKey: day, publishMinute: S[kind], payload: { day } })
   const weekday = weekdayOf(day)
+  if (open(S.ISLAMIC_MORNING)) plan("ISLAMIC_MORNING")
+  // Tomorrow's 05:30 post, previewed tonight (the founder approves before bed).
+  if (minutes >= MORNING_PREVIEW_EVENING_MINUTE) {
+    const tomorrow = addDays(day, 1)
+    out.push({ kind: "ISLAMIC_MORNING", postKey: tomorrow, publishMinute: 24 * 60 + S.ISLAMIC_MORNING, payload: { day: tomorrow } })
+  }
+  if (open(S.ISLAMIC_DAILY)) plan("ISLAMIC_DAILY")
+  if (weekday === 5 && open(S.ISLAMIC_JUMUAH)) plan("ISLAMIC_JUMUAH")
+  if (open(S.ISLAMIC_QUIZ)) plan("ISLAMIC_QUIZ")
+  if (open(S.ISLAMIC_IFTAR) && isFastDay(day, hijriOf(day))) plan("ISLAMIC_IFTAR")
   // Sunday → Monday's fast, Wednesday → Thursday's.
-  if ((weekday === 0 || weekday === 3) && open(ISLAMIC_FAST_MINUTE) && sunnahFastTomorrow(hijriOf(addDays(day, 1))))
-    out.push({ kind: "ISLAMIC_FAST", postKey: day, publishMinute: ISLAMIC_FAST_MINUTE, payload: { day } })
-  if (weekday === 5 && open(ISLAMIC_JUMUAH_MINUTE)) out.push({ kind: "ISLAMIC_JUMUAH", postKey: day, publishMinute: ISLAMIC_JUMUAH_MINUTE, payload: { day } })
-  if (ISLAMIC_QUIZ_WEEKDAYS.includes(weekday) && open(ISLAMIC_QUIZ_MINUTE)) out.push({ kind: "ISLAMIC_QUIZ", postKey: day, publishMinute: ISLAMIC_QUIZ_MINUTE, payload: { day } })
+  if ((weekday === 0 || weekday === 3) && open(S.ISLAMIC_FAST) && sunnahFastTomorrow(hijriOf(addDays(day, 1)))) plan("ISLAMIC_FAST")
+  if (open(S.ISLAMIC_NIGHT)) plan("ISLAMIC_NIGHT")
   return out
 }
 
@@ -113,6 +148,10 @@ export type IslamicPostContent = {
   source: { label: string; url: string }
   /** Tomorrow's Imsak / Iftar (`day`: the fast day's name, «ថ្ងៃច័ន្ទ»). */
   fast?: { imsak: string; iftar: string; place: string; day?: string }
+  /** A du'a in Arabic, drawn large on the poster. */
+  arabic?: string
+  /** The day's five prayer times (Phnom Penh), on the poster and in the caption. */
+  prayers?: { label: string; time: string }[]
 }
 
 const FAST_PLACE = PROVINCES[0] // ភ្នំពេញ
@@ -125,7 +164,80 @@ export function fastTimes(day: string): { imsak: string; iftar: string; place: s
   return { imsak: kmClockOf(imsakTime(t)), iftar: kmClockOf(t.maghrib), place: FAST_PLACE.km }
 }
 
-export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriDate | null): IslamicPostContent {
+/** The day's five prayer times in Phnom Penh, «០៤:៣៣». */
+export function dayPrayers(day: string): { label: string; time: string }[] {
+  const [y, m, d] = day.split("-").map(Number)
+  const t = prayerTimes({ year: y, month: m, day: d }, FAST_PLACE.lat, FAST_PLACE.lng)
+  return (["fajr", "dhuhr", "asr", "maghrib", "isha"] as const).map((k) => ({ label: G.PRAYER_NAMES[k], time: kmClockOf(t[k]) }))
+}
+
+/** The app's own du'a (lib/duas.ts) — the channel and the app show the same Arabic, reading and meaning. */
+const dua = (id: string): Dua => DUAS.find((x) => x.id === id)!
+/** «Sahih al-Bukhari 6312» → sunnah.com. */
+export function duaSource(label: string): { label: string; url: string } {
+  const bukhari = /Sahih al-Bukhari (\d+)/.exec(label)
+  if (bukhari) return { label, url: `https://sunnah.com/bukhari:${bukhari[1]}` }
+  const abuDawud = /Sunan Abi Dawud (\d+)/.exec(label)
+  if (abuDawud) return { label, url: `https://sunnah.com/abudawud:${abuDawud[1]}` }
+  return { label, url: "https://sunnah.com" }
+}
+const duaLines = (x: Dua) => [`អានថា៖ ${x.phonetic}`, `អត្ថន័យ៖ ${x.km}`]
+
+export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriDate | null, tomorrowHijri: HijriDate | null = null): IslamicPostContent {
+  const dated = { hijri: hijri ? formatHijri(hijri, "km") : null, hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null, date: kmDay(day) }
+  if (kind === "ISLAMIC_MORNING") {
+    const wake = dua("wake")
+    return {
+      kind,
+      ...dated,
+      pill: "ឌុអាពេលភ្ញាក់ពីដំណេក",
+      title: "អរុណសួស្តីថ្ងៃថ្មី",
+      lead: "🌅 <b>អរុណសួស្តីថ្ងៃថ្មី — ឌុអាពេលភ្ញាក់ពីដំណេក</b>",
+      arabic: wake.arabic,
+      paragraphs: [...duaLines(wake), `សូមឱ្យថ្ងៃថ្មីនេះពោរពេញដោយ${G.BARAKAH} និងការរកស៊ីសុចរិត។`],
+      source: duaSource(wake.source),
+      prayers: dayPrayers(day),
+    }
+  }
+  if (kind === "ISLAMIC_IFTAR") {
+    const iftar = dua("iftar")
+    const ramadan = hijri?.month === 9
+    const [y, m, d] = day.split("-").map(Number)
+    const maghrib = kmClockOf(prayerTimes({ year: y, month: m, day: d }, FAST_PLACE.lat, FAST_PLACE.lng).maghrib)
+    return {
+      kind,
+      ...dated,
+      pill: ramadan ? "ខែរ៉ាម៉ាឌន" : G.SUNNAH_FAST,
+      title: `ឌុអា${G.IFTAR}`,
+      lead: `🌇 <b>ឌុអា${G.IFTAR_LABEL}</b>`,
+      arabic: iftar.arabic,
+      paragraphs: [...duaLines(iftar), `ម៉ោង${G.IFTAR}ថ្ងៃនេះ ${maghrib} (${FAST_PLACE.km}) — សូមអល់ឡោះទទួលយកការបួសរបស់បងប្អូន។`],
+      source: duaSource(iftar.source),
+    }
+  }
+  if (kind === "ISLAMIC_NIGHT") {
+    const sleep = dua("sleep")
+    const tomorrow = addDays(day, 1)
+    const fastTomorrow = isFastDay(tomorrow, tomorrowHijri)
+    return {
+      kind,
+      ...dated,
+      pill: "ឌុអាមុនចូលគេង",
+      title: "រំលឹកមុនចូលនិទ្រា",
+      lead: "🌙 <b>រំលឹកមុនចូលនិទ្រា — ឌុអាមុនចូលគេង</b>",
+      arabic: sleep.arabic,
+      paragraphs: [
+        ...duaLines(sleep),
+        `ស្ដាប់ ${G.SURAH_AL_MULK} ឬកសាដះក្នុង «អេប លុយឆ្លាត» ជាមួយ Sleep Timer (១៥ ឬ ៣០ នាទី) ហើយកុំភ្លេចអាន ${G.AYAT_AL_KURSI} មុនចូលគេង។`,
+        ...(fastTomorrow ? [G.sahurReminder(fastTimes(day).imsak)] : []),
+      ],
+      source: duaSource(sleep.source),
+    }
+  }
+  if (kind === "ISLAMIC_QUIZ") {
+    // A poll, not a poster (lib/islamic-quiz.ts); this content only names it.
+    return { kind, ...dated, pill: "Quiz", title: "Quiz ហិរញ្ញវត្ថុហាឡាល់", paragraphs: [], source: { label: "lib/islamic-quiz.ts", url: "https://app.luychlat.com" } }
+  }
   if (kind === "ISLAMIC_FAST") {
     // Dated the day it is POSTED (Sunday / Wednesday) and titled for tomorrow's fast (founder, 18/10/2026
     // evening); the Imsak / Iftar boxes are tomorrow's, and say so.
@@ -156,7 +268,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
   if (kind === "ISLAMIC_JUMUAH") {
     return {
       kind,
-      pill: `${G.JUMUAH} មូបារ៉ក់ (${G.JUMUAH_ARABIC})`,
+      pill: `រំលឹកសឡាត${G.JUMUAH} (${G.JUMUAH_ARABIC})`,
       hijri: hijri ? formatHijri(hijri, "km") : null,
       hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
       date: kmDay(day),
@@ -164,6 +276,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       paragraphs: [
         `អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំ${G.JUMUAH_LABEL} នៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។`,
         `ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំ${G.JUMUAH} — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយ${G.BARAKAH_LABEL}។`,
+        `កុំភ្លេចអាន ${G.SURAH_AL_KAHF} ថ្ងៃនេះ — អ្នកណាអាន ${G.SURAH_AL_KAHF} នៅថ្ងៃសុក្រ ពន្លឺនឹងភ្លឺសម្រាប់គាត់ រហូតដល់ថ្ងៃសុក្រក្រោយ (al-Hakim · Sahih al-Jami' 6470)។`,
       ],
       source: { label: "Al-Jumu'ah 62:9–10", url: "https://quran.com/62/9-10" },
     }
@@ -189,7 +302,9 @@ export function islamicCaptionHtml(c: IslamicPostContent): string {
     `🌙 <b>${c.hijri ? esc(c.hijri) : ""}</b>${c.hijri ? " · " : ""}${c.date}`,
     "",
     head,
+    ...(c.arabic ? [`«${c.arabic}»`] : []),
     ...c.paragraphs.map(esc),
+    ...(c.prayers ? ["", `🕌 ម៉ោងថ្វាយបង្គំថ្ងៃនេះ (${FAST_PLACE.km})៖`, c.prayers.map((p) => `${p.label} ${p.time}`).join(" · ")] : []),
     ...(c.fast ? ["", `⏰ ម៉ោងនៅ${c.fast.place}៖ ${G.IMSAK_LABEL} ${c.fast.imsak} · ${G.IFTAR_LABEL} ${c.fast.iftar}`] : []),
     "",
     `📖 ប្រភព៖ <a href="${c.source.url}">${esc(c.source.label)}</a>`,
@@ -204,7 +319,7 @@ export const islamicDailyHtml = (day: string, hijri: HijriDate | null) => islami
 /** Sunday / Wednesday 19:00 (dated that day) — tomorrow's sunnah fast (Monday / Thursday), with Imsak and Iftar. */
 export const sunnahFastHtml = (day: string, hijri: HijriDate | null) => islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", day, hijri))
 
-/** Friday 09:00 — Jumu'ah. */
+/** Friday 11:30 — Jumu'ah and Surah Al-Kahf. */
 export const jumuahHtml = (day: string, hijri: HijriDate | null) => islamicCaptionHtml(islamicPostContent("ISLAMIC_JUMUAH", day, hijri))
 
 // ─── In-app community link ─────────────────────────────────────────────────────────────────────

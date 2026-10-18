@@ -43,6 +43,13 @@ export const fastReminderLead = (weekday: "monday" | "thursday") =>
 export const sahurReminder = (imsakTime: string) =>
   `សូមកុំភ្លេចក្រោក${SAHUR_MEAL} នៅទៀបភ្លឺ មុនម៉ោង${IMSAK} ${imsakTime} និងតាំងចិត្ត${NIYYAH_LABEL} តាំងពីយប់នេះ។`
 
+// ─── Prayers and the Quran (the channel's 24-hour posts) ──────────────────────────────────────────
+/** The five daily prayers, the founder's spelling (also the app's prayer page). */
+export const PRAYER_NAMES = { fajr: "ស៊ុពហ៍", dhuhr: "ហ្សូហ៊ួរ", asr: "អាសារ", maghrib: "ម៉ាហ្គ្រិប", isha: "អ៊ីស្យា" } as const
+export const SURAH_AL_MULK = "Surah Al-Mulk"
+export const SURAH_AL_KAHF = "Surah Al-Kahf"
+export const AYAT_AL_KURSI = "Ayat al-Kursi"
+
 // ─── Calendar, Friday, blessing ───────────────────────────────────────────────────────────────────
 /** The Hijri era (هـ) — «ម.ស.» is the Buddhist Maha Sakaraj, never used for Hijri dates. */
 export const HIJRI_ERA = "ហ.ស."

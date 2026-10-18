@@ -48,8 +48,8 @@ describe("GOLDEN · publish only with the founder's approval", () => {
     assert.doesNotMatch(readFileSync(join(ROOT, "lib/server/holy-days.ts"), "utf8"), /islamicChannel|ISLAMIC_/)
   })
   it("the Islamic posts are previewed and held like the rest (the timer never publishes them unapproved)", () => {
-    assert.ok(plannedIslamicPosts("2026-10-23", 8 * 60 + 15).some((p) => p.kind === "ISLAMIC_JUMUAH")) // a Friday
-    assert.ok(!plannedPosts("2026-10-23", 8 * 60 + 15).some((p) => channelFor(p.kind) === "islamic")) // never in the general plan
+    assert.ok(plannedIslamicPosts("2026-10-23", 11 * 60).some((p) => p.kind === "ISLAMIC_JUMUAH")) // a Friday
+    assert.ok(!plannedPosts("2026-10-23", 11 * 60).some((p) => channelFor(p.kind) === "islamic")) // never in the general plan
     assert.equal(takeAllowed("PENDING", "PUBLISHED", false), false)
   })
   it("the Facebook publish functions demand an approval", () => {

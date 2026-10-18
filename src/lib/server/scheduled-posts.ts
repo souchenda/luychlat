@@ -30,7 +30,7 @@ import { communityChannel, communityChannelConfigured, founderApproved, islamicC
 import { toHijri, type HijriDate } from "@/lib/islamic"
 import { dateOf, isIslamicKind, islamicCaptionHtml, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
-import { quizOfDay, quizPollBody, quizPreviewText } from "@/lib/islamic-quiz"
+import { quizTeaserButtons, quizTeaserHtml } from "@/lib/islamic-quiz"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
@@ -255,11 +255,14 @@ const realDeps = (): SchedulerDeps => ({
       case "HOLYDAY":
         return { png: null, body: String(row.payload.text ?? "—") }
       case "ISLAMIC_QUIZ":
-        // A quiz poll: the preview shows the question, the answers (✅ the correct one) and the explanation.
-        return { png: null, body: quizPreviewText(quizOfDay(day)) }
+        // A short teaser with a button into the in-app quiz (no poster).
+        return { png: null, body: stripHtml(quizTeaserHtml(day)) }
+      case "ISLAMIC_MORNING":
       case "ISLAMIC_DAILY":
+      case "ISLAMIC_JUMUAH":
+      case "ISLAMIC_IFTAR":
       case "ISLAMIC_FAST":
-      case "ISLAMIC_JUMUAH": {
+      case "ISLAMIC_NIGHT": {
         // The poster the channel will get, with its caption (founder, 18/10/2026: never text-only).
         const c = await islamicContent(row.kind, day)
         await islamicPosterReady
@@ -294,9 +297,15 @@ const realDeps = (): SchedulerDeps => ({
       return res.ok && res.result ? res.result.message_id : null
     }
     if (row.kind === "ISLAMIC_QUIZ") {
-      // A native Telegram quiz (sendPoll, type "quiz") — approved like every post.
+      // The in-app quiz's teaser: a light text with one button into the app (founder, 18/10/2026).
       if (chat) {
-        const res = await tg<{ message_id: number }>("sendPoll", quizPollBody(chat, quizOfDay(String(row.payload.day))))
+        const res = await tg<{ message_id: number }>("sendMessage", {
+          chat_id: chat,
+          text: quizTeaserHtml(String(row.payload.day)),
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+          reply_markup: quizTeaserButtons(),
+        })
         ids.telegram = res.ok && res.result ? res.result.message_id : null
       }
       return ids
@@ -411,7 +420,8 @@ async function hijriOffset(): Promise<number> {
 /** One Islamic post's content (poster and caption), with the admin's Hijri offset. */
 async function islamicContent(kind: IslamicKind, day: string) {
   const offset = await hijriOffset()
-  return islamicPostContent(kind, day, toHijri(dateOf(day), offset))
+  const tomorrow = new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
+  return islamicPostContent(kind, day, toHijri(dateOf(day), offset), toHijri(dateOf(tomorrow), offset))
 }
 
 let scheduler: ReturnType<typeof createScheduler> | null = null

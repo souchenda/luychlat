@@ -30,16 +30,16 @@ describe("Islamic channel — kept 100 % apart from the general channel (founder
       assert.match(p, /📖 ប្រភព៖ <a href="https:\/\/(quran\.com|sunnah\.com)\//)
     }
   })
-  it("posts: the Hijri date and a lesson daily at 08:00, the sunnah fast on Sunday / Wednesday 19:00, Jumu'ah Friday 09:00", () => {
+  it("posts: the Hijri date and a lesson daily at 08:00, the sunnah fast on Sunday / Wednesday 19:00, Jumu'ah Friday 11:30", () => {
     const kinds = (day: string, minutes: number) => plannedIslamicPosts(day, minutes, plain).map((p) => p.kind)
     assert.ok(kinds("2026-10-18", 7 * 60 + 15).includes("ISLAMIC_DAILY"))
     assert.ok(kinds("2026-10-18", 18 * 60 + 15).includes("ISLAMIC_FAST")) // Sunday → Monday's fast
     assert.ok(kinds("2026-10-21", 18 * 60 + 15).includes("ISLAMIC_FAST")) // Wednesday → Thursday's
     assert.ok(!kinds("2026-10-20", 18 * 60 + 15).includes("ISLAMIC_FAST")) // Tuesday
-    assert.ok(kinds("2026-10-23", 8 * 60 + 15).includes("ISLAMIC_JUMUAH"))
-    assert.ok(!kinds("2026-10-22", 8 * 60 + 15).includes("ISLAMIC_JUMUAH"))
+    assert.ok(kinds("2026-10-23", 11 * 60).includes("ISLAMIC_JUMUAH"))
+    assert.ok(!kinds("2026-10-22", 11 * 60).includes("ISLAMIC_JUMUAH"))
     // Never in the general channel's plan.
-    for (const p of plannedPosts("2026-10-23", 8 * 60 + 15)) assert.equal(channelFor(p.kind), "community")
+    for (const p of plannedPosts("2026-10-23", 11 * 60)) assert.equal(channelFor(p.kind), "community")
   })
   it("no sunnah-fast reminder for a day in Ramadan, Eid al-Fitr, or Eid al-Adha and the Tashreeq days", () => {
     assert.equal(sunnahFastTomorrow(h(3, 9)), false)
@@ -49,7 +49,7 @@ describe("Islamic channel — kept 100 % apart from the general channel (founder
     assert.equal(sunnahFastTomorrow(null), false)
     const ramadan = () => h(3, 9)
     assert.ok(!plannedIslamicPosts("2026-10-18", 18 * 60 + 15, ramadan).some((p) => p.kind === "ISLAMIC_FAST"))
-    assert.ok(!plannedIslamicPosts("2026-10-18", 21 * 60 + 30, plain).length) // more than 90 min late: never
+    assert.ok(!plannedIslamicPosts("2026-10-18", 21 * 60 + 30, plain).some((p) => p.kind === "ISLAMIC_FAST")) // more than 90 min late: never
   })
   it("the founder's preview names the Islamic channel as the only destination, with the approval buttons' gate", () => {
     const where = targetLabel({ telegram: true, facebook: false, channel: "islamic" })

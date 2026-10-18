@@ -58,7 +58,7 @@ export function plannedPosts(day: string, minutes: number): { kind: PostKind; po
 
 /** The Islamic channel's posts (@LuyChlatIslamic) — planned apart from the general ones, same window, same approval gate. */
 export function plannedIslamicPosts(day: string, minutes: number, hijriOf: (day: string) => HijriDate | null = (d) => toHijri(dateOf(d))) {
-  return islamicPlannedPosts(day, hijriOf, (at) => minutes >= at - PREVIEW_LEAD_MIN && minutes < at + LATE_LIMIT_MIN)
+  return islamicPlannedPosts(day, hijriOf, (at) => minutes >= at - PREVIEW_LEAD_MIN && minutes < at + LATE_LIMIT_MIN, minutes)
 }
 
 /**
@@ -103,7 +103,10 @@ const KIND_LABEL: Record<PostKind, string> = {
   ISLAMIC_DAILY: "ហ៊ីជរី និងមេរៀនហិរញ្ញវត្ថុហាឡាល់",
   ISLAMIC_FAST: "រំលឹកបួសស៊ុណ្ណះ (ច័ន្ទ / ព្រហស្បតិ៍)",
   ISLAMIC_JUMUAH: `${G.JUMUAH} (ថ្ងៃសុក្រ)`,
-  ISLAMIC_QUIZ: "Quiz ហិរញ្ញវត្ថុហាឡាល់ (Telegram Poll)",
+  ISLAMIC_QUIZ: "ល្បងប្រាជ្ញាច្បាប់សាសនា (Quiz ក្នុងអេប)",
+  ISLAMIC_MORNING: "ឌុអាពេលព្រឹក និងម៉ោងថ្វាយបង្គំ",
+  ISLAMIC_IFTAR: `ឌុអា${G.IFTAR}`,
+  ISLAMIC_NIGHT: "ឌុអាមុនចូលគេង",
 }
 
 /** The preview's header (destination first), the post itself, then the status line. */
