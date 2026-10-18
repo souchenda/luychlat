@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, BookHeartIcon, BookOpenTextIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, SunriseIcon, type LucideIcon } from "lucide-react"
+import { ArrowLeftIcon, BookHeartIcon, BookOpenTextIcon, CoinsIcon, CompassIcon, Loader2Icon, MapPinIcon, MoonStarIcon, Music2Icon, SunriseIcon, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -19,6 +19,7 @@ const TABS: { href: string; label: MessageKey; icon: LucideIcon; ar?: string }[]
   { href: "/islamic/tasbih", label: "islamic.tab.tasbih", icon: MoonStarIcon, ar: ISLAMIC_ARABIC.tasbih },
   { href: "/islamic/duas", label: "islamic.tab.duas", icon: BookHeartIcon, ar: ISLAMIC_ARABIC.duas },
   { href: "/islamic/quran", label: "islamic.tab.quran", icon: BookOpenTextIcon, ar: ISLAMIC_ARABIC.quran },
+  { href: "/islamic/nasheed", label: "islamic.tab.nasheed", icon: Music2Icon, ar: ISLAMIC_ARABIC.nasheed },
   { href: "/islamic", label: "islamic.tab.finance", icon: CoinsIcon, ar: ISLAMIC_ARABIC.finance },
   { href: "/islamic/qibla", label: "islamic.tab.qibla", icon: CompassIcon, ar: ISLAMIC_ARABIC.qibla },
   { href: "/islamic/places", label: "islamic.tab.places", icon: MapPinIcon },

@@ -15,7 +15,8 @@ describe("Quran audio — streamed from MP3Quran's official CDN", () => {
   })
   it("the CSP allows media from that host only (nothing stored on our server)", () => {
     const cfg = readFileSync(join(process.cwd(), "next.config.ts"), "utf8")
-    assert.match(cfg, new RegExp(`"media-src 'self' blob: ${QURAN_AUDIO_HOST.replace(/\./g, "\\.")}"`))
+    // The CDN, plus our own Supabase storage for the cleared nasheed recordings — nothing else.
+    assert.ok(cfg.includes(`\`media-src 'self' blob: ${QURAN_AUDIO_HOST} \${supabaseOrigin}\``))
   })
 })
 

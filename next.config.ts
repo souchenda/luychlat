@@ -27,7 +27,8 @@ const csp = [
   "font-src 'self' data:",
   // The Adhan sound the user picks is played from an on-device blob.
   // Quran recitation streamed from MP3Quran's official CDN (lib/quran-audio.ts) — that host only.
-  "media-src 'self' blob: https://cdn.mp3quran.net",
+  // …and the cleared Qasidah / Nasheed recordings from our own Supabase storage (lib/nasheed-data.ts).
+  `media-src 'self' blob: https://cdn.mp3quran.net ${supabaseOrigin}`.trim(),
   `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`.trim(),
   "worker-src 'self'",
   "manifest-src 'self'",

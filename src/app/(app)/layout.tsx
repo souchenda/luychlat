@@ -14,7 +14,7 @@ import { DormantGate } from "@/components/layout/dormant-gate"
 import { WelcomeGuide } from "@/components/onboarding/welcome-guide"
 import { FeatureGate } from "@/components/layout/feature-gate"
 import { BottomNav } from "@/components/layout/bottom-nav"
-import { QuranMiniPlayer } from "@/components/islamic/quran-player"
+import { AudioMiniPlayer } from "@/components/islamic/audio-player"
 import { FestiveBadge, FestiveSplash } from "@/components/culture/festive-greeting"
 import { HashScroller } from "@/components/layout/hash-scroller"
 import { PrayerAlertScheduler } from "@/components/islamic/prayer-alerts"
@@ -115,7 +115,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <WelcomeGuide />
           </main>
         </div>
-        <QuranMiniPlayer />
+        <AudioMiniPlayer />
         <BottomNav />
       </div>
     </MfaGate>

@@ -193,6 +193,7 @@ export const ISLAMIC_ARABIC = {
   tasbih: "التسبيح",
   duas: "الدعاء",
   quran: "القرآن",
+  nasheed: "قصائد وأناشيد",
   finance: "الزكاة",
   qibla: "القبلة",
   fajr: "الفجر",
