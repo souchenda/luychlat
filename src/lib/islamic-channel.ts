@@ -188,7 +188,7 @@ export const firstSentence = (text: string) => {
 export const POSTER_HOOKS = {
   morning: ["អរគុណអល់ឡោះ ដែលបានផ្ដល់ដង្ហើមជីវិតឱ្យយើងជាថ្មី"],
   jumuah: [`ផ្អាកការលក់ដូរមួយភ្លែត ដើម្បីទៅថ្វាយបង្គំ${G.JUMUAH}`, `ប្រាក់ចំណេញក្រោយពេលនោះ ទើបប្រកបដោយ${G.BARAKAH}ពិតប្រាកដ`],
-  fast: [`ស្អែកជាថ្ងៃ${G.SUNNAH_FAST} · ថ្ងៃដែលទង្វើល្អត្រូវបានបង្ហាញចំពោះអល់ឡោះ`, `កុំភ្លេច${G.SAHUR} និងតាំងចិត្ត${G.NIYYAH}យប់នេះ`],
+  fast: [`ស្អែកជាថ្ងៃ${G.SUNNAH_FAST} · ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ`, `កុំភ្លេច${G.SAHUR} និងតាំងចិត្ត${G.NIYYAH}យប់នេះ`],
 } as const
 
 const FAST_PLACE = PROVINCES[0] // ភ្នំពេញ

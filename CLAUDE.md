@@ -96,6 +96,9 @@ use come before feature count: no half-baked features, broken links or untested 
   step by step on the **real** app UI (voice recording, the PPCBank loan schedule, the green K-Score
   gauge); (3) a dignified, educational takeaway. Audio: natural, rhythmic voice with proper pauses —
   licensed voices only (see Licensing), never robotic, screechy or disjointed.
+  **Exception (founder, 18/10/2026):** the deadpan humour shorts for the Islamic community are 15–20 s, with the
+  same three acts compressed (`src/lib/islamic/reels-scripts.ts`; the joke is on the habit, never the faith).
+  Khmer text is drawn by Skia, never FFmpeg drawtext; roadmap in `docs/reels-video-engine.md`.
 
 ## Completed features — ស្ថាពរ (verified in git and on production)
 

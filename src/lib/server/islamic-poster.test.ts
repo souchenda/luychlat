@@ -128,7 +128,7 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     // The founder's hooks, word for word.
     assert.deepEqual(islamicPostContent("ISLAMIC_MORNING", "2026-10-19", h(8)).posterLines, ["អរគុណអល់ឡោះ ដែលបានផ្ដល់ដង្ហើមជីវិតឱ្យយើងជាថ្មី"])
     assert.deepEqual(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12)).posterLines, ["ផ្អាកការលក់ដូរមួយភ្លែត ដើម្បីទៅថ្វាយបង្គំជូម៉ាអះ", "ប្រាក់ចំណេញក្រោយពេលនោះ ទើបប្រកបដោយបារ៉ាកាត់ពិតប្រាកដ"])
-    assert.deepEqual(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7)).posterLines, ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណា · ថ្ងៃដែលទង្វើល្អត្រូវបានបង្ហាញចំពោះអល់ឡោះ", "កុំភ្លេចហូបបាយបួស និងតាំងចិត្តនីយ៉ាត់យប់នេះ"])
+    assert.deepEqual(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7)).posterLines, ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណា · ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ", "កុំភ្លេចហូបបាយបួស និងតាំងចិត្តនីយ៉ាត់យប់នេះ"])
     assert.deepEqual(POSTER_HOOKS.morning, ["អរគុណអល់ឡោះ ដែលបានផ្ដល់ដង្ហើមជីវិតឱ្យយើងជាថ្មី"])
     // The morning, the fasts and Jumu'ah: each hook on one line.
     for (const [k, d] of [["ISLAMIC_MORNING", "2026-10-19"], ["ISLAMIC_FAST", "2026-10-18"], ["ISLAMIC_FAST", "2026-10-21"], ["ISLAMIC_JUMUAH", "2026-10-23"]] as const)
@@ -150,7 +150,7 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     loadFonts()
     const ctx = createCanvas(1080, 200).getContext("2d")
     ctx.font = `500 44px ${FAMILIES}`
-    assert.deepEqual(balancedSplit(ctx, "ស្អែកជាថ្ងៃបួសស៊ុណ្ណា · ថ្ងៃដែលទង្វើល្អត្រូវបានបង្ហាញចំពោះអល់ឡោះ", 864), ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណា", "ថ្ងៃដែលទង្វើល្អត្រូវបានបង្ហាញចំពោះអល់ឡោះ"])
+    assert.deepEqual(balancedSplit(ctx, "ស្អែកជាថ្ងៃបួសស៊ុណ្ណា · ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ", 864), ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណា", "ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ"])
     const [a, b] = balancedSplit(ctx, "អ្នកមានគុណធម៌ គឺអ្នកដែលចាយមិនហួសហេតុ ហើយក៏មិនកំណាញ់ដែរ គឺនៅចំកណ្ដាល។", 864)
     assert.ok(Math.abs(ctx.measureText(a).width - ctx.measureText(b).width) < 300, `${a} | ${b}`)
   })

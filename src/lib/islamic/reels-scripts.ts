@@ -1,0 +1,178 @@
+/**
+ * Short vertical videos (Reels / TikTok, 9:16) with gentle, deadpan humour about everyday habits of Cambodian Muslims
+ * (founder, 18/10/2026). The joke is always on the habit we all share (one more episode, five more minutes, a mind
+ * still on the money), never on the prayer, the fast or a person; each ends on the real app and a dignified takeaway.
+ *
+ * Each script keeps the three acts of the video standard (CLAUDE.md) compressed to 15–20 s: (1) the relatable moment,
+ * (2) the deadpan turn, (3) the resolution on the REAL app UI and the takeaway. Status DRAFT until the founder (and a
+ * local Imam for the religious lines) approves it; nothing is published without the founder's ✅ (scheduled_posts).
+ * Pure — the timeline and the FFmpeg plan are in reels-timeline.ts; reels-scripts.test.ts guards every line.
+ */
+import * as G from "@/lib/islamic/glossary"
+
+export type ReelAct = "hook" | "turn" | "resolution"
+
+export type ReelBeat = {
+  act: ReelAct
+  /** Seconds on screen. */
+  seconds: number
+  /** What the frame shows (for the frame renderer and the founder's review). */
+  visual: string
+  /** Kinetic typography: the lines that appear one after another (Khmer, drawn with Skia — never ffmpeg drawtext). */
+  onScreen: string[]
+  /** The voice-over (licensed TTS or a recorded voice only — CLAUDE.md Licensing); none = music / silence. */
+  voice?: string
+  /** A real screen of the app shown in this beat (captured from the app, never mocked up). */
+  appScreen?: { route: string; what: string }
+}
+
+export type ReelScript = {
+  id: string
+  title: string
+  /** The founder's hook line, word for word. */
+  hook: string
+  /** Why it lands: the shared habit the humour is about. */
+  concept: string
+  beats: ReelBeat[]
+  /** The source behind the takeaway, when it cites one. */
+  source?: { label: string; url: string }
+  /** The post's caption (Telegram / Facebook / TikTok), with the call to the app. */
+  caption: string
+  hashtags: string[]
+  /** DRAFT → APPROVED by the founder (with a local Imam for the religious lines); only APPROVED scripts are rendered. */
+  status: "DRAFT" | "APPROVED"
+}
+
+/** The length of a humour short (founder, 18/10/2026: 15–20 s). */
+export const REEL_SECONDS = { min: 15, max: 20 } as const
+
+/** A real value filled at render time from the app's own calculation (no guessing): `{imsak}` → Phnom Penh Imsak. */
+export const REEL_PLACEHOLDERS = ["{imsak}"] as const
+
+export const REEL_CTA = "📲 អេប លុយឆ្លាត — ម៉ោងសឡាត ការរំលឹកបួស និងបញ្ជីបំណុល ឥតគិតថ្លៃ 👉 app.luychlat.com"
+
+export const REEL_SCRIPTS: ReelScript[] = [
+  {
+    id: "ai-drama-vs-salat",
+    title: "រឿងអេអាយ ភាគ ៣៨",
+    hook: `ដល់ពេល${G.SEMBAHYANG}ហើយ នៅមើលរឿងអេអាយដល់ណាទៀត? ${G.SEMBAHYANG}ហើយចាំមកតភាគ!`,
+    concept: "«One more episode» — the drama can wait; the prayer has its time.",
+    beats: [
+      {
+        act: "hook",
+        seconds: 5,
+        visual: "Night, a face lit by the phone; the episode counter ticks 36 → 37 → 38.",
+        onScreen: ["ភាគ ៣៦… ៣៧… ៣៨…", `ដល់ពេល${G.SEMBAHYANG}ហើយ នៅមើលរឿងអេអាយដល់ណាទៀត?`],
+      },
+      {
+        act: "turn",
+        seconds: 6,
+        visual: "Deadpan: the thumb hovers over «next episode»; the rabbit mascot slowly raises an eyebrow.",
+        onScreen: ["«ភាគនេះចប់សិន…»", `${G.SEMBAHYANG}ហើយចាំមកតភាគ!`],
+      },
+      {
+        act: "resolution",
+        seconds: 7,
+        visual: "The app's prayer-time alert slides in; the phone is put face down; a prayer mat is unrolled.",
+        onScreen: ["រឿងរង់ចាំបាន · សឡាតមានម៉ោងរបស់វា"],
+        appScreen: { route: "/islamic", what: "the prayer-time alert «ដល់ម៉ោងសឡាត {name} ហើយ» with the Adhan" },
+      },
+    ],
+    caption: [
+      `🎬 ភាគ ៣៨ រង់ចាំបាន… ប៉ុន្តែម៉ោងសឡាតមិនរង់ចាំយើងទេ 😌`,
+      "",
+      "បើកការជូនដំណឹងម៉ោងសឡាតក្នុង «អេប លុយឆ្លាត» — អាហ្សានរោទ៍ដល់ម៉ោង ទោះកំពុងមើលភាគណាក៏ដោយ។",
+      "",
+      "💬 Tag មិត្តដែលតែងនិយាយថា «ភាគនេះចប់សិន» 😄",
+      "",
+      REEL_CTA,
+    ].join("\n"),
+    hashtags: ["#អេបលុយឆ្លាត", `#${G.SEMBAHYANG}`, "#MuslimCambodia"],
+    status: "DRAFT",
+  },
+  {
+    id: "sahur-snooze",
+    title: "សុំ ៥ នាទីទៀត",
+    hook: `ម៉ោងរោទ៍${G.SAHUR} ០៣:៤៥ vs សុំ ៥ នាទីទៀត`,
+    concept: "The snooze button vs the pre-dawn meal — five minutes that become a whole fast on an empty stomach.",
+    beats: [
+      {
+        act: "hook",
+        seconds: 5,
+        visual: "Dark room, the alarm rings at 03:45; a hand reaches out and taps «snooze».",
+        onScreen: [`ម៉ោងរោទ៍${G.SAHUR} ០៣:៤៥`, "vs «សុំ ៥ នាទីទៀត»"],
+      },
+      {
+        act: "turn",
+        seconds: 6,
+        visual: "Deadpan cut: the clock now reads after Imsak; then noon, a stomach growls in a quiet room.",
+        onScreen: ["៥ នាទី = …", `ថ្ងៃនេះ ${G.SUNNAH_FAST}ទាំងពោះទទេ`],
+      },
+      {
+        act: "resolution",
+        seconds: 7,
+        visual: "The app shows tonight's Imsak time and the 21:00 reminder on @LuyChlatIslamic.",
+        onScreen: [`${G.IMSAK} {imsak} · ក្រោក${G.SAHUR}ទាន់ម៉ោង`, `${G.SAHUR} មាន${G.BARAKAH}`],
+        appScreen: { route: "/islamic", what: "the day's prayer times with Imsak (Phnom Penh), and the channel's 21:00 reminder" },
+      },
+    ],
+    source: { label: "Sahih al-Bukhari 1923", url: "https://sunnah.com/bukhari:1923" },
+    caption: [
+      `⏰ ០៣:៤៥ «សុំ ៥ នាទីទៀត»… ភ្ញាក់មកម្ដងទៀត ហួសម៉ោង${G.IMSAK}បាត់ 🙃`,
+      "",
+      `${G.PROPHET_FULL} មានប្រសាសន៍ថា ចូរ${G.SAHUR} ព្រោះក្នុង${G.SAHUR_MEAL} មាន${G.BARAKAH_LABEL} (Sahih al-Bukhari 1923)។`,
+      "",
+      `ម៉ោង${G.IMSAK}រាល់ថ្ងៃ (ភ្នំពេញ) នៅក្នុង «អេប លុយឆ្លាត» និងការរំលឹកម៉ោង ២១:០០ លើ @LuyChlatIslamic។`,
+      "",
+      "💬 Tag មិត្តដែលចុច snooze ច្រើនជាងគេ 😄",
+      "",
+      REEL_CTA,
+    ].join("\n"),
+    hashtags: ["#អេបលុយឆ្លាត", `#${G.SUNNAH_FAST}`, "#MuslimCambodia"],
+    status: "DRAFT",
+  },
+  {
+    id: "salat-mind-on-debts",
+    title: "ចិត្តនៅចាំទារលុយ",
+    hook: `ទៅ${G.SEMBAHYANG} តែចិត្តនៅចាំទារលុយម៉ូយ`,
+    concept: "Standing in prayer while the mind counts who still owes money — write it down and pray with a quiet mind.",
+    beats: [
+      {
+        act: "hook",
+        seconds: 5,
+        visual: "A calm prayer row from behind; one man's thought bubble fills with notebook pages.",
+        onScreen: [`ទៅ${G.SEMBAHYANG} តែចិត្តនៅចាំទារលុយម៉ូយ`],
+      },
+      {
+        act: "turn",
+        seconds: 6,
+        visual: "Deadpan: the bubbles multiply — «ជំពាក់ $៥០… ឬ $៥០០?», «សងថ្ងៃណា?» — he blinks, very still.",
+        onScreen: ["ជំពាក់ $៥០… ឬ $៥០០?", "សងថ្ងៃណា?"],
+      },
+      {
+        act: "resolution",
+        seconds: 8,
+        visual: "The app's debts list with the amounts and due dates; the bubbles pop; a calm face.",
+        onScreen: ["កត់ទុកក្នុង អេប លុយឆ្លាត · ថ្ងៃសងរំលឹកដោយខ្លួនឯង", `ចិត្តស្ងប់ពេល${G.SEMBAHYANG}`],
+        appScreen: { route: "/debts", what: "the debts list: who owes what, the due dates and the reminders" },
+      },
+    ],
+    source: { label: "Al-Baqarah 2:282", url: "https://quran.com/2/282" },
+    caption: [
+      `🤲 ${G.SEMBAHYANG}… តែក្នុងចិត្តកំពុងរាប់ថា ម៉ូយជំពាក់ប៉ុន្មាន 😅`,
+      "",
+      "អល់ឡោះបានបង្គាប់ឱ្យកត់ត្រាបំណុល (Al-Baqarah 2:282) — កត់ទុកឱ្យច្បាស់ ចិត្តក៏ស្ងប់។",
+      "",
+      "«អេប លុយឆ្លាត» ចាំបំណុល ចំនួន និងថ្ងៃសងជំនួសអ្នក ហើយរំលឹកនៅថ្ងៃកំណត់។",
+      "",
+      "💬 Tag ម្ចាស់ហាងដែលចាំបំណុលអតិថិជនក្នុងក្បាលទាំងអស់ 😄",
+      "",
+      REEL_CTA,
+    ].join("\n"),
+    hashtags: ["#អេបលុយឆ្លាត", `#${G.SEMBAHYANG}`, "#MuslimCambodia"],
+    status: "DRAFT",
+  },
+]
+
+/** A script's length in seconds. */
+export const reelSeconds = (s: ReelScript) => s.beats.reduce((t, b) => t + b.seconds, 0)

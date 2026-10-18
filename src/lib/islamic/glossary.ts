@@ -59,6 +59,11 @@ export const sahurReminder = (imsakTime: string) =>
   `សូមកុំភ្លេចក្រោក${SAHUR_MEAL} នៅទៀបភ្លឺ មុនម៉ោង${IMSAK} ${imsakTime} និងតាំងចិត្ត${NIYYAH_LABEL} តាំងពីយប់នេះ។`
 
 // ─── Prayers and the Quran (the channel's 24-hour posts) ──────────────────────────────────────────
+/**
+ * «សំប៉ាយ៉ាង» — the everyday word of Cambodian Muslims for performing the prayer (salat), the founder's spelling for
+ * the short videos (founder, 18/10/2026). Formal copy keeps «ថ្វាយបង្គំ» / «សឡាត».
+ */
+export const SEMBAHYANG = "សំប៉ាយ៉ាង"
 /** The five daily prayers, the founder's spelling (also the app's prayer page). */
 export const PRAYER_NAMES = { fajr: "ស៊ុពហ៍", dhuhr: "ហ្សូហ៊ួរ", asr: "អាសារ", maghrib: "ម៉ាហ្គ្រិប", isha: "អ៊ីស្យា" } as const
 export const SURAH_AL_MULK = "Surah Al-Mulk"
