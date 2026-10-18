@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { BANNED_TERMS, SEMBAHYANG } from "./glossary"
-import { REEL_CTA, REEL_SCRIPTS, REEL_SECONDS, reelSeconds } from "./reels-scripts"
+import { ADHAN, BANNED_TERMS, SEMBAHYANG, WUDU } from "./glossary"
+import { REEL_CTA, REEL_SCRIPTS, REEL_SECONDS, reelSeconds, SOPHEA } from "./reels-scripts"
 import { cueProgress, ffmpegArgs, fillReel, frameCount, readingSeconds, REEL_FORMAT, reelProblems, reelTimeline } from "./reels-timeline"
 
 const byId = (id: string) => REEL_SCRIPTS.find((s) => s.id === id)!
@@ -18,6 +18,27 @@ describe("Humour shorts — the script registry (founder, 18/10/2026)", () => {
     assert.equal(byId("salat-mind-on-debts").hook, "ទៅសំប៉ាយ៉ាង តែចិត្តនៅចាំទារលុយម៉ូយ")
     assert.equal(SEMBAHYANG, "សំប៉ាយ៉ាង")
     assert.equal(new Set(REEL_SCRIPTS.map((s) => s.id)).size, REEL_SCRIPTS.length)
+  })
+  it("Episode 01, the flagship: the AI-drama binge vs Sophea the Rabbit, the founder's lines word for word", () => {
+    assert.deepEqual(REEL_SCRIPTS.map((x) => x.episode), REEL_SCRIPTS.map((_, i) => i + 1)) // 01, 02, … in order
+    const e = REEL_SCRIPTS[0]
+    assert.equal(e.id, "sophea-ai-drama-wudu")
+    assert.equal(e.title, "ញក់មើលរឿងភាគអេអាយ vs សុភាទន្សាយដេញទៅយកទឹកសំយាំង")
+    assert.equal(SOPHEA.km, "សុភាទន្សាយ")
+    const [hook, turn, resolution] = e.beats
+    assert.equal(hook.speaker, "user")
+    assert.equal(hook.voice, "សុំ ៣០ វិនាទីទៀត កំពុងដល់វគ្គតួស្រីត្រូវគេទះ...")
+    assert.match(hook.sound!, /Adhan/) // the Adhan begins (the app's licensed preset)
+    assert.equal(turn.speaker, "sophea")
+    assert.equal(turn.voice, "មើលរឿងអេអាយ គេទះកំផ្លៀងគ្នា ឯងភ័យជំនួសគេ! ដល់សំឡេងអាហ្សានហៅសំប៉ាយ៉ាង ធ្វើមិនឮ! តោះ! ក្រោកទៅយកទឹកសំយាំងភ្លាម!")
+    assert.equal(turn.onScreen.join(" "), turn.voice) // the screen shows exactly what Sophea says
+    assert.deepEqual(resolution.onScreen, ["រឿងអេអាយគេមិនរត់ចោលទេ... តែម៉ោងសំប៉ាយ៉ាងមិនចាំយើងឡើយ!", "ពិនិត្យម៉ោងថ្វាយបង្គំលើ app.luychlat.com"])
+    assert.ok(e.caption.includes("រឿងអេអាយគេមិនរត់ចោលទេ... តែម៉ោងសំប៉ាយ៉ាងមិនចាំយើងឡើយ! 🕌 ពិនិត្យម៉ោងថ្វាយបង្គំលើ app.luychlat.com"))
+    // The words come from the glossary.
+    assert.equal(WUDU, "យកទឹកសំយាំង")
+    assert.equal(ADHAN, "អាហ្សាន")
+    // No emoji drawn in a frame (the server has no colour emoji font) — emoji stay in the caption.
+    for (const x of REEL_SCRIPTS) for (const b of x.beats) for (const l of b.onScreen) assert.doesNotMatch(l, /\p{Extended_Pictographic}/u, `${x.id}: «${l}»`)
   })
   it("15–20 s, three acts (hook, turn, resolution on the real app), time enough to read every line", () => {
     for (const s of REEL_SCRIPTS) {

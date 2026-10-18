@@ -24,10 +24,24 @@ export type ReelBeat = {
   voice?: string
   /** A real screen of the app shown in this beat (captured from the app, never mocked up). */
   appScreen?: { route: string; what: string }
+  /** Who speaks the voice line (the voice casting for the TTS or the recording). */
+  speaker?: ReelSpeaker
+  /** Ambient sound under the beat (licensed files only — the Adhan from the app's own licensed presets). */
+  sound?: string
 }
+
+export type ReelSpeaker = "user" | "sophea" | "narrator"
+
+/**
+ * «សុភាទន្សាយ» — Sophea the Rabbit, the wise rabbit mascot of «អេប លុយឆ្លាត» in a kopiah (founder, 18/10/2026): calm,
+ * deadpan, kind — she roasts the habit, never the person, and always points to the prayer and the app.
+ */
+export const SOPHEA = { km: "សុភាទន្សាយ", en: "Sophea the Rabbit", look: "the rabbit mascot in a green kopiah" } as const
 
 export type ReelScript = {
   id: string
+  /** The episode number in the storyboard (01 = the flagship). */
+  episode: number
   title: string
   /** The founder's hook line, word for word. */
   hook: string
@@ -53,7 +67,54 @@ export const REEL_CTA = "📲 អេប លុយឆ្លាត — ម៉ោ�
 
 export const REEL_SCRIPTS: ReelScript[] = [
   {
+    // Episode 01 — the flagship (founder, 18/10/2026): the AI-drama binge vs Sophea the Rabbit.
+    id: "sophea-ai-drama-wudu",
+    episode: 1,
+    title: `ញក់មើលរឿងភាគអេអាយ vs ${SOPHEA.km}ដេញទៅ${G.WUDU}`,
+    hook: "សុំ ៣០ វិនាទីទៀត កំពុងដល់វគ្គតួស្រីត្រូវគេទះ...",
+    concept: `Scrolling AI drama reels while the Adhan sounds — Sophea the Rabbit, deadpan, sends the viewer to make wudu.`,
+    beats: [
+      {
+        act: "hook",
+        seconds: 5,
+        visual: "Night, a face lit by the phone, thumb scrolling AI drama reels; mid-scene, a slap about to land.",
+        onScreen: ["សុំ ៣០ វិនាទីទៀត កំពុងដល់វគ្គតួស្រីត្រូវគេទះ..."],
+        voice: "សុំ ៣០ វិនាទីទៀត កំពុងដល់វគ្គតួស្រីត្រូវគេទះ...",
+        speaker: "user",
+        sound: `The Adhan begins, softly (the app's licensed Adhan preset).`,
+      },
+      {
+        act: "turn",
+        seconds: 8,
+        visual: `${SOPHEA.en} (${SOPHEA.look}) appears beside the sofa, arms folded, perfectly still; one ear twitches.`,
+        onScreen: ["មើលរឿងអេអាយ គេទះកំផ្លៀងគ្នា ឯងភ័យជំនួសគេ!", `ដល់សំឡេង${G.ADHAN}ហៅ${G.SEMBAHYANG} ធ្វើមិនឮ!`, `តោះ! ក្រោកទៅ${G.WUDU}ភ្លាម!`],
+        voice: `មើលរឿងអេអាយ គេទះកំផ្លៀងគ្នា ឯងភ័យជំនួសគេ! ដល់សំឡេង${G.ADHAN}ហៅ${G.SEMBAHYANG} ធ្វើមិនឮ! តោះ! ក្រោកទៅ${G.WUDU}ភ្លាម!`,
+        speaker: "sophea",
+        sound: `The Adhan continues under the voice.`,
+      },
+      {
+        act: "resolution",
+        seconds: 7,
+        visual: "The phone drops on the sofa, the viewer dashes off; water from the tap for wudu; Sophea nods once.",
+        onScreen: [`រឿងអេអាយគេមិនរត់ចោលទេ... តែម៉ោង${G.SEMBAHYANG}មិនចាំយើងឡើយ!`, "ពិនិត្យម៉ោងថ្វាយបង្គំលើ app.luychlat.com"],
+        appScreen: { route: "/islamic", what: "today's prayer times (Phnom Penh) and the prayer-time alert with the Adhan" },
+      },
+    ],
+    caption: [
+      `🐰 មើលរឿងអេអាយ គេទះគ្នា ឯងភ័យជំនួសគេ… ដល់${G.ADHAN} ធ្វើមិនឮ 😅`,
+      "",
+      `រឿងអេអាយគេមិនរត់ចោលទេ... តែម៉ោង${G.SEMBAHYANG}មិនចាំយើងឡើយ! 🕌 ពិនិត្យម៉ោងថ្វាយបង្គំលើ app.luychlat.com`,
+      "",
+      "💬 Tag មិត្តដែលតែងសុំ «៣០ វិនាទីទៀត» 😄",
+      "",
+      REEL_CTA,
+    ].join("\n"),
+    hashtags: ["#អេបលុយឆ្លាត", `#${G.SEMBAHYANG}`, "#MuslimCambodia"],
+    status: "DRAFT",
+  },
+  {
     id: "ai-drama-vs-salat",
+    episode: 2,
     title: "រឿងអេអាយ ភាគ ៣៨",
     hook: `ដល់ពេល${G.SEMBAHYANG}ហើយ នៅមើលរឿងអេអាយដល់ណាទៀត? ${G.SEMBAHYANG}ហើយចាំមកតភាគ!`,
     concept: "«One more episode» — the drama can wait; the prayer has its time.",
@@ -92,6 +153,7 @@ export const REEL_SCRIPTS: ReelScript[] = [
   },
   {
     id: "sahur-snooze",
+    episode: 3,
     title: "សុំ ៥ នាទីទៀត",
     hook: `ម៉ោងរោទ៍${G.SAHUR} ០៣:៤៥ vs សុំ ៥ នាទីទៀត`,
     concept: "The snooze button vs the pre-dawn meal — five minutes that become a whole fast on an empty stomach.",
@@ -133,6 +195,7 @@ export const REEL_SCRIPTS: ReelScript[] = [
   },
   {
     id: "salat-mind-on-debts",
+    episode: 4,
     title: "ចិត្តនៅចាំទារលុយ",
     hook: `ទៅ${G.SEMBAHYANG} តែចិត្តនៅចាំទារលុយម៉ូយ`,
     concept: "Standing in prayer while the mind counts who still owes money — write it down and pray with a quiet mind.",

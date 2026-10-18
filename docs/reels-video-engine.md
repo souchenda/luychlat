@@ -5,6 +5,21 @@ Cambodian Muslims (one more episode instead of the prayer, snoozing the Sahur al
 prayer), ending on the real app. Humour earns shares and tags; it is always on the shared habit, never on the
 prayer, the fast or a person.
 
+## Storyboard — episodes (all DRAFT until the founder approves)
+
+| # | Script id | Title | Habit | Ends on |
+|---|-----------|-------|-------|---------|
+| 01 ⭐ | `sophea-ai-drama-wudu` | «ញក់មើលរឿងភាគអេអាយ vs សុភាទន្សាយដេញទៅយកទឹកសំយាំង» | scrolling AI dramas through the Adhan; Sophea the Rabbit (kopiah) roasts, deadpan, and sends the viewer to make wudu | /islamic prayer times + alert |
+| 02 | `ai-drama-vs-salat` | «រឿងអេអាយ ភាគ ៣៨» | one more episode vs the prayer | /islamic prayer alert |
+| 03 | `sahur-snooze` | «សុំ ៥ នាទីទៀត» | snoozing the Sahur alarm | /islamic Imsak time |
+| 04 | `salat-mind-on-debts` | «ចិត្តនៅចាំទារលុយ» | counting debts during the prayer | /debts |
+
+**Sophea the Rabbit («សុភាទន្សាយ»)** — the app's rabbit mascot in a green kopiah: calm, deadpan, kind; she roasts the
+habit, never the person. Voice casting: a calm female Khmer voice (licensed TTS or recorded). Episode 01 needs her
+layered artwork (body, ears, eyes, folded arms) at ≥ 1024 px.
+
+Episodes 01 and 02 share the AI-drama theme — the founder may keep both (different jokes) or merge 02 into 01.
+
 ## Phase 1 — scripts and the pure engine core ✅ (this commit)
 
 - `src/lib/islamic/reels-scripts.ts` — the script registry: three scripts (the founder's hooks word for word),

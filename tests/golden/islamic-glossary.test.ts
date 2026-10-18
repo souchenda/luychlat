@@ -41,7 +41,7 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     assert.deepEqual(hits, [])
   })
   it("every glossary term comes from the glossary — none typed by hand elsewhere", () => {
-    const terms = [G.IMSAK, G.IFTAR, G.SAHUR, G.NIYYAH, G.JUMUAH, G.BARAKAH, G.HIJRI_ERA, G.PROPHET, G.SUNNAH_FAST, "صِيَام", G.JUMUAH_ARABIC]
+    const terms = [G.IMSAK, G.IFTAR, G.SAHUR, G.NIYYAH, G.JUMUAH, G.BARAKAH, G.HIJRI_ERA, G.PROPHET, G.SUNNAH_FAST, "صِيَام", G.JUMUAH_ARABIC, G.SEMBAHYANG, G.WUDU]
     const hits = files.flatMap(({ f, src }) => terms.filter((t) => src.includes(t)).map((t) => `${f}: «${t}» → import it from lib/islamic/glossary`))
     assert.deepEqual(hits, [])
   })
@@ -66,6 +66,9 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     assert.equal(G.JUMUAH_MUBARAK_ARABIC, "جُمُعَة مُبَارَك")
     assert.equal(G.MORNING_ARABIC, "صَبَاح الخَيْر")
     assert.equal(G.HIJRI_CORRESPONDS, "ត្រូវនឹង")
+    assert.equal(G.SEMBAHYANG, "សំប៉ាយ៉ាង")
+    assert.equal(G.WUDU, "យកទឹកសំយាំង")
+    assert.equal(G.ADHAN, "អាហ្សាន")
     assert.equal(G.fastReminderLead("monday"), "រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖")
     assert.equal(
       G.sahurReminder("០៤:២៣"),

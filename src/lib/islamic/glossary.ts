@@ -64,6 +64,10 @@ export const sahurReminder = (imsakTime: string) =>
  * the short videos (founder, 18/10/2026). Formal copy keeps «ថ្វាយបង្គំ» / «សឡាត».
  */
 export const SEMBAHYANG = "សំប៉ាយ៉ាង"
+/** Ablution (wudu) before the prayer, the everyday words (founder, 18/10/2026). */
+export const WUDU = "យកទឹកសំយាំង"
+/** The call to prayer, the app's spelling (prayer alerts, the Adhan presets). */
+export const ADHAN = "អាហ្សាន"
 /** The five daily prayers, the founder's spelling (also the app's prayer page). */
 export const PRAYER_NAMES = { fajr: "ស៊ុពហ៍", dhuhr: "ហ្សូហ៊ួរ", asr: "អាសារ", maghrib: "ម៉ាហ្គ្រិប", isha: "អ៊ីស្យា" } as const
 export const SURAH_AL_MULK = "Surah Al-Mulk"
