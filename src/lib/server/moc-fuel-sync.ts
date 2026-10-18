@@ -18,7 +18,6 @@ import { cycleText } from "@/lib/bot/fuel"
 import type { FuelPrices } from "@/lib/market-calc"
 import { channelPosts, cleanNoticePrices, isFuelNotice, parseNoticePeriod, pricesAgree, type ChannelPost, type NoticePrices } from "@/lib/moc-fuel"
 
-import { getChannelPostButtons } from "./channel-buttons"
 import { logEvent } from "./events"
 import { FUEL_DELAY_MIN } from "@/lib/scheduled-posts"
 import { facebookConfig, facebookFuelCaption, shouldPublishToFacebook } from "./facebook-publisher"
@@ -27,6 +26,7 @@ import { currentMarket, setFuelPrices } from "./market-sync"
 import { askGemini, askGroq, type Answer } from "./slip-bot"
 import { botDb, botKey, tg } from "./telegram-bot"
 import { marketingChats } from "@/lib/server/admin-routes"
+import { communityChannelConfigured } from "@/lib/server/channel"
 
 const CHANNEL = "mocnewsfeed"
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
@@ -52,7 +52,6 @@ const PROMPT = [
 
 const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 const riel = (n: number) => kmDigits(new Intl.NumberFormat("en-US").format(n))
-const communityChat = () => (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim() || null
 
 async function claim(job: string, day: string) {
   const { data } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: job, p_day: day })
@@ -227,7 +226,7 @@ async function applyNotice(day: string, notice: ChannelPost, period: { from: str
   // The community channel and the Facebook Page, once per notice. A real change in EA92 or diesel is
   // preview-first: the founder sees it now and it publishes 45 minutes later (Telegram + the Page)
   // unless they decide first (scheduled-posts.ts). An unchanged notice goes to Telegram right away.
-  const chat = communityChat()
+  const chat = communityChannelConfigured()
   const prev = previous && previous.to <= period.from ? previous : null
   const prevPair = prev ? { regular: prev.regular, diesel: prev.diesel } : null
   if (shouldPublishToFacebook({ kind: "fuel", now: saved.fuel, previous: prevPair })) {
@@ -235,7 +234,8 @@ async function applyNotice(day: string, notice: ChannelPost, period: { from: str
     const facebook = facebookFuelCaption({ now: saved.fuel, previous: prevPair!, period: periodLine(period.from, period.to), sourceUrl: `https://${link}` })
     await scheduleFuelPost(notice.id, telegram ?? "", facebookConfig() ? facebook : null, new Date(Date.now() + FUEL_DELAY_MIN * 60_000).toISOString())
   } else if (chat && (await claim(`moc-fuel-post-${notice.id}`, day))) {
-    await tg("sendMessage", { chat_id: chat, text: newPricesText(saved.fuel, prev, notice.id), disable_web_page_preview: true, ...(await getChannelPostButtons()) }).catch(() => null)
+    // Unchanged prices: Telegram only — held for the founder's approval like every post (founder, 18/10/2026).
+    await scheduleFuelPost(notice.id, newPricesText(saved.fuel, prev, notice.id), null, new Date(Date.now() + 60_000).toISOString())
   }
   await toSuperAdmins(
     `✅ [តម្លៃប្រេង] បានធ្វើបច្ចុប្បន្នភាពដោយស្វ័យប្រវត្តិពីក្រសួងពាណិជ្ជកម្ម (${cycleText(period.from, period.to, "km")})៖ សាំង ${riel(reading.prices.regular)}៛ · ម៉ាស៊ូត ${riel(reading.prices.diesel)}៛\n• ពិនិត្យ៖ ${link}\n• បើខុស៖ /setfuel ដើម្បីកែ`,

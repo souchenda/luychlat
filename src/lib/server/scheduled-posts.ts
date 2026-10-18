@@ -16,12 +16,18 @@ import {
   previewButtons,
   previewText,
   atMinute,
+  EVENT_LEAD_MIN,
   type PostKind,
   type PostStatus,
   type Targets,
 } from "@/lib/scheduled-posts"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
-import { communityChat, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
+import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
+import { bulletinPreview, publishBulletin } from "@/lib/server/community-bulletin"
+import { communityChannel, communityChannelConfigured, founderApproved } from "@/lib/server/channel"
+import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
+import { spotlightPoster } from "@/lib/server/spotlight-poster"
+import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
 import { logEvent } from "@/lib/server/events"
 import { facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
@@ -220,22 +226,45 @@ const realDeps = (): SchedulerDeps => ({
         return null
       }
     }
-    if (row.kind === "MORNING") return { png: poster(() => morningPoster(String(row.payload.day))), body: stripHtml(morningText(String(row.payload.day))) }
-    if (row.kind === "HOLIDAY") {
-      const m = holidayOf(row)
-      return { png: m ? poster(() => holidayPoster(m)) : null, body: m ? stripHtml(holidayPostHtml(m)) : "—" }
+    const day = String(row.payload.day ?? "")
+    switch (row.kind) {
+      case "MORNING":
+        return { png: poster(() => morningPoster(day)), body: stripHtml(morningText(day)) }
+      case "HOLIDAY": {
+        const m = holidayOf(row)
+        return { png: m ? poster(() => holidayPoster(m)) : null, body: m ? stripHtml(holidayPostHtml(m)) : "—" }
+      }
+      case "EVENING":
+        return { png: null, body: stripHtml(eveningText(day)) }
+      case "SPOTLIGHT":
+        return { png: poster(() => spotlightPoster()), body: stripHtml(spotlightHtml()) }
+      case "BULLETIN":
+      case "RATES":
+        return { png: null, body: stripHtml(await bulletinPreview(row.kind)) }
+      case "POSTER": {
+        const p = posterPreview(String(row.payload.key))
+        return { png: p?.png ?? null, body: p?.caption ?? "—" }
+      }
+      case "HOLYDAY":
+        return { png: null, body: String(row.payload.text ?? "—") }
+      default:
+        return { png: null, body: String(row.payload.telegram ?? "—") }
     }
-    return { png: null, body: String(row.payload.telegram ?? "—") }
   },
   targets(row) {
     const fb = Boolean(facebookConfig())
-    const telegram = Boolean(communityChat())
+    const telegram = communityChannelConfigured()
     if (row.kind === "MORNING") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "morning" }) }
     if (row.kind === "HOLIDAY") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "holiday" }) }
+    if (row.kind === "SPOTLIGHT") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "spotlight" }) }
+    if (row.kind === "EVENING" || row.kind === "BULLETIN" || row.kind === "RATES" || row.kind === "POSTER" || row.kind === "HOLYDAY") return { telegram, facebook: false }
     return { telegram: telegram && Boolean(row.payload.telegram), facebook: fb && Boolean(row.payload.facebook) }
   },
   async publish(row) {
-    const chat = communityChat()
+    // Called only for a post the database let leave PENDING / APPROVED by the founder's decision
+    // (bot_post_take): the approval that opens the channel and the Page.
+    const approval = founderApproved(`${row.kind} ${row.post_key}`)
+    const chat = communityChannel(approval)
     const buttons = await getChannelPostButtons()
     const ids: Published = { telegram: null, facebook: null }
     const sentText = async (text: string, html: boolean) => {
@@ -246,7 +275,7 @@ const realDeps = (): SchedulerDeps => ({
       const day = String(row.payload.day)
       if (chat) ids.telegram = (await sendPosterPhoto(chat, morningPoster(day), morningText(day), { reply_markup: buttons.reply_markup })) ?? (await sentText(morningText(day), true))
       if (facebookConfig() && shouldPublishToFacebook({ kind: "morning" })) {
-        const fb = await publishMorningToFacebook(day)
+        const fb = await publishMorningToFacebook(approval, day)
         if (fb?.ok) ids.facebook = fb.postId
       }
       // Phones that turned on notifications: the same quote, only now that it is published (a pause
@@ -263,15 +292,40 @@ const realDeps = (): SchedulerDeps => ({
       if (chat) ids.telegram = (await sendPosterPhoto(chat, png, holidayPostHtml(m), { reply_markup: buttons.reply_markup })) ?? (await sentText(holidayPostHtml(m), true))
       if (facebookConfig() && shouldPublishToFacebook({ kind: "holiday" })) {
         const { title, body } = holidayMessage(m)
-        const fb = await publishLogged(`holiday note (${row.post_key})`, () => publishPhotoToFacebook(png, facebookHolidayMessage(title, body)), fbLog)
+        const fb = await publishLogged(`holiday note (${row.post_key})`, () => publishPhotoToFacebook(approval, png, facebookHolidayMessage(title, body)), fbLog)
         if (fb?.ok) ids.facebook = fb.postId
       }
+      return ids
+    }
+    if (row.kind === "EVENING") {
+      if (chat) ids.telegram = await sentText(eveningText(String(row.payload.day)), true)
+      return ids
+    }
+    if (row.kind === "SPOTLIGHT") {
+      const png = spotlightPoster()
+      if (chat) ids.telegram = (await sendPosterPhoto(chat, png, spotlightHtml(), { reply_markup: buttons.reply_markup })) ?? (await sentText(spotlightHtml(), true))
+      if (facebookConfig() && shouldPublishToFacebook({ kind: "spotlight" })) {
+        const fb = await publishLogged("weekly spotlight", () => publishPhotoToFacebook(approval, png, spotlightCaption()), fbLog)
+        if (fb?.ok) ids.facebook = fb.postId
+      }
+      return ids
+    }
+    if (row.kind === "BULLETIN" || row.kind === "RATES") {
+      ids.telegram = await publishBulletin(approval, row.kind)
+      return ids
+    }
+    if (row.kind === "POSTER") {
+      ids.telegram = await publishFestivalPoster(approval, String(row.payload.key))
+      return ids
+    }
+    if (row.kind === "HOLYDAY") {
+      if (chat && row.payload.text) ids.telegram = await sentText(String(row.payload.text), false)
       return ids
     }
     if (chat && row.payload.telegram) ids.telegram = await sentText(row.payload.telegram, false)
     const fbMessage = row.payload.facebook
     if (fbMessage && facebookConfig()) {
-      const fb = await publishLogged("fuel price change", () => publishTextToFacebook(fbMessage), fbLog)
+      const fb = await publishLogged("fuel price change", () => publishTextToFacebook(approval, fbMessage), fbLog)
       if (fb?.ok) ids.facebook = fb.postId
     }
     return ids
@@ -306,6 +360,14 @@ export async function scheduledPostsTick() {
 /** A fuel price change: previewed now; published only once the founder approves (at the earliest 45 minutes later, or at once with 🚀). */
 export const scheduleFuelPost = (noticeId: number, telegram: string, facebook: string | null, publishAt: string) =>
   real().schedulePost("FUEL", `notice-${noticeId}`, { telegram, facebook }, publishAt)
+
+/**
+ * An event-driven post (the bulletin, the evening NBC rates, a festival poster, a holy-day note, an
+ * unchanged fuel notice): held for the founder's approval — previewed at once, published only on ✅ / 🚀,
+ * within 90 minutes.
+ */
+export const holdForApproval = (kind: PostKind, postKey: string, payload: Record<string, string | null>) =>
+  real().schedulePost(kind, postKey, payload, new Date(Date.now() + EVENT_LEAD_MIN * 60_000).toISOString())
 
 export { isScheduledPostCallback } from "@/lib/scheduled-posts"
 export const handleScheduledPostCallback = (cb: Callback) => real().onCallback(cb)

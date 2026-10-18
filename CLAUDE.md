@@ -83,6 +83,10 @@ use come before feature count: no half-baked features, broken links or untested 
   tip is posted only after the founder's «✅ អនុម័តផ្សាយ» (`bot_tip_auto_approve` is a no-op). Each post
   leaves PENDING / APPROVED once, so it is never posted twice; the channel message id and the Facebook post
   id are recorded (`scheduled_posts.telegram_message_id`, `facebook_post_id`).
+- **Every** public post is preview-first under the same rule — also the 20:00 check-in, the Saturday spotlight,
+  the market bulletin, the evening NBC rates, festival posters and holy-day notes. The channel id and the
+  Facebook publish functions need a `FounderApproval` (`src/lib/server/channel.ts`), made only by the
+  scheduler, the approved tip and the founder's 📢 (`tests/golden/publish-approval.test.ts`).
 - **Wording guards:** never italicise Khmer in a caption (no `<i>`); banned phrases in quotes, tips and the
   spotlight fail the build (`tests/golden/content-guards.test.ts`).
 - **Video (Reels / MP4), whenever added:** length follows substance — 30–60 s with a complete

@@ -16,7 +16,8 @@ import { getChannelPostButtons } from "./channel-buttons"
 import { logEvent } from "./events"
 import { FAMILIES, FRAME, drawFooter, drawHeader, loadFonts, roundRect, wrap } from "./poster-kit"
 import { botDb, botKey, botToken, tg } from "./telegram-bot"
-import { marketingChats } from "@/lib/server/admin-routes"
+import { communityChannel, communityChannelConfigured, founderApproved, type FounderApproval } from "@/lib/server/channel"
+import { holdForApproval } from "@/lib/server/scheduled-posts"
 
 const { W, H, PAD } = FRAME
 const MINT = "#34d399"
@@ -305,7 +306,7 @@ export async function sendFestivalPoster(chatId: number, name: string | undefine
   const key = (name ?? "").toLowerCase().replace(/[^a-z]/g, "") as FestivalPosterKey
   const p = FESTIVAL_POSTERS[key]
   if (!p) return `🎨 /poster <name> — ${Object.keys(FESTIVAL_POSTERS).map((k) => `/poster ${k}`).join(", ")}`
-  const auto = "autoAt" in p && p.autoAt ? `\n⏰ ផ្សាយដោយស្វ័យប្រវត្តិ ${windowText([p.window[0], p.window[0]]).replace(/–.*/, "")} ខែតុលា ម៉ោង ${p.autoAt}` : ""
+  const auto = "autoAt" in p && p.autoAt ? `\n⏰ មើលជាមុន ${windowText([p.window[0], p.window[0]]).replace(/–.*/, "")} ខែតុលា ម៉ោង ${p.autoAt} — ផ្សាយតែពេលអ្នកយល់ព្រមប៉ុណ្ណោះ` : ""
   const caption = `🎨 ${key} · 1080×1080 · មើលជាមុន\n📢 អាចផ្សាយទៅ Community បាន ${windowText(p.window)} ខែតុលា (ម្ដងប៉ុណ្ណោះ)${auto}`
   const sent = await sendPhoto(chatId, artwork(key), caption, { inline_keyboard: [[{ text: "📢 ផ្សាយទៅ @LuyChlatCommunity", callback_data: `pf:${key}` }]] })
   return sent.ok ? null : `⚠️ ${sent.description ?? "send failed"}`
@@ -313,7 +314,6 @@ export async function sendFestivalPoster(chatId: number, name: string | undefine
 
 /** The single button under an automatically published poster. */
 export const POSTER_APP_BUTTON = "📱 បើកក្នុងអេប លុយឆ្លាត"
-const POSTER_APP_URL = "https://app.luychlat.com"
 
 /** Until when (Cambodia time) a missed 07:00 slot is still made up — a holiday poster at night would be odd. */
 const AUTO_LATEST_HOUR = 12
@@ -333,35 +333,46 @@ export async function posterTick() {
   const now = new Date(Date.now() + 7 * 3_600_000) // Asia/Phnom_Penh is UTC+7 all year
   const day = now.toISOString().slice(0, 10)
   const hhmm = now.toISOString().slice(11, 16)
+  if (!communityChannelConfigured()) return
   for (const [key, p] of Object.entries(FESTIVAL_POSTERS) as [FestivalPosterKey, (typeof FESTIVAL_POSTERS)[FestivalPosterKey]][]) {
     if (!posterDue(p, day, hhmm)) continue
-    const channel = (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim()
-    if (!channel) continue
-    const db = botDb()
-    const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `poster-${key}`, p_day: p.window[0] })
-    if (claimed !== true) continue // already broadcast (automatically or by an admin)
-    const sent = await sendPhoto(channel, artwork(key), p.caption, { inline_keyboard: [[{ text: POSTER_APP_BUTTON, url: POSTER_APP_URL }]] })
-    if (!sent.ok) {
-      await db.rpc("bot_release_daily", { p_key: botKey(), p_job: `poster-${key}`, p_day: p.window[0] })
-      logEvent("error", "poster", `Automatic broadcast of ${key} failed: ${sent.description ?? "unknown"}`, { fold: true })
-      const { data: first } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `poster-fail-${key}`, p_day: day })
-      if (first === true) await toSuperAdmins(`⚠️ [Poster] ផ្សាយ ${key} ដោយស្វ័យប្រវត្តិមិនបាន (${sent.description ?? "unknown"}) — Bot នឹងសាកម្ដងទៀតរៀងរាល់នាទី ឬផ្សាយដោយដៃ៖ /poster ${key}`)
-      continue
-    }
-    await db.rpc("bot_system_audit", {
-      p_key: botKey(),
-      p_action: "AUTO_POSTER_BROADCAST",
-      p_note: `${key} → ${channel} at ${hhmm}`,
-      p_ref: sent.result?.message_id ? String(sent.result.message_id) : null,
-      p_metadata: { key, file: p.file, channel, message_id: sent.result?.message_id ?? null },
-    })
-    logEvent("info", "poster", `${key} broadcast to ${channel} automatically at ${hhmm}`)
-    await toSuperAdmins(`📢 [Poster] ${key} បានផ្សាយទៅ ${channel} ដោយស្វ័យប្រវត្តិ ម៉ោង ${hhmm}។`)
+    // Held for the founder's approval once (founder, 18/10/2026): previewed now, published on ✅ / 🚀.
+    const { data: first } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: `poster-held-${key}`, p_day: p.window[0] })
+    if (first !== true) continue
+    await holdForApproval("POSTER", key, { key })
+    logEvent("info", "poster", `${key} ready at ${hhmm} — waiting for the founder's approval`)
   }
 }
 
-async function toSuperAdmins(text: string) {
-  for (const chat of await marketingChats()) await tg("sendMessage", { chat_id: chat, text }).catch(() => null)
+/** A poster's artwork and caption — the preview. */
+export function posterPreview(key: string): { png: Buffer; caption: string } | null {
+  const p = FESTIVAL_POSTERS[key as FestivalPosterKey]
+  return p ? { png: artwork(key as FestivalPosterKey), caption: p.caption } : null
+}
+
+/** An APPROVED poster to the community channel, once (shared with the founder's 📢); its message id. */
+export async function publishFestivalPoster(approval: FounderApproval, key: string): Promise<number | null> {
+  const p = FESTIVAL_POSTERS[key as FestivalPosterKey]
+  const channel = communityChannel(approval)
+  if (!p || !channel) return null
+  const db = botDb()
+  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `poster-${key}`, p_day: p.window[0] })
+  if (claimed !== true) return null // already broadcast
+  const sent = await sendPhoto(channel, artwork(key as FestivalPosterKey), p.caption, (await getChannelPostButtons()).reply_markup)
+  if (!sent.ok) {
+    await db.rpc("bot_release_daily", { p_key: botKey(), p_job: `poster-${key}`, p_day: p.window[0] })
+    logEvent("error", "poster", `Broadcast of ${key} failed: ${sent.description ?? "unknown"}`, { fold: true })
+    return null
+  }
+  await db.rpc("bot_system_audit", {
+    p_key: botKey(),
+    p_action: "POSTER_BROADCAST",
+    p_note: `${key} → ${channel} (${approval.what})`,
+    p_ref: sent.result?.message_id ? String(sent.result.message_id) : null,
+    p_metadata: { key, channel, message_id: sent.result?.message_id ?? null },
+  })
+  logEvent("info", "poster", `${key} broadcast to ${channel} (approved)`)
+  return sent.result?.message_id ?? null
 }
 
 export const isPosterCallback = (data: string | undefined) => Boolean(data?.startsWith("pf:"))
@@ -376,22 +387,16 @@ export async function handlePosterCallback(cb: Callback) {
   const p = FESTIVAL_POSTERS[key]
   if (!chatId || cb.message?.chat.type !== "private" || !p) return answer("…", false)
   const db = botDb()
-  const { data: admins } = await db.rpc("bot_admin_chats", { p_key: botKey() })
-  if (!((admins as { chat_id: number }[] | null) ?? []).some((a) => Number(a.chat_id) === chatId)) return answer("សម្រាប់ Admin ប៉ុណ្ណោះ។")
+  // The founder's own tap (a super admin) is the approval — no other admin publishes (founder, 18/10/2026).
+  const { data: supers } = await db.rpc("bot_super_admin_chats", { p_key: botKey() })
+  if (!((supers as { chat_id: number }[] | null) ?? []).some((a) => Number(a.chat_id) === chatId)) return answer("សម្រាប់ Super Admin ប៉ុណ្ណោះ។")
   const today = ppDay()
   if (today < p.window[0] || today > p.window[1]) return answer(`អាចផ្សាយបានតែ ${windowText(p.window)} ខែតុលា ប៉ុណ្ណោះ។`)
-  const channel = (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim()
-  if (!channel) return answer("មិនទាន់កំណត់ Community channel ទេ។")
-  // Once per poster, even if tapped twice or from two admins' previews.
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `poster-${key}`, p_day: p.window[0] })
-  if (claimed !== true) return answer("បានផ្សាយរួចហើយ។")
-  const sent = await sendPhoto(channel, artwork(key), p.caption, (await getChannelPostButtons()).reply_markup)
-  if (!sent.ok) {
-    logEvent("error", "poster", `Broadcast of ${key} failed: ${sent.description ?? "unknown"}`)
-    return answer(`មិនអាចផ្សាយបានទេ៖ ${sent.description ?? ""}`)
-  }
-  await db.rpc("bot_admin_audit", { p_key: botKey(), p_chat_id: chatId, p_action: "POSTER_BROADCAST", p_note: `${key} → ${channel}` })
-  logEvent("info", "poster", `${key} broadcast to ${channel}`)
+  if (!communityChannelConfigured()) return answer("មិនទាន់កំណត់ Community channel ទេ។")
+  // Once per poster, even if tapped twice or approved in the preview too.
+  const id = await publishFestivalPoster(founderApproved(`📢 ${key} by the founder`), key)
+  if (!id) return answer("បានផ្សាយរួចហើយ ឬផ្សាយមិនបាន។")
+  await db.rpc("bot_admin_audit", { p_key: botKey(), p_chat_id: chatId, p_action: "POSTER_BROADCAST", p_note: `${key} → community` })
   await answer("📢 បានផ្សាយរួចរាល់!", false)
-  await tg("editMessageCaption", { chat_id: chatId, message_id: cb.message!.message_id, caption: `📢 ${key} បានផ្សាយទៅ ${channel} រួចហើយ។` }).catch(() => null)
+  await tg("editMessageCaption", { chat_id: chatId, message_id: cb.message!.message_id, caption: `📢 ${key} បានផ្សាយទៅ Community រួចហើយ។` }).catch(() => null)
 }

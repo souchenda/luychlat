@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { founderApproved } from "./channel"
 import { describe, it } from "node:test"
 
 import {
@@ -12,6 +13,8 @@ import {
   redact,
   shouldPublishToFacebook,
 } from "./facebook-publisher"
+
+const OK = founderApproved("test")
 
 const TOKEN = "EAAtestTOKEN123secret"
 const env = { FB_PAGE_ID: "102345678901234", FB_PAGE_ACCESS_TOKEN: TOKEN }
@@ -40,7 +43,7 @@ describe("facebook publisher — config", () => {
   })
   it("without credentials: skipped, no request at all (Telegram goes on)", async () => {
     const g = graph()
-    const res = await publishPhotoToFacebook(png, "x", { env: {}, fetch: g.fetch, sleep: noSleep })
+    const res = await publishPhotoToFacebook(OK, png, "x", { env: {}, fetch: g.fetch, sleep: noSleep })
     assert.equal(res.ok, false)
     assert.equal("skipped" in res && res.skipped, true)
     assert.equal(g.calls.length, 0)
@@ -50,7 +53,7 @@ describe("facebook publisher — config", () => {
 describe("facebook publisher — posting", () => {
   it("POSTs the PNG, caption and token as form data to /v21.0/{page}/photos — the token never in the URL", async () => {
     const g = graph(json({ id: "999", post_id: "102345678901234_999" }))
-    const res = await publishPhotoToFacebook(png, "សួស្តី", { env, fetch: g.fetch, sleep: noSleep })
+    const res = await publishPhotoToFacebook(OK, png, "សួស្តី", { env, fetch: g.fetch, sleep: noSleep })
     assert.deepEqual(res, { ok: true, postId: "102345678901234_999", attempts: 1 })
     assert.equal(g.calls[0].url, "https://graph.facebook.com/v21.0/102345678901234/photos")
     assert.doesNotMatch(g.calls[0].url, /token/i)
@@ -61,12 +64,12 @@ describe("facebook publisher — posting", () => {
   })
   it("a network error then a 500, then success: retried, 3 attempts", async () => {
     const g = graph(new Error("ECONNRESET"), json({ error: { message: "oops", code: 2 } }, 500), json({ id: "1" }))
-    const res = await publishPhotoToFacebook(png, "x", { env, fetch: g.fetch, sleep: noSleep })
+    const res = await publishPhotoToFacebook(OK, png, "x", { env, fetch: g.fetch, sleep: noSleep })
     assert.deepEqual(res, { ok: true, postId: "1", attempts: 3 })
   })
   it("an expired token (code 190) is not retried; the message never contains the token", async () => {
     const g = graph(json({ error: { message: `Invalid OAuth access token ${TOKEN}`, code: 190 } }, 400))
-    const res = await publishPhotoToFacebook(png, "x", { env, fetch: g.fetch, sleep: noSleep })
+    const res = await publishPhotoToFacebook(OK, png, "x", { env, fetch: g.fetch, sleep: noSleep })
     assert.equal(g.calls.length, 1)
     assert.equal(res.ok, false)
     assert.ok(!res.ok && !res.skipped && !res.retryable)
@@ -75,13 +78,13 @@ describe("facebook publisher — posting", () => {
   })
   it("still failing after 3 tries: gives up cleanly (no throw)", async () => {
     const g = graph(new Error("timeout"), new Error("timeout"), new Error("timeout"))
-    const res = await publishPhotoToFacebook(png, "x", { env, fetch: g.fetch, sleep: noSleep })
+    const res = await publishPhotoToFacebook(OK, png, "x", { env, fetch: g.fetch, sleep: noSleep })
     assert.equal(g.calls.length, 3)
     assert.ok(!res.ok && !res.skipped && res.attempts === 3)
   })
   it("throttled (code 4) is retried", async () => {
     const g = graph(json({ error: { message: "rate", code: 4 } }, 400), json({ post_id: "p" }))
-    const res = await publishPhotoToFacebook(png, "x", { env, fetch: g.fetch, sleep: noSleep })
+    const res = await publishPhotoToFacebook(OK, png, "x", { env, fetch: g.fetch, sleep: noSleep })
     assert.deepEqual(res, { ok: true, postId: "p", attempts: 2 })
   })
 })
@@ -133,7 +136,7 @@ describe("facebook publisher — curated, not a mirror (founder, 12/10/2026)", (
   })
   it("a text post goes to /{page}/feed as «message»; the holiday note is plain text", async () => {
     const g = graph(json({ id: "102345678901234_7" }))
-    const res = await publishTextToFacebook(facebookHolidayMessage("☀️ សូមស្វាគមន៍", "body"), { env, fetch: g.fetch, sleep: noSleep })
+    const res = await publishTextToFacebook(OK, facebookHolidayMessage("☀️ សូមស្វាគមន៍", "body"), { env, fetch: g.fetch, sleep: noSleep })
     assert.deepEqual(res, { ok: true, postId: "102345678901234_7", attempts: 1 })
     assert.equal(g.calls[0].url, "https://graph.facebook.com/v21.0/102345678901234/feed")
     assert.match(String((g.calls[0].init!.body as FormData).get("message")), /^☀️ សូមស្វាគមន៍\n\nbody\n/)

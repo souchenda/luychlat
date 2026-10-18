@@ -15,23 +15,19 @@
 // window so a late server start still sends it — never hours late. These posts
 // are plain messages: they don't replace (or get replaced by) the market posts.
 import { appUrl } from "@/lib/server/community-bulletin"
-import { getChannelPostButtons } from "@/lib/server/channel-buttons"
-import { sendPosterPhoto } from "@/lib/server/tip-bot"
 import { tipPoster } from "@/lib/server/tip-poster"
 import { logEvent } from "@/lib/server/events"
 import { eveningHtml } from "@/lib/evening-reminder"
 import { morningQuote } from "@/lib/morning"
-import { SPOTLIGHT, spotlightCaption, spotlightDue, spotlightHtml } from "@/lib/spotlight"
-import { spotlightPoster } from "@/lib/server/spotlight-poster"
-import { facebookConfig, facebookMorningCaption, publishLogged, publishPhotoToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
+import { facebookMorningCaption, publishLogged, publishPhotoToFacebook } from "@/lib/server/facebook-publisher"
 import { phnomPenhToday } from "@/lib/server/market-sync"
-import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
+import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
 import type { Locale } from "@/lib/i18n/dictionaries"
+import type { FounderApproval } from "@/lib/server/channel"
 
 const MORNING = { job: "community-morning", from: 7 * 60, until: 8 * 60 + 30 }
 const EVENING = { job: "community-evening", from: 20 * 60, until: 21 * 60 + 30 }
 
-export const communityChat = () => (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim() || null
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 
@@ -49,9 +45,6 @@ export function morningText(day: string): string {
 
 /** 20:00 — the end-of-day check-in (Telegram HTML): three short lines, a different one each weekday. */
 export const eveningText = (day: string) => eveningHtml(day)
-
-/** [ 🤖 កត់ត្រាតាម Telegram ↗ ] [ 📱 បើកក្នុងអេប លុយឆ្លាត ↗ ] — the channel's standard row. */
-const recordButtons = getChannelPostButtons
 
 /** The morning quote on the v3 poster frame (same design as the daily tip, its own tag). */
 export function morningPoster(day: string): Buffer {
@@ -95,42 +88,18 @@ export function routineDue(minutes: number): "morning" | "evening" | null {
 export const fbLog = (level: "info" | "error", message: string, fold?: boolean) => logEvent(level, "routine", message, { fold })
 
 /** The 07:00 poster on the Facebook Page; every failure is logged, nothing is thrown. */
-export const publishMorningToFacebook = (day: string) =>
-  publishLogged("morning post", () => publishPhotoToFacebook(morningPoster(day), facebookMorningCaption(day)), fbLog)
+export const publishMorningToFacebook = (approval: FounderApproval, day: string) =>
+  publishLogged("morning post", () => publishPhotoToFacebook(approval, morningPoster(day), facebookMorningCaption(day)), fbLog)
 
-/** Saturday 17:00 — the weekly core-value spotlight: the poster to the channel, then the Facebook Page. */
-async function spotlightTick(day: string, minutes: number) {
-  if (!spotlightDue(day, minutes)) return
-  const chat = communityChat()
-  if (chat && (await claim(SPOTLIGHT.job, day))) {
-    const buttons = await recordButtons()
-    const id = await sendPosterPhoto(chat, spotlightPoster(), spotlightHtml(), { reply_markup: buttons.reply_markup })
-    const res = id ? { ok: true as const, description: undefined } : await tg("sendMessage", { chat_id: chat, text: spotlightHtml(), parse_mode: "HTML", disable_web_page_preview: true, ...buttons })
-    logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Weekly spotlight sent to ${chat}${id ? " (poster)" : " (text — poster failed)"}` : `Weekly spotlight failed: ${res.description ?? "unknown"}`)
-  }
-  if (shouldPublishToFacebook({ kind: "spotlight" }) && facebookConfig() && (await claim(`facebook-${SPOTLIGHT.job}`, day)))
-    await publishLogged("weekly spotlight", () => publishPhotoToFacebook(spotlightPoster(), spotlightCaption()), fbLog)
-}
-
-/** Called every minute by the dispatcher. */
+/**
+ * Called every minute by the dispatcher. The channel's 20:00 check-in and the Saturday spotlight are
+ * preview-first posts now (lib/scheduled-posts.ts plannedPosts — published only with the founder's
+ * approval); here only the 20:00 nudge in the private chats of those who asked for it.
+ */
 export async function communityRoutineTick() {
   const now = phnomPenhToday()
-  await spotlightTick(now.day, now.hour * 60 + now.minute)
-  const due = routineDue(now.hour * 60 + now.minute)
-  if (!due) return
-  const chat = communityChat()
-
-  // The 07:00 poster (Telegram Channel + Facebook Page), its phone push and in-app card, and the holiday
-  // notes are preview-first with an auto-publish fallback: lib/server/scheduled-posts.ts — a pause there
-  // stops all of them.
-
-  // 20:00 is Telegram only — never the Facebook Page (shouldPublishToFacebook({ kind: "evening" }) is false).
-  if (due === "evening" && (await claim(EVENING.job, now.day))) {
-    if (chat) {
-      const res = await tg("sendMessage", { chat_id: chat, text: eveningText(now.day), parse_mode: "HTML", disable_web_page_preview: true, ...(await recordButtons()) })
-      logEvent(res.ok ? "info" : "error", "routine", res.ok ? `Evening check-in sent to ${chat}` : `Evening check-in failed: ${res.description ?? "unknown"}`)
-    }
-    const nudged = await nudgeSubscribers(now.day)
-    if (nudged) logEvent("info", "routine", `Evening check-in nudge sent to ${nudged} chat${nudged === 1 ? "" : "s"}`, { fold: true })
-  }
+  if (routineDue(now.hour * 60 + now.minute) !== "evening") return
+  if (!(await claim(EVENING.job, now.day))) return
+  const nudged = await nudgeSubscribers(now.day)
+  if (nudged) logEvent("info", "routine", `Evening check-in nudge sent to ${nudged} chat${nudged === 1 ? "" : "s"}`, { fold: true })
 }

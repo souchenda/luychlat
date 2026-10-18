@@ -4,6 +4,7 @@ import { isAdminCaller } from "@/lib/server/admin-auth"
 import { guardRequest } from "@/lib/server/guard"
 import { currentMarket } from "@/lib/server/market-sync"
 import { botDb, botKey, botToken, tg } from "@/lib/server/telegram-bot"
+import { communityChannelRef } from "@/lib/server/channel"
 
 /**
  * /admin › System health & bot security. Admins only (the database checks).
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       pending: hook?.result?.pending_update_count ?? null,
       last_error_at: hook?.result?.last_error_date ? new Date(hook.result.last_error_date * 1000).toISOString() : null,
       last_error: hook?.result?.last_error_message ?? null,
-      community_chat: process.env.TELEGRAM_COMMUNITY_CHAT_ID?.trim() || null,
+      community_chat: communityChannelRef(),
       voice: Boolean(process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY),
     },
     feeds: {

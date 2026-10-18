@@ -9,8 +9,14 @@
  */
 import { khmerDigits } from "@/lib/dates"
 import { HOLIDAY_POST_MINUTE, HOLIDAY_PRE_MINUTE, holidayMoment } from "@/lib/holiday-lifecycle"
+import { SPOTLIGHT } from "@/lib/spotlight"
 
-export type PostKind = "MORNING" | "HOLIDAY" | "FUEL"
+/**
+ * Every public post (founder, 18/10/2026 — none without approval): the 07:00 poster, holiday notes, fuel
+ * notices, the 20:00 reminder, the Saturday spotlight, the market bulletin, the evening NBC rates,
+ * festival posters and holy-day notes.
+ */
+export type PostKind = "MORNING" | "HOLIDAY" | "FUEL" | "EVENING" | "SPOTLIGHT" | "BULLETIN" | "RATES" | "POSTER" | "HOLYDAY"
 export type Targets = { telegram: boolean; facebook: boolean }
 export type PostStatus = "PENDING" | "APPROVED" | "PUBLISHED" | "PAUSED" | "EXPIRED"
 
@@ -22,6 +28,10 @@ export const LATE_LIMIT_MIN = 90
 export const FUEL_DELAY_MIN = 45
 
 export const MORNING_POST_MINUTE = 7 * 60
+/** The 20:00 check-in in the channel. */
+export const EVENING_POST_MINUTE = 20 * 60
+/** An event-driven post (the bulletin, festival posters…): previewed at once, publishable from this many minutes on. */
+export const EVENT_LEAD_MIN = 1
 
 /** The 07:00 post as Cambodia-time ISO for `day` + `minute`. */
 export const atMinute = (day: string, minute: number) => new Date(Date.parse(`${day}T00:00:00+07:00`) + minute * 60_000).toISOString()
@@ -31,6 +41,9 @@ export function plannedPosts(day: string, minutes: number): { kind: PostKind; po
   const open = (at: number) => minutes >= at - PREVIEW_LEAD_MIN && minutes < at + LATE_LIMIT_MIN
   const out: { kind: PostKind; postKey: string; publishMinute: number; payload: Record<string, string> }[] = []
   if (open(MORNING_POST_MINUTE)) out.push({ kind: "MORNING", postKey: day, publishMinute: MORNING_POST_MINUTE, payload: { day } })
+  if (open(EVENING_POST_MINUTE)) out.push({ kind: "EVENING", postKey: day, publishMinute: EVENING_POST_MINUTE, payload: { day } })
+  if (new Date(`${day}T00:00:00Z`).getUTCDay() === SPOTLIGHT.weekday && open(SPOTLIGHT.from))
+    out.push({ kind: "SPOTLIGHT", postKey: day, publishMinute: SPOTLIGHT.from, payload: { day } })
   const m = holidayMoment(day)
   if (m) {
     const at = m.stage === "pre" ? HOLIDAY_PRE_MINUTE : HOLIDAY_POST_MINUTE
@@ -67,7 +80,17 @@ export function kmClock(iso: string): string {
   return `${khmerDigits(String(h).padStart(2, "0"))}:${khmerDigits(String(m).padStart(2, "0"))} ${part}`
 }
 
-const KIND_LABEL: Record<PostKind, string> = { MORNING: "ផុសព្រឹក (Poster)", HOLIDAY: "សារថ្ងៃឈប់សម្រាក", FUEL: "តម្លៃប្រេងថ្មី" }
+const KIND_LABEL: Record<PostKind, string> = {
+  MORNING: "ផុសព្រឹក (Poster)",
+  HOLIDAY: "សារថ្ងៃឈប់សម្រាក",
+  FUEL: "តម្លៃប្រេងថ្មី",
+  EVENING: "សាររំលឹកម៉ោង ៨ យប់",
+  SPOTLIGHT: "តម្លៃស្នូលប្រចាំសប្តាហ៍ (Poster)",
+  BULLETIN: "ព្រឹត្តិបត្រទីផ្សារ (NBC · មាស · ប្រេង)",
+  RATES: "អត្រាប្តូរប្រាក់ NBC ពេលល្ងាច",
+  POSTER: "Poster ពិធីបុណ្យ",
+  HOLYDAY: "សារថ្ងៃសីល",
+}
 
 /** The preview's header (destination first), the post itself, then the status line. */
 export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus }): string {

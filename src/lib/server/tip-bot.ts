@@ -28,6 +28,7 @@ import { tipPoster } from "@/lib/server/tip-poster"
 import { supabaseUrl } from "@/lib/supabase/config"
 import { threadFor } from "@/lib/chat-route"
 import { marketingChats } from "@/lib/server/admin-routes"
+import { communityChannel, communityChannelConfigured, founderApproved } from "@/lib/server/channel"
 
 export type DailyTip = {
   day: string
@@ -50,7 +51,6 @@ export type DailyTip = {
 
 const PREVIEW = { from: 10 * 60 + 30, until: 12 * 60 }
 const POST = { from: 12 * 60, until: 13 * 60 }
-const communityChat = () => (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim() || null
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
@@ -231,7 +231,8 @@ async function getTip(day: string): Promise<DailyTip | null> {
 async function republishCorrected(day: string) {
   const t = await getTip(day)
   if (!t || t.status !== "POSTED" || !t.posted_message_id || (t.posted_version ?? t.version) >= t.version) return
-  const chat = communityChat()
+  // A correction the founder confirmed (✏️ → ✅) to the post they had approved.
+  const chat = communityChannel(founderApproved(`tip ${day} correction v${t.version}`))
   if (!chat) return
   const msg = await photo(chat, await posterFor(t), tipCaption(t), { messageId: t.posted_message_id, ...(await getChannelPostButtons()) })
   if (!msg) return logEvent("error", "daily-tip", `Correcting the published tip (v${t.version}) failed — will retry next minute`, { fold: true })
@@ -269,8 +270,7 @@ export async function dailyTipTick() {
 
   // 12:00–12:59: only a tip the founder approved is posted (claimed once). A tip still waiting is NEVER
   // approved by the system (founder, 18/10/2026) — it stays unpublished.
-  const chat = communityChat()
-  if (!chat) return
+  if (!communityChannelConfigured()) return
   if (!(await getTip(now.day))) {
     // No draft at all (the 10:30 run was missed): today's tip from the pool, never yesterday's again.
     const tip = await pickTip(now.day)
@@ -279,9 +279,12 @@ export async function dailyTipTick() {
   const waiting = await getTip(now.day)
   if (waiting?.status === "DRAFT" && (await claim("tip-strict-notice", now.day)))
     logEvent("warn", "daily-tip", `Tip v${waiting.version} not approved by 12:00 — not published (the founder's ✅ is required)`)
+  // bot_tip_claim_post returns only a tip the founder APPROVED (the system never approves one).
   const { data } = await db.rpc("bot_tip_claim_post", { p_key: botKey() })
   const t = data as DailyTip | null
   if (!t?.day) return
+  const chat = communityChannel(founderApproved(`tip ${t.day} v${t.version}`))
+  if (!chat) return
   const msg = await photo(chat, await posterFor(t), tipCaption(t), await getChannelPostButtons())
   if (!msg) {
     await db.rpc("bot_tip_post_failed", { p_key: botKey(), p_day: t.day })

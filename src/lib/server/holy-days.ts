@@ -5,11 +5,12 @@ import { culturalDayOn, NO_EVE_REMINDER, type CulturalKey } from "@/lib/cultural
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
 import { formatLunar, khmerLunarDate } from "@/lib/khmer-lunar"
 import { HOLY_DAY_MINUTE, holyDayStages, silDayText, silEveText } from "@/lib/holy-day-alerts"
-import { getChannelPostButtons } from "./channel-buttons"
 
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
-import { botDb, botKey, sendText, SIGNATURE, tg, tr } from "./telegram-bot"
+import { botDb, botKey, sendText, SIGNATURE, tr } from "./telegram-bot"
+import { communityChannelConfigured } from "@/lib/server/channel"
+import { holdForApproval } from "@/lib/server/scheduled-posts"
 
 const JOB = "holy-day-eve"
 
@@ -78,10 +79,10 @@ async function sendStage(job: string, day: string, text: (lang: Locale) => strin
     }
   }
   if (sent) logEvent("info", "holy-days", `${what} sent to ${sent} chat${sent === 1 ? "" : "s"}`, { fold: true })
-  const channel = (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim()
-  if (channelText && channel) {
-    const r = await tg("sendMessage", { chat_id: channel, text: channelText, ...(await getChannelPostButtons()) }).catch(() => null)
-    logEvent(r?.ok ? "info" : "error", "holy-days", r?.ok ? `${what} posted to ${channel}` : `${what} channel post failed`, { fold: true })
+  // The channel's note: held for the founder's approval (founder, 18/10/2026).
+  if (channelText && communityChannelConfigured()) {
+    await holdForApproval("HOLYDAY", `${job}-${day}`, { text: channelText })
+    logEvent("info", "holy-days", `${what} for the channel — waiting for the founder's approval`, { fold: true })
   }
 }
 

@@ -7,6 +7,7 @@
  * failure is caught and logged. The token travels in the POST body (never in a URL, so never in a
  * log), and every message we log is scrubbed of it.
  */
+import type { FounderApproval } from "@/lib/server/channel"
 import { morningQuote } from "@/lib/morning"
 
 export const GRAPH_VERSION = "v21.0"
@@ -109,7 +110,8 @@ export function facebookHolidayMessage(title: string, body: string): string {
 }
 
 /** A photo post (the 07:00 poster). */
-export function publishPhotoToFacebook(png: Buffer, caption: string, deps: Partial<Deps> = {}): Promise<FacebookResult> {
+/** A photo post on the Page — only with the founder's approval (lib/server/channel.ts). */
+export function publishPhotoToFacebook(_approval: FounderApproval, png: Buffer, caption: string, deps: Partial<Deps> = {}): Promise<FacebookResult> {
   return postToPage(
     "photos",
     (form) => {
@@ -122,7 +124,8 @@ export function publishPhotoToFacebook(png: Buffer, caption: string, deps: Parti
 }
 
 /** A text post (a holiday note, a fuel price change). */
-export function publishTextToFacebook(message: string, deps: Partial<Deps> = {}): Promise<FacebookResult> {
+/** A text post on the Page — only with the founder's approval (lib/server/channel.ts). */
+export function publishTextToFacebook(_approval: FounderApproval, message: string, deps: Partial<Deps> = {}): Promise<FacebookResult> {
   return postToPage("feed", (form) => form.set("message", message), deps)
 }
 

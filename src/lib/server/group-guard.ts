@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n/dictionaries"
 
 import { logEvent } from "./events"
 import { botDb, botKey, sendText, tg, tr } from "./telegram-bot"
+import { communityChannelRef } from "@/lib/server/channel"
 
 /** Groups seen recently (one database touch per group per hour, not per message). */
 const seenAt = new Map<number, number>()
@@ -37,7 +38,7 @@ let community: { id: number | null; at: number } | null = null
 /** The community chat's numeric id (configured as an id or an @username), cached for an hour. */
 async function communityId(): Promise<number | null> {
   if (community && Date.now() - community.at < 3_600_000) return community.id
-  const raw = (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim()
+  const raw = communityChannelRef()
   let id: number | null = null
   if (raw && /^-?\d+$/.test(raw)) id = Number(raw)
   else if (raw) id = (await tg<{ id?: number }>("getChat", { chat_id: raw })).result?.id ?? null

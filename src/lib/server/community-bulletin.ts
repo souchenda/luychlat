@@ -8,6 +8,8 @@ import { currentMarket, hasLocalToday, syncMarket } from "@/lib/server/market-sy
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { logEvent } from "@/lib/server/events"
+import { communityChannel, communityChannelConfigured, isCommunityChannel, type FounderApproval } from "@/lib/server/channel"
+import { holdForApproval } from "@/lib/server/scheduled-posts"
 
 /**
  * Every morning @luychlat_bot posts one Khmer "daily market update" to the
@@ -52,7 +54,6 @@ const fmt = (n: number, digits = 0) => new Intl.NumberFormat("en-US", { minimumF
 const fmtUsd = (n: number) => `$${fmt(n, 0)}`
 
 /** The community channel, from either variable name. */
-const communityChat = () => (process.env.TELEGRAM_COMMUNITY_CHAT_ID ?? process.env.TELEGRAM_COMMUNITY_CHANNEL_ID)?.trim() || null
 
 /** "• 1 USD = 4,057 ៛", per 1,000 / 100 units for small currencies ("• 1,000 VND = 157 ៛"). */
 const rateLine = (code: string, v: number) => {
@@ -193,10 +194,9 @@ export async function appUrl(): Promise<string | null> {
 
 /** Called every minute by the dispatcher; posts once a day (see the timing above). */
 export async function sendCommunityBulletin(): Promise<boolean> {
-  const chat = communityChat()
-  if (!chat) return false
+  if (!communityChannelConfigured()) return false
   const now = phnomPenhNow()
-  await maybeSendEveningRates(chat, now)
+  await maybeSendEveningRates(now)
   if (now.hour < FROM.hour || (now.hour === FROM.hour && now.minute < FROM.minute) || now.hour >= LAST_HOUR) return false
   let market = await currentMarket()
   const pastDeadline = now.hour > DEADLINE.hour || (now.hour === DEADLINE.hour && now.minute >= DEADLINE.minute)
@@ -206,15 +206,32 @@ export async function sendCommunityBulletin(): Promise<boolean> {
 
   // Fresh rates if the stored ones are older than 2 hours.
   if (!market || Date.now() - Date.parse(market.fetched_at) > 2 * 3_600_000) market = (await syncMarket(true)) ?? market
-  const res = await postReplacing(chat, {
-    text: bulletinText(now.date, market).slice(0, 4000),
-    parse_mode: "HTML",
-    disable_web_page_preview: true,
-    ...(await getChannelPostButtons()),
-  })
-  if (!res.ok) console.error("[bulletin] send failed:", res.description)
-  logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Daily bulletin sent to ${chat}${hasLocalToday(market) ? "" : " (no local gold prices yet)"}` : `Daily bulletin failed: ${res.description ?? "unknown"}`)
-  return res.ok
+  // Held for the founder's approval (preview now; published only on ✅ / 🚀 — scheduled-posts.ts).
+  await holdForApproval("BULLETIN", now.day, { day: now.day })
+  logEvent("info", "bulletin", `Daily bulletin ready — waiting for the founder's approval${hasLocalToday(market) ? "" : " (no local gold prices yet)"}`)
+  return true
+}
+
+/** The post's text as it would go out now — the preview (BULLETIN: the daily bulletin; RATES: the evening NBC rates). */
+export async function bulletinPreview(kind: "BULLETIN" | "RATES"): Promise<string> {
+  const market = await currentMarket()
+  if (!market) return "—"
+  const text = kind === "RATES" ? eveningRatesText(market) : bulletinText(phnomPenhNow().date, market)
+  return text ?? "—"
+}
+
+/** An APPROVED bulletin / evening rates post, with the freshest data, replacing the previous one; its message id. */
+export async function publishBulletin(approval: FounderApproval, kind: "BULLETIN" | "RATES"): Promise<number | null> {
+  const chat = communityChannel(approval)
+  if (!chat) return null
+  let market = await currentMarket()
+  if (!market || Date.now() - Date.parse(market.fetched_at) > 2 * 3_600_000) market = (await syncMarket(true)) ?? market
+  if (!market) return null
+  const text = kind === "RATES" ? eveningRatesText(market) : bulletinText(phnomPenhNow().date, market)
+  if (!text) return null
+  const res = await postReplacing(chat, { text: text.slice(0, 4000), parse_mode: "HTML", disable_web_page_preview: true, ...(await getChannelPostButtons()) }, kind === "RATES" ? "evening" : "bulletin")
+  logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Approved ${kind.toLowerCase()} posted to ${chat}` : `Approved ${kind.toLowerCase()} failed: ${res.description ?? "unknown"}`)
+  return res.ok && res.result ? res.result.message_id : null
 }
 
 type PostedRecord = { chat?: string; message_id?: number; at?: string; kind?: "bulletin" | "evening"; day?: string; sig?: string }
@@ -227,15 +244,15 @@ type PostedRecord = { chat?: string; message_id?: number; at?: string; kind?: "b
  * text without that line, so nothing is edited when nothing changed.
  */
 export async function syncCommunityPost(): Promise<"edited" | "same" | "none"> {
-  const chat = communityChat()
-  if (!chat) return "none"
   const db = botDb()
   const { data } = await db.rpc("bot_kv_get", { p_key: botKey(), p_name: "community_posts" })
   const post = data as PostedRecord | null
   const now = phnomPenhNow()
   // Only today's post (yesterday's evening post is replaced by this morning's bulletin anyway).
   const postDay = post?.day ?? (post?.at ? phnomPenhDay(post.at) : null)
-  if (!post?.message_id || post.chat !== chat || postDay !== now.day) return "none"
+  // Only the approved post itself, in the community channel (an edit of a post the founder approved).
+  if (!post?.message_id || !post.chat || !isCommunityChannel(post.chat) || postDay !== now.day) return "none"
+  const chat = post.chat
   const market = await currentMarket()
   if (!market) return "none"
   const kind = post.kind ?? "bulletin"
@@ -265,7 +282,7 @@ export async function syncCommunityPost(): Promise<"edited" | "same" | "none"> {
 const phnomPenhDay = (iso: string) => new Date(Date.parse(iso) + 7 * 3_600_000).toISOString().slice(0, 10)
 
 /** 17:00–19:30: once NBC's next-working-day rate is in, post it (once a day). */
-async function maybeSendEveningRates(chat: string, now: ReturnType<typeof phnomPenhNow>) {
+async function maybeSendEveningRates(now: ReturnType<typeof phnomPenhNow>) {
   // Working days only: NBC publishes Monday–Friday (a weekend would repeat Friday's rate).
   if ([0, 6].includes(now.date.getDay())) return
   if (now.hour < 17 || now.hour > 19 || (now.hour === 19 && now.minute > 30)) return
@@ -275,8 +292,8 @@ async function maybeSendEveningRates(chat: string, now: ReturnType<typeof phnomP
   if (!text) return
   const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: EVENING_JOB, p_day: now.day })
   if (claimed !== true) return
-  const res = await postReplacing(chat, { text, parse_mode: "HTML", disable_web_page_preview: true, ...(await getChannelPostButtons()) }, "evening")
-  logEvent(res.ok ? "info" : "error", "bulletin", res.ok ? `Evening NBC rates sent to ${chat} (as of ${market.nbc.date})` : `Evening NBC post failed: ${res.description ?? "unknown"}`)
+  await holdForApproval("RATES", now.day, { day: now.day })
+  logEvent("info", "bulletin", `Evening NBC rates (as of ${market.nbc.date}) ready — waiting for the founder's approval`)
 }
 
 /**
