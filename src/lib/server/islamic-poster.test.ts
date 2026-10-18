@@ -3,11 +3,11 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { before, describe, it } from "node:test"
 
-import { islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS, POSTER_CTA, posterCta, posterDateline } from "@/lib/islamic-channel"
+import { firstSentence, islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS, POSTER_CTA, posterCta, posterDateline, POSTER_HOOKS } from "@/lib/islamic-channel"
 import type { HijriDate } from "@/lib/islamic"
 import { ISLAMIC_TIPS } from "@/lib/islamic-tips"
 
-import { ISLAMIC_POSTER, islamicPosterReady, POSTER_TYPE, posterText, renderIslamicPoster } from "./islamic-poster"
+import { balancedSplit, ISLAMIC_POSTER, islamicPosterReady, POSTER_TYPE, posterText, renderIslamicPoster } from "./islamic-poster"
 
 const h = (day: number, month = 5): HijriDate => ({ day, month, year: 1448 })
 /** Width and height from a PNG's IHDR chunk. */
@@ -26,7 +26,11 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     }
   })
   it("nothing is ever cut («…»): all 14 lessons, the fast reminder (Sunday and Wednesday) and Jumu'ah", () => {
-    for (let i = 0; i < ISLAMIC_TIPS.length; i++) assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_DAILY", day(i), h(7))).truncated, false, `lesson ${i}`)
+    for (let i = 0; i < ISLAMIC_TIPS.length; i++) {
+      const r = renderIslamicPoster(islamicPostContent("ISLAMIC_DAILY", day(i), h(7)))
+      assert.equal(r.truncated, false, `lesson ${i}`)
+      assert.ok(r.type.hookLines.every((l) => l.length <= 2), `lesson ${i}: ${JSON.stringify(r.type.hookLines)}`)
+    }
     assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-18", null)).truncated, false, "fast (Sunday)")
     assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-21", null)).truncated, false, "fast (Wednesday)")
     assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12))).truncated, false, "jumuah")
@@ -106,6 +110,49 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     // Never for Arabic words inside Khmer text (Amiri broke «الجُمُعَة» in the pill) — only whole Arabic lines.
     const { FAMILIES } = await import("./poster-kit")
     assert.ok(!FAMILIES.includes("Amiri"), FAMILIES)
+  })
+  it("posters are hooks, captions explain (founder, 18/10/2026): no reading or paragraph on a poster, all of it in the caption", () => {
+    const posters = ISLAMIC_KINDS.filter((k) => k !== "ISLAMIC_QUIZ")
+    for (const kind of posters)
+      for (const d of ["2026-10-18", "2026-10-19", "2026-10-21", "2026-10-23"]) {
+        const c = islamicPostContent(kind, d, h(8))
+        if (!c.posterLines) continue // the kind is not posted that day (the content still exists)
+        assert.ok(c.posterLines.length >= 1 && c.posterLines.length <= 2, `${kind} ${d}`)
+        for (const l of c.posterLines) assert.doesNotMatch(l, /អានថា|អត្ថន័យ៖/, `${kind}: a reading on the poster`)
+        const { truncated, type } = renderIslamicPoster(c)
+        assert.equal(truncated, false, `${kind} ${d}`)
+        assert.equal(type.body, 0, `${kind}: paragraphs drawn on the poster`)
+        assert.ok(type.hookLines.every((l) => l.length <= 2), `${kind}: ${JSON.stringify(type.hookLines)}`)
+        assert.ok(type.quote! >= POSTER_TYPE.quoteFallback[POSTER_TYPE.quoteFallback.length - 1] && type.quote! < type.title, kind)
+      }
+    // The founder's hooks, word for word.
+    assert.deepEqual(islamicPostContent("ISLAMIC_MORNING", "2026-10-19", h(8)).posterLines, ["អរគុណអល់ឡោះ ដែលបានផ្ដល់ដង្ហើមជីវិតឱ្យយើងជាថ្មី"])
+    assert.deepEqual(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12)).posterLines, ["ផ្អាកការលក់ដូរមួយភ្លែត ដើម្បីទៅថ្វាយបង្គំជូម៉ាអះ", "ប្រាក់ចំណេញក្រោយពេលនោះ ទើបប្រកបដោយបារ៉ាកាត់ពិតប្រាកដ"])
+    assert.deepEqual(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7)).posterLines, ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណា · ថ្ងៃដែលទង្វើល្អត្រូវបានបង្ហាញចំពោះអល់ឡោះ", "កុំភ្លេចហូបបាយបួស និងតាំងចិត្តនីយ៉ាត់យប់នេះ"])
+    assert.deepEqual(POSTER_HOOKS.morning, ["អរគុណអល់ឡោះ ដែលបានផ្ដល់ដង្ហើមជីវិតឱ្យយើងជាថ្មី"])
+    // The morning, the fasts and Jumu'ah: each hook on one line.
+    for (const [k, d] of [["ISLAMIC_MORNING", "2026-10-19"], ["ISLAMIC_FAST", "2026-10-18"], ["ISLAMIC_FAST", "2026-10-21"], ["ISLAMIC_JUMUAH", "2026-10-23"]] as const)
+      assert.ok(renderIslamicPoster(islamicPostContent(k, d, h(8))).type.hookLines.every((l) => l.length === 1), `${k} ${d}`)
+    // The caption keeps the reading, the meaning, the hadith and the reminders.
+    const morning = islamicCaptionHtml(islamicPostContent("ISLAMIC_MORNING", "2026-10-19", h(8)))
+    assert.ok(morning.includes("អានថា៖") && morning.includes("អត្ថន័យ៖"))
+    assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12))).includes("Surah Al-Kahf"))
+    assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7))).includes("អំពើរបស់មនុស្សត្រូវបានបង្ហាញ"))
+    // A lesson's hook is its first sentence; the whole lesson is in the caption.
+    const lesson = islamicPostContent("ISLAMIC_DAILY", "2026-10-18", h(7))
+    assert.deepEqual(lesson.posterLines, [firstSentence(lesson.paragraphs[0])])
+    assert.equal(firstSentence("មួយ។ ពីរ។"), "មួយ។")
+    assert.equal(firstSentence("គ្មានខណ្ឌ"), "គ្មានខណ្ឌ")
+  })
+  it("a hook too long for one line splits in two balanced halves — at «·» when it has one, never an orphan word", async () => {
+    const { createCanvas } = await import("@napi-rs/canvas")
+    const { FAMILIES, loadFonts } = await import("./poster-kit")
+    loadFonts()
+    const ctx = createCanvas(1080, 200).getContext("2d")
+    ctx.font = `500 44px ${FAMILIES}`
+    assert.deepEqual(balancedSplit(ctx, "ស្អែកជាថ្ងៃបួសស៊ុណ្ណា · ថ្ងៃដែលទង្វើល្អត្រូវបានបង្ហាញចំពោះអល់ឡោះ", 864), ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណា", "ថ្ងៃដែលទង្វើល្អត្រូវបានបង្ហាញចំពោះអល់ឡោះ"])
+    const [a, b] = balancedSplit(ctx, "អ្នកមានគុណធម៌ គឺអ្នកដែលចាយមិនហួសហេតុ ហើយក៏មិនកំណាញ់ដែរ គឺនៅចំកណ្ដាល។", 864)
+    assert.ok(Math.abs(ctx.measureText(a).width - ctx.measureText(b).width) < 300, `${a} | ${b}`)
   })
   it("every caption fits a Telegram photo caption (1024)", () => {
     for (let i = 0; i < ISLAMIC_TIPS.length; i++) assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_DAILY", day(i), h(7))).replace(/<[^>]+>/g, "").length <= 1024)

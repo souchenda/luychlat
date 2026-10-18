@@ -38,12 +38,22 @@ export const POSTER_TYPE = {
   /** A du'a (Amiri). */
   arabic: [54, 50, 46, 42],
   bodyMax: 40,
+  /** Khmer body leading (founder, 18/10/2026: 1.65–1.75 — subscripts and vowels never touch). */
+  leading: 1.7,
+  /** The hook lines (one or two short lines instead of paragraphs). */
+  quote: [44, 42, 40, 38, 36, 34],
+  /** Only when a two-line hook does not fit at 34 px (a font with a wide «ﷺ»). */
+  quoteFallback: [32, 30],
   dateline: [30, 28, 26],
   /** The call to action above the links (~11 px on a phone). */
   cta: [30, 28, 26],
 } as const
 /** The footer: the rule, the call to action, the links (founder, 18/10/2026 — the links alone gave no reason to open). */
 const FOOTER_TOP = H - 204
+/** The space between two hook lines. */
+const HOOK_GAP = 18
+/** The hooks are centred and may use a little more width than the paragraphs (still inside the arch). */
+const HOOK_SIDE = 108
 
 let logoImage: Image | null = null
 /** The kopiah logo, decoded once (@napi-rs/canvas decodes only through the async loadImage). */
@@ -164,6 +174,29 @@ function header(ctx: SKRSContext2D) {
   ctx.fillText("សហគមន៍ឥស្លាម", x + mark + 22, top + 86)
 }
 
+/**
+ * A hook too long for one line, in two halves of about the same width: at «·» when there is one, else at the space
+ * nearest the middle — never one word left alone on the second line. Falls back to the normal wrap.
+ */
+export function balancedSplit(ctx: SKRSContext2D, text: string, width: number): string[] {
+  const dot = text.indexOf(" · ")
+  const candidates = dot > 0 ? [dot] : [...text.matchAll(/ /g)].map((m) => m.index!)
+  let best: string[] | null = null
+  let bestDiff = Infinity
+  for (const i of candidates) {
+    const a = text.slice(0, i).trim()
+    const b = text.slice(i).replace(/^ ·? ?/, "").trim()
+    const wa = ctx.measureText(a).width
+    const wb = ctx.measureText(b).width
+    if (wa > width || wb > width) continue
+    if (Math.abs(wa - wb) < bestDiff) {
+      bestDiff = Math.abs(wa - wb)
+      best = [a, b]
+    }
+  }
+  return best ?? wrap(ctx, text, width, 99)
+}
+
 function footer(ctx: SKRSContext2D, cta: string) {
   ctx.fillStyle = GOLD_SOFT
   ctx.fillRect(SIDE, FOOTER_TOP, W - 2 * SIDE, 1.5)
@@ -204,7 +237,21 @@ function footer(ctx: SKRSContext2D, cta: string) {
 export const posterText = (s: string) => s
 
 /** The px sizes a render used (the hierarchy test reads them); `arabic` is null without a du'a. */
-export type PosterTypeUsed = { dateline: number; title: number; titleLines: 1 | 2; titleArabic: number | null; arabic: number | null; body: number; cta: string }
+export type PosterTypeUsed = {
+  dateline: number
+  title: number
+  titleLines: 1 | 2
+  titleArabic: number | null
+  arabic: number | null
+  /** The paragraph size (0 when the poster has none). */
+  body: number
+  /** The line height used for the paragraphs or the quote. */
+  bodyLineHeight: number
+  quote: number | null
+  /** The hook lines as drawn (each hook one line, or two balanced halves). */
+  hookLines: string[][]
+  cta: string
+}
 
 /** Draws the poster; `truncated` says whether any text had to be cut («…») to fit; `type` the sizes it used. */
 export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; truncated: boolean; type: PosterTypeUsed } {
@@ -212,7 +259,7 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   const canvas = createCanvas(W, H)
   const ctx = canvas.getContext("2d")
   let truncated = false
-  const type: PosterTypeUsed = { dateline: 0, title: 0, titleLines: 1, titleArabic: null, arabic: null, body: 0, cta: posterCta(c.kind) }
+  const type: PosterTypeUsed = { dateline: 0, title: 0, titleLines: 1, titleArabic: null, arabic: null, body: 0, bodyLineHeight: 0, quote: null, hookLines: [], cta: posterCta(c.kind) }
   let fitted = 0
   /** Sets the largest of `sizes` at which `text` fits one line; false (smallest set) when none does. */
   const fitLine = (text: string, weight: number, sizes: number[], families = FAMILIES) => {
@@ -321,29 +368,86 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
     }
   }
 
-  // Reserve the fast times, the source and the footer; the text takes what is left.
+  // Reserve the fast times / prayer times, the source and the footer; the text takes what is left.
   const fastH = c.fast ? 168 : c.prayers ? 138 : 0
   const sourceH = 58
-  const bodyBottom = FOOTER_TOP - 32 - sourceH - fastH
-  // The text: the largest size that fits (40 → 27 px), centred in the space left; cut only as a last resort.
-  ctx.textAlign = "left"
   const bodyW = W - 2 * SIDE
-  const paragraphs = (c.posterParagraphs ?? c.paragraphs).map(posterText)
-  const GAP = 12
+  const bodyBottom = FOOTER_TOP - 32 - sourceH - fastH
+  const leading = (s: number) => Math.round(s * POSTER_TYPE.leading)
+  /** Centres a block of `height` in the space left. */
+  const centreBlock = (height: number) => {
+    if (y + height <= bodyBottom) y += Math.max(0, (bodyBottom - y - height) / 2)
+  }
+  // Breathing room between the heading and the text (founder, 18/10/2026).
+  y += 18
+
+  // The hook: one or two short lines, centred and large; the first white, the next soft gold. Never cut; a hook too
+  // long for the poster at the smallest size splits in two balanced halves.
+  if (c.posterLines?.length) {
+    ctx.textAlign = "center"
+    // Each hook keeps the fewest lines it can (one, else two balanced halves at the smallest size); then the largest
+    // size at which every hook still fits in that many lines.
+    const hookW = W - 2 * HOOK_SIDE
+    const sizes = [...POSTER_TYPE.quote, ...POSTER_TYPE.quoteFallback]
+    const layout = (text: string, s: number, maxLines: number): string[] | null => {
+      ctx.font = `500 ${s}px ${FAMILIES}`
+      if (ctx.measureText(text).width <= hookW) return [text]
+      if (maxLines < 2) return null
+      const halves = balancedSplit(ctx, text, hookW)
+      return halves.length === 2 ? halves : null
+    }
+    const hooks = c.posterLines.map(posterText)
+    const need = hooks.map((h) => (layout(h, POSTER_TYPE.quote[POSTER_TYPE.quote.length - 1], 1) ? 1 : 2))
+    let qs: number = sizes[sizes.length - 1]
+    // The fallback (no size fits the space): the smallest size, wrapped — never cut.
+    let laid: string[][] = hooks.map((h, i) => layout(h, qs, need[i]) ?? wrap(ctx, h, hookW, 99))
+    for (const s of sizes) {
+      const tryLaid = hooks.map((h, i) => layout(h, s, need[i]))
+      const h = tryLaid.reduce((t, l) => t + (l?.length ?? 99) * leading(s), 0) + HOOK_GAP * (hooks.length - 1)
+      if (tryLaid.every(Boolean) && y + h <= bodyBottom) {
+        qs = s
+        laid = tryLaid as string[][]
+        break
+      }
+    }
+    type.quote = qs
+    type.hookLines = laid
+    type.bodyLineHeight = leading(qs)
+    centreBlock(laid.reduce((t, l) => t + l.length * leading(qs), 0) + HOOK_GAP * (laid.length - 1))
+    y += Math.round(qs * 0.8) // the first baseline
+    ctx.font = `500 ${qs}px ${FAMILIES}`
+    laid.forEach((block, i) => {
+      ctx.fillStyle = i === 0 ? "#ecfdf5" : "rgba(253,230,138,0.95)"
+      for (const l of block) {
+        if (y > bodyBottom + qs) truncated = true
+        else ctx.fillText(l, W / 2, y)
+        y += leading(qs)
+      }
+      y += HOOK_GAP
+    })
+  }
+
+  // The text: the largest size that fits (40 → 29 px), centred in the space left; cut only as a last resort.
+  ctx.textAlign = "left"
+  const paragraphs = c.posterLines ? [] : (c.posterParagraphs ?? c.paragraphs).map(posterText)
+  const GAP = 26
   let size = 36
-  let lineH = 58
+  let lineH = leading(size)
   let laidOut: string[][] = []
-  for (const [s, h] of [[40, 64], [36, 58], [33, 54], [31, 50], [29, 46], [27, 42]] as const) {
+  for (const s of [40, 38, 36, 34, 32, 30, 29]) {
     ctx.font = `400 ${s}px ${FAMILIES}`
     laidOut = paragraphs.map((p) => wrap(ctx, p, bodyW, 99))
     size = s
-    lineH = h
+    lineH = leading(s)
     const height = laidOut.reduce((t, l) => t + l.length * lineH, 0) + GAP * (laidOut.length - 1)
     if (y + height <= bodyBottom) break
   }
   const height = laidOut.reduce((t, l) => t + l.length * lineH, 0) + GAP * (laidOut.length - 1)
-  if (y + height <= bodyBottom) y += Math.max(0, (bodyBottom - y - height) / 2) // centred
-  type.body = size
+  if (paragraphs.length) {
+    centreBlock(height)
+    type.body = size
+    type.bodyLineHeight = lineH
+  }
   ctx.font = `400 ${size}px ${FAMILIES}`
   for (const [i, p] of paragraphs.entries()) {
     const room = Math.floor((bodyBottom - y) / lineH)
@@ -420,7 +524,7 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   ctx.textAlign = "center"
   ctx.font = `600 28px ${FAMILIES}`
   ctx.fillStyle = GOLD
-  ctx.fillText(lines(`ប្រភព៖ ${c.source.label}`, W - 2 * SIDE, 1)[0] ?? "", W / 2, FOOTER_TOP - 34)
+  ctx.fillText(lines(`ប្រភព៖ ${c.posterSource ?? c.source.label}`, W - 2 * SIDE, 1)[0] ?? "", W / 2, FOOTER_TOP - 34)
 
   footer(ctx, type.cta)
   return { png: canvas.toBuffer("image/png"), truncated, type }

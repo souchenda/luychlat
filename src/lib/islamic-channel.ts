@@ -145,6 +145,13 @@ export type IslamicPostContent = {
   paragraphs: string[]
   /** Shorter text for the poster when the caption's would not fit (the caption always has it all). */
   posterParagraphs?: string[]
+  /**
+   * The poster's hook: one or two short lines, centred and large, instead of paragraphs (founder, 18/10/2026 — a poster
+   * is a 3-second hook; the readings, explanations and hadith commentary are in the caption).
+   */
+  posterLines?: string[]
+  /** The poster's source when it quotes less than the caption (Al-Jumu'ah 62:9 of 62:9–10). */
+  posterSource?: string
   source: { label: string; url: string }
   /** Tomorrow's Imsak / Iftar (`day`: the fast day's name, «ថ្ងៃច័ន្ទ»). */
   fast?: { imsak: string; iftar: string; place: string; day?: string }
@@ -170,6 +177,19 @@ export const POSTER_CTA = {
   general: "ប្រើប្រាស់មុខងារឥស្លាម និងគ្រប់គ្រងលុយកាក់ដោយឥតគិតថ្លៃ",
 } as const
 export const posterCta = (kind: IslamicKind) => (kind === "ISLAMIC_MORNING" || kind === "ISLAMIC_NIGHT" ? POSTER_CTA.audio : POSTER_CTA.general)
+
+/** A text's first sentence, up to and with its «។» (the whole text when it has one sentence). */
+export const firstSentence = (text: string) => {
+  const end = text.indexOf("។")
+  return end === -1 ? text.trim() : text.slice(0, end + 1).trim()
+}
+
+/** The posters' hooks (founder, 18/10/2026) — short; everything else is in the caption. */
+export const POSTER_HOOKS = {
+  morning: ["អរគុណអល់ឡោះ ដែលបានផ្ដល់ដង្ហើមជីវិតឱ្យយើងជាថ្មី"],
+  jumuah: [`ផ្អាកការលក់ដូរមួយភ្លែត ដើម្បីទៅថ្វាយបង្គំ${G.JUMUAH}`, `ប្រាក់ចំណេញក្រោយពេលនោះ ទើបប្រកបដោយ${G.BARAKAH}ពិតប្រាកដ`],
+  fast: [`ស្អែកជាថ្ងៃ${G.SUNNAH_FAST} · ថ្ងៃដែលទង្វើល្អត្រូវបានបង្ហាញចំពោះអល់ឡោះ`, `កុំភ្លេច${G.SAHUR} និងតាំងចិត្ត${G.NIYYAH}យប់នេះ`],
+} as const
 
 const FAST_PLACE = PROVINCES[0] // ភ្នំពេញ
 const kmClockOf = (minutes: number) => khmerDigits(formatMinutes(minutes))
@@ -213,8 +233,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       lead: "🌅 <b>អរុណសួស្តីថ្ងៃថ្មី — ឌុអាពេលភ្ញាក់ពីដំណេក</b>",
       arabic: wake.arabic,
       paragraphs: [...duaLines(wake), `សូមឱ្យថ្ងៃថ្មីនេះពោរពេញដោយ${G.BARAKAH} និងការរកស៊ីសុចរិត។`],
-      // The poster: the reading and the meaning (the blessing stays in the caption — room for the title's Arabic).
-      posterParagraphs: duaLines(wake),
+      posterLines: [...POSTER_HOOKS.morning],
       source: duaSource(wake.source),
       prayers: dayPrayers(day),
     }
@@ -232,6 +251,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       lead: `🌇 <b>ឌុអា${G.IFTAR_LABEL}</b>`,
       arabic: iftar.arabic,
       paragraphs: [...duaLines(iftar), `ម៉ោង${G.IFTAR}ថ្ងៃនេះ ${maghrib} (${FAST_PLACE.km}) — សូមអល់ឡោះទទួលយកការបួសរបស់បងប្អូន។`],
+      posterLines: [iftar.km, `ម៉ោង${G.IFTAR}ថ្ងៃនេះ ${maghrib} · ${FAST_PLACE.km}`],
       source: duaSource(iftar.source),
     }
   }
@@ -251,6 +271,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
         `ស្ដាប់ ${G.SURAH_AL_MULK} ឬកសាដះក្នុង «អេប លុយឆ្លាត» ជាមួយ Sleep Timer (១៥ ឬ ៣០ នាទី) ហើយកុំភ្លេចអាន ${G.AYAT_AL_KURSI} មុនចូលគេង។`,
         ...(fastTomorrow ? [G.sahurReminder(fastTimes(day).imsak)] : []),
       ],
+      posterLines: [sleep.km],
       source: duaSource(sleep.source),
     }
   }
@@ -277,10 +298,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
         G.sahurReminder(times.imsak),
         `ការបួសនេះជាស៊ុណ្ណា — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
       ],
-      posterParagraphs: [
-        G.sahurReminder(times.imsak),
-        `${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ព្រោះអំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
-      ],
+      posterLines: [...POSTER_HOOKS.fast],
       source: { label: "Jami' at-Tirmidhi 747", url: "https://sunnah.com/tirmidhi:747" },
       fast: { ...times, day: monday ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍" },
     }
@@ -299,12 +317,8 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
         `ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំ${G.JUMUAH} — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយ${G.BARAKAH_LABEL}។`,
         `កុំភ្លេចអាន ${G.SURAH_AL_KAHF} ថ្ងៃនេះ — អ្នកណាអាន ${G.SURAH_AL_KAHF} នៅថ្ងៃសុក្រ ពន្លឺនឹងភ្លឺសម្រាប់គាត់ រហូតដល់ថ្ងៃសុក្រក្រោយ (al-Hakim · Sahih al-Jami' 6470)។`,
       ],
-      // The poster: the same, without a term or a reference split by a line break (the caption keeps them whole).
-      posterParagraphs: [
-        `ថ្ងៃសុក្រដ៏មាន${G.BARAKAH}! អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំ${G.JUMUAH_LABEL} នៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។`,
-        `ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំ${G.JUMUAH} — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយ${G.BARAKAH}។`,
-        `កុំភ្លេចអាន ${G.SURAH_AL_KAHF} ថ្ងៃនេះ — អ្នកណាអាន ${G.SURAH_AL_KAHF} នៅថ្ងៃសុក្រ ពន្លឺនឹងភ្លឺសម្រាប់គាត់ រហូតដល់ថ្ងៃសុក្រក្រោយ។`,
-      ],
+      posterLines: [...POSTER_HOOKS.jumuah],
+      posterSource: "Al-Jumu'ah 62:9",
       source: { label: "Al-Jumu'ah 62:9–10", url: "https://quran.com/62/9-10" },
     }
   }
@@ -318,6 +332,8 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
     date: kmDay(day),
     title: tip.title.km,
     paragraphs: [tip.body.km],
+    // The poster: the lesson's first sentence as its hook; the whole lesson is in the caption (founder, 18/10/2026).
+    posterLines: [firstSentence(tip.body.km)],
     source: tip.ref,
   }
 }
