@@ -237,5 +237,12 @@ export const REEL_SCRIPTS: ReelScript[] = [
   },
 ]
 
+/**
+ * Only a script the founder approved is rendered (founder, 18/10/2026 — tone in comedy and religion is the founder's
+ * call). Rendering is not publishing: every rendered video still goes to the founder's private chat first and is
+ * published only on their ✅ / 🚀 (scheduled_posts; tests/golden/publisher.test.ts).
+ */
+export const reelRenderable = (s: ReelScript) => s.status === "APPROVED"
+
 /** A script's length in seconds. */
 export const reelSeconds = (s: ReelScript) => s.beats.reduce((t, b) => t + b.seconds, 0)

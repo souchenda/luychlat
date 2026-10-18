@@ -88,6 +88,11 @@ use come before feature count: no half-baked features, broken links or untested 
   the market bulletin, the evening NBC rates, festival posters and holy-day notes. The channel id and the
   Facebook publish functions need a `FounderApproval` (`src/lib/server/channel.ts`), made only by the
   scheduler, the approved tip and the founder's 📢 (`tests/golden/publish-approval.test.ts`).
+- **Video, reels and humour (founder, 18/10/2026 — hard rule):** never auto-published. Every rendered MP4, script
+  and humour post goes to the founder's private chat first with [ ✅ យល់ព្រម ] [ 🚀 ផុសភ្លាមៗ ] [ ❌ ផ្អាក / បដិសេធ ];
+  silence = HOLD; only a super admin's tap lets it out. Only a script with `status: "APPROVED"` is rendered
+  (`reelRenderable`). Guard: `tests/golden/publisher.test.ts` (video sends and Facebook calls only via the approved
+  publisher, the timer never publishes unapproved, the reel modules import nothing that publishes).
 - **Wording guards:** never italicise Khmer in a caption (no `<i>`); banned phrases in quotes, tips and the
   spotlight fail the build (`tests/golden/content-guards.test.ts`).
 - **Video (Reels / MP4), whenever added:** length follows substance — 30–60 s with a complete

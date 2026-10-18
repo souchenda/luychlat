@@ -84,7 +84,7 @@ export function createScheduler(d: SchedulerDeps) {
   async function render(row: PostRow, status: PostStatus) {
     const { png, body } = await d.content(row)
     const targets = d.targets(row)
-    return { png, text: previewText({ kind: row.kind, targets, publishAt: row.publish_at, body, status }), buttons: previewButtons(row.id, status, targets) }
+    return { png, text: previewText({ kind: row.kind, targets, publishAt: row.publish_at, body, status }), buttons: previewButtons(row.id, status, targets, row.kind) }
   }
 
   async function sendPreviews(row: PostRow) {

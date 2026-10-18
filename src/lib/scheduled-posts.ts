@@ -143,16 +143,22 @@ export function statusLine(status: PostStatus, where: string, publishAt: string)
 }
 
 /**
+ * Humour and video posts (founder, 18/10/2026): the founder guards their tone in comedy and religion — previewed
+ * like every post, never published without the founder's ✅ / 🚀, and their ❌ reads «ផ្អាក / បដិសេធ» (hold or reject).
+ */
+export const COMEDY_KINDS: readonly string[] = ["DILEMMA"]
+
+/**
  * Pending: [ ✅ យល់ព្រម ] (published at its time), [ 🚀 ផុសភ្លាមៗ ] (now) and [ ❌ ផ្អាក ]. Approved: publish now
  * or pause. Nothing once it has been published, paused or expired.
  */
-export function previewButtons(id: number, status: PostStatus, targets: Targets): { text: string; callback_data: string }[][] {
+export function previewButtons(id: number, status: PostStatus, targets: Targets, kind?: string): { text: string; callback_data: string }[][] {
   if (status !== "PENDING" && status !== "APPROVED") return []
   const short = targets.telegram && targets.facebook ? "Telegram + Facebook" : targets.facebook ? "Facebook" : "Telegram"
   return [
     ...(status === "PENDING" ? [[{ text: "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)", callback_data: `sp:${id}:a` }]] : []),
     [{ text: `🚀 ផុសភ្លាមៗ (${short})`, callback_data: `sp:${id}:p` }],
-    [{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }],
+    [{ text: kind && COMEDY_KINDS.includes(kind) ? "❌ ផ្អាក / បដិសេធ" : "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }],
   ]
 }
 
