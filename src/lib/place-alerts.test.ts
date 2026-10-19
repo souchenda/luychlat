@@ -42,7 +42,7 @@ describe("A member's place suggestion reaches «LCA Approval» at once (founder,
     // At once: the app calls the notify route right after a member's insert.
     assert.match(read("src/lib/places.ts"), /if \(!input\.approved\) void fetch\("\/api\/islamic\/places\/notify", \{ method: "POST" \}\)/)
     assert.match(read("src/app/api/islamic/places/notify/route.ts"), /after\(\(\) => flushPlaceSubmissions\(\)\)/)
-    assert.match(server, /if \(status === "approved"\) await thankContributor\("place", parsed\.id\)/)
+    assert.match(server, /r\.status === "approved" \? await thankContributor\("place", parsed\.id, r\.name \?\? "", deps\)/)
     const sql = read("supabase/migrations/20270185000000_place_submission_alerts.sql")
     assert.match(sql, /update public\.islamic_places set notified = true where approved and not notified;/) // the pending Kampot surau still goes out
     assert.match(sql, /where not p\.approved and not p\.notified/)

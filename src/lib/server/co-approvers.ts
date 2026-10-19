@@ -1,7 +1,7 @@
 // Server only: co-approvers in «LCA Approval» (founder, 19/10/2026). A super admin replies to someone's message in the
 // group with /addapprover [email or phone] (or /removeapprover): the bot takes their Telegram id from that message — it
 // never adds anyone on its own. Their [ ✅ ] [ 🚀 ] [ ❌ ] then count (tip_chat_approver, audited by name).
-import { approverReply, isApproverCommand, parseApproverCommand } from "@/lib/co-approvers"
+import { approverReply, isApproverCommand, parseApproverCommand, parseApproverIds } from "@/lib/co-approvers"
 
 import { logEvent } from "./events"
 import { botDb, botKey, sendText } from "./telegram-bot"
@@ -25,4 +25,13 @@ export async function handleApproverCommand(chatId: number, fromId: number | und
   const { data, error } = await botDb().rpc("bot_remove_approver", { p_key: botKey(), p_actor: fromId, p_tg: replyFrom.id })
   if (error) return void (await sendText(chatId, approverReply({ kind: /super admin only/.test(error.message) ? "forbidden" : "failed" })))
   await sendText(chatId, approverReply(data === true ? { kind: "removed", name } : { kind: "not_approver", name }))
+}
+
+/** At start: the co-approvers in TELEGRAM_APPROVER_IDS (the founder's list on the Droplet console) into the database. */
+export async function syncEnvApprovers(env: string | undefined = process.env.TELEGRAM_APPROVER_IDS) {
+  const ids = parseApproverIds(env)
+  const { data, error } = await botDb().rpc("bot_sync_env_approvers", { p_key: botKey(), p_ids: ids })
+  if (error) return logEvent("error", "approval-group", `TELEGRAM_APPROVER_IDS not synced: ${error.message}`, { fold: true })
+  const r = data as { added: number; removed: number }
+  if (r.added || r.removed) logEvent("info", "approval-group", `TELEGRAM_APPROVER_IDS: ${ids.length} id(s) · ${r.added} on, ${r.removed} off`)
 }

@@ -36,6 +36,6 @@ describe("Audit actions satisfy admin_audit_log's check (19/10/2026 regression)"
   })
 
   it("a failed place review is logged, never silent", () => {
-    assert.match(readFileSync(join(process.cwd(), "src/lib/server/place-alerts.ts"), "utf8"), /logEvent\("error", "places", `Place review failed/)
+    assert.match(readFileSync(join(process.cwd(), "src/lib/server/place-alerts.ts"), "utf8"), /deps\.log\("error", `Place review failed/)
   })
 })

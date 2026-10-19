@@ -23,6 +23,7 @@ import { islamicPlacesSyncTick } from "@/lib/server/islamic-places-sync"
 import { flushPoolPosts } from "@/lib/server/pool-bot"
 import { birthdayTick, dormancyTick, flushSignupAlerts } from "@/lib/server/member-events"
 import { flushPlaceSubmissions } from "@/lib/server/place-alerts"
+import { syncEnvApprovers } from "@/lib/server/co-approvers"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string; bill_id: string | null; due: string | null }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
@@ -133,6 +134,8 @@ export function startBotDispatcher() {
   const ifActive = (job: () => Promise<unknown>) => () => void (isActiveSlot() ? job() : undefined)
   setInterval(ifActive(() => dispatchOnce()), 60_000)
   setTimeout(ifActive(() => dispatchOnce()), 15_000)
+  // The co-approvers in TELEGRAM_APPROVER_IDS (founder, 19/10/2026), once at start.
+  setTimeout(ifActive(() => syncEnvApprovers()), 10_000)
   // Live market rates (NBC + gold spot) for every user: at start, then every 30 minutes.
   setTimeout(ifActive(() => syncMarket(true)), 20_000)
   setInterval(ifActive(() => syncMarket(true)), 30 * 60_000)

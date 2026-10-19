@@ -41,3 +41,8 @@ export function approverReply(r: ApproverReply): string {
       return "⚠️ មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។"
   }
 }
+
+/** TELEGRAM_APPROVER_IDS: «123456789, 987654321» → the valid Telegram user ids (anything else is ignored). */
+export function parseApproverIds(env: string | undefined): number[] {
+  return [...new Set((env ?? "").split(/[\s,;]+/).filter((s) => /^\d{5,15}$/.test(s)).map(Number))]
+}
