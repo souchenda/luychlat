@@ -4,6 +4,7 @@ import { BadgeCheckIcon, CalendarClockIcon, CalendarDaysIcon, CameraIcon, Chevro
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import { AdminPortalCard } from "@/components/admin/admin-portal-card"
 import { TestPlanSwitch } from "@/components/admin/test-plan"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { ProfileSheet } from "@/components/profile/profile-sheets"
@@ -178,7 +179,8 @@ export default function ProfilePage() {
               icon={<BadgeCheckIcon />}
               tile="amber"
               label={t("profile.role")}
-              value={`${t(`family.role.${workspace.role}` as MessageKey)} · ${workspace.type === "PERSONAL" ? t("ws.PERSONAL") : workspace.name}`}
+              // Staff first: «🛡️ អ្នកគ្រប់គ្រង (Admin) · ផ្ទាល់ខ្លួន» (founder, 19/10/2026).
+              value={`${plan.staff_role ? `🛡️ ${t(`admin.role.${plan.staff_role}` as MessageKey)} (${plan.staff_role === "super_admin" ? "Super admin" : plan.staff_role === "admin" ? "Admin" : "Support"})` : t(`family.role.${workspace.role}` as MessageKey)} · ${workspace.type === "PERSONAL" ? t("ws.PERSONAL") : workspace.name}`}
               placeholder=""
             />
             <InfoRow
@@ -191,6 +193,8 @@ export default function ProfilePage() {
           </>
         )}
       </SettingsGroup>
+
+      <AdminPortalCard />
 
       <div className="space-y-3">
         <Button className="h-12 w-full rounded-xl text-base" onClick={() => setEditOpen(true)}>

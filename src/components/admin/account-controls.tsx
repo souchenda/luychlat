@@ -12,6 +12,7 @@ import { usePlan } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { loginLabel } from "@/lib/auth-identifier"
+import { StaffBadge, StaffRoleRow } from "@/components/admin/staff-role"
 
 /** A row of public.admin_list_users: account and subscription metadata only — never finances. */
 export type DirectoryUser = {
@@ -62,6 +63,8 @@ export function UserBadges({ user, compact = false }: { user: DirectoryUser; com
   const t = useT()
   return (
     <div className="flex flex-wrap gap-1">
+      {/* Staff first: «🛡️ អេដមីន / Staff» (founder, 19/10/2026). */}
+      <StaffBadge userId={user.user_id} />
       {user.suspended && (
         <Badge on tone="bad" icon={<BanIcon />}>
           {t("admin.badge.suspended")}
@@ -143,6 +146,7 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
 
   return (
     <div className="space-y-2 rounded-xl border p-3">
+      <StaffRoleRow userId={user.user_id} email={user.email} name={label} />
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium">{t("admin.accountStatus")}</p>
         <span className={cn("text-sm font-semibold", user.suspended ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
