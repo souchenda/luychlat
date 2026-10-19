@@ -4,35 +4,30 @@
  *   npx tsx scripts/reels-render.ts <script-id> <out.mp4> [voice1.mp3,voice2.mp3]
  * Without voice files, a draft preview with the subtitles, the effects and the ambient Adhan (no voices yet).
  */
-import { REEL_SCRIPTS } from "../src/lib/islamic/reels-scripts";
-import { renderReel } from "../src/lib/server/reels-frames";
+import { REEL_SCRIPTS, type ReelScript } from "../src/lib/islamic/reels-scripts"
+import { renderReel } from "../src/lib/server/reels-frames"
 
-const [id, out, voices] = process.argv.slice(2);
-const script = REEL_SCRIPTS.find((s) => s.id === id);
-if (!script || !out) {
-  console.error(
-    `usage: reels-render <${REEL_SCRIPTS.map((s) => s.id).join(" | ")}> <out.mp4> [voices,…]`,
-  );
-  process.exit(2);
-}
-async function main() {
-  const t0 = Date.now();
-  let last = 0;
+async function main(script: ReelScript, out: string, voices: string | undefined) {
+  const t0 = Date.now()
+  let last = 0
   const artifact = await renderReel({
     script,
     out,
     voiceFiles: voices ? voices.split(",") : null,
     onProgress: (n, total) => {
       if (n - last >= 150 || n === total) {
-        last = n;
-        console.log(`frame ${n}/${total}`);
+        last = n
+        console.log(`frame ${n}/${total}`)
       }
     },
-  });
-  console.log(
-    JSON.stringify(artifact),
-    `${((Date.now() - t0) / 1000).toFixed(1)} s`,
-  );
+  })
+  console.log(JSON.stringify(artifact), `${((Date.now() - t0) / 1000).toFixed(1)} s`)
 }
 
-void main();
+const [id, out, voices] = process.argv.slice(2)
+const script = REEL_SCRIPTS.find((s) => s.id === id)
+if (!script || !out) {
+  console.error(`usage: reels-render <${REEL_SCRIPTS.map((s) => s.id).join(" | ")}> <out.mp4> [voices,…]`)
+  process.exit(2)
+}
+void main(script, out, voices)
