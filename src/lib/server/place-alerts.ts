@@ -132,3 +132,13 @@ export async function handlePlaceReviewCallback(cb: Callback, deps: ReviewDeps =
   if (!edit.ok) await deps.tg("editMessageReplyMarkup", { chat_id: chat.id, message_id: cb.message!.message_id, reply_markup: { inline_keyboard: [] } })
   deps.log("info", `Place ${r.status} from Telegram by ${by} (${parsed.id})${thanks ? ` · thanks: ${thanks}` : ""}`)
 }
+
+/** Every dispatcher pass: thank the members whose suggestions were approved other than by a tap (once each). */
+export async function flushPlaceThanks(deps: ReviewDeps = realDeps()) {
+  const { data, error } = await deps.rpc("bot_places_to_thank", {})
+  if (error || !Array.isArray(data)) return
+  for (const p of data as { id: string; name: string }[]) {
+    const status = await thankContributor("place", p.id, p.name, deps)
+    deps.log("info", `Thanks for approved place ${p.id}: ${status}`)
+  }
+}

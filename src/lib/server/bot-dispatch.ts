@@ -22,7 +22,7 @@ import { atmSyncTick } from "@/lib/server/atm-sync"
 import { islamicPlacesSyncTick } from "@/lib/server/islamic-places-sync"
 import { flushPoolPosts } from "@/lib/server/pool-bot"
 import { birthdayTick, dormancyTick, flushSignupAlerts } from "@/lib/server/member-events"
-import { flushPlaceSubmissions } from "@/lib/server/place-alerts"
+import { flushPlaceSubmissions, flushPlaceThanks } from "@/lib/server/place-alerts"
 import { syncEnvApprovers } from "@/lib/server/co-approvers"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string; bill_id: string | null; due: string | null }
@@ -98,6 +98,8 @@ export async function dispatchOnce() {
     await flushSignupAlerts()
     // A member's place suggestion → the approval room within a minute (founder, 19/10/2026).
     await flushPlaceSubmissions()
+    // An approved suggestion thanks its member once, however it was approved (founder, 19/10/2026).
+    await flushPlaceThanks()
     await birthdayTick()
     await dormancyTick()
     await groupSweepTick()

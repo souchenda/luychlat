@@ -108,3 +108,13 @@ describe("Approving a place in «LCA Approval» — dry run (founder, 19/10/2026
     assert.match(sql, /where a\.source = 'env' and a\.active and not \(a\.telegram_user_id = any/) // only env ids are switched off
   })
 })
+
+describe("Every approved suggestion thanks its member once (founder, 19/10/2026)", () => {
+  it("approved in the app or on the founder's word: the dispatcher thanks it; a tap marks it thanked; the Kampot surau is thanked", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270190000000_place_thanks_flag.sql"), "utf8")
+    assert.match(sql, /update public\.islamic_places set thanked = true\s+where approved and not thanked and id <> 'ce93c64c-3436-4fd5-aae6-a0477e7842e8';/)
+    assert.match(sql, /'set approved = true, notified = true, thanked = true where id = p_id'/)
+    assert.match(sql, /where q\.approved and not q\.thanked and q\.source = 'community' and q\.created_by is not null/)
+    assert.match(readFileSync(join(process.cwd(), "src/lib/server/bot-dispatch.ts"), "utf8"), /await flushPlaceThanks\(\)/)
+  })
+})
