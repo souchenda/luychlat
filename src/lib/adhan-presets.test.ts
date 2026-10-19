@@ -103,7 +103,7 @@ describe("Adhans the admin publishes for everyone — no code change, no deploy 
     assert.match(ui, /\{admin && \(\r?\n\s+<AdhanUploadSheet/)
     // The sheet: «this device» first, the global form only with a name, the reciter and the rights confirmed.
     const sheet = read("src/components/islamic/adhan-upload-sheet.tsx")
-    assert.match(sheet, /setScope\("device"\)/)
+    assert.match(sheet, /setScope\(setAsDefault \? "global" : "device"\)/) // «this device» first, unless publishing the phone file for everyone
     assert.equal(globalAdhanError({ nameKm: "អាហ្សាន", credit: "Sheikh …", rights: true }), null)
     assert.equal(globalAdhanError({ nameKm: " ", credit: "Sheikh …", rights: true }), "adhanUpload.nameRequired")
     assert.equal(globalAdhanError({ nameKm: "អាហ្សាន", credit: "", rights: true }), "adhanUpload.creditRequired")
@@ -152,5 +152,21 @@ describe("The app-wide default Adhans — regular and Fajr, one tap in the manag
     const { UNLICENSED_PRESETS } = await import("./adhan-presets")
     assert.deepEqual(UNLICENSED_PRESETS.map((p) => p.id), ["makkah", "madinah", "aqsa"])
     for (const p of UNLICENSED_PRESETS) assert.equal(p.file, null) // never presented as playable without a licensed file
+  })
+})
+
+describe("«⬆️ បង្ហោះ និងកំណត់ជាសកល» — the phone file published and made the default in one go (founder, 19/10/2026)", () => {
+  const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
+  it("a content manager with a phone file sees both buttons; the file goes through the global publish (name, reciter, rights) then admin_adhan_set", () => {
+    const ui = read("src/components/islamic/prayer-alerts.tsx")
+    assert.match(ui, /\{admin && adhanName && \(/)
+    assert.match(ui, /const blob = await loadAdhan\(\)/)
+    assert.match(ui, /setAsDefault=\{toGlobal\?\.kind\}/)
+    const sheet = read("src/components/islamic/adhan-upload-sheet.tsx")
+    assert.match(sheet, /setScope\(setAsDefault \? "global" : "device"\)/)
+    assert.match(sheet, /setNameKm\(setAsDefault \? "អាហ្សានផ្លូវការ អេប លុយឆ្លាត"/)
+    assert.match(sheet, /setDefault\.mutate\(\s*\{ kind: setAsDefault, preset: id \}/)
+    // The rights stay required (licensed assets only): the same form, the same server check.
+    assert.match(sheet, /const problem = globalAdhanError\(\{ nameKm, credit, rights \}\)/)
   })
 })

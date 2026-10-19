@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { GLOBAL_ADHAN_MAX_BYTES, globalAdhanError, type AdhanScope } from "@/lib/adhan-presets"
-import { usePublishAdhan } from "@/lib/adhan-presets-data"
+import { usePublishAdhan, useSetAdhanDefault } from "@/lib/adhan-presets-data"
 import { useKhmerT } from "@/lib/i18n/use-t"
 import { cn } from "@/lib/utils"
 
@@ -25,14 +25,18 @@ export function AdhanUploadSheet({
   onOpenChange,
   onKeepOnDevice,
   onPublished,
+  setAsDefault,
 }: {
   file: File | null
   onOpenChange: (open: boolean) => void
   onKeepOnDevice: (file: File) => Promise<void>
   onPublished: (presetId: string) => void
+  /** «⬆️ បង្ហោះ និងកំណត់ជាសកល» from the phone file (founder, 19/10/2026): publish it and make it the regular / Fajr default. */
+  setAsDefault?: "regular" | "fajr"
 }) {
   const t = useKhmerT()
   const publish = usePublishAdhan()
+  const setDefault = useSetAdhanDefault()
   const [scope, setScope] = useState<AdhanScope>("device")
   const [nameKm, setNameKm] = useState("")
   const [nameEn, setNameEn] = useState("")
@@ -43,12 +47,12 @@ export function AdhanUploadSheet({
   // A new file: start from «this device», the file's name as a suggestion.
   useEffect(() => {
     if (!file) return
-    setScope("device")
-    setNameKm(file.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 80))
+    setScope(setAsDefault ? "global" : "device")
+    setNameKm(setAsDefault ? "អាហ្សានផ្លូវការ អេប លុយឆ្លាត" : file.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 80))
     setNameEn("")
     setCredit("")
     setRights(false)
-  }, [file])
+  }, [file, setAsDefault])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,9 +74,24 @@ export function AdhanUploadSheet({
       { file, nameKm: nameKm.trim(), nameEn: nameEn.trim(), credit: credit.trim() },
       {
         onSuccess: (id) => {
-          toast.success(t("adhanUpload.published"))
-          onPublished(id)
-          onOpenChange(false)
+          if (!setAsDefault) {
+            toast.success(t("adhanUpload.published"))
+            onPublished(id)
+            onOpenChange(false)
+            return
+          }
+          // Published — now the default for everyone (admin_adhan_set, audited ADHAN_PUBLISH).
+          setDefault.mutate(
+            { kind: setAsDefault, preset: id },
+            {
+              onSuccess: () => {
+                toast.success(t("adhanUpload.publishedGlobal"))
+                onPublished(id)
+                onOpenChange(false)
+              },
+              onError: () => toast.error(t("adhanUpload.failed")),
+            },
+          )
         },
         onError: (err) => toast.error(t(err.message === "too_big" ? "adhanUpload.tooBig" : err.message === "not_audio" ? "prayerAlert.notAudio" : "adhanUpload.failed")),
       },
@@ -96,12 +115,12 @@ export function AdhanUploadSheet({
     </button>
   )
 
-  const busy = saving || publish.isPending
+  const busy = saving || publish.isPending || setDefault.isPending
   return (
     <BottomSheet open={file !== null} onOpenChange={onOpenChange} title={t("adhanUpload.title")}>
       <form onSubmit={(e) => void submit(e)} className="space-y-3">
         <p className="truncate text-xs text-muted-foreground">🎵 {file?.name}</p>
-        <div role="radiogroup" aria-label={t("adhanUpload.scope")} className="space-y-2">
+        <div role="radiogroup" aria-label={t("adhanUpload.scope")} className={cn("space-y-2", setAsDefault && "hidden")}>
           {option("device", SmartphoneIcon, t("adhanUpload.device"), t("adhanUpload.deviceHint"))}
           {option("global", GlobeIcon, t("adhanUpload.global"), t("adhanUpload.globalHint"))}
         </div>
@@ -127,7 +146,11 @@ export function AdhanUploadSheet({
         )}
         <Button type="submit" className="h-11 w-full" disabled={busy}>
           {busy && <Loader2Icon className="animate-spin" />}
-          {t(scope === "global" ? (publish.isPending ? "adhanUpload.publishing" : "adhanUpload.publish") : "adhanUpload.keep")}
+          {busy && setAsDefault
+            ? t("adhanUpload.uploadingGlobal")
+            : setAsDefault
+              ? `⬆️ ${setAsDefault === "fajr" ? "🌅" : "🌐"} ${t(setAsDefault === "fajr" ? "adhanUpload.publishFajr" : "adhanUpload.publishRegular")}`
+              : t(scope === "global" ? (publish.isPending ? "adhanUpload.publishing" : "adhanUpload.publish") : "adhanUpload.keep")}
         </Button>
       </form>
     </BottomSheet>

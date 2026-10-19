@@ -31,6 +31,7 @@ import {
   playPreset,
   saveAdhan,
   listenForStopAdhan,
+  loadAdhan,
   showPrayerNotification,
   stopSound,
 } from "@/lib/prayer-alerts"
@@ -125,6 +126,13 @@ export function PrayerAlertSettings() {
   // A super admin chooses where a file goes: this phone, or everyone (AdhanUploadSheet); a member's stays on the phone.
   const admin = canPublishGlobally(usePlan().plan.staff_role)
   const [pending, setPending] = useState<File | null>(null)
+  // «⬆️ បង្ហោះ និងកំណត់ជាសកល» from the phone file (founder, 19/10/2026).
+  const [toGlobal, setToGlobal] = useState<{ file: File; kind: "regular" | "fajr" } | null>(null)
+  const publishPhoneFile = async (kind: "regular" | "fajr") => {
+    const blob = await loadAdhan().catch(() => undefined)
+    if (!blob) return void toast.error(t("common.error"))
+    setToGlobal({ file: new File([blob], adhanName ?? "adhan.mp3", { type: blob.type || "audio/mpeg" }), kind })
+  }
   const removeGlobal = useRemoveGlobalAdhan()
 
   const toggle = async (on: boolean) => {
@@ -265,6 +273,16 @@ export function PrayerAlertSettings() {
                   </span>
                 </button>
                 {adhanName && <PreviewButton id={CUSTOM_ADHAN} onPlay={() => void playAdhan()} label={t("prayerAlert.preview")} />}
+                {admin && adhanName && (
+                  <div className="flex w-full flex-wrap gap-1.5">
+                    <Button size="sm" variant="outline" className="h-8 px-2.5 text-[11px]" onClick={() => void publishPhoneFile("regular")}>
+                      ⬆️ 🌐 {t("adhanUpload.publishRegular")}
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 px-2.5 text-[11px]" onClick={() => void publishPhoneFile("fajr")}>
+                      ⬆️ 🌅 {t("adhanUpload.publishFajr")}
+                    </Button>
+                  </div>
+                )}
                 <div className="flex w-full justify-end gap-1">
                   <Button size="sm" variant="ghost" className="h-7" onClick={() => fileRef.current?.click()} disabled={busy}>
                     {busy && <Loader2Icon className="animate-spin" />}
@@ -287,6 +305,15 @@ export function PrayerAlertSettings() {
                     setAlerts({ adhanPreset: id, alertSound: "adhan" })
                     setPending(null)
                   }}
+                />
+              )}
+              {admin && (
+                <AdhanUploadSheet
+                  file={toGlobal?.file ?? null}
+                  setAsDefault={toGlobal?.kind}
+                  onOpenChange={(open) => !open && setToGlobal(null)}
+                  onKeepOnDevice={keepOnDevice}
+                  onPublished={() => setToGlobal(null)}
                 />
               )}
 
