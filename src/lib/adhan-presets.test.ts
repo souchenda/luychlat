@@ -55,11 +55,12 @@ describe("Fajr Adhan — the Tathweeb at Fajr only", () => {
     for (const p of ["dhuhr", "asr", "maghrib", "isha"]) assert.equal(adhanForPrayer(p, "commons-cc0-natural", true, false, fajr).presetFile, "/adhan/commons-cc0-natural.mp3")
     assert.equal(adhanForPrayer("fajr", "commons-cc0-natural", false, false, fajr).presetFile, "/adhan/commons-cc0-natural.mp3")
   })
-  it("without one (today): Fajr plays the chosen general Adhan, and the prayer page says so", () => {
+  it("without one (today): Fajr plays the chosen general Adhan — and the prayer page carries no Fajr disclaimer card", () => {
     assert.equal(hasFajrRecording(), false)
     assert.equal(adhanForPrayer("fajr", "commons-cc0-short", true, false).presetFile, "/adhan/commons-cc0-short.mp3")
+    // The founder (19/10/2026): the Fajr Adhan is the audio's job, never a permanent card under the prayer times.
     const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/prayer/page.tsx"), "utf8")
-    assert.match(page, /\{!hasFajrRecording\(\) && <p[^>]*>\{t\("prayer\.fajrNoteNoRecording"\)\}/)
+    assert.doesNotMatch(page, /fajrNote|tathweeb|hasFajrRecording/)
   })
   it("the phrase is written in Arabic letters only (no Khmer «ម» in «النوم»)", () => {
     assert.equal(ISLAMIC_ARABIC.tathweeb, "الصَّلَاةُ خَيْرٌ مِنَ النَّوْمِ")
