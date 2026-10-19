@@ -124,3 +124,21 @@ describe("GOLDEN · factual feeds on time, everything creative behind the founde
     assert.match(routes, /reviewChats\(\{ approval, marketing, superAdmins: \[\], isPublic/)
   })
 })
+
+describe("GOLDEN · every database function the bot calls is callable by the bot (19/10/2026 regression)", () => {
+  it("each rpc(\"bot_…\") in the server code ends granted to anon — the bot's role, its key checked inside", () => {
+    // The bot connects as anon; a bot_* function revoked from anon without a later grant breaks it in production
+    // («permission denied for function bot_islamic_places_sync», /setapprovalgroup failing in «LCA Approval»).
+    const called = new Set(files.flatMap(({ src }) => [...src.matchAll(/rpc\("(bot_\w+)"/g)].map((m) => m[1])))
+    const dir = join(process.cwd(), "supabase/migrations")
+    const anon = new Map<string, boolean>()
+    for (const m of readdirSync(dir).sort()) {
+      const sql = readFileSync(join(dir, m), "utf8")
+      for (const st of sql.matchAll(/(revoke all|revoke execute|grant execute) on function public\.(bot_\w+)\([^)]*\) (?:from|to) ([^;]+);/g)) {
+        if (/\banon\b|\bpublic\b/.test(st[3])) anon.set(st[2], st[1] === "grant execute" ? /\banon\b/.test(st[3]) : false)
+      }
+    }
+    const refused = [...called].filter((fn) => anon.get(fn) === false).sort()
+    assert.deepEqual(refused, [], `revoked from the bot: ${refused.join(", ")}`)
+  })
+})
