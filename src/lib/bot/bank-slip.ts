@@ -195,6 +195,9 @@ export function resolveWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pi
   const account = slip.account ?? null
   const decide = (pool: BotWallet[]): WalletPick | null =>
     pool.length === 1 ? { wallet: pool[0] } : pool.length > 1 ? { choices: pool.slice(0, MAX_CHOICES) } : null
+  // A slip that names a known bank never offers another bank's wallet — not even when the digits match
+  // (an ABA slip from 016 824 222 never lists the ACLEDA wallet saved with that number — founder, 19/10/2026).
+  const notOtherBank = (w: BotWallet) => !atOtherBank(w, slip.bank)
 
   if (account) {
     const matched = wallets.filter((w) => accountScore(account, w.account_no) >= 4)
@@ -207,10 +210,13 @@ export function resolveWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pi
     const bankConflict = pool.length > 0 && atSlipBank.length === 0 && pool.every((w) => atOtherBank(w, slip.bank))
     if (bankConflict) {
       const sameBank = wallets.filter((w) => w.currency === slip.currency && atBank(w, slip.bank))
-      const ask = [...new Map([...sameBank, ...pool].map((w) => [w.id, w])).values()]
-      return { choices: ask.slice(0, MAX_CHOICES) }
+      if (sameBank.length) return { choices: sameBank.slice(0, MAX_CHOICES) }
+      // No wallet at the slip's bank: ask among the currency's other wallets (cash, unknown) — never another bank's.
+      const rest = wallets.filter((w) => w.kind !== "CREDIT_CARD" && w.currency === slip.currency && notOtherBank(w))
+      return rest.length ? { choices: rest.slice(0, MAX_CHOICES) } : null
     }
-    const byNumber = decide(pool.length > 1 && atSlipBank.length === 1 ? atSlipBank : pool)
+    const poolOk = pool.filter(notOtherBank)
+    const byNumber = decide(poolOk.length > 1 && atSlipBank.length === 1 ? atSlipBank : poolOk)
     if (byNumber) return byNumber
   }
   // Without a number match, book only the one obvious wallet: the only one at the slip's bank in its
@@ -222,8 +228,47 @@ export function resolveWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pi
   const differs = (w: BotWallet) => Boolean(account && w.account_no && accountScore(account, w.account_no) === 0)
   const obvious = slip.bank ? atBankCurrency.filter((w) => !differs(w)) : sameCurrency.filter((w) => !differs(w))
   if (obvious.length === 1) return { wallet: obvious[0] }
-  const ask = [atBankCurrency, sameCurrency, plain, wallets].find((list) => list.length > 0) ?? []
+  const ask = [atBankCurrency, sameCurrency, plain, wallets].map((list) => list.filter(notOtherBank)).find((list) => list.length > 0) ?? []
   return ask.length ? { choices: ask.slice(0, MAX_CHOICES) } : null
+}
+
+/** A workspace's wallets, as the bot context gives them (the first is the bot's default — Personal). */
+export type WorkspaceWallets = { id: string; name: string; wallets: BotWallet[] }
+/** A wallet to offer, with its workspace; `elsewhere` = not the bot's default workspace. */
+export type SlipCandidate = { wallet: BotWallet; workspaceId: string; workspaceName: string; elsewhere: boolean }
+
+/**
+ * Certain by the slip's own words: the wallet's name is the account name the slip prints («DL USD (016 824 222)»),
+ * or its number is the slip's full printed number — and it is not at another bank.
+ */
+export function strongMatch(slip: Pick<Slip, "bank"> & Partial<Pick<Slip, "account" | "accountName">>, w: BotWallet): boolean {
+  if (atOtherBank(w, slip.bank)) return false
+  const printed = slip.accountName?.trim().toLowerCase()
+  if (printed && w.name.trim().toLowerCase() === printed) return true
+  const account = slip.account ?? ""
+  return !account.includes("*") && account.replace(/\D/g, "").length >= 8 && accountScore(account, w.account_no) >= 8
+}
+
+/**
+ * The slip's wallet across the person's workspaces (founder, 19/10/2026): the default workspace decides as before;
+ * a wallet in another of their workspaces that the slip names exactly (strongMatch — «DL USD (016 824 222)» in
+ * DL MEAT SUPPLY) is offered too, first, labelled with its workspace — never booked there without a tap, and never
+ * hidden because the bot's default is Personal. Another bank's wallet is never offered (resolveWallet).
+ */
+export function resolveSlipAcrossWorkspaces(
+  slip: Pick<Slip, "bank" | "currency"> & Partial<Pick<Slip, "account" | "accountName">>,
+  workspaces: WorkspaceWallets[],
+): { wallet: SlipCandidate } | { choices: SlipCandidate[] } | null {
+  const [home, ...others] = workspaces
+  if (!home) return null
+  const at = (ws: WorkspaceWallets, elsewhere: boolean) => (wallet: BotWallet): SlipCandidate => ({ wallet, workspaceId: ws.id, workspaceName: ws.name, elsewhere })
+  const pick = resolveWallet(slip, home.wallets)
+  const elsewhere = others.flatMap((ws) => ws.wallets.filter((w) => strongMatch(slip, w)).map(at(ws, true)))
+  if (!elsewhere.length) return pick ? ("wallet" in pick ? { wallet: at(home, false)(pick.wallet) } : { choices: pick.choices.map(at(home, false)) }) : null
+  // A home wallet the slip names exactly stays the answer; otherwise the named wallet elsewhere is offered first.
+  if (pick && "wallet" in pick && strongMatch(slip, pick.wallet)) return { wallet: at(home, false)(pick.wallet) }
+  const homeList = pick ? ("wallet" in pick ? [pick.wallet] : pick.choices) : []
+  return { choices: [...elsewhere, ...homeList.map(at(home, false))].slice(0, MAX_CHOICES) }
 }
 
 /** "016824222" → "016***4222" (as the app shows it); short numbers as they are. */

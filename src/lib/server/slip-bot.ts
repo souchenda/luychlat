@@ -11,7 +11,7 @@
 // transcribes voice notes); wallets and categories are matched here. The card is plain text and
 // passes through maskNumbers (account numbers on the slip never echo back).
 import { DEFAULT_ABOUT } from "@/lib/app-site"
-import { categoryFor, cleanSlip, isFoodChoice, maskedAccount, mealFor, resolveWallet, slipChoices, SLIP_OUT, walletLabel, type Meal, type Slip, type SlipChoice } from "@/lib/bot/bank-slip"
+import { categoryFor, cleanSlip, isFoodChoice, maskedAccount, mealFor, resolveSlipAcrossWorkspaces, slipChoices, SLIP_OUT, walletLabel, type Meal, type Slip, type SlipCandidate, type SlipChoice } from "@/lib/bot/bank-slip"
 import { autoDecision, choiceIndex, choiceKey, merchantKey, type Remembered } from "@/lib/bot/slip-auto"
 import type { BotCategory, BotDebt } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
@@ -217,7 +217,7 @@ type Keyboard = { text: string; callback_data: string }[][]
  * right): "Which ACLEDA KHR wallet?" and one button per candidate — nothing is
  * booked until the user picks.
  */
-function slipCard(lang: Locale, pendingId: string, info: SlipInfo, wallet: BotWallet | null, choices: BotWallet[], rate: number) {
+function slipCard(lang: Locale, pendingId: string, info: SlipInfo, wallet: BotWallet | null, choices: SlipCandidate[], rate: number) {
   const walletLine = !wallet
     ? `👛 ${tr(lang, "bot.slipWalletUnsure")}`
     : wallet.currency === info.currency
@@ -239,7 +239,8 @@ function slipCard(lang: Locale, pendingId: string, info: SlipInfo, wallet: BotWa
     const buttons = slipChoices(info.kind).map((c, i) => ({ text: tr(lang, c.label), callback_data: `sc:${pendingId}:${i}` }))
     for (let i = 0; i < buttons.length; i += 2) keyboard.push(buttons.slice(i, i + 2))
   } else {
-    choices.forEach((w, i) => keyboard.push([{ text: `👛 ${walletLabel(w)}`, callback_data: `sw:${pendingId}:${i}` }]))
+    // A wallet in another of the person's workspaces says which: «🏢 DL MEAT SUPPLY · DL USD (016 824 222)».
+    choices.forEach((c, i) => keyboard.push([{ text: c.elsewhere ? `🏢 ${c.workspaceName} · ${walletLabel(c.wallet)}` : `👛 ${walletLabel(c.wallet)}`, callback_data: `sw:${pendingId}:${i}` }]))
   }
   keyboard.push([{ text: tr(lang, "bot.cancel"), callback_data: `no:${pendingId}` }])
   return { text: maskNumbers(lines.join("\n")), reply_markup: { inline_keyboard: keyboard } }
@@ -282,13 +283,18 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
     return sendText(chatId, tr(lang, "bot.slipUnreadable"), { reply_markup: { inline_keyboard: [[{ text: tr(lang, "bot.manualEntry"), url: `${DEFAULT_ABOUT.website}/transactions` }]] } })
   const slip = read.slip
 
-  // The default workspace (Personal unless the user chose another for the bot).
-  const ws = workspacesOf(ctx)[0]
+  // The default workspace (Personal unless the user chose another for the bot) — and the person's other
+  // workspaces, where a wallet the slip names exactly is offered too (founder, 19/10/2026).
+  const all = workspacesOf(ctx)
+  const ws = all[0]
   // Never a silent guess: when the account number doesn't settle it, the user picks.
-  const pick = resolveWallet(slip, ws.wallets)
+  const pick = resolveSlipAcrossWorkspaces(slip, all)
   if (!pick) return sendText(chatId, tr(lang, "bot.cmdNoWallet"))
-  const wallet = "wallet" in pick ? pick.wallet : null
+  const wallet = "wallet" in pick ? pick.wallet.wallet : null
   const choices = "choices" in pick ? pick.choices : []
+  // The placeholder wallet (bot_confirm refuses it until one is picked): the default workspace's first, else the
+  // first offered — and then the entry starts in that wallet's workspace.
+  const placeholder = choices.find((c) => !c.elsewhere) ?? choices[0]
   const kind = slip.direction === "IN" ? "INCOME" : "EXPENSE"
   // The payment time: the slip's own, else now when the slip is from today (it was just paid).
   const now = phnomPenhToday()
@@ -304,8 +310,9 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   const action = {
     kind,
     // Unsure: a placeholder that bot_confirm refuses (wallet_pending) until one of wallet_choices is picked.
-    wallet_id: wallet?.id ?? choices[0].id,
-    ...(wallet ? {} : { wallet_pending: true, wallet_choices: choices.map((w) => w.id) }),
+    wallet_id: wallet?.id ?? placeholder.wallet.id,
+    ...(wallet ? {} : { wallet_pending: true, wallet_choices: choices.map((c) => c.wallet.id) }),
+    ...(!wallet && placeholder.elsewhere ? { workspace_id: placeholder.workspaceId } : {}),
     slip: info,
     category_id: null,
     amount: slip.amount,
@@ -627,7 +634,9 @@ async function handleWalletCallback(cb: Callback) {
   const { data: set, error } = await botDb().rpc("bot_pending_wallet", { p_key: botKey(), p_chat_id: chatId, p_pending_id: pendingId, p_wallet_id: walletId })
   if (error || !(set as { ok?: boolean } | null)?.ok) return answer(tr(lang, error ? "bot.saveFailed" : "bot.expired"), true)
 
-  const ws = workspacesOf(ctx).find((w) => w.id === pending.workspace_id)
+  // The entry is now in the picked wallet's workspace (a business wallet moves it to the business).
+  const workspaceId = (set as { action?: { workspace_id?: string } }).action?.workspace_id ?? pending.workspace_id
+  const ws = workspacesOf(ctx).find((w) => w.id === workspaceId)
   const wallet = ws?.wallets.find((w) => w.id === walletId)
   if (!ws || !wallet) return answer(tr(lang, "bot.saveFailed"), true)
   await answer(walletLabel(wallet))

@@ -27,6 +27,8 @@ describe("GOLDEN 1 · bot receipt intake", () => {
     const pick = resolveWallet({ bank: "ABA BANK", currency: "USD", account: "016824222" }, WALLETS)
     assert.ok(pick && "choices" in pick, "must ask, not book")
     assert.equal(pick.choices[0].id, "aba-usd")
+    // Never even offered (founder, 19/10/2026): an ABA slip lists no ACLEDA wallet, whatever the digits.
+    assert.ok(pick.choices.every((w) => w.icon !== "acleda"), JSON.stringify(pick.choices.map((w) => w.id)))
   })
   it("never a USD wallet for a riel slip, never a silent default", () => {
     const pick = resolveWallet({ bank: "Wing", currency: "KHR", account: null }, WALLETS)
