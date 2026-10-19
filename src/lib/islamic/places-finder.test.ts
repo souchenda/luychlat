@@ -39,7 +39,7 @@ describe("Islamic places finder — ATM-style, pre-loaded, Khmer (founder, 19/10
   })
   it("seeded on the first tick after the deploy, refreshed every Sunday; a short answer changes nothing", () => {
     const sync = read("src/lib/server/islamic-places-sync.ts")
-    assert.match(sync, /p_job: "islamic-places-seed"/)
+    assert.match(sync, /p_job: "islamic-places-seed-v2"/)
     assert.match(read("src/lib/server/bot-dispatch.ts"), /await islamicPlacesSyncTick\(\)/)
     const sql = read("supabase/migrations/20270180000000_islamic_places_osm.sql")
     assert.match(sql, /if n < 40 then/)

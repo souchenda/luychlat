@@ -45,8 +45,9 @@ const run = (why: string) =>
 
 /** Called every minute by the dispatcher: the first seed once ever, then every Sunday from 03:30, in the background. */
 export async function islamicPlacesSyncTick() {
-  // The first seed: once (a fixed claim day), right after the deploy that brings the finder.
-  const { data: seed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "islamic-places-seed", p_day: "2026-10-19" })
+  // The first seed: once (a fixed claim day), right after the deploy that brings the finder. «-v2»: the first try
+  // (19/10/2026 12:27) was refused by the database (a missing grant, fixed in 20270181) and used up its claim.
+  const { data: seed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "islamic-places-seed-v2", p_day: "2026-10-19" })
   if (seed === true) return run("seed")
   const now = phnomPenhToday()
   if (new Date(`${now.day}T12:00:00Z`).getUTCDay() !== 0 || now.hour * 60 + now.minute < 3 * 60 + 30) return
