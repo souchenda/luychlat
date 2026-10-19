@@ -9,7 +9,10 @@ export function parseApproverCommand(text: string): { action: "add" | "remove"; 
   const m = /^\/(add|remove)approver(?:@\w+)?(?:\s+(.+))?$/i.exec(text.trim())
   if (!m) return null
   const action = m[1].toLowerCase() as "add" | "remove"
-  return { action, login: action === "add" ? m[2]?.trim() || null : null }
+  const arg = m[2]?.trim() || null
+  // «@yernysou» is a Telegram handle, not a login (bots cannot look people up by it): the reply identifies them; their
+  // linked app account is found from their Telegram (founder, 19/10/2026).
+  return { action, login: action === "add" && arg && !arg.startsWith("@") ? arg : null }
 }
 
 export type ApproverReply =
@@ -34,7 +37,7 @@ export function approverReply(r: ApproverReply): string {
     case "no_account":
       return `⚠️ រកមិនឃើញគណនី «${r.login}» ទេ។ សូមពិនិត្យអ៊ីមែល ឬលេខទូរស័ព្ទដែលគាត់ប្រើចូល អេប លុយឆ្លាត។`
     case "reply_needed":
-      return "សូមឆ្លើយតប (Reply) សាររបស់អ្នកដែលត្រូវបន្ថែម ដោយសរសេរ /addapprover <អ៊ីមែល ឬលេខទូរស័ព្ទ>។"
+      return "សូមឆ្លើយតប (Reply) សាររបស់អ្នកដែលត្រូវបន្ថែម ដោយសរសេរ /addapprover — ឬ /addapprover <អ៊ីមែល ឬលេខទូរស័ព្ទ> បើគាត់មិនទាន់ភ្ជាប់ Telegram។ ឈ្មោះ @username មិនអាចប្រើជំនួសការឆ្លើយតបបានទេ។"
     case "forbidden":
       return "🔒 សម្រាប់ Super Admin ប៉ុណ្ណោះ។"
     case "failed":

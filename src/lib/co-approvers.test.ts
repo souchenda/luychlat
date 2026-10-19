@@ -13,6 +13,8 @@ describe("Co-approvers in «LCA Approval» (founder, 19/10/2026)", () => {
     assert.deepEqual(parseApproverCommand("/addapprover sister@gmail.com"), { action: "add", login: "sister@gmail.com" })
     assert.deepEqual(parseApproverCommand("/addapprover@luychlat_bot 012 345 678"), { action: "add", login: "012 345 678" })
     assert.deepEqual(parseApproverCommand("/addapprover"), { action: "add", login: null })
+    // A Telegram handle is not a login: the reply identifies the person (19/10/2026 — «/addapprover @yernysou»).
+    assert.deepEqual(parseApproverCommand("/addapprover @yernysou"), { action: "add", login: null })
     assert.deepEqual(parseApproverCommand("/removeapprover anything"), { action: "remove", login: null })
     assert.equal(parseApproverCommand("/addapprovers x"), null)
     assert.ok(isApproverCommand("/removeapprover") && !isApproverCommand("hello /addapprover"))
