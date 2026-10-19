@@ -17,7 +17,7 @@ async function superAdmin() {
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) return null
   // Super admin or the «admin» staff role (content managers, founder 19/10/2026); the database checks again.
-  const { data } = await supabase.rpc("is_admin")
+  const { data } = await supabase.rpc("is_content_manager") // content admin, admin or super admin (19/10/2026)
   return data === true ? supabase : null
 }
 

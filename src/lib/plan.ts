@@ -41,7 +41,8 @@ export type MyPlan = {
   business_trial_ends_at?: string | null
 }
 
-export type StaffRole = "support" | "admin" | "super_admin"
+/** «content_admin» (founder, 19/10/2026): community content only — never revenue, payments or settings. */
+export type StaffRole = "support" | "admin" | "super_admin" | "content_admin"
 
 export const FREE_PLAN: MyPlan = {
   tier: "FREE",

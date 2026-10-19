@@ -20,7 +20,8 @@ import { showUpgrade, usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
-import { loginLabel } from "@/lib/auth-identifier"
+import { displayEmail, loginLabel } from "@/lib/auth-identifier"
+import { useProfilePrivate } from "@/lib/profile-private"
 
 /** One read-only line: a small muted label over a bold value, optionally with something on the right. */
 function InfoRow({
@@ -69,6 +70,7 @@ export default function ProfilePage() {
   const profile = useProfile().data
   const { workspace } = useActiveWorkspace()
   const { plan, isPro } = usePlan()
+  const extras = useProfilePrivate().data
   const badge = TIER_BADGE[plan.tier] ?? TIER_BADGE.FREE
   const periodEnd = isPro && plan.period_end ? new Date(plan.period_end) : null
   const daysLeft = periodEnd ? Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / 86_400_000)) : 0
@@ -110,7 +112,10 @@ export default function ProfilePage() {
 
       <SettingsGroup title={t("profile.contact")}>
         <InfoRow icon={<PhoneIcon />} tile="emerald" label={t("profile.phone")} value={phone} placeholder={t("profile.notSet")} />
-        <InfoRow icon={<MailIcon />} tile="sky" label={t("profile.email")} value={loginLabel(user?.email) || undefined} placeholder={t("profile.notSet")} />
+        {/* The real email: the sign-in when it is one, else the contact email added — never the phone again (founder, 19/10/2026). */}
+        <button type="button" className="block w-full text-left" onClick={() => setEditOpen(true)}>
+          <InfoRow icon={<MailIcon />} tile="sky" label={t("profile.email")} value={displayEmail(user?.email, extras?.contact_email) || undefined} placeholder={t("profile.addEmail")} />
+        </button>
       </SettingsGroup>
 
       <SettingsGroup title={t("profile.accountCard")}>
@@ -180,7 +185,7 @@ export default function ProfilePage() {
               tile="amber"
               label={t("profile.role")}
               // Staff first: «🛡️ អ្នកគ្រប់គ្រង (Admin) · ផ្ទាល់ខ្លួន» (founder, 19/10/2026).
-              value={`${plan.staff_role ? `🛡️ ${t(`admin.role.${plan.staff_role}` as MessageKey)} (${plan.staff_role === "super_admin" ? "Super admin" : plan.staff_role === "admin" ? "Admin" : "Support"})` : t(`family.role.${workspace.role}` as MessageKey)} · ${workspace.type === "PERSONAL" ? t("ws.PERSONAL") : workspace.name}`}
+              value={`${plan.staff_role ? `🛡️ ${t(`admin.role.${plan.staff_role}` as MessageKey)} (${plan.staff_role === "super_admin" ? "Super admin" : plan.staff_role === "admin" ? "Admin" : plan.staff_role === "content_admin" ? "Content admin" : "Support"})` : t(`family.role.${workspace.role}` as MessageKey)} · ${workspace.type === "PERSONAL" ? t("ws.PERSONAL") : workspace.name}`}
               placeholder=""
             />
             <InfoRow

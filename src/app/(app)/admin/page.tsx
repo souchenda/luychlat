@@ -26,6 +26,7 @@ import { paymentCode } from "@/components/billing/upgrade-sheet"
 import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
 import { AdminUserSecurity } from "@/components/security/admin-user-security"
 import { AccountControls, UserBadges, type DirectoryUser } from "@/components/admin/account-controls"
+import { ContentAdminHub } from "@/components/admin/content-admin-hub"
 import { ago, rpc, Section, Stat, useInvalidateAdmin, who } from "@/components/admin/ui"
 import { LocalGoldAdmin } from "@/components/admin/local-gold-admin"
 import { NbcRateAdmin } from "@/components/admin/nbc-rate-admin"
@@ -678,8 +679,12 @@ export default function AdminPage() {
       </Card>
     )
   }
+  // A content admin (founder, 19/10/2026): community content only — never revenue, payments or settings.
+  if (role === "content_admin") return <ContentAdminHub />
   // Cosmetic only: each card's database functions check the role themselves.
   const admin = role === "admin" || role === "super_admin"
+  // Revenue, payments, subscriptions and the member directory: the founder only (the database refuses anyone else).
+  const founder = role === "super_admin"
 
   return (
     <div className="space-y-6">
@@ -696,14 +701,14 @@ export default function AdminPage() {
         </Button>
       )}
       <div className="space-y-2">
-        {admin && <PendingPayments />}
+        {founder && <PendingPayments />}
         <SupportTickets />
       </div>
       <SystemHealthCard />
       {admin && (
         <>
           <AcquisitionSources />
-          <Subscribers />
+          {founder && <Subscribers />}
           <div className="space-y-2">
             <Collapsible icon={<SettingsIcon />} title={t("admin.appSettings")} hint={t("admin.appSettingsHint")}>
               <SupportContactsForm />

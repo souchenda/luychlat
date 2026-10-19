@@ -112,7 +112,7 @@ describe("Adhans the admin publishes for everyone — no code change, no deploy 
 
   it("the server and the database refuse anyone but a super admin; every change is audited", () => {
     const route = read("src/app/api/adhan/presets/route.ts")
-    assert.match(route, /rpc\("is_admin"\)/)
+    assert.match(route, /rpc\("is_content_manager"\)/)
     assert.match(route, /return NextResponse\.json\(\{ error: "forbidden" \}, \{ status: 403 \}\)/)
     assert.match(route, /cleanDuaAudio\(new Uint8Array\(await file\.arrayBuffer\(\)\), GLOBAL_ADHAN_MAX_SECONDS\)/)
     const sql = read("supabase/migrations/20270183000000_adhan_global_presets.sql")

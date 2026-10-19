@@ -111,7 +111,7 @@ export const GLOBAL_ADHAN_MAX_SECONDS = 360
 export const GLOBAL_ADHAN_MAX_BYTES = 9 * 1024 * 1024
 
 /** Only staff who manage content — a super admin or the «admin» role — may publish for everyone (the database checks again). */
-export const canPublishGlobally = (staffRole: string | null | undefined) => staffRole === "super_admin" || staffRole === "admin"
+export const canPublishGlobally = (staffRole: string | null | undefined) => staffRole === "super_admin" || staffRole === "admin" || staffRole === "content_admin"
 
 export type GlobalAdhanRow = { id: string; name_km: string; name_en: string | null; credit: string; audio_path: string }
 

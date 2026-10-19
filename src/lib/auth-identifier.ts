@@ -54,3 +54,7 @@ export function contactEmailError(input: string): boolean {
 
 /** Admin › Staff: an email, or a phone number turned into its sign-in («096 263 7581» → 85596…@phone…); null if neither. */
 export const staffTarget = (input: string): string | null => parseLoginIdentifier(input)?.email ?? null
+
+/** «Email» on a profile: a real sign-in email, else the contact email added; a phone sign-in is never shown as an email. */
+export const displayEmail = (signIn: string | null | undefined, contact: string | null | undefined): string =>
+  (signIn && !isPhoneLoginEmail(signIn) ? signIn : "") || contact?.trim() || ""

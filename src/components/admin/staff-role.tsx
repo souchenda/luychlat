@@ -43,7 +43,7 @@ export function StaffBadge({ userId }: { userId: string }) {
   )
 }
 
-const CHOICES = ["none", "support", "admin", "super_admin"] as const
+const CHOICES = ["none", "content_admin", "support", "admin", "super_admin"] as const
 type Choice = (typeof CHOICES)[number]
 
 /** «តួនាទី៖ [ គ្មាន | ជំនួយ | អេដមីន | Super ]» — the founder manages the role from the user's card. */

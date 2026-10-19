@@ -401,7 +401,7 @@ type StaffMember = {
   mfa_enabled: boolean
   last_active_at: string | null
 }
-const ROLES: StaffRole[] = ["support", "admin", "super_admin"]
+const ROLES: StaffRole[] = ["content_admin", "support", "admin", "super_admin"]
 
 export function StaffManager() {
   const t = useT()

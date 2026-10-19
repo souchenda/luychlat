@@ -22,7 +22,7 @@ describe("Staff in the app: the badge, the role from the user's card, the admin 
     assert.match(profile, /plan\.staff_role \? `🛡️ \$\{t\(`admin\.role\.\$\{plan\.staff_role\}`/)
     assert.match(profile, /<AdminPortalCard \/>/)
     const card = read("src/components/admin/admin-portal-card.tsx")
-    assert.match(card, /if \(role !== "admin" && role !== "super_admin"\) return null/)
+    assert.match(card, /if \(role !== "admin" && role !== "super_admin" && role !== "content_admin"\) return null/)
     for (const href of ['"/islamic/places"', '"/islamic/nasheed"', '"/islamic/duas"']) assert.ok(card.includes(href), href)
     assert.match(card, /href=\{consoleReady \? "\/admin" : "\/settings\/security"\}/)
   })

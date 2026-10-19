@@ -23,7 +23,7 @@ export function AdminPortalCard() {
   const t = useT()
   const role = usePlan().plan.staff_role
   const mfa = useMfaState().data
-  if (role !== "admin" && role !== "super_admin") return null
+  if (role !== "admin" && role !== "super_admin" && role !== "content_admin") return null
   const consoleReady = Boolean(mfa?.factorId)
   return (
     <Card className="gap-2 border-amber-400/50 bg-linear-to-br from-emerald-600/10 to-amber-400/10 px-4 py-3">
@@ -39,6 +39,7 @@ export function AdminPortalCard() {
           </Link>
         ))}
       </div>
+      {role !== "content_admin" && (
       <Link href={consoleReady ? "/admin" : "/settings/security"} className="flex min-h-11 items-center gap-2 rounded-xl border bg-card px-3 py-2 text-sm">
         <span className="min-w-0 flex-1">
           <span className="block font-medium">{t("adminPortal.console")}</span>
@@ -46,6 +47,7 @@ export function AdminPortalCard() {
         </span>
         <ChevronRightIcon className="size-4 opacity-60" aria-hidden />
       </Link>
+      )}
     </Card>
   )
 }

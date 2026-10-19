@@ -13,6 +13,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { loginLabel } from "@/lib/auth-identifier"
 import { StaffBadge, StaffRoleRow } from "@/components/admin/staff-role"
+import { ContactEmailRow } from "@/components/admin/contact-email-row"
 
 /** A row of public.admin_list_users: account and subscription metadata only — never finances. */
 export type DirectoryUser = {
@@ -147,6 +148,7 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
   return (
     <div className="space-y-2 rounded-xl border p-3">
       <StaffRoleRow userId={user.user_id} email={user.email} name={label} />
+      <ContactEmailRow userId={user.user_id} name={label} />
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium">{t("admin.accountStatus")}</p>
         <span className={cn("text-sm font-semibold", user.suspended ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
