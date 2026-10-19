@@ -9,7 +9,10 @@ import { useIslamicLocation } from "@/components/islamic/location-picker"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { adhanForPrayer, availablePresets, CUSTOM_ADHAN, FAJR_ADHAN, presetById, resolvePreset } from "@/lib/adhan-presets"
+import { AdhanUploadSheet } from "@/components/islamic/adhan-upload-sheet"
+import { adhanForPrayer, availablePresets, canPublishGlobally, CUSTOM_ADHAN, FAJR_ADHAN, GLOBAL_ADHAN_PREFIX, presetById, resolvePreset } from "@/lib/adhan-presets"
+import { useGlobalAdhanPresets, useRemoveGlobalAdhan } from "@/lib/adhan-presets-data"
+import { usePlan } from "@/lib/plan"
 import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { cambodiaNow, formatMinutes, prayerTimes } from "@/lib/prayer"
@@ -45,8 +48,10 @@ export function PrayerAlertScheduler() {
   const t = useT()
   const { alertsOn, alertSound, adhanPreset, adhanName, fajrAdhan } = useIslamicLocalStore()
   const location = useIslamicLocation()
-  const latest = useRef({ t, alertSound, adhanPreset, adhanName, fajrAdhan, location })
-  latest.current = { t, alertSound, adhanPreset, adhanName, fajrAdhan, location }
+  // The Adhans the admin published for everyone, beside the bundled ones.
+  const global = useGlobalAdhanPresets()
+  const latest = useRef({ t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global })
+  latest.current = { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global }
 
   // The notification's «🔇 បិទសំឡេង» reaches the app through the service worker.
   useEffect(() => listenForStopAdhan(), [])
@@ -54,7 +59,7 @@ export function PrayerAlertScheduler() {
   useEffect(() => {
     if (!alertsOn) return
     const tick = () => {
-      const { t, alertSound, adhanPreset, adhanName, fajrAdhan, location } = latest.current
+      const { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global } = latest.current
       const clock = cambodiaNow()
       const times = prayerTimes(clock.date, location.lat, location.lng)
       const key = duePrayer(times, clock.minutes)
@@ -65,7 +70,7 @@ export function PrayerAlertScheduler() {
       const adhan = alertSound === "adhan"
       void showPrayerNotification(title, body, `prayer-${key}`, adhan ? t("prayerAlert.stopAdhan") : undefined)
       if (alertSound === "chime") playChime()
-      if (adhan) void playAdhan({ ...adhanForPrayer(key, adhanPreset, fajrAdhan, !!adhanName), title })
+      if (adhan) void playAdhan({ ...adhanForPrayer(key, adhanPreset, fajrAdhan, !!adhanName, FAJR_ADHAN, global), title })
       if (document.visibilityState === "visible") {
         toast(title, {
           description: body,
@@ -108,9 +113,14 @@ export function PrayerAlertSettings() {
   useEffect(() => setPermission(notificationsSupported() ? Notification.permission : "unsupported"), [])
   useEffect(() => () => stopSound(), [])
 
-  const presets = availablePresets()
+  const global = useGlobalAdhanPresets()
+  const presets = availablePresets(global)
   // The recording that will actually play (lib/adhan-presets resolvePreset); the phone's file otherwise.
-  const selected = resolvePreset(adhanPreset, !!adhanName)?.id ?? CUSTOM_ADHAN
+  const selected = resolvePreset(adhanPreset, !!adhanName, global)?.id ?? CUSTOM_ADHAN
+  // A super admin chooses where a file goes: this phone, or everyone (AdhanUploadSheet); a member's stays on the phone.
+  const admin = canPublishGlobally(usePlan().plan.staff_role)
+  const [pending, setPending] = useState<File | null>(null)
+  const removeGlobal = useRemoveGlobalAdhan()
 
   const toggle = async (on: boolean) => {
     if (!on) return setAlerts({ alertsOn: false })
@@ -127,7 +137,7 @@ export function PrayerAlertSettings() {
   const choose = (id: string) => {
     setAlerts({ adhanPreset: id })
     // Fetch once so the service worker keeps it for offline alerts.
-    const preset = presetById(id)
+    const preset = presetById(id, global)
     if (preset?.file) void fetch(preset.file).catch(() => {})
   }
 
@@ -135,6 +145,13 @@ export function PrayerAlertSettings() {
     if (!file) return
     if (!file.type.startsWith("audio/")) return void toast.error(t("prayerAlert.notAudio"))
     if (file.size > ADHAN_MAX_BYTES) return void toast.error(t("prayerAlert.tooBig"))
+    if (fileRef.current) fileRef.current.value = ""
+    if (admin) return setPending(file)
+    await keepOnDevice(file)
+  }
+
+  /** «សម្រាប់តែឧបករណ៍នេះ»: the file in this phone's IndexedDB, never uploaded. */
+  const keepOnDevice = async (file: File) => {
     setBusy(true)
     try {
       await saveAdhan(file)
@@ -144,7 +161,6 @@ export function PrayerAlertSettings() {
       toast.error(t("common.error"))
     } finally {
       setBusy(false)
-      if (fileRef.current) fileRef.current.value = ""
     }
   }
 
@@ -207,6 +223,21 @@ export function PrayerAlertSettings() {
                     </span>
                   </button>
                   <PreviewButton id={p.id} onPlay={() => void playPreset(p.file!, p.id)} label={t("prayerAlert.preview")} />
+                  {admin && p.id.startsWith(GLOBAL_ADHAN_PREFIX) && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-9 shrink-0 text-destructive"
+                      disabled={removeGlobal.isPending}
+                      aria-label={t("prayerAlert.removeGlobal")}
+                      onClick={() =>
+                        window.confirm(t("prayerAlert.removeGlobalConfirm")) &&
+                        removeGlobal.mutate(p.id, { onSuccess: () => toast.success(t("prayerAlert.removedGlobal")), onError: () => toast.error(t("common.error")) })
+                      }
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  )}
                 </div>
               ))}
 
@@ -240,6 +271,17 @@ export function PrayerAlertSettings() {
                 </div>
               </div>
               <input ref={fileRef} type="file" accept="audio/*" className="sr-only" onChange={(e) => void pickFile(e.target.files?.[0])} aria-label={t("prayerAlert.choose")} />
+              {admin && (
+                <AdhanUploadSheet
+                  file={pending}
+                  onOpenChange={(open) => !open && setPending(null)}
+                  onKeepOnDevice={keepOnDevice}
+                  onPublished={(id) => {
+                    setAlerts({ adhanPreset: id, alertSound: "adhan" })
+                    setPending(null)
+                  }}
+                />
+              )}
 
               {FAJR_ADHAN.file && (
                 <label className="flex items-center gap-3 rounded-xl bg-muted/50 px-3 py-2">

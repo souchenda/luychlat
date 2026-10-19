@@ -60,17 +60,18 @@ export const FAJR_ADHAN: AdhanPreset = { id: "fajr", name: { km: "អាហ្�
 
 export const CUSTOM_ADHAN = "custom"
 
-export const availablePresets = () => ADHAN_PRESETS.filter((p) => p.file)
-export const presetById = (id: string | null | undefined) => ADHAN_PRESETS.find((p) => p.id === id && p.file)
+/** The bundled presets with a file, then the ones the admin published for everyone (`global`, from the database). */
+export const availablePresets = (global: AdhanPreset[] = []) => [...ADHAN_PRESETS, ...global].filter((p) => p.file)
+export const presetById = (id: string | null | undefined, global: AdhanPreset[] = []) => availablePresets(global).find((p) => p.id === id)
 
 /**
  * The preset that actually plays for the stored choice: the phone's file when «custom» was picked; the stored
  * preset when it has a file; else (e.g. the old default «makkah», which has none) the phone's file if there is
  * one, otherwise the first built-in recording — never silence while a recording exists.
  */
-export function resolvePreset(id: string | null | undefined, hasCustomFile: boolean): AdhanPreset | undefined {
+export function resolvePreset(id: string | null | undefined, hasCustomFile: boolean, global: AdhanPreset[] = []): AdhanPreset | undefined {
   if (id === CUSTOM_ADHAN) return undefined
-  const chosen = presetById(id)
+  const chosen = presetById(id, global)
   if (chosen) return chosen
   return hasCustomFile ? undefined : availablePresets()[0]
 }
@@ -85,11 +86,52 @@ export function adhanForPrayer(
   fajrSwitch: boolean,
   hasCustomFile: boolean,
   fajr: AdhanPreset = FAJR_ADHAN,
+  global: AdhanPreset[] = [],
 ): { presetFile?: string; presetId?: string } {
   if (prayer === "fajr" && fajrSwitch && fajr.file) return { presetFile: fajr.file, presetId: fajr.id }
-  const preset = resolvePreset(presetId, hasCustomFile)
+  const preset = resolvePreset(presetId, hasCustomFile, global)
   return preset?.file ? { presetFile: preset.file, presetId: preset.id } : {}
 }
 
 /** Whether the app has its own Fajr recording yet (the prayer page says so honestly when not). */
 export const hasFajrRecording = () => Boolean(FAJR_ADHAN.file)
+
+/*
+ * Published by the admin for everyone (founder, 19/10/2026 — no code change, no deploy): in the alert settings a super
+ * admin picks a file and chooses «ដាក់ចូលអេប ប្រើរួមគ្នាទាំងអស់»; the server cleans it into the public bucket
+ * «adhan-audio» and registers it (table adhan_presets). Everyone else — and the admin's «សម្រាប់តែឧបករណ៍នេះ» — keeps
+ * the file on the phone only (IndexedDB), as before.
+ */
+export type AdhanScope = "device" | "global"
+export const GLOBAL_ADHAN_BUCKET = "adhan-audio"
+export const GLOBAL_ADHAN_PREFIX = "g:"
+/** A published Adhan is cut at 6 minutes (a full Adhan with its du'a takes 3–5). */
+export const GLOBAL_ADHAN_MAX_SECONDS = 360
+/** A file to publish goes through Nginx (10 MB a request); a larger one can still be kept on the device. */
+export const GLOBAL_ADHAN_MAX_BYTES = 9 * 1024 * 1024
+
+/** Only a super admin may publish for everyone (the database checks again: adhan_preset_add). */
+export const canPublishGlobally = (staffRole: string | null | undefined) => staffRole === "super_admin"
+
+export type GlobalAdhanRow = { id: string; name_km: string; name_en: string | null; credit: string; audio_path: string }
+
+export const isGlobalAdhanPath = (path: unknown): path is string => typeof path === "string" && /^[0-9a-f-]{36}\.mp3$/.test(path)
+
+/** A database row as a preset: «g:<id>», played from the public bucket. */
+export function globalAdhanPreset(row: GlobalAdhanRow, supabaseUrl: string): AdhanPreset | null {
+  if (!isGlobalAdhanPath(row.audio_path)) return null
+  return {
+    id: `${GLOBAL_ADHAN_PREFIX}${row.id}`,
+    name: { km: row.name_km, en: row.name_en?.trim() || row.name_km },
+    file: `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${GLOBAL_ADHAN_BUCKET}/${row.audio_path}`,
+    credit: row.credit,
+  }
+}
+
+/** What a global upload needs: the Khmer name, who recited it, and the rights confirmed (the file is checked apart). */
+export function globalAdhanError(v: { nameKm: string; credit: string; rights: boolean }): "adhanUpload.nameRequired" | "adhanUpload.creditRequired" | "adhanUpload.rightsRequired" | null {
+  if (v.nameKm.trim().length < 2) return "adhanUpload.nameRequired"
+  if (v.credit.trim().length < 2) return "adhanUpload.creditRequired"
+  if (!v.rights) return "adhanUpload.rightsRequired"
+  return null
+}

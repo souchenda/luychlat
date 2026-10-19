@@ -145,7 +145,10 @@ export function listenForStopAdhan() {
 
 async function play(src: string, source: string, title = "Adhan · الأذان") {
   stopSound()
-  const audio = new Audio(src)
+  const audio = new Audio()
+  // Read with CORS, so the service worker can keep an Adhan the admin published (Supabase Storage) for offline alerts.
+  if (!src.startsWith("blob:")) audio.crossOrigin = "anonymous"
+  audio.src = src
   playing = audio
   playingSource = source
   audio.onended = stopSound

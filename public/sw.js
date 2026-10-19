@@ -134,9 +134,10 @@ self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
   // Recitations: the Quran from the CDN, and the du'a recordings of our own (/audio/duas/ — founder, 19/10/2026),
-  // also the admin's uploads in Supabase Storage (the public bucket «dua-audio»).
+  // also the admin's uploads in Supabase Storage (the public buckets «dua-audio» and «adhan-audio» — Adhans published for everyone).
   const duaAudio =
-    (url.origin === self.location.origin && url.pathname.startsWith("/audio/duas/")) || url.pathname.startsWith("/storage/v1/object/public/dua-audio/")
+    (url.origin === self.location.origin && url.pathname.startsWith("/audio/duas/")) || url.pathname.startsWith("/storage/v1/object/public/dua-audio/") ||
+    url.pathname.startsWith("/storage/v1/object/public/adhan-audio/")
   if (request.method === "GET" && (request.url.startsWith(AUDIO_HOST) || duaAudio) && /\.(mp3|m4a)$/i.test(url.pathname)) {
     event.respondWith(recitation(request))
     return

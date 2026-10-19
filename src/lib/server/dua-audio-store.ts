@@ -19,8 +19,11 @@ const serviceKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null
 export const duaStoreConfigured = () => Boolean(serviceKey() && supabaseUrl)
 const service = () => createClient(supabaseUrl, serviceKey()!, withCleanFetch({ auth: { persistSession: false, autoRefreshToken: false } }))
 
-/** Any phone recording (MP3, M4A, a Telegram voice note's OGG/Opus, WAV…) → a clean MP3; null when it isn't audio. */
-export async function cleanDuaAudio(bytes: Uint8Array): Promise<Uint8Array | null> {
+/**
+ * Any phone recording (MP3, M4A, a Telegram voice note's OGG/Opus, WAV…) → a clean MP3 (mono, −16 LUFS, cut at
+ * `maxSeconds`); null when it isn't audio. Also used for the admin's global Adhan presets (lib/server/adhan-presets-store).
+ */
+export async function cleanDuaAudio(bytes: Uint8Array, maxSeconds: number = DUA_MAX_SECONDS): Promise<Uint8Array | null> {
   const id = randomUUID()
   const input = join(tmpdir(), `dua-${id}.in`)
   const output = join(tmpdir(), `dua-${id}.mp3`)
@@ -29,8 +32,8 @@ export async function cleanDuaAudio(bytes: Uint8Array): Promise<Uint8Array | nul
     await new Promise<void>((resolve, reject) =>
       execFile(
         "ffmpeg",
-        ["-hide_banner", "-loglevel", "error", "-i", input, "-vn", "-t", String(DUA_MAX_SECONDS), "-af", "adelay=250:all=1,apad=pad_dur=0.4,loudnorm=I=-16:TP=-1.5:LRA=11", "-ac", "1", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "96k", "-y", output],
-        { timeout: 60_000 },
+        ["-hide_banner", "-loglevel", "error", "-i", input, "-vn", "-t", String(maxSeconds), "-af", "adelay=250:all=1,apad=pad_dur=0.4,loudnorm=I=-16:TP=-1.5:LRA=11", "-ac", "1", "-ar", "44100", "-c:a", "libmp3lame", "-b:a", "96k", "-y", output],
+        { timeout: 120_000 },
         (error) => (error ? reject(error) : resolve()),
       ),
     )

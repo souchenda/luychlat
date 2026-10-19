@@ -16,7 +16,7 @@ export const AUDIO_CACHE = "luysmart-quran-audio-v1"
 export const isCacheableAudio = (url: string) =>
   (url.startsWith(`${QURAN_AUDIO_HOST}/audio/`) && /\.mp3$/i.test(url.split("?")[0])) ||
   /^(https:\/\/app\.luychlat\.com)?\/audio\/duas\/[a-z0-9-]+\.(mp3|m4a)$/.test(url) ||
-  /^https:\/\/[a-z0-9.-]+\/storage\/v1\/object\/public\/dua-audio\/[a-z0-9-]+\.mp3$/.test(url)
+  /^https:\/\/[a-z0-9.-]+\/storage\/v1\/object\/public\/(dua-audio|adhan-audio)\/[a-z0-9-]+\.mp3$/.test(url)
 
 /** «bytes=0-», «bytes=100-199», «bytes=-500» → the byte span within `size`; null when absent or unusable. */
 export function parseRange(header: string | null, size: number): { start: number; end: number } | null {
