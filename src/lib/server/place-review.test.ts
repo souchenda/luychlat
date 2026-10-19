@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
@@ -102,7 +102,9 @@ describe("Approving a place in «LCA Approval» — dry run (founder, 19/10/2026
   it("TELEGRAM_APPROVER_IDS: comma-separated ids, synced at start, reaching the container", () => {
     assert.deepEqual(parseApproverIds("111111111, 222222222;x, 111111111"), [111111111, 222222222])
     assert.deepEqual(parseApproverIds(undefined), [])
-    assert.match(readFileSync(join(process.cwd(), "docker-compose.yml"), "utf8"), /TELEGRAM_APPROVER_IDS: \$\{TELEGRAM_APPROVER_IDS:-\}/)
+    // docker-compose.yml is not in the Docker build context (the deploy's npm test): checked where it exists.
+    const compose = join(process.cwd(), "docker-compose.yml")
+    if (existsSync(compose)) assert.match(readFileSync(compose, "utf8"), /TELEGRAM_APPROVER_IDS: \$\{TELEGRAM_APPROVER_IDS:-\}/)
     assert.match(readFileSync(join(process.cwd(), "src/lib/server/bot-dispatch.ts"), "utf8"), /setTimeout\(ifActive\(\(\) => syncEnvApprovers\(\)\), 10_000\)/)
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270189000000_env_approvers.sql"), "utf8")
     assert.match(sql, /where a\.source = 'env' and a\.active and not \(a\.telegram_user_id = any/) // only env ids are switched off
