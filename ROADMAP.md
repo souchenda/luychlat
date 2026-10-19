@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 19/10/2026 · 20:15 (Cambodia time)
+**Last updated:** 19/10/2026 · 20:40 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -26,7 +26,7 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Saudi Riyal (SAR) rate card & 3-way converter, Islamic Mode only (4c13cf3 — live with 3ec7978)
 - [x] Iftar du'a in natural Khmer with clear phonetics — du'a library, hub card, channel caption, poster (beb9a16)
 - [ ] Review the other du'as and the hadith library for word-for-word Khmer (only the Iftar du'a is done)
-- [/] Hajj & Umrah savings planner «ផែនការសន្សំសម្រាប់ធ្វើរូកូន» — calculator & 1-tap savings goal (1c0d49c, awaiting deploy)
+- [x] Hajj & Umrah savings planner «ផែនការសន្សំសម្រាប់ធ្វើរូកូន» — calculator & 1-tap savings goal (1c0d49c)
 - [x] Islamic thank-you to Yerny for the approved Kampot surau — Telegram and in-app, sent 19/10/2026 19:52 (eebe7d1)
 - [x] Admin publishes an Adhan for everyone or keeps it on the device (295b194)
 - [ ] Kuwait Adhan (Sheikh Ahmad Al-Trabulsi) for everyone — needs the founder's publishing permission / licence first
