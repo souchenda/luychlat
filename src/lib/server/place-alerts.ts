@@ -64,22 +64,28 @@ export async function handlePlaceReviewCallback(cb: Callback) {
   const actor = chat?.type === "private" ? chat.id : cb.from?.id
   if (!parsed || !chat || !actor) return void (await answer(""))
   const { data, error } = await botDb().rpc("bot_place_review", { p_key: botKey(), p_id: parsed.id, p_approve: parsed.approve, p_actor: actor })
-  if (error) return void (await answer(/super admin only/.test(error.message) ? "សម្រាប់ Super Admin ប៉ុណ្ណោះ។" : "មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។", true))
-  const r = data as { status: "approved" | "rejected" | "done" | "missing" }
-  const status = r.status === "approved" || r.status === "rejected" ? r.status : null
+  if (error) {
+    // Logged, so a failure is never silent again (19/10/2026: an audit-log check failed the whole approval).
+    logEvent("error", "places", `Place review failed (${parsed.id}): ${error.message}`, { fold: true })
+    return void (await answer(/super admin only/.test(error.message) ? "សម្រាប់ Super Admin ប៉ុណ្ណោះ។" : "មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។", true))
+  }
+  const r = data as { status: "approved" | "rejected" | "done" | "missing"; name?: string; province?: string | null }
+  // Already approved (e.g. in the app): the card shows it too and loses its buttons, so it can't be decided twice.
+  const status = r.status === "approved" || r.status === "done" ? "approved" : r.status === "rejected" ? "rejected" : null
   if (!status) {
-    await answer(r.status === "done" ? "✅ បានអនុម័តរួចហើយ។" : "ទីតាំងនេះត្រូវបានដកចេញរួចហើយ។", true)
+    await answer("ទីតាំងនេះត្រូវបានដកចេញរួចហើយ។", true)
     await tg("editMessageReplyMarkup", { chat_id: chat.id, message_id: cb.message!.message_id, reply_markup: { inline_keyboard: [] } })
     return
   }
-  await answer(status === "approved" ? "✅ បានអនុម័ត" : "❌ បានបដិសេធ")
+  await answer(r.status === "done" ? "✅ បានអនុម័តរួចហើយ។" : status === "approved" ? "✅ បានអនុម័ត" : "❌ បានបដិសេធ")
   await tg("editMessageText", {
     chat_id: chat.id,
     message_id: cb.message!.message_id,
-    text: `${cb.message?.text ?? ""}\n\n${placeDecisionLine(status)}`.trim(),
+    text: `${cb.message?.text ?? ""}\n\n${placeDecisionLine(status, r)}`.trim(),
     disable_web_page_preview: true,
     reply_markup: { inline_keyboard: [] },
   })
+  if (r.status === "done") return
   if (status === "approved") await thankContributor("place", parsed.id)
   logEvent("info", "places", `Place ${status} from Telegram (${parsed.id})`)
 }

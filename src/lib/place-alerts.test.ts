@@ -28,8 +28,9 @@ describe("A member's place suggestion reaches «LCA Approval» at once (founder,
     assert.deepEqual(parsePlaceReviewCallback(`plr:r:${kampot.id}`), { approve: false, id: kampot.id })
     assert.equal(parsePlaceReviewCallback("plr:a:nope"), null)
     assert.ok(isPlaceReviewCallback("plr:x") && !isPlaceReviewCallback("pl:a"))
-    assert.match(placeDecisionLine("approved"), /^✅ បានអនុម័តរួចរាល់ដោយ Founder — ទីតាំងនេះបានបង្ហាញជាសាធារណៈលើផែនទីហើយ!$/)
-    assert.match(placeDecisionLine("rejected"), /^❌ បានបដិសេធ/)
+    assert.equal(placeDecisionLine("approved", { name: "Surau", province: "កំពត" }), "✅ បានអនុម័តជោគជ័យ — ទីតាំង Surau (កំពត) ត្រូវបានដាក់ឱ្យប្រើប្រាស់ជាសាធារណៈលើផែនទីហើយ!")
+    assert.equal(placeDecisionLine("approved"), "✅ បានអនុម័តជោគជ័យ — ទីតាំងនេះ ត្រូវបានដាក់ឱ្យប្រើប្រាស់ជាសាធារណៈលើផែនទីហើយ!")
+    assert.match(placeDecisionLine("rejected", { name: "X" }), /^❌ បានបដិសេធ — ទីតាំង X ត្រូវបានដកចេញ/)
   })
 
   it("sent every minute to the approval room, once; only a super admin's tap decides, audited; already-listed places never alert", () => {

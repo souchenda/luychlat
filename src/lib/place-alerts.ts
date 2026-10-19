@@ -56,9 +56,11 @@ export function parsePlaceReviewCallback(data: string | undefined): { approve: b
   return m ? { approve: m[1] === "a", id: m[2] } : null
 }
 
-/** The line added under the alert once decided (the buttons go). */
-export function placeDecisionLine(status: "approved" | "rejected"): string {
+/** The line added under the alert once decided (the buttons go): «✅ បានអនុម័តជោគជ័យ — ទីតាំង Surau (កំពត) …». */
+export function placeDecisionLine(status: "approved" | "rejected", place: { name?: string | null; province?: string | null } = {}): string {
+  const name = place.name?.trim()
+  const which = name ? `ទីតាំង ${name}${place.province?.trim() ? ` (${place.province.trim()})` : ""}` : "ទីតាំងនេះ"
   return status === "approved"
-    ? "✅ បានអនុម័តរួចរាល់ដោយ Founder — ទីតាំងនេះបានបង្ហាញជាសាធារណៈលើផែនទីហើយ!"
-    : "❌ បានបដិសេធ — ទីតាំងនេះត្រូវបានដកចេញ មិនបង្ហាញលើផែនទីទេ។"
+    ? `✅ បានអនុម័តជោគជ័យ — ${which} ត្រូវបានដាក់ឱ្យប្រើប្រាស់ជាសាធារណៈលើផែនទីហើយ!`
+    : `❌ បានបដិសេធ — ${which} ត្រូវបានដកចេញ មិនបង្ហាញលើផែនទីទេ។`
 }
