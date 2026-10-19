@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftRightIcon, ChartColumnIcon, LayoutDashboardIcon, MinusIcon, PlusIcon, SparklesIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChartColumnIcon, LayoutDashboardIcon, MinusIcon, MoonStarIcon, PlusIcon, SparklesIcon, WalletIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
@@ -12,6 +12,8 @@ import { canWrite, useActiveWorkspace, useWallets } from "@/lib/data/hooks"
 import type { CategoryType } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { useIslamicEnabled } from "@/lib/islamic-settings"
+import { rightTabs, type RightTab } from "@/lib/nav-tabs"
 import { cn } from "@/lib/utils"
 
 type Item = { href: string; label: MessageKey; icon: typeof WalletIcon }
@@ -21,10 +23,7 @@ const LEFT: Item[] = [
   { href: "/home", label: "nav.home", icon: LayoutDashboardIcon },
   { href: "/transactions", label: "nav.transactions", icon: ArrowLeftRightIcon },
 ]
-const RIGHT: Item[] = [
-  { href: "/reports", label: "reports.title", icon: ChartColumnIcon },
-  { href: "/advisor", label: "nav.advisor", icon: SparklesIcon },
-]
+const RIGHT_ICONS: Record<RightTab["id"], typeof WalletIcon> = { reports: ChartColumnIcon, advisor: SparklesIcon, islamic: MoonStarIcon }
 
 function NavItem({ item, pathname }: { item: Item; pathname: string }) {
   const t = useT()
@@ -106,6 +105,8 @@ function QuickAdd() {
 
 export function BottomNav() {
   const pathname = usePathname()
+  // Islamic Mode: «ឥស្លាម» takes the 5th tab — one tap to the prayer times, the Quran and the fasts (lib/nav-tabs.ts).
+  const right: Item[] = rightTabs(useIslamicEnabled()).map((tab) => ({ href: tab.href, label: tab.label, icon: RIGHT_ICONS[tab.id] }))
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t print:hidden bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:inset-x-auto md:bottom-6 md:left-[calc(50%+8.5rem)] md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[2rem] md:border-x md:border-b">
@@ -114,7 +115,7 @@ export function BottomNav() {
           <NavItem key={item.href} item={item} pathname={pathname} />
         ))}
         <QuickAdd />
-        {RIGHT.map((item) => (
+        {right.map((item) => (
           <NavItem key={item.href} item={item} pathname={pathname} />
         ))}
       </ul>

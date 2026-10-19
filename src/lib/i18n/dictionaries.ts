@@ -318,6 +318,7 @@ const km = {
   "ledger.debtLinked": "ប្រតិបត្តិការនេះភ្ជាប់ជាមួយបំណុល។ ចំនួនទឹកប្រាក់ និងកាបូបត្រូវគ្រប់គ្រងពីទំព័របំណុល។",
   "ledger.openDebt": "បើកបំណុល",
   "nav.advisor": "ប្រឹក្សា AI",
+  "nav.islamic": "ឥស្លាម",
 
   "debtForm.moveMoneyPAYABLE": "ដាក់ប្រាក់កម្ចីចូលកាបូប",
   "debtForm.moveMoneyRECEIVABLE": "ដកប្រាក់ពីកាបូប",
@@ -4268,6 +4269,7 @@ const en: Record<MessageKey, string> = {
   "ledger.debtLinked": "This entry belongs to a debt. Its amount and wallet are managed from the debt.",
   "ledger.openDebt": "Open debt",
   "nav.advisor": "AI Advisor",
+  "nav.islamic": "Islamic",
 
   "debtForm.moveMoneyPAYABLE": "Deposit borrowed funds into wallet",
   "debtForm.moveMoneyRECEIVABLE": "Disburse lent funds from wallet",

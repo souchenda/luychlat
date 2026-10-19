@@ -37,10 +37,11 @@ describe("home header — Islamic Mode shows the Hijri date, never «ថ្ង�
     assert.match(home, /badge\.kind === "lunar" \? \(\s*<LunarPill onOpen=\{\(\) => setCalendarOpen\(true\)\} \/>/)
     assert.equal([...home.matchAll(/<LunarPill\b/g)].length, 1)
   })
-  it("a tap on either badge opens the calendar switch (Khmer lunar ↔ Hijri = Islamic Mode off / on)", () => {
+  it("the lunar badge opens the calendar switch; the Hijri badge opens the Islamic hub in one tap (founder, 19/10/2026)", () => {
     const home = readFileSync(join(process.cwd(), "src", "app", "(app)", "home", "page.tsx"), "utf8")
     assert.match(home, /<CalendarSwitchSheet open=\{calendarOpen\} onOpenChange=\{setCalendarOpen\} \/>/)
-    assert.equal([...home.matchAll(/setCalendarOpen\(true\)/g)].length, 2)
+    assert.equal([...home.matchAll(/setCalendarOpen\(true\)/g)].length, 1)
+    assert.match(home, /badge\.kind === "hijri" \? \(\s*<Link\s+href="\/islamic"/)
     const sheet = readFileSync(join(process.cwd(), "src", "components", "dashboard", "calendar-switch-sheet.tsx"), "utf8")
     assert.match(sheet, /setEnabled\.mutate\(on/)
   })

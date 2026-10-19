@@ -10,6 +10,7 @@ import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
 import { TontineDueCard } from "@/components/tontine/tontine-due-card"
 import { FamilyStrip } from "@/components/family/family-strip"
 import { ExperienceSelector } from "@/components/islamic/islamic-mode"
+import { NextPrayerChip } from "@/components/islamic/next-prayer-chip"
 import { SourceSelector } from "@/components/onboarding/source-selector"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { SmartHub } from "@/components/dashboard/smart-hub"
@@ -158,14 +159,13 @@ export default function HomePage() {
               <span className="truncate">{t(badge.key)}</span>
             </span>
           ) : badge.kind === "hijri" ? (
-            <button
-              type="button"
-              onClick={() => setCalendarOpen(true)}
-              aria-label={t("calendar.title")}
-              className="inline-flex max-w-full items-center rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-emerald-900 shadow-xs dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200"
+            <Link
+              href="/islamic"
+              className="inline-flex max-w-full cursor-pointer items-center rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-emerald-900 shadow-xs transition-transform active:scale-95 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200"
             >
+              {/* One tap to the Islamic hub (founder, 19/10/2026). */}
               {badge.text}
-            </button>
+            </Link>
           ) : badge.kind === "lunar" ? (
             <LunarPill onOpen={() => setCalendarOpen(true)} />
           ) : null}
@@ -213,6 +213,8 @@ export default function HomePage() {
       {/* The signature dashboard (founder, 17/10/2026): the spending pulse, then the smart hub — the K-Score
           (the person's own: Personal only) and the next obligation within a week. Siblings BELOW the hero card,
           full width — never inside its action column (18/10/2026: nested, they were squashed into ~100 px). */}
+      {/* Islamic Mode: the next prayer, one line, one tap to /islamic (a sibling below the hero, founder 19/10/2026). */}
+      <NextPrayerChip />
       <SpendingTrendCard transactions={transactions} categories={categoriesQuery.data ?? []} />
       <SmartHub workspaceId={ws} personal={workspace?.type === "PERSONAL"} />
 
