@@ -123,8 +123,10 @@ export function createScheduler(d: SchedulerDeps) {
    */
   async function schedulePost(kind: PostKind, postKey: string, payload: Record<string, string | null>, publishAt: string) {
     const row = await d.schedule(kind, postKey, payload, publishAt)
-    // A pending post — or a factual feed the database created approved (shown so the founder can still ❌ it).
-    const previewable = row && (row.status === "PENDING" || (row.status === "APPROVED" && isAutoPublish(row.kind)))
+    // Only a post that waits for the founder's decision is previewed. The factual feeds (AUTO_PUBLISH_KINDS: the
+    // market bulletin, the evening NBC rates, the 05:30 prayer times) are created APPROVED and publish silently at
+    // their time — nothing reaches the approval room (founder, 19/10/2026).
+    const previewable = row?.status === "PENDING" && !isAutoPublish(row.kind)
     if (row && previewable && !row.previews?.length && d.now() < Date.parse(row.publish_at) && (row.created || (await d.adminChats()).length))
       await sendPreviews(row)
     return row

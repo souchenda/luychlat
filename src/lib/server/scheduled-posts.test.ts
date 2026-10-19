@@ -242,22 +242,21 @@ describe("preview-first — a fresh preview for a re-armed post", () => {
 })
 
 describe("Factual feeds publish on time; creative posts wait for the founder (founder, 19/10/2026)", () => {
-  it("the market bulletin: created approved, previewed with ❌, published at its time with no tap", async () => {
-    const f = fake(clock(10, 30))
-    await f.s.schedulePost("BULLETIN", DAY, { day: DAY }, new Date(clock(10, 31)).toISOString())
-    assert.equal(f.rows[0].status, "APPROVED")
-    assert.equal(f.previewsSent.length, 1) // the founder still sees it
-    assert.match(f.previewsSent[0].text, /ផ្សាយដោយស្វ័យប្រវត្តិ/)
-    await f.at(10, 31)
-    assert.deepEqual(f.published, [1])
+  it("the market bulletin, the evening NBC rates and the 05:30 prayer times: created approved, no preview to the approval room, published at their time", async () => {
+    for (const kind of ["BULLETIN", "RATES", "ISLAMIC_MORNING"] as const) {
+      const f = fake(clock(10, 30))
+      await f.s.schedulePost(kind, DAY, { day: DAY }, new Date(clock(10, 31)).toISOString())
+      assert.equal(f.rows[0].status, "APPROVED", kind)
+      assert.equal(f.previewsSent.length, 0, `${kind}: silent — nothing to the approval room`)
+      await f.at(10, 31)
+      assert.deepEqual(f.published, [1], kind)
+      assert.equal(f.previewsSent.length, 0, kind)
+    }
   })
-  it("the founder can still stop a factual feed with ❌ before its time", async () => {
-    const f = fake(clock(10, 30))
-    await f.s.schedulePost("RATES", DAY, { day: DAY }, new Date(clock(10, 31)).toISOString())
-    await f.press("sp:1:x")
-    await f.at(10, 31)
-    assert.deepEqual(f.published, [])
-    assert.equal(f.rows[0].status, "PAUSED")
+  it("a post that needs the founder's decision is still previewed (the 07:00 poster)", async () => {
+    const f = fake(clock(6, 15))
+    await f.s.schedulePost("MORNING", DAY, {}, new Date(clock(7, 0)).toISOString())
+    assert.equal(f.previewsSent.length, 1)
   })
   it("a money dilemma (humour / discussion) stays held: never published without a tap", async () => {
     const f = fake(clock(17, 45))
