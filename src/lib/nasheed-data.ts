@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { Track } from "@/lib/audio-queue"
-import { audioSrc, contentTypeOf, rankTracks, submissionExt, SUBMISSIONS_BUCKET } from "@/lib/nasheed"
+import { audioSrc, contentTypeOf, rankTracks, submissionExt, submissionPath, SUBMISSIONS_BUCKET } from "@/lib/nasheed"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 /**
@@ -105,9 +105,10 @@ export function useSubmitNasheed() {
       const { data: auth } = await db().auth.getUser()
       const ext = submissionExt(v.file)
       if (!auth.user || !ext) throw new Error("invalid")
-      const path = `${auth.user.id}/${crypto.randomUUID()}.${ext}`
+      const path = submissionPath(auth.user.id, ext)
       const up = await db().storage.from(SUBMISSIONS_BUCKET).upload(path, v.file, { contentType: contentTypeOf(ext), upsert: false })
-      if (up.error) throw up.error
+      // The storage refused the file (size, type, connection): a clear «upload failed», never a silent stop.
+      if (up.error) throw new Error(/size|large|413/i.test(up.error.message) ? "too_big" : "upload_failed")
       const res = await fetch("/api/nasheed/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

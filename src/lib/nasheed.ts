@@ -19,11 +19,12 @@ export type SubmissionInput = {
   rights: boolean
 }
 
-export type SubmissionError = "nasheed.required" | "nasheed.fileRequired" | "nasheed.tooBig" | "nasheed.notAudio" | "nasheed.confirmRequired"
+export type SubmissionError = "nasheed.titleRequired" | "nasheed.artistRequired" | "nasheed.fileRequired" | "nasheed.tooBig" | "nasheed.notAudio" | "nasheed.confirmRequired"
 
-/** The first thing wrong with a submission (an i18n key), or null. */
+/** The first thing wrong with a submission (an i18n key — one message per field, founder 19/10/2026), or null. */
 export function submissionError(v: SubmissionInput): SubmissionError | null {
-  if (!v.title.trim() || !v.artist.trim() || v.title.trim().length > 120 || v.artist.trim().length > 120) return "nasheed.required"
+  if (!v.title.trim() || v.title.trim().length > 120) return "nasheed.titleRequired"
+  if (!v.artist.trim() || v.artist.trim().length > 120) return "nasheed.artistRequired"
   if (!v.file) return "nasheed.fileRequired"
   if (v.file.size > SUBMIT_MAX_BYTES) return "nasheed.tooBig"
   if (!submissionExt(v.file)) return "nasheed.notAudio"
@@ -31,16 +32,26 @@ export function submissionError(v: SubmissionInput): SubmissionError | null {
   return null
 }
 
-/** mp3 / m4a / aac from the type (or the name when the phone leaves the type empty); null for anything else. */
+/**
+ * mp3 / m4a / aac from the type, else from the name's extension when the phone gives a generic or odd audio type —
+ * a file named in Arabic («…حلم_التخرج_تحقق…128k.mp3») often comes as application/octet-stream or audio/x-mpeg
+ * (founder, 19/10/2026: such an upload failed). Never from a non-audio type (an .mp3 labelled video/mp4 stays
+ * refused; an .m4a labelled video/mp4 is the same container). The stored name is always a UUID (submissionPath).
+ */
 export function submissionExt(file: { name: string; type: string }): "mp3" | "m4a" | "aac" | null {
-  const type = file.type.toLowerCase()
+  const type = file.type.toLowerCase().trim()
   if (type === "audio/mpeg" || type === "audio/mp3") return "mp3"
   if (type === "audio/mp4" || type === "audio/x-m4a" || type === "audio/m4a") return "m4a"
-  if (type === "audio/aac") return "aac"
-  if (type) return null
-  const ext = file.name.split(".").pop()?.toLowerCase()
-  return ext === "mp3" || ext === "m4a" || ext === "aac" ? ext : null
+  if (type === "audio/aac" || type === "audio/x-aac") return "aac"
+  const ext = file.name.normalize("NFC").split(".").pop()?.toLowerCase().trim()
+  const byName = ext === "mp3" || ext === "m4a" || ext === "aac" ? ext : null
+  const generic = !type || type === "application/octet-stream" || type === "binary/octet-stream" || type.startsWith("audio/")
+  if (generic) return byName
+  return type === "video/mp4" && byName === "m4a" ? "m4a" : null
 }
+
+/** Where a member's file is stored: their folder and a random UUID — never the file's own name (any script). */
+export const submissionPath = (userId: string, ext: "mp3" | "m4a" | "aac", uuid: string = crypto.randomUUID()) => `${userId}/${uuid}.${ext}`
 
 export const contentTypeOf = (ext: string) => (ext === "mp3" ? "audio/mpeg" : ext === "aac" ? "audio/aac" : "audio/mp4")
 

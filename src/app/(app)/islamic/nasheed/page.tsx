@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useT } from "@/lib/i18n/use-t"
+import { useKhmerT, useT } from "@/lib/i18n/use-t"
 import { submissionError } from "@/lib/nasheed"
 import { nasheedQueue, useMyNasheedLikes, useNasheedMutations, useNasheedTracks, useSubmitNasheed, useToggleNasheedLike, type NasheedTrack } from "@/lib/nasheed-data"
 import { usePlan } from "@/lib/plan"
@@ -164,9 +164,12 @@ function LikeButton({ liked, count, label, onToggle }: { liked: boolean; count: 
   )
 }
 
-/** «📤 ចែករំលែកបទកសាដះ»: a member's recording, private until the founder approves it in Telegram. */
+/**
+ * «📤 ចែករំលែកបទកសាដះ»: a member's recording, private until the founder approves it in Telegram. Always in Khmer,
+ * with one clear message per missing field (founder, 19/10/2026).
+ */
 function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const t = useT()
+  const t = useKhmerT()
   const submit = useSubmitNasheed()
   const [title, setTitle] = useState("")
   const [artist, setArtist] = useState("")
@@ -190,7 +193,8 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
           setRights(false)
           onOpenChange(false)
         },
-        onError: (err) => toast.error(t(err.message === "too_many" ? "nasheed.tooMany" : "common.error")),
+        onError: (err) =>
+          toast.error(t(err.message === "too_many" ? "nasheed.tooMany" : err.message === "too_big" ? "nasheed.tooBig" : err.message === "upload_failed" ? "nasheed.uploadFailed" : "nasheed.sendFailed")),
       },
     )
   }
@@ -203,20 +207,20 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
   )
 
   return (
-    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("nasheed.share")}>
+    <BottomSheet open={open} onOpenChange={onOpenChange} title={t("nasheed.shareSheetTitle")}>
       <form onSubmit={send} className="space-y-3">
         <p className="text-xs text-muted-foreground">{t("nasheed.shareIntro")}</p>
         <div className="space-y-1.5">
           <Label htmlFor="s-title">{t("nasheed.shareTitle")}</Label>
-          <Input id="s-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} className="h-11" />
+          <Input id="s-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder={t("nasheed.shareTitlePlaceholder")} className="h-11" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="s-artist">{t("nasheed.artist")}</Label>
-          <Input id="s-artist" value={artist} onChange={(e) => setArtist(e.target.value)} maxLength={120} className="h-11" />
+          <Label htmlFor="s-artist">{t("nasheed.shareArtist")}</Label>
+          <Input id="s-artist" value={artist} onChange={(e) => setArtist(e.target.value)} maxLength={120} placeholder={t("nasheed.shareArtistPlaceholder")} className="h-11" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="s-file">{t("nasheed.shareFile")}</Label>
-          <Input id="s-file" type="file" accept="audio/mpeg,audio/mp4,audio/aac,audio/x-m4a,.mp3,.m4a" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="h-11" />
+          <Input id="s-file" type="file" accept="audio/mpeg,audio/mp4,audio/aac,audio/x-m4a,.mp3,.m4a,.aac" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="h-11" />
         </div>
         {check("s-authentic", authentic, setAuthentic, t("nasheed.confirmAuthentic"))}
         {check("s-rights", rights, setRights, t("nasheed.confirmRights"))}

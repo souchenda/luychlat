@@ -3,7 +3,7 @@ import { existsSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { audioSrc, parseNasheedCallback, rankTracks, reviewButtons, reviewCaption, SUBMIT_MAX_BYTES, submissionError, submissionExt } from "./nasheed"
+import { audioSrc, parseNasheedCallback, rankTracks, reviewButtons, reviewCaption, SUBMIT_MAX_BYTES, submissionError, submissionExt, submissionPath } from "./nasheed"
 
 const ID = "0b9f3c3e-1d2a-4c5b-9e8f-7a6b5c4d3e2f"
 const ok = { title: "សូឡាវ៉ាត់", artist: "ក្រុមកសាដះ", file: { name: "a.mp3", size: 3_000_000, type: "audio/mpeg" }, authentic: true, rights: true }
@@ -12,7 +12,8 @@ const sql = () => readFileSync(join(process.cwd(), "supabase/migrations/20270172
 describe("Community qasidah — what a member may send", () => {
   it("title, artist, an MP3 / M4A of at most 20 MB and both confirmations", () => {
     assert.equal(submissionError(ok), null)
-    assert.equal(submissionError({ ...ok, title: " " }), "nasheed.required")
+    assert.equal(submissionError({ ...ok, title: " " }), "nasheed.titleRequired")
+    assert.equal(submissionError({ ...ok, artist: "" }), "nasheed.artistRequired")
     assert.equal(submissionError({ ...ok, file: null }), "nasheed.fileRequired")
     assert.equal(submissionError({ ...ok, file: { ...ok.file, size: SUBMIT_MAX_BYTES + 1 } }), "nasheed.tooBig")
     assert.equal(submissionError({ ...ok, file: { name: "a.wav", size: 10, type: "audio/wav" } }), "nasheed.notAudio")
@@ -94,5 +95,38 @@ describe("The three Commons recordings ship with the app, credited", () => {
       assert.ok(existsSync(path) && statSync(path).size > 500_000, file)
       assert.match(s, new RegExp(`'/audio/nasheed/${file.replace(/\./g, "\\.")}',[\\s\\S]{0,300}Wikimedia Commons · ${licence.replace(/\./g, "\\.")}'`))
     }
+  })
+})
+
+describe("Qasidah upload — a file named in Arabic (founder, 19/10/2026: such an upload failed)", () => {
+  const arabic = "مولاي_حلم_التخرج_تحقق_128k.mp3"
+  it("is recognised by its extension when the phone gives a generic or odd audio type", () => {
+    for (const type of ["", "application/octet-stream", "audio/x-mpeg", "audio/mpeg3", "AUDIO/MPEG"]) assert.equal(submissionExt({ name: arabic, type }), "mp3", type)
+    assert.equal(submissionExt({ name: "تلاوة.m4a", type: "video/mp4" }), "m4a") // the same container
+    assert.equal(submissionExt({ name: arabic, type: "image/jpeg" }), null)
+    assert.equal(submissionExt({ name: "صورة.jpg", type: "" }), null)
+  })
+  it("passes validation with every field filled", () => {
+    assert.equal(submissionError({ title: "អាល់ហាំឌូលិលឡាហ៍", artist: "ក្រុម El Mafaz", file: { name: arabic, size: 4_800_000, type: "application/octet-stream" }, authentic: true, rights: true }), null)
+  })
+  it("is stored under a random UUID in the member's folder — never its own name — the path the database accepts", () => {
+    const user = "6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b"
+    const path = submissionPath(user, "mp3")
+    assert.match(path, /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(mp3|m4a|aac)$/) // nasheed_submit's own check
+    assert.ok(path.startsWith(`${user}/`) && !/[؀-ۿ]/.test(path))
+    assert.notEqual(submissionPath(user, "mp3"), path)
+  })
+  it("the share form is always in Khmer, with the founder's words", async () => {
+    const { readFileSync } = await import("node:fs")
+    const { join } = await import("node:path")
+    const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/nasheed/page.tsx"), "utf8")
+    assert.match(page, /function ShareSheet[\s\S]*?const t = useKhmerT\(\)/)
+    const { dictionaries } = await import("./i18n/dictionaries")
+    assert.equal(dictionaries.km["nasheed.send"], "ផ្ញើសុំការអនុម័ត")
+    assert.equal(dictionaries.km["nasheed.titleRequired"], "សូមបញ្ចូលចំណងជើងបទកសាដះ")
+    assert.equal(dictionaries.km["nasheed.artistRequired"], "សូមបញ្ចូលឈ្មោះអ្នកច្រៀង ឬក្រុមចម្រៀង")
+    assert.equal(dictionaries.km["nasheed.fileRequired"], "សូមជ្រើសរើសឯកសារសំឡេង MP3 ឬ M4A")
+    assert.equal(dictionaries.km["nasheed.confirmRequired"], "សូមចុចយល់ព្រមលើលក្ខខណ្ឌទាំងពីរ")
+    assert.equal(dictionaries.km["nasheed.tooMany"], "អ្នកមានបទចំនួន ៣ កំពុងរង់ចាំការអនុម័តរួចហើយ")
   })
 })
