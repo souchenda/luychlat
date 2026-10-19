@@ -120,6 +120,7 @@ describe("facebook publisher — curated, not a mirror (founder, 12/10/2026)", (
   it("fuel: EA92 or diesel moved → Facebook", () => {
     assert.equal(shouldPublishToFacebook({ kind: "fuel", now: { regular: 4_000, diesel: 4_200 }, previous: before }), true)
     assert.equal(shouldPublishToFacebook({ kind: "fuel", now: { regular: 4_100, diesel: 4_250 }, previous: before }), true)
+    assert.equal(shouldPublishToFacebook({ kind: "silday" }), true) // the Sil day poster (founder, 19/10/2026)
   })
   it("the 20:00 reminder never reaches the Page; the morning poster and holiday notes do", () => {
     assert.equal(shouldPublishToFacebook({ kind: "evening" }), false)

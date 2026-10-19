@@ -69,6 +69,8 @@ export type ChannelPostKind =
   | { kind: "evening" }
   /** The Tuesday / Friday money dilemma: a conversation starter — Page and channel. */
   | { kind: "dilemma" }
+  /** The Buddhist Sil day poster (07:00 on the day, founder 19/10/2026): the community channel and the Page. */
+  | { kind: "silday" }
   | { kind: "fuel"; now: FuelPair; previous: FuelPair | null }
 
 export function shouldPublishToFacebook(post: ChannelPostKind): boolean {
@@ -77,6 +79,7 @@ export function shouldPublishToFacebook(post: ChannelPostKind): boolean {
     case "holiday":
     case "spotlight":
     case "dilemma":
+    case "silday":
       return true
     case "evening":
       return false

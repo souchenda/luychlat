@@ -31,6 +31,8 @@ import { communityChannel, communityChannelConfigured, founderApproved, islamicC
 import { toHijri, type HijriDate } from "@/lib/islamic"
 import { dateOf, isIslamicKind, islamicCaptionHtml, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
+import { silPosterContent } from "@/lib/sil-poster"
+import { renderSilPoster, silPosterReady } from "@/lib/server/sil-poster"
 import { quizTeaserButtons, quizTeaserHtml } from "@/lib/islamic-quiz"
 import { dilemmaOfDay, dilemmaPostText } from "@/lib/money-dilemmas"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
@@ -189,6 +191,13 @@ export function createScheduler(d: SchedulerDeps) {
 
 // ─── The real bot ────────────────────────────────────────────────────────────
 
+/** A holy-day post on the Sil day itself (not the eve): its poster content (lib/sil-poster.ts), else null. */
+function silDayOf(row: PostRow) {
+  if (row.kind !== "HOLYDAY" || !row.post_key.startsWith("holy-day-today")) return null
+  const day = String(row.payload.day ?? row.post_key.slice(-10))
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? silPosterContent(day) : null
+}
+
 const stripHtml = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
 
 function holidayOf(row: PostRow) {
@@ -256,8 +265,11 @@ const realDeps = (): SchedulerDeps => ({
         const p = posterPreview(String(row.payload.key))
         return { png: p?.png ?? null, body: p?.caption ?? "—" }
       }
-      case "HOLYDAY":
-        return { png: null, body: String(row.payload.text ?? "—") }
+      case "HOLYDAY": {
+        const sil = silDayOf(row)
+        if (sil) await silPosterReady
+        return { png: sil ? poster(() => renderSilPoster(sil)) : null, body: String(row.payload.text ?? "—") }
+      }
       case "DILEMMA":
         return { png: null, body: dilemmaPostText(dilemmaOfDay(day)) }
       case "ISLAMIC_QUIZ":
@@ -287,6 +299,8 @@ const realDeps = (): SchedulerDeps => ({
     if (row.kind === "HOLIDAY") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "holiday" }) }
     if (row.kind === "SPOTLIGHT") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "spotlight" }) }
     if (row.kind === "DILEMMA") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "dilemma" }) }
+    // The Sil day poster goes to the Page too (founder, 19/10/2026); the eve note stays on the channel.
+    if (row.kind === "HOLYDAY" && silDayOf(row)) return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "silday" }) }
     if (row.kind === "EVENING" || row.kind === "BULLETIN" || row.kind === "RATES" || row.kind === "POSTER" || row.kind === "HOLYDAY") return { telegram, facebook: false }
     return { telegram: telegram && Boolean(row.payload.telegram), facebook: fb && Boolean(row.payload.facebook) }
   },
@@ -393,6 +407,19 @@ const realDeps = (): SchedulerDeps => ({
       return ids
     }
     if (row.kind === "HOLYDAY") {
+      // A Buddhist post: the community channel (`chat` — never @LuyChlatIslamic, channelFor) and, on the Sil day, the Page.
+      const sil = silDayOf(row)
+      if (sil) {
+        await silPosterReady
+        const png = renderSilPoster(sil)
+        const caption = String(row.payload.text ?? sil.title)
+        if (chat) ids.telegram = (await sendPosterPhoto(chat, png, caption)) ?? (await sentText(caption, false))
+        if (facebookConfig() && shouldPublishToFacebook({ kind: "silday" })) {
+          const fb = await publishLogged(`Sil day poster (${row.post_key})`, () => publishPhotoToFacebook(approval, png, caption), fbLog)
+          if (fb?.ok) ids.facebook = fb.postId
+        }
+        return ids
+      }
       if (chat && row.payload.text) ids.telegram = await sentText(String(row.payload.text), false)
       return ids
     }

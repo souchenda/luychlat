@@ -142,3 +142,19 @@ describe("GOLDEN · every database function the bot calls is callable by the bot
     assert.deepEqual(refused, [], `revoked from the bot: ${refused.join(", ")}`)
   })
 })
+
+describe("GOLDEN · the Buddhist Sil day poster never reaches @LuyChlatIslamic (founder, 19/10/2026)", () => {
+  it("a holy-day post is the community channel's (and the Page's), never the Islamic channel's", async () => {
+    const { channelFor, isIslamicKind } = await import("../../src/lib/islamic-channel")
+    assert.equal(channelFor("HOLYDAY"), "community")
+    assert.equal(isIslamicKind("HOLYDAY"), false)
+    // The code (comments aside) never names the Islamic channel or its module.
+    const code = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\w])\/\/.*$/gm, "$1")
+    for (const f of ["lib/sil-poster.ts", "lib/server/sil-poster.ts", "lib/server/holy-days.ts"])
+      assert.doesNotMatch(code(readFileSync(join(ROOT, f), "utf8")), /islamicChannel|ISLAMIC_|LuyChlatIslamic|islamic-channel/, f)
+    const sp = readFileSync(join(ROOT, "lib/server/scheduled-posts.ts"), "utf8")
+    assert.match(sp, /const chat = islamic \? islamicChannel\(approval\) : communityChannel\(approval\)/)
+    // …and it is previewed like every post (holdForApproval → the founder's tap).
+    assert.match(readFileSync(join(ROOT, "lib/server/holy-days.ts"), "utf8"), /await holdForApproval\("HOLYDAY"/)
+  })
+})
