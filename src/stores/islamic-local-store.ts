@@ -23,12 +23,14 @@ type IslamicLocalState = {
   quranLast: { sura: number; aya: number } | null
   quranFontSize: number
   quranShowKm: boolean
+  /** The Quran reciter (lib/quran-audio QURAN_RECITERS), remembered on this device. */
+  quranReciter: string
   /** Play the Fajr Adhan ("As-salatu khayrun minan-nawm") at Fajr when it is available. */
   fajrAdhan: boolean
   setProvince: (key: string) => void
   setGps: (lat: number, lng: number) => void
   setTasbih: (patch: Partial<Pick<IslamicLocalState, "tasbihCount" | "tasbihTarget" | "tasbihPhrase">>) => void
-  setQuran: (patch: Partial<Pick<IslamicLocalState, "quranLast" | "quranFontSize" | "quranShowKm">>) => void
+  setQuran: (patch: Partial<Pick<IslamicLocalState, "quranLast" | "quranFontSize" | "quranShowKm" | "quranReciter">>) => void
   setAlerts: (patch: Partial<Pick<IslamicLocalState, "alertsOn" | "alertSound" | "adhanName" | "adhanPreset" | "fajrAdhan">>) => void
 }
 
@@ -50,6 +52,7 @@ export const useIslamicLocalStore = create<IslamicLocalState>()(
       quranLast: null,
       quranFontSize: 28,
       quranShowKm: true,
+      quranReciter: "alafasy",
       setProvince: (key) => set({ place: key }),
       // Rounded to ~1 km: enough for prayer times, and less precise than a home address.
       setGps: (lat, lng) => set({ place: "gps", gps: { lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100 } }),
