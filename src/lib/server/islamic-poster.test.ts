@@ -122,7 +122,8 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
         const { truncated, type } = renderIslamicPoster(c)
         assert.equal(truncated, false, `${kind} ${d}`)
         assert.equal(type.body, 0, `${kind}: paragraphs drawn on the poster`)
-        assert.ok(type.hookLines.every((l) => l.length <= 2), `${kind}: ${JSON.stringify(type.hookLines)}`)
+        // Two lines at most — three only for the Iftar du'a's full meaning (founder, 19/10/2026).
+        assert.ok(type.hookLines.every((l) => l.length <= (c.posterHookLines ?? 2)), `${kind}: ${JSON.stringify(type.hookLines)}`)
         assert.ok(type.quote! >= POSTER_TYPE.quoteFallback[POSTER_TYPE.quoteFallback.length - 1] && type.quote! < type.title, kind)
       }
     // The founder's hooks, word for word.
@@ -189,3 +190,22 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
   })
 })
 
+
+describe("The Iftar du'a in natural Khmer (founder, 19/10/2026)", () => {
+  it("the master text (lib/duas.ts) is the founder's reading and meaning; the channel and the poster use it", async () => {
+    const { DUAS } = await import("../duas")
+    const iftar = DUAS.find((d) => d.id === "iftar")!
+    assert.equal(iftar.phonetic, "ហ្សា-ហា-បា អាស-ហ្សា-ម៉ា-អ៊ុ, វ៉ា-អ៊ីប-តាល់-ឡា-ទីល អ៊ុ-រូ-ក, វ៉ា-សា-បា-តាល់ អាជ-រុ, អ៊ីន-ស្យា-អល់-ឡោះ")
+    assert.equal(iftar.km, "ភាពស្រេកទឹកបានរសាយបាត់ សរសៃឈាមទាំងឡាយបានទទួលសំណើមឡើងវិញ ហើយផលបុណ្យកុសលត្រូវបានបញ្ជាក់ជាប្រាកដ ប្រសិនបើអល់ឡោះទ្រង់សព្វព្រះទ័យ។")
+    assert.equal(iftar.source, "Sunan Abi Dawud 2357")
+    const c = islamicPostContent("ISLAMIC_IFTAR", "2026-10-19", h(7))
+    assert.ok(c.paragraphs.includes(`អានថា៖ ${iftar.phonetic}`) && c.paragraphs.includes(`អត្ថន័យ៖ ${iftar.km}`))
+    assert.equal(c.posterLines?.[0], iftar.km)
+  })
+  it("on the poster the meaning takes three balanced large lines — never cut, never shrunk to the fallback", () => {
+    const r = renderIslamicPoster(islamicPostContent("ISLAMIC_IFTAR", "2026-10-19", h(7)))
+    assert.equal(r.truncated, false)
+    assert.equal(r.type.hookLines?.[0].length, 3)
+    assert.ok(r.type.quote! >= POSTER_TYPE.quote[POSTER_TYPE.quote.length - 1], `quote ${r.type.quote}px`)
+  })
+})

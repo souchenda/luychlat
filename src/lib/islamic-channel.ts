@@ -150,6 +150,8 @@ export type IslamicPostContent = {
    * is a 3-second hook; the readings, explanations and hadith commentary are in the caption).
    */
   posterLines?: string[]
+  /** A hook may take three lines (the Iftar du'a's full meaning, founder 19/10/2026); otherwise two at most. */
+  posterHookLines?: 2 | 3
   /** The poster's source when it quotes less than the caption (Al-Jumu'ah 62:9 of 62:9–10). */
   posterSource?: string
   source: { label: string; url: string }
@@ -252,6 +254,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       arabic: iftar.arabic,
       paragraphs: [...duaLines(iftar), `ម៉ោង${G.IFTAR}ថ្ងៃនេះ ${maghrib} (${FAST_PLACE.km}) — សូមអល់ឡោះទទួលយកការបួសរបស់បងប្អូន។`],
       posterLines: [iftar.km, `ម៉ោង${G.IFTAR}ថ្ងៃនេះ ${maghrib} · ${FAST_PLACE.km}`],
+      posterHookLines: 3,
       source: duaSource(iftar.source),
     }
   }

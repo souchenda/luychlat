@@ -381,8 +381,8 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
   // Breathing room between the heading and the text (founder, 18/10/2026).
   y += 18
 
-  // The hook: one or two short lines, centred and large; the first white, the next soft gold. Never cut; a hook too
-  // long for the poster at the smallest size splits in two balanced halves.
+  // The hook: one to three short lines, centred and large; the first white, the next soft gold. Never cut; a hook too
+  // long for one line splits in two balanced halves, a longer one (a du'a's meaning, founder 19/10/2026) in three.
   if (c.posterLines?.length) {
     ctx.textAlign = "center"
     // Each hook keeps the fewest lines it can (one, else two balanced halves at the smallest size); then the largest
@@ -394,10 +394,15 @@ export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; trunc
       if (ctx.measureText(text).width <= hookW) return [text]
       if (maxLines < 2) return null
       const halves = balancedSplit(ctx, text, hookW)
-      return halves.length === 2 ? halves : null
+      if (halves.length === 2) return halves
+      if (maxLines < 3) return null
+      const thirds = wrap(ctx, text, hookW, 99)
+      return thirds.length <= 3 ? thirds : null
     }
     const hooks = c.posterLines.map(posterText)
-    const need = hooks.map((h) => (layout(h, POSTER_TYPE.quote[POSTER_TYPE.quote.length - 1], 1) ? 1 : 2))
+    const smallest = POSTER_TYPE.quote[POSTER_TYPE.quote.length - 1]
+    const most = c.posterHookLines ?? 2
+    const need = hooks.map((h) => (layout(h, smallest, 1) ? 1 : most < 3 || layout(h, smallest, 2) ? 2 : 3))
     let qs: number = sizes[sizes.length - 1]
     // The fallback (no size fits the space): the smallest size, wrapped — never cut.
     let laid: string[][] = hooks.map((h, i) => layout(h, qs, need[i]) ?? wrap(ctx, h, hookW, 99))

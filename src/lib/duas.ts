@@ -83,9 +83,10 @@ export const DUAS: Dua[] = [
     id: "iftar",
     title: { km: `ពេល${G.IFTAR} (អ៊ីហ្វតារ)`, en: "Breaking the fast (iftar)" },
     arabic: "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ",
-    phonetic: "ហ្សាហាបាហ្ស ហ្សោម៉អ៊ុ វ៉ាប់តាល់ឡាទិល អ៊ូរ៉ូគុ វ៉ាសាបាតាល់ អាជរុ អ៊ិនស្សាអាល់ឡោះ",
+    // The founder's reading and meaning (19/10/2026), syllable by syllable — natural Khmer, not a word-for-word gloss.
+    phonetic: "ហ្សា-ហា-បា អាស-ហ្សា-ម៉ា-អ៊ុ, វ៉ា-អ៊ីប-តាល់-ឡា-ទីល អ៊ុ-រូ-ក, វ៉ា-សា-បា-តាល់ អាជ-រុ, អ៊ីន-ស្យា-អល់-ឡោះ",
     latin: "Dhahabaẓ-ẓama’u wabtallatil-‘urūqu wa thabatal-ajru in shā’ Allāh",
-    km: "ការស្រេកទឹកបានបាត់ សរសៃបានស្រស់ឡើងវិញ ហើយផលបុណ្យត្រូវបានកំណត់ ប្រសិនបើអល់ឡោះមានចេតនា។",
+    km: "ភាពស្រេកទឹកបានរសាយបាត់ សរសៃឈាមទាំងឡាយបានទទួលសំណើមឡើងវិញ ហើយផលបុណ្យកុសលត្រូវបានបញ្ជាក់ជាប្រាកដ ប្រសិនបើអល់ឡោះទ្រង់សព្វព្រះទ័យ។",
     en: "The thirst has gone, the veins are moistened, and the reward is certain, if Allah wills.",
     source: "Sunan Abi Dawud 2357",
   },
