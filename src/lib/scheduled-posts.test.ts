@@ -65,3 +65,21 @@ describe("scheduled posts — the preview names its destination", () => {
     assert.equal(parseScheduledPostCallback("sp:x:p"), null)
   })
 })
+
+describe("Who decided, on the card (founder, 20/10/2026)", () => {
+  const where = "✈️ Telegram Channel + 🔵 Facebook Page"
+  const at = "2026-10-21T00:00:00Z" // 07:00 Cambodia
+  const d = { name: "Yerny", username: "yernysou", at: "2026-10-20T23:32:00Z", how: "approve" as const }
+  it("✅ / 🚀 / ❌ with the name, @username and Cambodia time", async () => {
+    const { deciderLine } = await import("./scheduled-posts")
+    assert.equal(deciderLine("APPROVED", where, at, d), `✅ បានយល់ព្រមដោយ៖ 👤 Yerny (@yernysou)\n⏰ ម៉ោងអនុម័ត៖ ០៦:៣២ ព្រឹក\n📢 នឹងផ្សាយទៅ [ ${where} ] នៅម៉ោង ០៧:០០ ព្រឹក។`)
+    assert.equal(deciderLine("PUBLISHED", where, at, { ...d, how: "publish" }), "🚀 បានបាញ់ផ្សាយភ្លាមៗដោយ៖ 👤 Yerny (@yernysou)\n⏰ ម៉ោងផ្សាយ៖ ០៦:៣២ ព្រឹក")
+    assert.equal(deciderLine("PAUSED", where, at, { ...d, how: "pause", username: null }), "❌ ត្រូវបានផ្អាកដោយ៖ 👤 Yerny\n⏰ ម៉ោងផ្អាក៖ ០៦:៣២ ព្រឹក")
+  })
+  it("nobody named, or a status the tap did not make (expired): the plain status line", async () => {
+    const { deciderLine } = await import("./scheduled-posts")
+    assert.equal(deciderLine("APPROVED", where, at, { ...d, name: null, username: null }), null)
+    assert.equal(deciderLine("EXPIRED", where, at, d), null)
+    assert.match(previewText({ kind: "MORNING", targets: { telegram: true, facebook: true }, publishAt: at, body: "x", status: "EXPIRED", decider: d }), /⌛ មិនបានផ្សាយ/)
+  })
+})

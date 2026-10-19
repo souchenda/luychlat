@@ -125,7 +125,7 @@ export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "IS
 export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly string[]).includes(kind)
 
 /** The preview's header (destination first), the post itself, then the status line. */
-export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus }): string {
+export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus; decider?: Decider | null }): string {
   const where = targetLabel(o.targets)
   return [
     `📢 គោលដៅផ្សាយ៖ [ ${where} ]`,
@@ -133,8 +133,34 @@ export function previewText(o: { kind: PostKind; targets: Targets; publishAt: st
     "",
     o.body,
     "",
-    statusLine(o.status, where, o.publishAt),
+    (o.decider && deciderLine(o.status, where, o.publishAt, o.decider)) ?? statusLine(o.status, where, o.publishAt),
   ].join("\n")
+}
+
+/** Who tapped ✅ / 🚀 / ❌ and when (scheduled_posts.decided_name / decided_username / decided_at / decided_how). */
+export type Decider = { name: string | null; username: string | null; at: string | null; how: "approve" | "publish" | "pause" | null }
+
+/** «{name} (@{username})» — the Telegram name, with the @username when there is one. */
+export function deciderName(d: Pick<Decider, "name" | "username">): string {
+  const name = d.name?.trim()
+  if (name && d.username) return `${name} (@${d.username})`
+  return name || (d.username ? `@${d.username}` : "—")
+}
+
+/**
+ * The card once someone decided (founder, 20/10/2026): their name and the time, in «LCA Approval» for every
+ * approver to see. Null when nobody is named (the timer's expiry, an older post) — the plain status line then.
+ */
+export function deciderLine(status: PostStatus, where: string, publishAt: string, d: Decider): string | null {
+  if (!d.how || !d.at || (!d.name?.trim() && !d.username)) return null
+  const who = `👤 ${deciderName(d)}`
+  const at = kmClock(d.at)
+  if (status === "APPROVED" && d.how === "approve")
+    return [`✅ បានយល់ព្រមដោយ៖ ${who}`, `⏰ ម៉ោងអនុម័ត៖ ${at}`, `📢 នឹងផ្សាយទៅ [ ${where} ] នៅម៉ោង ${kmClock(publishAt)}។`].join("\n")
+  if (status === "PUBLISHED" && d.how === "publish") return [`🚀 បានបាញ់ផ្សាយភ្លាមៗដោយ៖ ${who}`, `⏰ ម៉ោងផ្សាយ៖ ${at}`].join("\n")
+  if (status === "PUBLISHED" && d.how === "approve") return [`✅ បានផ្សាយរួចរាល់ នៅម៉ោង ${kmClock(publishAt)}`, `${who} បានយល់ព្រម · ⏰ ${at}`].join("\n")
+  if (status === "PAUSED" && d.how === "pause") return [`❌ ត្រូវបានផ្អាកដោយ៖ ${who}`, `⏰ ម៉ោងផ្អាក៖ ${at}`].join("\n")
+  return null
 }
 
 export function statusLine(status: PostStatus, where: string, publishAt: string): string {

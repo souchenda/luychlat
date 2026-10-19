@@ -38,6 +38,11 @@ function fake(start: number) {
     async recordIds(id, ids) {
       recorded.push({ id, ...ids })
     },
+    async setDecider(id, tg, name, username, how) {
+      // As bot_post_set_decider: only the person who decided (a stranger never got past take()).
+      if (tg !== ADMIN) return
+      Object.assign(rows.find((r) => r.id === id)!, { decided_name: name, decided_username: username, decided_at: new Date(now).toISOString(), decided_how: how })
+    },
     async get(id) {
       const row = rows.find((r) => r.id === id)
       return row ? { ...row } : null
@@ -79,7 +84,7 @@ function fake(start: number) {
   }
   const press = (data: string, chat = ADMIN) => s.onCallback({ id: "cb", data, message: { message_id: 901, chat: { id: chat, type: "private" } } })
   /** A tap in the approval group («LCA Approval»): the person who tapped is checked, not the group. */
-  const pressInGroup = (data: string, from: number) => s.onCallback({ id: "cb", data, from: { id: from }, message: { message_id: 901, chat: { id: -100777, type: "supergroup" } } })
+  const pressInGroup = (data: string, from: number, who: { first_name?: string; username?: string } = {}) => s.onCallback({ id: "cb", data, from: { id: from, ...who }, message: { message_id: 901, chat: { id: -100777, type: "supergroup" } } })
   const setNow = (h: number, m: number) => (now = clock(h, m))
   return { rows, published, recorded, previewsSent, edits, answers, at, press, pressInGroup, setNow, s }
 }
@@ -274,5 +279,38 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     assert.ok(f.answers.at(-1)!.alert) // «សម្រាប់ Super Admin ប៉ុណ្ណោះ។»
     await f.pressInGroup("sp:1:a", ADMIN)
     assert.equal(f.rows[0].status, "APPROVED")
+  })
+})
+
+describe("The card names who decided and when (founder, 20/10/2026)", () => {
+  const sok = { first_name: "Sok", username: "sok_lca" }
+  it("✅ in «LCA Approval»: the approver's name, @username and time; then the timer's publish keeps the name", async () => {
+    const f = fake(clock(6, 15))
+    await f.s.schedulePost("MORNING", DAY, {}, new Date(clock(7, 0)).toISOString())
+    f.setNow(6, 32)
+    await f.pressInGroup("sp:1:a", ADMIN, sok)
+    const card = f.edits.at(-1)!.text
+    assert.match(card, /✅ បានយល់ព្រមដោយ៖ 👤 Sok \(@sok_lca\)\n⏰ ម៉ោងអនុម័ត៖ ០៦:៣២ ព្រឹក\n📢 នឹងផ្សាយទៅ \[ .+ \] នៅម៉ោង ០៧:០០ ព្រឹក។$/)
+    await f.at(7, 0)
+    assert.deepEqual(f.published, [1])
+    assert.match(f.edits.at(-1)!.text, /✅ បានផ្សាយរួចរាល់ នៅម៉ោង ០៧:០០ ព្រឹក\n👤 Sok \(@sok_lca\) បានយល់ព្រម · ⏰ ០៦:៣២ ព្រឹក$/)
+  })
+  it("🚀 and ❌: «បានបាញ់ផ្សាយភ្លាមៗដោយ» / «ត្រូវបានផ្អាកដោយ» with the time", async () => {
+    const f = fake(clock(6, 15))
+    await f.s.schedulePost("MORNING", DAY, {}, new Date(clock(7, 0)).toISOString())
+    await f.s.schedulePost("HOLIDAY", "h", {}, new Date(clock(18, 0)).toISOString())
+    f.setNow(6, 40)
+    await f.pressInGroup("sp:1:p", ADMIN, sok)
+    assert.match(f.edits.at(-1)!.text, /🚀 បានបាញ់ផ្សាយភ្លាមៗដោយ៖ 👤 Sok \(@sok_lca\)\n⏰ ម៉ោងផ្សាយ៖ ០៦:៤០ ព្រឹក$/)
+    await f.pressInGroup("sp:2:x", ADMIN, { first_name: "Sok" }) // no @username: the name alone
+    assert.match(f.edits.at(-1)!.text, /❌ ត្រូវបានផ្អាកដោយ៖ 👤 Sok\n⏰ ម៉ោងផ្អាក៖ ០៦:៤០ ព្រឹក$/)
+  })
+  it("a stranger's tap names nobody; a post with no named decider keeps the plain status line", async () => {
+    const f = fake(clock(6, 15))
+    await f.s.schedulePost("MORNING", DAY, {}, new Date(clock(7, 0)).toISOString())
+    await f.pressInGroup("sp:1:a", STRANGER, { first_name: "Mallory" })
+    assert.equal(f.rows[0].decided_name, undefined)
+    await f.press("sp:1:x") // the founder's private chat: no Telegram profile in the callback
+    assert.match(f.edits.at(-1)!.text, /❌ បានផ្អាកការផ្សាយថ្ងៃនេះ$/)
   })
 })

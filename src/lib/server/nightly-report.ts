@@ -36,7 +36,7 @@ async function morningBriefingTick(now: { day: string; hour: number; minute: num
 export async function sendNightlyReport(day: string): Promise<number> {
   const sample = await takeSample()
   const { data } = await botDb().rpc("bot_nightly_stats", { p_key: botKey(), p_day: day })
-  const stats = (data as { new_users?: number; approvals?: number } | null) ?? {}
+  const stats = (data as { new_users?: number; approvals?: number; by_approver?: { name?: string | null; count?: number }[] } | null) ?? {}
   const issues = findIssues([sample])
   const text = nightlyReportText({
     day,
@@ -48,6 +48,7 @@ export async function sendNightlyReport(day: string): Promise<number> {
     ramTotalGb: sample.ram_total_gb,
     newUsers: Number(stats.new_users ?? 0),
     approvals: Number(stats.approvals ?? 0),
+    staff: (stats.by_approver ?? []).map((p) => ({ name: p.name?.trim() || "—", count: Number(p.count ?? 0) })),
     dockerOk: sample.db_ms !== null,
     webhookOk: !sample.webhook_error,
   })

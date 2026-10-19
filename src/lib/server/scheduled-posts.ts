@@ -56,6 +56,11 @@ export type PostRow = {
   publish_at: string
   status: PostStatus
   previews: Preview[]
+  /** Who tapped ✅ / 🚀 / ❌ (bot_post_set_decider) and when (decided_at, set by bot_post_take). */
+  decided_name?: string | null
+  decided_username?: string | null
+  decided_at?: string | null
+  decided_how?: "approve" | "publish" | "pause" | null
 }
 
 export type SchedulerDeps = {
@@ -64,6 +69,8 @@ export type SchedulerDeps = {
   take(id: number, status: Exclude<PostStatus, "PENDING">, chatId?: number): Promise<PostRow | null>
   /** Where it went: the channel message id and the Facebook post id — so it can be edited or removed later. */
   recordIds(id: number, ids: Published): Promise<void>
+  /** The Telegram name and @username of the person who decided — labels the card; the audit log already has it. */
+  setDecider?(id: number, tg: number, name: string | null, username: string | null, how: "approve" | "publish" | "pause"): Promise<void>
   get(id: number): Promise<PostRow | null>
   due(): Promise<PostRow[]>
   setPreviews(id: number, previews: Preview[]): Promise<void>
@@ -81,13 +88,14 @@ export type SchedulerDeps = {
 
 export type Published = { telegram: number | null; facebook: string | null }
 
-export type Callback = { id: string; data?: string; from?: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } }
+export type Callback = { id: string; data?: string; from?: { id: number; first_name?: string; last_name?: string; username?: string }; message?: { message_id: number; chat: { id: number; type: string } } }
 
 export function createScheduler(d: SchedulerDeps) {
   async function render(row: PostRow, status: PostStatus) {
     const { png, body } = await d.content(row)
     const targets = d.targets(row)
-    return { png, text: previewText({ kind: row.kind, targets, publishAt: row.publish_at, body, status }), buttons: previewButtons(row.id, status, targets, row.kind) }
+    const decider = { name: row.decided_name ?? null, username: row.decided_username ?? null, at: row.decided_at ?? null, how: row.decided_how ?? null }
+    return { png, text: previewText({ kind: row.kind, targets, publishAt: row.publish_at, body, status, decider }), buttons: previewButtons(row.id, status, targets, row.kind) }
   }
 
   async function sendPreviews(row: PostRow) {
@@ -176,6 +184,13 @@ export function createScheduler(d: SchedulerDeps) {
       if (row) await refresh(row)
       return d.answer(cb.id, why, true)
     }
+    // The card names who decided and when, for every approver in «LCA Approval» (founder, 20/10/2026).
+    const how = parsed.action === "publish" ? "publish" : parsed.action === "approve" ? "approve" : "pause"
+    const tgId = cb.from?.id ?? actor
+    const name = [cb.from?.first_name, cb.from?.last_name].filter(Boolean).join(" ").trim() || null
+    const username = cb.from?.username ?? null
+    await d.setDecider?.(taken.id, tgId, name, username, how)
+    taken = { ...taken, decided_name: name, decided_username: username, decided_at: new Date(d.now()).toISOString(), decided_how: how }
     if (parsed.action === "publish") {
       await d.answer(cb.id, "🚀 កំពុងផ្សាយ…")
       await publishTaken(taken, "founder")
@@ -222,6 +237,10 @@ const realDeps = (): SchedulerDeps => ({
   async recordIds(id, ids) {
     const { error } = await botDb().rpc("bot_post_record_ids", { p_key: botKey(), p_id: id, p_telegram: ids.telegram, p_facebook: ids.facebook })
     if (error) logEvent("warn", "scheduled-posts", `Post ${id}: ids not recorded: ${error.message}`, { fold: true })
+  },
+  async setDecider(id, tg, name, username, how) {
+    const { error } = await botDb().rpc("bot_post_set_decider", { p_key: botKey(), p_id: id, p_tg: tg, p_name: name, p_username: username, p_how: how })
+    if (error) logEvent("warn", "scheduled-posts", `Post ${id}: decider not recorded: ${error.message}`, { fold: true })
   },
   async get(id) {
     const { data } = await botDb().rpc("bot_post_get", { p_key: botKey(), p_id: id })

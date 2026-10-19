@@ -1,6 +1,7 @@
 /**
  * The nightly report before midnight (founder, 19/10/2026): one card at 23:30 Cambodia time in «LCA Approval» — the
- * server's health, today's new members and approvals. Counts only (no revenue, no names). Pure (nightly-report.test.ts).
+ * server's health, today's new members and approvals. No revenue; since 20/10/2026 it goes to the founder's private chat
+ * only, with each approver's decisions today (Staff Performance). Pure (nightly-report.test.ts).
  */
 export type NightlyFacts = {
   day: string
@@ -12,6 +13,8 @@ export type NightlyFacts = {
   ramTotalGb: number | null
   newUsers: number
   approvals: number
+  /** Today's decisions per approver (bot_nightly_stats.by_approver), most first; absent → the section is left out. */
+  staff?: { name: string; count: number }[]
   dockerOk: boolean
   webhookOk: boolean
 }
@@ -30,6 +33,7 @@ export function nightlyReportText(f: NightlyFacts): string {
     `• ការចងចាំ (RAM)៖ ${ram}`,
     `• សមាជិកថ្មីថ្ងៃនេះ៖ ${f.newUsers}`,
     `• ការអនុម័តថ្ងៃនេះ៖ ${f.approvals}`,
+    ...(f.staff ? ["• ស្ថិតិការងារអនុម័តថ្ងៃនេះ (Staff Performance)៖", ...(f.staff.length ? f.staff.map((p) => `  - 👤 ${p.name}៖ ${p.count} លើក`) : ["  - មិនទាន់មានការអនុម័តទេ"])] : []),
     `• ស្ថានភាព Docker & Webhook៖ ${f.dockerOk && f.webhookOk ? "ដំណើរការល្អ" : `${f.dockerOk ? "Docker ល្អ" : "Docker មានបញ្ហា"} · ${f.webhookOk ? "Webhook ល្អ" : "Webhook មានបញ្ហា"}`}`,
     "— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត",
   ].join("\n")

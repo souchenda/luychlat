@@ -74,3 +74,17 @@ describe("Reports reach the founder's private chat only — «LCA Approval» sta
     assert.match(read("src/lib/server/admin-routes.ts"), /export const founderChats = \(\) => superAdminChats\(\)/)
   })
 })
+
+describe("Staff performance in the founder's nightly card (founder, 20/10/2026)", () => {
+  it("each approver's decisions today, most first; an empty day says so", () => {
+    const text = nightlyReportText({ ...facts, staff: [{ name: "Yerny", count: 5 }, { name: "ស៊ូ ចិន្ដា", count: 2 }] })
+    assert.ok(text.includes(["• ការអនុម័តថ្ងៃនេះ៖ 7", "• ស្ថិតិការងារអនុម័តថ្ងៃនេះ (Staff Performance)៖", "  - 👤 Yerny៖ 5 លើក", "  - 👤 ស៊ូ ចិន្ដា៖ 2 លើក", "• ស្ថានភាព Docker"].join("\n")))
+    assert.match(nightlyReportText({ ...facts, staff: [] }), /\(Staff Performance\)៖\n {2}- មិនទាន់មានការអនុម័តទេ\n/)
+  })
+  it("the counts come from the audited decisions (name and Telegram id, tip_chat_approver)", () => {
+    const sql = read("supabase/migrations/20270198000000_post_decider_staff_stats.sql")
+    assert.match(sql, /'by_approver'/)
+    assert.ok(sql.includes("regexp_match(a.note, ' · by (.+) " + String.fromCharCode(92) + "(Telegram"), "the name and Telegram id as audited")
+    assert.match(read("src/lib/server/nightly-report.ts"), /staff: \(stats\.by_approver/)
+  })
+})
