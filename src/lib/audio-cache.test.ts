@@ -31,11 +31,11 @@ describe("Quran recitations offline (founder, 19/10/2026)", () => {
     assert.equal(isWholeBody(206, "bytes 1024-584093/584094"), false)
     assert.equal(isWholeBody(404, null), false)
   })
-  it("the service worker: the same cache, kept through updates, routing only the CDN's MP3s", () => {
+  it("the service worker: the same cache, kept through updates, routing only recitations (the CDN's, our du'as)", () => {
     assert.equal(AUDIO_CACHE, "luysmart-quran-audio-v1")
     assert.match(sw, /const AUDIO_CACHE = "luysmart-quran-audio-v1"/)
     assert.match(sw, /keys\.filter\(\(k\) => k !== CACHE && k !== AUDIO_CACHE\)/)
-    assert.match(sw, /request\.url\.startsWith\(AUDIO_HOST\) && \/\\.mp3\$\/i\.test\(url\.pathname\)/)
+    assert.match(sw, /\(request\.url\.startsWith\(AUDIO_HOST\) \|\| duaAudio\) && \/\\.\(mp3\|m4a\)\$\/i\.test\(url\.pathname\)/) // the CDN, and our du'a recordings
     assert.match(sw, /const AUDIO_HOST = "https:\/\/cdn\.mp3quran\.net\/audio\/"/)
     assert.match(sw, /if \(res\.type !== "opaque" && isWholeBody\(res\)\)/)
   })

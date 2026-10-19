@@ -5,6 +5,7 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { DuaAudioButton } from "@/components/islamic/dua-audio-button"
 import { DUAS } from "@/lib/duas"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -33,6 +34,8 @@ export default function DuasPage() {
         <Card key={d.id} className="gap-2 px-4 py-3">
           <div className="flex items-center gap-2">
             <h2 className="flex-1 text-sm font-semibold">{pick(d.title, locale)}</h2>
+            {/* 🔊 to listen and memorise — shown once the du'a has a cleared recording (lib/dua-audio.ts). */}
+            <DuaAudioButton id={d.id} />
             <Button size="icon" variant="ghost" className="size-8 text-muted-foreground" onClick={() => void copy(d.id, d.arabic)} aria-label={t("duas.copy")}>
               {copied === d.id ? <CheckIcon className="text-emerald-600" /> : <CopyIcon />}
             </Button>

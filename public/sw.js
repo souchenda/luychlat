@@ -133,7 +133,9 @@ async function recitation(request) {
 self.addEventListener("fetch", (event) => {
   const { request } = event
   const url = new URL(request.url)
-  if (request.method === "GET" && request.url.startsWith(AUDIO_HOST) && /\.mp3$/i.test(url.pathname)) {
+  // Recitations: the Quran from the CDN, and the du'a recordings of our own (/audio/duas/ — founder, 19/10/2026).
+  const duaAudio = url.origin === self.location.origin && url.pathname.startsWith("/audio/duas/")
+  if (request.method === "GET" && (request.url.startsWith(AUDIO_HOST) || duaAudio) && /\.(mp3|m4a)$/i.test(url.pathname)) {
     event.respondWith(recitation(request))
     return
   }
