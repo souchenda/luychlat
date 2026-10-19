@@ -13,6 +13,7 @@ import { ScriptureRefs } from "@/components/islamic/scripture-refs"
 import { DailyTipCard } from "@/components/dashboard/daily-tip-card"
 import { IslamicQuizCard } from "@/components/islamic/quiz-card"
 import { ContextualDuaCard, IslamicHubHero, IslamicQuickActions } from "@/components/islamic/hub"
+import { SarCard } from "@/components/islamic/sar-card"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -398,6 +399,9 @@ export default function IslamicPage() {
         </Card>
         <ScriptureRefs topics={["zakat"]} />
       </section>
+
+      {/* The Saudi riyal for pilgrims (Hajj, Umrah) — here only, never the general rates (founder, 19/10/2026). */}
+      <SarCard />
 
       {/* Hawl */}
       <section className="space-y-2">
