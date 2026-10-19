@@ -9,7 +9,7 @@ import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText, SIGNATURE, tg, tr } from "./telegram-bot"
 import { sourceForAlert } from "@/lib/acquisition"
 import { signupAlertText } from "@/lib/activity-alerts"
-import { marketingChats } from "./admin-routes"
+import { founderChats } from "./admin-routes"
 
 type Pending = { user_id: string; email: string | null; provider: string; created_at: string; total_members: number; display_name?: string | null; acquisition_source?: string | null; islamic?: boolean }
 
@@ -32,7 +32,8 @@ export async function flushSignupAlerts() {
   const db = botDb()
   const { data, error } = await db.rpc("bot_signup_alerts_pending", { p_key: botKey() })
   if (error || !Array.isArray(data) || data.length === 0) return
-  const chats = await marketingChats()
+  // The founder's private chat — informational, never «LCA Approval» (an approval queue, founder 20/10/2026).
+  const chats = await founderChats()
   if (chats.length === 0) return // kept for 2 days, in case the room is set later
   for (const p of data as Pending[]) {
     // The name typed at sign-up (a masked default "•••222" is no name), else the phone / email.

@@ -58,3 +58,19 @@ describe("Posters: no parentheses, no word-for-word Khmer (founder, 19/10/2026)"
   })
 })
 
+
+describe("The last three du'as vetted (founder, 20/10/2026)", () => {
+  it("halal provision (Ibn Majah 925), worry & debt (Bukhari 2893), both worlds (2:201) — the founder's posters, Arabic whole", () => {
+    assert.equal(by("halal-provision").arabic, "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا وَرِزْقًا طَيِّبًا وَعَمَلًا مُتَقَبَّلًا")
+    assert.equal(by("halal-provision").source, "Sunan Ibn Majah 925")
+    assert.equal(posterMeaning(by("halal-provision")), "« ឱអល់ឡោះ! ទូលបង្គំសូមអង្វរករនូវចំណេះដឹងជាប្រយោជន៍ រីហ្សគីដ៏ល្អហាឡាល់ និងការប្រព្រឹត្តអំពើល្អដែលទ្រង់ទទួលយក។ »")
+    // Arrived as «الْهែមِّ … وَالْبُខْلِ … وَالْجُបْنِ» — Khmer letters inside the Arabic, corrected.
+    assert.equal(by("worry-debt").arabic, "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ وَالْعَجْزِ وَالْكَسَلِ وَالْبُخْلِ وَالْجُبْنِ وَضَلَعِ الدَّيْنِ وَغَلَبَةِ الرِّجَالِ")
+    assert.equal(by("worry-debt").source, "Sahih al-Bukhari 2893")
+    assert.match(posterMeaning(by("both-worlds")), /^« ឱម្ចាស់នៃពួកយើង! សូមទ្រង់មេត្តាប្រទាននូវសេចក្តីល្អក្នុងលោកិយនេះ/)
+    for (const id of ["halal-provision", "worry-debt", "both-worlds"]) {
+      assert.match(by(id).phonetic, /-/, `${id}: the hyphenated reading`)
+      assert.doesNotMatch(posterMeaning(by(id)), /[()]/, id)
+    }
+  })
+})

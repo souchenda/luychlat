@@ -38,6 +38,13 @@ export async function marketingChats(): Promise<number[]> {
 }
 
 /**
+ * Reports for the founder alone (founder, 20/10/2026): the nightly health card, the morning briefing, the end-of-day
+ * report, data-sync status, new members — his private chat, NEVER «LCA Approval», which stays an approval queue
+ * (only items with ✅ / 🚀 / ❌: previews, places, qasidah, the tip).
+ */
+export const founderChats = () => superAdminChats()
+
+/**
  * Server and ops messages: the DevOps chat when set. Unset, they are not sent — the founder's chat is for
  * business — except a `critical` one (the app or the database down), which then goes to the super admins.
  */

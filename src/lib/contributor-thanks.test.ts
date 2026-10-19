@@ -65,7 +65,7 @@ describe("Thanks to contributors, in their own community's words (founder, 19/10
     assert.doesNotMatch(general, /អល់ឡោះ|<i>/) // no blessing for a general member; never italic Khmer
     assert.match(signupAlertText({ name: "<b>x", account: "a", at: "t", islamic: false, method: "m", source: null, total: 1 }), /&lt;b&gt;x/)
     const events = readFileSync(join(process.cwd(), "src/lib/server/member-events.ts"), "utf8")
-    assert.match(events, /const chats = await marketingChats\(\)/) // the approval room first
+    assert.match(events, /const chats = await founderChats\(\)/) // the founder's private chat, never «LCA Approval» (20/10/2026)
     assert.match(events, /parse_mode: "HTML", disable_notification: true/) // quiet
   })
 })

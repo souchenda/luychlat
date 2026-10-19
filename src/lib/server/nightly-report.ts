@@ -2,7 +2,7 @@
 // server is up inside 23:30–23:59), once a day, to «LCA Approval» (else the marketing chat, else the founder's chat):
 // the server's health, today's new members and approvals. Counts only.
 import { MORNING_BRIEFING, morningBriefingText, nightlyReportDay, nightlyReportText } from "@/lib/nightly-report"
-import { devopsChats, marketingChats } from "./admin-routes"
+import { founderChats } from "./admin-routes"
 import { logEvent } from "./events"
 import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
 import { phnomPenhToday } from "./market-sync"
@@ -28,7 +28,7 @@ async function morningBriefingTick(now: { day: string; hour: number; minute: num
   const sample = await takeSample()
   const text = morningBriefingText({ healthy: findIssues([sample]).length === 0, diskFreeGb: diskFreeGb() })
   let sent = 0
-  for (const chat of await devopsChats({ founderFallback: true })) if ((await tg("sendMessage", { chat_id: chat, text })).ok) sent++
+  for (const chat of await founderChats()) if ((await tg("sendMessage", { chat_id: chat, text })).ok) sent++
   logEvent(sent ? "info" : "warn", "nightly-report", `Morning briefing ${now.day} sent to ${sent} chat(s)`)
 }
 
@@ -52,7 +52,8 @@ export async function sendNightlyReport(day: string): Promise<number> {
     webhookOk: !sample.webhook_error,
   })
   let sent = 0
-  for (const chat of await marketingChats()) {
+  // The founder's private chat only — never «LCA Approval» (an approval queue, founder 20/10/2026).
+  for (const chat of await founderChats()) {
     const res = await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true })
     if (res.ok) sent++
     else logEvent("error", "nightly-report", `Nightly report not delivered: ${res.description ?? "?"}`, { fold: true })

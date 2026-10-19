@@ -7,7 +7,7 @@ import { groupByArea } from "@/lib/dev-areas"
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText } from "./telegram-bot"
-import { devopsChats } from "@/lib/server/admin-routes"
+import { founderChats } from "@/lib/server/admin-routes"
 
 type Report = {
   day: string
@@ -93,6 +93,6 @@ export async function devEodTick() {
   // log said «sent»). The log counts the chats that really received it.
   const text = eodText(data as Report)
   let sent = 0
-  for (const chat of await devopsChats({ founderFallback: true })) if ((await sendText(chat, text).catch(() => null))?.ok) sent++
+  for (const chat of await founderChats()) if ((await sendText(chat, text).catch(() => null))?.ok) sent++
   logEvent(sent ? "info" : "warn", "dev-eod", `End-of-day report ${day} sent to ${sent} chat(s)`, { fold: true })
 }

@@ -25,7 +25,7 @@ import { scheduleFuelPost } from "./scheduled-posts"
 import { currentMarket, setFuelPrices } from "./market-sync"
 import { askGemini, askGroq, type Answer } from "./slip-bot"
 import { botDb, botKey, tg } from "./telegram-bot"
-import { marketingChats } from "@/lib/server/admin-routes"
+import { founderChats } from "@/lib/server/admin-routes"
 import { communityChannelConfigured } from "@/lib/server/channel"
 
 const CHANNEL = "mocnewsfeed"
@@ -59,7 +59,8 @@ async function claim(job: string, day: string) {
 }
 
 async function toSuperAdmins(text: string) {
-  for (const chat of await marketingChats()) await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true }).catch(() => null)
+  // The founder's private chat — a sync status, not an approval item (founder, 20/10/2026).
+  for (const chat of await founderChats()) await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true }).catch(() => null)
 }
 
 /**

@@ -26,17 +26,17 @@ describe("The nightly report before midnight (founder, 19/10/2026)", () => {
     )
     assert.match(nightlyReportText({ ...facts, healthy: false, issues: ["disk"], webhookOk: false }), /🟠 ត្រូវតាមដាន \(disk\)[\s\S]*Webhook មានបញ្ហា/)
   })
-  it("23:30–23:59 Cambodia time, once a day (claimed), to «LCA Approval»", () => {
+  it("23:30–23:59 Cambodia time, once a day (claimed), to the founder's private chat", () => {
     assert.ok(nightlyDue(23, 30) && nightlyDue(23, 59))
     assert.ok(!nightlyDue(23, 29) && !nightlyDue(0, 0) && !nightlyDue(22, 45))
     const job = read("src/lib/server/nightly-report.ts")
     assert.match(job, /p_job: "nightly-report", p_day: day \}/)
-    assert.match(job, /for \(const chat of await marketingChats\(\)\)/)
+    assert.match(job, /for \(const chat of await founderChats\(\)\)/) // the founder's private chat (20/10/2026)
     assert.match(read("src/lib/server/bot-dispatch.ts"), /await nightlyReportTick\(\)/)
   })
   it("regression: the end-of-day report went nowhere with no DevOps chat while logging «sent» — now the founder's chat, and the count is logged", () => {
     const eod = read("src/lib/server/dev-eod.ts")
-    assert.match(eod, /await devopsChats\(\{ founderFallback: true \}\)/)
+    assert.match(eod, /await founderChats\(\)/)
     assert.match(eod, /sent to \$\{sent\} chat\(s\)/)
     assert.match(read("src/lib/server/admin-routes.ts"), /return o\.critical \|\| o\.founderFallback \? superAdminChats\(\) : \[\]/)
     assert.match(eod, /else if \(now\.hour < 6\) day/) // a deploy around midnight still sends yesterday's
@@ -61,5 +61,16 @@ describe("Never silently skipped: the missed report catches up; the founder's mo
     assert.match(ok, /Server ដំណើរការល្អ \(Disk ទំនេរ 51\.2 GB\)/)
     assert.match(morningBriefingText({ healthy: false, diskFreeGb: 9 }), /Server ត្រូវតាមដាន/) // never claims health it does not see
     assert.match(read("src/lib/server/nightly-report.ts"), /p_job: "morning-briefing"/)
+  })
+})
+
+describe("Reports reach the founder's private chat only — «LCA Approval» stays an approval queue (founder, 20/10/2026)", () => {
+  it("the nightly card, the morning briefing, the end-of-day report, the fuel sync status and new members: founderChats()", () => {
+    for (const f of ["src/lib/server/nightly-report.ts", "src/lib/server/dev-eod.ts", "src/lib/server/moc-fuel-sync.ts", "src/lib/server/member-events.ts"]) {
+      const src = read(f)
+      assert.match(src, /await founderChats\(\)/, f)
+      assert.doesNotMatch(src, /marketingChats\(/, f) // never the approval group
+    }
+    assert.match(read("src/lib/server/admin-routes.ts"), /export const founderChats = \(\) => superAdminChats\(\)/)
   })
 })
