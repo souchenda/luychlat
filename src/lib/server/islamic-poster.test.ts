@@ -200,7 +200,7 @@ describe("The Iftar du'a in natural Khmer (founder, 19/10/2026)", () => {
     assert.equal(iftar.source, "Sunan Abi Dawud 2357")
     const c = islamicPostContent("ISLAMIC_IFTAR", "2026-10-19", h(7))
     assert.ok(c.paragraphs.includes(`អានថា៖ ${iftar.phonetic}`) && c.paragraphs.includes(`អត្ថន័យ៖ ${iftar.km}`))
-    assert.equal(c.posterLines?.[0], iftar.km)
+    assert.equal(c.posterLines?.[0], iftar.poster) // the poster meaning, never parentheses
   })
   it("on the poster the meaning takes three balanced large lines — never cut, never shrunk to the fallback", () => {
     const r = renderIslamicPoster(islamicPostContent("ISLAMIC_IFTAR", "2026-10-19", h(7)))

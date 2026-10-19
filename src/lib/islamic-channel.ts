@@ -13,7 +13,7 @@
 import { khmerDigits } from "@/lib/dates"
 import { formatHijri, type HijriDate } from "@/lib/islamic"
 import * as G from "@/lib/islamic/glossary"
-import { DUAS, type Dua } from "@/lib/duas"
+import { DUAS, posterMeaning, type Dua } from "@/lib/duas"
 import { ISLAMIC_TIPS, islamicTipOfTheDay } from "@/lib/islamic-tips"
 import { formatMinutes, imsakTime, prayerTimes, PROVINCES } from "@/lib/prayer"
 
@@ -220,7 +220,8 @@ export function duaSource(label: string): { label: string; url: string } {
   if (abuDawud) return { label, url: `https://sunnah.com/abudawud:${abuDawud[1]}` }
   return { label, url: "https://sunnah.com" }
 }
-const duaLines = (x: Dua) => [`អានថា៖ ${x.phonetic}`, `អត្ថន័យ៖ ${x.km}`]
+/** The caption's reading, full meaning and (caption only) background note — the poster takes posterMeaning. */
+const duaLines = (x: Dua) => [`អានថា៖ ${x.phonetic}`, `អត្ថន័យ៖ ${x.km}`, ...(x.note ? [`ℹ️ បញ្ជាក់៖ ${x.note}`] : [])]
 
 export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriDate | null, tomorrowHijri: HijriDate | null = null): IslamicPostContent {
   const dated = { hijri: hijri ? formatHijri(hijri, "km") : null, hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null, date: kmDay(day) }
@@ -253,7 +254,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       lead: `🌇 <b>ឌុអា${G.IFTAR_LABEL}</b>`,
       arabic: iftar.arabic,
       paragraphs: [...duaLines(iftar), `ម៉ោង${G.IFTAR}ថ្ងៃនេះ ${maghrib} (${FAST_PLACE.km}) — សូមអល់ឡោះទទួលយកការបួសរបស់បងប្អូន។`],
-      posterLines: [iftar.km, `ម៉ោង${G.IFTAR}ថ្ងៃនេះ ${maghrib} · ${FAST_PLACE.km}`],
+      posterLines: [posterMeaning(iftar), `ម៉ោង${G.IFTAR}ថ្ងៃនេះ ${maghrib} · ${FAST_PLACE.km}`],
       posterHookLines: 3,
       source: duaSource(iftar.source),
     }
@@ -274,7 +275,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
         `ស្ដាប់ ${G.SURAH_AL_MULK} ឬកសាដះក្នុង «អេប លុយឆ្លាត» ជាមួយ Sleep Timer (១៥ ឬ ៣០ នាទី) ហើយកុំភ្លេចអាន ${G.AYAT_AL_KURSI} មុនចូលគេង។`,
         ...(fastTomorrow ? [G.sahurReminder(fastTimes(day).imsak)] : []),
       ],
-      posterLines: [sleep.km],
+      posterLines: [posterMeaning(sleep)],
       source: duaSource(sleep.source),
     }
   }
