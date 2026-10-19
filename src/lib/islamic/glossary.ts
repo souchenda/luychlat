@@ -84,6 +84,14 @@ export const JUMUAH_LABEL = `${JUMUAH} (Jumu'ah / ${JUMUAH_ARABIC})`
 export const BARAKAH = "បារ៉ាកាត់"
 export const BARAKAH_LABEL = `${BARAKAH} (Barakah / بَرَكَة)`
 
+// ─── Thanks and blessings (founder, 19/10/2026 — contributors in Islamic Mode only; lib/contributor-thanks.ts) ──────
+/** «Alhamdulillah», the founder's spelling for the thanks to contributors. */
+export const ALHAMDULILLAH = "អាល់ហាំឌូលិលឡាហ៍"
+export const JAZAKALLAH = "យ៉ាហ្សាស្កាល់ឡាហូ ខាយរ៉ន"
+export const JAZAKALLAH_LABEL = `${JAZAKALLAH} (Jazakallahu Khayran / جَزَاكَ اللَّهُ خَيْرًا)`
+export const BARAKALLAH = "បារ៉ាកាល់ឡាហូ ហ្វីក"
+export const BARAKALLAH_LABEL = `${BARAKALLAH} (Barakallahu Feek / بَارَكَ اللَّهُ فِيكَ)`
+
 /** Loanwords the Khmer word breaker splits («អ៊ឹម|សាក់»): posters keep them whole on a line. */
 export const UNBREAKABLE_TERMS = [IMSAK, IFTAR, SAHUR, NIYYAH, SUNNAH_FAST, "ស៊ុណ្ណា", "សាហួរ", JUMUAH, BARAKAH, "មូហាំម៉ាត់", "ហ៊ីចរ៉ោះ"]
 

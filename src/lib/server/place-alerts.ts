@@ -1,28 +1,57 @@
-// Server only: a member's place suggestion reaches the approval room «LCA Approval» within a minute (founder,
-// 19/10/2026), with [ ✅ អនុម័ត ] [ ❌ បដិសេធ ] and a Google Maps link. The dispatcher sends the pending ones not
-// sent yet; a tap is checked in the database (bot_place_review → super admin only, audited).
+// Server only: a member's place suggestion reaches the approval room «LCA Approval» at once (founder, 19/10/2026):
+// the app calls /api/islamic/places/notify right after the insert, and the dispatcher catches anything missed. Each
+// pending place is claimed once in the database, so it is never sent twice. A tap is checked there too
+// (bot_place_review → super admin only, audited); an approval thanks the member (bell + Telegram), in their
+// community's words (lib/contributor-thanks.ts).
+import { approvedThanks, communityBadge, type Contribution } from "@/lib/contributor-thanks"
 import { isPlaceReviewCallback, parsePlaceReviewCallback, placeAlertButtons, placeAlertText, placeDecisionLine, type PendingPlace } from "@/lib/place-alerts"
 import { marketingChats } from "@/lib/server/admin-routes"
 import { logEvent } from "@/lib/server/events"
-import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
+import { botDb, botKey, sendText, tg } from "@/lib/server/telegram-bot"
 
 export { isPlaceReviewCallback }
 
-/** Every dispatcher pass: each new pending place to the approval room, once. */
-export async function flushPlaceSubmissions() {
-  const { data, error } = await botDb().rpc("bot_places_to_notify", { p_key: botKey() })
-  if (error || !data?.length) return
-  const chats = await marketingChats()
-  if (!chats.length) return
-  for (const p of data as PendingPlace[]) {
-    let sent = false
-    for (const chat of chats) {
-      const res = await tg("sendMessage", { chat_id: chat, text: placeAlertText(p), disable_web_page_preview: true, reply_markup: { inline_keyboard: placeAlertButtons(p) } })
-      if (res.ok) sent = true
-      else logEvent("error", "places", `Place alert not sent: ${res.description ?? "?"}`, { fold: true })
+let flushing: Promise<void> | null = null
+
+/** Send each new pending place to the approval room, once (one pass at a time; a second caller waits for it). */
+export function flushPlaceSubmissions(): Promise<void> {
+  if (flushing) return flushing.then(() => flushPlaceSubmissions())
+  flushing = (async () => {
+    const chats = await marketingChats()
+    if (!chats.length) return
+    const { data, error } = await botDb().rpc("bot_places_to_notify", { p_key: botKey() })
+    if (error || !data?.length) return
+    for (const p of data as (PendingPlace & { islamic: boolean })[]) {
+      let sent = false
+      for (const chat of chats) {
+        const res = await tg("sendMessage", { chat_id: chat, text: `${communityBadge(p.islamic)}\n${placeAlertText(p)}`, disable_web_page_preview: true, reply_markup: { inline_keyboard: placeAlertButtons(p) } })
+        if (res.ok) sent = true
+        else logEvent("error", "places", `Place alert not sent: ${res.description ?? "?"}`, { fold: true })
+      }
+      // Not delivered anywhere: hand it back for the next pass.
+      if (!sent) await botDb().rpc("bot_place_unclaim", { p_key: botKey(), p_id: p.id })
     }
-    if (sent) await botDb().rpc("bot_place_mark_notified", { p_key: botKey(), p_id: p.id })
-  }
+  })().finally(() => {
+    flushing = null
+  })
+  return flushing
+}
+
+/** The member's thanks once approved: the bell notice (database) and a Telegram note if they linked it. */
+export async function thankContributor(kind: Contribution, id: string) {
+  const islamic = approvedThanks(true, kind)
+  const general = approvedThanks(false, kind)
+  const { data } = await botDb().rpc("bot_contributor_thank", {
+    p_key: botKey(),
+    p_kind: kind,
+    p_id: id,
+    p_islamic_title: islamic.title,
+    p_islamic_message: islamic.message,
+    p_general_title: general.title,
+    p_general_message: general.message,
+  })
+  const r = data as { islamic: boolean; chat_id: number | null } | null
+  if (r?.chat_id) await sendText(r.chat_id, (r.islamic ? islamic : general).message)
 }
 
 type Callback = { id: string; data?: string; from?: { id: number }; message?: { message_id: number; text?: string; chat: { id: number; type: string } } }
@@ -51,5 +80,6 @@ export async function handlePlaceReviewCallback(cb: Callback) {
     disable_web_page_preview: true,
     reply_markup: { inline_keyboard: [] },
   })
+  if (status === "approved") await thankContributor("place", parsed.id)
   logEvent("info", "places", `Place ${status} from Telegram (${parsed.id})`)
 }

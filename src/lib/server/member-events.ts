@@ -8,9 +8,10 @@ import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText, SIGNATURE, tg, tr } from "./telegram-bot"
 import { sourceForAlert } from "@/lib/acquisition"
+import { signupAlertText } from "@/lib/activity-alerts"
+import { marketingChats } from "./admin-routes"
 
-type Pending = { user_id: string; email: string | null; provider: string; created_at: string; total_members: number; display_name?: string | null; acquisition_source?: string | null }
-type AdminChat = { chat_id: number; language: Locale }
+type Pending = { user_id: string; email: string | null; provider: string; created_at: string; total_members: number; display_name?: string | null; acquisition_source?: string | null; islamic?: boolean }
 
 const METHOD: Record<string, string> = { phone: "Phone", email: "Email", google: "Google", apple: "Apple" }
 
@@ -23,33 +24,33 @@ function cambodiaTime(iso: string) {
 }
 
 /**
- * New accounts → one note per account to every super admin's linked Telegram
- * chat (sign-up itself never waits on this: a trigger queues, this sends).
+ * New accounts → the approval room «LCA Approval», the founder's live activity stream (founder, 19/10/2026; else the
+ * marketing chat, else the super admins' chats — lib/server/admin-routes), at once, one card per account with the
+ * member's community badge. Sign-up itself never waits on this: a trigger queues, this sends.
  */
 export async function flushSignupAlerts() {
   const db = botDb()
   const { data, error } = await db.rpc("bot_signup_alerts_pending", { p_key: botKey() })
   if (error || !Array.isArray(data) || data.length === 0) return
-  const { data: chats } = await db.rpc("bot_admin_chats", { p_key: botKey() })
-  const admins = (chats as AdminChat[] | null) ?? []
-  if (admins.length === 0) return // kept for 2 days, in case an admin links Telegram
+  const chats = await marketingChats()
+  if (chats.length === 0) return // kept for 2 days, in case the room is set later
   for (const p of data as Pending[]) {
+    // The name typed at sign-up (a masked default "•••222" is no name), else the phone / email.
+    const name = p.display_name && !p.display_name.startsWith("•") ? p.display_name : null
+    const src = sourceForAlert(p.acquisition_source)
+    const text = signupAlertText({
+      name,
+      account: loginLabel(p.email) || "—",
+      at: cambodiaTime(p.created_at),
+      islamic: Boolean(p.islamic),
+      method: METHOD[p.provider] ?? p.provider,
+      source: !src ? null : typeof src === "string" ? tr("km", `source.${src}`) : `${tr("km", "source.other")}: ${src.other}`,
+      total: Number(p.total_members),
+    })
     let delivered = false
-    for (const a of admins) {
-      // The name typed at sign-up (a masked default "•••222" is no name), else the phone / email.
-      const name = p.display_name && !p.display_name.startsWith("•") ? p.display_name : null
-      const account = loginLabel(p.email) || "—"
-      const src = sourceForAlert(p.acquisition_source)
-      const text = tr(a.language, "bot.signupAlert", {
-        who: name ?? account,
-        source: !src ? tr(a.language, "bot.signupNoSource") : typeof src === "string" ? tr(a.language, `source.${src}`) : `${tr(a.language, "source.other")}: ${src.other}`,
-        account,
-        date: cambodiaTime(p.created_at),
-        method: METHOD[p.provider] ?? p.provider,
-        total: Number(p.total_members).toLocaleString("en-US"),
-      })
-      // Straight to Telegram, plain text: the admin asked to see the new member's number (sendText would mask it).
-      const sent = (await tg("sendMessage", { chat_id: a.chat_id, text, disable_web_page_preview: true })) as { ok?: boolean }
+    for (const chat of chats) {
+      // Straight to Telegram, plain text: the founder asked to see the new member's number (sendText would mask it).
+      const sent = (await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true })) as { ok?: boolean }
       delivered ||= Boolean(sent.ok)
     }
     if (delivered) await db.rpc("bot_signup_alert_sent", { p_key: botKey(), p_user_id: p.user_id })

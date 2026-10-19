@@ -12,6 +12,8 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useKhmerT, useT } from "@/lib/i18n/use-t"
+import { submittedThanks } from "@/lib/contributor-thanks"
+import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { submissionError } from "@/lib/nasheed"
 import { nasheedQueue, useMyNasheedLikes, useNasheedMutations, useNasheedTracks, useSubmitNasheed, useToggleNasheedLike, type NasheedTrack } from "@/lib/nasheed-data"
 import { usePlan } from "@/lib/plan"
@@ -170,6 +172,7 @@ function LikeButton({ liked, count, label, onToggle }: { liked: boolean; count: 
  */
 function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const t = useKhmerT()
+  const islamic = useIslamicEnabled()
   const submit = useSubmitNasheed()
   const [title, setTitle] = useState("")
   const [artist, setArtist] = useState("")
@@ -185,7 +188,7 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
       { title: title.trim(), artist: artist.trim(), file, authentic, rights },
       {
         onSuccess: () => {
-          toast.success(t("nasheed.shared"))
+          toast.success(submittedThanks(islamic), { duration: 8_000 })
           setTitle("")
           setArtist("")
           setFile(null)

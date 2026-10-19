@@ -4,8 +4,10 @@
 import { createClient } from "@supabase/supabase-js"
 
 import { contentTypeOf, parseNasheedCallback, reviewButtons, reviewCaption, SUBMISSIONS_BUCKET, type ReviewState } from "@/lib/nasheed"
+import { communityBadge } from "@/lib/contributor-thanks"
 import { marketingChats } from "@/lib/server/admin-routes"
 import { logEvent } from "@/lib/server/events"
+import { thankContributor } from "@/lib/server/place-alerts"
 import { botDb, botKey, botToken, tg } from "@/lib/server/telegram-bot"
 import { withCleanFetch } from "@/lib/supabase/clean-fetch"
 import { supabaseUrl } from "@/lib/supabase/config"
@@ -16,6 +18,13 @@ export const reviewConfigured = () => Boolean(serviceKey() && supabaseUrl && bot
 const service = () => createClient(supabaseUrl, serviceKey()!, withCleanFetch({ auth: { persistSession: false, autoRefreshToken: false } }))
 
 type Row = { id: string; title_km: string; artist: string; audio_path: string | null; status: ReviewState; submitted_by: string | null; notified: boolean }
+
+/** The submitter's community for the card's badge (Islamic Mode on or off). */
+async function submitterBadge(db: ReturnType<typeof service>, userId: string | null) {
+  if (!userId) return undefined
+  const { data } = await db.from("islamic_settings").select("enabled").eq("user_id", userId).maybeSingle()
+  return communityBadge(Boolean((data as { enabled?: boolean } | null)?.enabled))
+}
 
 async function submitterName(db: ReturnType<typeof service>, userId: string | null) {
   if (!userId) return "—"
@@ -38,7 +47,7 @@ export async function notifySubmission(id: string): Promise<boolean> {
   }
   const bytes = new Uint8Array(await file.data.arrayBuffer())
   const ext = path.split(".").pop() ?? "mp3"
-  const caption = reviewCaption({ title: row.title_km, artist: row.artist, submitter: await submitterName(db, row.submitted_by), state: "PENDING" })
+  const caption = reviewCaption({ title: row.title_km, artist: row.artist, submitter: await submitterName(db, row.submitted_by), state: "PENDING", badge: await submitterBadge(db, row.submitted_by) })
   let sent = false
   for (const chat of await marketingChats()) {
     const form = new FormData()
@@ -96,11 +105,13 @@ export async function handleNasheedCallback(cb: Callback) {
   // The private copy is no longer needed either way.
   await db.storage.from(SUBMISSIONS_BUCKET).remove([privatePath])
   await answer(cb.id, parsed.approve ? "✅ បានអនុម័ត — ផ្សាយហើយ" : "❌ បានបដិសេធ")
+  // The member's thanks, in their community's words (bell + Telegram).
+  if (parsed.approve) await thankContributor("qasidah", row.id).catch(() => {})
   const state: ReviewState = parsed.approve ? "APPROVED" : "REJECTED"
   await tg("editMessageCaption", {
     chat_id: chat.id,
     message_id: cb.message!.message_id,
-    caption: reviewCaption({ title: row.title_km, artist: row.artist, submitter: await submitterName(db, row.submitted_by), state }),
+    caption: reviewCaption({ title: row.title_km, artist: row.artist, submitter: await submitterName(db, row.submitted_by), state, badge: await submitterBadge(db, row.submitted_by) }),
     parse_mode: "HTML",
     reply_markup: { inline_keyboard: [] },
   })

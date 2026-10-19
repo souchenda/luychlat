@@ -36,7 +36,12 @@ describe("A member's place suggestion reaches «LCA Approval» at once (founder,
     assert.match(read("src/lib/server/bot-dispatch.ts"), /await flushPlaceSubmissions\(\)/)
     const server = read("src/lib/server/place-alerts.ts")
     assert.match(server, /const chats = await marketingChats\(\)/) // the approval group first (lib/server/admin-routes)
-    assert.match(server, /if \(sent\) await botDb\(\)\.rpc\("bot_place_mark_notified"/)
+    assert.match(server, /if \(!sent\) await botDb\(\)\.rpc\("bot_place_unclaim"/) // claimed once; handed back only if undelivered
+    assert.match(read("supabase/migrations/20270186000000_contributor_thanks_activity.sql"), /update public\.islamic_places p set notified = true\s+where p\.id in \(select q\.id from public\.islamic_places q where not q\.approved and not q\.notified order by q\.created_at limit 10 for update skip locked\)/)
+    // At once: the app calls the notify route right after a member's insert.
+    assert.match(read("src/lib/places.ts"), /if \(!input\.approved\) void fetch\("\/api\/islamic\/places\/notify", \{ method: "POST" \}\)/)
+    assert.match(read("src/app/api/islamic/places/notify/route.ts"), /after\(\(\) => flushPlaceSubmissions\(\)\)/)
+    assert.match(server, /if \(status === "approved"\) await thankContributor\("place", parsed\.id\)/)
     const sql = read("supabase/migrations/20270185000000_place_submission_alerts.sql")
     assert.match(sql, /update public\.islamic_places set notified = true where approved and not notified;/) // the pending Kampot surau still goes out
     assert.match(sql, /where not p\.approved and not p\.notified/)

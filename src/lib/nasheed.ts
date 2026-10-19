@@ -88,10 +88,11 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 export type ReviewState = "PENDING" | "APPROVED" | "REJECTED"
 
 /** The caption under the audio in the founder's chat. */
-export function reviewCaption(v: { title: string; artist: string; submitter: string; state: ReviewState }) {
+export function reviewCaption(v: { title: string; artist: string; submitter: string; state: ReviewState; badge?: string }) {
   const head =
     v.state === "APPROVED" ? "✅ បានអនុម័ត — ផ្សាយក្នុង «🎧 ស្ដាប់ក្នុងអេប» ហើយ" : v.state === "REJECTED" ? "❌ បានបដិសេធ — ឯកសារត្រូវបានលុប" : "📤 បទកសាដះថ្មីពីសមាជិក — រង់ចាំការអនុម័ត"
   return [
+    ...(v.badge ? [esc(v.badge)] : []),
     `<b>${head}</b>`,
     "",
     `🎵 ចំណងជើង៖ ${esc(v.title)}`,

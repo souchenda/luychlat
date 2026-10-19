@@ -69,6 +69,9 @@ export function usePlaceMutations() {
       mutationFn: async (input: PlaceInput) => {
         const { error } = await client().from("islamic_places").insert(input)
         if (error) throw error
+        // A member's suggestion → the approval room at once (founder, 19/10/2026); nothing is sent for an admin's
+        // listed place (approved), and a failure here only delays it to the dispatcher's next minute.
+        if (!input.approved) void fetch("/api/islamic/places/notify", { method: "POST" }).catch(() => {})
       },
       onSuccess: done,
     }),
