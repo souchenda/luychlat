@@ -6,4 +6,4 @@
  */
 import { syncIslamicPlaces } from "../src/lib/server/islamic-places-sync"
 
-console.log(await syncIslamicPlaces())
+void syncIslamicPlaces().then((result) => console.log(result))
