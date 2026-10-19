@@ -69,12 +69,20 @@ export const presetById = (id: string | null | undefined, global: AdhanPreset[] 
  * preset when it has a file; else (e.g. the old default «makkah», which has none) the phone's file if there is
  * one, otherwise the first built-in recording — never silence while a recording exists.
  */
-export function resolvePreset(id: string | null | undefined, hasCustomFile: boolean, global: AdhanPreset[] = []): AdhanPreset | undefined {
+/** The app-wide defaults the Adhan manager sets (app_settings «adhan_defaults», founder 19/10/2026). */
+export type AdhanDefaults = { regular?: string | null; fajr?: string | null }
+
+export function resolvePreset(id: string | null | undefined, hasCustomFile: boolean, global: AdhanPreset[] = [], defaults: AdhanDefaults = {}): AdhanPreset | undefined {
   if (id === CUSTOM_ADHAN) return undefined
   const chosen = presetById(id, global)
   if (chosen) return chosen
-  return hasCustomFile ? undefined : availablePresets()[0]
+  // Never chose one (or it is gone): the phone's file, else the app-wide default, else the first bundled recording.
+  return hasCustomFile ? undefined : (presetById(defaults.regular, global) ?? availablePresets()[0])
 }
+
+/** The Fajr recording: the app's own, else the app-wide Fajr default — or none. */
+export const fajrPreset = (global: AdhanPreset[] = [], defaults: AdhanDefaults = {}): AdhanPreset | undefined =>
+  (FAJR_ADHAN.file ? FAJR_ADHAN : undefined) ?? presetById(defaults.fajr, global)
 
 /**
  * The recording for a prayer: the Fajr Adhan (with the Tathweeb) at Fajr only — when it exists and the switch is
@@ -87,14 +95,19 @@ export function adhanForPrayer(
   hasCustomFile: boolean,
   fajr: AdhanPreset = FAJR_ADHAN,
   global: AdhanPreset[] = [],
+  defaults: AdhanDefaults = {},
 ): { presetFile?: string; presetId?: string } {
-  if (prayer === "fajr" && fajrSwitch && fajr.file) return { presetFile: fajr.file, presetId: fajr.id }
-  const preset = resolvePreset(presetId, hasCustomFile, global)
+  const atFajr = fajr.file ? fajr : presetById(defaults.fajr, global)
+  if (prayer === "fajr" && fajrSwitch && atFajr?.file) return { presetFile: atFajr.file, presetId: atFajr.id }
+  const preset = resolvePreset(presetId, hasCustomFile, global, defaults)
   return preset?.file ? { presetFile: preset.file, presetId: preset.id } : {}
 }
 
-/** Whether the app has its own Fajr recording yet (the prayer page says so honestly when not). */
-export const hasFajrRecording = () => Boolean(FAJR_ADHAN.file)
+/** Whether there is a Fajr recording yet — the app's own or the app-wide Fajr default (the prayer page says so when not). */
+export const hasFajrRecording = (global: AdhanPreset[] = [], defaults: AdhanDefaults = {}) => Boolean(fajrPreset(global, defaults))
+
+/** The famous Adhans the manager lists without a file: copyrighted broadcasts — a licensed copy must be published first. */
+export const UNLICENSED_PRESETS = ADHAN_PRESETS.filter((p) => !p.file && ["makkah", "madinah", "aqsa"].includes(p.id))
 
 /*
  * Published by the admin for everyone (founder, 19/10/2026 — no code change, no deploy): in the alert settings a super

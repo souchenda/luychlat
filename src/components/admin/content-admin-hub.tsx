@@ -3,6 +3,7 @@
 import { BellRingIcon, BookHeartIcon, MapPinIcon, Music2Icon, ShieldCheckIcon, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 
+import { AdhanManager } from "@/components/islamic/adhan-global"
 import { Card } from "@/components/ui/card"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -38,6 +39,7 @@ export function ContentAdminHub() {
           </Link>
         ))}
       </div>
+      <AdhanManager />
     </div>
   )
 }

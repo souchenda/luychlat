@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { globalAdhanPreset, type AdhanPreset, type GlobalAdhanRow } from "@/lib/adhan-presets"
+import { globalAdhanPreset, type AdhanDefaults, type AdhanPreset, type GlobalAdhanRow } from "@/lib/adhan-presets"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { supabaseUrl } from "@/lib/supabase/config"
 
@@ -63,3 +63,31 @@ export function useRemoveGlobalAdhan() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: KEY }),
   })
 }
+
+/** The app-wide default Adhans (app_settings «adhan_defaults»), read by every member. */
+export function useAdhanDefaults(): AdhanDefaults {
+  const { data } = useQuery({
+    queryKey: ["adhan-defaults"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const db = getSupabaseBrowserClient()
+      if (!db) return {}
+      const { data } = await db.from("app_settings").select("value").eq("key", "adhan_defaults").maybeSingle()
+      return ((data?.value as AdhanDefaults | undefined) ?? {}) as AdhanDefaults
+    },
+  })
+  return data ?? {}
+}
+
+/** One tap in the manager: this preset as the regular or the Fajr default for everyone (admin_adhan_set, audited). */
+export function useSetAdhanDefault() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (v: { kind: "regular" | "fajr"; preset: string | null }) => {
+      const { error } = await getSupabaseBrowserClient()!.rpc("admin_adhan_set", { p_kind: v.kind, p_preset: v.preset })
+      if (error) throw error
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["adhan-defaults"] }),
+  })
+}
+

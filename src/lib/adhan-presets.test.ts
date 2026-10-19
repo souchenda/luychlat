@@ -124,3 +124,33 @@ describe("Adhans the admin publishes for everyone — no code change, no deploy 
     assert.doesNotMatch(sql, /on storage\.objects/) // only the server's service key writes the bucket
   })
 })
+
+describe("The app-wide default Adhans — regular and Fajr, one tap in the manager (founder, 19/10/2026)", () => {
+  it("a member who never chose an Adhan hears the regular default; their own choice or phone file always wins", async () => {
+    const { resolvePreset } = await import("./adhan-presets")
+    const defaults = { regular: "commons-cc0-short" }
+    assert.equal(resolvePreset("makkah", false, [], defaults)?.id, "commons-cc0-short") // the old default «makkah» has no file
+    assert.equal(resolvePreset(undefined, false, [], defaults)?.id, "commons-cc0-short")
+    assert.equal(resolvePreset("commons-cc0", false, [], defaults)?.id, "commons-cc0") // their choice
+    assert.equal(resolvePreset(CUSTOM_ADHAN, true, [], defaults), undefined) // their phone file
+    assert.equal(resolvePreset("makkah", false, [], { regular: "g:gone" })?.id, "commons-cc0-natural") // a removed default → the first bundled
+  })
+  it("at Fajr, with the switch on, the Fajr default plays; the other prayers never get it", async () => {
+    const { adhanForPrayer, hasFajrRecording } = await import("./adhan-presets")
+    const defaults = { regular: "commons-cc0-natural", fajr: "commons-cc0" }
+    assert.deepEqual(adhanForPrayer("fajr", "makkah", true, false, FAJR_ADHAN, [], defaults), { presetFile: "/adhan/commons-cc0.mp3", presetId: "commons-cc0" })
+    assert.deepEqual(adhanForPrayer("fajr", "makkah", false, false, FAJR_ADHAN, [], defaults), { presetFile: "/adhan/commons-cc0-natural.mp3", presetId: "commons-cc0-natural" })
+    assert.deepEqual(adhanForPrayer("asr", "makkah", true, false, FAJR_ADHAN, [], defaults), { presetFile: "/adhan/commons-cc0-natural.mp3", presetId: "commons-cc0-natural" })
+    assert.equal(hasFajrRecording([], defaults), true)
+    assert.equal(hasFajrRecording(), false)
+  })
+  it("set by a content manager only, audited ADHAN_PUBLISH; the famous broadcasts stay listed as needing a licensed file", async () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270196000000_adhan_global_defaults.sql"), "utf8")
+    assert.match(sql, /if not public\.is_content_manager\(\) then raise exception 'content manager only'/)
+    assert.match(sql, /perform public\.audit\('ADHAN_PUBLISH'/)
+    assert.match(sql, /raise exception 'unknown preset'/)
+    const { UNLICENSED_PRESETS } = await import("./adhan-presets")
+    assert.deepEqual(UNLICENSED_PRESETS.map((p) => p.id), ["makkah", "madinah", "aqsa"])
+    for (const p of UNLICENSED_PRESETS) assert.equal(p.file, null) // never presented as playable without a licensed file
+  })
+})

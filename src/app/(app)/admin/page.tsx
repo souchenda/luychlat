@@ -27,6 +27,7 @@ import { DEFAULT_ABOUT, type AboutInfo } from "@/lib/app-info"
 import { AdminUserSecurity } from "@/components/security/admin-user-security"
 import { AccountControls, UserBadges, type DirectoryUser } from "@/components/admin/account-controls"
 import { ContentAdminHub } from "@/components/admin/content-admin-hub"
+import { AdhanManager } from "@/components/islamic/adhan-global"
 import { ago, rpc, Section, Stat, useInvalidateAdmin, who } from "@/components/admin/ui"
 import { LocalGoldAdmin } from "@/components/admin/local-gold-admin"
 import { NbcRateAdmin } from "@/components/admin/nbc-rate-admin"
@@ -705,6 +706,7 @@ export default function AdminPage() {
         <SupportTickets />
       </div>
       <SystemHealthCard />
+      {admin && <AdhanManager />}
       {admin && (
         <>
           <AcquisitionSources />

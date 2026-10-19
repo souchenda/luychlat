@@ -9,9 +9,10 @@ import { useIslamicLocation } from "@/components/islamic/location-picker"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import { AdhanGlobalButtons } from "@/components/islamic/adhan-global"
 import { AdhanUploadSheet } from "@/components/islamic/adhan-upload-sheet"
-import { adhanForPrayer, availablePresets, canPublishGlobally, CUSTOM_ADHAN, FAJR_ADHAN, GLOBAL_ADHAN_PREFIX, presetById, resolvePreset } from "@/lib/adhan-presets"
-import { useGlobalAdhanPresets, useRemoveGlobalAdhan } from "@/lib/adhan-presets-data"
+import { adhanForPrayer, availablePresets, canPublishGlobally, CUSTOM_ADHAN, FAJR_ADHAN, fajrPreset, GLOBAL_ADHAN_PREFIX, presetById, resolvePreset } from "@/lib/adhan-presets"
+import { useAdhanDefaults, useGlobalAdhanPresets, useRemoveGlobalAdhan } from "@/lib/adhan-presets-data"
 import { usePlan } from "@/lib/plan"
 import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -50,8 +51,10 @@ export function PrayerAlertScheduler() {
   const location = useIslamicLocation()
   // The Adhans the admin published for everyone, beside the bundled ones.
   const global = useGlobalAdhanPresets()
-  const latest = useRef({ t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global })
-  latest.current = { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global }
+  // The app-wide defaults (regular and Fajr) the Adhan manager sets.
+  const defaults = useAdhanDefaults()
+  const latest = useRef({ t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults })
+  latest.current = { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults }
 
   // The notification's «🔇 បិទសំឡេង» reaches the app through the service worker.
   useEffect(() => listenForStopAdhan(), [])
@@ -59,7 +62,7 @@ export function PrayerAlertScheduler() {
   useEffect(() => {
     if (!alertsOn) return
     const tick = () => {
-      const { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global } = latest.current
+      const { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults } = latest.current
       const clock = cambodiaNow()
       const times = prayerTimes(clock.date, location.lat, location.lng)
       const key = duePrayer(times, clock.minutes)
@@ -70,7 +73,7 @@ export function PrayerAlertScheduler() {
       const adhan = alertSound === "adhan"
       void showPrayerNotification(title, body, `prayer-${key}`, adhan ? t("prayerAlert.stopAdhan") : undefined)
       if (alertSound === "chime") playChime()
-      if (adhan) void playAdhan({ ...adhanForPrayer(key, adhanPreset, fajrAdhan, !!adhanName, FAJR_ADHAN, global), title })
+      if (adhan) void playAdhan({ ...adhanForPrayer(key, adhanPreset, fajrAdhan, !!adhanName, FAJR_ADHAN, global, defaults), title })
       if (document.visibilityState === "visible") {
         toast(title, {
           description: body,
@@ -114,9 +117,11 @@ export function PrayerAlertSettings() {
   useEffect(() => () => stopSound(), [])
 
   const global = useGlobalAdhanPresets()
+  const defaults = useAdhanDefaults()
   const presets = availablePresets(global)
   // The recording that will actually play (lib/adhan-presets resolvePreset); the phone's file otherwise.
-  const selected = resolvePreset(adhanPreset, !!adhanName, global)?.id ?? CUSTOM_ADHAN
+  const selected = resolvePreset(adhanPreset, !!adhanName, global, defaults)?.id ?? CUSTOM_ADHAN
+  const fajr = fajrPreset(global, defaults)
   // A super admin chooses where a file goes: this phone, or everyone (AdhanUploadSheet); a member's stays on the phone.
   const admin = canPublishGlobally(usePlan().plan.staff_role)
   const [pending, setPending] = useState<File | null>(null)
@@ -214,7 +219,7 @@ export function PrayerAlertSettings() {
           {alertSound === "adhan" && (
             <div className="space-y-2" role="radiogroup" aria-label={t("prayerAlert.adhan")}>
               {presets.map((p) => (
-                <div key={p.id} className={row(selected === p.id)}>
+                <div key={p.id} className={cn(row(selected === p.id), admin && "flex-wrap")}>
                   <button type="button" role="radio" aria-checked={selected === p.id} onClick={() => choose(p.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                     <span className={cn("size-4 shrink-0 rounded-full border-2", selected === p.id ? "border-primary bg-primary shadow-[inset_0_0_0_3px_var(--background)]" : "border-muted-foreground/40")} aria-hidden />
                     <span className="min-w-0">
@@ -238,6 +243,8 @@ export function PrayerAlertSettings() {
                       <Trash2Icon />
                     </Button>
                   )}
+                  {/* A content manager: this track as the default for everyone (founder, 19/10/2026). */}
+                  {admin && <AdhanGlobalButtons presetId={p.id} defaults={defaults} />}
                 </div>
               ))}
 
@@ -283,13 +290,13 @@ export function PrayerAlertSettings() {
                 />
               )}
 
-              {FAJR_ADHAN.file && (
+              {fajr?.file && (
                 <label className="flex items-center gap-3 rounded-xl bg-muted/50 px-3 py-2">
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">{t("prayerAlert.fajrAdhan")}</span>
                     <span className="block text-[11px] text-muted-foreground">{t("prayerAlert.fajrAdhanHint")}</span>
                   </span>
-                  <PreviewButton id={FAJR_ADHAN.id} onPlay={() => void playPreset(FAJR_ADHAN.file!, FAJR_ADHAN.id)} label={t("prayerAlert.preview")} />
+                  <PreviewButton id={fajr.id} onPlay={() => void playPreset(fajr.file!, fajr.id)} label={t("prayerAlert.preview")} />
                   <Switch checked={fajrAdhan} onCheckedChange={(v) => setAlerts({ fajrAdhan: v })} aria-label={t("prayerAlert.fajrAdhan")} />
                 </label>
               )}
