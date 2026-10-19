@@ -339,3 +339,13 @@ async function weeklySummary() {
   // A server log: the DevOps chat only (not sent when none is set).
   if (data) for (const chat of await devopsChats()) await tg("sendMessage", { chat_id: chat, text: summaryText(data as Summary), disable_web_page_preview: true })
 }
+
+/** Free disk space in GB (the nightly report). */
+export function diskFreeGb(): number | null {
+  try {
+    const s = fs.statfsSync("/")
+    return Math.round(((s.bavail * s.bsize) / 1024 ** 3) * 10) / 10
+  } catch {
+    return null
+  }
+}

@@ -41,8 +41,9 @@ export async function marketingChats(): Promise<number[]> {
  * Server and ops messages: the DevOps chat when set. Unset, they are not sent — the founder's chat is for
  * business — except a `critical` one (the app or the database down), which then goes to the super admins.
  */
-export async function devopsChats(o: { critical?: boolean } = {}): Promise<number[]> {
+export async function devopsChats(o: { critical?: boolean; founderFallback?: boolean } = {}): Promise<number[]> {
   const r = routeOf("devops")
   if (r) return [r.chatId]
-  return o.critical ? superAdminChats() : []
+  // A critical message, or one the founder asked to receive (the end-of-day report, 19/10/2026), reaches the super admins.
+  return o.critical || o.founderFallback ? superAdminChats() : []
 }

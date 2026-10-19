@@ -89,8 +89,10 @@ export async function devEodTick() {
     logEvent("error", "dev-eod", `End-of-day report failed: ${error?.message ?? "no data"}`, { fold: true })
     return
   }
-  // A dev log: the DevOps chat only (not sent when none is set — the founder's chat is for business).
+  // The DevOps chat, else the founder's chat (founder, 19/10/2026 — with no DevOps chat set it went nowhere while the
+  // log said «sent»). The log counts the chats that really received it.
   const text = eodText(data as Report)
-  for (const chat of await devopsChats()) await sendText(chat, text).catch(() => null)
-  logEvent("info", "dev-eod", `End-of-day report ${day} sent`, { fold: true })
+  let sent = 0
+  for (const chat of await devopsChats({ founderFallback: true })) if ((await sendText(chat, text).catch(() => null))?.ok) sent++
+  logEvent(sent ? "info" : "warn", "dev-eod", `End-of-day report ${day} sent to ${sent} chat(s)`, { fold: true })
 }

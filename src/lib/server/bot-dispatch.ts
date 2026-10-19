@@ -24,6 +24,7 @@ import { flushPoolPosts } from "@/lib/server/pool-bot"
 import { birthdayTick, dormancyTick, flushSignupAlerts } from "@/lib/server/member-events"
 import { flushPlaceSubmissions, flushPlaceThanks } from "@/lib/server/place-alerts"
 import { syncEnvApprovers } from "@/lib/server/co-approvers"
+import { nightlyReportTick } from "@/lib/server/nightly-report"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string; bill_id: string | null; due: string | null }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
@@ -104,6 +105,8 @@ export async function dispatchOnce() {
     await dormancyTick()
     await groupSweepTick()
     await devEodTick()
+    // 23:30: the server's health and today's members and approvals, to «LCA Approval» (founder, 19/10/2026).
+    await nightlyReportTick()
     await atmSyncTick()
     await islamicPlacesSyncTick()
     await watchdogTick()
