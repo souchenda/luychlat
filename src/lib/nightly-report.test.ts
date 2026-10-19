@@ -39,5 +39,7 @@ describe("The nightly report before midnight (founder, 19/10/2026)", () => {
     assert.match(eod, /await devopsChats\(\{ founderFallback: true \}\)/)
     assert.match(eod, /sent to \$\{sent\} chat\(s\)/)
     assert.match(read("src/lib/server/admin-routes.ts"), /return o\.critical \|\| o\.founderFallback \? superAdminChats\(\) : \[\]/)
+    assert.match(eod, /else if \(now\.hour < 6\) day/) // a deploy around midnight still sends yesterday's
+    assert.ok(read("src/app/api/telegram/webhook/route.ts").includes("sendNightlyReport(phnomPenhToday().day)")) // /report on demand
   })
 })

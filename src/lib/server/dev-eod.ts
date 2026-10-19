@@ -77,8 +77,8 @@ export async function devEodTick() {
   const now = phnomPenhToday()
   let day: string | null = null
   if (now.hour === 23 && now.minute >= 59) day = now.day
-  // Missed 23:59 (a deploy, a restart): finalize yesterday early the next morning.
-  else if (now.hour === 0 && now.minute < 15) day = new Date(Date.parse(`${now.day}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
+  // Missed 23:59 (a deploy, a restart): finalize yesterday early the next morning (until 06:00; claimed once a day).
+  else if (now.hour < 6) day = new Date(Date.parse(`${now.day}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
   if (!day) return
 
   const db = botDb()

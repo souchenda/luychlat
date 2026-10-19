@@ -579,6 +579,16 @@ export async function POST(request: Request) {
     const ctx = await botContext(chatId)
     if (!ctx?.linked) await sendText(chatId, tr(contextLocale(ctx), "bot.notLinked"))
     else await sendBillsOverview(chatId)
+  } else if (/^\/report(@\w+)?$/i.test(command)) {
+    // The nightly report on demand (founder, 19/10/2026): super admins' private chat only.
+    const { data: supers } = await db.rpc("bot_super_admin_chats", { p_key: key })
+    if (!((supers as { chat_id: number }[] | null) ?? []).some((c) => Number(c.chat_id) === chatId)) await sendText(chatId, "🔒 សម្រាប់ Super Admin ប៉ុណ្ណោះ។")
+    else {
+      const { sendNightlyReport } = await import("@/lib/server/nightly-report")
+      const { phnomPenhToday } = await import("@/lib/server/market-sync")
+      const sent = await sendNightlyReport(phnomPenhToday().day)
+      await sendText(chatId, sent ? `✅ បានផ្ញើរបាយការណ៍ទៅ ${sent} កន្លែង។` : "⚠️ ផ្ញើរបាយការណ៍មិនបានទេ។")
+    }
   } else if (isSetDuaCommand(command)) {
     // The super admin sets a du'a's recording (founder, 19/10/2026): the nine du'as, then the audio.
     await handleSetDua(chatId, payload)
