@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 19/10/2026 · 20:40 (Cambodia time)
+**Last updated:** 19/10/2026 · 21:10 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -25,14 +25,16 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Daily Islamic quiz challenge (5 questions)
 - [x] Saudi Riyal (SAR) rate card & 3-way converter, Islamic Mode only (4c13cf3 — live with 3ec7978)
 - [x] Iftar du'a in natural Khmer with clear phonetics — du'a library, hub card, channel caption, poster (beb9a16)
-- [ ] Review the other du'as and the hadith library for word-for-word Khmer (only the Iftar du'a is done)
+- [x] Du'a library vetted in one pass — 14 du'as, hyphenated readings, poster meanings without parentheses, notes only in captions; new: entering / leaving the mosque, travel, the fasting intention, distress (77d67ad, 047c64f)
+- [ ] Halal provision, worry & debt, both worlds: not yet in the vetted style (the founder's texts pending)
+- [ ] Hadith texts in the Islamic lessons and tips: review for word-for-word Khmer
 - [x] Hajj & Umrah savings planner «ផែនការសន្សំសម្រាប់ធ្វើរូកូន» — calculator & 1-tap savings goal (1c0d49c)
 - [x] Islamic thank-you to Yerny for the approved Kampot surau — Telegram and in-app, sent 19/10/2026 19:52 (eebe7d1)
 - [x] Admin publishes an Adhan for everyone or keeps it on the device (295b194)
 - [ ] Kuwait Adhan (Sheikh Ahmad Al-Trabulsi) for everyone — needs the founder's publishing permission / licence first
 - [ ] Bitesize lessons screen — 8 lessons written (a0ffcd7), each needs a local Imam's / teacher's review before it shows
 - [ ] Fiqh reference assistant screen — the guarded back end is live (a0ffcd7)
-- [ ] Three du'a texts the founder sent differ from the app's (before eating, after eating, worry / debt) — founder to decide
+- [/] The founder's du'a texts vs the app's: after eating decided (Sunan Abi Dawud 3850), before eating rewritten; worry / debt still open
 - [ ] Telegram bot audio Adhan alert option (to overcome iPhone locked-screen PWA limitations)
 
 ## 2. ⚙️ ប្រព័ន្ធអេដមីន & ស្វ័យប្រវត្តិកម្ម (Admin, Approval & Bot Engine)
@@ -45,11 +47,13 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Submitter thank-you DM when an approver taps [ ✅ អនុម័ត ], with the toast and «👤 ដោយ / 💌 ស្ថានភាពសារអរគុណ» card (42f2736)
 - [x] Every approved suggestion thanks its member once, however it was approved (eebe7d1)
 - [x] Real-time cards to «LCA Approval»: new members and place / qasidah submissions, with the [ 🌙 ឥស្លាម ] / [ ☀️ មហាជន ] badge and thanks in each member's own words (9222f3e, ff5b964)
+- [x] New-member card «👤 សមាជិកថ្មីទើបបានចុះឈ្មោះ» with a welcome in the member's own words, sent quietly (77d67ad)
 
 ## 3. 🎨 ផ្ទាំងផ្សព្វផ្សាយ & មាតិកា (Media & Posters)
 
 - [x] Dynamic Buddhist Sil Day poster (98bcf47, 21334d1)
 - [x] Islamic minimalist poster engine (0c43fa7, 9c3fb09)
+- [x] Full poster audit: no parentheses on any graphic, explanations only in captions; datelines «… · ត្រូវនឹង …», Imsak / Iftar cards, footer, 10 tip / lesson lines rephrased; a test guards every poster text (50cf16b)
 - [x] Relatable comedy short video — Reel Ep 01 DRAFT (7e79b67, b947834)
 - [ ] Reel voices: Azure AI Speech key on the Droplet (the founder declined Azure for the du'as; reels still need a licensed voice)
 - [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E)
@@ -58,4 +62,5 @@ dropped between sessions. The founder reviews it every evening.
 
 - [x] Bank slip auto-matching for DL MEAT SUPPLY ABA USD (3de602d)
 - [x] Droplet disk space maintenance (38 GB free at the time)
-- [ ] Disk: 20 GB free now (75 % used, 19/10/2026 20:10) — prune old Docker build images before it runs low
+- [x] Disk: Docker builder cache pruned — 43 GB reclaimed, 58 GB free (25 % used, 19/10/2026 21:00)
+- [ ] Disk: prune the builder cache regularly (each deploy adds ~1–2 GB of cache)
