@@ -35,7 +35,7 @@ describe("The Saudi riyal for pilgrims — Islamic Community only (founder, 19/1
   })
 
   it("only on the /islamic hub (Islamic Mode) — never the general rates, the community channel or the dashboard", () => {
-    const users = sources().filter((f) => /SarCard|lib\/islamic\/sar"/.test(f.src) && !f.path.includes(join("islamic", "sar")) && !f.path.endsWith("sar-card.tsx"))
+    const users = sources().filter((f) => /SarCard|lib\/islamic\/sar"/.test(f.src) && !f.path.includes(join("lib", "islamic")) && !f.path.endsWith("sar-card.tsx")) // Islamic-only modules (e.g. the Hajj planner) may use it
     assert.deepEqual(
       users.map((f) => relative(process.cwd(), f.path).split(sep).join("/")),
       ["src/app/(app)/islamic/page.tsx"],

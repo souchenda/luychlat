@@ -55,8 +55,8 @@ export function GoalFormSheet({
   const coverInput = useRef<HTMLInputElement>(null)
   const storedCoverUrl = useGoalCoverUrl(cover).data
   const userId = useSessionStore((s) => s.user?.id)
-  // Qurban is offered when the Islamic tools are on.
-  const presets = GOAL_PRESETS.filter((p) => p.key !== "goal_qurban" || islamic || goal?.icon === "goal_qurban")
+  // Qurban and Hajj are offered when the Islamic tools are on.
+  const presets = GOAL_PRESETS.filter((p) => (p.key !== "goal_qurban" && p.key !== "goal_hajj") || islamic || goal?.icon === p.key)
 
   useEffect(() => {
     if (!open) return

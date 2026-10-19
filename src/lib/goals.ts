@@ -19,6 +19,8 @@ export const GOAL_PRESETS = [
   { key: "goal_wedding", emoji: "💍" },
   { key: "goal_travel", emoji: "✈️" },
   { key: "goal_qurban", emoji: "🐑" },
+  // Hajj and Umrah (founder, 19/10/2026 — the /islamic savings planner tags its goal with it).
+  { key: "goal_hajj", emoji: "🕋" },
   // Kids' savings (Amret «ក្មេងឆ្លាត» and the like).
   { key: "goal_kids", emoji: "👶" },
   { key: "goal_other", emoji: "🎯" },

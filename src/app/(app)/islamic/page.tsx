@@ -14,6 +14,7 @@ import { DailyTipCard } from "@/components/dashboard/daily-tip-card"
 import { IslamicQuizCard } from "@/components/islamic/quiz-card"
 import { ContextualDuaCard, IslamicHubHero, IslamicQuickActions } from "@/components/islamic/hub"
 import { SarCard } from "@/components/islamic/sar-card"
+import { HajjPlanCard } from "@/components/islamic/hajj-plan-card"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -402,6 +403,8 @@ export default function IslamicPage() {
 
       {/* The Saudi riyal for pilgrims (Hajj, Umrah) — here only, never the general rates (founder, 19/10/2026). */}
       <SarCard />
+      {/* Hajj and Umrah savings (founder, 19/10/2026): a plan and the goal that tracks it — here only. */}
+      <HajjPlanCard />
 
       {/* Hawl */}
       <section className="space-y-2">
