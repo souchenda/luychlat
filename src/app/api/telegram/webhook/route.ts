@@ -45,6 +45,8 @@ import { handlePoolFlowCallback, handlePoolSlip, handlePoolSpendText, isPoolFlow
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
 import { handleSetApprovalGroup, isSetApprovalGroupCommand } from "@/lib/server/approval-group"
+import { duaWantsAudio, handleDuaAudio, handleDuaCallback, handleSetDua, type DuaIncoming } from "@/lib/server/dua-audio-bot"
+import { isDuaCallback, isSetDuaCommand } from "@/lib/dua-audio"
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
 
@@ -79,7 +81,9 @@ type Update = {
     message_id?: number
     reply_to_message?: { message_id: number; from?: { is_bot?: boolean } }
     voice?: { file_id: string; duration?: number; file_size?: number }
-    document?: { file_name?: string; mime_type?: string; file_size?: number }
+    document?: { file_id?: string; file_name?: string; mime_type?: string; file_size?: number }
+    /** An audio file (MP3 / M4A) — a du'a recording from the super admin (/setdua). */
+    audio?: { file_id: string; mime_type?: string; file_size?: number; duration?: number }
     /** Shared with the "📱 Share my number" button (password reset). */
     contact?: { phone_number: string; user_id?: number }
     /** Shared with the "📍 my location" button (/atm). */
@@ -353,6 +357,8 @@ export async function POST(request: Request) {
       await handleAccountCallback(update.callback_query)
     } else if (isScheduledPostCallback(update.callback_query.data)) {
       await handleScheduledPostCallback(update.callback_query)
+    } else if (isDuaCallback(update.callback_query.data)) {
+      await handleDuaCallback(update.callback_query)
     } else if (isNasheedCallback(update.callback_query.data)) {
       await handleNasheedCallback(update.callback_query)
     } else if (isPosterCallback(update.callback_query.data)) {
@@ -385,6 +391,27 @@ export async function POST(request: Request) {
   }
   if (!message || message.chat.type !== "private") return NextResponse.json({ ok: true })
 
+  // A du'a recording from the super admin (/setdua, or an audio file then the du'a's button) — anything else goes on.
+  const duaFile: DuaIncoming | null = message.audio
+    ? { fileId: message.audio.file_id, kind: "audio", caption: message.caption, size: message.audio.file_size }
+    : message.voice
+      ? { fileId: message.voice.file_id, kind: "voice", caption: message.caption, size: message.voice.file_size }
+      : message.document?.file_id && /^audio\//.test(message.document.mime_type ?? "")
+        ? { fileId: message.document.file_id, kind: "document", caption: message.caption, size: message.document.file_size }
+        : null
+  if (duaFile && duaWantsAudio(message.chat.id, duaFile.kind)) {
+    const chatId = message.chat.id
+    const voice = message.voice
+    after(async () => {
+      if (await handleDuaAudio(chatId, duaFile)) return
+      // Not a du'a after all (a voice note with nothing waiting): the usual voice logging.
+      if (!voice) return
+      const ctx = await botContext(chatId)
+      if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
+      else await handleVoiceMessage(chatId, voice, ctx)
+    })
+    return NextResponse.json({ ok: true })
+  }
   if (message.voice) {
     const chatId = message.chat.id
     const voice = message.voice
@@ -543,6 +570,9 @@ export async function POST(request: Request) {
     const ctx = await botContext(chatId)
     if (!ctx?.linked) await sendText(chatId, tr(contextLocale(ctx), "bot.notLinked"))
     else await sendBillsOverview(chatId)
+  } else if (isSetDuaCommand(command)) {
+    // The super admin sets a du'a's recording (founder, 19/10/2026): the nine du'as, then the audio.
+    await handleSetDua(chatId, payload)
   } else if (/^\/voice(@\w+)?$/i.test(command)) {
     // «🔔 សំឡេង Voice Telegram»: each KHQR sale also as a spoken Khmer voice note (/voice on | off, or toggle).
     const want = /^(on|បើក)$/i.test(payload ?? "") ? true : /^(off|បិទ)$/i.test(payload ?? "") ? false : null

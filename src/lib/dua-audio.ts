@@ -5,6 +5,7 @@
  * button shows only for those; the service worker keeps them for offline listening (lib/audio-cache.ts). One plays at a
  * time; «🔁 ទន្ទេញ» loops it. Pure (dua-audio.test.ts).
  */
+import { DUAS } from "@/lib/duas"
 
 /** A du'a's recording: the file in public/audio/duas/ and who recited / cleared it. */
 export type DuaRecording = { file: string; credit: string }
@@ -15,11 +16,65 @@ export type DuaRecording = { file: string; credit: string }
  */
 export const DUA_RECORDINGS: Record<string, DuaRecording> = {}
 
-/** The URL of a du'a's recording, or null (then no 🔊 button). */
-export function duaAudioSrc(id: string, recordings: Record<string, DuaRecording> = DUA_RECORDINGS): string | null {
+/**
+ * The URL of a du'a's recording, or null (then no 🔊 button): the admin's upload first (table dua_recordings, the
+ * public bucket «dua-audio»), else a file shipped in public/audio/duas/.
+ */
+export function duaAudioSrc(id: string, recordings: Record<string, DuaRecording> = DUA_RECORDINGS, uploaded: Record<string, string> = {}): string | null {
+  if (uploaded[id]) return uploaded[id]
   const r = recordings[id]
   return r && /^[a-z0-9-]+\.(mp3|m4a)$/.test(r.file) ? `/audio/duas/${r.file}` : null
 }
+
+/*
+ * The admin's recordings (founder, 19/10/2026 — like the qasidah submissions): «📤 បញ្ចូលសំឡេង» on a du'a card or
+ * /setdua in @luychlat_bot. The server cleans the file (MP3, −16 LUFS) into the bucket «dua-audio» as
+ * «<du'a id>-<time>.mp3» — a new name each time, so a replaced recording is never served from an old copy.
+ */
+export const DUA_AUDIO_BUCKET = "dua-audio"
+/** Larger files are refused before upload (the server's limit is 10 MB). */
+export const DUA_UPLOAD_MAX_BYTES = 8 * 1024 * 1024
+/** A recording longer than this is cut (a du'a takes seconds; a mistaken long file never fills the bucket). */
+export const DUA_MAX_SECONDS = 180
+
+export const isDuaId = (id: unknown): id is string => typeof id === "string" && DUAS.some((d) => d.id === id)
+export const duaAudioPath = (id: string, nowMs: number) => `${id}-${nowMs}.mp3`
+export const isDuaAudioPath = (id: string, path: unknown): path is string =>
+  typeof path === "string" && isDuaId(id) && new RegExp(`^${id}-[0-9]{10,14}\\.mp3$`).test(path)
+/** The public address of an uploaded recording. */
+export const duaRecordingUrl = (supabaseUrl: string, path: string) => `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/public/${DUA_AUDIO_BUCKET}/${path}`
+
+/** The input an upload needs: an audio file of a sane size, who recited it, and the rights confirmed. */
+export function duaUploadError(v: { file: { size: number; type: string; name: string } | null; credit: string; rights: boolean }):
+  | "duas.upload.fileRequired"
+  | "duas.upload.notAudio"
+  | "duas.upload.tooBig"
+  | "duas.upload.creditRequired"
+  | "duas.upload.rightsRequired"
+  | null {
+  if (!v.file || v.file.size === 0) return "duas.upload.fileRequired"
+  if (!/^audio\//.test(v.file.type) && !/\.(mp3|m4a|aac|ogg|oga|opus|wav|webm|amr|3gp)$/i.test(v.file.name)) return "duas.upload.notAudio"
+  if (v.file.size > DUA_UPLOAD_MAX_BYTES) return "duas.upload.tooBig"
+  if (v.credit.trim().length < 2) return "duas.upload.creditRequired"
+  if (!v.rights) return "duas.upload.rightsRequired"
+  return null
+}
+
+/** The bot's picker, two du'as a row: «da:<id>». */
+export const duaPickButtons = () => {
+  const rows: { text: string; callback_data: string }[][] = []
+  DUAS.forEach((d, i) => {
+    if (i % 2 === 0) rows.push([])
+    rows[rows.length - 1].push({ text: d.title.km, callback_data: `da:${d.id}` })
+  })
+  return rows
+}
+export const isDuaCallback = (data: string | undefined) => typeof data === "string" && data.startsWith("da:")
+export const parseDuaCallback = (data: string | undefined): string | null => {
+  const id = data?.startsWith("da:") ? data.slice(3) : null
+  return isDuaId(id) ? id : null
+}
+export const isSetDuaCommand = (command: string) => /^\/setdua(@\w+)?$/i.test(command)
 
 export type DuaAudioState = { playing: string | null; repeat: boolean }
 export type DuaAudioEvent = { type: "toggle"; id: string } | { type: "ended" } | { type: "repeat" } | { type: "stop" }

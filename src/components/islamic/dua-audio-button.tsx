@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react"
 import { create } from "zustand"
 
 import { Button } from "@/components/ui/button"
-import { duaAudioReducer, duaAudioSrc, type DuaAudioEvent, type DuaAudioState } from "@/lib/dua-audio"
+import { duaAudioReducer, type DuaAudioEvent, type DuaAudioState } from "@/lib/dua-audio"
 import { useKhmerT } from "@/lib/i18n/use-t"
 import { cn } from "@/lib/utils"
 
@@ -21,6 +21,8 @@ function element() {
   if (!audio) {
     audio = new Audio()
     audio.preload = "none"
+    // Read with CORS, so the service worker can keep an uploaded recording (Supabase Storage) for offline listening.
+    audio.crossOrigin = "anonymous"
     audio.addEventListener("ended", () => {
       useDuaAudio.getState().send({ type: "ended" })
       if (useDuaAudio.getState().playing && audio) {
@@ -32,10 +34,12 @@ function element() {
   return audio
 }
 
-/** 🔊 / ⏸ beside the du'a's copy button, and «🔁 ទន្ទេញ» while it plays — only for a du'a with a cleared recording. */
-export function DuaAudioButton({ id }: { id: string }) {
+/**
+ * 🔊 / ⏸ beside the du'a's copy button, and «🔁 ទន្ទេញ» while it plays — only for a du'a with a cleared recording
+ * (`src` from duaAudioSrc: the admin's upload, else a shipped file).
+ */
+export function DuaAudioButton({ id, src }: { id: string; src: string | null }) {
   const t = useKhmerT()
-  const src = duaAudioSrc(id)
   const { playing, repeat, send } = useDuaAudio()
   const mine = playing === id
   const started = useRef(false)
