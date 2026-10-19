@@ -40,6 +40,26 @@ export const DUAS: Dua[] = [
     source: "Sunan Abi Dawud 5095",
   },
   {
+    id: "enter-mosque",
+    title: { km: "ពេលចូលវិហារ (ម៉ាស្ជិទ)", en: "Entering the mosque" },
+    arabic: "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+    phonetic: "អាល់ឡាហុម្ម៉ាហ្វ-តះហ៍ លី អាប-វ៉ា-បា រ៉ស់ហ៍ម៉ាទីក",
+    latin: "Allāhummaftaḥ lī abwāba raḥmatik",
+    km: "ឱអល់ឡោះ! សូមទ្រង់មេត្តាបើកទ្វារនៃក្តីមេត្តាករុណារបស់ទ្រង់ដល់រូបខ្ញុំ",
+    en: "O Allah, open for me the doors of Your mercy.",
+    source: "Sahih Muslim 713",
+  },
+  {
+    id: "leave-mosque",
+    title: { km: "ពេលចេញពីវិហារ (ម៉ាស្ជិទ)", en: "Leaving the mosque" },
+    arabic: "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
+    phonetic: "អាល់ឡាហុម្ម៉ា អ៊ិននី អាស-អាលុកា មីន ហ្វាត់-លីក",
+    latin: "Allāhumma innī as’aluka min faḍlik",
+    km: "ឱអល់ឡោះ! ទូលបង្គំសូមអង្វរករនូវសេចក្តីសប្បុរស និងពរជ័យពីទ្រង់",
+    en: "O Allah, I ask You of Your bounty.",
+    source: "Sahih Muslim 713",
+  },
+  {
     id: "before-eating",
     title: { km: "មុនពេលបរិភោគ", en: "Before eating" },
     arabic: "بِسْمِ اللَّهِ",
@@ -52,12 +72,13 @@ export const DUAS: Dua[] = [
   {
     id: "after-eating",
     title: { km: "ក្រោយពេលបរិភោគ", en: "After eating" },
-    arabic: "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ",
-    phonetic: "អាល់ហាំឌុលីល្លាហ៊ិល ឡាហ្សី អាត់អាំម៉ានី ហាហ្សា វ៉ារ៉ហ្សាកានីហ៊ី មិន ហ្កៃរី ហាវលិន មិននី វ៉ាឡា គូវវ៉ះ",
-    latin: "Al-ḥamdu lillāhil-ladhī aṭ‘amanī hādhā wa razaqanīhi min ghayri ḥawlin minnī wa lā quwwah",
-    km: "ការសរសើរទាំងអស់សម្រាប់អល់ឡោះ ដែលបានប្រទានអាហារនេះដល់ខ្ញុំ និងផ្ដល់វាជាលាភសក្ការៈដល់ខ្ញុំ ដោយគ្មានកម្លាំង ឬអំណាចពីខ្លួនខ្ញុំឡើយ។",
-    en: "All praise is for Allah who fed me this and provided it for me without any might or power from myself.",
-    source: "Sunan Abi Dawud 4023 · Jami' at-Tirmidhi 3458",
+    // The founder's choice of du'a and meaning (19/10/2026); the reading follows the same hyphenated style.
+    arabic: "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا وَجَعَلَنَا مُسْلِمِينَ",
+    phonetic: "អាល់-ហាំ-ឌុ លិល-ឡា-ហិល ឡា-ហ្ស៊ី អាត់-អា-ម៉ា-ណា, វ៉ា-សា-ក-ណា, វ៉ា-ជា-អា-ឡា-ណា មុស-លី-មីន",
+    latin: "Al-ḥamdu lillāhil-ladhī aṭ‘amanā wa saqānā wa ja‘alanā muslimīn",
+    km: "រាល់ការសរសើរ និងអរគុណយ៉ាងជ្រាលជ្រៅបំផុតគឺចំពោះអល់ឡោះ ដែលទ្រង់បានប្រទានអាហារ ភេសជ្ជៈ និងបានកំណត់ឱ្យពួកយើងក្លាយជាអ្នកកាន់សាសនាឥស្លាម",
+    en: "All praise is for Allah who fed us, gave us drink and made us Muslims.",
+    source: "Sunan Abi Dawud 3850 · Jami' at-Tirmidhi 3457",
   },
   {
     id: "halal-provision",
@@ -80,6 +101,18 @@ export const DUAS: Dua[] = [
     source: "Sahih al-Bukhari 6369",
   },
   {
+    id: "fast-niyyah",
+    title: { km: `${G.NIYYAH}បួស (ពេល${G.SAHUR})`, en: "Intention to fast (niyyah)" },
+    // The Shafi'i formula for Ramadan (founder, 19/10/2026). The intention itself is in the heart; for a sunnah fast
+    // one intends that fast instead. Not a hadith text — its source line says so.
+    arabic: "نَوَيْتُ صَوْمَ غَدٍ عَنْ أَدَاءِ فَرْضِ شَهْرِ رَمَضَانَ هَذِهِ السَّنَةِ لِلَّهِ تَعَالَى",
+    phonetic: "ណា-វ៉ៃ-តុ សោវ-ម៉ា ហ្កា-ឌិន អាន់ អា-ដា-អ៊ិ ហ្វាដ-ឌិ ស្យាហ្រ-រិ រ៉ា-ម៉ា-ដន ហា-ហ្ស៊ិ-ហិស សា-ណា-ទិ លិល-ឡា-ហិ តា-អា-ឡា",
+    latin: "Nawaitu ṣawma ghadin ‘an adā’i farḍi shahri Ramaḍāna hādhihis-sanati lillāhi ta‘ālā",
+    km: `ខ្ញុំតាំងចិត្តបួសនៅថ្ងៃស្អែក ដើម្បីបំពេញកាតព្វកិច្ចខែរ៉ាម៉ាឌន (ឬ${G.SUNNAH_FAST}) ដើម្បីអល់ឡោះជាម្ចាស់ ﷻ`,
+    en: "I intend to fast tomorrow to fulfil the obligation of this year's Ramadan, for Allah the Exalted. (For a sunnah fast, intend that fast instead.)",
+    source: "Niyyah — the Shafi'i formula; the intention is in the heart (Sahih al-Bukhari 1)",
+  },
+  {
     id: "iftar",
     title: { km: `ពេល${G.IFTAR} (អ៊ីហ្វតារ)`, en: "Breaking the fast (iftar)" },
     arabic: "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ",
@@ -89,6 +122,16 @@ export const DUAS: Dua[] = [
     km: "ភាពស្រេកទឹកបានរសាយបាត់ សរសៃឈាមទាំងឡាយបានទទួលសំណើមឡើងវិញ ហើយផលបុណ្យកុសលត្រូវបានបញ្ជាក់ជាប្រាកដ ប្រសិនបើអល់ឡោះទ្រង់សព្វព្រះទ័យ។",
     en: "The thirst has gone, the veins are moistened, and the reward is certain, if Allah wills.",
     source: "Sunan Abi Dawud 2357",
+  },
+  {
+    id: "travel",
+    title: { km: "ពេលធ្វើដំណើរ", en: "Setting out on a journey" },
+    arabic: "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَى رَبِّنَا لَمُنْقَلِبُونَ",
+    phonetic: "ស៊ុបហាណាល់ឡាហ្ស៊ី សាក់ខរ៉ូ ឡាណា ហាហ៊្សា វ៉ាម៉ា គុណ្ណា ឡាហុ មូករីនីន, វ៉ាអ៊ីណ្ណា អ៊ីឡា រ៉បពីណា ឡាមុនកល់លីប៊ូន",
+    latin: "Subḥānal-ladhī sakhkhara lanā hādhā wa mā kunnā lahu muqrinīn, wa innā ilā rabbinā lamunqalibūn",
+    km: "មហាស្អាតស្អំ និងមហាបរិសុទ្ធបំផុតគឺអល់ឡោះ ដែលទ្រង់បានប្រទានយានជំនិះនេះជាប្រយោជន៍ដល់ពួកយើង ខណៈដែលពួកយើងគ្មានលទ្ធភាពបញ្ជាវាដោយខ្លួនឯងបានឡើយ ហើយពិតប្រាកដណាស់ ពួកយើងនឹងត្រូវវិលត្រឡប់ទៅកាន់ម្ចាស់របស់យើងវិញ",
+    en: "Glory be to the One who has subjected this to us, though we could never have done so ourselves; and surely to our Lord we shall return.",
+    source: "Az-Zukhruf 43:13–14 · Sahih Muslim 1342",
   },
   {
     id: "both-worlds",

@@ -49,8 +49,8 @@ export async function flushSignupAlerts() {
     })
     let delivered = false
     for (const chat of chats) {
-      // Straight to Telegram, plain text: the founder asked to see the new member's number (sendText would mask it).
-      const sent = (await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true })) as { ok?: boolean }
+      // Straight to Telegram, quietly (no sound): the founder asked to see the new member's number (sendText would mask it).
+      const sent = (await tg("sendMessage", { chat_id: chat, text, parse_mode: "HTML", disable_notification: true, disable_web_page_preview: true })) as { ok?: boolean }
       delivered ||= Boolean(sent.ok)
     }
     if (delivered) await db.rpc("bot_signup_alert_sent", { p_key: botKey(), p_user_id: p.user_id })

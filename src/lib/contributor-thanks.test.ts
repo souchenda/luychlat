@@ -53,17 +53,19 @@ describe("Thanks to contributors, in their own community's words (founder, 19/10
     assert.equal(
       card,
       [
-        "👤 សមាជិកថ្មីបានចុះឈ្មោះ (New User Joined): [ 🌙 ឥស្លាម ]",
-        "• ឈ្មោះ៖ Sokha",
-        "• ទូរស័ព្ទ/អ៊ីមែល៖ 012 345 678",
-        "• ម៉ោង៖ 19/10/2026 05:30 PM",
-        "• គណនី៖ 🌙 ឥស្លាម (Islamic Mode)",
-        "• ចូលតាម៖ Phone · ស្គាល់តាម៖ Facebook",
-        "• 📊 សមាជិកសរុប៖ 1,234 នាក់",
+        "👤 <b>សមាជិកថ្មីទើបបានចុះឈ្មោះ</b>",
+        "• ឈ្មោះ/គណនី៖ Sokha · 012 345 678",
+        "• ប្រភេទ៖ [ 🌙 ឥស្លាម ] (Islamic Mode)",
+        "• សារស្វាគមន៍៖ « សូមអល់ឡោះ ﷻ ប្រទានពរជ័យ និងបារ៉ាកាត់ដល់ការចូលរួមរបស់បងប្អូន! 🤲 »",
+        "🕒 19/10/2026 05:30 PM · Phone · ស្គាល់តាម៖ Facebook · 📊 សមាជិកសរុប 1,234 នាក់",
       ].join("\n"),
     )
-    assert.match(signupAlertText({ name: null, account: "012 345 678", at: "—", islamic: false, method: "Phone", source: null, total: 1 }), /^👤 .*\[ ☀️ មហាជន \]\n• ឈ្មោះ៖ 012 345 678\n/)
+    const general = signupAlertText({ name: null, account: "012 345 678", at: "—", islamic: false, method: "Phone", source: null, total: 1 })
+    assert.match(general, /• ប្រភេទ៖ \[ ☀️ មហាជន \] \(General\)\n• សារស្វាគមន៍៖ « សូមស្វាគមន៍យ៉ាងកក់ក្តៅ និងថ្លែងអំណរគុណដល់ការគាំទ្ររបស់លោកអ្នក! 🙏 »/)
+    assert.doesNotMatch(general, /អល់ឡោះ|<i>/) // no blessing for a general member; never italic Khmer
+    assert.match(signupAlertText({ name: "<b>x", account: "a", at: "t", islamic: false, method: "m", source: null, total: 1 }), /&lt;b&gt;x/)
     const events = readFileSync(join(process.cwd(), "src/lib/server/member-events.ts"), "utf8")
     assert.match(events, /const chats = await marketingChats\(\)/) // the approval room first
+    assert.match(events, /parse_mode: "HTML", disable_notification: true/) // quiet
   })
 })
