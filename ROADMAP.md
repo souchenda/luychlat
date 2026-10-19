@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 19/10/2026 · 22:25 (Cambodia time)
+**Last updated:** 19/10/2026 · 23:30 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -31,6 +31,10 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Hajj & Umrah savings planner «ផែនការសន្សំសម្រាប់ធ្វើរូកូន» — calculator & 1-tap savings goal (1c0d49c)
 - [x] Islamic thank-you to Yerny for the approved Kampot surau — Telegram and in-app, sent 19/10/2026 19:52 (eebe7d1)
 - [x] Admin publishes an Adhan for everyone or keeps it on the device (295b194)
+- [x] App-wide default Adhans (regular and Fajr), one tap per track in the prayer settings and the /admin Adhan manager (dd8be5a)
+- [x] «⬆️ បង្ហោះ និងកំណត់ជាសកល» — publish the phone's Adhan file and make it the default in one go (450e5e1)
+- [ ] Set the first global default Adhan (none chosen yet — members hear the first built-in recording)
+- [ ] Du'a recordings: none uploaded yet (card «📤 បញ្ចូលសំឡេង» or /setdua)
 - [ ] Kuwait Adhan (Sheikh Ahmad Al-Trabulsi) for everyone — needs the founder's publishing permission / licence first
 - [ ] Bitesize lessons screen — 8 lessons written (a0ffcd7), each needs a local Imam's / teacher's review before it shows
 - [ ] Fiqh reference assistant screen — the guarded back end is live (a0ffcd7)
@@ -67,7 +71,7 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Bank slip auto-matching for DL MEAT SUPPLY ABA USD (3de602d)
 - [x] Droplet disk space maintenance (38 GB free at the time)
 - [x] Disk: Docker builder cache pruned — 43 GB reclaimed, 58 GB free (25 % used, 19/10/2026 21:00)
-- [ ] Disk: prune the builder cache regularly (each deploy adds ~1–2 GB of cache)
+- [ ] Disk: a weekly Docker builder-cache prune (cron) — not set up yet; 52 GB free on 19/10/2026 23:30, each deploy adds ~1–2 GB
 
 ## 5. 🚀 ហេដ្ឋារចនាសម្ព័ន្ធទូទាត់ឆ្លាតវៃ (Smart Merchant & Payment Infrastructure — Long-term / Future Vision)
 
