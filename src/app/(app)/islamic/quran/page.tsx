@@ -10,7 +10,9 @@ import { useT } from "@/lib/i18n/use-t"
 import { QURAN_TRANSLATION, SURAHS, surahByNumber } from "@/lib/quran"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 import { SurahPlayButton } from "@/components/islamic/audio-player"
-import { QURAN_RECITER } from "@/lib/quran-audio"
+import { OfflineBadge, SurahDownloadButton } from "@/components/islamic/surah-offline"
+import { QURAN_RECITERS, QURAN_SOURCE, reciterOf } from "@/lib/quran-audio"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
 
@@ -21,6 +23,9 @@ export default function QuranIndexPage() {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const last = useIslamicLocalStore((s) => s.quranLast)
+  // The reciter, remembered on this device (founder, 19/10/2026: the three Imams of Masjid al-Haram, and Alafasy).
+  const reciter = reciterOf(useIslamicLocalStore((s) => s.quranReciter))
+  const setQuran = useIslamicLocalStore((s) => s.setQuran)
   const [query, setQuery] = useState("")
 
   const list = useMemo(() => {
@@ -50,6 +55,19 @@ export default function QuranIndexPage() {
         </Link>
       )}
 
+      <Select value={reciter.id} onValueChange={(v) => setQuran({ quranReciter: v })}>
+        <SelectTrigger className="h-11 w-full" aria-label={t("quranAudio.reciter")}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {QURAN_RECITERS.map((r) => (
+            <SelectItem key={r.id} value={r.id}>
+              {r.km}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       <div className="relative">
         <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("quran.search")} className="h-10 pl-9" aria-label={t("quran.search")} inputMode="search" />
@@ -62,7 +80,10 @@ export default function QuranIndexPage() {
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold tabular-nums">{s.n}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{s.latin}</span>
-              <span className="block text-xs text-muted-foreground">{t("quran.verses", { count: s.ayat })}</span>
+              <span className="block text-xs text-muted-foreground">
+                {t("quran.verses", { count: s.ayat })}
+                <OfflineBadge surah={s.n} reciter={reciter.id} />
+              </span>
             </span>
             <span dir="rtl" lang="ar" className="font-quran text-xl leading-none">
               {s.ar}
@@ -70,15 +91,17 @@ export default function QuranIndexPage() {
           </Link>
           {/* ▶️ the recitation, streamed (founder, 18/10/2026). */}
           <SurahPlayButton surah={s.n} />
+          {/* ⬇️ kept on the phone for offline listening (founder, 19/10/2026). */}
+          <SurahDownloadButton surah={s.n} reciter={reciter.id} />
           </div>
         ))}
         {list.length === 0 && <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t("quran.noMatch")}</p>}
       </Card>
 
       <p className="px-1 text-[11px] text-muted-foreground">
-        {t("quranAudio.credit", { reciter: QURAN_RECITER.name, riwaya: QURAN_RECITER.riwaya })}{" "}
-        <a href={QURAN_RECITER.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
-          {QURAN_RECITER.source}
+        {t("quranAudio.credit", { reciter: reciter.name, riwaya: QURAN_SOURCE.riwaya })}{" "}
+        <a href={QURAN_SOURCE.url} target="_blank" rel="noopener noreferrer" className="underline">
+          {QURAN_SOURCE.name}
         </a>
       </p>
       <p className="px-1 text-[11px] text-muted-foreground">

@@ -7,7 +7,9 @@ import { create } from "zustand"
 import { afterTrack, neighbour, type AudioKind, type Track } from "@/lib/audio-queue"
 import { useT } from "@/lib/i18n/use-t"
 import { SURAHS } from "@/lib/quran"
-import { clock, QURAN_RECITER, quranAudioUrl, SLEEP_MINUTES, sleepAfter, sleepDue, type SleepTimer } from "@/lib/quran-audio"
+import { useIslamicLocalStore } from "@/stores/islamic-local-store"
+import { isCacheableAudio } from "@/lib/audio-cache"
+import { clock, quranAudioUrl, reciterOf, SLEEP_MINUTES, sleepAfter, sleepDue, type SleepTimer } from "@/lib/quran-audio"
 import { cn } from "@/lib/utils"
 
 type PlayerState = { kind: AudioKind | null; queue: Track[]; index: number; playing: boolean; position: number; duration: number; sleep: SleepTimer; loading: boolean }
@@ -89,6 +91,10 @@ async function playAt(index: number) {
   if (!track || !kind) return
   const a = element()
   useAudioPlayer.setState({ index, position: 0, duration: 0, loading: true })
+  // A recitation is asked with CORS, so the service worker can keep it for offline listening (lib/audio-cache.ts);
+  // our own files (the Adhan, cleared nasheeds) as before.
+  if (isCacheableAudio(track.src)) a.crossOrigin = "anonymous"
+  else a.removeAttribute("crossorigin")
   a.src = track.src
   mediaSession(track, kind)
   await a.play().catch(() => useAudioPlayer.setState({ playing: false, loading: false }))
@@ -115,9 +121,14 @@ function stop() {
   if (typeof navigator !== "undefined" && "mediaSession" in navigator) navigator.mediaSession.metadata = null
 }
 
-/** The 114 surahs as a queue, recited by Mishary Alafasy (MP3Quran's official CDN). */
-const quranQueue = (): Track[] =>
-  SURAHS.map((s) => ({ key: `quran:${s.n}`, title: `${s.n}. ${s.latin}`, subtitle: QURAN_RECITER.name, arabic: s.ar, src: quranAudioUrl(s.n) }))
+/**
+ * The 114 surahs as a queue, by the reciter the person chose (remembered on this device — founder, 19/10/2026), from
+ * MP3Quran's official CDN; the reciter's name is the lock screen's artist line (media session).
+ */
+const quranQueue = (): Track[] => {
+  const reciter = reciterOf(useIslamicLocalStore.getState().quranReciter)
+  return SURAHS.map((s) => ({ key: `quran:${reciter.id}:${s.n}`, title: `${s.n}. ${s.latin}`, subtitle: reciter.name, arabic: s.ar, src: quranAudioUrl(s.n, reciter.id) }))
+}
 
 /** The compact floating bar above the bottom menu while something is loaded. */
 export function AudioMiniPlayer() {
@@ -246,8 +257,10 @@ export function PlayButton({ kind, queue, index, className }: { kind: AudioKind;
   const t = useT()
   const loaded = useAudioPlayer((s) => (s.kind === kind ? s.queue[s.index]?.key : null))
   const playing = useAudioPlayer((s) => s.playing)
+  const reciter = useIslamicLocalStore((s) => s.quranReciter)
   const key = `${kind}:${index}`
-  const mine = loaded !== null && loaded !== undefined && (kind === "quran" ? loaded === `quran:${index + 1}` : loaded === queue()[index]?.key)
+  // A surah is «this one playing» only by the chosen reciter (after switching, a tap plays the new reciter).
+  const mine = loaded !== null && loaded !== undefined && (kind === "quran" ? loaded === `quran:${reciterOf(reciter).id}:${index + 1}` : loaded === queue()[index]?.key)
   const on = mine && playing
   return (
     <button

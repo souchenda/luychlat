@@ -8,6 +8,7 @@ import { FamilySettings } from "@/components/family/family-settings"
 import { AiSettingsCard } from "@/components/settings/ai-settings"
 import { DangerZone } from "@/components/settings/danger-zone"
 import { DataManagement } from "@/components/settings/data-management"
+import { AudioCacheCard } from "@/components/settings/audio-cache-card"
 import { InstallAppCard } from "@/components/settings/install-app"
 import { OfficialBotCard } from "@/components/settings/official-bot"
 import { BizKhqrCard } from "@/components/settings/biz-khqr-card"
@@ -47,6 +48,7 @@ const SECTIONS: Record<string, { title: MessageKey; render: () => React.ReactNod
       <>
         <InstallAppCard />
         <DataManagement />
+        <AudioCacheCard />
         <DangerZone />
       </>
     ),

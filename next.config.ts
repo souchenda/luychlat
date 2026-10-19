@@ -29,7 +29,8 @@ const csp = [
   // Quran recitation streamed from MP3Quran's official CDN (lib/quran-audio.ts) — that host only.
   // …and the cleared Qasidah / Nasheed recordings from our own Supabase storage (lib/nasheed-data.ts).
   `media-src 'self' blob: https://cdn.mp3quran.net ${supabaseOrigin}`.trim(),
-  `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`.trim(),
+  // …and downloaded whole for offline listening (⬇️ — lib/audio-cache.ts), from that host only.
+  `connect-src 'self' ${supabaseOrigin} ${supabaseWs} https://cdn.mp3quran.net`.trim(),
   "worker-src 'self'",
   "manifest-src 'self'",
   "frame-src 'none'",
