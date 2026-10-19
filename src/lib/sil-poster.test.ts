@@ -5,13 +5,13 @@ import { kmCalendarDay, SIL_BLESSING, SIL_BLESSING_LINES, silPosterContent } fro
 
 describe("The Sil day poster — the day's own lunar and calendar dates (founder, 19/10/2026)", () => {
   it("the four Sil days of a lunar month, each with its date", () => {
-    assert.equal(silPosterContent("2026-10-19")!.dateline, "ថ្ងៃសីល (៨ កើត ខែអស្សុជ) · ត្រូវនឹង ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦")
+    assert.equal(silPosterContent("2026-10-19")!.dateline, "ថ្ងៃសីល · ៨ កើត ខែអស្សុជ · ត្រូវនឹង ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦")
     assert.equal(silPosterContent("2026-10-26")!.lunar, "១៥ កើត ខែអស្សុជ (ពេញបូណ៌មី)")
     assert.equal(silPosterContent("2026-11-03")!.lunar, "៨ រោច ខែអស្សុជ")
     assert.equal(silPosterContent("2026-11-09")!.lunar, "១៤ រោច ខែអស្សុជ (ដាច់ខែ)")
-    assert.equal(silPosterContent("2026-11-09")!.dateline, "ថ្ងៃសីល (១៤ រោច ខែអស្សុជ · ដាច់ខែ) · ត្រូវនឹង ថ្ងៃច័ន្ទ ៩ វិច្ឆិកា ២០២៦")
+    assert.equal(silPosterContent("2026-11-09")!.dateline, "ថ្ងៃសីល · ១៤ រោច ខែអស្សុជ · ដាច់ខែ · ត្រូវនឹង ថ្ងៃច័ន្ទ ៩ វិច្ឆិកា ២០២៦")
     // The poster's top-right block, two lines (founder, 19/10/2026).
-    assert.deepEqual(silPosterContent("2026-10-26")!.dateLines, ["ថ្ងៃសីល (១៥ កើត ខែអស្សុជ · ពេញបូណ៌មី)", "ត្រូវនឹង ថ្ងៃច័ន្ទ ២៦ តុលា ២០២៦"])
+    assert.deepEqual(silPosterContent("2026-10-26")!.dateLines, ["ថ្ងៃសីល · ១៥ កើត ខែអស្សុជ · ពេញបូណ៌មី", "ត្រូវនឹង ថ្ងៃច័ន្ទ ២៦ តុលា ២០២៦"])
   })
   it("no poster on an ordinary day", () => {
     assert.equal(silPosterContent("2026-10-20"), null)

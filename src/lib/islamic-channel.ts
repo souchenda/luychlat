@@ -165,10 +165,11 @@ export type IslamicPostContent = {
 
 /**
  * The poster's dateline: the Gregorian day, then the Hijri day it corresponds to (founder, 18/10/2026):
- * «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ (ត្រូវនឹង ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.)».
+ * «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.».
  */
 export const posterDateline = (c: Pick<IslamicPostContent, "date" | "hijriShort">) =>
-  c.hijriShort ? `${c.date} (${G.HIJRI_CORRESPONDS} ${c.hijriShort})` : c.date
+  // No parentheses on a graphic (founder, 19/10/2026): «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង …».
+  c.hijriShort ? `${c.date} · ${G.HIJRI_CORRESPONDS} ${c.hijriShort}` : c.date
 
 /**
  * The call to action above the poster's links (founder, 18/10/2026): the du'a posters of the morning and the night

@@ -86,9 +86,9 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
       assert.equal(renderIslamicPoster(c).type.titleArabic, POSTER_TYPE.titleArabic[0], arabic) // full size, one line
     }
   })
-  it("the dateline: «Gregorian (ត្រូវនឹង Hijri)» on one line; the Gregorian alone without a Hijri date", () => {
+  it("the dateline: «Gregorian · ត្រូវនឹង Hijri» on one line, no parentheses; the Gregorian alone without a Hijri date", () => {
     const c = islamicPostContent("ISLAMIC_MORNING", "2026-10-19", h(8))
-    assert.equal(posterDateline(c), "ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ (ត្រូវនឹង ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.)")
+    assert.equal(posterDateline(c), "ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.")
     assert.equal(posterDateline(islamicPostContent("ISLAMIC_MORNING", "2026-10-19", null)), "ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦")
     // The longest month name still fits one line at a dateline size.
     const longest = islamicPostContent("ISLAMIC_DAILY", "2026-09-30", { day: 29, month: 6, year: 1448 })

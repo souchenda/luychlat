@@ -30,7 +30,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
     topic: "islamic",
     title: { km: "ជួញដូរ ហាឡាល់ — ការប្រាក់ ហារ៉ាម", en: "Trade is lawful — interest is not" },
     body: {
-      km: "អល់ឡោះអនុញ្ញាតការជួញដូរ ហើយហាមឃាត់ការប្រាក់ (រីបា)។ មុនខ្ចីលុយមកពង្រីកហាង ចូរស្វែងរកជម្រើសគ្មានការប្រាក់ ដូចជាការចែករំលែកប្រាក់ចំណេញ ឬការខ្ចីដោយគ្មានការប្រាក់។",
+      km: "អល់ឡោះអនុញ្ញាតការជួញដូរ ហើយហាមឃាត់ការប្រាក់ ឬ «រីបា»។ មុនខ្ចីលុយមកពង្រីកហាង ចូរស្វែងរកជម្រើសគ្មានការប្រាក់ ដូចជាការចែករំលែកប្រាក់ចំណេញ ឬការខ្ចីដោយគ្មានការប្រាក់។",
       en: "Allah has permitted trade and forbidden interest (riba). Before borrowing to grow your shop, look for interest-free options such as profit-sharing or an interest-free loan.",
     },
     ref: quran("Al-Baqarah", 2, 275),

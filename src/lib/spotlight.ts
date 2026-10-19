@@ -29,7 +29,7 @@ export const SPOTLIGHT_PILLARS = [
   },
   {
     icon: "💎",
-    line: "ឃើញទ្រព្យពិត (Net Worth) កុងបញ្ញើ Fixed Deposit មាសឡើងថ្លៃ និងយានយន្ត។",
+    line: "ឃើញទ្រព្យពិត — Net Worth៖ កុងបញ្ញើ Fixed Deposit មាសឡើងថ្លៃ និងយានយន្ត។",
     title: "ឃើញទ្រព្យពិត",
     sub: "ទ្រព្យសុទ្ធ · កុងបញ្ញើ · មាស · យានយន្ត",
   },

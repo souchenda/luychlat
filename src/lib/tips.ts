@@ -31,7 +31,7 @@ export const TIPS: Tip[] = [
     topic: "saving",
     title: { km: "ច្បាប់ ៥០/៣០/២០", en: "The 50/30/20 rule" },
     body: {
-      km: "ចែកប្រាក់ចំណូល៖ ៥០% សម្រាប់អ្វីដែលចាំបាច់ (ផ្ទះ អាហារ ធ្វើដំណើរ) ៣០% សម្រាប់អ្វីដែលចង់បាន និង ២០% សម្រាប់សន្សំ ឬសងបំណុល។ ចាប់ផ្តើមពីខែនេះ — កំណត់ថវិកាតាមប្រភេទក្នុងអេប លុយឆ្លាត ហើយមើលថាបងនៅក្នុងចន្លោះនេះឬទេ។",
+      km: "ចែកប្រាក់ចំណូល៖ ៥០% សម្រាប់អ្វីដែលចាំបាច់ ដូចជាផ្ទះ អាហារ និងការធ្វើដំណើរ ៣០% សម្រាប់អ្វីដែលចង់បាន និង ២០% សម្រាប់សន្សំ ឬសងបំណុល។ ចាប់ផ្តើមពីខែនេះ — កំណត់ថវិកាតាមប្រភេទក្នុងអេប លុយឆ្លាត ហើយមើលថាបងនៅក្នុងចន្លោះនេះឬទេ។",
       en: "Split your income: 50% for needs (rent, food, transport), 30% for wants, and 20% for saving or paying off debt.",
     },
   },
@@ -67,7 +67,7 @@ export const TIPS: Tip[] = [
     topic: "saving",
     title: { km: "កត់ការចាយតូចៗ", en: "Track the small spending" },
     body: {
-      km: "កាហ្វេ $២ រាល់ថ្ងៃ = ប្រហែល $៧៣០ ក្នុងមួយឆ្នាំ។ កត់រាល់ការចាយ (ផ្ញើ «កាហ្វេ 2$» ទៅ bot ក៏បាន) ដើម្បីដឹងថាលុយទៅណា។",
+      km: "កាហ្វេ $២ រាល់ថ្ងៃ = ប្រហែល $៧៣០ ក្នុងមួយឆ្នាំ។ កត់រាល់ការចាយ — គ្រាន់តែផ្ញើ «កាហ្វេ 2$» ទៅ bot ក៏បាន — ដើម្បីដឹងថាលុយទៅណា។",
       en: "A $2 coffee every day is about $730 a year. Log every expense (even “coffee 2$” to the bot) to see where your money goes.",
     },
   },
@@ -170,7 +170,7 @@ export const TIPS: Tip[] = [
     topic: "credit",
     title: { km: "បង់ប័ណ្ណឥណទានឱ្យគ្រប់ចំនួន", en: "Pay your card in full" },
     body: {
-      km: "កុំបង់ត្រឹមតែចំនួនអប្បបរមា (Minimum Due) ព្រោះការប្រាក់កើនឡើងរាល់ថ្ងៃ។ បង់ឱ្យគ្រប់ចំនួនជារៀងរាល់ខែ ដើម្បីកុំឱ្យធ្លាក់ក្នុងអន្ទាក់បំណុល។",
+      km: "កុំបង់ត្រឹមតែចំនួនអប្បបរមាដែលធនាគារទាមទារ ព្រោះការប្រាក់កើនឡើងរាល់ថ្ងៃ។ បង់ឱ្យគ្រប់ចំនួនជារៀងរាល់ខែ ដើម្បីកុំឱ្យធ្លាក់ក្នុងអន្ទាក់បំណុល។",
       en: "Pay the full card balance before the due date to avoid interest. Paying only the minimum lets interest grow every month.",
     },
   },
@@ -244,7 +244,7 @@ export const TIPS: Tip[] = [
     topic: "business",
     title: { km: "ទុកប្រាក់បម្រុងសម្រាប់ហាង", en: "Keep a business buffer" },
     body: {
-      km: "ទុកប្រាក់គ្រប់គ្រាន់សម្រាប់ចំណាយ ១-២ ខែ (ជួល ប្រាក់ខែ ទឹកភ្លើង) ពេលលក់មិនដាច់ ឬរដូវស្ងាត់។ ដាក់វាក្នុងគណនីដាច់ដោយឡែក កុំយកមកប្រើក្នុងការលក់ប្រចាំថ្ងៃ។",
+      km: "ទុកប្រាក់គ្រប់គ្រាន់សម្រាប់ចំណាយ ១-២ ខែ ដូចជាថ្លៃជួល ប្រាក់ខែ និងទឹកភ្លើង ពេលលក់មិនដាច់ ឬរដូវស្ងាត់។ ដាក់វាក្នុងគណនីដាច់ដោយឡែក កុំយកមកប្រើក្នុងការលក់ប្រចាំថ្ងៃ។",
       en: "Keep enough for 1–2 months of fixed costs (rent, wages, utilities) for slow seasons.",
     },
   },
@@ -262,7 +262,7 @@ export const TIPS: Tip[] = [
   {
     id: "islamic-riba",
     topic: "islamic",
-    title: { km: "ជៀសវាងការប្រាក់ (រីបា)", en: "Avoiding riba (interest)" },
+    title: { km: "ជៀសវាងការប្រាក់ ឬ «រីបា»", en: "Avoiding riba (interest)" },
     body: {
       km: "បើមានការប្រាក់ពីគណនីធនាគារ កត់វាដាច់ដោយឡែក ដើម្បីងាយ «សម្អាត» ដោយបរិច្ចាគ។ សួរអ្នកប្រាជ្ញសាសនា សម្រាប់ការវិនិច្ឆ័យជាក់លាក់។",
       en: "If your bank account earns interest, record it separately so it's easy to purify by giving it away. Ask a scholar for specific rulings.",
@@ -273,14 +273,14 @@ export const TIPS: Tip[] = [
     topic: "islamic",
     title: { km: "ហ្សាកាត់ ២,៥%", en: "Zakat at 2.5%" },
     body: {
-      km: "ហ្សាកាត់ = ២,៥% នៃទ្រព្យសុទ្ធដែលលើសនីសាប ហើយកាន់កាប់គ្រប់មួយឆ្នាំចន្ទគតិ (ហាវល៍)។ អេបគណនាពីកាបូប និងមាសរបស់អ្នក។",
+      km: "ហ្សាកាត់ = ២,៥% នៃទ្រព្យសុទ្ធដែលលើសនីសាប ហើយកាន់កាប់គ្រប់មួយឆ្នាំចន្ទគតិ ដែលហៅថា ហាវល៍។ អេបគណនាពីកាបូប និងមាសរបស់អ្នក។",
       en: "Zakat is 2.5% of net wealth above the Nisab, held for a full lunar year (hawl). The app works it out from your wallets and gold.",
     },
   },
   {
     id: "islamic-qard",
     topic: "islamic",
-    title: { km: "កម្ចីគ្មានការប្រាក់ (Qard Hasan)", en: "Qard Hasan — a goodwill loan" },
+    title: { km: "កម្ចីល្អគ្មានការប្រាក់ — Qard Hasan", en: "Qard Hasan — a goodwill loan" },
     body: {
       km: "Qard Hasan គឺកម្ចីសប្បុរសធម៌ គ្មានការប្រាក់ ដើម្បីជួយអ្នកដទៃ។ កត់វាក្នុងបំណុល ដើម្បីតាមដានការសងដោយសុភាព។",
       en: "Qard Hasan is an interest-free loan to help someone. Record it under debts to follow repayment kindly.",
@@ -289,7 +289,7 @@ export const TIPS: Tip[] = [
   {
     id: "islamic-sadaqah",
     topic: "islamic",
-    title: { km: "ទាន (សាដាកះ) ជាប្រចាំ", en: "Regular sadaqah" },
+    title: { km: "ធ្វើទាន សាដាកះ ជាប្រចាំ", en: "Regular sadaqah" },
     body: {
       km: "ការផ្ដល់ទានតិចៗ តែជាប្រចាំ ងាយធ្វើជាងម្ដងធំៗ។ បង្កើតប្រភេទ «សាដាកះ» ដើម្បីមើលការផ្ដល់របស់អ្នកពេញមួយឆ្នាំ។",
       en: "Small, regular giving is easier than rare large gifts. Use the Sadaqah category to see your giving over the year.",

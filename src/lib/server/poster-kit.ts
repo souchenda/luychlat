@@ -337,7 +337,7 @@ export function drawFooter(ctx: SKRSContext2D) {
   ctx.font = `500 26px ${FAMILIES}`
   drawIcon(ctx, "plane", PAD + 14, line2 - 10)
   ctx.fillStyle = "#d1fae5"
-  const community = "សហគមន៍ អេប លុយឆ្លាត (t.me/LuyChlatCommunity)"
+  const community = "សហគមន៍ អេប លុយឆ្លាត · t.me/LuyChlatCommunity" // no parentheses on a graphic (founder, 19/10/2026)
   ctx.fillText(community, PAD + 44, line2)
   let x = PAD + 44 + ctx.measureText(community).width + 26
   ctx.fillStyle = "rgba(209,250,229,0.55)"

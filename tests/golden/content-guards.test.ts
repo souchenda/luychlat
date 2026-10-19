@@ -74,8 +74,8 @@ describe("GOLDEN · published wording", () => {
     assert.equal(sunday.titleArabic, "صِيَام يَوْم الإِثْنَيْن")
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).title, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍")
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).titleArabic, "صِيَام يَوْم الخَمِيس")
-    // The publish day; «Gregorian (ត្រូវនឹង Hijri)» (founder, 18/10/2026).
-    assert.equal(posterDateline(sunday), "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ (ត្រូវនឹង ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.)")
+    // The publish day; «Gregorian · ត្រូវនឹង Hijri» (founder, 18/10/2026; no parentheses on a graphic, 19/10/2026).
+    assert.equal(posterDateline(sunday), "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ត្រូវនឹង ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.")
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).date, "ថ្ងៃពុធ ២១ តុលា ២០២៦")
     assert.equal(sunday.fast?.day, "ថ្ងៃច័ន្ទ") // the boxes are tomorrow's
     const caption = islamicCaptionHtml(sunday)
