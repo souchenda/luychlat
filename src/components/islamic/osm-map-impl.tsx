@@ -74,5 +74,7 @@ export default function OsmMapImpl({ center, zoom = 13, markers = [], selectedId
     meLayer.current = me ? L.circleMarker([me.lat, me.lng], { radius: 7, color: "#fff", weight: 2, fillColor: "#3b82f6", fillOpacity: 1 }).addTo(m) : null
   }, [me])
 
-  return <div ref={el} className={className} role="application" aria-label="OpenStreetMap" />
+  // `isolation: isolate`: Leaflet's panes and controls (z-index up to 1000) stay inside the map — never painted over a
+  // sheet opened above it (founder, 19/10/2026: a second set of [+][−] showed over the suggestion form).
+  return <div ref={el} className={className} style={{ isolation: "isolate" }} role="application" aria-label="OpenStreetMap" />
 }
