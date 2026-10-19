@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 19/10/2026 · 21:10 (Cambodia time)
+**Last updated:** 19/10/2026 · 22:25 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -43,7 +43,11 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Factual feeds publish on time, silently — market bulletin 09:30–10:30 (as soon as the gold shops publish), evening NBC rates, 05:30 prayer times; no preview in the approval room (d5065e2, 84f427f)
 - [x] Audit log uppercase fix for place approvals, du'a and Adhan uploads (d5f93e4 — live with 3ec7978)
 - [x] Co-approvers: /addapprover as a reply in the group, and TELEGRAM_APPROVER_IDS (3ec7978, 42f2736)
-- [ ] Add the founder's sister: her account → Admin › Staff (admin role, 2FA) → /addapprover reply in «LCA Approval»
+- [x] Yerny (the founder's sister, @yernysou) — content admin and co-approver in «LCA Approval» (b6b8311, 7255d99)
+- [x] Role-based access: «content_admin» manages community content only; revenue, payments, subscriptions, members and settings are the founder's alone, enforced in the database (7255d99)
+- [x] Staff badge and role on the admin user card; Admin Portal card on staff profiles; Admin › Staff by email or phone (0599180, 5f8a380)
+- [x] Contact email for phone-registered members in «My profile» and on the admin user card — the phone sign-in never changes (5f8a380, 7255d99)
+- [x] «/addapprover» accepts a reply with an @handle or a phone number with spaces (77f9a45)
 - [x] Submitter thank-you DM when an approver taps [ ✅ អនុម័ត ], with the toast and «👤 ដោយ / 💌 ស្ថានភាពសារអរគុណ» card (42f2736)
 - [x] Every approved suggestion thanks its member once, however it was approved (eebe7d1)
 - [x] Real-time cards to «LCA Approval»: new members and place / qasidah submissions, with the [ 🌙 ឥស្លាម ] / [ ☀️ មហាជន ] badge and thanks in each member's own words (9222f3e, ff5b964)
@@ -64,3 +68,13 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Droplet disk space maintenance (38 GB free at the time)
 - [x] Disk: Docker builder cache pruned — 43 GB reclaimed, 58 GB free (25 % used, 19/10/2026 21:00)
 - [ ] Disk: prune the builder cache regularly (each deploy adds ~1–2 GB of cache)
+
+## 5. 🚀 ហេដ្ឋារចនាសម្ព័ន្ធទូទាត់ឆ្លាតវៃ (Smart Merchant & Payment Infrastructure — Long-term / Future Vision)
+
+Low urgency: the strategic direction, recorded so it is never lost. Not scheduled yet.
+
+- [ ] **SoftPOS / Tap to Pay on Phone**: Accept contactless cards (Visa/Mastercard, Apple Pay, Google Pay) via smartphone NFC without physical POS rental.
+- [ ] **In-App Dynamic KHQR & Spoken Soundbox**: Real-time voice announcement on merchant phone upon payment receipt («អេប លុយឆ្លាត បានទទួលប្រាក់...»). *Today: the SoundBox page already announces KHQR sales received through AUTOBOK; the 27 licensed Khmer voice clips are still to record.*
+- [ ] **Automated Payment & Invoice Reconciliation**: Direct matching of received payments against open customer debt balances and invoices (tailored for DL MEAT SUPPLY and SME wholesalers).
+- [ ] **Payment Gateway Integration (Bakong / PayWay / Stripe / 2C2P)**: Formal acquiring integration for multi-currency & card rails.
+- [ ] **LuyChlat Branded Smart Soundbox & POS Hardware (OEM)**: Branded merchant hardware terminals for retail shops and distribution hubs.
