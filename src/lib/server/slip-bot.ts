@@ -286,11 +286,15 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   // The default workspace (Personal unless the user chose another for the bot) — and the person's other
   // workspaces, where a wallet the slip names exactly is offered too (founder, 19/10/2026).
   const all = workspacesOf(ctx)
-  const ws = all[0]
-  // Never a silent guess: when the account number doesn't settle it, the user picks.
+  // Never a silent guess: when the account name or number doesn't settle it, the user picks.
   const pick = resolveSlipAcrossWorkspaces(slip, all)
   if (!pick) return sendText(chatId, tr(lang, "bot.cmdNoWallet"))
-  const wallet = "wallet" in pick ? pick.wallet.wallet : null
+  const certain = "wallet" in pick ? pick.wallet : null
+  const wallet = certain?.wallet ?? null
+  // A wallet the slip names in another workspace (DL MEAT SUPPLY): the entry goes there, with its categories.
+  const ws = (certain && all.find((w) => w.id === certain.workspaceId)) || all[0]
+  // Shown with its workspace when it is not the bot's default: «🏢 DL MEAT SUPPLY · ABA DL USD».
+  const shown = wallet && certain?.elsewhere ? { ...wallet, name: `🏢 ${certain.workspaceName} · ${wallet.name}` } : wallet
   const choices = "choices" in pick ? pick.choices : []
   // The placeholder wallet (bot_confirm refuses it until one is picked): the default workspace's first, else the
   // first offered — and then the entry starts in that wallet's workspace.
@@ -313,6 +317,7 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
     wallet_id: wallet?.id ?? placeholder.wallet.id,
     ...(wallet ? {} : { wallet_pending: true, wallet_choices: choices.map((c) => c.wallet.id) }),
     ...(!wallet && placeholder.elsewhere ? { workspace_id: placeholder.workspaceId } : {}),
+    ...(certain?.elsewhere ? { workspace_id: certain.workspaceId } : {}),
     slip: info,
     category_id: null,
     amount: slip.amount,
@@ -332,12 +337,12 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   // A payee that is one of the person's loans (CAMBODIAN LABOR CARE PLC → CLC): never auto-filed under a
   // shop's category — saved uncategorised, then «record it as the loan's repayment?» (debt-link-bot.ts).
   const loanPayee = kind === "EXPENSE" ? matchPayableDebt(info.party, ws.debts) : null
-  if (wallet && kind === "EXPENSE" && !loanPayee && (await autoSaveSlip(chatId, lang, pendingId, ws, wallet, info, action.meal, time))) return
+  if (shown && kind === "EXPENSE" && !loanPayee && (await autoSaveSlip(chatId, lang, pendingId, ws, shown, info, action.meal, time))) return
   // An unknown payee: saved now all the same (nothing is lost if no one taps), flagged
   // "⚠️ ខ្វះព័ត៌មានចំណាយ" with the six categories; a tap fills it in (and is learned).
-  if (wallet && kind === "EXPENSE" && (await saveWithoutCategory(chatId, lang, pendingId, wallet, info))) return
+  if (shown && kind === "EXPENSE" && (await saveWithoutCategory(chatId, lang, pendingId, shown, info))) return
 
-  const card = slipCard(lang, pendingId, info, wallet, choices, ws.rate)
+  const card = slipCard(lang, pendingId, info, shown, choices, ws.rate)
   return sendText(chatId, card.text, { reply_markup: card.reply_markup })
 }
 

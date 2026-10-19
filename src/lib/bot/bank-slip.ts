@@ -146,6 +146,29 @@ const BANK_WORDS: [RegExp, string[]][] = [
   [/true ?money/i, ["truemoney", "true money"]],
 ]
 
+/**
+ * The account name as people name a wallet: the number in brackets, digits, masks and the bank's own words left out
+ * — «DL USD (016 824 222)» on an ABA slip and the wallet «ABA DL USD» are both «dl usd» (founder, 19/10/2026).
+ */
+export function accountNameKey(name: string, bank: string | null): string {
+  const bankWords = bank ? (BANK_WORDS.find(([re]) => re.test(bank))?.[1] ?? [bank.toLowerCase()]) : []
+  const drop = new Set(["bank", "account", "acct", "ធនាគារ", "គណនី", ...bankWords.flatMap((w) => w.split(/\s+/))])
+  return name
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[0-9*•.,:#_/\-]+/g, " ")
+    .split(/\s+/)
+    .filter((t) => t && !drop.has(t))
+    .join(" ")
+}
+
+/** The slip's printed account name and a wallet's name are the same account — and say more than a currency. */
+export function sameAccountName(printed: string | null | undefined, walletName: string, bank: string | null): boolean {
+  if (!printed) return false
+  const a = accountNameKey(printed, bank)
+  return a.length >= 2 && a === accountNameKey(walletName, bank) && a.split(" ").some((t) => !/^(usd|khr|riel|dollar)$/.test(t))
+}
+
 /** The wallet for a slip, or the wallets to ask about. Never a guess between two. */
 export type WalletPick = { wallet: BotWallet } | { choices: BotWallet[] }
 
@@ -184,10 +207,11 @@ function atOtherBank(w: BotWallet, bank: string | null): boolean {
  */
 export function resolveWallet(slip: Pick<Slip, "bank" | "currency"> & Partial<Pick<Slip, "account" | "accountName">>, wallets: BotWallet[]): WalletPick | null {
   if (!wallets.length) return null
-  // The slip prints the account's own name ("DL USD (016 824 222)"): a wallet with exactly that name, in the slip's currency.
-  const printed = slip.accountName?.trim().toLowerCase()
+  // The slip prints the account's own name ("DL USD (016 824 222)"): the wallet of that name («ABA DL USD» —
+  // the bank's words and the number aside), in the slip's currency.
+  const printed = slip.accountName?.trim()
   if (printed) {
-    const named = wallets.filter((w) => w.name.trim().toLowerCase() === printed)
+    const named = wallets.filter((w) => !atOtherBank(w, slip.bank) && sameAccountName(printed, w.name, slip.bank))
     const one = named.filter((w) => w.currency === slip.currency)
     if (one.length === 1) return { wallet: one[0] }
     if (named.length === 1) return { wallet: named[0] }
@@ -243,10 +267,10 @@ export type SlipCandidate = { wallet: BotWallet; workspaceId: string; workspaceN
  */
 export function strongMatch(slip: Pick<Slip, "bank"> & Partial<Pick<Slip, "account" | "accountName">>, w: BotWallet): boolean {
   if (atOtherBank(w, slip.bank)) return false
-  const printed = slip.accountName?.trim().toLowerCase()
-  if (printed && w.name.trim().toLowerCase() === printed) return true
-  const account = slip.account ?? ""
-  return !account.includes("*") && account.replace(/\D/g, "").length >= 8 && accountScore(account, w.account_no) >= 8
+  if (sameAccountName(slip.accountName, w.name, slip.bank)) return true
+  // Digits only («016 824 222» as printed, or already cleaned); a masked number («016***4222») never counts here.
+  const account = (slip.account ?? "").replace(/[^\d*]/g, "")
+  return !account.includes("*") && account.length >= 8 && accountScore(account, w.account_no) >= 8
 }
 
 /**
@@ -262,13 +286,17 @@ export function resolveSlipAcrossWorkspaces(
   const [home, ...others] = workspaces
   if (!home) return null
   const at = (ws: WorkspaceWallets, elsewhere: boolean) => (wallet: BotWallet): SlipCandidate => ({ wallet, workspaceId: ws.id, workspaceName: ws.name, elsewhere })
+  // The wallet the slip names exactly — its account name or its full number — in any of the person's workspaces is
+  // THE answer (founder, 19/10/2026: «DL USD (016 824 222)» is «ABA DL USD» in DL MEAT SUPPLY, never the personal
+  // ABA wallet that only shares the last four digits). Its own workspace first when it is in several.
+  const strong = [...home.wallets.filter((w) => strongMatch(slip, w)).map(at(home, false)), ...others.flatMap((ws) => ws.wallets.filter((w) => strongMatch(slip, w)).map(at(ws, true)))]
+  const inCurrency = strong.filter((c) => c.wallet.currency === slip.currency)
+  const named = inCurrency.length ? inCurrency : strong
+  if (named.length === 1) return { wallet: named[0] }
+  if (named.length > 1) return { choices: named.slice(0, MAX_CHOICES) }
+  // Nothing named exactly: the default workspace decides, as before (a question when unsure).
   const pick = resolveWallet(slip, home.wallets)
-  const elsewhere = others.flatMap((ws) => ws.wallets.filter((w) => strongMatch(slip, w)).map(at(ws, true)))
-  if (!elsewhere.length) return pick ? ("wallet" in pick ? { wallet: at(home, false)(pick.wallet) } : { choices: pick.choices.map(at(home, false)) }) : null
-  // A home wallet the slip names exactly stays the answer; otherwise the named wallet elsewhere is offered first.
-  if (pick && "wallet" in pick && strongMatch(slip, pick.wallet)) return { wallet: at(home, false)(pick.wallet) }
-  const homeList = pick ? ("wallet" in pick ? [pick.wallet] : pick.choices) : []
-  return { choices: [...elsewhere, ...homeList.map(at(home, false))].slice(0, MAX_CHOICES) }
+  return pick ? ("wallet" in pick ? { wallet: at(home, false)(pick.wallet) } : { choices: pick.choices.map(at(home, false)) }) : null
 }
 
 /** "016824222" → "016***4222" (as the app shows it); short numbers as they are. */

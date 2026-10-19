@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { cleanSlip, resolveSlipAcrossWorkspaces, resolveWallet, strongMatch } from "./bank-slip"
+import { accountNameKey, cleanSlip, resolveSlipAcrossWorkspaces, resolveWallet, sameAccountName, strongMatch } from "./bank-slip"
 
 describe("cleanSlip — themed ABA transfer (customer's slip, '-867,700 KHR', 11:27 AM)", () => {
   const read = { is_slip: true, amount: -867700, currency: "KHR", direction: "OUT", bank: "ABA", date: "2026-10-08", time: "11:27 AM", party: "Unknown", account: "001 879 507", owner: "SOU CHENDA AND TIM SREYLEAK", to_account: "016 472 333" }
@@ -80,51 +80,61 @@ describe("resolveWallet — never another bank's wallet by number alone (founder
 })
 
 describe("A slip's wallet in another of the person's workspaces (founder, 19/10/2026 — the DL USD slip)", () => {
-  // The bot's default is Personal; the slip's account is the business wallet «DL USD (016 824 222)».
+  // The founder's real wallets (19/10/2026): the bot's default is Personal; the business wallet is «ABA DL USD»,
+  // with no account number saved; two personal ACLEDA wallets carry 016824222.
   const personal = {
     id: "ws-personal",
     name: "ផ្ទាល់ខ្លួន",
     wallets: [
       { id: "aba-usd", name: "ABA Bank", icon: "aba", currency: "USD" as const, account_no: "078824222" },
-      { id: "ac-016", name: "អេស៊ីលីដា 016***4222 USD", icon: "acleda", currency: "USD" as const, account_no: "016824222" },
+      { id: "wing", name: "វីង 078824222", icon: "wing", currency: "USD" as const, account_no: "078824222" },
+      { id: "ac-016-usd", name: "អេស៊ីលីដា 016***4222 USD", icon: "acleda", currency: "USD" as const, account_no: "016824222" },
+      { id: "ac-016-khr", name: "អេស៊ីលីដា 016***4222 KHR", icon: "acleda", currency: "KHR" as const, account_no: "016824222" },
+      { id: "ac-usd", name: "អេស៊ីលីដា USD", icon: "acleda", currency: "USD" as const, account_no: "078824222" },
     ],
   }
   const business = {
     id: "ws-dl",
     name: "DL MEAT SUPPLY",
     wallets: [
-      { id: "dl-usd", name: "DL USD (016 824 222)", icon: "aba", currency: "USD" as const, account_no: "016824222" },
-      { id: "dl-acleda", name: "ACLEDA DL", icon: "acleda", currency: "USD" as const, account_no: "016824222" },
+      { id: "dl-khr", name: "ABA DL KHR", icon: "aba", currency: "KHR" as const, account_no: "016472333" },
+      { id: "dl-usd", name: "ABA DL USD", icon: "aba", currency: "USD" as const, account_no: null },
+      { id: "dl-acleda", name: "ACLEDA 386***6222", icon: "acleda", currency: "USD" as const, account_no: null },
     ],
   }
-  const slip = { bank: "ABA BANK", currency: "USD" as const, account: "016824222", accountName: "DL USD (016 824 222)" }
+  const slip = { bank: "ABA BANK", currency: "USD" as const, account: "016824222", accountName: "DL USD" }
 
-  it("offers «🏢 DL MEAT SUPPLY · DL USD (016 824 222)» first, then Personal's ABA wallet — never an ACLEDA wallet", () => {
-    const pick = resolveSlipAcrossWorkspaces(slip, [personal, business])
-    assert.ok(pick && "choices" in pick)
-    assert.deepEqual(pick.choices.map((c) => [c.workspaceName, c.wallet.id, c.elsewhere]), [
-      ["DL MEAT SUPPLY", "dl-usd", true],
-      ["ផ្ទាល់ខ្លួន", "aba-usd", false],
-    ])
-    assert.ok(pick.choices.every((c) => c.wallet.icon !== "acleda"))
+  it("«From account: DL USD (016 824 222)» → «ABA DL USD» in DL MEAT SUPPLY, certain — never ABA Bank 078***4222", () => {
+    for (const ws of [[personal, business], [business, personal]]) {
+      const pick = resolveSlipAcrossWorkspaces(slip, ws)
+      assert.ok(pick && "wallet" in pick, JSON.stringify(pick))
+      assert.deepEqual([pick.wallet.wallet.id, pick.wallet.workspaceName], ["dl-usd", "DL MEAT SUPPLY"])
+    }
+    const printedWithNumber = resolveSlipAcrossWorkspaces({ ...slip, accountName: "DL USD (016 824 222)" }, [personal, business])
+    assert.ok(printedWithNumber && "wallet" in printedWithNumber && printedWithNumber.wallet.wallet.id === "dl-usd")
   })
-  it("matched by the full printed number too, when the slip prints no name", () => {
+  it("the account name as people name a wallet: the bank's words and the number aside", () => {
+    assert.equal(accountNameKey("DL USD (016 824 222)", "ABA BANK"), "dl usd")
+    assert.equal(accountNameKey("ABA DL USD", "ABA BANK"), "dl usd")
+    assert.ok(sameAccountName("DL USD", "ABA DL USD", "ABA BANK"))
+    assert.ok(!sameAccountName("DL USD", "ABA DL KHR", "ABA BANK"))
+    assert.ok(!sameAccountName("USD", "ABA USD", "ABA BANK")) // a currency alone names nothing
+    assert.ok(!sameAccountName("DL USD", "ABA Bank", "ABA BANK"))
+    assert.ok(!sameAccountName(null, "ABA DL USD", "ABA BANK"))
+  })
+  it("matched by the full printed number when the slip prints no name", () => {
+    const withNumber = { ...business, wallets: business.wallets.map((w) => (w.id === "dl-usd" ? { ...w, account_no: "016824222" } : w)) }
+    const pick = resolveSlipAcrossWorkspaces({ bank: "ABA BANK", currency: "USD", account: "016 824 222" }, [personal, withNumber])
+    assert.ok(pick && "wallet" in pick && pick.wallet.wallet.id === "dl-usd")
+  })
+  it("never an ACLEDA wallet for an ABA slip, whatever the digits; a masked number never reaches another workspace", () => {
     const pick = resolveSlipAcrossWorkspaces({ bank: "ABA BANK", currency: "USD", account: "016824222" }, [personal, business])
-    assert.ok(pick && "choices" in pick && pick.choices[0].wallet.id === "dl-usd")
+    const offered = !pick ? [] : "wallet" in pick ? [pick.wallet] : pick.choices
+    assert.ok(offered.every((c) => c.wallet.icon !== "acleda"), JSON.stringify(offered.map((c) => c.wallet.id)))
+    assert.equal(strongMatch({ bank: "ABA BANK", account: "016*4222" }, { id: "x", name: "ABA DL USD", icon: "aba", currency: "USD", account_no: "016824222" }), false)
   })
-  it("a masked or 4-digit number is never enough to reach into another workspace", () => {
-    assert.equal(strongMatch({ bank: "ABA BANK", account: "016*4222" }, business.wallets[0]), false)
-    const pick = resolveSlipAcrossWorkspaces({ bank: "ABA BANK", currency: "USD", account: "***4222" }, [personal, business])
-    assert.ok(!pick || ("choices" in pick ? pick.choices : [pick.wallet]).every((c) => !c.elsewhere))
-  })
-  it("a wallet the slip names exactly in the default workspace stays the answer (no detour to the business)", () => {
-    const home = { ...personal, wallets: [...personal.wallets, { id: "p-dl", name: "DL USD (016 824 222)", icon: "aba", currency: "USD" as const, account_no: "016824222" }] }
-    const pick = resolveSlipAcrossWorkspaces(slip, [home, business])
-    assert.ok(pick && "wallet" in pick)
-    assert.equal(pick.wallet.wallet.id, "p-dl")
-  })
-  it("without other workspaces, the slip decides as before", () => {
-    const pick = resolveSlipAcrossWorkspaces({ bank: "ACLEDA", currency: "USD", account: "016824222" }, [personal])
-    assert.ok(pick && "wallet" in pick && pick.wallet.wallet.id === "ac-016")
+  it("an ACLEDA slip from 016 824 222 still goes to the ACLEDA wallet of that number", () => {
+    const pick = resolveSlipAcrossWorkspaces({ bank: "ACLEDA", currency: "USD", account: "016824222" }, [personal, business])
+    assert.ok(pick && "wallet" in pick && pick.wallet.wallet.id === "ac-016-usd")
   })
 })
