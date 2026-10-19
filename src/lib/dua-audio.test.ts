@@ -44,3 +44,19 @@ describe("Du'a recitations to listen to and memorise (founder, 19/10/2026)", () 
     assert.match(readFileSync(join(process.cwd(), "src/app/(app)/islamic/duas/page.tsx"), "utf8"), /<DuaAudioButton id=\{d\.id\} \/>/)
   })
 })
+
+describe("Du'a recordings by Azure AI Speech (founder, 19/10/2026)", () => {
+  it("the Arabic exactly as the card shows it, a calm pace, a pause at each «،» — Azure only, never Edge-TTS", async () => {
+    const { duaSsml, DUA_VOICE } = await import("./dua-audio")
+    const worry = DUAS.find((d) => d.id === "worry-debt")!
+    const ssml = duaSsml(worry.arabic)
+    assert.match(ssml, /xml:lang="ar-SA"><voice name="ar-SA-HamedNeural"><prosody rate="-15%">/)
+    assert.equal((ssml.match(/،<break time="450ms"\/>/g) ?? []).length, (worry.arabic.match(/،/g) ?? []).length)
+    assert.ok(ssml.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").includes(worry.arabic.replace(/،\s*/g, "، ").replace(/\s+/g, " ").trim().split("، ")[0]))
+    assert.equal(DUA_VOICE, "ar-SA-HamedNeural")
+    const script = readFileSync(join(process.cwd(), "scripts/dua-tts.ts"), "utf8").replace(/^\s*(\*|\/\/).*$/gm, "")
+    assert.match(script, /tts\.speech\.microsoft\.com\/cognitiveservices\/v1/)
+    assert.doesNotMatch(script, /edge|bing\.com|readaloud/i)
+    assert.match(script, /duaSsml\(d\.arabic, voice\)/) // the card's own text, never a second copy
+  })
+})

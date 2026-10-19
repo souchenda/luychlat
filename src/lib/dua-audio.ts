@@ -37,3 +37,15 @@ export function duaAudioReducer(s: DuaAudioState, e: DuaAudioEvent): DuaAudioSta
       return { ...s, playing: null }
   }
 }
+
+/**
+ * The du'a recordings made with Azure AI Speech (founder's decision, 19/10/2026 — licensed service only, never
+ * Edge-TTS): the Arabic exactly as the card shows it (lib/duas.ts — the recording must match the text and its
+ * source), a calm learner's pace, a pause at each «،». scripts/dua-tts.ts makes the files.
+ */
+export const DUA_VOICE = "ar-SA-HamedNeural"
+export function duaSsml(arabic: string, voice: string = DUA_VOICE): string {
+  const xml = arabic.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  const body = xml.replace(/،\s*/g, '،<break time="450ms"/> ')
+  return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="ar-SA"><voice name="${voice}"><prosody rate="-15%"><break time="300ms"/>${body}<break time="500ms"/></prosody></voice></speak>`
+}
