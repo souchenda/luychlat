@@ -132,7 +132,7 @@ describe("The admin's du'a recordings — the card's «📤 បញ្ចូល�
     assert.match(sql, /public\.dua_recording_put\(public\.tip_chat_super_admin\(p_chat_id\)/)
     // The API route checks the caller before anything is stored.
     const route = read("src/app/api/duas/audio/route.ts")
-    assert.match(route, /rpc\("is_super_admin"\)/)
+    assert.match(route, /rpc\("is_admin"\)/) // a super admin or the «admin» staff role (19/10/2026)
     assert.match(route, /form\?\.get\("rights"\) !== "yes"/)
   })
 

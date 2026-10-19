@@ -92,10 +92,11 @@ describe("Adhans the admin publishes for everyone — no code change, no deploy 
     assert.match(read("src/lib/prayer-alerts.ts"), /if \(!src\.startsWith\("blob:"\)\) audio\.crossOrigin = "anonymous"/)
   })
 
-  it("only a super admin may publish; a regular member's file stays on the phone (IndexedDB)", async () => {
+  it("only content managers (super admin, «admin» staff) may publish; a regular member's file stays on the phone (IndexedDB)", async () => {
     const { canPublishGlobally, globalAdhanError } = await import("./adhan-presets")
     assert.equal(canPublishGlobally("super_admin"), true)
-    for (const role of ["admin", "support", null, undefined]) assert.equal(canPublishGlobally(role), false)
+    assert.equal(canPublishGlobally("admin"), true) // the founder's co-admin (19/10/2026)
+    for (const role of ["support", "member", null, undefined]) assert.equal(canPublishGlobally(role), false)
     const ui = read("src/components/islamic/prayer-alerts.tsx")
     assert.match(ui, /const admin = canPublishGlobally\(usePlan\(\)\.plan\.staff_role\)/)
     assert.match(ui, /if \(admin\) return setPending\(file\)\r?\n\s+await keepOnDevice\(file\)/)
@@ -111,7 +112,7 @@ describe("Adhans the admin publishes for everyone — no code change, no deploy 
 
   it("the server and the database refuse anyone but a super admin; every change is audited", () => {
     const route = read("src/app/api/adhan/presets/route.ts")
-    assert.match(route, /rpc\("is_super_admin"\)/)
+    assert.match(route, /rpc\("is_admin"\)/)
     assert.match(route, /return NextResponse\.json\(\{ error: "forbidden" \}, \{ status: 403 \}\)/)
     assert.match(route, /cleanDuaAudio\(new Uint8Array\(await file\.arrayBuffer\(\)\), GLOBAL_ADHAN_MAX_SECONDS\)/)
     const sql = read("supabase/migrations/20270183000000_adhan_global_presets.sql")

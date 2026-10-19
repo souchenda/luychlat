@@ -16,6 +16,7 @@ import { submittedThanks } from "@/lib/contributor-thanks"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { submissionError } from "@/lib/nasheed"
 import { nasheedQueue, useMyNasheedLikes, useNasheedMutations, useNasheedTracks, useSubmitNasheed, useToggleNasheedLike, type NasheedTrack } from "@/lib/nasheed-data"
+import { canPublishGlobally } from "@/lib/adhan-presets"
 import { usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -30,7 +31,8 @@ export default function NasheedPage() {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const { plan } = usePlan()
-  const owner = plan.staff_role === "super_admin"
+  // Content managers: a super admin or the «admin» staff role (founder, 19/10/2026).
+  const owner = canPublishGlobally(plan.staff_role)
   const tracks = useNasheedTracks()
   const { remove } = useNasheedMutations()
   const likes = useMyNasheedLikes()

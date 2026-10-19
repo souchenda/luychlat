@@ -110,8 +110,8 @@ export const GLOBAL_ADHAN_MAX_SECONDS = 360
 /** A file to publish goes through Nginx (10 MB a request); a larger one can still be kept on the device. */
 export const GLOBAL_ADHAN_MAX_BYTES = 9 * 1024 * 1024
 
-/** Only a super admin may publish for everyone (the database checks again: adhan_preset_add). */
-export const canPublishGlobally = (staffRole: string | null | undefined) => staffRole === "super_admin"
+/** Only staff who manage content — a super admin or the «admin» role — may publish for everyone (the database checks again). */
+export const canPublishGlobally = (staffRole: string | null | undefined) => staffRole === "super_admin" || staffRole === "admin"
 
 export type GlobalAdhanRow = { id: string; name_km: string; name_en: string | null; credit: string; audio_path: string }
 

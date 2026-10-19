@@ -11,6 +11,7 @@ import { duaAudioSrc, DUA_RECORDINGS } from "@/lib/dua-audio"
 import { useDuaRecordings } from "@/lib/dua-audio-data"
 import { DUAS, type Dua } from "@/lib/duas"
 import { useKhmerT, useT } from "@/lib/i18n/use-t"
+import { canPublishGlobally } from "@/lib/adhan-presets"
 import { usePlan } from "@/lib/plan"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
@@ -24,7 +25,8 @@ export default function DuasPage() {
   const tk = useKhmerT()
   const locale = useLocaleStore((s) => s.locale)
   const [copied, setCopied] = useState<string | null>(null)
-  const owner = usePlan().plan.staff_role === "super_admin"
+  // Content managers: a super admin or the «admin» staff role (founder, 19/10/2026).
+  const owner = canPublishGlobally(usePlan().plan.staff_role)
   const uploaded = useDuaRecordings().data ?? {}
   const [uploading, setUploading] = useState<Dua | null>(null)
   const urls = Object.fromEntries(Object.entries(uploaded).map(([id, r]) => [id, r.url]))

@@ -48,6 +48,7 @@ import { handleSetApprovalGroup, isSetApprovalGroupCommand } from "@/lib/server/
 import { duaWantsAudio, handleDuaAudio, handleDuaCallback, handleSetDua, type DuaIncoming } from "@/lib/server/dua-audio-bot"
 import { isDuaCallback, isSetDuaCommand } from "@/lib/dua-audio"
 import { handlePlaceReviewCallback, isPlaceReviewCallback } from "@/lib/server/place-alerts"
+import { handleApproverCommand, isApproverCommand } from "@/lib/server/co-approvers"
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
 
@@ -80,7 +81,7 @@ type Update = {
     caption?: string
     photo?: { file_id: string; file_unique_id?: string; width?: number; file_size?: number }[]
     message_id?: number
-    reply_to_message?: { message_id: number; from?: { is_bot?: boolean } }
+    reply_to_message?: { message_id: number; from?: { id?: number; is_bot?: boolean; first_name?: string; last_name?: string; username?: string } }
     voice?: { file_id: string; duration?: number; file_size?: number }
     document?: { file_id?: string; file_name?: string; mime_type?: string; file_size?: number }
     /** An audio file (MP3 / M4A) — a du'a recording from the super admin (/setdua). */
@@ -382,6 +383,11 @@ export async function POST(request: Request) {
   }
   const message = update.message
   if (message && (message.chat.type === "group" || message.chat.type === "supergroup")) {
+    // A super admin's reply /addapprover [login] or /removeapprover: a co-approver for «LCA Approval» (founder, 19/10/2026).
+    if (message.text && isApproverCommand(message.text)) {
+      await handleApproverCommand(message.chat.id, message.from?.id, message.text, message.reply_to_message?.from)
+      return NextResponse.json({ ok: true })
+    }
     const fileId = bestPhoto(message.photo)
     await handleGroupMessage(message.chat.id, message.text ?? message.caption ?? "", telegramLocale(message.from?.language_code), message.from?.id, {
       fileId,
