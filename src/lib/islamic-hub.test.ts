@@ -60,3 +60,12 @@ describe("The /islamic home (founder, 19/10/2026)", () => {
     for (const href of ['"/islamic/qibla"', '"/islamic/quran"', '"/islamic/places"', '"#zakat"', 'href="/islamic/prayer"']) assert.ok(hub.includes(href), href)
   })
 })
+
+describe("The hub's title (founder, 19/10/2026 — Option 2)", () => {
+  it("«សហគមន៍ ឥស្លាម» / Islamic Community, like the channel «សហគមន៍ អេប លុយឆ្លាត ឥស្លាម»", async () => {
+    const { dictionaries } = await import("./i18n/dictionaries")
+    assert.equal(dictionaries.km["islamic.title"], "សហគមន៍ ឥស្លាម")
+    assert.equal(dictionaries.en["islamic.title"], "Islamic Community")
+    assert.match(readFileSync(join(process.cwd(), "src/app/(app)/islamic/layout.tsx"), "utf8"), /<h1 className="text-xl font-bold">\{t\("islamic\.title"\)\}<\/h1>/)
+  })
+})

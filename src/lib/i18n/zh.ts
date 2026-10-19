@@ -1060,7 +1060,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "admin.aboutInvalid": "链接须以 https:// 开头，且邮箱须有效",
   "about.poweredBy": "技术支持：{name}",
   "settings.exchangeRateFamily": "由家庭账户所有者设置",
-  "islamic.title": "伊斯兰金融",
+  "islamic.title": "伊斯兰社区",
   "islamic.short": "伊斯兰",
   "islamic.toggle": "启用伊斯兰金融工具",
   "islamic.toggleHint": "天课（Zakat）、利息（Riba）、施舍与伊斯兰历。仅您本人可见此设置。",
