@@ -28,6 +28,7 @@ import { GuestImportPrompt } from "@/components/settings/guest-import"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { TestPlanBanner } from "@/components/admin/test-plan"
 import { LanguageToggle } from "@/components/layout/language-toggle"
+import { AdminModeToggle } from "@/components/islamic/islamic-mode"
 import { WorkspaceFlip } from "@/components/workspace/workspace-switcher"
 import { useActiveWorkspace } from "@/lib/data/hooks"
 import { cn } from "@/lib/utils"
@@ -95,6 +96,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <WorkspaceFlip />
               </div>
               {/* Settings, Islamic tools and the rest live in the ☰ menu / sidebar. */}
+              {/* Admin only: one tap between the general and the Islamic experience (founder, 19/10/2026). */}
+              <AdminModeToggle />
               <LanguageToggle compact />
               <NotificationBell />
             </div>

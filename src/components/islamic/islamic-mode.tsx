@@ -141,35 +141,38 @@ export function ExperienceSelector() {
 }
 
 /**
- * Admin only, on the /islamic header (founder, 19/10/2026): one tap back to the general experience — Islamic Mode off
- * for themselves, then Home — to look at both. A regular user never sees it (the database refuses them anyway).
+ * Admin only, in the top bar beside the language (founder, 19/10/2026 — on the /islamic header it squeezed the title
+ * into a narrow column): one tap flips Islamic Mode for themselves — «☀️ មហាជន» while it is on, «🌙 ឥស្លាម» while it
+ * is off — then Home, to look at both experiences. A regular user never sees it (the database refuses them anyway).
  */
-export function AdminGeneralModeSwitch() {
+export function AdminModeToggle() {
   const t = useT()
   const router = useRouter()
-  const { settings } = useIslamicSettings()
+  const { settings, loaded } = useIslamicSettings()
   const { setEnabled } = useIslamicMutations()
   const canManage = canManageIslamicMode(usePlan().plan)
-  if (!canManage || !settings.enabled) return null
+  if (!canManage || !loaded) return null
+  const on = settings.enabled
   return (
     <Button
       type="button"
       size="sm"
-      variant="outline"
-      className="ml-auto h-9 shrink-0 rounded-full"
+      variant="ghost"
+      className="h-9 shrink-0 gap-1 rounded-full px-2 text-xs font-semibold"
       disabled={setEnabled.isPending}
+      aria-label={t(on ? "islamic.switchGeneral" : "islamic.switchIslamic")}
       onClick={() =>
-        setEnabled.mutate(false, {
+        setEnabled.mutate(!on, {
           onSuccess: () => {
-            toast.success(t("islamic.switchedGeneral"))
+            toast.success(t(on ? "islamic.switchedGeneral" : "islamic.enabled"))
             router.push("/home")
           },
           onError: () => toast.error(t("common.error")),
         })
       }
     >
-      {setEnabled.isPending && <Loader2Icon className="animate-spin" />}
-      {t("islamic.switchGeneral")}
+      {setEnabled.isPending ? <Loader2Icon className="size-3.5 animate-spin" /> : null}
+      {t(on ? "islamic.pillGeneral" : "islamic.pillIslamic")}
     </Button>
   )
 }
