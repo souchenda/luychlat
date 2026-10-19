@@ -11,7 +11,7 @@ import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-r
 
 import type { SilPosterContent } from "@/lib/sil-poster"
 
-import { drawIcon, FAMILIES, loadFonts, roundRect, wrap } from "./poster-kit"
+import { drawIcon, FAMILIES, loadFonts, roundRect } from "./poster-kit"
 
 export const SIL_POSTER = { W: 1080, H: 1350, background: "public/images/buddhist_sil_day_bg.jpg" } as const
 const { W, H } = SIL_POSTER
@@ -31,7 +31,9 @@ export const silPosterReady: Promise<void> = Promise.all([load(SIL_POSTER.backgr
 export const silBackgroundInPlace = () => art.bg !== null
 
 /** The photograph's frame: between the title and the blessing — no word ever over the Buddha image. */
-export const SIL_FRAME = { top: 410, bottom: 1040, maxWidth: 860 } as const
+export const SIL_FRAME = { top: 425, bottom: 1035, maxWidth: 860 } as const
+/** The words' places (baselines and sizes) — the frame sits between the title and the blessing (sil-poster.test.ts). */
+export const SIL_LAYOUT = { headline: 248, headlineSize: 62, title: 365, titleSize: 100, blessing: 1098, blessingSize: 36, divider: 1188, cta: 1242, links: 1304 } as const
 
 function background(ctx: SKRSContext2D) {
   if (art.bg) {
@@ -94,11 +96,11 @@ function centrepiece(ctx: SKRSContext2D) {
 }
 
 /** A gold lotus outline (the drawn field's centrepiece). */
-function lotus(ctx: SKRSContext2D, cx: number, cy: number, r: number) {
+function lotus(ctx: SKRSContext2D, cx: number, cy: number, r: number, icon = false) {
   ctx.save()
-  ctx.strokeStyle = "rgba(252,211,77,0.7)"
-  ctx.fillStyle = "rgba(252,211,77,0.08)"
-  ctx.lineWidth = 3
+  ctx.strokeStyle = icon ? "#fcd34d" : "rgba(252,211,77,0.7)"
+  ctx.fillStyle = icon ? "rgba(252,211,77,0.45)" : "rgba(252,211,77,0.08)"
+  ctx.lineWidth = icon ? 1.6 : 3
   for (const [angle, scale] of [[0, 1], [-0.55, 0.85], [0.55, 0.85], [-1.05, 0.65], [1.05, 0.65]] as const) {
     ctx.save()
     ctx.translate(cx, cy)
@@ -157,53 +159,60 @@ export function renderSilPoster(c: SilPosterContent): Buffer {
     ctx.fillText("សហគមន៍", x + mark + 22, top + 84)
   })
 
-  // The day: lunar and calendar, one line (fitted).
-  ctx.textAlign = "center"
-  let size = 32
-  for (const s of [32, 30, 28, 26]) {
+  // The day, top right, two lines (founder, 19/10/2026): «🪷 ថ្ងៃសីល (…)» / «ត្រូវនឹង ថ្ងៃ…» — the lotus drawn, not an emoji.
+  const right = W - 70
+  const room = right - (x + mark + 22 + 250) // clear of the brand
+  let dateSize = 28
+  for (const s of [28, 26, 24, 22]) {
     ctx.font = `600 ${s}px ${FAMILIES}`
-    size = s
-    if (ctx.measureText(c.dateline).width <= W - 120) break
+    dateSize = s
+    if (Math.max(...c.dateLines.map((l) => ctx.measureText(l).width)) + 36 <= room) break
   }
-  ctx.font = `600 ${size}px ${FAMILIES}`
-  const dw = Math.min(W - 80, ctx.measureText(c.dateline).width + 56)
-  roundRect(ctx, (W - dw) / 2, 160, dw, 58, 29)
-  ctx.fillStyle = "rgba(2,44,34,0.72)"
-  ctx.fill()
-  ctx.lineWidth = 2
-  ctx.strokeStyle = "rgba(252,211,77,0.75)"
-  ctx.stroke()
-  ctx.fillStyle = "#fef3c7"
-  ctx.fillText(c.dateline, W / 2, 200)
-
-  // «សូមអនុមោទនា» and «ថ្ងៃនេះជាថ្ងៃសីល» — the largest, in gold.
   shadowed(ctx, () => {
-    ctx.font = `700 56px ${FAMILIES}`
-    ctx.fillStyle = "#fef3c7"
-    ctx.fillText(c.headline, W / 2, 282)
-    ctx.font = `800 84px ${FAMILIES}`
-    const gold = ctx.createLinearGradient(0, 310, 0, 390)
-    gold.addColorStop(0, "#fef3c7")
-    gold.addColorStop(0.5, "#fcd34d")
-    gold.addColorStop(1, "#d97706")
-    ctx.fillStyle = gold
-    ctx.fillText(c.title, W / 2, 380)
-  }, 20)
+    ctx.textAlign = "right"
+    ctx.font = `600 ${dateSize}px ${FAMILIES}`
+    ctx.fillStyle = "rgba(209,250,229,0.95)"
+    ctx.fillText(c.dateLines[0], right, top + 38)
+    const w0 = ctx.measureText(c.dateLines[0]).width
+    lotus(ctx, right - w0 - 22, top + 34, 18, true)
+    ctx.font = `500 ${dateSize - 2}px ${FAMILIES}`
+    ctx.fillStyle = "rgba(209,250,229,0.85)"
+    ctx.fillText(c.dateLines[1], right, top + 38 + Math.round(dateSize * 1.5))
+  }, 8)
+  ctx.textAlign = "center"
 
-  // The blessing, in the bottom band.
-  ctx.font = `500 34px ${FAMILIES}`
-  const lines = wrap(ctx, c.blessing, W - 160, 2)
+  // «សូមអនុមោទនា» / «ថ្ងៃនេះជាថ្ងៃសីល» — large, centred, gold with a warm glow; room to breathe.
+  ctx.save()
+  ctx.shadowColor = "rgba(251,191,36,0.55)"
+  ctx.shadowBlur = 30
+  ctx.font = `700 ${SIL_LAYOUT.headlineSize}px ${FAMILIES}`
+  ctx.fillStyle = "#fef3c7"
+  ctx.fillText(c.headline, W / 2, SIL_LAYOUT.headline)
+  ctx.font = `800 ${SIL_LAYOUT.titleSize}px ${FAMILIES}`
+  const gold = ctx.createLinearGradient(0, SIL_LAYOUT.title - SIL_LAYOUT.titleSize, 0, SIL_LAYOUT.title)
+  gold.addColorStop(0, "#fef3c7")
+  gold.addColorStop(0.5, "#fcd34d")
+  gold.addColorStop(1, "#d97706")
+  ctx.fillStyle = gold
+  ctx.fillText(c.title, W / 2, SIL_LAYOUT.title)
+  ctx.restore()
+
+  // The blessing: two balanced lines, line height 1.65, centred.
+  ctx.font = `500 ${SIL_LAYOUT.blessingSize}px ${FAMILIES}`
   shadowed(ctx, () => {
     ctx.fillStyle = "#ffffff"
-    lines.forEach((l, i) => ctx.fillText(l, W / 2, 1098 + i * 54))
+    c.blessingLines.forEach((l, i) => ctx.fillText(l, W / 2, SIL_LAYOUT.blessing + i * Math.round(SIL_LAYOUT.blessingSize * 1.65)))
   })
 
   // The call to the app, then the links.
   ctx.fillStyle = "rgba(252,211,77,0.55)"
-  ctx.fillRect(120, 1180, W - 240, 1.5)
-  ctx.font = `500 30px ${FAMILIES}`
+  ctx.fillRect(120, SIL_LAYOUT.divider, W - 240, 1.5)
+  for (const s of [30, 28, 26, 24]) {
+    ctx.font = `500 ${s}px ${FAMILIES}`
+    if (ctx.measureText(c.cta).width <= W - 160) break
+  }
   ctx.fillStyle = "rgba(253,230,138,0.95)"
-  ctx.fillText(c.cta, W / 2, 1238)
+  ctx.fillText(c.cta, W / 2, SIL_LAYOUT.cta)
   ctx.font = `600 30px ${FAMILIES}`
   const [a, b] = c.links
   const gap = 34
@@ -211,7 +220,7 @@ export function renderSilPoster(c: SilPosterContent): Buffer {
   const bw = ctx.measureText(b).width
   const dot = ctx.measureText("•").width
   let lx = (W - (40 + aw + gap + dot + gap + 40 + bw)) / 2
-  const ly = 1305
+  const ly = SIL_LAYOUT.links
   ctx.textAlign = "left"
   drawIcon(ctx, "globe", lx + 14, ly - 10)
   ctx.fillStyle = "#ffffff"

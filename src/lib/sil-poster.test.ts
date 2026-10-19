@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { kmCalendarDay, SIL_BLESSING, silPosterContent } from "./sil-poster"
+import { kmCalendarDay, SIL_BLESSING, SIL_BLESSING_LINES, silPosterContent } from "./sil-poster"
 
 describe("The Sil day poster — the day's own lunar and calendar dates (founder, 19/10/2026)", () => {
   it("the four Sil days of a lunar month, each with its date", () => {
@@ -10,6 +10,8 @@ describe("The Sil day poster — the day's own lunar and calendar dates (founder
     assert.equal(silPosterContent("2026-11-03")!.lunar, "៨ រោច ខែអស្សុជ")
     assert.equal(silPosterContent("2026-11-09")!.lunar, "១៤ រោច ខែអស្សុជ (ដាច់ខែ)")
     assert.equal(silPosterContent("2026-11-09")!.dateline, "ថ្ងៃសីល (១៤ រោច ខែអស្សុជ · ដាច់ខែ) · ត្រូវនឹង ថ្ងៃច័ន្ទ ៩ វិច្ឆិកា ២០២៦")
+    // The poster's top-right block, two lines (founder, 19/10/2026).
+    assert.deepEqual(silPosterContent("2026-10-26")!.dateLines, ["ថ្ងៃសីល (១៥ កើត ខែអស្សុជ · ពេញបូណ៌មី)", "ត្រូវនឹង ថ្ងៃច័ន្ទ ២៦ តុលា ២០២៦"])
   })
   it("no poster on an ordinary day", () => {
     assert.equal(silPosterContent("2026-10-20"), null)
@@ -19,7 +21,9 @@ describe("The Sil day poster — the day's own lunar and calendar dates (founder
     const c = silPosterContent("2026-10-19")!
     assert.deepEqual([c.headline, c.title], ["សូមអនុមោទនា", "ថ្ងៃនេះជាថ្ងៃសីល"])
     assert.equal(SIL_BLESSING, "សូមឱ្យសព្វសត្វទាំងឡាយ បានសុខចម្រើន រួចផុតចាកទុក្ខទាំងពួង និងជួបតែសេចក្ដីសុខសាន្ត")
-    assert.equal(c.cta, "គ្រប់គ្រងចំណូល-ចំណាយ និងហិរញ្ញវត្ថុដោយឥតគិតថ្លៃ")
+    assert.deepEqual(SIL_BLESSING_LINES, ["សូមឱ្យសព្វសត្វទាំងឡាយ បានសុខចម្រើន", "រួចផុតចាកទុក្ខទាំងពួង និងជួបតែសេចក្ដីសុខសាន្ត"])
+    assert.deepEqual(c.blessingLines, SIL_BLESSING_LINES)
+    assert.equal(c.cta, "ចូលរួមសហគមន៍ អេប លុយឆ្លាត ដើម្បីទទួលបានដំណឹងសំខាន់ៗក្នុងអេប") // the brand as the standard writes it
     assert.deepEqual(c.links, ["app.luychlat.com", "@LuyChlatCommunity"])
     assert.doesNotMatch(Object.values(c).join(" "), /រីករាយ|Islamic/)
     assert.equal(kmCalendarDay("2026-11-03"), "ថ្ងៃអង្គារ ៣ វិច្ឆិកា ២០២៦")

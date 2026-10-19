@@ -19,8 +19,12 @@ export function kmCalendarDay(day: string): string {
 export type SilPosterContent = {
   /** «៨ កើត ខែអស្សុជ», «១៥ កើត ខែអស្សុជ (ពេញបូណ៌មី)», «១៤ រោច ខែអស្សុជ (ដាច់ខែ)». */
   lunar: string
-  /** «ថ្ងៃសីល (៨ កើត ខែអស្សុជ) · ត្រូវនឹង ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦». */
+  /** «ថ្ងៃសីល (៨ កើត ខែអស្សុជ) · ត្រូវនឹង ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦» (one line — the caption). */
   dateline: string
+  /** The poster's top-right block (founder, 19/10/2026): «ថ្ងៃសីល (១៥ កើត ខែអស្សុជ · ពេញបូណ៌មី)» / «ត្រូវនឹង ថ្ងៃច័ន្ទ …». */
+  dateLines: [string, string]
+  /** The blessing in two balanced lines. */
+  blessingLines: [string, string]
   headline: string
   title: string
   blessing: string
@@ -28,8 +32,10 @@ export type SilPosterContent = {
   links: [string, string]
 }
 
-export const SIL_BLESSING = "សូមឱ្យសព្វសត្វទាំងឡាយ បានសុខចម្រើន រួចផុតចាកទុក្ខទាំងពួង និងជួបតែសេចក្ដីសុខសាន្ត"
-export const SIL_CTA = "គ្រប់គ្រងចំណូល-ចំណាយ និងហិរញ្ញវត្ថុដោយឥតគិតថ្លៃ"
+export const SIL_BLESSING_LINES: [string, string] = ["សូមឱ្យសព្វសត្វទាំងឡាយ បានសុខចម្រើន", "រួចផុតចាកទុក្ខទាំងពួង និងជួបតែសេចក្ដីសុខសាន្ត"]
+export const SIL_BLESSING = SIL_BLESSING_LINES.join(" ")
+/** The call (founder, 19/10/2026), with the brand as the standard writes it: «អេប លុយឆ្លាត». */
+export const SIL_CTA = "ចូលរួមសហគមន៍ អេប លុយឆ្លាត ដើម្បីទទួលបានដំណឹងសំខាន់ៗក្នុងអេប"
 
 /** The poster for a Sil day; null on any other day. */
 export function silPosterContent(day: string): SilPosterContent | null {
@@ -37,9 +43,12 @@ export function silPosterContent(day: string): SilPosterContent | null {
   if (!isSilDay(l)) return null
   const phase = l.phase === "kert" && l.day === 15 ? "ពេញបូណ៌មី" : l.phase === "roch" && l.day === l.monthLength - 15 ? "ដាច់ខែ" : null
   const base = formatLunar(l, "km")
+  const sil = `ថ្ងៃសីល (${phase ? `${base} · ${phase}` : base})`
   return {
     lunar: phase ? `${base} (${phase})` : base,
-    dateline: `ថ្ងៃសីល (${phase ? `${base} · ${phase}` : base}) · ត្រូវនឹង ${kmCalendarDay(day)}`,
+    dateline: `${sil} · ត្រូវនឹង ${kmCalendarDay(day)}`,
+    dateLines: [sil, `ត្រូវនឹង ${kmCalendarDay(day)}`],
+    blessingLines: SIL_BLESSING_LINES,
     headline: "សូមអនុមោទនា",
     title: "ថ្ងៃនេះជាថ្ងៃសីល",
     blessing: SIL_BLESSING,
