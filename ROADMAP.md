@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 19/10/2026 · 23:30 (Cambodia time)
+**Last updated:** 20/10/2026 · 00:35 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -72,6 +72,9 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Droplet disk space maintenance (38 GB free at the time)
 - [x] Disk: Docker builder cache pruned — 43 GB reclaimed, 58 GB free (25 % used, 19/10/2026 21:00)
 - [ ] Disk: a weekly Docker builder-cache prune (cron) — not set up yet; 52 GB free on 19/10/2026 23:30, each deploy adds ~1–2 GB
+- [x] Nightly reports restored: the 23:59 end-of-day report reached no chat (no DevOps chat set) while logging «sent» — now the founder's chat; new 23:30 «📊 របាយការណ៍ប្រចាំថ្ងៃ & សុខភាព Server» card in «LCA Approval»; missed windows caught up until 06:00; /report on demand (3ed4182, ce4a4e9)
+- [x] Post-deploy health-check rule in CLAUDE.md (no silent failures)
+- [/] One-off morning briefing to the founder, 20/10/2026 07:00
 
 ## 5. 🚀 ហេដ្ឋារចនាសម្ព័ន្ធទូទាត់ឆ្លាតវៃ (Smart Merchant & Payment Infrastructure — Long-term / Future Vision)
 

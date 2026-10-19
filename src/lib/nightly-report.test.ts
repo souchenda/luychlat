@@ -30,7 +30,7 @@ describe("The nightly report before midnight (founder, 19/10/2026)", () => {
     assert.ok(nightlyDue(23, 30) && nightlyDue(23, 59))
     assert.ok(!nightlyDue(23, 29) && !nightlyDue(0, 0) && !nightlyDue(22, 45))
     const job = read("src/lib/server/nightly-report.ts")
-    assert.match(job, /p_job: "nightly-report", p_day: now\.day/)
+    assert.match(job, /p_job: "nightly-report", p_day: day \}/)
     assert.match(job, /for \(const chat of await marketingChats\(\)\)/)
     assert.match(read("src/lib/server/bot-dispatch.ts"), /await nightlyReportTick\(\)/)
   })
@@ -41,5 +41,25 @@ describe("The nightly report before midnight (founder, 19/10/2026)", () => {
     assert.match(read("src/lib/server/admin-routes.ts"), /return o\.critical \|\| o\.founderFallback \? superAdminChats\(\) : \[\]/)
     assert.match(eod, /else if \(now\.hour < 6\) day/) // a deploy around midnight still sends yesterday's
     assert.ok(read("src/app/api/telegram/webhook/route.ts").includes("sendNightlyReport(phnomPenhToday().day)")) // /report on demand
+  })
+})
+
+describe("Never silently skipped: the missed report catches up; the founder's morning briefing (20/10/2026)", () => {
+  it("today's report from 23:30; a missed one until 06:00 the next morning; none in the day", async () => {
+    const { nightlyReportDay } = await import("./nightly-report")
+    assert.equal(nightlyReportDay("2026-10-19", 23, 30), "2026-10-19")
+    assert.equal(nightlyReportDay("2026-10-20", 0, 25), "2026-10-19")
+    assert.equal(nightlyReportDay("2026-10-20", 5, 59), "2026-10-19")
+    assert.equal(nightlyReportDay("2026-10-20", 6, 0), null)
+    assert.equal(nightlyReportDay("2026-10-20", 14, 0), null)
+  })
+  it("the briefing: 07:00 on 20/10/2026, once, to the founder's chat, with the server's real figures", async () => {
+    const { MORNING_BRIEFING, morningBriefingText } = await import("./nightly-report")
+    assert.deepEqual(MORNING_BRIEFING, { day: "2026-10-20", fromMinute: 420, untilMinute: 660 })
+    const ok = morningBriefingText({ healthy: true, diskFreeGb: 51.2 })
+    assert.match(ok, /^🌅 អរុណសួស្តី! របាយការណ៍សង្ខេបការងារយប់មិញ & សុខភាពប្រព័ន្ធ\n/)
+    assert.match(ok, /Server ដំណើរការល្អ \(Disk ទំនេរ 51\.2 GB\)/)
+    assert.match(morningBriefingText({ healthy: false, diskFreeGb: 9 }), /Server ត្រូវតាមដាន/) // never claims health it does not see
+    assert.match(read("src/lib/server/nightly-report.ts"), /p_job: "morning-briefing"/)
   })
 })

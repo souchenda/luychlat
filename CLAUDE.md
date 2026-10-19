@@ -61,6 +61,11 @@ use come before feature count: no half-baked features, broken links or untested 
 5. **SoundBox is isolated:** `lib/soundbox.ts` imports nothing of the app, `lib/soundbox-audio.ts` only the
    SoundBox core, and no SoundBox file imports sign-in, publishing or wallet-balance code; only the
    SoundBox page uses the audio module. The guard test enforces it.
+6. **MANDATORY POST-DEPLOY HEALTH CHECK (founder, 20/10/2026):** after any code deployment, container rebuild or
+   system prune, the engineer must verify that all background cron jobs, schedulers and Telegram notification
+   dispatchers remain active. Silent failures are strictly prohibited: a dispatcher logs how many chats really received
+   a message (never a bare «sent»), and a missed time window is caught up, not skipped (the 23:59 end-of-day report
+   went to no chat for days while logging «sent» — `lib/server/dev-eod.ts`, `lib/server/nightly-report.ts`).
 
 ## Publishing and content standards (founder, 12/10/2026)
 
