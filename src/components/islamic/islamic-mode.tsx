@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { useT } from "@/lib/i18n/use-t"
+import { useRouter } from "next/navigation"
+
 import { canManageIslamicMode } from "@/lib/islamic-access"
 import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
 import { usePlan } from "@/lib/plan"
@@ -135,5 +137,39 @@ export function ExperienceSelector() {
         </button>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/**
+ * Admin only, on the /islamic header (founder, 19/10/2026): one tap back to the general experience — Islamic Mode off
+ * for themselves, then Home — to look at both. A regular user never sees it (the database refuses them anyway).
+ */
+export function AdminGeneralModeSwitch() {
+  const t = useT()
+  const router = useRouter()
+  const { settings } = useIslamicSettings()
+  const { setEnabled } = useIslamicMutations()
+  const canManage = canManageIslamicMode(usePlan().plan)
+  if (!canManage || !settings.enabled) return null
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      className="ml-auto h-9 shrink-0 rounded-full"
+      disabled={setEnabled.isPending}
+      onClick={() =>
+        setEnabled.mutate(false, {
+          onSuccess: () => {
+            toast.success(t("islamic.switchedGeneral"))
+            router.push("/home")
+          },
+          onError: () => toast.error(t("common.error")),
+        })
+      }
+    >
+      {setEnabled.isPending && <Loader2Icon className="animate-spin" />}
+      {t("islamic.switchGeneral")}
+    </Button>
   )
 }

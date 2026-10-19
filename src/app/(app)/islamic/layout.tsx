@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 
 import { BrandMark } from "@/components/brand-mark"
 import { Button } from "@/components/ui/button"
-import { IslamicModeOff } from "@/components/islamic/islamic-mode"
+import { AdminGeneralModeSwitch, IslamicModeOff } from "@/components/islamic/islamic-mode"
 import { type MessageKey, contentLocale } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatHijri, ISLAMIC_ARABIC, toHijri } from "@/lib/islamic"
@@ -53,6 +53,8 @@ export default function IslamicLayout({ children }: { children: React.ReactNode 
             </p>
           )}
         </div>
+        {/* Admin only: one tap back to the general experience (founder, 19/10/2026). */}
+        <AdminGeneralModeSwitch />
       </div>
 
       {loading ? (
