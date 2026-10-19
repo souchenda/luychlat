@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { ScriptureRefs } from "@/components/islamic/scripture-refs"
 import { DailyTipCard } from "@/components/dashboard/daily-tip-card"
 import { IslamicQuizCard } from "@/components/islamic/quiz-card"
+import { ContextualDuaCard, IslamicHubHero, IslamicQuickActions } from "@/components/islamic/hub"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -282,11 +283,17 @@ export default function IslamicPage() {
 
   return (
     <div className="space-y-5">
+      {/* The daily hub (founder, 19/10/2026): the next prayer (and Iftar on a fast day), four quick actions, the du'a of the hour. */}
+      <div className="space-y-3">
+        <IslamicHubHero />
+        <IslamicQuickActions />
+      </div>
+      <ContextualDuaCard />
       {/* Today's Islamic financial wisdom, with its Quran / Hadith source (founder, 18/10/2026). */}
       <DailyTipCard />
       <IslamicQuizCard />
-      {/* Zakat calculator */}
-      <section className="space-y-2">
+      {/* Zakat calculator — the «គណនាហ្សាកាត់» quick action scrolls here. */}
+      <section id="zakat" className="scroll-mt-4 space-y-2">
         <h2 className="flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground">
           <CoinsIcon className="size-4" aria-hidden />
           {t("islamic.zakatTitle")}
