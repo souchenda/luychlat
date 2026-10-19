@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { atMinute, takeAllowed, type PostKind } from "../scheduled-posts"
+import { atMinute, isAutoPublish, takeAllowed, type PostKind } from "../scheduled-posts"
 
 import { createScheduler, type PostRow, type Preview, type SchedulerDeps } from "./scheduled-posts"
 
@@ -23,7 +23,8 @@ function fake(start: number) {
     async schedule(kind: PostKind, postKey, payload, publishAt) {
       const found = rows.find((r) => r.kind === kind && r.post_key === postKey)
       if (found) return { ...found, created: false }
-      const row: PostRow = { id: rows.length + 1, kind, post_key: postKey, payload, publish_at: publishAt, status: "PENDING", previews: [] }
+      // As bot_post_schedule: a factual feed is created approved (public.post_auto_publish), the rest pending.
+      const row: PostRow = { id: rows.length + 1, kind, post_key: postKey, payload, publish_at: publishAt, status: isAutoPublish(kind) ? "APPROVED" : "PENDING", previews: [] }
       rows.push(row)
       return { ...row, created: true }
     },
@@ -77,7 +78,10 @@ function fake(start: number) {
     await s.tick(DAY, h * 60 + m)
   }
   const press = (data: string, chat = ADMIN) => s.onCallback({ id: "cb", data, message: { message_id: 901, chat: { id: chat, type: "private" } } })
-  return { rows, published, recorded, previewsSent, edits, answers, at, press, s }
+  /** A tap in the approval group («LCA Approval»): the person who tapped is checked, not the group. */
+  const pressInGroup = (data: string, from: number) => s.onCallback({ id: "cb", data, from: { id: from }, message: { message_id: 901, chat: { id: -100777, type: "supergroup" } } })
+  const setNow = (h: number, m: number) => (now = clock(h, m))
+  return { rows, published, recorded, previewsSent, edits, answers, at, press, pressInGroup, setNow, s }
 }
 
 describe("the approval rule (= bot_post_take)", () => {
@@ -234,5 +238,42 @@ describe("preview-first — a fresh preview for a re-armed post", () => {
     await f.at(8, 30)
     assert.equal(f.rows.length, 0)
     assert.deepEqual(f.published, [])
+  })
+})
+
+describe("Factual feeds publish on time; creative posts wait for the founder (founder, 19/10/2026)", () => {
+  it("the market bulletin: created approved, previewed with ❌, published at its time with no tap", async () => {
+    const f = fake(clock(10, 30))
+    await f.s.schedulePost("BULLETIN", DAY, { day: DAY }, new Date(clock(10, 31)).toISOString())
+    assert.equal(f.rows[0].status, "APPROVED")
+    assert.equal(f.previewsSent.length, 1) // the founder still sees it
+    assert.match(f.previewsSent[0].text, /ផ្សាយដោយស្វ័យប្រវត្តិ/)
+    await f.at(10, 31)
+    assert.deepEqual(f.published, [1])
+  })
+  it("the founder can still stop a factual feed with ❌ before its time", async () => {
+    const f = fake(clock(10, 30))
+    await f.s.schedulePost("RATES", DAY, { day: DAY }, new Date(clock(10, 31)).toISOString())
+    await f.press("sp:1:x")
+    await f.at(10, 31)
+    assert.deepEqual(f.published, [])
+    assert.equal(f.rows[0].status, "PAUSED")
+  })
+  it("a money dilemma (humour / discussion) stays held: never published without a tap", async () => {
+    const f = fake(clock(17, 45))
+    await f.s.schedulePost("DILEMMA", DAY, { day: DAY }, new Date(clock(18, 30)).toISOString())
+    assert.equal(f.rows[0].status, "PENDING")
+    await f.at(18, 30)
+    await f.at(19, 0)
+    assert.deepEqual(f.published, [])
+  })
+  it("in the approval group, only the founder's tap counts", async () => {
+    const f = fake(clock(6, 15))
+    await f.s.schedulePost("MORNING", DAY, {}, new Date(clock(7, 0)).toISOString())
+    await f.pressInGroup("sp:1:a", STRANGER)
+    assert.equal(f.rows[0].status, "PENDING")
+    assert.ok(f.answers.at(-1)!.alert) // «សម្រាប់ Super Admin ប៉ុណ្ណោះ។»
+    await f.pressInGroup("sp:1:a", ADMIN)
+    assert.equal(f.rows[0].status, "APPROVED")
   })
 })

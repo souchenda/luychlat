@@ -44,6 +44,7 @@ import { parseEacNotice } from "@/lib/eac"
 import { handlePoolFlowCallback, handlePoolSlip, handlePoolSpendText, isPoolFlowCallback } from "@/lib/server/pool-flow"
 import { noteGroupJoined, noteGroupLeft, noteGroupSeen } from "@/lib/server/group-guard"
 import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-group-bot"
+import { handleSetApprovalGroup, isSetApprovalGroupCommand } from "@/lib/server/approval-group"
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
 
@@ -138,6 +139,11 @@ async function handleGroupMessage(
   // The pool keeper's plain "ទិញផ្លែឈើ 40,000៛" (no /spend needed).
   if (!command.startsWith("/") && !photo?.fileId && fromId && (await handlePoolSpendText(chatId, fromId, text))) return
   if (!command.startsWith("/")) return
+  // A super admin makes this group the content approval room («LCA Approval», founder 19/10/2026).
+  if (isSetApprovalGroupCommand(command)) {
+    await handleSetApprovalGroup(chatId, fromId, title, lang)
+    return
+  }
   // A business KHQR group: /biz, /biz link CODE.
   if (await handleBizGroupCommand(chatId, fromId, text, title, lang)) return
   // A shared pool the keeper linked to this group: /pool, /fund, /trip, /spend (with a photo too), /pool link CODE.

@@ -84,6 +84,14 @@ use come before feature count: no half-baked features, broken links or untested 
   tip is posted only after the founder's «✅ អនុម័តផ្សាយ» (`bot_tip_auto_approve` is a no-op). Each post
   leaves PENDING / APPROVED once, so it is never posted twice; the channel message id and the Facebook post
   id are recorded (`scheduled_posts.telegram_message_id`, `facebook_post_id`).
+- **Factual feeds on time (founder, 19/10/2026):** the market bulletin (NBC rates, gold, fuel — 09:30–10:30, as soon
+  as the gold shops publish), the evening NBC rates and the 05:30 prayer times with the waking du'a are created
+  APPROVED by the database (`public.post_auto_publish` = `AUTO_PUBLISH_KINDS`) and publish at their time, Telegram
+  only; the preview still reaches the founder with ❌. Nothing creative, humorous or bound for Facebook is on the list.
+- **The approval room «LCA Approval» (founder, 19/10/2026):** every preview goes to the approval group (set from
+  inside it by a super admin with `/setapprovalgroup`, or `TELEGRAM_APPROVAL_CHAT_ID`), else `MARKETING_CHAT_ID`, else
+  the super admins' private chats — never a public channel (`reviewChats`). The bot never leaves it; only a super
+  admin's tap counts there.
 - **Every** public post is preview-first under the same rule — also the 20:00 check-in, the Saturday spotlight,
   the market bulletin, the evening NBC rates, festival posters and holy-day notes. The channel id and the
   Facebook publish functions need a `FounderApproval` (`src/lib/server/channel.ts`), made only by the

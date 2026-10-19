@@ -97,3 +97,30 @@ describe("GOLDEN · video and humour: the founder's private preview first, never
     for (const i of cli.match(/^import .*$/gm) ?? []) assert.doesNotMatch(i, /channel|facebook|scheduled-posts|telegram/i, i)
   })
 })
+
+describe("GOLDEN · factual feeds on time, everything creative behind the founder's tap (founder, 19/10/2026)", () => {
+  it("only the market bulletin, the evening NBC rates and the 05:30 prayer times publish without a tap — the same list in TS and SQL", async () => {
+    const { AUTO_PUBLISH_KINDS } = await import("../../src/lib/scheduled-posts")
+    assert.deepEqual([...AUTO_PUBLISH_KINDS].sort(), ["BULLETIN", "ISLAMIC_MORNING", "RATES"])
+    const migrations = readdirSync(join(process.cwd(), "supabase/migrations")).sort()
+    const defining = migrations.filter((m) => /function public\.post_auto_publish/.test(readFileSync(join(process.cwd(), "supabase/migrations", m), "utf8")))
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations", defining.at(-1)!), "utf8")
+    assert.match(sql, /select p_kind in \('BULLETIN', 'RATES', 'ISLAMIC_MORNING'\)/)
+    for (const creative of ["MORNING", "DILEMMA", "SPOTLIGHT", "HOLIDAY", "POSTER", "FUEL", "EVENING", "HOLYDAY", "ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH", "ISLAMIC_NIGHT", "ISLAMIC_IFTAR", "ISLAMIC_QUIZ"])
+      assert.ok(!AUTO_PUBLISH_KINDS.includes(creative as never), `${creative} must wait for the founder`)
+  })
+  it("no auto-published feed reaches Facebook (the Page stays behind the founder's tap)", () => {
+    const sp = readFileSync(join(ROOT, "lib/server/scheduled-posts.ts"), "utf8")
+    assert.match(sp, /if \(row\.kind === "EVENING" \|\| row\.kind === "BULLETIN" \|\| row\.kind === "RATES" \|\| row\.kind === "POSTER" \|\| row\.kind === "HOLYDAY"\) return \{ telegram, facebook: false \}/)
+    assert.match(sp, /if \(islamic\) \{/) // the Islamic posts (the 05:30 one too) go to the Islamic channel only
+  })
+  it("the approval group: set only by a super admin, never left by the watchdog, never a public channel", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270178000000_approval_group_auto_feeds.sql"), "utf8")
+    assert.match(sql, /actor := public\.tip_chat_super_admin\(p_actor\);\s*if actor is null then raise exception 'super admin only'/)
+    assert.match(sql, /delete from public\.telegram_groups where chat_id = p_chat_id/)
+    const guard = readFileSync(join(ROOT, "lib/server/group-guard.ts"), "utf8")
+    assert.match(guard, /if \(\(await isCommunityChat\(chatId\)\) \|\| \(await isApprovalChat\(chatId\)\)\) \{\s*\/\/ Never leave/)
+    const routes = readFileSync(join(ROOT, "lib/server/admin-routes.ts"), "utf8")
+    assert.match(routes, /reviewChats\(\{ approval, marketing, superAdmins: \[\], isPublic/)
+  })
+})

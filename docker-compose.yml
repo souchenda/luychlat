@@ -59,6 +59,8 @@ services:
       TELEGRAM_ISLAMIC_CHANNEL_ID: ${TELEGRAM_ISLAMIC_CHANNEL_ID:-@LuyChlatIslamic}
       # Admin message routing (lib/chat-route.ts): «chat» or «chat:topic»; unset → previews in the founder's chat, no DevOps logs.
       MARKETING_CHAT_ID: ${MARKETING_CHAT_ID:-}
+      # Optional: the content approval group («LCA Approval»); unset, the one a super admin set with /setapprovalgroup.
+      TELEGRAM_APPROVAL_CHAT_ID: ${TELEGRAM_APPROVAL_CHAT_ID:-}
       DEVOPS_CHAT_ID: ${DEVOPS_CHAT_ID:-}
       # Server-only, optional: «ចូលរហ័សជាមួយ Telegram» (/api/auth/telegram). On with TELEGRAM_LOGIN=on
       # and the service-role key (all-powerful: server only, never NEXT_PUBLIC_, never in chat or git).

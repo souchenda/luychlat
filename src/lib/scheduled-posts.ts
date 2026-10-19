@@ -114,6 +114,15 @@ const KIND_LABEL: Record<PostKind, string> = {
   ISLAMIC_NIGHT: "ឌុអាមុនចូលគេង",
 }
 
+/**
+ * Factual feeds publish on time without a tap (founder, 19/10/2026): the market bulletin (NBC rates, gold, fuel),
+ * the evening NBC rates and the 05:30 prayer times with the waking du'a — Telegram only, zero brand risk. The
+ * database creates them APPROVED (public.post_auto_publish — the same list, compared in scheduled-posts.test.ts);
+ * the founder still sees the preview and can ❌ pause it. Everything else waits for the founder's ✅ / 🚀.
+ */
+export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "ISLAMIC_MORNING"]
+export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly string[]).includes(kind)
+
 /** The preview's header (destination first), the post itself, then the status line. */
 export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus }): string {
   const where = targetLabel(o.targets)
@@ -123,7 +132,9 @@ export function previewText(o: { kind: PostKind; targets: Targets; publishAt: st
     "",
     o.body,
     "",
-    statusLine(o.status, where, o.publishAt),
+    o.status === "APPROVED" && isAutoPublish(o.kind)
+      ? `⚡ ព័ត៌មានជាក់ស្ដែង — ផ្សាយដោយស្វ័យប្រវត្តិទៅ [ ${where} ] នៅម៉ោង ${kmClock(o.publishAt)}។ ចុច «❌» ដើម្បីផ្អាក។`
+      : statusLine(o.status, where, o.publishAt),
   ].join("\n")
 }
 

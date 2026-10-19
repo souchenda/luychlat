@@ -31,3 +31,17 @@ export function threadFor(chatId: unknown, env: Env = process.env): number | nul
   }
   return null
 }
+
+/**
+ * Where content previews go (founder, 19/10/2026 — «LCA Approval»): the approval group when set
+ * (TELEGRAM_APPROVAL_CHAT_ID / APPROVAL_GROUP_ID in the environment, else the one a super admin set with
+ * /setapprovalgroup), then the marketing chat, then the super admins' private chats. A preview never goes to a
+ * public channel: an approval or marketing id that is one of the public channels is skipped.
+ */
+export function reviewChats(o: { approval: number | null; marketing: number | null; superAdmins: number[]; isPublic: (chatId: number) => boolean }): number[] {
+  for (const id of [o.approval, o.marketing]) if (id !== null && !o.isPublic(id)) return [id]
+  return o.superAdmins
+}
+
+/** The approval group's id from the environment (TELEGRAM_APPROVAL_CHAT_ID, or APPROVAL_GROUP_ID), else null. */
+export const approvalFromEnv = (env: Env = process.env): number | null => parseRoute(env.TELEGRAM_APPROVAL_CHAT_ID ?? env.APPROVAL_GROUP_ID)?.chatId ?? null

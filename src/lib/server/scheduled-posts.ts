@@ -11,6 +11,7 @@
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import {
   dueAction,
+  isAutoPublish,
   parseScheduledPostCallback,
   plannedIslamicPosts,
   plannedPosts,
@@ -88,7 +89,7 @@ export function createScheduler(d: SchedulerDeps) {
   }
 
   async function sendPreviews(row: PostRow) {
-    const { png, text, buttons } = await render(row, "PENDING")
+    const { png, text, buttons } = await render(row, row.status)
     const previews: Preview[] = []
     for (const chat of await d.adminChats()) {
       const msg = await d.sendPreview(chat, png, text, buttons)
@@ -120,7 +121,9 @@ export function createScheduler(d: SchedulerDeps) {
    */
   async function schedulePost(kind: PostKind, postKey: string, payload: Record<string, string | null>, publishAt: string) {
     const row = await d.schedule(kind, postKey, payload, publishAt)
-    if (row && row.status === "PENDING" && !row.previews?.length && d.now() < Date.parse(row.publish_at) && (row.created || (await d.adminChats()).length))
+    // A pending post — or a factual feed the database created approved (shown so the founder can still ❌ it).
+    const previewable = row && (row.status === "PENDING" || (row.status === "APPROVED" && isAutoPublish(row.kind)))
+    if (row && previewable && !row.previews?.length && d.now() < Date.parse(row.publish_at) && (row.created || (await d.adminChats()).length))
       await sendPreviews(row)
     return row
   }

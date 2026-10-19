@@ -206,9 +206,10 @@ export async function sendCommunityBulletin(): Promise<boolean> {
 
   // Fresh rates if the stored ones are older than 2 hours.
   if (!market || Date.now() - Date.parse(market.fetched_at) > 2 * 3_600_000) market = (await syncMarket(true)) ?? market
-  // Held for the founder's approval (preview now; published only on ✅ / 🚀 — scheduled-posts.ts).
+  // A factual feed: created approved, published a minute later; the founder's preview can still ❌ it (founder,
+  // 19/10/2026 — scheduled-posts.ts, AUTO_PUBLISH_KINDS).
   await holdForApproval("BULLETIN", now.day, { day: now.day })
-  logEvent("info", "bulletin", `Daily bulletin ready — waiting for the founder's approval${hasLocalToday(market) ? "" : " (no local gold prices yet)"}`)
+  logEvent("info", "bulletin", `Daily bulletin ready — publishes automatically in a minute${hasLocalToday(market) ? "" : " (no local gold prices yet)"}`)
   return true
 }
 
@@ -293,7 +294,7 @@ async function maybeSendEveningRates(now: ReturnType<typeof phnomPenhNow>) {
   const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: EVENING_JOB, p_day: now.day })
   if (claimed !== true) return
   await holdForApproval("RATES", now.day, { day: now.day })
-  logEvent("info", "bulletin", `Evening NBC rates (as of ${market.nbc.date}) ready — waiting for the founder's approval`)
+  logEvent("info", "bulletin", `Evening NBC rates (as of ${market.nbc.date}) ready — publishes automatically in a minute`)
 }
 
 /**
