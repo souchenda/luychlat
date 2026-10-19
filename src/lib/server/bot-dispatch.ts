@@ -22,6 +22,7 @@ import { atmSyncTick } from "@/lib/server/atm-sync"
 import { islamicPlacesSyncTick } from "@/lib/server/islamic-places-sync"
 import { flushPoolPosts } from "@/lib/server/pool-bot"
 import { birthdayTick, dormancyTick, flushSignupAlerts } from "@/lib/server/member-events"
+import { flushPlaceSubmissions } from "@/lib/server/place-alerts"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string; bill_id: string | null; due: string | null }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
@@ -94,6 +95,8 @@ export async function dispatchOnce() {
     await posterTick()
     await flushPoolPosts()
     await flushSignupAlerts()
+    // A member's place suggestion → the approval room within a minute (founder, 19/10/2026).
+    await flushPlaceSubmissions()
     await birthdayTick()
     await dormancyTick()
     await groupSweepTick()

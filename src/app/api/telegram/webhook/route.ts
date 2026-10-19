@@ -47,6 +47,7 @@ import { handleBizGroupCommand, handleKhqrGroupMessage } from "@/lib/server/biz-
 import { handleSetApprovalGroup, isSetApprovalGroupCommand } from "@/lib/server/approval-group"
 import { duaWantsAudio, handleDuaAudio, handleDuaCallback, handleSetDua, type DuaIncoming } from "@/lib/server/dua-audio-bot"
 import { isDuaCallback, isSetDuaCommand } from "@/lib/dua-audio"
+import { handlePlaceReviewCallback, isPlaceReviewCallback } from "@/lib/server/place-alerts"
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
 
@@ -357,6 +358,8 @@ export async function POST(request: Request) {
       await handleAccountCallback(update.callback_query)
     } else if (isScheduledPostCallback(update.callback_query.data)) {
       await handleScheduledPostCallback(update.callback_query)
+    } else if (isPlaceReviewCallback(update.callback_query.data)) {
+      await handlePlaceReviewCallback(update.callback_query)
     } else if (isDuaCallback(update.callback_query.data)) {
       await handleDuaCallback(update.callback_query)
     } else if (isNasheedCallback(update.callback_query.data)) {
