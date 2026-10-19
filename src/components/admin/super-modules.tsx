@@ -21,7 +21,7 @@ import { formatMoney } from "@/lib/money"
 import { planKeys, type StaffRole } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
-import { loginLabel } from "@/lib/auth-identifier"
+import { loginLabel, staffTarget } from "@/lib/auth-identifier"
 
 
 // ---------------------------------------------------------------------------
@@ -477,9 +477,10 @@ export function StaffManager() {
       </Card>
       <Card className="gap-2 px-4 py-3">
         <Label htmlFor="staff-email">{t("super.staffAdd")}</Label>
-        <Input id="staff-email" type="email" inputMode="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Input id="staff-email" type="text" inputMode="email" autoCapitalize="none" placeholder={t("super.staffAddPlaceholder")} value={email} onChange={(e) => setEmail(e.target.value)} />
         <Segmented value={role} onChange={setRole} options={ROLES.map((r) => ({ value: r, label: t(`admin.role.${r}`) }))} />
-        <Button disabled={act.isPending || !/^\S+@\S+\.\S+$/.test(email.trim())} onClick={() => void grant(email.trim(), role)}>
+        {/* Email or phone (founder, 19/10/2026): «096 263 7581» becomes the member's phone sign-in. */}
+        <Button disabled={act.isPending || !staffTarget(email)} onClick={() => void grant(staffTarget(email)!, role)}>
           <PlusIcon />
           {t("super.staffAddButton")}
         </Button>

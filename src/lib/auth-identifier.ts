@@ -42,3 +42,15 @@ export function loginLabel(email: string | null | undefined): string {
   if (!isPhoneLoginEmail(email)) return email
   return formatPhoneLocal(email.split("@")[0])
 }
+
+/**
+ * A contact email a member adds in «My profile» (founder, 19/10/2026): empty is fine; otherwise a valid address that is
+ * not a phone sign-in. True when it cannot be saved.
+ */
+export function contactEmailError(input: string): boolean {
+  const v = input.trim().toLowerCase()
+  return Boolean(v) && (!EMAIL_PATTERN.test(v) || isPhoneLoginEmail(v) || v.length > 254)
+}
+
+/** Admin › Staff: an email, or a phone number turned into its sign-in («096 263 7581» → 85596…@phone…); null if neither. */
+export const staffTarget = (input: string): string | null => parseLoginIdentifier(input)?.email ?? null

@@ -20,6 +20,7 @@ import { INDUSTRIES, useBusinessLifecycle, useSaveBusinessProfile, useSaveProfil
 import { usePrefsStore } from "@/stores/prefs-store"
 
 import { ProfileAvatar } from "./profile-avatar"
+import { contactEmailError } from "@/lib/auth-identifier"
 import { OCCUPATIONS, useProfilePrivate, useSaveProfilePrivate, type Occupation } from "@/lib/profile-private"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
@@ -117,11 +118,13 @@ export function ProfileSheet({ open, onOpenChange, profile, email }: { open: boo
   const saveExtras = useSaveProfilePrivate()
   const [birthDate, setBirthDate] = useState("")
   const [occupation, setOccupation] = useState<Occupation | null>(null)
+  const [contactEmail, setContactEmail] = useState("")
 
   useEffect(() => {
     if (!open) return
     setBirthDate(extras?.birth_date ?? "")
     setOccupation(extras?.occupation ?? null)
+    setContactEmail(extras?.contact_email ?? "")
   }, [open, extras])
 
   useEffect(() => {
@@ -137,9 +140,11 @@ export function ProfileSheet({ open, onOpenChange, profile, email }: { open: boo
     e.preventDefault()
     if (!name.trim()) return void toast.error(t("profile.nameRequired"))
     if (birthDate && (birthDate > todayDate() || birthDate < "1900-01-01")) return void toast.error(t("profile.birthDateInvalid"))
+    if (contactEmailError(contactEmail)) return void toast.error(t("profile.emailInvalid"))
     // The private details save on their own; a failure there doesn't undo the profile.
-    if ((birthDate || null) !== (extras?.birth_date ?? null) || occupation !== (extras?.occupation ?? null)) {
-      saveExtras.mutate({ birth_date: birthDate || null, occupation }, { onError: () => toast.error(t("common.error")) })
+    const email = contactEmail.trim().toLowerCase() || null
+    if ((birthDate || null) !== (extras?.birth_date ?? null) || occupation !== (extras?.occupation ?? null) || email !== (extras?.contact_email ?? null)) {
+      saveExtras.mutate({ birth_date: birthDate || null, occupation, contact_email: email }, { onError: () => toast.error(t("common.error")) })
     }
     save.mutate(
       { display_name: name, phone, bio, photo: file, removePhoto: removed, avatar_path: profile?.avatar_path },
@@ -200,6 +205,12 @@ export function ProfileSheet({ open, onOpenChange, profile, email }: { open: boo
         <div className="space-y-1.5">
           <Label htmlFor="profile-phone">{t("profile.phone")}</Label>
           <Input id="profile-phone" className="h-11" type="tel" inputMode="tel" maxLength={30} placeholder="012 345 678" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+        {/* A contact email (private; the sign-in stays the phone — founder, 19/10/2026). */}
+        <div className="space-y-2">
+          <Label htmlFor="profile-email">{t("profile.email")}</Label>
+          <Input id="profile-email" className="h-11" type="email" inputMode="email" autoComplete="email" maxLength={254} placeholder="name@example.com" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+          <p className="text-[11px] text-muted-foreground">{t("profile.emailHint")}</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="profile-bio">{t("profile.bio")}</Label>

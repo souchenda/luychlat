@@ -14,7 +14,8 @@ import { useSessionStore } from "@/stores/session-store"
  */
 export const OCCUPATIONS = ["STUDENT", "EMPLOYEE", "BUSINESS_OWNER", "GENERAL"] as const
 export type Occupation = (typeof OCCUPATIONS)[number]
-export type ProfilePrivate = { birth_date: string | null; occupation: Occupation | null }
+/** `contact_email`: a contact address a phone-registered member may add (never the sign-in — founder, 19/10/2026). */
+export type ProfilePrivate = { birth_date: string | null; occupation: Occupation | null; contact_email?: string | null }
 
 
 const key = (userId: string | undefined) => ["profile-private", userId] as const
@@ -26,9 +27,9 @@ export function useProfilePrivate() {
     enabled: Boolean(userId),
     staleTime: 10 * 60_000,
     queryFn: async () => {
-      const { data, error } = await getSupabaseBrowserClient()!.from("profile_private").select("birth_date, occupation, acquisition_source").eq("user_id", userId!).maybeSingle()
+      const { data, error } = await getSupabaseBrowserClient()!.from("profile_private").select("birth_date, occupation, acquisition_source, contact_email").eq("user_id", userId!).maybeSingle()
       if (error) throw error
-      return (data ?? { birth_date: null, occupation: null, acquisition_source: null }) as ProfilePrivate & { acquisition_source: AcquisitionAnswer | null }
+      return (data ?? { birth_date: null, occupation: null, acquisition_source: null, contact_email: null }) as ProfilePrivate & { acquisition_source: AcquisitionAnswer | null }
     },
   })
 }
@@ -40,7 +41,13 @@ export function useSaveProfilePrivate() {
     mutationFn: async (v: ProfilePrivate) => {
       const { error } = await getSupabaseBrowserClient()!
         .from("profile_private")
-        .upsert({ user_id: userId!, birth_date: v.birth_date || null, occupation: v.occupation, updated_at: new Date().toISOString() })
+        .upsert({
+          user_id: userId!,
+          birth_date: v.birth_date || null,
+          occupation: v.occupation,
+          ...(v.contact_email !== undefined ? { contact_email: v.contact_email?.trim().toLowerCase() || null } : {}),
+          updated_at: new Date().toISOString(),
+        })
       if (error) throw error
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: key(userId) }),
