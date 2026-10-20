@@ -82,7 +82,7 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.match(lines[2], /^ការដាក់ឱ្យដំណើរការកំណែថ្មីលែងរំខានអ្នកប្រើទៀតហើយ/) // deploy/release-notes-km.tsv
     assert.equal(lines[3], "🧹 ការថែទាំប្រព័ន្ធ (ផ្នែកបច្ចេកទេស)")
     for (const l of lines) assert.doesNotMatch(l, /^(feat|fix|chore)\b|\(\w+\):/)
-    assert.match(read("CLAUDE.md"), /every commit body carries one natural Khmer line/)
+    assert.match(read("CLAUDE.md"), /every commit body carries one short, natural\s+Khmer line \(at most 80 characters/)
   })
   it("the founder's private chat only — never «LCA Approval» or any group; the count is logged; never fails the deploy", () => {
     assert.match(notify, /chats=\$\(env_value FOUNDER_TELEGRAM_CHAT_ID\)/)
