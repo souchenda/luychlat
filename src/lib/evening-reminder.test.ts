@@ -32,7 +32,7 @@ describe("the 20:00 post's button to the bot (founder, 18/10/2026)", () => {
     const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
     const evening = sp.slice(sp.indexOf('if (row.kind === "EVENING") {', sp.indexOf("async publish(row)")), sp.indexOf('if (row.kind === "SPOTLIGHT") {', sp.indexOf("async publish(row)")))
     assert.match(evening, /tg<\{ message_id: number \}>\("sendMessage", \{/)
-    assert.match(evening, /text: eveningText\(String\(row\.payload\.day\)\)/)
+    assert.match(evening, /text: withFooter\(eveningText\(String\(row\.payload\.day\)\), postFooter\("community"\), 4096\)/)
     assert.match(evening, /reply_markup: eveningButtons\(\)/)
     assert.doesNotMatch(evening, /sendPosterPhoto/) // light text, no poster
   })

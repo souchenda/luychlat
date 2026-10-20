@@ -45,7 +45,7 @@ describe("Money dilemmas for the community and the Facebook Page (founder, 18/10
     const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
     const block = sp.slice(sp.indexOf('if (row.kind === "DILEMMA") {', sp.indexOf("async publish(row)")), sp.indexOf('if (row.kind === "HOLYDAY") {', sp.indexOf("async publish(row)")))
     assert.match(block, /sentText\(text, false\)/)
-    assert.match(block, /publishTextToFacebook\(approval, text\)/)
+    assert.match(block, /publishTextToFacebook\(approval, fbText\)/)
     assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270177000000_money_dilemma_posts.sql"), "utf8"), /'DILEMMA'/)
   })
 })

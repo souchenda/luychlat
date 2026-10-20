@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import { founderApproved } from "./channel"
+import { postFooter } from "@/lib/post-footer"
 import { describe, it } from "node:test"
 
 import {
@@ -90,12 +91,13 @@ describe("facebook publisher — posting", () => {
 })
 
 describe("facebook publisher — caption and checks", () => {
-  it("plain-text caption: the day's quote, the app link and hashtags; brand-safe", () => {
+  it("plain-text caption: the day's quote and the standard footer (lib/post-footer.ts); brand-safe", () => {
     const c = facebookMorningCaption("2026-10-13")
     assert.match(c, /^☀️ អរុណសួស្តីថ្ងៃថ្មី/)
     assert.match(c, /«.+»/)
-    assert.match(c, /https:\/\/app\.luychlat\.com/)
-    assert.match(c, /#អេបលុយឆ្លាត #AppLuyChlat/)
+    assert.ok(c.endsWith(postFooter("community", "facebook")))
+    assert.match(c, /👉 Android \(APK\) ៖ app\.luychlat\.com\/LuyChlat\.apk/)
+    assert.match(c, /#LuyChlat #អេបលុយឆ្លាត #គ្រប់គ្រងហិរញ្ញវត្ថុ/)
     assert.doesNotMatch(c, /<[a-z]|អែប|កម្មវិធី|&/)
   })
   it("the read-only check sends the token as a header, never in the URL", async () => {

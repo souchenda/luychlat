@@ -2,13 +2,15 @@ import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
 import { CHANNEL_APP_BUTTON, CHANNEL_BOT_BUTTON } from "./channel-buttons"
+import { postFooter } from "@/lib/post-footer"
+
 import { tipCaption } from "./tip-bot"
 
 describe("daily tip caption & the channel's buttons (poster branding)", () => {
   const caption = tipCaption({ title: "សន្សំ <៣០%> & ចំណាយ", body: "កុំចំណាយលើស ៧០% នៃចំណូល។" })
-  it("ends with the poster's line and the signature", () => {
-    assert.ok(caption.endsWith("📱 គ្រប់គ្រងបំណុល ចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត\n\n— អេប លុយឆ្លាត"))
-    assert.doesNotMatch(caption, /@luychlat_bot/)
+  it("ends with the standard footer (founder, 20/10/2026 — lib/post-footer.ts)", () => {
+    assert.ok(caption.endsWith(postFooter("community")))
+    assert.match(caption, /👉 Telegram Bot ៖ @luychlat_bot/)
   })
   it("stays valid Telegram HTML (text escaped) and under the 1,024-character caption limit", () => {
     assert.match(caption, /សន្សំ &lt;៣០%&gt; &amp; ចំណាយ/)

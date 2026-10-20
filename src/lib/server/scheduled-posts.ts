@@ -9,6 +9,7 @@
 // button pressed at 06:59:59 and the 07:00 timer can never both publish. The orchestration takes its
 // I/O as `deps` so it is tested with an in-memory fake (scheduled-posts.test.ts).
 import { createHash } from "node:crypto"
+import { postFooter, withFooter } from "@/lib/post-footer"
 
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import {
@@ -544,13 +545,15 @@ const realDeps = (): SchedulerDeps => ({
       // The poster with its caption (text only if the image can't be sent, so the post is never lost).
       const c = await islamicContent(row.kind as IslamicKind, String(row.payload.day))
       await islamicPosterReady
-      const caption = islamicCaptionHtml(c)
+      // The Islamic footer (the Islamic channel and hashtags — never the general community; lib/post-footer.ts).
+      const caption = withFooter(islamicCaptionHtml(c), postFooter("islamic"))
       if (chat) ids.telegram = (await sendPosterPhoto(chat, islamicPoster(c), caption, { reply_markup: buttons.reply_markup })) ?? (await sentText(caption, true))
       return ids
     }
     if (row.kind === "MORNING") {
       const day = String(row.payload.day)
-      if (chat) ids.telegram = (await sendPosterPhoto(chat, morningPoster(day), morningText(day), { reply_markup: buttons.reply_markup })) ?? (await sentText(morningText(day), true))
+      const caption = withFooter(morningText(day), postFooter("community"))
+      if (chat) ids.telegram = (await sendPosterPhoto(chat, morningPoster(day), caption, { reply_markup: buttons.reply_markup })) ?? (await sentText(caption, true))
       if (facebookConfig() && shouldPublishToFacebook({ kind: "morning" })) {
         const fb = await publishMorningToFacebook(approval, day)
         if (fb?.ok) ids.facebook = fb.postId
@@ -566,7 +569,8 @@ const realDeps = (): SchedulerDeps => ({
       if (!m) return ids
       // The poster with the note as its caption (text only if the image can't be sent).
       const png = holidayPoster(m)
-      if (chat) ids.telegram = (await sendPosterPhoto(chat, png, holidayPostHtml(m), { reply_markup: buttons.reply_markup })) ?? (await sentText(holidayPostHtml(m), true))
+      const caption = withFooter(holidayPostHtml(m), postFooter("community"))
+      if (chat) ids.telegram = (await sendPosterPhoto(chat, png, caption, { reply_markup: buttons.reply_markup })) ?? (await sentText(caption, true))
       if (facebookConfig() && shouldPublishToFacebook({ kind: "holiday" })) {
         const { title, body } = holidayMessage(m)
         const fb = await publishLogged(`holiday note (${row.post_key})`, () => publishPhotoToFacebook(approval, png, facebookHolidayMessage(title, body)), fbLog)
@@ -579,7 +583,7 @@ const realDeps = (): SchedulerDeps => ({
       if (chat) {
         const res = await tg<{ message_id: number }>("sendMessage", {
           chat_id: chat,
-          text: eveningText(String(row.payload.day)),
+          text: withFooter(eveningText(String(row.payload.day)), postFooter("community"), 4096),
           parse_mode: "HTML",
           disable_web_page_preview: true,
           reply_markup: eveningButtons(),
@@ -608,13 +612,14 @@ const realDeps = (): SchedulerDeps => ({
     if (row.kind === "DILEMMA") {
       // The poster with the text as its caption (or the text alone) on the community channel and the Facebook Page.
       const d = dilemmaOfDay(String(row.payload.day))
-      const text = dilemmaPostText(d)
+      const text = withFooter(dilemmaPostText(d), postFooter("community"), 4096)
+      const fbText = withFooter(dilemmaPostText(d), postFooter("community", "facebook"), 60_000)
       await posterAssetsReady
       const png = DILEMMA_POSTERS_ENABLED && d.poster ? renderDilemmaPoster(d.poster).png : null
       const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       if (chat) ids.telegram = png ? ((await sendPosterPhoto(chat, png, esc(text), { reply_markup: buttons.reply_markup })) ?? (await sentText(text, false))) : await sentText(text, false)
       if (facebookConfig() && shouldPublishToFacebook({ kind: "dilemma" })) {
-        const fb = await publishLogged(`money dilemma (${row.post_key})`, () => (png ? publishPhotoToFacebook(approval, png, text) : publishTextToFacebook(approval, text)), fbLog)
+        const fb = await publishLogged(`money dilemma (${row.post_key})`, () => (png ? publishPhotoToFacebook(approval, png, fbText) : publishTextToFacebook(approval, fbText)), fbLog)
         if (fb?.ok) ids.facebook = fb.postId
       }
       return ids

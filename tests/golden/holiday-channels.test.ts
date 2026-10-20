@@ -44,6 +44,11 @@ describe("GOLDEN · strict religious separation of the channels", () => {
   it("the other holiday posts stay off the Islamic channel: Sil days, festival posters, holiday notes", () => {
     for (const kind of ["HOLYDAY", "POSTER", "HOLIDAY", "NATIONAL_DAY", "MORNING", "EVENING", "DILEMMA", "SPOTLIGHT"]) assert.equal(channelFor(kind), "community", kind)
   })
+  it("the Islamic channel's footer names only the Islamic channel — never the general community (lib/post-footer.ts)", async () => {
+    const { postFooter } = await import("../../src/lib/post-footer")
+    for (const platform of ["telegram", "facebook"] as const) assert.doesNotMatch(postFooter("islamic", platform), /LuyChlatCommunity|សហគមន៍/)
+    assert.match(read("src/lib/server/scheduled-posts.ts"), /withFooter\(islamicCaptionHtml\(c\), postFooter\("islamic"\)\)/)
+  })
   it("the Islamic channel's own posts never speak of a Buddhist day, a Chinese festival or an ancestral offering", () => {
     const banned = /ថ្ងៃសីល|ភ្ជុំបិណ្ឌ|វិសាខបូជា|ចូលឆ្នាំចិន|ឆេងម៉េង|សែនក្បាលទឹក|សែនព្រះខែ|សែននំលោកខែ|នំលោកខែ|សែនព្រេន|ព្រះពុទ្ធ|វត្ត/
     for (const kind of ISLAMIC_KINDS)

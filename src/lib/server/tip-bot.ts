@@ -18,6 +18,7 @@
 // Buttons carry the version they were shown with: a tap on an older preview
 // (after an edit here or in the app) refreshes it instead of approving.
 import { TIP_BODY_MAX, TIP_TITLE_MAX, defaultTip, nextTip } from "@/lib/daily-tip"
+import { postFooter, withFooter } from "@/lib/post-footer"
 import { needsFounderApproval, tipTextIssues } from "@/lib/tip-quality"
 import { TIPS } from "@/lib/tips"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
@@ -63,7 +64,8 @@ export function tipWindow(minutes: number): "preview" | "post" | null {
 
 /** The public caption (Telegram HTML), as posted at 12:00. */
 export function tipCaption(t: Pick<DailyTip, "title" | "body">): string {
-  return [`💡 <b>គន្លឹះថ្ងៃនេះ៖ ${esc(t.title)}</b>`, "", esc(t.body), "", "📱 គ្រប់គ្រងបំណុល ចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត", "", "— អេប លុយឆ្លាត"].join("\n")
+  // The standard footer (founder, 20/10/2026 — lib/post-footer.ts) in place of the old app line.
+  return withFooter([`💡 <b>គន្លឹះថ្ងៃនេះ៖ ${esc(t.title)}</b>`, "", esc(t.body)].join("\n"), postFooter("community"))
 }
 
 /** The status line on the private preview. */

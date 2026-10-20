@@ -222,6 +222,29 @@ dilemma, and the lesson posters.
 
 ---
 
+### 5.0 The caption structure (founder, 20/10/2026 — the Charge+ Cambodia format)
+
+Every channel and Facebook caption: **(1)** a relatable, human hook of one or two lines; **(2)** the content; **(3)** the
+standard footer — one clean block of ways to use the app, the community and the hashtags (`lib/post-footer.ts`):
+
+```
+📲 ប្រើប្រាស់ អេប លុយឆ្លាត ដោយឥតគិតថ្លៃ៖
+👉 Android (APK) ៖ app.luychlat.com/LuyChlat.apk
+👉 iPhone / Web ៖ app.luychlat.com
+👉 Telegram Bot ៖ @luychlat_bot
+
+👉 ចូលរួមសហគមន៍ ៖ @LuyChlatCommunity
+#LuyChlat #អេបលុយឆ្លាត #គ្រប់គ្រងហិរញ្ញវត្ថុ
+```
+
+- **@LuyChlatIslamic:** «👉 ឆាណែលឥស្លាម ៖ @LuyChlatIslamic» and «#LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់» —
+  never the general community (§ 2.6a; a golden test guards it).
+- **Facebook:** the handles as t.me links (a «@» is not a link there).
+- **Where:** the 07:00 poster, the 12:00 tip, holiday notes, the 20:00 check-in, the money dilemma, the Islamic posts.
+  **Not** on royal and national commemorations (their dignity), Sil days, or the automatic market feeds (brevity).
+- A photo caption is at most 1,024 characters: when the caption and the footer don't fit together, the caption goes
+  alone — never cut.
+
 ### 5.1 No wireframe posters (founder, 20/10/2026)
 
 A poster made of shapes drawn in code — emoji stand-ins, badges placed by arithmetic, empty space left over — looks like
@@ -286,3 +309,4 @@ an approver's tap.
   raised (arch top 140 px).
 - **20/10/2026:** the holiday engine covers four groups (national and royal, Islamic, Chinese, global), all at 05:00.
 - **20/10/2026:** strict religious separation of the channels — constitutional (§ 2.6a), enforced in code and by a golden test.
+- **20/10/2026:** the caption structure — a hook, the content, the standard footer (§ 5.0).

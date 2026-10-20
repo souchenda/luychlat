@@ -8,6 +8,7 @@
  * log), and every message we log is scrubbed of it.
  */
 import type { FounderApproval } from "@/lib/server/channel"
+import { postFooter } from "@/lib/post-footer"
 import { morningQuote } from "@/lib/morning"
 
 export const GRAPH_VERSION = "v21.0"
@@ -41,9 +42,8 @@ export function facebookMorningCaption(day: string): string {
     "",
     `«${morningQuote(day)}»`,
     "",
-    "📱 កត់ត្រាចំណូល-ចំណាយជាមួយ អេប លុយឆ្លាត · https://app.luychlat.com",
-    "",
-    "#អេបលុយឆ្លាត #AppLuyChlat #លុយឆ្លាត #ហិរញ្ញវត្ថុផ្ទាល់ខ្លួន #Cambodia",
+    // The standard footer (founder, 20/10/2026 — lib/post-footer.ts).
+    postFooter("community", "facebook"),
   ].join("\n")
 }
 
@@ -115,7 +115,7 @@ export function facebookFuelCaption(o: { now: FuelPair & { super?: number | null
 
 /** A holiday note as a Page post (plain text). */
 export function facebookHolidayMessage(title: string, body: string): string {
-  return [title, "", body, "", "— អេប លុយឆ្លាត · https://app.luychlat.com", "", "#អេបលុយឆ្លាត #AppLuyChlat #ថ្ងៃឈប់សម្រាក"].join("\n")
+  return [title, "", body, "", postFooter("community", "facebook")].join("\n")
 }
 
 /** A photo post (the 07:00 poster). */
