@@ -77,26 +77,28 @@ use come before feature count: no half-baked features, broken links or untested 
    a message (never a bare «sent»), and a missed time window is caught up, not skipped (the 23:59 end-of-day report
    went to no chat for days while logging «sent» — `lib/server/dev-eod.ts`, `lib/server/nightly-report.ts`).
 
-## Reporting Standards (founder, 20/10/2026 — «establish app-wide standards; do not patch piecemeal»)
+## Reporting Standards — an executive summary (founder, 20–21/10/2026 — «establish app-wide standards; do not patch piecemeal»)
 
-Every automated status report to the founder — the 23:30 nightly report and its Daily Task Scorecard, the 23:59
-end-of-day development report, and any status card added later — is built from `src/lib/report-standard.ts`, never ad
-hoc (`report-standard.test.ts`):
+Every automated status report to the founder — the 23:30 nightly report (and `/report`), the 23:59 end-of-day
+development report, and any status card added later — is built from `src/lib/report-standard.ts`, never ad hoc
+(`report-standard.test.ts`). It must read at a glance on a phone (21/10/2026: the full lists of 20/10 were «overwhelming,
+cluttered, and unreadable»):
 
-1. **✅ Accomplishments on top:** the day's 3–5 key deployed accomplishments open the report (`accomplishments` /
-   `highlights`); any others are listed in full right after them, never dropped. Release cards keep their one Khmer line.
-2. **Grouped by who acts next — four sections, in this order, empty ones left out** (`pendingSections`):
-   🟢 Deployed & Ready for Verification (live, the founder tests) · 🟡 Awaiting Founder Action / Approval ·
-   ⏳ Awaiting External Review (an Imam, a recording, a licence) · ⚙️ Engineering / Tech Pending (a build, a script,
-   a migration). Never one mixed list.
-3. **Numbered 1…N across all sections, each with one bracketed next step** «[សកម្មភាព៖ ចុច ✅ លើកាត #833]».
-4. **No truncation:** «… and N more», «… និង N ទៀត», cut titles and cut messages are banned. A report over Telegram's
-   4,096 characters is sent as numbered parts «(១/២)», every line kept (`paginate`); a chat counts as reached only
-   when every part arrived.
+1. **📊 Title and date**, then **🚀 Shipped today: 3–5 curated highlights** — `ROADMAP.md` items finished today, topped
+   up from feature commits only when fewer than three (`curate`) — then ONE line
+   `(+ X technical patches & fixes under the hood)`, X counted exactly. Never a raw commit list, never «… +N more».
+2. **One health line** (`healthLine`): `🟢 System Health: 100% Healthy (Disk: 53GB free, RAM: 47%, Webhook: OK)` — 🟠 with
+   what needs a look. No CPU-peak or incident log lines (they stay in Admin › Super › Development).
+3. **🎯 Action Required:** short, numbered, ONLY what needs the founder's decision or approval (the 🟡 items), each a
+   short imperative, the same action asked once; everything else is one count line («Also open: 9 ready to test ·
+   3 with outside reviewers · 0 with engineering»).
+4. **Style:** plain text, a blank line between blocks, only 📊 🚀 ✅ 🟢/🟠 🎯 (👥 for members) — no flags (a test bans
+   them). A report over Telegram's 4,096 characters is a bug; `paginate` is only the safety net (numbered parts, every
+   line kept), and a chat counts as reached only when every part arrived.
 5. **The owner is explicit, never guessed:** in `ROADMAP.md` an open item that waits on someone ends with
-   «⛔ <owner emoji> <next step>», e.g. «⛔ 🟡 ចុច ✅ លើកាត #833», «⛔ ⏳ អ៊ីម៉ាំពិនិត្យអត្ថបទហាឌីស»; an untagged
-   reason is engineering's to sort out, and a test fails the build on any untagged «⛔». An open item deployed today
-   with no reason is 🟢.
+   «⛔ <owner emoji> <next step>» — 🟢 live, the founder tests · 🟡 the founder acts or approves · ⏳ someone outside (an
+   Imam, a recording, a licence) · ⚙️ engineering — e.g. «⛔ 🟡 ចុច ✅ លើកាត #833»; a test fails the build on any
+   untagged «⛔». The release card keeps its one Khmer line.
 
 ## Publishing and content standards (founder, 12/10/2026)
 

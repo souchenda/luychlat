@@ -9,22 +9,30 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
 const facts = { day: "2026-10-19", healthy: true, issues: [], diskFreeGb: 52.3, diskPct: 33.1, ramPct: 61.2, ramTotalGb: 3.8, newUsers: 4, approvals: 7, dockerOk: true, webhookOk: true }
 
 describe("The nightly report before midnight (founder, 19/10/2026)", () => {
-  it("the founder's card: date, health, disk, RAM, new members, approvals, Docker & webhook", () => {
+  it("the founder's card on the executive summary: 📊 · 🚀 · one health line with new members and approvals · 🎯", () => {
+    const text = nightlyReportText({ ...facts, staff: [{ name: "Dara", count: 5 }, { name: "Sok", count: 2 }], highlights: ["Members-only bot", "Auto-prune", "Caption edit"], patches: 12, actions: ["ចុច ✅ លើកាត #833"], others: { verify: 4, external: 3, engineering: 0 } })
     assert.equal(
-      nightlyReportText(facts),
+      text,
       [
-        "📊 របាយការណ៍ប្រចាំថ្ងៃ & សុខភាព Server (មុនម៉ោង ១២ យប់)",
-        "• កាលបរិច្ឆេទ៖ ១៩/១០/២០២៦",
-        "• ស្ថានភាព Server៖ 🟢 សកម្មធម្មតា (Healthy)",
-        "• ទំហំថាសរឹង (Disk)៖ 52.3 GB ទំនេរ (33.1% ប្រើប្រាស់)",
-        "• ការចងចាំ (RAM)៖ 61.2% នៃ 3.8 GB",
-        "• សមាជិកថ្មីថ្ងៃនេះ៖ 4",
-        "• ការអនុម័តថ្ងៃនេះ៖ 7",
-        "• ស្ថានភាព Docker & Webhook៖ ដំណើរការល្អ",
-        "— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត",
+        "📊 App Luy Chlat · Daily Summary 19/10/2026",
+        "",
+        "🚀 Shipped today",
+        "✅ Members-only bot",
+        "✅ Auto-prune",
+        "✅ Caption edit",
+        "(+ 12 technical patches & fixes under the hood)",
+        "",
+        "🟢 System Health: Healthy (Disk: 52GB free, RAM: 61%, Webhook: OK)",
+        "👥 New members: 4 · Approvals: 7 (Dara 5, Sok 2)",
+        "",
+        "🎯 Action Required (1)",
+        "1. ចុច ✅ លើកាត #833",
+        "",
+        "Also open: 4 ready to test · 3 with outside reviewers · 0 with engineering",
       ].join("\n"),
     )
-    assert.match(nightlyReportText({ ...facts, healthy: false, issues: ["disk"], webhookOk: false }), /🟠 ត្រូវតាមដាន \(disk\)[\s\S]*Webhook មានបញ្ហា/)
+    assert.match(nightlyReportText({ ...facts, healthy: false, issues: ["disk"], webhookOk: false }), /🟠 System Health: Needs attention — disk \(Disk: 52GB free, RAM: 61%, Webhook: ERROR\)/)
+    assert.match(nightlyReportText({ ...facts, dockerOk: false }), /🟠 System Health: Needs attention — docker/)
   })
   it("23:30–23:59 Cambodia time, once a day (claimed), to the founder's private chat", () => {
     assert.ok(nightlyDue(23, 30) && nightlyDue(23, 59))
@@ -76,10 +84,10 @@ describe("Reports reach the founder's private chat only — «LCA Approval» sta
 })
 
 describe("Staff performance in the founder's nightly card (founder, 20/10/2026)", () => {
-  it("each approver's decisions today, most first; an empty day says so", () => {
+  it("each approver's decisions today, most first, on the one 👥 line (the executive summary, 21/10/2026)", () => {
     const text = nightlyReportText({ ...facts, staff: [{ name: "Yerny", count: 5 }, { name: "ស៊ូ ចិន្ដា", count: 2 }] })
-    assert.ok(text.includes(["• ការអនុម័តថ្ងៃនេះ៖ 7", "• ស្ថិតិការងារអនុម័តថ្ងៃនេះ (Staff Performance)៖", "  - 👤 Yerny៖ 5 លើក", "  - 👤 ស៊ូ ចិន្ដា៖ 2 លើក", "• ស្ថានភាព Docker"].join("\n")))
-    assert.match(nightlyReportText({ ...facts, staff: [] }), /\(Staff Performance\)៖\n {2}- មិនទាន់មានការអនុម័តទេ\n/)
+    assert.ok(text.includes("👥 New members: 4 · Approvals: 7 (Yerny 5, ស៊ូ ចិន្ដា 2)"))
+    assert.ok(nightlyReportText({ ...facts, staff: [] }).includes("👥 New members: 4 · Approvals: 7\n"))
   })
   it("the counts come from the audited decisions (name and Telegram id, tip_chat_approver)", () => {
     const sql = read("supabase/migrations/20270198000000_post_decider_staff_stats.sql")

@@ -2,15 +2,19 @@
 // Cambodia time the day is finalized (bot_dev_eod stores a snapshot: what
 // shipped + the open roadmap) and a short digest goes to the super admins'
 // linked Telegram chats. A deploy at 23:59 is caught up just after midnight.
-import { groupByArea } from "@/lib/dev-areas"
-import { highlights, ownerTag, paginate, pendingSections, type PendingItem } from "@/lib/report-standard"
+import { existsSync, readFileSync } from "node:fs"
+import path from "node:path"
+
+import { dailyScorecard, parseRoadmap, summaryParts } from "@/lib/roadmap-scorecard"
+import { curate, executiveSummary, healthLine, paginate, type Health, type Shipped } from "@/lib/report-standard"
 
 import { logEvent } from "./events"
+import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText } from "./telegram-bot"
 import { founderChats } from "@/lib/server/admin-routes"
 
-type Report = {
+export type Report = {
   day: string
   commits: { hash: string; kind: string; scope: string | null; subject: string }[]
   roadmap: { title: string; area: string; status: string; priority: number }[]
@@ -22,63 +26,45 @@ type Report = {
   }
 }
 
-const hhmm = (iso: string) => new Date(Date.parse(iso) + 7 * 3_600_000).toISOString().slice(11, 16)
-const num = (v: number) => Number(v).toLocaleString("en-US")
-
-const AREA_LABEL: Record<string, string> = {
-  accounts: "👤 Accounts",
-  wallets: "👛 Wallets & Home",
-  telegram: "🤖 Telegram bot & API",
-  culture: "🌙 Culture & Bills",
-  pools: "👥 Shared pools",
-  security: "🔒 Security",
-  admin: "🛠️ Admin & Ops",
-  other: "📦 Other",
-}
-const PRIORITY = ["", "🔴 ", "🟡 ", "⚪ "]
-
-/** An open roadmap item on the Reporting Standard: a «⛔ 🟡 …» tag in its title names its owner; otherwise engineering's. */
-function pendingOf(i: Report["roadmap"][number]): PendingItem {
-  const [title, ...reason] = i.title.split("⛔")
-  const tagged = reason.length ? ownerTag(reason.join("⛔")) : null
-  const prefix = i.status === "doing" ? "▶️ " : (PRIORITY[i.priority] ?? "")
-  if (tagged) return { title: `${prefix}${title.trim()}`, ...tagged }
-  return { title: `${prefix}${title.trim()}`, owner: "engineering", action: reason.length ? reason.join("⛔").trim() : i.status === "doing" ? "បញ្ចប់ការអភិវឌ្ឍ" : "ចាប់ផ្ដើមអភិវឌ្ឍ" }
+/** What the digest adds to the snapshot: ROADMAP.md (finished today, the founder's actions) and the server now. */
+export type EodExtras = {
+  done: Shipped[]
+  actions: string[]
+  others?: { verify: number; external: number; engineering: number }
+  now: Omit<Health, "okPct">
 }
 
 /**
- * The digest on the Reporting Standard (lib/report-standard.ts): the day's ✅ key accomplishments first, every commit by
- * area, security and health, then every open item numbered in its owner's section — nothing cut (sent as parts).
+ * The digest on the Reporting Standard — an executive summary (founder, 21/10/2026: «do NOT list all 70 commits»):
+ * 3–5 highlights and «(+ X technical patches & fixes under the hood)», one health line (no CPU-peak lines), then the
+ * founder's actions only. The full commit list stays in Admin › Super › Development.
  */
-export function eodText(r: Report): string {
+export function eodText(r: Report, x: EodExtras): string {
   const [y, m, d] = r.day.split("-")
-  const feats = r.commits.filter((c) => c.kind === "feat")
-  const fixes = r.commits.filter((c) => c.kind === "fix")
-  const lines = [`📋 App Luy Chlat · End of day ${d}/${m}/${y}`, ""]
-  if (r.commits.length === 0) lines.push("✅ Shipped: nothing deployed today.")
-  else {
-    lines.push(...highlights([...feats, ...fixes, ...r.commits.filter((c) => c.kind !== "feat" && c.kind !== "fix")].map((c) => c.subject)))
-    lines.push("", `🚀 Shipped: ${r.commits.length} (${feats.length} features · ${fixes.length} fixes)`)
-    for (const g of groupByArea(r.commits)) {
-      lines.push("", `${AREA_LABEL[g.key] ?? g.key} (${g.items.length})`)
-      for (const c of g.items) lines.push(`• ${c.kind === "fix" ? "🔧 " : ""}${c.subject}`)
-    }
+  const features = r.commits.filter((c) => c.kind === "feat").map((c) => ({ hash: c.hash, subject: c.subject }))
+  const { highlights, patches } = curate(x.done, features, r.commits.map((c) => c.hash))
+  const open = r.security?.incidents.filter((i) => !i.ended_at).length ?? 0
+  const health = healthLine({ ...x.now, okPct: r.security?.health.ok_pct ?? null, healthy: x.now.healthy && open === 0, issues: [...(x.now.issues ?? []), ...(open ? [`${open} incident${open === 1 ? "" : "s"} open`] : [])] })
+  return executiveSummary({
+    title: `App Luy Chlat · End of Day ${d}/${m}/${y}`,
+    highlights,
+    patches,
+    health,
+    actions: x.actions,
+    others: x.others,
+    footer: "Full log: Admin › Super › Development",
+  })
+}
+
+/** ROADMAP.md's items finished on `day` and the founder's actions; empty when the file is not in the image. */
+function roadmapExtras(commits: string[]): Pick<EodExtras, "done" | "actions" | "others"> {
+  const file = path.join(process.cwd(), "ROADMAP.md")
+  if (!existsSync(file)) {
+    logEvent("warn", "dev-eod", "ROADMAP.md is not in the image: highlights come from feature commits only", { fold: true })
+    return { done: [], actions: [] }
   }
-  if (r.done_today.length) lines.push("", `☑️ Roadmap items done today: ${r.done_today.length}`)
-  const sec = r.security
-  if (sec) {
-    const tr = sec.traffic
-    lines.push("", `🛡️ Security & health · peak CPU ${sec.health.max_cpu ?? "–"}% · RAM ${sec.health.max_ram ?? "–"}% · healthy ${sec.health.ok_pct ?? "–"}%`)
-    if (Number(tr.blocked) > 0) {
-      const when = tr.first_blocked && tr.last_blocked ? ` (${hhmm(tr.first_blocked)}–${hhmm(tr.last_blocked)})` : ""
-      lines.push(`• Blocked ${num(tr.blocked)} malicious requests${when}, peak ${num(tr.peak_blocked_per_min)}/min; rate-limited ${num(tr.limited)}`)
-    } else lines.push("• No blocked attack traffic")
-    for (const i of sec.incidents)
-      lines.push(`• ${i.ended_at ? "✅" : "🔴"} ${i.issue.toUpperCase()}${i.peak != null ? ` peak ${i.peak}` : ""}: ${hhmm(i.started_at)} → ${i.ended_at ? hhmm(i.ended_at) : "ongoing"} (${i.minutes} min)`)
-  }
-  lines.push("", ...pendingSections(r.roadmap.map(pendingOf)))
-  lines.push("", "Full report: Admin › Super › Development")
-  return lines.join("\n")
+  const parts = summaryParts(dailyScorecard(parseRoadmap(readFileSync(file, "utf8")), commits))
+  return { done: parts.done, actions: parts.actions, others: parts.others }
 }
 
 /** Called every minute by the dispatcher. */
@@ -98,13 +84,24 @@ export async function devEodTick() {
     logEvent("error", "dev-eod", `End-of-day report failed: ${error?.message ?? "no data"}`, { fold: true })
     return
   }
+  const report = data as Report
+  const sample = await takeSample()
+  const issues = findIssues([sample])
+  const text = eodText(report, {
+    ...roadmapExtras(report.commits.map((c) => c.hash)),
+    now: { healthy: issues.length === 0, issues, diskFreeGb: diskFreeGb(), ramPct: sample.ram_pct, webhookOk: !sample.webhook_error },
+  })
   // The DevOps chat, else the founder's chat (founder, 19/10/2026 — with no DevOps chat set it went nowhere while the
-  // log said «sent»). The log counts the chats that really received every part (never cut — the Reporting Standard).
-  const pages = paginate(eodText(data as Report))
+  // log said «sent»). The log counts the chats that really received every part.
+  const pages = paginate(text)
   let sent = 0
   for (const chat of await founderChats()) {
     let all = true
-    for (const page of pages) if (!(await sendText(chat, page).catch(() => null))?.ok) { all = false; break }
+    for (const page of pages) {
+      if ((await sendText(chat, page).catch(() => null))?.ok) continue
+      all = false
+      break
+    }
     if (all) sent++
   }
   logEvent(sent ? "info" : "warn", "dev-eod", `End-of-day report ${day} (${pages.length} part(s)) sent to ${sent} chat(s)`, { fold: true })

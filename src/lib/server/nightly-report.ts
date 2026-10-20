@@ -5,8 +5,8 @@ import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 
 import { MORNING_BRIEFING, morningBriefingText, nightlyReportDay, nightlyReportText } from "@/lib/nightly-report"
-import { dailyScorecard, parseRoadmap, scorecardParts } from "@/lib/roadmap-scorecard"
-import { paginate } from "@/lib/report-standard"
+import { dailyScorecard, parseRoadmap, summaryParts } from "@/lib/roadmap-scorecard"
+import { curate, paginate } from "@/lib/report-standard"
 import { founderChats } from "./admin-routes"
 import { logEvent } from "./events"
 import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
@@ -38,11 +38,15 @@ async function morningBriefingTick(now: { day: string; hour: number; minute: num
 }
 
 /** Builds and sends the card; the number of chats that received it is logged (never a silent «sent»). */
+/** Builds and sends the card; the number of chats that received it is logged (never a silent «sent»). */
 export async function sendNightlyReport(day: string): Promise<number> {
   const sample = await takeSample()
   const { data } = await botDb().rpc("bot_nightly_stats", { p_key: botKey(), p_day: day })
   const stats = (data as { new_users?: number; approvals?: number; by_approver?: { name?: string | null; count?: number }[] } | null) ?? {}
   const issues = findIssues([sample])
+  // The executive summary (founder, 21/10/2026 — lib/report-standard.ts): 3–5 highlights from ROADMAP.md items finished
+  // today and the exact count of today's other commits, one health line, then only the founder's actions.
+  const card = await taskScorecard(day)
   const text = nightlyReportText({
     day,
     healthy: issues.length === 0,
@@ -56,11 +60,9 @@ export async function sendNightlyReport(day: string): Promise<number> {
     staff: (stats.by_approver ?? []).map((p) => ({ name: p.name?.trim() || "—", count: Number(p.count ?? 0) })),
     dockerOk: sample.db_ms !== null,
     webhookOk: !sample.webhook_error,
+    ...card,
   })
-  // The Reporting Standard (founder, 20/10/2026 — lib/report-standard.ts): today's ✅ accomplishments at the top, the
-  // server's health, then every pending item numbered in its owner's section; nothing cut — numbered parts if long.
-  const scorecard = await taskScorecard(day)
-  const pages = paginate([scorecard.top, text, scorecard.pending].filter(Boolean).join("\n\n"))
+  const pages = paginate(text)
   let sent = 0
   // The founder's private chat only — never «LCA Approval» (an approval queue, founder 20/10/2026). A chat counts as
   // reached only when every part arrived.
@@ -79,17 +81,21 @@ export async function sendNightlyReport(day: string): Promise<number> {
   return sent
 }
 
-/** The scorecard's two parts; when the roadmap or today's deploys cannot be read, the report still goes out and says so. */
-async function taskScorecard(day: string): Promise<{ top: string; pending: string }> {
+type Card = { highlights?: string[]; patches?: number; actions?: string[]; others?: { verify: number; external: number; engineering: number }; note?: string }
+
+/** Today's highlights, other commits and the founder's actions; when they cannot be read, the report says so. */
+async function taskScorecard(day: string): Promise<Card> {
   const file = path.join(process.cwd(), "ROADMAP.md")
   if (!existsSync(file)) {
-    logEvent("warn", "nightly-report", "Daily Task Scorecard: ROADMAP.md is not in the image", { fold: true })
-    return { top: "📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ៖ មិនអាចអាន ROADMAP.md បានទេ", pending: "" }
+    logEvent("warn", "nightly-report", "Daily summary: ROADMAP.md is not in the image", { fold: true })
+    return { note: "⚠️ ROADMAP.md could not be read — highlights and actions missing" }
   }
   const { data, error } = await botDb().rpc("bot_deployed_hashes", { p_key: botKey(), p_day: day })
   if (error) {
-    logEvent("warn", "nightly-report", `Daily Task Scorecard: ${error.message}`, { fold: true })
-    return { top: "📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ៖ មិនអាចអានការដាក់ឱ្យដំណើរការថ្ងៃនេះបានទេ", pending: "" }
+    logEvent("warn", "nightly-report", `Daily summary: ${error.message}`, { fold: true })
+    return { note: "⚠️ Today's deploys could not be read — highlights missing" }
   }
-  return scorecardParts(dailyScorecard(parseRoadmap(readFileSync(file, "utf8")), (data as string[] | null) ?? []))
+  const commits = (data as string[] | null) ?? []
+  const parts = summaryParts(dailyScorecard(parseRoadmap(readFileSync(file, "utf8")), commits))
+  return { ...curate(parts.done, [], commits), actions: parts.actions, others: parts.others }
 }

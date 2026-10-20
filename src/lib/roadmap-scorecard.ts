@@ -7,11 +7,11 @@
  *   completed — an item ticked `[x]` that names a commit deployed today
  *   pending   — an open item (`[/]` or `[ ]`) that names a commit deployed today, or carries a blocker «⛔ reason»
  *
- * Rendered on the Reporting Standard (lib/report-standard.ts): the owner of each pending item comes from the tag that
+ * Used by the executive summary (lib/report-standard.ts): the owner of each pending item comes from the tag that
  * starts its reason — «⛔ 🟡 ចុច ✅ លើកាត #833», «⛔ ⏳ …», «⛔ ⚙️ …», «⛔ 🟢 …» — and the rest is its next step. An open
  * item deployed today without a reason is 🟢 (live, waiting for the founder's test).
  */
-import { accomplishments, ownerTag, pendingSections, type Owner } from "./report-standard"
+import { ownerTag, type Owner, type Shipped } from "./report-standard"
 
 export type RoadmapState = "done" | "doing" | "todo"
 
@@ -69,19 +69,12 @@ export function dailyScorecard(items: RoadmapItem[], deployedToday: string[]): S
   return { completed, pending }
 }
 
-/** The scorecard in two parts: the ✅ header (top of the report) and the four pending sections — nothing capped. */
-export function scorecardParts(s: Scorecard): { top: string; pending: string } {
+/** The scorecard for the executive summary: today's finished items (highlight candidates), the founder's actions, counts. */
+export function summaryParts(s: Scorecard): { done: Shipped[]; actions: string[]; others: { verify: number; external: number; engineering: number } } {
+  const count = (o: Owner) => s.pending.filter((p) => p.owner === o).length
   return {
-    top: [
-      `📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ (Daily Task Scorecard)៖ សរុប ${s.completed.length + s.pending.length} · សម្រេច ${s.completed.length} · កំពុងរង់ចាំ ${s.pending.length}`,
-      ...accomplishments(s.completed.map((i) => i.title)),
-    ].join("\n"),
-    pending: pendingSections(s.pending.map((p) => ({ title: p.item.title, owner: p.owner, action: p.action }))).join("\n"),
+    done: s.completed.map((i) => ({ title: i.title, hashes: i.hashes })),
+    actions: s.pending.filter((p) => p.owner === "founder").map((p) => p.action),
+    others: { verify: count("verify"), external: count("external"), engineering: count("engineering") },
   }
-}
-
-/** The whole scorecard as one text (the ✅ header, then the pending sections). */
-export function scorecardText(s: Scorecard): string {
-  const { top, pending } = scorecardParts(s)
-  return `${top}\n\n${pending}`
 }

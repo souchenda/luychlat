@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { dailyScorecard, parseRoadmap, pendingOf, scorecardParts, scorecardText } from "./roadmap-scorecard"
+import { dailyScorecard, parseRoadmap, pendingOf, summaryParts } from "./roadmap-scorecard"
 
 const MD = [
   "## 1. 🕌 Islamic",
@@ -45,23 +45,17 @@ describe("The Daily Task Scorecard (founder, 20/10/2026)", () => {
     const untagged = pendingOf({ section: "", state: "todo", title: "x", blocker: "រង់ចាំស្ថាបនិក", hashes: [] }, false)
     assert.deepEqual([untagged.owner, untagged.action], ["engineering", "រង់ចាំស្ថាបនិក"])
   })
-  it("the text: totals, ✅ on top, then the pending items numbered in their owners' sections — never capped", () => {
-    const s = dailyScorecard(parseRoadmap(MD), ["f427225aaaa", "97fa957bbbb"])
-    const text = scorecardText(s)
-    assert.ok(text.startsWith("📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ (Daily Task Scorecard)៖ សរុប 4 · សម្រេច 1 · កំពុងរង់ចាំ 3\n✅ សមិទ្ធផលសំខាន់ៗថ្ងៃនេះ (1)៖\n✅ The quiz"))
-    assert.match(text, /🟢 [^\n]+ — 1\n1\. Master Brand — docs\/BRAND_DESIGN_SYSTEM\.md \[សកម្មភាព៖ សាកល្បងលើ app\.luychlat\.com ហើយបញ្ជាក់\]/)
-    assert.match(text, /🟡 [^\n]+ — 1\n2\. Telegram bot audio Adhan alert \[សកម្មភាព៖ បើក \/adhan on\]/)
-    assert.match(text, /⏳ [^\n]+ — 1\n3\. Bitesize lessons screen — 8 lessons written \[សកម្មភាព៖ អ៊ីម៉ាំពិនិត្យមេរៀន\]/)
-    const many = { completed: Array.from({ length: 19 }, (_, i) => ({ section: "", state: "done" as const, title: `t${i}`, blocker: null, hashes: [] })), pending: [] }
-    const all = scorecardParts(many).top
-    for (let i = 0; i < 19; i++) assert.ok(all.includes(`t${i}`), `t${i}`) // every item, none hidden
-    assert.doesNotMatch(all, /… និង|more/)
+  it("the summary parts: today's finished items (highlights), only the founder's actions, the other owners counted", () => {
+    const parts = summaryParts(dailyScorecard(parseRoadmap(MD), ["f427225aaaa", "97fa957bbbb"]))
+    assert.deepEqual(parts.done.map((d) => d.title), ["The quiz in the app only — the 12:30 teaser removed"])
+    assert.deepEqual(parts.actions, ["បើក /adhan on"])
+    assert.deepEqual(parts.others, { verify: 1, external: 1, engineering: 0 })
   })
   it("the real ROADMAP.md parses, and ships inside the server image; the nightly report carries the scorecard", () => {
     if (existsSync(join(process.cwd(), "ROADMAP.md"))) assert.ok(parseRoadmap(readFileSync(join(process.cwd(), "ROADMAP.md"), "utf8")).length > 50)
     if (existsSync(join(process.cwd(), "Dockerfile"))) assert.match(readFileSync(join(process.cwd(), "Dockerfile"), "utf8"), /COPY --from=builder --chown=nextjs:nodejs \/app\/ROADMAP\.md \.\/ROADMAP\.md/)
     const server = readFileSync(join(process.cwd(), "src/lib/server/nightly-report.ts"), "utf8")
-    assert.match(server, /scorecardParts\(dailyScorecard\(parseRoadmap\(/)
+    assert.match(server, /summaryParts\(dailyScorecard\(parseRoadmap\(/)
     assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270231000000_deployed_hashes.sql"), "utf8"), /function public\.bot_deployed_hashes/)
   })
 })

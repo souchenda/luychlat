@@ -3,6 +3,8 @@
  * server's health, today's new members and approvals. No revenue; since 20/10/2026 it goes to the founder's private chat
  * only, with each approver's decisions today (Staff Performance). Pure (nightly-report.test.ts).
  */
+import { executiveSummary, healthLine } from "./report-standard"
+
 export type NightlyFacts = {
   day: string
   healthy: boolean
@@ -17,26 +19,29 @@ export type NightlyFacts = {
   staff?: { name: string; count: number }[]
   dockerOk: boolean
   webhookOk: boolean
+  /** The executive summary (founder, 21/10/2026): today's highlights, the other commits, the founder's actions. */
+  highlights?: string[]
+  patches?: number
+  actions?: string[]
+  others?: { verify: number; external: number; engineering: number }
+  /** Why the scorecard could not be read (the report still goes out and says so). */
+  note?: string
 }
 
-const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
+/** The founder's nightly card on the Reporting Standard: 📊 · 🚀 3–5 highlights · one health line · 🎯 actions. */
 export function nightlyReportText(f: NightlyFacts): string {
   const [y, m, d] = f.day.split("-")
-  const disk = f.diskFreeGb !== null && f.diskPct !== null ? `${f.diskFreeGb} GB ទំនេរ (${f.diskPct}% ប្រើប្រាស់)` : "—"
-  const ram = f.ramPct !== null ? `${f.ramPct}%${f.ramTotalGb ? ` នៃ ${f.ramTotalGb} GB` : ""}` : "—"
-  return [
-    "📊 របាយការណ៍ប្រចាំថ្ងៃ & សុខភាព Server (មុនម៉ោង ១២ យប់)",
-    `• កាលបរិច្ឆេទ៖ ${kmDigits(`${d}/${m}/${y}`)}`,
-    `• ស្ថានភាព Server៖ ${f.healthy ? "🟢 សកម្មធម្មតា (Healthy)" : `🟠 ត្រូវតាមដាន (${f.issues.join(", ")})`}`,
-    `• ទំហំថាសរឹង (Disk)៖ ${disk}`,
-    `• ការចងចាំ (RAM)៖ ${ram}`,
-    `• សមាជិកថ្មីថ្ងៃនេះ៖ ${f.newUsers}`,
-    `• ការអនុម័តថ្ងៃនេះ៖ ${f.approvals}`,
-    ...(f.staff ? ["• ស្ថិតិការងារអនុម័តថ្ងៃនេះ (Staff Performance)៖", ...(f.staff.length ? f.staff.map((p) => `  - 👤 ${p.name}៖ ${p.count} លើក`) : ["  - មិនទាន់មានការអនុម័តទេ"])] : []),
-    `• ស្ថានភាព Docker & Webhook៖ ${f.dockerOk && f.webhookOk ? "ដំណើរការល្អ" : `${f.dockerOk ? "Docker ល្អ" : "Docker មានបញ្ហា"} · ${f.webhookOk ? "Webhook ល្អ" : "Webhook មានបញ្ហា"}`}`,
-    "— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត",
-  ].join("\n")
+  const staff = f.staff?.length ? ` (${f.staff.map((p) => `${p.name} ${p.count}`).join(", ")})` : ""
+  return executiveSummary({
+    title: `App Luy Chlat · Daily Summary ${d}/${m}/${y}`,
+    highlights: f.highlights ?? [],
+    patches: f.patches ?? 0,
+    health: healthLine({ healthy: f.healthy && f.dockerOk, issues: [...f.issues, ...(f.dockerOk ? [] : ["docker"])], diskFreeGb: f.diskFreeGb, ramPct: f.ramPct, webhookOk: f.webhookOk }),
+    facts: [`👥 New members: ${f.newUsers} · Approvals: ${f.approvals}${staff}`, ...(f.note ? [f.note] : [])],
+    actions: f.actions ?? [],
+    others: f.others,
+  })
 }
 
 /** 23:30–23:59 Cambodia time (a deploy or restart inside the window still sends — once a day, claimed). */

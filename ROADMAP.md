@@ -77,7 +77,7 @@ dropped between sessions. The founder reviews it every evening.
 - [/] Daily Task Scorecard in the founder's nightly report — completed and stuck items with their reasons, from ROADMAP.md and today's deploys
 - [/] Edit a waiting post's caption by replying to its card in «LCA Approval» — «(✏️ បានកែសម្រួលដោយ @username ម៉ោង …)» (f19e266, e297385) ⛔ 🟢 Reply លើកាតមួយ ដើម្បីសាកកែអត្ថបទ
 - [/] The bot is for members only — an unlinked private chat gets the polite note and [ 📱 បង្កើតគណនីឥតគិតថ្លៃ ]; no admin bypass; the cold «not linked» text gone (e297385, fcc6987) ⛔ 🟢 សាកពី Telegram ដែលមិនទាន់ភ្ជាប់ ហើយបញ្ជាក់
-- [/] The Reporting Standard — ✅ key accomplishments on top, pending work numbered in four owner sections with [សកម្មភាព៖ …], never truncated (CLAUDE.md › Reporting Standards) ⛔ 🟢 វាយ /report ក្នុងឆាតឯកជនជាមួយបូត ដើម្បីមើលទម្រង់ថ្មី
+- [/] The Reporting Standard — an executive summary: 3–5 highlights and «(+ X technical patches …)», one health line, 🎯 the founder's actions only (CLAUDE.md › Reporting Standards) (934c4fb) ⛔ 🟢 វាយ /report ក្នុងឆាតឯកជនជាមួយបូត ដើម្បីមើលទម្រង់ថ្មី
 - [x] Approver name, @username and time on every post card after ✅ / 🚀 / ❌; per-approver counts (Staff Performance) in the founder's nightly card
 
 ## 3. 🎨 ផ្ទាំងផ្សព្វផ្សាយ & មាតិកា (Media & Posters)
@@ -89,7 +89,7 @@ dropped between sessions. The founder reviews it every evening.
 - [ ] Reel voices: Azure AI Speech key on the Droplet (the founder declined Azure for the du'as; reels still need a licensed voice) ⛔ 🟡 បញ្ចូល Key សំឡេងមានអាជ្ញាប័ណ្ណតាម Droplet console
 - [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E) ⛔ 🟡 ផ្ញើឯកសារដើម Mascot ≥ 1024 px, Logo និង Cover របស់ Page
 - [x] **Master Brand & Visual Design System** — `docs/BRAND_DESIGN_SYSTEM.md`, the permanent design foundation for every poster: the four pillars, royal protocol (verbatim table), Islamic terminology and two-tier colours, Sil days and festivals, daily education, the pre-flight four-layer checklist; referenced in CLAUDE.md. Evolves only on the founder's decisions (its change log)
-- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder) ⛔ 🟡 ចុច ✅ លើកាត #833 ក្នុង «LCA Approval»
+- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder) ⛔ 🟡 ចុច ✅ លើកាត #833 (ផ្សាយ ០៥:០០ ថ្ងៃ ២៩ តុលា)
 - [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 05:00 on 29/10 only after a tap (the card names the day) ⛔ 🟡 ចុច ✅ លើកាត #833 (ផ្សាយ ០៥:០០ ថ្ងៃ ២៩ តុលា)
 - [x] National and royal holidays at 05:00; the approval card and its ✅ name the day «ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក» (811c2b1)
 - [/] All-inclusive holiday engine — national, Islamic, Chinese, global — every one at 05:00 (1de372a) ⛔ 🟢 ពិនិត្យកាតបុណ្យបន្ទាប់ក្នុង «LCA Approval» ថាឈ្មោះថ្ងៃ និងម៉ោង ០៥:០០ ត្រឹមត្រូវ
