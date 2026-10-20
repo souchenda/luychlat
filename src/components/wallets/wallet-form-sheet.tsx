@@ -44,7 +44,7 @@ import { parseAmount, roundMoney } from "@/lib/money"
 import { showUpgrade, usePlan } from "@/lib/plan"
 import { accountTitle, type AccountRead } from "@/lib/scan"
 import { cn } from "@/lib/utils"
-import { getProvider, POPULAR_PROVIDERS, searchProviders } from "@/lib/wallets/providers"
+import { getProvider, POPULAR_PROVIDERS, providerHasCards, searchProviders } from "@/lib/wallets/providers"
 import { useLocaleStore } from "@/stores/locale-store"
 
 import { CardMeter, PayCardSheet } from "./credit-card"
@@ -242,7 +242,9 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   const { register, control, handleSubmit, setValue, getValues, reset, setFocus, formState } = form
   const icon = useWatch({ control, name: "icon" })
   const kind = useWatch({ control, name: "kind" }) as WalletKind
-  const card = kind === "CREDIT_CARD"
+  // Cash can never be a credit card: no «ប្រភេទ» row for it, and the wallet stays standard (founder, 20/10/2026).
+  const cardable = providerHasCards(icon)
+  const card = cardable && kind === "CREDIT_CARD"
   const currencyChoice = useWatch({ control, name: "currency" })
   const both = !wallet && !card && currencyChoice === "BOTH"
   // "$ + ៛": ACLEDA / ABA usually give both currencies the same account number.
@@ -253,6 +255,9 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   useEffect(() => {
     if (card && getValues("currency") === "BOTH") setValue("currency", "USD")
   }, [card, getValues, setValue])
+  useEffect(() => {
+    if (!cardable && getValues("kind") !== "STANDARD") setValue("kind", "STANDARD")
+  }, [cardable, getValues, setValue])
   const [payOpen, setPayOpen] = useState(false)
   const allWallets = useWallets(workspaceId).data ?? []
   const name = useWatch({ control, name: "name" })
@@ -285,10 +290,10 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
   }
 
   const onSubmit = handleSubmit(async (values) => {
-    if (values.currency === "BOTH" && !wallet && values.kind !== "CREDIT_CARD") return void createPair(values)
+    if (values.currency === "BOTH" && !wallet && !(values.kind === "CREDIT_CARD" && providerHasCards(values.icon))) return void createPair(values)
     const currency = (values.currency === "BOTH" ? "USD" : values.currency) as Currency
     const visibility: WalletVisibility = family ? values.visibility : (wallet?.visibility ?? "SHARED")
-    const isCardForm = values.kind === "CREDIT_CARD"
+    const isCardForm = values.kind === "CREDIT_CARD" && providerHasCards(values.icon)
     const limit = parseAmount(values.creditLimit)
     const statementDay = Number(values.statementDay)
     const dueDay = Number(values.dueDay)
@@ -499,8 +504,8 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
           )}
         </div>
 
-        {!wallet && (
-          <div className="space-y-2">
+        {!wallet && cardable && (
+          <div className="space-y-2" data-testid="wallet-type-row">
             <Label>{t("card.walletType")}</Label>
             <Controller
               control={control}

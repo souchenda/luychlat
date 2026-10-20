@@ -80,3 +80,9 @@ export function walletInstitution(w: { icon: string | null; name?: string | null
   const picked = getProvider(w.icon)
   return picked.key === "other" ? (providerForName(w.name) ?? picked) : picked
 }
+
+/**
+ * Whether a wallet of this provider can be a credit card (founder, 20/10/2026): cash in hand never is, so the add-wallet
+ * form hides its «ប្រភេទ» row for cash and keeps the wallet standard. Banks and e-wallets keep the choice.
+ */
+export const providerHasCards = (key: string | null | undefined) => (key ?? "cash") !== "cash"
