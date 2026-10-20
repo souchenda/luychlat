@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("no-clipart") && !listed.includes("hd-portrait-live") && !listed.includes("royal-protocol")) // a used flag leaves the list
+    assert.ok(listed.includes("kbach-backdrop") && !listed.includes("no-clipart") && !listed.includes("hd-portrait-live")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -133,9 +133,11 @@ describe("The royal-protocol audit and the national backdrop (founder, 20/10/202
     const ctx = createCanvas(1080, 1350).getContext("2d")
     ctx.font = `500 28px ${FAMILIES}`
     const message = nationalDayByKey("coronation")!.message
-    for (const width of [920, 860, 760, 640]) {
+    for (const [size, width] of [[28, 920], [28, 860], [26, 800], [28, 760], [28, 640]] as const) {
+      ctx.font = `500 ${size}px ${FAMILIES}`
       const lines = wrap(ctx, message, width, 12)
       for (const term of ROYAL_UNBREAKABLE) if (message.includes(term)) assert.ok(lines.some((l) => l.includes(term)), `${term} split at ${width}px: ${lines.join(" | ")}`)
+      assert.ok(lines.every((l) => [...l.trim()].length > 12), `an orphaned word at ${width}px: ${lines.join(" | ")}`)
     }
     for (const t of ["«អេប លុយឆ្លាត»", "សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង", "ព្រះសព្ទសាធុការពរជ័យ", "ព្រះរាជសុខភាព", "ព្រះកាយពលមាំមួន", "ព្រះជន្មាយុយឺនយូរ"]) assert.ok(ROYAL_UNBREAKABLE.includes(t), t)
   })
@@ -171,5 +173,20 @@ describe("The Master Brand & Visual Design System (founder, 20/10/2026)", { skip
     assert.equal(quoted, d.message)
     assert.ok(doc.includes(d.title) && doc.includes(nationalDateLine(d, "2026-10-29")))
     for (const line of d.subtitle!.split("\n")) assert.ok(doc.includes(line), line)
+  })
+})
+
+describe("The founder's kbach backdrop (20/10/2026)", () => {
+  it("the Coronation renders on the kbach frame: whole, 1080 × 1350; the corners are left to the gold ornaments", async () => {
+    const { existsSync } = await import("node:fs")
+    assert.ok(existsSync(join(process.cwd(), "public/images/holidays/bg_royal_coronation.jpg")))
+    const jpg = readFileSync(join(process.cwd(), "public/images/holidays/bg_royal_coronation.jpg"))
+    assert.deepEqual([jpg[0], jpg[1]], [0xff, 0xd8]) // a real JPEG
+    const poster = read("src/lib/server/national-day-poster.ts")
+    assert.match(poster, /const framed = Boolean\(art\.backdrop\)/)
+    assert.match(poster, /ctx\.drawImage\(art\.crest, framed \? 800 : PW - 56 - cw, framed \? 178 : 36, cw, ch\)/) // inside the top-right ornament
+    assert.match(poster, /const bodyWidth = framed \? PW - 2 \* 140 : width/) // clear of the bottom corners
+    assert.match(read("public/images/holidays/README.txt"), /traditional Khmer kbach/)
+    assert.match(read("supabase/migrations/20270221000000_repreview_kbach_backdrop.sql"), /'repreview', 'kbach-backdrop'/)
   })
 })

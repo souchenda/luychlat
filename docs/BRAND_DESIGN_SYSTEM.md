@@ -39,13 +39,14 @@ renders the poster. With a portrait the poster is 1080 × 1350; without one it i
 
 1. **Base layer:** a rich royal emerald gradient (`#052e26 → #064e3b → #047857`), a gold glow behind the portrait and
    a soft vignette.
-2. **Architectural heritage — photographic only (founder, 20/10/2026):** the founder's majestic backdrop
-   `bg_royal_coronation.jpg` (1080 × 1350), full bleed: the authentic stone **Independence Monument «វិមានឯករាជ្យ» on
-   the left**, the golden **Throne Hall «ព្រះទីនាំងទេវាវិនិច្ឆ័យ» on the right**, the silk national flag ribbon and
-   the central golden halo. A deep emerald veil under the text keeps every line legible. **Never draw architecture as
-   vector shapes:** the founder rejected the drawn silhouettes as «crude clipart … unworthy of His Majesty the King».
-   Without the photograph, use the plain emerald gradient and gold glow.
-3. **The halo and the arch:** the portrait's golden arch sits in the backdrop's central halo.
+2. **The founder's backdrop (founder, 20/10/2026):** `bg_royal_coronation.jpg` (1080 × 1350), full bleed — today the
+   traditional Khmer **kbach** frame: deep emerald, the kbach / lotus watermark and four golden ornate corners. A soft
+   oval of deep emerald behind the text keeps every line legible and leaves the corners bright. **Never draw
+   architecture or ornaments as vector shapes:** the founder rejected drawn silhouettes as «crude clipart … unworthy of
+   His Majesty the King». Royal architecture, if shown, is photographic only. Without the backdrop, use the plain
+   emerald gradient and gold glow.
+3. **On a framed backdrop:** the corners belong to the ornaments — the brand moves to the top centre, the Coat of Arms
+   sits just inside the top-right ornament, and the blessing (26 px) keeps clear of the bottom corners.
 4. **Foreground:** the **golden arched frame** holds the **official, high-definition royal portrait**. The **official
    golden Royal Coat of Arms** sits at the **top right**, with a soft shadow.
 5. **Text, below the arch:** the title in gold, 52 px; the royal name and title in white, 30 px; the gold date chip;
@@ -182,7 +183,7 @@ check all four again together.
 
 **Layer 2 — Background**
 - [ ] The emerald gradient and the vignette are smooth, with no hard bands.
-- [ ] The photographic backdrop is authentic (never drawn clipart), the halo is behind the arch, and the veil keeps the text legible.
+- [ ] The backdrop is the founder's (never drawn clipart); nothing sits on its corner ornaments; the text is legible on it.
 - [ ] The brand badge and the footer are clean.
 
 **Layer 3 — Content**
@@ -208,3 +209,5 @@ an approver's tap.
   quiz teaser).
 - **20/10/2026:** the drawn silhouettes are removed («crude clipart»). Royal architecture is photographic only, from
   the founder's backdrop `bg_royal_coronation.jpg`.
+- **20/10/2026:** the Coronation backdrop is the founder's traditional Khmer kbach frame; on a framed backdrop the brand
+  moves to the top centre and the crest inside the top-right ornament.

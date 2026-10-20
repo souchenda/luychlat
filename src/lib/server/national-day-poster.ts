@@ -192,12 +192,17 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
     const bw = art.backdrop.width * scale
     const bh = art.backdrop.height * scale
     ctx.drawImage(art.backdrop, (PW - bw) / 2, (PH - bh) / 2, bw, bh)
-    const veil = ctx.createLinearGradient(0, 640, 0, PH)
-    veil.addColorStop(0, "rgba(2,44,34,0)")
-    veil.addColorStop(0.22, "rgba(2,44,34,0.78)")
-    veil.addColorStop(1, "rgba(2,44,34,0.92)")
+    // A soft oval of deep emerald behind the text only — the gold corners of the kbach frame stay bright.
+    ctx.save()
+    ctx.translate(PW / 2, 1010)
+    ctx.scale(1, 0.62)
+    const veil = ctx.createRadialGradient(0, 0, 0, 0, 0, 470)
+    veil.addColorStop(0, "rgba(2,44,34,0.72)")
+    veil.addColorStop(0.7, "rgba(2,44,34,0.45)")
+    veil.addColorStop(1, "rgba(2,44,34,0)")
     ctx.fillStyle = veil
-    ctx.fillRect(0, 640, PW, PH - 640)
+    ctx.fillRect(-PW / 2, -470, PW, 940)
+    ctx.restore()
   } else {
     // Without it: deep royal emerald with a gold glow behind the portrait — never drawn clipart.
     const bg = ctx.createLinearGradient(0, 0, PW * 0.3, PH)
@@ -214,23 +219,35 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   }
 
   // The brand, top left.
+  // On the kbach frame (the founder's backdrop) the gold corners own the four corners: the brand sits at the top centre
+  // and the crest nestles just inside the top-right ornament; the text keeps clear of the bottom corners.
+  const framed = Boolean(art.backdrop)
   const mascot = posterMascot()
-  if (mascot) ctx.drawImage(mascot, 56, 48, 64, 64)
-  ctx.textAlign = "left"
   ctx.textBaseline = "alphabetic"
   ctx.font = `700 30px ${FAMILIES}`
   ctx.fillStyle = "#ffffff"
-  ctx.fillText("អេប លុយឆ្លាត", 134, 92)
+  if (framed) {
+    const label = "អេប លុយឆ្លាត"
+    const total = 52 + 14 + ctx.measureText(label).width
+    const bx = (PW - total) / 2
+    if (mascot) ctx.drawImage(mascot, bx, 56, 52, 52)
+    ctx.textAlign = "left"
+    ctx.fillText(label, bx + 66, 93)
+  } else {
+    if (mascot) ctx.drawImage(mascot, 56, 48, 64, 64)
+    ctx.textAlign = "left"
+    ctx.fillText("អេប លុយឆ្លាត", 134, 92)
+  }
 
   // The Royal Coat of Arms, top right, with a soft shadow.
   if (art.crest) {
-    const ch = 150
+    const ch = framed ? 128 : 150
     const cw = (art.crest.width / art.crest.height) * ch
     ctx.save()
     ctx.shadowColor = "rgba(0,0,0,0.45)"
     ctx.shadowBlur = 18
     ctx.shadowOffsetY = 6
-    ctx.drawImage(art.crest, PW - 56 - cw, 36, cw, ch)
+    ctx.drawImage(art.crest, framed ? 800 : PW - 56 - cw, framed ? 178 : 36, cw, ch)
     ctx.restore()
   }
 
@@ -295,22 +312,25 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   y += 52 + 44
 
   const footer = PH - 92
-  ctx.font = `500 28px ${FAMILIES}`
+  // Inside the kbach frame the blessing is a touch smaller, so all of it fits between the bottom corners.
+  const bodyWidth = framed ? PW - 2 * 140 : width
+  const lead = framed ? 38 : 42
+  ctx.font = `500 ${framed ? 26 : 28}px ${FAMILIES}`
   ctx.fillStyle = "#ecfdf5"
-  let lines = wrap(ctx, text.message, width, 5)
-  while (y + lines.length * 42 > footer - 20 && lines.length > 2) lines = wrap(ctx, text.message, width, lines.length - 1)
+  let lines = wrap(ctx, text.message, bodyWidth, 5)
+  while (y + lines.length * lead > footer - 20 && lines.length > 2) lines = wrap(ctx, text.message, bodyWidth, lines.length - 1)
   if (lines.at(-1)?.endsWith("…")) truncated = true
   for (const line of lines) {
     ctx.fillText(line, PW / 2, y)
-    y += 42
+    y += lead
   }
 
   // The footer: a gold rule and the app's address.
   ctx.strokeStyle = "rgba(253,230,138,0.35)"
   ctx.lineWidth = 1.5
   ctx.beginPath()
-  ctx.moveTo(80, footer - 18)
-  ctx.lineTo(PW - 80, footer - 18)
+  ctx.moveTo(framed ? 340 : 80, footer - 18)
+  ctx.lineTo(PW - (framed ? 340 : 80), footer - 18)
   ctx.stroke()
   ctx.font = `600 28px ${FAMILIES}`
   ctx.fillStyle = "#fde68a"
