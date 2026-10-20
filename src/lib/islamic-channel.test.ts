@@ -56,7 +56,7 @@ describe("Islamic channel — kept 100 % apart from the general channel (founder
     assert.equal(where, "✈️ Telegram Channel ឥស្លាម (@LuyChlatIslamic) តែប៉ុណ្ណោះ")
     const text = previewText({ kind: "ISLAMIC_JUMUAH", targets: { telegram: true, facebook: false, channel: "islamic" }, publishAt: "2026-10-23T02:00:00Z", body: "…", status: "PENDING" })
     assert.match(text, /📢 គោលដៅផ្សាយ៖ \[ ✈️ Telegram Channel ឥស្លាម \(@LuyChlatIslamic\) តែប៉ុណ្ណោះ \]/)
-    assert.match(text, /⏰ បើគ្មានការសម្រេចចិត្ត នឹងផ្សាយស្វ័យប្រវត្តិទៅ \[ ✈️ Telegram Channel ឥស្លាម \(@LuyChlatIslamic\) តែប៉ុណ្ណោះ \]/) // on schedule unless ❌ (20/10/2026)
+    assert.match(text, /🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម/)
   })
 })
 

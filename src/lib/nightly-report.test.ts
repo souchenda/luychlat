@@ -81,12 +81,6 @@ describe("Staff performance in the founder's nightly card (founder, 20/10/2026)"
     assert.ok(text.includes(["• ការអនុម័តថ្ងៃនេះ៖ 7", "• ស្ថិតិការងារអនុម័តថ្ងៃនេះ (Staff Performance)៖", "  - 👤 Yerny៖ 5 លើក", "  - 👤 ស៊ូ ចិន្ដា៖ 2 លើក", "• ស្ថានភាព Docker"].join("\n")))
     assert.match(nightlyReportText({ ...facts, staff: [] }), /\(Staff Performance\)៖\n {2}- មិនទាន់មានការអនុម័តទេ\n/)
   })
-  it("the posts auto-published on schedule are counted apart from the approvers (founder, 20/10/2026)", () => {
-    const text = nightlyReportText({ ...facts, staff: [{ name: "ស៊ូ ចិន្ដា", count: 2 }, { name: "Yerny", count: 1 }], autoPublished: 3 })
-    assert.ok(text.includes(["  - 👤 ស៊ូ ចិន្ដា៖ 2 លើក", "  - 👤 Yerny៖ 1 លើក", "  - 🤖 ផ្សាយស្វ័យប្រវត្តិតាមកាលវិភាគ (Auto-published)៖ 3 លើក"].join("\n")))
-    assert.doesNotMatch(nightlyReportText({ ...facts, staff: [], autoPublished: 0 }), /Auto-published/)
-    assert.match(read("supabase/migrations/20270201000000_auto_publish_fallback.sql"), /'auto_published', \(select count\(\*\) from public\.admin_audit_log a where a\.at >= t0 and a\.at < t1 and a\.action = 'AUTO_PUBLISHED'\)/)
-  })
   it("the counts come from the audited decisions (name and Telegram id, tip_chat_approver)", () => {
     const sql = read("supabase/migrations/20270198000000_post_decider_staff_stats.sql")
     assert.match(sql, /'by_approver'/)

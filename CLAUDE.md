@@ -91,14 +91,17 @@ use come before feature count: no half-baked features, broken links or untested 
   fallback).** Preview-first (`src/lib/server/scheduled-posts.ts`): the 07:00 poster, holiday notes and fuel
   changes reach the founder's private chat 45 min before (06:15 for 07:00) with the destination badge
   «📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel + 🔵 Facebook Page ]» and [ ✅ យល់ព្រម ] (published at its time),
-  [ 🚀 ផុសភ្លាមៗ ] (now), [ ❌ ផ្អាកថ្ងៃនេះ ]. **Zero-pressure fallback (founder, 20/10/2026 — replaces «no tap →
-  never published»):** a daily post nobody approved or paused is published at its scheduled time (never earlier,
-  never more than 90 min late) to its usual destinations; the preview says so («⏰ បើគ្មានការសម្រេចចិត្ត
-  នឹងផ្សាយស្វ័យប្រវត្តិ… — ចុច «❌» ដើម្បីផ្អាក»), the card then reads «✅ បានផ្សាយស្វ័យប្រវត្តិតាមកាលវិភាគ · ⏰ ម៉ោង …»,
-  it is audited AUTO_PUBLISHED and counted apart in the nightly Staff Performance. **Never** for humour (the money
-  dilemma — the 18/10 hard rule stands) nor the event posts (a fuel price change, a festival poster): those still
-  need a tap (`TAP_ONLY_KINDS` = `public.post_needs_tap`, `bot_post_auto_publish`). A tap's `bot_post_take` still
-  lets the timer publish only an APPROVED post. The 12:00
+  [ 🚀 ផុសភ្លាមៗ ] (now), [ ❌ ផ្អាកថ្ងៃនេះ ]. **ZERO UNAPPROVED PUBLIC POSTS — locked (founder, 20/10/2026, after
+  the on-schedule fallback of the same morning was reverted): no post, poster or reel may ever be published
+  automatically without an explicit human tap (✅ or 🚀).** Only the factual feeds from agreed official sources
+  publish without a tap — the market bulletin (NBC rates, gold, fuel), the evening NBC rates and the prayer times
+  (`AUTO_PUBLISH_KINDS`, below). Everything else — posters, lessons, du'as, Sil day, holidays, humour, reels — waits:
+  silence = HOLD, never published by the timer, until the end of its day (Cambodia midnight), then expired unpublished.
+  **Urgent founder reminder:** a post still waiting at its time triggers «🚨 ការក្រើនរំលឹកជាបន្ទាន់៖ ដល់ម៉ោងផ្សាយហើយ!»
+  in the founder's private chat (never the group), again an hour later, with [ ✅ អនុម័ត និងផ្សាយឥឡូវនេះ ]
+  [ ❌ ផ្អាកថ្ងៃនេះ ]; his tap publishes or pauses at once and updates his card and the «LCA Approval» card
+  (`remindFounder`, `bot_post_remind_claim`). The database enforces it: `bot_post_take` lets the timer publish only
+  an APPROVED post, and no auto-publish function exists (`tests/golden/publisher.test.ts`). The 12:00
   tip is posted only after the founder's «✅ អនុម័តផ្សាយ» (`bot_tip_auto_approve` is a no-op). Each post
   leaves PENDING / APPROVED once, so it is never posted twice; the channel message id and the Facebook post
   id are recorded (`scheduled_posts.telegram_message_id`, `facebook_post_id`).

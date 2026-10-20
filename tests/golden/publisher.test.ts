@@ -8,7 +8,7 @@ import { join, relative } from "node:path"
 import { describe, it } from "node:test"
 
 import { REEL_SCRIPTS, reelRenderable } from "../../src/lib/islamic/reels-scripts"
-import { COMEDY_KINDS, dueAction, plannedPosts, previewButtons, takeAllowed, type PostStatus } from "../../src/lib/scheduled-posts"
+import { AUTO_PUBLISH_KINDS, COMEDY_KINDS, dueAction, plannedPosts, previewButtons, takeAllowed, urgentReminderButtons, type PostStatus } from "../../src/lib/scheduled-posts"
 
 const ROOT = join(process.cwd(), "src")
 function walk(dir: string): string[] {
@@ -33,23 +33,27 @@ describe("GOLDEN · video and humour: the founder's private preview first, never
     assert.ok(publishers.length >= 2)
     for (const [, name, params] of publishers) assert.match(params, /^\s*_?approval: FounderApproval/, `${name} must take the founder's approval first`)
   })
-  it("humour: silence means HOLD — never auto-published, expired unpublished (the hard rule stands on 20/10/2026)", () => {
-    const at = new Date(Date.parse("2026-10-20T11:30:00Z")).toISOString()
+  it("silence means HOLD (founder, 20/10/2026 — the auto-publish fallback was reverted): the timer never publishes an unapproved post; it waits until midnight, then expires unpublished", () => {
+    const at = new Date(Date.parse("2026-10-20T00:00:00Z")).toISOString() // 07:00 in Cambodia
     const now = Date.parse(at)
-    for (const kind of COMEDY_KINDS) {
-      for (const s of ["PENDING", "PAUSED", "EXPIRED", "PUBLISHED"] as PostStatus[]) {
-        assert.notEqual(dueAction(at, now + 60_000, s, kind), "publish", s)
-        assert.notEqual(dueAction(at, now + 60_000, s, kind), "auto", s)
-        assert.notEqual(dueAction(at, now + 30 * 60_000, s, kind), "auto", s)
-      }
-      assert.equal(dueAction(at, now + 60_000, "PENDING", kind), "hold")
-      assert.equal(dueAction(at, now + 91 * 60_000, "PENDING", kind), "expire")
-    }
-    // A daily post nobody decided goes out on schedule (founder, 20/10/2026) — never before its time, never 90 min late.
-    assert.equal(dueAction(at, now - 1, "PENDING", "MORNING"), "wait")
-    assert.equal(dueAction(at, now, "PENDING", "MORNING"), "auto")
-    assert.equal(dueAction(at, now + 91 * 60_000, "PENDING", "MORNING"), "expire")
-    for (const s of ["PAUSED", "EXPIRED", "PUBLISHED"] as PostStatus[]) assert.equal(dueAction(at, now, s, "MORNING"), "hold", s) // ❌ stops it
+    for (const s of ["PENDING", "PAUSED", "EXPIRED", "PUBLISHED"] as PostStatus[])
+      for (const later of [0, 60_000, 30 * 60_000, 91 * 60_000, 16 * 3_600_000]) assert.notEqual(dueAction(at, now + later, s), "publish", `${s} +${later}`)
+    assert.equal(dueAction(at, now + 60_000, "PENDING"), "hold")
+    assert.equal(dueAction(at, now + 91 * 60_000, "PENDING"), "hold") // still waiting for the founder, never auto
+    assert.equal(dueAction(at, Date.parse("2026-10-20T17:00:00Z"), "PENDING"), "expire") // midnight in Cambodia
+    // No auto-publish path exists in the code, and the database's is dropped.
+    const server = readFileSync(join(ROOT, "lib/server/scheduled-posts.ts"), "utf8")
+    assert.doesNotMatch(server, /autoTake|bot_post_auto_publish/)
+    assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270202000000_strict_gate_urgent_reminder.sql"), "utf8"), /drop function if exists public\.bot_post_auto_publish\(text, bigint\);/)
+  })
+  it("ONLY the factual feeds publish without a tap: the market bulletin, the evening NBC rates and the prayer times", () => {
+    assert.deepEqual([...AUTO_PUBLISH_KINDS].sort(), ["BULLETIN", "ISLAMIC_MORNING", "RATES"])
+  })
+  it("still waiting at its time: an URGENT reminder in the founder's private chat with ✅ publish now / ❌ pause", () => {
+    const server = readFileSync(join(ROOT, "lib/server/scheduled-posts.ts"), "utf8")
+    assert.match(server, /if \(action === "hold"\) await remindFounder\(row\)/)
+    assert.match(server, /founderChats: \(\) => founderChats\(\)/) // never the group
+    assert.deepEqual(urgentReminderButtons(9).flat().map((b) => b.callback_data), ["sp:9:p", "sp:9:x"]) // the founder's own 🚀 / ❌
   })
   it("zero bypass: only the founder's tap approves; the timer publishes only what the founder approved", () => {
     const all: PostStatus[] = ["PENDING", "APPROVED", "PUBLISHED", "PAUSED", "EXPIRED"]

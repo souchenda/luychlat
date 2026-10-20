@@ -1,11 +1,9 @@
 // GOLDEN PATH 2 — Publisher pipeline (preview-first, curated Facebook, one pause for every channel).
-// Founder, 18/10/2026: zero public posts without the founder's approval. Founder, 20/10/2026 (the founder's decision,
-// replacing it): zero-pressure fallback — a daily post nobody approved or paused is published on schedule; ❌ still stops
-// it; humour (and the event posts: fuel, festival posters) still never goes out without a tap.
+// Founder, 18/10/2026: zero public posts without the founder's approval — no auto-publish fallback.
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { atMinute, autoFallback, plannedPosts, previewText, takeAllowed, type PostKind } from "../../src/lib/scheduled-posts"
+import { atMinute, plannedPosts, previewText, takeAllowed, type PostKind } from "../../src/lib/scheduled-posts"
 import { shouldPublishToFacebook } from "../../src/lib/server/facebook-publisher"
 import { createScheduler, type PostRow, type SchedulerDeps } from "../../src/lib/server/scheduled-posts"
 
@@ -30,14 +28,6 @@ function harness(start: number) {
       const row = rows.find((r) => r.id === id)
       if (!row || !takeAllowed(row.status, status, chatId !== undefined)) return null
       row.status = status
-      return { ...row }
-    },
-    async autoTake(id) {
-      // As bot_post_auto_publish: a due PENDING post, not humour, at most 90 minutes late → PUBLISHED once.
-      const row = rows.find((r) => r.id === id)
-      const late = row ? now - Date.parse(row.publish_at) : -1
-      if (!row || row.status !== "PENDING" || !autoFallback(row.kind) || late < 0 || late > 90 * 60_000) return null
-      row.status = "PUBLISHED"
       return { ...row }
     },
     get: async (id) => rows.find((r) => r.id === id) ?? null,
@@ -76,22 +66,16 @@ function harness(start: number) {
 }
 
 describe("GOLDEN 2 · publisher pipeline", () => {
-  it("06:15 preview (poster, destination badge); NO decision → published on schedule at 07:00, exactly once (20/10/2026)", async () => {
+  it("06:15 preview (poster, destination badge); NO approval → never published (no auto-publish fallback)", async () => {
     const h = harness(at(6, 0))
     await h.tick(6, 15)
     assert.equal(h.previews.length, 1)
     assert.match(h.previews[0], /^📢 គោលដៅផ្សាយ៖ \[ ✈️ Telegram Channel \+ 🔵 Facebook Page \]/)
-    assert.match(h.previews[0], /នឹងផ្សាយស្វ័យប្រវត្តិ.+ចុច «❌» ដើម្បីផ្អាក/) // the approvers are told it goes out unless ❌
-    await h.tick(6, 59)
-    assert.deepEqual(h.published, []) // never early
+    assert.doesNotMatch(h.previews[0], /ស្វ័យប្រវត្តិ/)
     await h.tick(7, 0)
     await h.tick(7, 1)
     await h.tick(8, 31)
-    assert.deepEqual(h.published, [1])
-  })
-  it("humour never goes out without a tap (the founder's hard rule stands)", () => {
-    assert.equal(autoFallback("DILEMMA"), false)
-    assert.equal(autoFallback("MORNING"), true)
+    assert.deepEqual(h.published, [])
   })
   it("✅ យល់ព្រម → published at 07:00 exactly once", async () => {
     const h = harness(at(6, 0))
@@ -103,7 +87,7 @@ describe("GOLDEN 2 · publisher pipeline", () => {
     await h.tick(7, 1)
     assert.deepEqual(h.published, [1])
   })
-  it("a tap's take never publishes from the timer; only the separate on-schedule fallback does, at the time (the database rule)", () => {
+  it("the timer itself can never publish an unapproved post (the database rule)", () => {
     assert.equal(takeAllowed("PENDING", "PUBLISHED", false), false)
     assert.equal(takeAllowed("APPROVED", "PUBLISHED", false), true)
   })

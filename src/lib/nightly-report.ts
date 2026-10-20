@@ -15,8 +15,6 @@ export type NightlyFacts = {
   approvals: number
   /** Today's decisions per approver (bot_nightly_stats.by_approver), most first; absent → the section is left out. */
   staff?: { name: string; count: number }[]
-  /** Posts published on schedule with nobody's tap (bot_nightly_stats.auto_published, founder 20/10/2026). */
-  autoPublished?: number
   dockerOk: boolean
   webhookOk: boolean
 }
@@ -35,7 +33,7 @@ export function nightlyReportText(f: NightlyFacts): string {
     `• ការចងចាំ (RAM)៖ ${ram}`,
     `• សមាជិកថ្មីថ្ងៃនេះ៖ ${f.newUsers}`,
     `• ការអនុម័តថ្ងៃនេះ៖ ${f.approvals}`,
-    ...(f.staff ? ["• ស្ថិតិការងារអនុម័តថ្ងៃនេះ (Staff Performance)៖", ...(f.staff.length ? f.staff.map((p) => `  - 👤 ${p.name}៖ ${p.count} លើក`) : ["  - មិនទាន់មានការអនុម័តទេ"]), ...(f.autoPublished ? [`  - 🤖 ផ្សាយស្វ័យប្រវត្តិតាមកាលវិភាគ (Auto-published)៖ ${f.autoPublished} លើក`] : [])] : []),
+    ...(f.staff ? ["• ស្ថិតិការងារអនុម័តថ្ងៃនេះ (Staff Performance)៖", ...(f.staff.length ? f.staff.map((p) => `  - 👤 ${p.name}៖ ${p.count} លើក`) : ["  - មិនទាន់មានការអនុម័តទេ"])] : []),
     `• ស្ថានភាព Docker & Webhook៖ ${f.dockerOk && f.webhookOk ? "ដំណើរការល្អ" : `${f.dockerOk ? "Docker ល្អ" : "Docker មានបញ្ហា"} · ${f.webhookOk ? "Webhook ល្អ" : "Webhook មានបញ្ហា"}`}`,
     "— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត",
   ].join("\n")
