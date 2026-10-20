@@ -10,6 +10,42 @@ set -u
 
 cd "$(dirname "$0")/.."
 
+# What a commit changed, in Khmer for the founder (founder, 20/10/2026 — the card showed raw English git subjects):
+# the body's «Khmer: …» (or «KH: …») line; else deploy/release-notes-km.tsv («hash<TAB>Khmer», for commits written
+# before the rule); else the subject when it is written in Khmer, without its «feat(…):» prefix; else only the kind of
+# change in Khmer — never English developer jargon. One line per commit: «hash<US>summary».
+khmer_summaries() {
+  git log --format='%h%x1f%s%x1f%b%x1e' "$@" | PYTHONIOENCODING=utf-8 python3 -c '
+import re, sys
+KINDS = {"feat": "✨ មុខងារថ្មី", "fix": "🔧 ការជួសជុល", "perf": "⚡ ធ្វើឱ្យលឿនជាងមុន", "docs": "📄 ឯកសារណែនាំ", "chore": "🧹 ការថែទាំប្រព័ន្ធ",
+         "refactor": "🧱 រៀបចំកូដឡើងវិញ", "test": "🧪 ការធ្វើតេស្ត", "style": "🎨 រូបរាង", "ci": "⚙️ ប្រព័ន្ធដាក់ឱ្យដំណើរការ", "build": "⚙️ ប្រព័ន្ធដាក់ឱ្យដំណើរការ"}
+notes = {}
+try:
+    for row in open("deploy/release-notes-km.tsv", encoding="utf-8"):
+        k, _, v = row.rstrip("\n").partition("\t")
+        if k and v.strip():
+            notes[k.strip()] = v.strip()
+except OSError:
+    pass
+khmer = lambda s: len(re.findall("[ក-៿]", s))
+latin = lambda s: len(re.findall("[A-Za-z]", s))
+for rec in sys.stdin.read().split("\x1e"):
+    rec = rec.strip("\n")
+    if not rec:
+        continue
+    h, subject, body = (rec.split("\x1f") + ["", ""])[:3]
+    m = re.match(r"^(\w+)(?:\([^)]*\))?!?:\s*(.*)$", subject)
+    kind, text = (m.group(1).lower(), m.group(2).strip()) if m else ("", subject.strip())
+    line = next((x.group(1).strip() for x in (re.match(r"^\s*(?:Khmer|KH)\s*:\s*(.+)$", l, re.I) for l in body.splitlines()) if x), None)
+    line = line or next((v for k, v in notes.items() if h.startswith(k) or k.startswith(h)), None)
+    if not line and khmer(text) > latin(text):
+        line = text
+    if not line:
+        line = KINDS.get(kind, "🛠️ ការកែលម្អ") + " (ផ្នែកបច្ចេកទេស)"
+    print(h + "\x1f" + line[:300])
+'
+}
+
 env_value() { grep -E "^$1=" .env 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '\r' | sed -e "s/^[\"']//" -e "s/[\"']\$//"; }
 esc() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 
@@ -22,11 +58,19 @@ if [ "$kind" = "fail" ]; then
   mkdir -p deploy/run
   [ "$(cat deploy/run/.failed-notified 2>/dev/null)" = "$head" ] && exit 0
   echo "$head" > deploy/run/.failed-notified
-  step=$(printf '%s' "${2:-?}" | esc)
+  # The step in Khmer (update.sh names it).
+  case "${2:-}" in
+    "database migration") step="ការធ្វើបច្ចុប្បន្នភាពមូលដ្ឋានទិន្នន័យ" ;;
+    build*) step="ការសាងសង់ និងការធ្វើតេស្តកំណែថ្មី" ;;
+    "container start") step="ការចាប់ផ្ដើមកំណែថ្មី" ;;
+    "health check") step="កំណែថ្មីមិនឆ្លើយតបការត្រួតពិនិត្យសុខភាព" ;;
+    "Nginx switch") step="ការប្តូរទៅកំណែថ្មី (Nginx)" ;;
+    *) step=$(printf '%s' "${2:-?}" | esc) ;;
+  esac
   text="⚠️ <b>ការដាក់ឱ្យដំណើរការមិនជោគជ័យ (Deploy Failed)</b>
-• Commit: <code>$head</code> — $(git log -1 --pretty=format:%s 2>/dev/null | esc)
-• មូលហេតុ: ${step} (exit ${3:-?})
-• វេលាម៉ោង៖ $when
+• <b>កូដកំណែ (Commit)៖</b> <code>$head</code> — $(khmer_summaries -1 2>/dev/null | cut -d$'\x1f' -f2 | esc)
+• <b>មូលហេតុ៖</b> ${step} (លេខកូដ ${3:-?})
+• <b>វេលាម៉ោង៖</b> $when
 កំណែមុនកំពុងដំណើរការធម្មតា — /var/log/luysmart-deploy.log
 — ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត"
 else
@@ -42,7 +86,7 @@ else
   if [ -n "$prev" ] && git cat-file -e "$prev" 2>/dev/null && [ "$(git rev-parse "$prev")" != "$(git rev-parse HEAD)" ]; then
     count=$(git rev-list --count "$prev"..HEAD)
     if [ "$count" -gt 1 ]; then
-      list=$(git log --pretty=format:'  - %h %s' "$prev"..HEAD | sed -n '2,6p' | cut -c1-160 | esc)
+      list=$(khmer_summaries "$prev"..HEAD | sed -n '2,6p' | cut -d$'\x1f' -f2 | sed 's/^/  - /' | esc)
       more="
 • រួមទាំង $((count - 1)) កំណែផ្សេងទៀត៖
 $list"
@@ -53,7 +97,7 @@ $list"
   fi
   text="🚀 <b>ប្រព័ន្ធបានដាក់ឱ្យដំណើរការលើ Production (Live)</b>
 • <b>កូដកំណែថ្មី (Commit)៖</b> <code>$head</code>
-• <b>ខ្លឹមសារកែប្រែ៖</b> $(git log -1 --pretty=format:%s | cut -c1-300 | esc)$more
+• <b>ខ្លឹមសារកែប្រែ៖</b> $(khmer_summaries -1 | cut -d$'\x1f' -f2 | esc)$more
 • <b>ស្ថានភាព Server៖</b> $status (${free:-?} ទំនេរ · $container)
 • <b>វេលាម៉ោង៖</b> $when
 • <b>តំណភ្ជាប់៖</b> https://app.luychlat.com
