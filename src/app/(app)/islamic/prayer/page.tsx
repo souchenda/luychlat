@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { LocationPicker, useIslamicLocation } from "@/components/islamic/location-picker"
 import { PrayerAlertSettings } from "@/components/islamic/prayer-alerts"
+import { ApkOffer } from "@/components/islamic/apk-offer"
 import { ScriptureRefs } from "@/components/islamic/scripture-refs"
 import { Card } from "@/components/ui/card"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
@@ -147,6 +148,8 @@ export default function PrayerTimesPage() {
       </Card>
       <FastingWisdomSheet open={wisdomOpen} onOpenChange={setWisdomOpen} />
 
+      {/* Android Chrome only: the app rings the Adhan with the screen locked (founder, 20/10/2026). */}
+      <ApkOffer />
       <PrayerAlertSettings />
 
       <ScriptureRefs topics={["prayer", "fasting"]} />
