@@ -137,7 +137,10 @@ export type Callback = { id: string; data?: string; from?: { id: number; first_n
 
 export function createScheduler(d: SchedulerDeps) {
   async function render(row: PostRow, status: PostStatus) {
-    const { png, body } = await d.content(row)
+    const content = await d.content(row)
+    const png = content.png
+    // An approver's reply to the card replaced the caption (founder, 20/10/2026): the card shows it, and who / when.
+    const body = row.payload.caption ? `${row.payload.caption}\n\n${editedLine(row)}` : content.body
     const targets = d.targets(row)
     const decider = { name: row.decided_name ?? null, username: row.decided_username ?? null, at: row.decided_at ?? null, how: row.decided_how ?? null }
     const now = new Date(d.now()).toISOString()
@@ -359,7 +362,7 @@ export function createScheduler(d: SchedulerDeps) {
     }
   }
 
-  return { tick, processDue, schedulePost, onCallback, replaceDue, checkVersions }
+  return { tick, processDue, schedulePost, onCallback, replaceDue, checkVersions, refresh }
 }
 
 // ─── The real bot ────────────────────────────────────────────────────────────
@@ -511,6 +514,29 @@ const realDeps = (): SchedulerDeps => ({
     const sentText = async (text: string, html: boolean) => {
       const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, text, ...(html ? { parse_mode: "HTML" } : {}), disable_web_page_preview: true, ...buttons })
       return res.ok && res.result ? res.result.message_id : null
+    }
+    // An edited caption (an approver's reply to the card, founder 20/10/2026): the post's own poster, its channel and
+    // the Page as usual, with the approver's words — and the standard footer where the post has one.
+    if (row.payload.caption) {
+      const nationalDay = row.kind === "NATIONAL_DAY" ? nationalDayByKey(String(row.payload.key)) : null
+      if (nationalDay && !holidayRouteAllowed(nationalDay, islamic ? "islamic" : "community")) return ids
+      const { png } = await this.content(row)
+      const targets = this.targets(row)
+      const footer = FOOTER_KINDS.has(row.kind) ? (platform: "telegram" | "facebook") => postFooter(islamic ? "islamic" : "community", platform) : null
+      const words = String(row.payload.caption)
+      const tgText = footer ? withFooter(words, footer("telegram"), png ? 1024 : 4096) : words
+      const fbText = footer ? withFooter(words, footer("facebook"), 60_000) : words
+      const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      if (chat && targets.telegram) ids.telegram = png ? ((await sendPosterPhoto(chat, png, esc(tgText), { reply_markup: buttons.reply_markup })) ?? (await sentText(tgText, false))) : await sentText(tgText, false)
+      if (!islamic && targets.facebook && facebookConfig()) {
+        const fb = await publishLogged(`${row.kind} ${row.post_key} (edited caption)`, () => (png ? publishPhotoToFacebook(approval, png, fbText) : publishTextToFacebook(approval, fbText)), fbLog)
+        if (fb?.ok) ids.facebook = fb.postId
+      }
+      if (row.kind === "MORNING") {
+        const { data: first } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "push-morning", p_day: String(row.payload.day) })
+        if (first === true) await sendMorningPush()
+      }
+      return ids
     }
     if (row.kind === "NATIONAL_DAY") {
       // The commemoration poster: the community channel and the Page, once approved (founder, 20/10/2026).
@@ -752,6 +778,43 @@ const islamicNationalDay = (row: { kind: string; payload: Record<string, unknown
   if (row.kind !== "NATIONAL_DAY") return false
   const d = nationalDayByKey(String(row.payload.key))
   return Boolean(d && nationalChannel(d) === "islamic")
+}
+
+/** The posts whose caption carries the standard footer (lib/post-footer.ts — not commemorations, Sil days or feeds). */
+const FOOTER_KINDS = new Set<string>(["MORNING", "HOLIDAY", "EVENING", "DILEMMA", "ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"])
+
+/** «✏️ កែអត្ថបទដោយ៖ 👤 {name} · ⏰ {time}» under an edited caption on the card. */
+function editedLine(row: PostRow): string {
+  const at = row.payload.caption_at ? kmClock(String(row.payload.caption_at)) : ""
+  return `✏️ កែអត្ថបទដោយ៖ 👤 ${row.payload.caption_by || "—"}${at ? ` · ⏰ ${at}` : ""}`
+}
+
+/**
+ * A reply to an approval card in «LCA Approval» (founder, 20/10/2026): an approver's text becomes the waiting post's
+ * caption (bot_post_edit_caption — the same check as a ✅ tap), the card is redrawn in place and the edit is logged.
+ * False when the replied-to message is not a card (the reply is handled as usual).
+ */
+export async function editCardByReply(chatId: number, replyTo: number, actor: number | undefined, editor: string, text: string): Promise<boolean> {
+  if (!actor || !text.trim()) return false
+  const { data, error } = await botDb().rpc("bot_post_edit_caption", { p_key: botKey(), p_chat_id: chatId, p_message_id: replyTo, p_actor: actor, p_text: text, p_editor: editor })
+  if (!error && !data) return false
+  const reply = (t: string) => tg("sendMessage", { chat_id: chatId, text: t, reply_to_message_id: replyTo }).catch(() => null)
+  if (error) {
+    const m = error.message ?? ""
+    await reply(
+      /super admin only/.test(m) ? "សម្រាប់អ្នកអនុម័តប៉ុណ្ណោះ។"
+      : /not_waiting/.test(m) ? "ការផ្សាយនេះបានសម្រេចរួចហើយ — មិនអាចកែបានទៀតទេ។"
+      : /not_editable/.test(m) ? "ព័ត៌មានស្វ័យប្រវត្តិ (អត្រា មាស សាំង) មិនអាចកែដោយដៃបានទេ។"
+      : /too_long/.test(m) ? "អត្ថបទវែងពេក — សូមកុំឱ្យលើស ៩០០ តួអក្សរ។"
+      : "មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។",
+    )
+    return true
+  }
+  const row = data as PostRow
+  await real().refresh(row)
+  logEvent("info", "scheduled-posts", `${row.kind} ${row.post_key}: caption edited by ${editor || "an approver"} (reply to the card)`)
+  await reply(`✏️ បានកែអត្ថបទរួចរាល់ — ${editor || "អ្នកអនុម័ត"}`)
+  return true
 }
 
 /** Called every minute by the dispatcher. */

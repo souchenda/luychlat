@@ -30,7 +30,7 @@ import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
-import { handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
+import { editCardByReply, handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
 import { handleNasheedCallback } from "@/lib/server/nasheed-review"
 import { isNasheedCallback } from "@/lib/nasheed"
 import { handleAccountCallback, handleAccountGoalReply } from "@/lib/server/account-bot"
@@ -387,6 +387,11 @@ export async function POST(request: Request) {
     if (message.text && isApproverCommand(message.text)) {
       await handleApproverCommand(message.chat.id, message.from?.id, message.text, message.reply_to_message?.from)
       return NextResponse.json({ ok: true })
+    }
+    // An approver's reply to a waiting post's card: its new caption, the card redrawn in place (founder, 20/10/2026).
+    if (message.text && message.reply_to_message?.from?.is_bot) {
+      const editor = [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ").trim() || (message.from?.username ? `@${message.from.username}` : "")
+      if (await editCardByReply(message.chat.id, message.reply_to_message.message_id, message.from?.id, editor, message.text)) return NextResponse.json({ ok: true })
     }
     const fileId = bestPhoto(message.photo)
     await handleGroupMessage(message.chat.id, message.text ?? message.caption ?? "", telegramLocale(message.from?.language_code), message.from?.id, {
