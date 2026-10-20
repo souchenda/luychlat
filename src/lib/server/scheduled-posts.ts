@@ -13,6 +13,7 @@ import { createHash } from "node:crypto"
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import {
   dueAction,
+  autoFallback,
   isAutoPublish,
   isReplaceCallback,
   kmClock,
@@ -69,7 +70,7 @@ export type PostRow = {
   decided_name?: string | null
   decided_username?: string | null
   decided_at?: string | null
-  decided_how?: "approve" | "publish" | "pause" | null
+  decided_how?: "approve" | "publish" | "pause" | "auto" | null
   /** Where it went and what was published — for REPLACE OLD WITH NEW (migration 20270200000000). */
   telegram_message_id?: number | null
   facebook_post_id?: string | null
@@ -100,6 +101,8 @@ export type SchedulerDeps = {
   schedule(kind: PostKind, postKey: string, payload: Record<string, string | null>, publishAt: string): Promise<(PostRow & { created: boolean }) | null>
   /** PENDING → status once; null when it had already left PENDING. Throws «super admin only» for another chat. */
   take(id: number, status: Exclude<PostStatus, "PENDING">, chatId?: number): Promise<PostRow | null>
+  /** The auto-publish fallback: a due PENDING post (not humour) → PUBLISHED once; null when it was decided first. */
+  autoTake(id: number): Promise<PostRow | null>
   /** Where it went: the channel message id and the Facebook post id — so it can be edited or removed later. */
   recordIds(id: number, ids: Published): Promise<void>
   /** The Telegram name and @username of the person who decided — labels the card; the audit log already has it. */
@@ -184,13 +187,20 @@ export function createScheduler(d: SchedulerDeps) {
    */
   async function processDue() {
     for (const row of await d.due()) {
-      const action = dueAction(row.publish_at, d.now(), row.status)
+      const action = dueAction(row.publish_at, d.now(), row.status, row.kind)
       if (action === "wait" || action === "hold") continue
+      if (action === "auto") {
+        // Nobody decided by its time: published on schedule (founder, 20/10/2026), once — the database checks it is
+        // due, not humour and still PENDING (bot_post_auto_publish, audited AUTO_PUBLISHED).
+        const auto = await d.autoTake(row.id)
+        if (auto) await publishTaken(auto, "auto-published on schedule")
+        continue
+      }
       const taken = await d.take(row.id, action === "publish" ? "PUBLISHED" : "EXPIRED")
       if (!taken) continue // a button got there first
       if (action === "publish") await publishTaken(taken, "approved")
       else {
-        d.log("warn", `${row.kind} ${row.post_key} not published — ${row.status === "APPROVED" ? "approved but more than 90 min late" : "never approved"}`)
+        d.log("warn", `${row.kind} ${row.post_key} not published — ${row.status === "APPROVED" ? "approved but more than 90 min late" : row.kind && autoFallback(row.kind) ? "not sent within 90 minutes of its time (the server was down?)" : "never approved"}`)
         await refresh(taken)
       }
     }
@@ -346,6 +356,12 @@ const realDeps = (): SchedulerDeps => ({
   async take(id, status, chatId) {
     const { data, error } = await botDb().rpc("bot_post_take", { p_key: botKey(), p_id: id, p_status: status, p_chat_id: chatId ?? null })
     if (error) throw new Error(error.message)
+    const row = data as PostRow | null
+    return row?.id ? row : null
+  },
+  async autoTake(id) {
+    const { data, error } = await botDb().rpc("bot_post_auto_publish", { p_key: botKey(), p_id: id })
+    if (error) logEvent("error", "scheduled-posts", `Auto-publish of post ${id} refused: ${error.message}`, { fold: true })
     const row = data as PostRow | null
     return row?.id ? row : null
   },

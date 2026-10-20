@@ -69,12 +69,25 @@ export function plannedIslamicPosts(day: string, minutes: number, hijriOf: (day:
  * What the timer does: not yet; publish — ONLY a post the founder approved; hold — its time has come
  * but nobody approved it (never published by the timer); or too late (expired, never posted).
  */
-export function dueAction(publishAt: string, now: number, status: PostStatus): "wait" | "publish" | "hold" | "expire" {
+export function dueAction(publishAt: string, now: number, status: PostStatus, kind: string): "wait" | "publish" | "auto" | "hold" | "expire" {
   const t = Date.parse(publishAt)
   if (now < t) return "wait"
   if (now - t > LATE_LIMIT_MIN * 60_000) return "expire"
-  return status === "APPROVED" ? "publish" : "hold"
+  if (status === "APPROVED") return "publish"
+  // Zero-pressure fallback (founder, 20/10/2026): nobody decided by its time → published on schedule; humour waits.
+  return status === "PENDING" && autoFallback(kind) ? "auto" : "hold"
 }
+
+/**
+ * The auto-publish fallback (founder, 20/10/2026 — replaces the 18/10 «no tap → never»): every daily post publishes
+ * on schedule when nobody approved or paused it, except humour, which keeps the founder's hard rule (never without
+ * a tap). The database says the same (public.post_needs_tap, bot_post_auto_publish).
+ */
+export const autoFallback = (kind: string) => !TAP_ONLY_KINDS.includes(kind)
+
+/** Never auto-published: humour (the hard rule), and the event posts that are not daily — a fuel price change and a
+ *  festival poster — which wait for a tap as before. The same list as public.post_needs_tap (scheduled-posts.test.ts). */
+export const TAP_ONLY_KINDS: readonly string[] = ["DILEMMA", "FUEL", "POSTER"]
 
 /** «✈️ Telegram Channel + 🔵 Facebook Page» / «… តែប៉ុណ្ណោះ». */
 export function targetLabel(t: Targets): string {
@@ -126,6 +139,17 @@ export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly s
 
 /** The preview's header (destination first), the post itself, then the status line. */
 export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus; decider?: Decider | null }): string {
+  if (o.status === "PENDING" && autoFallback(o.kind)) {
+    const where = targetLabel(o.targets)
+    return [
+      `📢 គោលដៅផ្សាយ៖ [ ${where} ]`,
+      `👀 មើលជាមុន · ${KIND_LABEL[o.kind]}`,
+      "",
+      o.body,
+      "",
+      `⏰ បើគ្មានការសម្រេចចិត្ត នឹងផ្សាយស្វ័យប្រវត្តិទៅ [ ${where} ] នៅម៉ោង ${kmClock(o.publishAt)} — ចុច «❌» ដើម្បីផ្អាក។`,
+    ].join("\n")
+  }
   const where = targetLabel(o.targets)
   return [
     `📢 គោលដៅផ្សាយ៖ [ ${where} ]`,
@@ -138,7 +162,7 @@ export function previewText(o: { kind: PostKind; targets: Targets; publishAt: st
 }
 
 /** Who tapped ✅ / 🚀 / ❌ and when (scheduled_posts.decided_name / decided_username / decided_at / decided_how). */
-export type Decider = { name: string | null; username: string | null; at: string | null; how: "approve" | "publish" | "pause" | null }
+export type Decider = { name: string | null; username: string | null; at: string | null; how: "approve" | "publish" | "pause" | "auto" | null }
 
 /** «{name} (@{username})» — the Telegram name, with the @username when there is one. */
 export function deciderName(d: Pick<Decider, "name" | "username">): string {
@@ -152,6 +176,7 @@ export function deciderName(d: Pick<Decider, "name" | "username">): string {
  * approver to see. Null when nobody is named (the timer's expiry, an older post) — the plain status line then.
  */
 export function deciderLine(status: PostStatus, where: string, publishAt: string, d: Decider): string | null {
+  if (status === "PUBLISHED" && d.how === "auto") return `✅ បានផ្សាយស្វ័យប្រវត្តិតាមកាលវិភាគ · ⏰ ម៉ោង ${kmClock(publishAt)}`
   if (!d.how || !d.at || (!d.name?.trim() && !d.username)) return null
   const who = `👤 ${deciderName(d)}`
   const at = kmClock(d.at)

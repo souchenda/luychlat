@@ -27,7 +27,7 @@ describe("GOLDEN · publish only with the founder's approval", () => {
   it("an approval is made only where the founder's decision is checked", () => {
     assert.deepEqual(users(/founderApproved\(/), [
       "lib/server/festival-poster.ts", // the founder's own 📢 (super admin checked)
-      "lib/server/scheduled-posts.ts", // a post the database let leave PENDING / APPROVED by the founder's tap
+      "lib/server/scheduled-posts.ts", // a post the database let leave PENDING / APPROVED by a tap, or on schedule (20/10/2026)
       "lib/server/tip-bot.ts", // the tip the founder approved, or the correction they confirmed
     ])
   })
@@ -57,7 +57,7 @@ describe("GOLDEN · publish only with the founder's approval", () => {
     assert.match(fb, /export function publishPhotoToFacebook\(_approval: FounderApproval,/)
     assert.match(fb, /export function publishTextToFacebook\(_approval: FounderApproval,/)
   })
-  it("the timer can never publish a post the founder did not approve", () => {
+  it("a tap's take never publishes from the timer (the on-schedule fallback is its own audited path, never for humour)", () => {
     assert.equal(takeAllowed("PENDING", "PUBLISHED", false), false)
   })
   it("the 20:00 check-in and the Saturday spotlight are previewed too (no direct channel send left)", () => {

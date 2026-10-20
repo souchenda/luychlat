@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { atMinute, isAutoPublish, takeAllowed, type PostKind } from "../scheduled-posts"
+import { atMinute, autoFallback, isAutoPublish, takeAllowed, type PostKind } from "../scheduled-posts"
 
 import { createScheduler, type PostRow, type Preview, type SchedulerDeps } from "./scheduled-posts"
 
@@ -33,6 +33,14 @@ function fake(start: number) {
       const row = rows.find((r) => r.id === id)
       if (!row || !takeAllowed(row.status, status, chatId !== undefined)) return null
       row.status = status
+      return { ...row }
+    },
+    async autoTake(id) {
+      // As bot_post_auto_publish: a due PENDING post, not humour, at most 90 minutes late → PUBLISHED once.
+      const row = rows.find((r) => r.id === id)
+      const late = row ? now - Date.parse(row.publish_at) : -1
+      if (!row || row.status !== "PENDING" || !autoFallback(row.kind) || late < 0 || late > 90 * 60_000) return null
+      Object.assign(row, { status: "PUBLISHED", decided_how: "auto" })
       return { ...row }
     },
     async recordIds(id, ids) {
@@ -103,15 +111,14 @@ describe("the approval rule (= bot_post_take)", () => {
 })
 
 describe("preview-first — the preview at 06:15", () => {
-  it("nothing before 06:15; one preview at 06:15 with the destination; it says nothing goes out without approval", async () => {
+  it("nothing before 06:15; one preview at 06:15 with the destination; it says it goes out on schedule unless ❌", async () => {
     const f = fake(clock(6, 0))
     await f.at(6, 14)
     assert.equal(f.previewsSent.length, 0)
     await f.at(6, 15)
     assert.equal(f.previewsSent.length, 1)
     assert.match(f.previewsSent[0].text, /^📢 គោលដៅផ្សាយ៖ \[ ✈️ Telegram Channel \+ 🔵 Facebook Page \]/)
-    assert.match(f.previewsSent[0].text, /🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម/)
-    assert.doesNotMatch(f.previewsSent[0].text, /ស្វ័យប្រវត្តិ/)
+    assert.match(f.previewsSent[0].text, /⏰ បើគ្មានការសម្រេចចិត្ត នឹងផ្សាយស្វ័យប្រវត្តិទៅ \[ .+ \] នៅម៉ោង ០៧:០០ ព្រឹក — ចុច «❌» ដើម្បីផ្អាក។$/)
     assert.equal(f.previewsSent[0].png, true) // the poster, never text-only
     await f.at(6, 16)
     await f.at(6, 59)
@@ -120,18 +127,29 @@ describe("preview-first — the preview at 06:15", () => {
   })
 })
 
-describe("strict approval — nothing goes public without the founder (founder, 18/10/2026)", () => {
-  it("no tap: NOT published at 07:00, nor at 08:00; expired after 90 minutes; the preview says so", async () => {
+describe("zero-pressure fallback — on schedule when nobody decided (founder, 20/10/2026; replaces the 18/10 strict hold)", () => {
+  it("no tap: NOT before 07:00; auto-published at 07:00 exactly once; the card says so", async () => {
     const f = fake(clock(6, 0))
     await f.at(6, 15)
+    await f.at(6, 59)
+    assert.deepEqual(f.published, [])
     await f.at(7, 0)
     await f.at(7, 1)
     await f.at(8, 0)
+    assert.deepEqual(f.published, [1])
+    assert.equal(f.rows[0].decided_how, "auto")
+    assert.match(f.edits.at(-1)!.text, /✅ បានផ្សាយស្វ័យប្រវត្តិតាមកាលវិភាគ · ⏰ ម៉ោង ០៧:០០ ព្រឹក$/)
+  })
+  it("humour (the money dilemma) keeps the hard rule: never auto-published, expired unpublished", async () => {
+    const f = fake(clock(18, 0))
+    await f.s.schedulePost("DILEMMA", DAY, { day: DAY }, new Date(clock(18, 30)).toISOString())
+    assert.doesNotMatch(f.previewsSent[0].text, /ស្វ័យប្រវត្តិ/)
+    assert.match(f.previewsSent[0].text, /🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម/)
+    await f.at(18, 30)
+    await f.at(19, 0)
     assert.deepEqual(f.published, [])
-    await f.at(8, 31)
-    assert.deepEqual(f.published, [])
+    await f.at(20, 1)
     assert.equal(f.rows[0].status, "EXPIRED")
-    assert.match(f.edits.at(-1)!.text, /⌛ មិនបានផ្សាយ — គ្មានការយល់ព្រមទាន់ពេល$/)
   })
   it("✅ at 06:30: held until 07:00, then published exactly once; ids recorded", async () => {
     const f = fake(clock(6, 0))
@@ -155,14 +173,13 @@ describe("strict approval — nothing goes public without the founder (founder, 
     await f.at(7, 0)
     assert.deepEqual(f.published, [])
   })
-  it("the server was down until 07:20: the preview is still sent, nothing is published without a tap", async () => {
+  it("the server was down until 07:20: caught up on schedule once (within 90 minutes)", async () => {
     const f = fake(clock(7, 20))
     await f.at(7, 20)
-    assert.deepEqual(f.published, [])
     await f.at(7, 21)
-    assert.deepEqual(f.published, [])
+    assert.deepEqual(f.published, [1])
   })
-  it("a fuel change: previewed now, not published at its time without approval; ✅ → published at its time", async () => {
+  it("a fuel change (an event, not a daily post): previewed now, not published at its time without approval; ✅ → published", async () => {
     const f = fake(clock(12, 0))
     const publishAt = new Date(clock(12, 45)).toISOString()
     await f.s.schedulePost("FUEL", "notice-42", { telegram: "⛽ …", facebook: "⛽ …" }, publishAt)
@@ -215,14 +232,15 @@ describe("preview-first — the buttons", () => {
     await f.at(6, 15)
     await f.press("sp:1:p", STRANGER)
     await f.press("sp:1:a", STRANGER)
-    await f.at(7, 0)
-    assert.deepEqual(f.published, [])
+    await f.at(6, 59)
+    assert.deepEqual(f.published, []) // a stranger's 🚀 did nothing (at 07:00 the schedule takes over)
+    assert.equal(f.rows[0].status, "PENDING")
     assert.deepEqual(f.answers.at(-1), { text: "សម្រាប់ Super Admin ប៉ុណ្ណោះ។", alert: true })
   })
 })
 
 describe("preview-first — a fresh preview for a re-armed post", () => {
-  it("paused, then re-armed (PENDING again, no previews, a later time): one fresh preview; published only once approved", async () => {
+  it("paused, then re-armed (PENDING again, no previews, a later time): one fresh preview; ✅ publishes it at its time", async () => {
     const f = fake(clock(6, 0))
     await f.at(6, 15)
     await f.press("sp:1:x")
@@ -232,9 +250,10 @@ describe("preview-first — a fresh preview for a re-armed post", () => {
     assert.equal(f.previewsSent.length, 2)
     await f.at(7, 11)
     assert.equal(f.previewsSent.length, 2)
-    await f.at(7, 40)
-    assert.deepEqual(f.published, [])
     await f.press("sp:1:a")
+    await f.at(7, 39)
+    assert.deepEqual(f.published, [])
+    await f.at(7, 40)
     await f.at(7, 41)
     assert.deepEqual(f.published, [1])
   })
@@ -322,6 +341,7 @@ describe("REPLACE OLD WITH NEW — today's published post, improved, replaces th
     let failPublish = false
     const deps = {
       schedule: async () => null,
+      autoTake: async () => null,
       take: async () => null,
       recordIds: async () => {},
       get: async () => ({ ...row }),

@@ -33,15 +33,23 @@ describe("GOLDEN · video and humour: the founder's private preview first, never
     assert.ok(publishers.length >= 2)
     for (const [, name, params] of publishers) assert.match(params, /^\s*_?approval: FounderApproval/, `${name} must take the founder's approval first`)
   })
-  it("silence means HOLD: the timer never publishes a post the founder did not approve, and it expires unpublished", () => {
+  it("humour: silence means HOLD — never auto-published, expired unpublished (the hard rule stands on 20/10/2026)", () => {
     const at = new Date(Date.parse("2026-10-20T11:30:00Z")).toISOString()
     const now = Date.parse(at)
-    for (const s of ["PENDING", "PAUSED", "EXPIRED", "PUBLISHED"] as PostStatus[]) {
-      assert.notEqual(dueAction(at, now + 60_000, s), "publish", s)
-      assert.notEqual(dueAction(at, now + 30 * 60_000, s), "publish", s)
+    for (const kind of COMEDY_KINDS) {
+      for (const s of ["PENDING", "PAUSED", "EXPIRED", "PUBLISHED"] as PostStatus[]) {
+        assert.notEqual(dueAction(at, now + 60_000, s, kind), "publish", s)
+        assert.notEqual(dueAction(at, now + 60_000, s, kind), "auto", s)
+        assert.notEqual(dueAction(at, now + 30 * 60_000, s, kind), "auto", s)
+      }
+      assert.equal(dueAction(at, now + 60_000, "PENDING", kind), "hold")
+      assert.equal(dueAction(at, now + 91 * 60_000, "PENDING", kind), "expire")
     }
-    assert.equal(dueAction(at, now + 60_000, "PENDING"), "hold")
-    assert.equal(dueAction(at, now + 91 * 60_000, "PENDING"), "expire")
+    // A daily post nobody decided goes out on schedule (founder, 20/10/2026) — never before its time, never 90 min late.
+    assert.equal(dueAction(at, now - 1, "PENDING", "MORNING"), "wait")
+    assert.equal(dueAction(at, now, "PENDING", "MORNING"), "auto")
+    assert.equal(dueAction(at, now + 91 * 60_000, "PENDING", "MORNING"), "expire")
+    for (const s of ["PAUSED", "EXPIRED", "PUBLISHED"] as PostStatus[]) assert.equal(dueAction(at, now, s, "MORNING"), "hold", s) // ❌ stops it
   })
   it("zero bypass: only the founder's tap approves; the timer publishes only what the founder approved", () => {
     const all: PostStatus[] = ["PENDING", "APPROVED", "PUBLISHED", "PAUSED", "EXPIRED"]

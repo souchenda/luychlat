@@ -91,8 +91,14 @@ use come before feature count: no half-baked features, broken links or untested 
   fallback).** Preview-first (`src/lib/server/scheduled-posts.ts`): the 07:00 poster, holiday notes and fuel
   changes reach the founder's private chat 45 min before (06:15 for 07:00) with the destination badge
   «📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel + 🔵 Facebook Page ]» and [ ✅ យល់ព្រម ] (published at its time),
-  [ 🚀 ផុសភ្លាមៗ ] (now), [ ❌ ផ្អាកថ្ងៃនេះ ]. **No tap → never published** (held, expired 90 min after its
-  time). The database enforces it: `bot_post_take` lets the timer publish only an APPROVED post. The 12:00
+  [ 🚀 ផុសភ្លាមៗ ] (now), [ ❌ ផ្អាកថ្ងៃនេះ ]. **Zero-pressure fallback (founder, 20/10/2026 — replaces «no tap →
+  never published»):** a daily post nobody approved or paused is published at its scheduled time (never earlier,
+  never more than 90 min late) to its usual destinations; the preview says so («⏰ បើគ្មានការសម្រេចចិត្ត
+  នឹងផ្សាយស្វ័យប្រវត្តិ… — ចុច «❌» ដើម្បីផ្អាក»), the card then reads «✅ បានផ្សាយស្វ័យប្រវត្តិតាមកាលវិភាគ · ⏰ ម៉ោង …»,
+  it is audited AUTO_PUBLISHED and counted apart in the nightly Staff Performance. **Never** for humour (the money
+  dilemma — the 18/10 hard rule stands) nor the event posts (a fuel price change, a festival poster): those still
+  need a tap (`TAP_ONLY_KINDS` = `public.post_needs_tap`, `bot_post_auto_publish`). A tap's `bot_post_take` still
+  lets the timer publish only an APPROVED post. The 12:00
   tip is posted only after the founder's «✅ អនុម័តផ្សាយ» (`bot_tip_auto_approve` is a no-op). Each post
   leaves PENDING / APPROVED once, so it is never posted twice; the channel message id and the Facebook post
   id are recorded (`scheduled_posts.telegram_message_id`, `facebook_post_id`).

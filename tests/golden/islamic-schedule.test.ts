@@ -55,9 +55,11 @@ describe("GOLDEN · the Islamic channel's 24-hour schedule", () => {
     assert.equal(isFastDay("2026-10-19", { day: 1, month: 10, year: 1448 }), false) // a Monday on Eid al-Fitr
     assert.equal(isFastDay("2026-10-22", { day: 11, month: 12, year: 1448 }), false) // a Thursday in Tashreeq
   })
-  it("every slot goes to the Islamic channel only, and through the approval gate", () => {
+  it("every slot goes to the Islamic channel only, and through the approval gate (on schedule if nobody decided, 20/10/2026)", () => {
     for (const k of ISLAMIC_KINDS) assert.equal(channelFor(k), "islamic", k)
-    assert.equal(dueAction(new Date(Date.now() - 60_000).toISOString(), Date.now(), "PENDING"), "hold") // not approved → never by the timer
+    for (const k of ISLAMIC_KINDS) assert.equal(dueAction(new Date(Date.now() + 60_000).toISOString(), Date.now(), "PENDING", k), "wait", k) // never early
+    assert.equal(dueAction(new Date(Date.now() - 60_000).toISOString(), Date.now(), "PENDING", "ISLAMIC_DAILY"), "auto")
+    assert.equal(dueAction(new Date(Date.now() - 60_000).toISOString(), Date.now(), "PAUSED", "ISLAMIC_DAILY"), "hold") // ❌ stops it
     assert.equal(takeAllowed("PENDING", "PUBLISHED", false), false)
   })
   it("the database accepts every kind; the publisher draws each from the shared glossary content", () => {
