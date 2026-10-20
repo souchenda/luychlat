@@ -53,7 +53,7 @@ import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
 import { logEvent } from "@/lib/server/events"
 import { deleteFacebookPost, facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
-import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster } from "@/lib/server/national-day-poster"
+import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster, portraitCredit } from "@/lib/server/national-day-poster"
 import { nationalCaptionHtml, nationalCaptionText, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE } from "@/lib/calendar/cambodia-holidays"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { sendMorningPush } from "@/lib/server/web-push"
@@ -448,7 +448,8 @@ const realDeps = (): SchedulerDeps => ({
         await nationalAssetsReady
         // The approver is told when an official portrait the day should carry is not on the server yet.
         const missing = d.assets?.portrait && !nationalAssetsFor(d).portrait ? "\n\nℹ️ មិនទាន់មានព្រះឆាយាល័ក្ខណ៍ផ្លូវការលើ Server ទេ (public/images/holidays) — ផ្ទាំងនេះជាអក្សរ។" : ""
-        return { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) + missing }
+        const credit = portraitCredit(d)
+        return { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) + (credit ? `\n${credit}` : "") + missing }
       }
       case "ISLAMIC_BULLETIN":
         return { png: null, body: stripHtml((await islamicBulletinNow()) ?? "—") }
@@ -519,9 +520,12 @@ const realDeps = (): SchedulerDeps => ({
       if (!d) return ids
       await nationalAssetsReady
       const png = nationalDayPoster(d, day).png
-      if (chat) ids.telegram = (await sendPosterPhoto(chat, png, nationalCaptionHtml(d, day), { reply_markup: buttons.reply_markup })) ?? (await sentText(nationalCaptionHtml(d, day), true))
+      // The photo's credit, as its licence asks (README.txt).
+      const credit = portraitCredit(d)
+      const html = nationalCaptionHtml(d, day) + (credit ? `\n${credit}` : "")
+      if (chat) ids.telegram = (await sendPosterPhoto(chat, png, html, { reply_markup: buttons.reply_markup })) ?? (await sentText(html, true))
       if (facebookConfig() && shouldPublishToFacebook({ kind: "national" })) {
-        const fb = await publishLogged(`national day ${d.key} ${day}`, () => publishPhotoToFacebook(approval, png, nationalCaptionText(d, day)), fbLog)
+        const fb = await publishLogged(`national day ${d.key} ${day}`, () => publishPhotoToFacebook(approval, png, nationalCaptionText(d, day) + (credit ? `\n${credit}` : "")), fbLog)
         if (fb?.ok) ids.facebook = fb.postId
       }
       return ids
@@ -737,8 +741,18 @@ export async function scheduledPostsTick() {
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // National days and royal ceremonies (founder, 20/10/2026): previewed from 48 hours before at 08:00, published at
   // 07:00 on the day once approved (a missed preview window is caught up until then — idempotent).
-  for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute))
-    await real().schedulePost("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
+  for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute)) {
+    const row = await real().schedulePost("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
+    // Flagged «repreview» (a better version, e.g. with the official portrait): the old preview messages are deleted from
+    // the approval room and a fresh preview is sent, once (bot_post_repreview_done clears the flag).
+    if (row?.status === "PENDING" && row.payload?.repreview) {
+      let removed = 0
+      for (const p of row.previews ?? []) if ((await tg("deleteMessage", { chat_id: p.chat, message_id: p.msg })).ok) removed++
+      await botDb().rpc("bot_post_repreview_done", { p_key: botKey(), p_id: row.id })
+      await real().schedulePost("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
+      logEvent("info", "scheduled-posts", `${row.post_key}: the old preview withdrawn (${removed} message(s)) and sent again`)
+    }
+  }
 }
 
 /**

@@ -74,3 +74,30 @@ describe("Official royal portraits and the crest (founder, 20/10/2026)", () => {
     assert.match(read("src/lib/server/scheduled-posts.ts"), /មិនទាន់មានព្រះឆាយាល័ក្ខណ៍ផ្លូវការលើ Server ទេ/)
   })
 })
+
+describe("The installed royal images (founder approved the download, 20/10/2026)", () => {
+  it("the crest and the three portraits are in place; each licence recorded; the King's photo credited in the caption", async () => {
+    const { existsSync } = await import("node:fs")
+    for (const f of ["royal_crest_gold.png", "portrait_king_sihamoni.png", "portrait_king_father_sihanouk.png", "portrait_queen_mother.png"])
+      assert.ok(existsSync(join(process.cwd(), "public/images/holidays", f)), f)
+    const readme = read("public/images/holidays/README.txt")
+    assert.match(readme, /Government Open Data License – India: credit required/)
+    assert.match(readme, /«Norodom Sihanouk \(1983\)\.jpg», Rob Croes \/ Anefo, Nationaal Archief — CC0/)
+    const { PORTRAIT_CREDITS } = await import("@/lib/server/national-day-poster")
+    assert.equal(PORTRAIT_CREDITS.king_sihamoni, "President's Secretariat, Government of India (GODL-India)")
+    assert.ok(read("src/lib/server/scheduled-posts.ts").includes("const html = nationalCaptionHtml(d, day) + (credit ? `\\n${credit}` : \"\")"))
+  })
+  it("the Coronation renders with the portrait, nothing cut; a flagged waiting preview is withdrawn and sent again once", async () => {
+    const { posterAssetsReady } = await import("@/lib/server/poster-kit")
+    const mod = await import("@/lib/server/national-day-poster")
+    await posterAssetsReady
+    await mod.nationalAssetsReady
+    const d = nationalDayByKey("coronation")!
+    assert.ok(mod.nationalAssetsFor(d).portrait && mod.nationalAssetsFor(d).crest)
+    const r = mod.nationalDayPoster(d, "2026-10-29")
+    assert.equal(r.truncated, false)
+    assert.deepEqual([r.png.readUInt32BE(16), r.png.readUInt32BE(20)], [1080, 1350]) // the portrait layout
+    assert.match(read("src/lib/server/scheduled-posts.ts"), /if \(row\?\.status === "PENDING" && row\.payload\?\.repreview\) \{/)
+    assert.match(read("supabase/migrations/20270212000000_repreview_with_portrait.sql"), /set payload = payload - 'repreview', previews = '\[\]'::jsonb where id = p_id and status = 'PENDING'/)
+  })
+})
