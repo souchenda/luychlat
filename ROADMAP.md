@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 20/10/2026 · 10:30 (Cambodia time)
+**Last updated:** 20/10/2026 · 13:40 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -23,6 +23,7 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Prayer rooms in AEON Malls 1–3, Techo and Siem Reap-Angkor airports under ស៊ូរ៉ាវ (4980e18)
 - [x] Du'a audio player & admin recordings — app upload and bot /setdua (5d46fb9, 4602da9)
 - [x] Daily Islamic quiz challenge (5 questions)
+- [/] The quiz in the app only — the 12:30 channel teaser removed (no choices, read as clickbait); today's message deleted (f427225, 8126a43)
 - [x] Saudi Riyal (SAR) rate card & 3-way converter, Islamic Mode only (4c13cf3 — live with 3ec7978)
 - [x] Iftar du'a in natural Khmer with clear phonetics — du'a library, hub card, channel caption, poster (beb9a16)
 - [x] Du'a library vetted in one pass — 14 du'as, hyphenated readings, poster meanings without parentheses, notes only in captions; new: entering / leaving the mosque, travel, the fasting intention, distress (77d67ad, 047c64f)
@@ -72,6 +73,12 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Relatable comedy short video — Reel Ep 01 DRAFT (7e79b67, b947834)
 - [ ] Reel voices: Azure AI Speech key on the Droplet (the founder declined Azure for the du'as; reels still need a licensed voice)
 - [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E)
+- [/] **Master Brand & Visual Design System** — `docs/BRAND_DESIGN_SYSTEM.md`, the permanent design foundation for every poster: the four pillars, royal protocol (verbatim table), Islamic terminology and two-tier colours, Sil days and festivals, daily education, the pre-flight four-layer checklist; referenced in CLAUDE.md. Evolves only on the founder's decisions (its change log)
+- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, the Coat of Arms top right, the Independence Monument and Throne Hall silhouettes, the flag ribbon; palace-protocol wording (e115e42, 5b34ce3, b519f26)
+- [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 07:00 only after a tap
+- [ ] 09/11 Independence Day — preview 07/11 08:00; text design until the founder provides an official portrait of the King Father
+- [ ] Water Festival (dates from the official sub-decree) — preview 48 h before at 08:00
+- [ ] Official portraits of the King Father (15/10, 09/11) and the Queen Mother (18/06), from the founder
 
 ## 4. 💰 ហិរញ្ញវត្ថុ & ការទូទាត់ស្នូល (Core App & DL MEAT SUPPLY)
 

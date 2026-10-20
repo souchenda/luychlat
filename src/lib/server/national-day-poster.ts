@@ -1,6 +1,7 @@
 // Server only: a national day or royal ceremony as a poster (founder, 20/10/2026) on the standard frame (poster-kit.ts):
 // deep emerald and gold, the brand header and footer; centred — the title, the royal name or occasion, the dates as a
-// gold chip, then the blessing. Text only: no royal portrait or emblem (the app holds no licensed copy). A merit day
+// gold chip, then the blessing. With the founder's official portrait: 1080 × 1350, the arched gold frame, the crest and
+// the national backdrop (docs/BRAND_DESIGN_SYSTEM.md, chapter 2); without one, text only. A merit day
 // (Visak Bochea) carries the gold lotus; a memorial day is drawn quieter, in softer gold.
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"

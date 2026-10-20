@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
@@ -148,5 +148,20 @@ describe("The royal-protocol audit and the national backdrop (founder, 20/10/202
     assert.match(poster, /nationalBackdrop\(ctx, 150 \+ 560\)/)
     assert.doesNotMatch(poster, /art\.monument/) // no photo watermark
     assert.match(read("supabase/migrations/20270218000000_repreview_royal_protocol.sql"), /'repreview', 'royal-protocol'/)
+  })
+})
+
+// docs/ is not in the Docker build context (.dockerignore): checked locally and by the pre-push hook.
+const docsHere = existsSync(join(process.cwd(), "docs/BRAND_DESIGN_SYSTEM.md"))
+describe("The Master Brand & Visual Design System (founder, 20/10/2026)", { skip: !docsHere && "docs/ is not in the build context" }, () => {
+  it("docs/BRAND_DESIGN_SYSTEM.md is the standard CLAUDE.md names, and its royal table matches the code word for word", () => {
+    const doc = read("docs/BRAND_DESIGN_SYSTEM.md").replace(/\r\n/g, "\n")
+    assert.match(read("CLAUDE.md"), /docs\/BRAND_DESIGN_SYSTEM\.md/)
+    for (const chapter of ["Chapter 1", "Chapter 2", "Chapter 3", "Chapter 4", "Chapter 5", "Chapter 6"]) assert.ok(doc.includes(chapter), chapter)
+    const d = nationalDayByKey("coronation")!
+    const quoted = doc.slice(doc.indexOf("**The Coronation blessing (verbatim):**")).split("\n").filter((l) => l.startsWith("> ")).slice(0, 3).map((l) => l.slice(2)).join(" ")
+    assert.equal(quoted, d.message)
+    assert.ok(doc.includes(d.title) && doc.includes(nationalDateLine(d, "2026-10-29")))
+    for (const line of d.subtitle!.split("\n")) assert.ok(doc.includes(line), line)
   })
 })

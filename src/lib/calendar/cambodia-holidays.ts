@@ -7,7 +7,8 @@
  * Fixed days by month-day; the lunar days (Khmer New Year, Visak Bochea, the Royal Ploughing, the Water Festival) from
  * lib/holidays.ts — the dates of the official sub-decree for each year. Pchum Ben keeps its own poster and holy-day
  * posts. The royal wording follows the standard forms of the Royal Palace; every preview asks the approver to check it.
- * No royal portrait or emblem is drawn: the app holds no licensed copy of them (licensing rule).
+ * Royal imagery: only the official portraits the founder provides and the Coat of Arms (public/images/holidays/README.txt);
+ * never a web photo. The wording and the layout follow docs/BRAND_DESIGN_SYSTEM.md, chapter 2.
  */
 import { khmerDigits } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"

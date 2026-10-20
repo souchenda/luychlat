@@ -79,6 +79,12 @@ use come before feature count: no half-baked features, broken links or untested 
 
 ## Publishing and content standards (founder, 12/10/2026)
 
+- **The Master Brand & Visual Design System — inviolable (founder, 20/10/2026):** every poster engine (royal and
+  national days, Islamic, Sil days and festivals, tips, lessons and quotes) follows `docs/BRAND_DESIGN_SYSTEM.md` — the
+  four pillars (artwork, background, content, typography), the royal-protocol table (verbatim), the Islamic terminology
+  and two-tier colours, and the pre-flight four-layer checklist before any preview. A rule changes only on the founder's
+  decision, recorded in its change log.
+
 - **No "AI slop" (ម៉ារៀលៗ).** Every line of copy, visual or media for «អេប លុយឆ្លាត» must feel
   human-crafted, grounded in real Cambodian daily life, prestigious and meaningful. Quality over
   quantity: no generic templates, no filler posts.
@@ -90,8 +96,8 @@ use come before feature count: no half-baked features, broken links or untested 
   - 20:00 nightly reminder → Telegram **only**, never the Page.
   - Holiday notes (eve 18:00, day back 07:30) and the Saturday 17:00 core-value spotlight → both.
   - National days and royal ceremonies (founder, 20/10/2026 — `lib/calendar/cambodia-holidays.ts`): a commemoration
-    poster previewed 48 h before at 08:00, published at 07:00 on the day once approved → both. Text and the brand's
-    art only — no royal portrait or emblem without a licensed copy; every preview asks the approver to check the royal
+    poster previewed 48 h before at 08:00, published at 07:00 on the day once approved → both. Royal portraits only
+    the official ones the founder provides (never a web photo); every preview asks the approver to check the royal
     wording (រាជស័ព្ទ).
   - Tuesday / Friday 18:30 money dilemma (`lib/money-dilemmas.ts`, an open question + the app CTA) → both.
   - Buddhist Sil day (07:00 on 8 / 15 កើត, 8 រោច, ដាច់ខែ) → the branded poster (`lib/server/sil-poster.ts`) to the
