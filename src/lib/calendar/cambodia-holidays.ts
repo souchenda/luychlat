@@ -31,7 +31,7 @@ export type NationalDay = {
   /** The blessing or the words of remembrance. */
   message: string
   /** The official images it shows when their files are in public/images/holidays (README.txt) — never drawn without. */
-  assets?: { portrait?: RoyalPortrait; crest?: boolean; monument?: boolean }
+  assets?: { portrait?: RoyalPortrait; crest?: boolean; monument?: boolean; backdrop?: boolean }
 }
 
 export type RoyalPortrait = "king_sihamoni" | "king_father_sihanouk" | "queen_mother"
@@ -77,7 +77,7 @@ export const NATIONAL_DAYS: NationalDay[] = [
     message: "ក្រុមការងារ អេប លុយឆ្លាត សូមក្រាបបង្គំគោរពព្រះវិញ្ញាណក្ខន្ធ និងរំលឹកដល់ព្រះគុណូបការៈដ៏ធំធេងរបស់ព្រះអង្គ ចំពោះជាតិមាតុភូមិ។",
     assets: { portrait: "king_father_sihanouk", crest: true },
   },
-  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true } },
+  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true, backdrop: true } },
   { key: "independence", date: { fixed: "11-09" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាបុណ្យឯករាជ្យជាតិ", since: 1953, assets: { portrait: "king_father_sihanouk", crest: true, monument: true }, message: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត ដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។" },
   { key: "water-festival", date: { festival: "holiday.water_festival" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីបុណ្យអុំទូក បណ្តែតប្រទីប អកអំបុក និងសំពះព្រះខែ", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ធ្វើដំណើរ និងចូលរួមកម្សាន្តដោយសុវត្ថិភាព ព្រមទាំងជួបតែសេចក្តីសុខ។" },
 ]

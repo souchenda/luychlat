@@ -19,7 +19,7 @@ on a flat, careless background.
 
 | Pillar | What it means | Never |
 |---|---|---|
-| **1. Artwork** | Official, high-resolution imagery, or art drawn by the app itself (silhouettes, lotus, line art). Every image is sharp at 1080 px, cleanly cropped, centred, with no stray pixels. | Web photos, candid snapshots, screenshots, watermarked or unlicensed images, AI-generated likenesses of real people. |
+| **1. Artwork** | Official, high-resolution imagery, or motifs drawn by the app itself (lotus, line art), never architecture. Every image is sharp at 1080 px, cleanly cropped, centred, with no stray pixels. | Web photos, candid snapshots, screenshots, watermarked or unlicensed images, AI-generated likenesses of real people. |
 | **2. Background** | Depth with dignity: the brand's deep emerald gradient, a soft vignette, and subtle cultural or national layers at 15–20 % opacity. | A flat wall, loud patterns, layers that compete with the text, hard-edged bands. |
 | **3. Content** | Correct, verified and respectful: royal protocol, religious terminology, real dates, everyday Cambodian life. Every word earns its place. | Guessed dates, invented honorifics, «AI slop», filler, money lectures on a merit day. |
 | **4. Typography** | Clean Khmer type (MiSans Khmer, Kantumruy Pro fallback; Amiri only for whole Arabic lines), a clear hierarchy, centred and balanced lines. No compound word is ever split across lines. | Italic Khmer, parentheses on a graphic, «…» cuts, orphaned words, «&» in Khmer copy (use «និង»). |
@@ -39,13 +39,13 @@ renders the poster. With a portrait the poster is 1080 × 1350; without one it i
 
 1. **Base layer:** a rich royal emerald gradient (`#052e26 → #064e3b → #047857`), a gold glow behind the portrait and
    a soft vignette.
-2. **Architectural heritage layer, at 18 %:** the **Independence Monument «វិមានឯករាជ្យ» on the left** and the
-   **Throne Hall «ព្រះទីនាំងទេវាវិនិច្ឆ័យ» of the Royal Palace on the right**. Both are gold silhouettes drawn by the
-   app (`independenceMonument`, `throneHall`), never a photograph. Their bases sit on the line of the arch's base,
-   with a soft horizon under them.
-3. **National accent, at 20 %:** a gentle ribbon of the national flag, **blue · red · blue (1 : 2 : 1, `#032ea1` /
-   `#e00025`)**. It rises from left to right behind the arch, above the title and never under the text, and fades into
-   the emerald at both ends.
+2. **Architectural heritage — photographic only (founder, 20/10/2026):** the founder's majestic backdrop
+   `bg_royal_coronation.jpg` (1080 × 1350), full bleed: the authentic stone **Independence Monument «វិមានឯករាជ្យ» on
+   the left**, the golden **Throne Hall «ព្រះទីនាំងទេវាវិនិច្ឆ័យ» on the right**, the silk national flag ribbon and
+   the central golden halo. A deep emerald veil under the text keeps every line legible. **Never draw architecture as
+   vector shapes:** the founder rejected the drawn silhouettes as «crude clipart … unworthy of His Majesty the King».
+   Without the photograph, use the plain emerald gradient and gold glow.
+3. **The halo and the arch:** the portrait's golden arch sits in the backdrop's central halo.
 4. **Foreground:** the **golden arched frame** holds the **official, high-definition royal portrait**. The **official
    golden Royal Coat of Arms** sits at the **top right**, with a soft shadow.
 5. **Text, below the arch:** the title in gold, 52 px; the royal name and title in white, 30 px; the gold date chip;
@@ -182,7 +182,7 @@ check all four again together.
 
 **Layer 2 — Background**
 - [ ] The emerald gradient and the vignette are smooth, with no hard bands.
-- [ ] The heritage silhouettes are at 15–20 %; the flag ribbon is behind the arch and never under the text.
+- [ ] The photographic backdrop is authentic (never drawn clipart), the halo is behind the arch, and the veil keeps the text legible.
 - [ ] The brand badge and the footer are clean.
 
 **Layer 3 — Content**
@@ -206,3 +206,5 @@ an approver's tap.
 - **20/10/2026:** first edition. Royal protocol audit (the sub-decree title, honorifics, blessing and dateline); the
   national backdrop (Monument, Throne Hall, flag ribbon); official-only HD royal imagery; Islamic channel purity (no
   quiz teaser).
+- **20/10/2026:** the drawn silhouettes are removed («crude clipart»). Royal architecture is photographic only, from
+  the founder's backdrop `bg_royal_coronation.jpg`.

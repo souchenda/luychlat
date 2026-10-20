@@ -74,7 +74,7 @@ dropped between sessions. The founder reviews it every evening.
 - [ ] Reel voices: Azure AI Speech key on the Droplet (the founder declined Azure for the du'as; reels still need a licensed voice)
 - [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E)
 - [/] **Master Brand & Visual Design System** — `docs/BRAND_DESIGN_SYSTEM.md`, the permanent design foundation for every poster: the four pillars, royal protocol (verbatim table), Islamic terminology and two-tier colours, Sil days and festivals, daily education, the pre-flight four-layer checklist; referenced in CLAUDE.md. Evolves only on the founder's decisions (its change log)
-- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, the Coat of Arms top right, the Independence Monument and Throne Hall silhouettes, the flag ribbon; palace-protocol wording (e115e42, 5b34ce3, b519f26)
+- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, the Coat of Arms top right, palace-protocol wording (e115e42, 5b34ce3, b519f26); the drawn silhouettes removed as clipart (founder) — the photographic backdrop `bg_royal_coronation.jpg` awaited from the founder
 - [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 07:00 only after a tap
 - [ ] 09/11 Independence Day — preview 07/11 08:00; text design until the founder provides an official portrait of the King Father
 - [ ] Water Festival (dates from the official sub-decree) — preview 48 h before at 08:00

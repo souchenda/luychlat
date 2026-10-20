@@ -11,6 +11,10 @@ Information's official releases, with permission to use them (CLAUDE.md, Licensi
                                     (15 Oct Commemoration, 9 Nov Independence Day)
   portrait_queen_mother.png         the official portrait of Her Majesty Queen Mother Norodom Monineath Sihanouk
                                     (18 Jun Royal Birthday)
+  bg_royal_coronation.jpg           the founder's photographic royal backdrop, 1080 × 1350: the stone Independence
+                                    Monument (left), the golden Throne Hall (right), the silk flag ribbon and the
+                                    central golden halo — full bleed behind the arch (29 Oct Coronation). Without it the
+                                    plain emerald is used; the app never draws architecture as clipart (founder, 20/10/2026).
   bg_independence_monument.png      a light silhouette of the Independence Monument, transparent background
                                     (a soft watermark on the national days)
 

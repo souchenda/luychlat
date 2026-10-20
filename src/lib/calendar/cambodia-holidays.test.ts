@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("royal-protocol") && !listed.includes("hd-portrait-live")) // a used flag leaves the list
+    assert.ok(listed.includes("no-clipart") && !listed.includes("hd-portrait-live") && !listed.includes("royal-protocol")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -139,15 +139,23 @@ describe("The royal-protocol audit and the national backdrop (founder, 20/10/202
     }
     for (const t of ["«អេប លុយឆ្លាត»", "សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង", "ព្រះសព្ទសាធុការពរជ័យ", "ព្រះរាជសុខភាព", "ព្រះកាយពលមាំមួន", "ព្រះជន្មាយុយឺនយូរ"]) assert.ok(ROYAL_UNBREAKABLE.includes(t), t)
   })
-  it("the backdrop is drawn by the app (no photo): the Monument left, the Throne Hall right at 18 %, the flag ribbon at 20 %", () => {
+  it("regression: no drawn clipart (founder, 20/10/2026 — «crude clipart»); the founder's photographic backdrop full bleed, else plain emerald", async () => {
     const poster = read("src/lib/server/national-day-poster.ts")
-    assert.match(poster, /independenceMonument\(ctx, 150, base, [\d.]+\)/)
-    assert.match(poster, /throneHall\(ctx, PW - 150, base, [\d.]+\)/)
-    assert.match(poster, /ctx\.globalAlpha = 0\.18\r?\n/)
-    assert.match(poster, /"#032ea1"[\s\S]*"#e00025"[\s\S]*"#032ea1"/)
-    assert.match(poster, /nationalBackdrop\(ctx, 150 \+ 560\)/)
-    assert.doesNotMatch(poster, /art\.monument/) // no photo watermark
-    assert.match(read("supabase/migrations/20270218000000_repreview_royal_protocol.sql"), /'repreview', 'royal-protocol'/)
+    assert.doesNotMatch(poster, /independenceMonument|throneHall|flagRibbon|nationalBackdrop/)
+    assert.match(poster, /backdrop: "bg_royal_coronation\.jpg"/)
+    assert.match(poster, /if \(art\.backdrop\) \{/)
+    assert.equal(nationalDayByKey("coronation")!.assets?.backdrop, true)
+    assert.match(read("public/images/holidays/README.txt"), /bg_royal_coronation\.jpg/)
+    assert.match(read("src/lib/server/scheduled-posts.ts"), /bg_royal_coronation\.jpg\) — ប្រើពណ៌បៃតងធម្មតា/)
+    assert.match(read("supabase/migrations/20270219000000_repreview_no_clipart.sql"), /'repreview', 'no-clipart'/)
+    // With or without the file, the Coronation renders whole at 1080 × 1350.
+    const mod = await import("@/lib/server/national-day-poster")
+    const { posterAssetsReady } = await import("@/lib/server/poster-kit")
+    await posterAssetsReady
+    await mod.nationalAssetsReady
+    const r = mod.nationalDayPoster(nationalDayByKey("coronation")!, "2026-10-29")
+    assert.equal(r.truncated, false)
+    assert.deepEqual([r.png.readUInt32BE(16), r.png.readUInt32BE(20)], [1080, 1350])
   })
 })
 

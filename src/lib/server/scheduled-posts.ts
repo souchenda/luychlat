@@ -447,8 +447,10 @@ const realDeps = (): SchedulerDeps => ({
         await nationalAssetsReady
         // The approver is told when an official portrait the day should carry is not on the server yet.
         const missing = d.assets?.portrait && !nationalAssetsFor(d).portrait ? "\n\nℹ️ មិនទាន់មានព្រះឆាយាល័ក្ខណ៍ផ្លូវការលើ Server ទេ (public/images/holidays) — ផ្ទាំងនេះជាអក្សរ។" : ""
+        // …and when the founder's photographic backdrop is not there yet (the plain emerald is used, never clipart).
+        const noBackdrop = d.assets?.backdrop && !nationalAssetsFor(d).backdrop ? "\n\nℹ️ មិនទាន់មានផ្ទាំងខាងក្រោយរូបថតផ្លូវការ (bg_royal_coronation.jpg) — ប្រើពណ៌បៃតងធម្មតា។" : ""
         const credit = portraitCredit(d)
-        return { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) + (credit ? `\n${credit}` : "") + missing }
+        return { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) + (credit ? `\n${credit}` : "") + missing + noBackdrop }
       }
       case "ISLAMIC_BULLETIN":
         return { png: null, body: stripHtml((await islamicBulletinNow()) ?? "—") }
@@ -721,7 +723,7 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
-  const REPREVIEW_READY = ["royal-protocol"]
+  const REPREVIEW_READY = ["no-clipart"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // National days and royal ceremonies (founder, 20/10/2026): previewed from 48 hours before at 08:00, published at
   // 07:00 on the day once approved (a missed preview window is caught up until then — idempotent).

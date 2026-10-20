@@ -1,7 +1,7 @@
 // Server only: a national day or royal ceremony as a poster (founder, 20/10/2026) on the standard frame (poster-kit.ts):
 // deep emerald and gold, the brand header and footer; centred — the title, the royal name or occasion, the dates as a
 // gold chip, then the blessing. With the founder's official portrait: 1080 × 1350, the arched gold frame, the crest and
-// the national backdrop (docs/BRAND_DESIGN_SYSTEM.md, chapter 2); without one, text only. A merit day
+// the founder's photographic royal backdrop when it is there (docs/BRAND_DESIGN_SYSTEM.md, chapter 2); without one, text only. A merit day
 // (Visak Bochea) carries the gold lotus; a memorial day is drawn quieter, in softer gold.
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
@@ -16,6 +16,7 @@ import { FAMILIES, FRAME, drawFooter, drawHeader, loadFonts, posterMascot, round
 // The official images (public/images/holidays, README.txt): only the files really there; none is ever invented.
 const ASSET_FILES = {
   crest: "royal_crest_gold.png",
+  backdrop: "bg_royal_coronation.jpg",
   monument: "bg_independence_monument.png",
   king_sihamoni: "portrait_king_sihamoni.png",
   king_father_sihanouk: "portrait_king_father_sihanouk.png",
@@ -51,11 +52,12 @@ export function portraitCredit(d: NationalDay): string | null {
 }
 
 /** Which official images a day shows now. */
-export function nationalAssetsFor(d: NationalDay): { portrait: Image | null; crest: Image | null; monument: Image | null } {
+export function nationalAssetsFor(d: NationalDay): { portrait: Image | null; crest: Image | null; monument: Image | null; backdrop: Image | null } {
   return {
     portrait: d.assets?.portrait ? (assets[d.assets.portrait] ?? null) : null,
     crest: d.assets?.crest ? (assets.crest ?? null) : null,
     monument: d.assets?.monument ? (assets.monument ?? null) : null,
+    backdrop: d.assets?.backdrop ? (assets.backdrop ?? null) : null,
   }
 }
 
@@ -177,184 +179,39 @@ function drawCover(ctx: SKRSContext2D, img: Image, x: number, y: number, w: numb
   ctx.drawImage(img, x + (w - dw) / 2, y, dw, img.height * scale)
 }
 
-// ─── The national background (founder, 20/10/2026 — «integrate the Royal Palace and Independence Monument») ─────
-// Drawn by the app itself — no photo or web image: the Independence Monument (left) and the Throne Hall
-// «ព្រះទីនាំងទេវាវិនិច្ឆ័យ» (right) as soft gold silhouettes, a soft blue-red-blue ribbon of the national flag
-// behind the arch, and a vignette. Stylised outlines, never a likeness of a photograph.
-
-/** The Independence Monument «វិមានឯករាជ្យ»: stepped base, five tiers with naga heads at the corners, lotus-bud spire. */
-function independenceMonument(ctx: SKRSContext2D, cx: number, base: number, s: number) {
-  ctx.beginPath()
-  let y = base
-  for (const w of [230, 196, 164]) {
-    ctx.rect(cx - (w * s) / 2, y - 14 * s, w * s, 14 * s)
-    y -= 14 * s
-  }
-  ctx.fill()
-  ctx.beginPath()
-  for (let i = 0; i < 5; i++) {
-    const w = (124 - i * 19) * s
-    const h = (56 - i * 4) * s
-    const top = y - h
-    const l = cx - w / 2
-    const r = cx + w / 2
-    const horn = (14 - i * 1.5) * s
-    ctx.moveTo(l + 6 * s, y)
-    ctx.lineTo(l + 6 * s, top + 12 * s)
-    // A naga head rising out of each corner.
-    ctx.quadraticCurveTo(l - horn * 0.4, top + 6 * s, l - horn * 0.6, top - horn)
-    ctx.quadraticCurveTo(l + 4 * s, top - 2 * s, l + 10 * s, top)
-    ctx.lineTo(r - 10 * s, top)
-    ctx.quadraticCurveTo(r - 4 * s, top - 2 * s, r + horn * 0.6, top - horn)
-    ctx.quadraticCurveTo(r + horn * 0.4, top + 6 * s, r - 6 * s, top + 12 * s)
-    ctx.lineTo(r - 6 * s, y)
-    ctx.closePath()
-    y = top
-  }
-  ctx.fill()
-  // The lotus-bud spire.
-  const sw = 34 * s
-  ctx.beginPath()
-  ctx.moveTo(cx - sw / 2, y)
-  ctx.bezierCurveTo(cx - sw * 0.75, y - 40 * s, cx - 6 * s, y - 70 * s, cx, y - 96 * s)
-  ctx.bezierCurveTo(cx + 6 * s, y - 70 * s, cx + sw * 0.75, y - 40 * s, cx + sw / 2, y)
-  ctx.closePath()
-  ctx.fill()
-}
-
-/** The Throne Hall «ព្រះទីនាំងទេវាវិនិច្ឆ័យ»: platform, colonnade, three tiers of roofs with chofa finials, the spire. */
-function throneHall(ctx: SKRSContext2D, cx: number, base: number, s: number) {
-  ctx.beginPath()
-  ctx.rect(cx - 160 * s, base - 18 * s, 320 * s, 18 * s)
-  ctx.fill()
-  // The colonnade: pillars, the openings left as the background.
-  let y = base - 18 * s
-  const bw = 270 * s
-  ctx.beginPath()
-  ctx.rect(cx - bw / 2, y - 12 * s, bw, 12 * s)
-  for (let i = 0; i <= 9; i++) ctx.rect(cx - bw / 2 + (i * (bw - 12 * s)) / 9, y - 62 * s, 12 * s, 50 * s)
-  ctx.rect(cx - bw / 2, y - 74 * s, bw, 12 * s)
-  ctx.fill()
-  y -= 74 * s
-  // Three tiers of roofs, each narrower, a chofa curling up at both ends.
-  for (let k = 0; k < 3; k++) {
-    const wb = (300 - k * 78) * s
-    const wt = (180 - k * 56) * s
-    const h = (40 - k * 4) * s
-    ctx.beginPath()
-    ctx.moveTo(cx - wb / 2, y)
-    ctx.quadraticCurveTo(cx - wb / 2 + 10 * s, y - h * 0.3, cx - wt / 2, y - h)
-    ctx.lineTo(cx + wt / 2, y - h)
-    ctx.quadraticCurveTo(cx + wb / 2 - 10 * s, y - h * 0.3, cx + wb / 2, y)
-    ctx.closePath()
-    ctx.fill()
-    for (const dir of [-1, 1]) {
-      const ex = cx + (dir * wb) / 2
-      ctx.beginPath()
-      ctx.moveTo(ex - dir * 8 * s, y)
-      ctx.quadraticCurveTo(ex + dir * 10 * s, y - 4 * s, ex + dir * 6 * s, y - 22 * s)
-      ctx.lineTo(ex + dir * 1 * s, y - 20 * s)
-      ctx.quadraticCurveTo(ex + dir * 3 * s, y - 8 * s, ex - dir * 10 * s, y - 4 * s)
-      ctx.closePath()
-      ctx.fill()
-    }
-    y -= h
-  }
-  // The central spire: tapering stages, then the needle.
-  ctx.beginPath()
-  for (let i = 0; i < 5; i++) {
-    const w = (64 - i * 9) * s
-    const h = 24 * s
-    ctx.rect(cx - w / 2, y - h, w, h)
-    ctx.rect(cx - w / 2 - 4 * s, y - h, w + 8 * s, 4 * s)
-    y -= h
-  }
-  ctx.fill()
-  ctx.beginPath()
-  ctx.moveTo(cx - 10 * s, y)
-  ctx.lineTo(cx, y - 110 * s)
-  ctx.lineTo(cx + 10 * s, y)
-  ctx.closePath()
-  ctx.fill()
-}
-
-/** The national flag as a soft ribbon (blue · red · blue, 1 : 2 : 1), a gentle wave rising behind the arch from left to
- *  right — above the title, never under the text — fading into the emerald at both ends. */
-function flagRibbon(ctx: SKRSContext2D) {
-  const layer = createCanvas(PW, PH)
-  const g = layer.getContext("2d")
-  const centre = (x: number) => 650 - 0.27 * x + 22 * Math.sin(x / 150)
-  const bands: [number, number, string][] = [
-    [-40, -20, "#032ea1"],
-    [-20, 20, "#e00025"],
-    [20, 40, "#032ea1"],
-  ]
-  for (const [band0, band1, colour] of bands) {
-    const swell = (x: number) => 1 + 0.25 * Math.sin(x / 210)
-    g.beginPath()
-    for (let x = -20; x <= PW + 20; x += 10) g.lineTo(x, centre(x) + band0 * swell(x))
-    for (let x = PW + 20; x >= -20; x -= 10) g.lineTo(x, centre(x) + band1 * swell(x))
-    g.closePath()
-    g.fillStyle = colour
-    g.fill()
-  }
-  // Soft at both ends: only the ribbon's own pixels fade (no band over the background).
-  const fade = g.createLinearGradient(0, 0, PW, 0)
-  fade.addColorStop(0, "rgba(0,0,0,0)")
-  fade.addColorStop(0.25, "rgba(0,0,0,1)")
-  fade.addColorStop(0.75, "rgba(0,0,0,1)")
-  fade.addColorStop(1, "rgba(0,0,0,0)")
-  g.globalCompositeOperation = "destination-in"
-  g.fillStyle = fade
-  g.fillRect(0, 0, PW, PH)
-  ctx.save()
-  ctx.globalAlpha = 0.2
-  ctx.drawImage(layer, 0, 0)
-  ctx.restore()
-}
-
-/** The layers behind the arch: the ribbon, the two silhouettes at 18 %, the vignette. */
-function nationalBackdrop(ctx: SKRSContext2D, base: number) {
-  flagRibbon(ctx)
-  ctx.save()
-  ctx.fillStyle = "#fde68a"
-  ctx.globalAlpha = 0.18
-  independenceMonument(ctx, 150, base, 1.18)
-  throneHall(ctx, PW - 150, base, 0.86)
-  ctx.restore()
-  // A soft horizon under the buildings.
-  const ground = ctx.createLinearGradient(0, base - 2, 0, base + 60)
-  ground.addColorStop(0, "rgba(253,230,138,0.14)")
-  ground.addColorStop(1, "rgba(253,230,138,0)")
-  ctx.fillStyle = ground
-  ctx.fillRect(0, base - 2, PW, 62)
-  const vignette = ctx.createRadialGradient(PW / 2, PH * 0.42, PH * 0.35, PW / 2, PH * 0.45, PH * 0.85)
-  vignette.addColorStop(0, "rgba(0,0,0,0)")
-  vignette.addColorStop(1, "rgba(0,0,0,0.45)")
-  ctx.fillStyle = vignette
-  ctx.fillRect(0, 0, PW, PH)
-}
-
 function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nationalAssetsFor>): { png: Buffer; truncated: boolean } {
   const canvas = createCanvas(PW, PH)
   const ctx = canvas.getContext("2d")
   const text = nationalPosterLines(d, day)
   let truncated = false
 
-  // Deep royal emerald with a gold glow behind the portrait.
-  const bg = ctx.createLinearGradient(0, 0, PW * 0.3, PH)
-  bg.addColorStop(0, "#052e26")
-  bg.addColorStop(0.55, "#064e3b")
-  bg.addColorStop(1, "#047857")
-  ctx.fillStyle = bg
-  ctx.fillRect(0, 0, PW, PH)
-  const glow = ctx.createRadialGradient(PW / 2, 430, 0, PW / 2, 430, 560)
-  glow.addColorStop(0, "rgba(253,230,138,0.28)")
-  glow.addColorStop(1, "rgba(253,230,138,0)")
-  ctx.fillStyle = glow
-  ctx.fillRect(0, 0, PW, PH)
-  // The national depth behind the arch: the flag ribbon, the Monument and the Throne Hall, the vignette.
-  nationalBackdrop(ctx, 150 + 560)
+  if (art.backdrop) {
+    // The founder's photographic royal backdrop (founder, 20/10/2026 — «the flat vector silhouettes look like crude
+    // clipart»): full bleed, then a deep emerald veil under the text so every line reads cleanly.
+    const scale = Math.max(PW / art.backdrop.width, PH / art.backdrop.height)
+    const bw = art.backdrop.width * scale
+    const bh = art.backdrop.height * scale
+    ctx.drawImage(art.backdrop, (PW - bw) / 2, (PH - bh) / 2, bw, bh)
+    const veil = ctx.createLinearGradient(0, 640, 0, PH)
+    veil.addColorStop(0, "rgba(2,44,34,0)")
+    veil.addColorStop(0.22, "rgba(2,44,34,0.78)")
+    veil.addColorStop(1, "rgba(2,44,34,0.92)")
+    ctx.fillStyle = veil
+    ctx.fillRect(0, 640, PW, PH - 640)
+  } else {
+    // Without it: deep royal emerald with a gold glow behind the portrait — never drawn clipart.
+    const bg = ctx.createLinearGradient(0, 0, PW * 0.3, PH)
+    bg.addColorStop(0, "#052e26")
+    bg.addColorStop(0.55, "#064e3b")
+    bg.addColorStop(1, "#047857")
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, PW, PH)
+    const glow = ctx.createRadialGradient(PW / 2, 430, 0, PW / 2, 430, 560)
+    glow.addColorStop(0, "rgba(253,230,138,0.28)")
+    glow.addColorStop(1, "rgba(253,230,138,0)")
+    ctx.fillStyle = glow
+    ctx.fillRect(0, 0, PW, PH)
+  }
 
   // The brand, top left.
   const mascot = posterMascot()
