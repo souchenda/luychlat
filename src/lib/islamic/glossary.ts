@@ -86,6 +86,15 @@ export const BARAKAH_LABEL = `${BARAKAH} (Barakah / بَرَكَة)`
 
 // ─── Thanks and blessings (founder, 19/10/2026 — contributors in Islamic Mode only; lib/contributor-thanks.ts) ──────
 /** «Alhamdulillah», the founder's spelling for the thanks to contributors. */
+/**
+ * The greeting (founder, 20/10/2026 — golden rule): in Islamic Mode and every Islamic text, the greeting is always
+ * «អាស្សាឡាមុអាឡៃកុម» (Assalamu Alaikum) — never «ជំរាបសួរ» / «ជម្រាបសួរ» / «សូមជម្រាបសួរ» (FORBIDDEN_GREETINGS,
+ * checked across the Islamic sources by tests/golden/islamic-glossary.test.ts).
+ */
+export const ASSALAMU_ALAIKUM = "អាស្សាឡាមុអាឡៃកុម"
+export const ASSALAMU_ALAIKUM_LABEL = `${ASSALAMU_ALAIKUM} (Assalamu Alaikum / السَّلَامُ عَلَيْكُمْ)`
+export const FORBIDDEN_GREETINGS = ["ជំរាបសួរ", "ជម្រាបសួរ", "សូមជម្រាបសួរ", "សូមជំរាបសួរ"] as const
+
 export const ALHAMDULILLAH = "អាល់ហាំឌូលិលឡាហ៍"
 export const JAZAKALLAH = "យ៉ាហ្សាស្កាល់ឡាហូ ខាយរ៉ន"
 export const JAZAKALLAH_LABEL = `${JAZAKALLAH} (Jazakallahu Khayran / جَزَاكَ اللَّهُ خَيْرًا)`

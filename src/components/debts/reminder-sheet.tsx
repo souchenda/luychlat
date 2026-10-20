@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import type { Debt } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
+import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { useMyKhqr } from "@/lib/profile"
 import { buildReminder, smsUrl, telegramShareUrl, type ReminderLanguage } from "@/lib/reminder"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -38,14 +39,16 @@ export function ReminderSheet({ open, onOpenChange, debt }: { open: boolean; onO
   const [language, setLanguage] = useState<ReminderLanguage>(contentLocale(uiLocale))
   const [text, setText] = useState("")
   const khqr = useMyKhqr()
+  // Islamic Mode: the reminder greets with «អាស្សាឡាមុអាឡៃកុម» (founder, 20/10/2026).
+  const islamic = useIslamicEnabled()
   const [attach, setAttach] = useState(true)
   const withQr = Boolean(khqr.url) && attach
   const fileRef = useRef<HTMLInputElement>(null)
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function"
 
   useEffect(() => {
-    if (open) setText(buildReminder(debt, language, withQr))
-  }, [open, debt, language, withQr])
+    if (open) setText(buildReminder(debt, language, withQr, islamic))
+  }, [open, debt, language, withQr, islamic])
 
   const copy = async () => {
     try {

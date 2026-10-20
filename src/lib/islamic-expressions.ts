@@ -5,7 +5,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
  * off. One place, so the home greeting and the save messages never mix the two.
  */
 
-/** The home header: «អស្សាឡាមុអាឡៃកុមក៍, [ឈ្មោះ]» (no waving hand) or «សួស្តី [ឈ្មោះ] ✋». */
+/** The home header: «អាស្សាឡាមុអាឡៃកុម, [ឈ្មោះ]» (no waving hand) or «សួស្តី [ឈ្មោះ] ✋». */
 export function homeGreeting(islamic: boolean, name: string | null | undefined): { key: MessageKey; params?: { name: string }; wave: boolean } {
   const n = name?.trim()
   if (islamic) return n ? { key: "islamic.greetingName", params: { name: n }, wave: false } : { key: "islamic.greeting", wave: false }

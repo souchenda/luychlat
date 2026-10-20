@@ -135,7 +135,7 @@ export default function HomePage() {
           </h1>
         ) : (
           <h1 className="block w-full break-words pt-0.5 text-lg leading-snug font-bold">
-            {/* Islamic Mode: «អស្សាឡាមុអាឡៃកុមក៍, [ឈ្មោះ]» without the waving hand (lib/islamic-expressions). */}
+            {/* Islamic Mode: «អាស្សាឡាមុអាឡៃកុម, [ឈ្មោះ]» without the waving hand (lib/islamic-expressions). */}
             {t(greeting.key, greeting.params)}
             {greeting.wave && (
               <>

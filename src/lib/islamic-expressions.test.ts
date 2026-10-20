@@ -11,9 +11,9 @@ const render = (g: ReturnType<typeof homeGreeting>, locale: "km" | "en" = "km") 
   dictionaries[locale][g.key].replace("{name}", g.params?.name ?? "")
 
 describe("Home greeting — Islamic Mode (founder, 18/10/2026)", () => {
-  it("Islamic Mode ON: «អស្សាឡាមុអាឡៃកុមក៍, ចិន្តា», never «សួស្តី», no waving hand", () => {
+  it("Islamic Mode ON: «អាស្សាឡាមុអាឡៃកុម, ចិន្តា» (founder, 20/10/2026), never «សួស្តី», no waving hand", () => {
     const g = homeGreeting(true, "ចិន្តា")
-    assert.equal(render(g), "អស្សាឡាមុអាឡៃកុមក៍, ចិន្តា")
+    assert.equal(render(g), "អាស្សាឡាមុអាឡៃកុម, ចិន្តា")
     assert.doesNotMatch(render(g), /សួស្តី/)
     assert.equal(g.wave, false)
     assert.doesNotMatch(render(homeGreeting(true, null)), /សួស្តី/)

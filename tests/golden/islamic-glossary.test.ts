@@ -40,6 +40,18 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     const hits = files.filter(({ f }) => ISLAMIC_FILE.test(f)).flatMap(({ f, src }) => G.BANNED_IN_ISLAMIC_FILES.filter((b) => src.includes(b.term)).map((b) => `${f}: «${b.term}» → «${b.use}»`))
     assert.deepEqual(hits, [])
   })
+  it("the greeting is «អាស្សាឡាមុអាឡៃកុម» — never «ជំរាបសួរ» in any Islamic file or Islamic text (founder, 20/10/2026)", async () => {
+    assert.equal(G.ASSALAMU_ALAIKUM, "អាស្សាឡាមុអាឡៃកុម")
+    const hits = files.filter(({ f }) => ISLAMIC_FILE.test(f)).flatMap(({ f, src }) => G.FORBIDDEN_GREETINGS.filter((w) => src.includes(w)).map((w) => `${f}: «${w}» → «${G.ASSALAMU_ALAIKUM}»`))
+    assert.deepEqual(hits, [])
+    // Every Islamic string in the app's words: the Islamic pages, prayer and Adhan alerts, du'as, qasidah, places.
+    const { dictionaries } = await import("../../src/lib/i18n/dictionaries")
+    const islamicKey = /^(islamic|prayer|prayerAlert|adhan|adhanUpload|dua|duas|nasheed|finder|suggest|hijri|zakat|quran|fast|hajj|lessons|fiqh)\./
+    const texts = Object.entries(dictionaries.km).filter(([k]) => islamicKey.test(k))
+    assert.ok(texts.length > 100)
+    assert.deepEqual(texts.flatMap(([k, v]) => G.FORBIDDEN_GREETINGS.filter((w) => v.includes(w)).map((w) => `${k}: «${w}»`)), [])
+    assert.ok(dictionaries.km["islamic.greeting"].startsWith(G.ASSALAMU_ALAIKUM))
+  })
   it("every glossary term comes from the glossary — none typed by hand elsewhere", () => {
     const terms = [G.IMSAK, G.IFTAR, G.SAHUR, G.NIYYAH, G.JUMUAH, G.BARAKAH, G.HIJRI_ERA, G.PROPHET, G.SUNNAH_FAST, "صِيَام", G.JUMUAH_ARABIC, G.SEMBAHYANG, G.WUDU]
     const hits = files.flatMap(({ f, src }) => terms.filter((t) => src.includes(t)).map((t) => `${f}: «${t}» → import it from lib/islamic/glossary`))

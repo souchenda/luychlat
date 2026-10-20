@@ -2,15 +2,17 @@ import { format, parseISO } from "date-fns"
 
 import type { Debt } from "@/lib/data/types"
 import { daysLeft, remaining } from "@/lib/debts"
+import * as G from "@/lib/islamic/glossary"
 import { formatMoney } from "@/lib/money"
 
 export type ReminderLanguage = "km" | "en"
 
 /**
  * Polite, professional reminder for a receivable; the user can still edit it
- * before sending. With `khqr`, it points the debtor to the attached KHQR.
+ * before sending. With `khqr`, it points the debtor to the attached KHQR. In Islamic Mode (`islamic`) it greets with
+ * «អាស្សាឡាមុអាឡៃកុម» — never «ជម្រាបសួរ» in an Islamic context (founder, 20/10/2026).
  */
-export function buildReminder(debt: Debt, language: ReminderLanguage, khqr = false): string {
+export function buildReminder(debt: Debt, language: ReminderLanguage, khqr = false, islamic = false): string {
   const amount = formatMoney(remaining(debt), debt.currency)
   const date = debt.due_date ? format(parseISO(debt.due_date), "dd/MM/yyyy") : null
   const days = daysLeft(debt)
@@ -25,7 +27,7 @@ export function buildReminder(debt: Debt, language: ReminderLanguage, khqr = fal
             ? ` ដែលដល់ថ្ងៃកំណត់នៅថ្ងៃនេះ (${date})`
             : ` ដែលបានហួសថ្ងៃកំណត់តាំងពីថ្ងៃទី ${date}`
     return [
-      `ជម្រាបសួរ ${debt.party_name}! នេះជាសាររំលឹកកាលវិភាគទូទាត់បំណុលចំនួន ${amount}${due}។`,
+      `${islamic ? G.ASSALAMU_ALAIKUM : "ជម្រាបសួរ"} ${debt.party_name}! នេះជាសាររំលឹកកាលវិភាគទូទាត់បំណុលចំនួន ${amount}${due}។`,
       khqr ? "លោកអ្នកអាចស្កេនទូទាត់រហ័សតាម KHQR ខាងក្រោមបាន។" : "",
       "សូមអរគុណច្រើន!",
     ]
@@ -42,7 +44,7 @@ export function buildReminder(debt: Debt, language: ReminderLanguage, khqr = fal
           ? `, due today (${date})`
           : `, which was due on ${date}`
   return [
-    `Hello ${debt.party_name}! This is a friendly reminder about the payment of ${amount}${due}.`,
+    `${islamic ? "Assalamu Alaikum" : "Hello"} ${debt.party_name}! This is a friendly reminder about the payment of ${amount}${due}.`,
     khqr ? "You can pay quickly by scanning the KHQR below." : "",
     "Thank you very much!",
   ]

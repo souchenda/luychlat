@@ -68,8 +68,8 @@ const km = {
 
   "home.greeting": "សួស្តី",
   "home.greetingName": "សួស្តី {name}",
-  "islamic.greeting": "អស្សាឡាមុអាឡៃកុមក៍",
-  "islamic.greetingName": "អស្សាឡាមុអាឡៃកុមក៍, {name}",
+  "islamic.greeting": "អាស្សាឡាមុអាឡៃកុម",
+  "islamic.greetingName": "អាស្សាឡាមុអាឡៃកុម, {name}",
   "islamic.saved.income": "អាល់ហាំឌុលីលឡាហ៍ (Alhamdulillah) — បានកត់ត្រាចំណូលជោគជ័យ!",
   "islamic.saved.goal": "អ៊ីនស៊ាអល់ឡោះ (Insha Allah) — គោលដៅត្រូវបានបង្កើត!",
   "islamic.saved.expense": "បារ៉ាកាឡាហុហ្វីក (Barakallahu Feek) — បានកត់ត្រារួចរាល់!",
