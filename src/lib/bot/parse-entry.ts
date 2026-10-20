@@ -98,7 +98,7 @@ const KEYWORDS: { preset: string; words: string[] }[] = [
   { preset: "housing", words: ["ទឹកភ្លើង", "អគ្គិសនី", "ជួលផ្ទះ", "ផ្ទះ", "rent", "electric", "electricity", "edc", "water", "房租", "电费", "水费", "水电"] },
   { preset: "rent", words: ["ជួល", "rent", "租金", "店租"] },
   { preset: "health", words: ["ពេទ្យ", "ថ្នាំ", "សុខភាព", "doctor", "hospital", "medicine", "pharmacy", "clinic", "医院", "看病", "药", "诊所"] },
-  { preset: "education", words: ["សាលា", "រៀន", "សៀវភៅ", "school", "tuition", "book", "course", "学费", "学校", "书", "课程"] },
+  { preset: "education", words: ["សាលា", "រៀន", "សិក្សា", "សំភារៈសិក្សា", "សម្ភារៈសិក្សា", "សៀវភៅ", "ប៊ិច", "ឯកសណ្ឋាន", "school", "tuition", "book", "course", "stationery", "学费", "学校", "书", "课程", "文具"] },
   { preset: "family", words: ["អំណោយ", "កាដូ", "gift", "family"] },
   { preset: "entertainment", words: ["កុន", "ភាពយន្ត", "កម្សាន្ត", "ហ្គេម", "movie", "cinema", "game", "netflix", "karaoke", "电影", "游戏", "唱歌", "娱乐"] },
   { preset: "shopping", words: ["ទិញឥវ៉ាន់", "ខោអាវ", "ផ្សារ", "shopping", "clothes", "market", "mall", "购物", "衣服", "超市", "市场"] },
@@ -181,6 +181,17 @@ export function hasWithTypo(text: string, word: string): boolean {
     if (diff === 1) return true
   }
   return false
+}
+
+/**
+ * The category preset a few words name («សំភារៈសិក្សា» → education, «ម្ហូប» → food, «សាំង» → transport), or null —
+ * for a follow-up note on the entry just recorded (founder, 20/10/2026). Only a keyword match; never a guess.
+ */
+export function presetFromWords(message: string, kind: "INCOME" | "EXPENSE" = "EXPENSE"): string | null {
+  const text = toLatinDigits(message).toLowerCase()
+  const incomeOnly = new Set(["salary", "bonus", "sales", "services", "gift_received", "side_income"])
+  for (const k of KEYWORDS) if (incomeOnly.has(k.preset) === (kind === "INCOME") && hasAny(text, k.words)) return k.preset
+  return null
 }
 
 function findCategory(text: string, kind: "INCOME" | "EXPENSE", categories: BotCategory[]): { category: BotCategory | null; guessed: boolean } {

@@ -6,12 +6,13 @@ import { carReportText, parseTopUp, topUpCard, walletBalancesText, type CarRepor
 import { isEvUsage } from "@/lib/bot/photo-route"
 import { homeChargeText, publicChargeSummary } from "@/lib/bot/ev-summary"
 import { benchmarkPetrol, parseDistance, type DistanceEntry } from "@/lib/ev-economics"
-import { EV_TAG, kwhOf, parseEntry, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
+import { EV_TAG, kwhOf, parseEntry, presetFromWords, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
 import { mealFor, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { defaultNeedWant } from "@/lib/need-want"
-import { MEAL_KEY, savedCard, tagTransaction, taggedFrom, type TaggedRow } from "@/lib/server/entry-card"
+import { MEAL_KEY, cleanNote, looksLikeNote, recentNoteText, rememberCard, savedCard, tagTransaction, taggedFrom, type TaggedRow } from "@/lib/server/entry-card"
+import { logEvent } from "@/lib/server/events"
 import { DEFAULT_ABOUT } from "@/lib/app-site"
 import { convert, formatMoney } from "@/lib/money"
 import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
@@ -188,6 +189,32 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
  * user can see what was understood. ULTRA chats with routing on go to the
  * workspace named in the message (default Personal) and get a switcher.
  */
+/**
+ * A text without an amount within 5 minutes of a saved card: the entry's note, and the category its words name
+ * (bot_tx_note_recent). False when there is no such card, or the text is not a note (thanks, a question…).
+ */
+export async function noteOnRecentEntry(chatId: number, text: string, lang: Locale): Promise<boolean> {
+  const note = cleanNote(text)
+  if (!note || !looksLikeNote(note)) return false
+  const { data, error } = await botDb().rpc("bot_tx_note_recent", { p_key: botKey(), p_chat_id: chatId, p_note: note, p_preset: presetFromWords(note) })
+  if (!error && data === null) return false
+  const r = data as ({ ok?: boolean; tx_id?: string; card_msg?: number | null; user_note?: string; type?: string } & TaggedRow) | null
+  if (error || !r?.ok || !r.tx_id) {
+    const msg = error?.message ?? ""
+    if (/empty_note/.test(msg)) return false
+    await sendText(chatId, tr(lang, /plan_required/.test(msg) ? "bot.cmdPro" : /commands_off/.test(msg) ? "bot.cmdOff" : /not_writable/.test(msg) ? "bot.cmdReadonly" : "bot.saveFailed"))
+    return true
+  }
+  await sendText(chatId, recentNoteText(lang, { note: r.user_note ?? note, amount: Number(r.amount), currency: r.currency ?? "USD", category: r.category ?? null, preset: r.preset ?? null }))
+  // The card shows the note and the category now.
+  if (r.card_msg && r.type === "EXPENSE") {
+    const card = savedCard(lang, r.tx_id, taggedFrom(lang, r))
+    await tg("editMessageText", { chat_id: chatId, message_id: r.card_msg, ...card }).catch(() => null)
+  }
+  logEvent("info", "bot", `Follow-up note on the entry just recorded${presetFromWords(note) ? " (category from its words)" : ""}`, { fold: true })
+  return true
+}
+
 export async function handleEntryMessage(chatId: number, text: string, ctx: Context, heard?: string, receipt?: string) {
   const lang = contextLocale(ctx)
   // A spoken question goes to LuyChlat AI (PRO); typed ones are routed in the webhook.
@@ -250,6 +277,9 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
         })
       }
     }
+    // No amount, right after an entry was recorded: it is that entry's note (founder, 20/10/2026 — «ចំណាយសំភារៈសិក្សាកូន»
+    // after an ABA slip got «🤔 រកមិនឃើញចំនួនទឹកប្រាក់ទេ»), and its words may name the category.
+    if (parsed.reason === "no_amount" && (await noteOnRecentEntry(chatId, heard ?? input, lang))) return
     // A voice note without an amount: say exactly what was heard instead of the general hint.
     if (heard && parsed.reason === "no_amount") return sendText(chatId, tr(lang, "bot.voiceNoAmount", { text: heard }))
     return reply(failureText(parsed, ws, lang))
@@ -531,6 +561,8 @@ export async function handleCallback(cb: Callback) {
       const saved = savedCard(lang, savedTx.id, taggedFrom(lang, row as TaggedRow))
       const text = savedTx.workspace ? `${saved.text}\n🏢 ${savedTx.workspace}` : saved.text
       await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(text).slice(0, 4000), reply_markup: saved.reply_markup })
+      // The card answers a reply, or a text without an amount in the next 5 minutes, as the entry's note.
+      await rememberCard(chatId, savedTx.id, cb.message!.message_id)
       // Public charging: this session and the month's vehicle energy (money lines only with numbers on).
       const t = row as TaggedRow
       if (t.note?.includes(EV_TAG) && t.amount) await sendPublicChargeSummary(chatId, { amount: Number(t.amount), currency: t.currency ?? "USD" })

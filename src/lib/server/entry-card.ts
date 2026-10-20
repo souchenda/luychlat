@@ -82,3 +82,28 @@ export function taggedFrom(lang: Locale, d: TaggedRow): Tagged {
     note: userPart(d.note),
   }
 }
+
+/**
+ * A saved card is remembered as its own note prompt (founder, 20/10/2026): replying to the card sets the entry's note
+ * (bot_tx_note), and a text without an amount within 5 minutes of it does too (bot_tx_note_recent).
+ */
+export async function rememberCard(chatId: number, txId: string, messageId: number | null | undefined) {
+  if (!messageId) return
+  await botDb()
+    .rpc("bot_note_prompt_set", { p_key: botKey(), p_chat_id: chatId, p_message_id: messageId, p_tx_id: txId, p_card_msg: messageId })
+    .then(() => null, () => null)
+}
+
+/** Short replies that are not a note: thanks, yes / no, greetings, a question. */
+const NOT_A_NOTE = /^(អរគុណ\S*|ok(ay)?|👍|✅|បាទ|ចាស|ទេ|hi|hello|សួស្តី|thanks?|thank you|thx|yes|no|谢谢|好的?|嗯)[!.។\s]*$/iu
+
+export const looksLikeNote = (text: string) => {
+  const t = text.replace(/\s+/g, " ").trim()
+  return t.length >= 3 && !t.startsWith("/") && !/[?？]\s*$/.test(t) && !NOT_A_NOTE.test(t)
+}
+
+/** «✅ បានបន្ថែមចំណាំ៖ «{note}» លើប្រតិបត្តិការ {amount} រួចរាល់!» and «📁 ប្រភេទ៖ {category}». */
+export function recentNoteText(lang: Locale, o: { note: string; amount: number; currency: "USD" | "KHR"; category: string | null; preset: string | null }) {
+  const category = o.category ? categoryLabel({ name: o.category, preset_key: o.preset }, lang) : tr(lang, "entry.uncategorized")
+  return [tr(lang, "bot.recentNoteSaved", { note: o.note, amount: formatMoney(o.amount, o.currency) }), tr(lang, "bot.recentNoteCategory", { category })].join("\n")
+}

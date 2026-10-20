@@ -29,7 +29,7 @@ import { convert, formatMoney } from "@/lib/money"
 import { blocked, botContext, contextLocale, handleEntryMessage, logEvHome, workspacesOf, type Context } from "@/lib/server/bot-commands"
 import { parseAmountText } from "@/lib/bot/parse-entry"
 import { photoRoute } from "@/lib/bot/photo-route"
-import { MEAL_KEY, cleanNote, savedCard, tagTransaction, taggedFrom, type Tagged, type TaggedRow } from "@/lib/server/entry-card"
+import { MEAL_KEY, cleanNote, rememberCard, savedCard, tagTransaction, taggedFrom, type Tagged, type TaggedRow } from "@/lib/server/entry-card"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, maskNumbers, sendText, telegramFile, tg, tr } from "@/lib/server/telegram-bot"
@@ -398,7 +398,9 @@ async function autoSaveSlip(
   if (key) await botDb().rpc("bot_merchant_learn", { p_key: botKey(), p_chat_id: chatId, p_merchant: key, p_category_id: category.id, p_choice: key2 ?? null, p_need_want: needWant })
 
   const card = autoCard(lang, r.tx_id, { amount: info.amount, currency: info.currency, label, needWant, wallet: walletLabel(wallet), party: info.party, note: info.note ?? null, food })
-  await sendText(chatId, card.text, { reply_markup: card.reply_markup })
+  const sent = await sendText(chatId, card.text, { reply_markup: card.reply_markup })
+  // A reply to the card, or a text without an amount in the next 5 minutes, is the entry's note (founder, 20/10/2026).
+  await rememberCard(chatId, r.tx_id, (sent.result as { message_id?: number } | undefined)?.message_id)
   logEvent("info", "slips", `Slip saved without a tap (${decision.source === "memory" ? "user's habit" : "payee rule"})`, { fold: true })
   await settleBillFromPayment(chatId, r.tx_id, info.consumer, info.party)
   await offerDebtLink(chatId, r.tx_id, info.party, info.debts ?? [])
@@ -428,7 +430,8 @@ async function saveWithoutCategory(chatId: number, lang: Locale, pendingId: stri
   ].join("\n")
   const rows = categoryRows(lang, r.tx_id)
   rows.push([{ text: tr(lang, "bot.autoDelete"), callback_data: `sa:${r.tx_id}:x` }])
-  await sendText(chatId, maskNumbers(text), { reply_markup: { inline_keyboard: rows } })
+  const sent = await sendText(chatId, maskNumbers(text), { reply_markup: { inline_keyboard: rows } })
+  await rememberCard(chatId, r.tx_id, (sent.result as { message_id?: number } | undefined)?.message_id)
   logEvent("info", "slips", "Slip saved without a category (asked to pick one)", { fold: true })
   await settleBillFromPayment(chatId, r.tx_id, info.consumer, info.party)
   await offerDebtLink(chatId, r.tx_id, info.party, info.debts ?? [])
@@ -440,6 +443,7 @@ async function saveWithoutCategory(chatId: number, lang: Locale, pendingId: stri
  * 👛 អេស៊ីលីដា •••• 4222 KHR
  * 📍 360 DEGREE COFFEE
  * [🍲 ប្តូរជាម្ហូបអាហារ] [🔄 ប្រភេទផ្សេង] [🗑️ លុប]
+ * [📝 បន្ថែមចំណាំ]
  */
 function autoCard(
   lang: Locale,
@@ -458,7 +462,9 @@ function autoCard(
     { text: tr(lang, "bot.autoOther"), callback_data: `sa:${txId}:o` },
     { text: tr(lang, "bot.autoDelete"), callback_data: `sa:${txId}:x` },
   ]
-  return { text: maskNumbers(text), reply_markup: { inline_keyboard: [row] } }
+  // 📝 a note in one tap (founder, 20/10/2026) — the same prompt as on a typed entry (st:<tx>:T).
+  const note = [{ text: tr(lang, t.note ? "bot.noteBtnEdit" : "bot.noteBtn"), callback_data: `st:${txId}:T` }]
+  return { text: maskNumbers(text), reply_markup: { inline_keyboard: [row, note] } }
 }
 
 /** sa:<tx>:f (to food) · o (show categories) · c<i> (that category) · x (delete) — on a zero-click card. */
@@ -526,7 +532,8 @@ async function handleAutoCallback(cb: Callback) {
     { text: tr(lang, "bot.autoOther"), callback_data: `sa:${txId}:o` },
     { text: tr(lang, "bot.autoDelete"), callback_data: `sa:${txId}:x` },
   ]
-  return edit([amount, rest].filter(Boolean).join("\n"), { inline_keyboard: [row] })
+  const noted = rest.split("\n").some((l) => l.startsWith("📝"))
+  return edit([amount, rest].filter(Boolean).join("\n"), { inline_keyboard: [row, [{ text: tr(lang, noted ? "bot.noteBtnEdit" : "bot.noteBtn"), callback_data: `st:${txId}:T` }]] })
 }
 
 // sw:<pending>:<i> picks the wallet when unsure; sc:<pending>:<choice> saves a slip;
