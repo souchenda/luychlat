@@ -92,6 +92,13 @@ describe("The quiz lives in the app only — never in the Telegram channel (foun
     assert.ok(!("quizTeaserHtml" in mod) && !("quizTeaserButtons" in mod))
     assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270215000000_no_channel_quiz.sql"), "utf8"), /where kind = 'ISLAMIC_QUIZ' and status in \('PENDING', 'APPROVED'\)/)
   })
+  it("regression: today's deleted quiz was offered as a «new version» (🔄) — a retired kind is never replaceable", async () => {
+    const { REPLACEABLE } = await import("@/lib/scheduled-posts")
+    assert.equal(REPLACEABLE("ISLAMIC_QUIZ"), false)
+    assert.equal(REPLACEABLE("ISLAMIC_DAILY"), true)
+    assert.equal(REPLACEABLE("BULLETIN"), false)
+    assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270217000000_quiz_never_replaced.sql"), "utf8"), /set replace_status = 'KEPT'\s+where kind = 'ISLAMIC_QUIZ'/)
+  })
   it("the in-app card: /islamic?tab=quiz scrolls to it, on the Islamic hub", () => {
     assert.equal(QUIZ_APP_URL, "https://app.luychlat.com/islamic?tab=quiz")
     const card = readFileSync(join(process.cwd(), "src/components/islamic/quiz-card.tsx"), "utf8")
