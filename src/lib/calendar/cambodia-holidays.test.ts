@@ -270,7 +270,8 @@ describe("National days at 05:00, the day named on the card (founder, 20/10/2026
     const { PUBLISH_MINUTE } = await import("./cambodia-holidays")
     assert.equal(PUBLISH_MINUTE, 5 * 60)
     // Locked in CLAUDE.md (founder, 20/10/2026): 05:00 sharp once approved; else held, with the urgent reminder.
-    assert.match(read("CLAUDE.md"), /NATIONAL HOLIDAY TIMING RULE — locked \(founder, 20\/10\/2026\):\*\* all Cambodian national and royal holiday posters MUST/)
+    assert.match(read("CLAUDE.md"), /HOLIDAY TIMING & SCOPE — locked/)
+    assert.match(read("CLAUDE.md"), /ALL holiday posters MUST be scheduled and published strictly at \*\*05:00\*\*/)
     assert.match(read("src/lib/server/scheduled-posts.ts"), /if \(action === "hold"\) await remindFounder\(row\)/)
     const sql = read("supabase/migrations/20270230000000_national_day_five_am.sql")
     assert.match(sql, /set publish_at = timestamptz '2026-10-29 05:00:00\+07'/)
@@ -285,5 +286,57 @@ describe("National days at 05:00, the day named on the card (founder, 20/10/2026
     // The same day keeps the short wording (the golden publisher test).
     assert.equal(kmWhen(at, "2026-10-28T21:00:00Z"), "ម៉ោង ០៥:០០ ព្រឹក")
     assert.equal(previewButtons(7, "PENDING", { telegram: true, facebook: true }, "MORNING", { publishAt: at, now: "2026-10-28T21:00:00Z" })[0][0].text, "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)")
+  })
+})
+
+describe("The all-inclusive holiday engine — national, Islamic, Chinese, global (founder, 20/10/2026)", () => {
+  it("the four groups are on the calendar, every one published at the one 05:00 time", () => {
+    const keys = NATIONAL_DAYS.map((d) => d.key)
+    for (const k of ["coronation", "independence", "water-festival", "king-birthday", "victory-day"]) assert.ok(keys.includes(k), k) // A
+    for (const k of ["eid-al-fitr", "eid-al-adha", "arafah", "islamic-new-year", "mawlid"]) assert.ok(keys.includes(k), k) // B
+    for (const k of ["chinese-new-year", "qingming", "hungry-ghost", "mid-autumn"]) assert.ok(keys.includes(k), k) // C
+    for (const k of ["new-year", "womens-day", "labor-day", "khmer-new-year", "pchum-ben"]) assert.ok(keys.includes(k), k) // D
+    assert.equal(new Set(keys).size, keys.length)
+    const sp = read("src/lib/server/scheduled-posts.ts")
+    assert.equal((sp.match(/schedulePost\("NATIONAL_DAY"[^\n]*atMinute\(date, PUBLISH_MINUTE\)\)/g) ?? []).length, 2) // one time for all
+  })
+  it("the dates: Hijri days by the calendar, Chinese days by the lunisolar calendar, Qingming by its table", () => {
+    const at = (key: string, year: number) => nationalDayDate(nationalDayByKey(key)!, year)
+    assert.equal(at("eid-al-fitr", 2026), "2026-03-20")
+    assert.equal(at("eid-al-adha", 2026), "2026-05-27")
+    assert.equal(at("arafah", 2026), "2026-05-26")
+    assert.equal(at("islamic-new-year", 2026), "2026-06-16")
+    assert.equal(at("chinese-new-year", 2026), "2026-02-17")
+    assert.equal(at("chinese-new-year", 2027), "2027-02-06")
+    assert.equal(at("mid-autumn", 2026), "2026-09-25")
+    assert.equal(at("hungry-ghost", 2026), "2026-08-27")
+    assert.equal(at("qingming", 2027), "2027-04-05")
+    assert.equal(at("qingming", 2031), null) // no table entry → nothing guessed
+    assert.equal(at("pchum-ben", 2026), "2026-10-11") // Pchum Thom
+    // The admin's Hijri offset moves the Islamic days.
+    assert.notEqual(nationalDayDate(nationalDayByKey("eid-al-fitr")!, 2026, 1), "2026-03-20")
+  })
+  it("the Islamic holidays: @LuyChlatIslamic only, never the Page; the date flagged; the glossary's footer", async () => {
+    const { nationalChannel, nationalDateNote } = await import("./cambodia-holidays")
+    for (const d of NATIONAL_DAYS) assert.equal(nationalChannel(d), d.kind === "islamic" ? "islamic" : "community", d.key)
+    assert.match(nationalDateNote(nationalDayByKey("eid-al-adha")!) ?? "", /ប្រែប្រួលតាមការមើលព្រះចន្ទ/)
+    assert.equal(nationalDateNote(nationalDayByKey("coronation")!), null)
+    const sp = read("src/lib/server/scheduled-posts.ts")
+    assert.ok(sp.includes('if (channelFor(row.kind) === "islamic" || islamicNationalDay(row)) return { telegram: islamicChannelConfigured(), facebook: false, channel: "islamic" }'))
+    assert.ok(sp.includes('if (!islamic && facebookConfig() && shouldPublishToFacebook({ kind: "national" }))'))
+    assert.ok(sp.includes("nationalDaysToPreview(now.day, now.hour * 60 + now.minute, offset)"))
+    assert.ok(read("src/lib/server/national-day-poster.ts").includes('drawFooter(ctx, d.kind === "islamic" ? { community: ISLAMIC_COMMUNITY_LINE } : {})'))
+    assert.ok(nationalCaptionHtml(nationalDayByKey("eid-al-fitr")!, "2026-03-20").startsWith("🌙 "))
+    assert.ok(nationalCaptionHtml(nationalDayByKey("qingming")!, "2027-04-05").startsWith("🏮 "))
+  })
+  it("every new holiday renders whole — nothing cut", async () => {
+    const { posterAssetsReady } = await import("@/lib/server/poster-kit")
+    const mod = await import("@/lib/server/national-day-poster")
+    await posterAssetsReady
+    await mod.nationalAssetsReady
+    for (const k of ["eid-al-fitr", "eid-al-adha", "arafah", "islamic-new-year", "mawlid", "chinese-new-year", "qingming", "hungry-ghost", "mid-autumn", "pchum-ben"]) {
+      const d = nationalDayByKey(k)!
+      assert.equal(mod.nationalDayPoster(d, nationalDayDate(d, 2027) ?? "2027-01-01").truncated, false, k)
+    }
   })
 })

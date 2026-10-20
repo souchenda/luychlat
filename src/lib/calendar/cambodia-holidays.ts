@@ -10,16 +10,27 @@
  * Royal imagery: only the official portraits the founder provides and the Coat of Arms (public/images/holidays/README.txt);
  * never a web photo. The wording and the layout follow docs/BRAND_DESIGN_SYSTEM.md, chapter 2.
  */
+import { culturalDaysOf, type CulturalKey } from "@/lib/cultural-calendar"
 import { khmerDigits } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { festivalStart } from "@/lib/holidays"
+import { toHijri } from "@/lib/islamic"
+import * as G from "@/lib/islamic/glossary"
 
-export type NationalKind = "royal" | "memorial" | "national" | "international" | "tradition" | "merit"
+/**
+ * The four groups (founder, 20/10/2026 — «not only national holidays»): A national and royal, B Islamic (to
+ * @LuyChlatIslamic only), C Chinese traditional, D global and cultural. Every one publishes at 05:00 once approved.
+ */
+export type NationalKind = "royal" | "memorial" | "national" | "international" | "tradition" | "merit" | "islamic" | "chinese"
 
 export type NationalDay = {
   key: string
-  /** «MM-DD» every year, or a key of lib/holidays.ts for a lunar day. */
-  date: { fixed: string } | { festival: MessageKey }
+  /**
+   * «MM-DD» every year; a key of lib/holidays.ts (the official sub-decree dates); a Hijri month and day (with the
+   * admin's Hijri offset — moon sighting may move it, the preview says so); a Khmer-Chinese day of lib/cultural-calendar
+   * (shifted by `shift` days); or a per-year table (a solar term such as Qingming).
+   */
+  date: { fixed: string } | { festival: MessageKey } | { hijri: [month: number, day: number] } | { cultural: CulturalKey; shift?: number } | { table: Record<number, string> }
   kind: NationalKind
   /** The poster's pill. */
   pill: string
@@ -39,7 +50,7 @@ export type NationalDay = {
 export type RoyalPortrait = "king_sihamoni" | "king_father_sihanouk" | "queen_mother"
 
 /** Royal words a poster must never break across lines (lib/server/poster-kit.ts keeps them whole). */
-export const ROYAL_UNBREAKABLE = ["«អេប លុយឆ្លាត»", "ក្រាបបង្គំថ្វាយព្រះសព្ទសាធុការពរជ័យ", "សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង", "ព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។", "ព្រះរាជសុខភាពដ៏ល្អបរិបូរណ៍", "ព្រះរាជសុខភាព", "ព្រះកាយពលមាំមួន", "ព្រះជន្មាយុយឺនយូរ", "ព្រះសព្ទសាធុការពរជ័យ", "ក្រាបបង្គំ", "ព្រះវស្សា", "តម្កល់លើត្បូង", "មហានក្ខត្តឫក្ស", "ព្រះវិញ្ញាណក្ខន្ធ", "ព្រះគុណូបការៈ", "ព្រះមហាក្សត្រ", "ព្រះករុណា", "ព្រះវររាជបិតាឯករាជ្យ", "ព្រះវររាជមាតាជាតិខ្មែរ"]
+export const ROYAL_UNBREAKABLE = ["«អេប លុយឆ្លាត»", "សុខភាពល្អ", "ក្រាបបង្គំថ្វាយព្រះសព្ទសាធុការពរជ័យ", "សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង", "ព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។", "ព្រះរាជសុខភាពដ៏ល្អបរិបូរណ៍", "ព្រះរាជសុខភាព", "ព្រះកាយពលមាំមួន", "ព្រះជន្មាយុយឺនយូរ", "ព្រះសព្ទសាធុការពរជ័យ", "ក្រាបបង្គំ", "ព្រះវស្សា", "តម្កល់លើត្បូង", "មហានក្ខត្តឫក្ស", "ព្រះវិញ្ញាណក្ខន្ធ", "ព្រះគុណូបការៈ", "ព្រះមហាក្សត្រ", "ព្រះករុណា", "ព្រះវររាជបិតាឯករាជ្យ", "ព្រះវររាជមាតាជាតិខ្មែរ"]
 
 // Line breaks at the right places of the royal names (never inside «ព្រះ…»). Palace orthography (founder, 20/10/2026):
 // «ព្រះករុណាព្រះបាទ…» without a space, «ព្រះមហាក្សត្រ នៃ…» with one.
@@ -82,11 +93,61 @@ export const NATIONAL_DAYS: NationalDay[] = [
   { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true, backdrop: true } },
   { key: "independence", date: { fixed: "11-09" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាបុណ្យឯករាជ្យជាតិ", since: 1953, assets: { portrait: "king_father_sihanouk", crest: true, monument: true }, message: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត ដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។" },
   { key: "water-festival", date: { festival: "holiday.water_festival" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីបុណ្យអុំទូក បណ្តែតប្រទីប អកអំបុក និងសំពះព្រះខែ", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ធ្វើដំណើរ និងចូលរួមកម្សាន្តដោយសុវត្ថិភាព ព្រមទាំងជួបតែសេចក្តីសុខ។" },
+  // Group D (global and cultural): Pchum Ben, the day of Pchum Thom (the day after the holiday's first day).
+  { key: "pchum-ben", date: { cultural: "pchum_ben", shift: 1 }, kind: "merit", pill: "ពិធីបុណ្យសាសនា", title: "ពិធីបុណ្យភ្ជុំបិណ្ឌ", message: "សូមអនុមោទនាពិធីបុណ្យភ្ជុំបិណ្ឌ ក្នុងឱកាសឧទ្ទិសកុសលដល់ដូនតា និងញាតិកាដែលបានចែកឋានទៅ។ សូមលោកអ្នក និងក្រុមគ្រួសារ ធ្វើដំណើរទៅស្រុកកំណើតដោយសុវត្ថិភាព និងជួបជុំគ្នាដោយក្តីសុខ។" },
+
+  // Group B (Islamic) — @LuyChlatIslamic only; the dates from the Hijri calendar with the admin's offset (nationalDateNote).
+  { key: "islamic-new-year", date: { hijri: [1, 1] }, kind: "islamic", pill: "ពិធីបុណ្យសាសនាឥស្លាម", title: "ឆ្នាំថ្មីហ៊ីចរ៉ោះសករាជ", subtitle: "Islamic New Year", message: `${G.SALAM_ALL} សូមឱ្យឆ្នាំថ្មីហ៊ីចរ៉ោះសករាជនេះ ជាឆ្នាំនៃការកែលម្អខ្លួន ការគោរពប្រតិបត្តិ និងរបររកស៊ីហាឡាល់ដែលមាន${G.BARAKAH} សម្រាប់បងប្អូន និងក្រុមគ្រួសារ។` },
+  {
+    key: "mawlid",
+    date: { hijri: [3, 12] },
+    kind: "islamic",
+    pill: "ពិធីបុណ្យសាសនាឥស្លាម",
+    title: `ថ្ងៃកំណើត${G.PROPHET}`,
+    subtitle: "Mawlid an-Nabi",
+    message: `ក្នុងឱកាសរំលឹកថ្ងៃកំណើត${G.PROPHET_FULL} សូមបងប្អូនរំលឹកដល់ចរិយាដ៏ល្អ ភាពស្មោះត្រង់ និងភាពយុត្តិធម៌របស់លោក ក្នុងជីវិត និងការរកស៊ីប្រចាំថ្ងៃ។`,
+    // The poster font has no ﷺ glyph: the poster names the Prophet plainly; the caption keeps ﷺ.
+    posterMessage: `ក្នុងឱកាសរំលឹកថ្ងៃកំណើត${G.PROPHET} សូមបងប្អូនរំលឹកដល់ចរិយាដ៏ល្អ ភាពស្មោះត្រង់ និងភាពយុត្តិធម៌របស់លោក ក្នុងជីវិត និងការរកស៊ីប្រចាំថ្ងៃ។`,
+  },
+  { key: "eid-al-fitr", date: { hijri: [10, 1] }, kind: "islamic", pill: "ពិធីបុណ្យសាសនាឥស្លាម", title: `ពិធីបុណ្យរ៉ាយ៉ា${G.IFTAR}`, subtitle: "Eid al-Fitr", message: `${G.SALAM_ALL} ក្នុងឱកាសបុណ្យរ៉ាយ៉ា${G.IFTAR} «អេប លុយឆ្លាត» សូមជូនពរបងប្អូនមូស្លីមទាំងអស់ សូមអល់ឡោះទទួលយកការតមបួស និងការគោរពប្រតិបត្តិរបស់យើងទាំងអស់គ្នា ហើយប្រទាន${G.BARAKAH}ដល់គ្រួសារបងប្អូន។` },
+  { key: "arafah", date: { hijri: [12, 9] }, kind: "islamic", pill: "ថ្ងៃដ៏មានតម្លៃ", title: "ថ្ងៃអារ៉ាហ្វះ", subtitle: "Day of Arafah", message: `ថ្ងៃអារ៉ាហ្វះ ជាថ្ងៃដ៏មានតម្លៃសម្រាប់ការសុំអភ័យទោស ការឌុអា និង${G.SUNNAH_FAST}សម្រាប់អ្នកដែលមិនបានទៅធ្វើហាជ្ជី។ សូមអល់ឡោះទទួលយកឌុអារបស់យើងទាំងអស់គ្នា។` },
+  { key: "eid-al-adha", date: { hijri: [12, 10] }, kind: "islamic", pill: "ពិធីបុណ្យសាសនាឥស្លាម", title: "ពិធីបុណ្យរ៉ាយ៉ាហាជ", subtitle: "Eid al-Adha", message: `${G.SALAM_ALL} ក្នុងឱកាសបុណ្យរ៉ាយ៉ាហាជ «អេប លុយឆ្លាត» សូមជូនពរបងប្អូនមូស្លីមទាំងអស់ សូមអល់ឡោះទទួលយកការគោរពប្រតិបត្តិ និងការលះបង់របស់យើង ហើយប្រទាន${G.BARAKAH}ដល់ក្រុមគ្រួសារ និងអ្នកជិតខាង។` },
+
+  // Group C (Chinese traditional) — computed by lib/cultural-calendar (Qingming, a solar term, from its table).
+  { key: "chinese-new-year", date: { cultural: "chinese_new_year" }, kind: "chinese", pill: "ពិធីបុណ្យប្រពៃណីខ្មែរ-ចិន", title: "សួស្តីបុណ្យចូលឆ្នាំចិន", message: "«អេប លុយឆ្លាត» សូមជូនពរបងប្អូនខ្មែរ-ចិន និងក្រុមគ្រួសារ សុខភាពល្អ រកស៊ីមានបានចម្រុងចម្រើន និងជួបតែសេចក្តីសុខសាន្តក្នុងឆ្នាំថ្មីនេះ។" },
+  { key: "qingming", date: { table: { 2026: "2026-04-05", 2027: "2027-04-05", 2028: "2028-04-04", 2029: "2029-04-04", 2030: "2030-04-05" } }, kind: "chinese", pill: "ពិធីបុណ្យប្រពៃណីខ្មែរ-ចិន", title: "ពិធីបុណ្យឆេងម៉េង", message: "ថ្ងៃគោរពវិញ្ញាណក្ខន្ធដូនតា — សូមបងប្អូនខ្មែរ-ចិន ធ្វើដំណើរទៅសែនព្រេន និងសម្អាតផ្នូរដូនតាដោយសុវត្ថិភាព ហើយរំលឹកដល់គុណដូនតាជាមួយក្រុមគ្រួសារ។" },
+  { key: "hungry-ghost", date: { cultural: "hungry_ghost" }, kind: "chinese", pill: "ពិធីបុណ្យប្រពៃណីខ្មែរ-ចិន", title: "ថ្ងៃសែនក្បាលទឹក", message: "សូមឱ្យការសែនព្រេន និងការធ្វើទានរបស់បងប្អូន នាំមកនូវសេចក្តីសុខ និងសុវត្ថិភាពដល់ក្រុមគ្រួសារ។" },
+  { key: "mid-autumn", date: { cultural: "mid_autumn" }, kind: "chinese", pill: "ពិធីបុណ្យប្រពៃណីខ្មែរ-ចិន", title: "ពិធីសែនព្រះខែ", message: "ពេញបូណ៌មី ជួបជុំគ្រួសារ ជាមួយនំព្រះខែ — «អេប លុយឆ្លាត» សូមឱ្យគ្រួសារបងប្អូនពោរពេញដោយសេចក្តីសុខ និងភាពកក់ក្តៅ។" },
 ]
 
 /** The day in `year` (YYYY-MM-DD), or null when a lunar day has no official date for that year yet. */
-export function nationalDayDate(d: NationalDay, year: number): string | null {
-  return "fixed" in d.date ? `${year}-${d.date.fixed}` : festivalStart(d.date.festival, year)
+export function nationalDayDate(d: NationalDay, year: number, hijriOffset = 0): string | null {
+  const date = d.date
+  if ("fixed" in date) return `${year}-${date.fixed}`
+  if ("festival" in date) return festivalStart(date.festival, year)
+  if ("table" in date) return date.table[year] ?? null
+  if ("cultural" in date) {
+    const start = culturalDaysOf(year).find((c) => c.key === date.cultural)?.start
+    return start ? new Date(Date.parse(`${start}T12:00:00Z`) + (date.shift ?? 0) * 86_400_000).toISOString().slice(0, 10) : null
+  }
+  // A Hijri day: the first Gregorian day of `year` that converts to it (the admin's offset applied).
+  const [month, day] = date.hijri
+  for (let t = Date.UTC(year, 0, 1, 12); new Date(t).getUTCFullYear() === year; t += 86_400_000) {
+    const g = new Date(t)
+    const h = toHijri(new Date(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate(), 12), hijriOffset)
+    if (h && h.month === month && h.day === day) return g.toISOString().slice(0, 10)
+  }
+  return null
+}
+
+/** Where a day's poster goes: the Islamic days to @LuyChlatIslamic only; all others to the community channel and the Page. */
+export const nationalChannel = (d: NationalDay): "islamic" | "community" => (d.kind === "islamic" ? "islamic" : "community")
+
+/** The approver is told when a date can move (founder's rule: no silent guessing). */
+export function nationalDateNote(d: NationalDay): string | null {
+  if ("hijri" in d.date) return "ℹ️ ថ្ងៃខែឥស្លាមគណនាតាមប្រតិទិនហ៊ីជរី ហើយអាចប្រែប្រួលតាមការមើលព្រះចន្ទ — សូមផ្ទៀងផ្ទាត់ជាមួយការប្រកាសផ្លូវការរបស់សហគមន៍មូស្លីមកម្ពុជា មុនអនុម័ត។"
+  if ("table" in d.date) return "ℹ️ ថ្ងៃនេះតាមតារាងរដូវចិន (solar term) — សូមផ្ទៀងផ្ទាត់មុនអនុម័ត។"
+  return null
 }
 
 const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
@@ -114,12 +175,12 @@ export const PREVIEW_MINUTE = 8 * 60
 export const EARLY_PREVIEWS: Record<string, string> = { "coronation:2026-10-29": "2026-10-20" }
 
 /** The national days whose preview window is open on `today` at `minutes` (Cambodia): from D−2 08:00 until D 05:00. */
-export function nationalDaysToPreview(today: string, minutes: number): { day: NationalDay; date: string }[] {
+export function nationalDaysToPreview(today: string, minutes: number, hijriOffset = 0): { day: NationalDay; date: string }[] {
   const year = Number(today.slice(0, 4))
   const out: { day: NationalDay; date: string }[] = []
   for (const d of NATIONAL_DAYS) {
     for (const y of [year, year + 1]) {
-      const date = nationalDayDate(d, y)
+      const date = nationalDayDate(d, y, hijriOffset)
       if (!date) continue
       const from = new Date(Date.parse(`${date}T00:00:00Z`) - 2 * 86_400_000).toISOString().slice(0, 10)
       const early = EARLY_PREVIEWS[`${d.key}:${date}`]
@@ -134,7 +195,8 @@ export function nationalDaysToPreview(today: string, minutes: number): { day: Na
 /** The caption (Telegram HTML) — the title, the royal name, the dates, the message. */
 export function nationalCaptionHtml(d: NationalDay, day: string): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-  return [`🇰🇭 <b>${esc(d.title)}</b>`, ...(d.subtitle ? [esc(d.subtitle)] : []), `📅 ${esc(nationalDateLine(d, day))}`, "", esc(d.message), "", "— អេប លុយឆ្លាត"].join("\n")
+  const flag = d.kind === "islamic" ? "🌙" : d.kind === "chinese" ? "🏮" : "🇰🇭"
+  return [`${flag} <b>${esc(d.title)}</b>`, ...(d.subtitle ? [esc(d.subtitle)] : []), `📅 ${esc(nationalDateLine(d, day))}`, "", esc(d.message), "", "— អេប លុយឆ្លាត"].join("\n")
 }
 
 /** The same as plain text (the Page). */

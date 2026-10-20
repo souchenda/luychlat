@@ -121,12 +121,24 @@ birthday and the Queen Mother's birthday.
 - **A better version:** the waiting card is withdrawn and sent again once (the `repreview` flag, acted on only by the
   build listed in `REPREVIEW_READY`).
 
-### 2.6 Timing — mandatory (founder, 20/10/2026)
+### 2.6 Timing and scope — mandatory (founder, 20/10/2026)
 
-**All national and royal holiday posters publish strictly at 05:00 Cambodia time, once pre-approved** — a holiday
-poster lives one day, and at 05:00 it is at the top of the feed when people wake (05:30–06:00). Not approved by 05:00:
-HOLD — never published by the timer — and the urgent founder reminder fires at once. The approval card and its ✅
-name the day and the time: «✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)».
+**Every holiday — national and royal, Islamic, Chinese and global — publishes strictly at 05:00 Cambodia time, once
+pre-approved.** A holiday poster lives one day; at 05:00 it is at the top of the feed when people wake (05:30–06:00).
+Previewed in «LCA Approval» 48 hours before at 08:00; the card and its ✅ name the day and the time:
+«✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)». Not approved by 05:00: HOLD — never published by the timer — and
+the urgent founder reminder fires at once.
+
+| Group | Days | Channel |
+|---|---|---|
+| A — National & royal | 7 Jan, royal birthdays, 24 Sep, 15 Oct, **29 Oct**, **9 Nov**, the Royal Ploughing, the Water Festival | Community + Page |
+| B — Islamic | 1 Muharram, Mawlid, Eid al-Fitr «ពិធីបុណ្យរ៉ាយ៉ាស្រាយបួស», the Day of Arafah, Eid al-Adha «ពិធីបុណ្យរ៉ាយ៉ាហាជ» | @LuyChlatIslamic only |
+| C — Chinese traditional | Chinese New Year, Qingming «ឆេងម៉េង», «ថ្ងៃសែនក្បាលទឹក», Mid-Autumn «ពិធីសែនព្រះខែ» | Community + Page |
+| D — Global & cultural | 1 Jan, 8 Mar, 1 May, Khmer New Year, Visak Bochea, Pchum Ben | Community + Page |
+
+Islamic dates come from the Hijri calendar with the admin's offset and can move with the moon sighting; Qingming
+comes from a solar-term table — both are flagged on the card for the approver to confirm. Islamic posters use the
+glossary's terms only (lib/islamic/glossary.ts) and name @LuyChlatIslamic in their footer.
 
 ### 2.7 The calendar
 
@@ -249,3 +261,4 @@ an approver's tap.
   «the photo feels too big; it spoils the poster's quality». Never enlarge a portrait beyond what its source can carry.
 - **20/10/2026:** the title back under the portrait (founder: «try putting it back under the photo»); the portrait
   raised (arch top 140 px).
+- **20/10/2026:** the holiday engine covers four groups (national and royal, Islamic, Chinese, global), all at 05:00.

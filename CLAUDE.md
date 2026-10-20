@@ -79,11 +79,13 @@ use come before feature count: no half-baked features, broken links or untested 
 
 ## Publishing and content standards (founder, 12/10/2026)
 
-- **NATIONAL HOLIDAY TIMING RULE — locked (founder, 20/10/2026):** all Cambodian national and royal holiday posters MUST
-  be scheduled and published strictly at **05:00** Cambodia time once pre-approved (`PUBLISH_MINUTE` in
-  `src/lib/calendar/cambodia-holidays.ts`) — a holiday poster lives one day. If not approved by 05:00: HOLD, and the urgent
-  founder reminder fires at once (`remindFounder`). The approval card and its ✅ name the day:
-  «✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)».
+- **HOLIDAY TIMING & SCOPE — locked (founder, 20/10/2026):** the holiday engine (`NATIONAL_DAYS` in
+  `src/lib/calendar/cambodia-holidays.ts`) covers **national and royal, Islamic, Chinese and global** holidays in
+  Cambodia. ALL holiday posters MUST be scheduled and published strictly at **05:00** Cambodia time once pre-approved
+  (`PUBLISH_MINUTE`) — a holiday poster lives one day. Previewed in «LCA Approval» 48 h before (08:00), the card and its ✅
+  naming the day: «✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)». Silence = HOLD + the urgent founder reminder
+  (`remindFounder`). Islamic holidays go to @LuyChlatIslamic only (never the general channel or the Page); their Hijri
+  dates — and a solar term such as Qingming — are flagged on the card for the approver to confirm.
 - **The Master Brand & Visual Design System — inviolable (founder, 20/10/2026):** every poster engine (royal and
   national days, Islamic, Sil days and festivals, tips, lessons and quotes) follows `docs/BRAND_DESIGN_SYSTEM.md` — the
   four pillars (artwork, background, content, typography), the royal-protocol table (verbatim), the Islamic terminology

@@ -323,7 +323,10 @@ export function drawHeader(ctx: SKRSContext2D, pill: { text: string; icon?: Icon
 }
 
 /** FOOTER — the app-first two lines with drawn gold icons; nothing on the right. */
-export function drawFooter(ctx: SKRSContext2D) {
+/** The footer's community line; an Islamic poster names @LuyChlatIslamic (founder, 20/10/2026 — the holiday engine). */
+export const ISLAMIC_COMMUNITY_LINE = "សហគមន៍ឥស្លាម អេប លុយឆ្លាត · t.me/LuyChlatIslamic"
+
+export function drawFooter(ctx: SKRSContext2D, o: { community?: string } = {}) {
   const { W, PAD, footerTop } = FRAME
   ctx.fillStyle = "rgba(52,211,153,0.28)"
   ctx.fillRect(PAD, footerTop, W - 2 * PAD, 1.5)
@@ -338,7 +341,7 @@ export function drawFooter(ctx: SKRSContext2D) {
   ctx.font = `500 26px ${FAMILIES}`
   drawIcon(ctx, "plane", PAD + 14, line2 - 10)
   ctx.fillStyle = "#d1fae5"
-  const community = "សហគមន៍ អេប លុយឆ្លាត · t.me/LuyChlatCommunity" // no parentheses on a graphic (founder, 19/10/2026)
+  const community = o.community ?? "សហគមន៍ អេប លុយឆ្លាត · t.me/LuyChlatCommunity" // no parentheses on a graphic (founder, 19/10/2026)
   ctx.fillText(community, PAD + 44, line2)
   let x = PAD + 44 + ctx.measureText(community).width + 26
   ctx.fillStyle = "rgba(209,250,229,0.55)"

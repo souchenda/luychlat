@@ -176,7 +176,7 @@ export const FESTIVAL_POSTERS = {
     file: "pchum-ben-2026.png",
     window: ["2026-10-10", "2026-10-12"] as const,
     /** Published on its own on the window's first day at this Cambodia time (founder, 08/10); /poster stays as the fallback. */
-    autoAt: "07:00",
+    autoAt: "05:00", // every holiday poster at 05:00 (founder, 20/10/2026)
     caption: "🪷 សូមអនុមោទនាពិធីបុណ្យភ្ជុំបិណ្ឌ\n\nសូមឧទ្ទិសកុសលផលបុណ្យជូនដល់បុព្វការីជន និងសូមជូនពរលោកអ្នកព្រមទាំងក្រុមគ្រួសារ ធ្វើដំណើរទៅស្រុកកំណើតដោយសុខសុវត្ថិភាព។\n\n— អេប លុយឆ្លាត",
   },
 } as const
@@ -315,7 +315,7 @@ export async function sendFestivalPoster(chatId: number, name: string | undefine
 /** The single button under an automatically published poster. */
 export const POSTER_APP_BUTTON = "📱 បើកក្នុងអេប លុយឆ្លាត"
 
-/** Until when (Cambodia time) a missed 07:00 slot is still made up — a holiday poster at night would be odd. */
+/** Until when (Cambodia time) a missed 05:00 slot is still made up — a holiday poster at night would be odd. */
 const AUTO_LATEST_HOUR = 12
 
 /** Is it time for this poster's automatic broadcast? (Cambodia day and "HH:MM"; pure.) */

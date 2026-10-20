@@ -5,14 +5,14 @@ import { describe, it } from "node:test"
 
 import { FESTIVAL_POSTERS, POSTER_APP_BUTTON, posterDue } from "./festival-poster"
 
-describe("Pchum Ben poster — automatic broadcast on 10/10/2026 at 07:00 (Cambodia time)", () => {
+describe("Pchum Ben poster — held for approval on 10/10/2026 at 05:00 (Cambodia time; every holiday at 05:00, founder 20/10/2026)", () => {
   const p = FESTIVAL_POSTERS.pchumben
 
-  it("goes out at 07:00 on the first day only", () => {
-    assert.equal(posterDue(p, "2026-10-10", "06:59"), false)
-    assert.equal(posterDue(p, "2026-10-10", "07:00"), true)
-    assert.equal(posterDue(p, "2026-10-09", "07:00"), false)
-    assert.equal(posterDue(p, "2026-10-11", "07:00"), false)
+  it("goes out at 05:00 on the first day only", () => {
+    assert.equal(posterDue(p, "2026-10-10", "04:59"), false)
+    assert.equal(posterDue(p, "2026-10-10", "05:00"), true)
+    assert.equal(posterDue(p, "2026-10-09", "05:00"), false)
+    assert.equal(posterDue(p, "2026-10-11", "05:00"), false)
   })
   it("a missed slot (server restarting) is made up during the morning, never later", () => {
     assert.equal(posterDue(p, "2026-10-10", "09:30"), true)

@@ -11,7 +11,7 @@ import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-r
 import { nationalDateLine, type NationalDay } from "@/lib/calendar/cambodia-holidays"
 
 import { lotus } from "./festival-poster"
-import { FAMILIES, FRAME, drawFooter, drawHeader, loadFonts, posterMascot, roundRect, wrap } from "./poster-kit"
+import { FAMILIES, FRAME, ISLAMIC_COMMUNITY_LINE, drawFooter, drawHeader, loadFonts, posterMascot, roundRect, wrap } from "./poster-kit"
 
 // The official images (public/images/holidays, README.txt): only the files really there; none is ever invented.
 const ASSET_FILES = {
@@ -152,7 +152,7 @@ export function nationalDayPoster(d: NationalDay, day: string): { png: Buffer; t
   }
   if (by - 56 > bottom + 10) truncated = true
 
-  drawFooter(ctx)
+  drawFooter(ctx, d.kind === "islamic" ? { community: ISLAMIC_COMMUNITY_LINE } : {})
   return { png: canvas.toBuffer("image/png"), truncated }
 }
 

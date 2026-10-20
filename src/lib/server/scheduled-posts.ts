@@ -53,7 +53,7 @@ import { logEvent } from "@/lib/server/events"
 import { deleteFacebookPost, facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
 import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster, portraitCredit } from "@/lib/server/national-day-poster"
-import { nationalCaptionHtml, nationalCaptionText, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE } from "@/lib/calendar/cambodia-holidays"
+import { nationalCaptionHtml, nationalCaptionText, nationalChannel, nationalDateNote, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE } from "@/lib/calendar/cambodia-holidays"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
@@ -457,7 +457,8 @@ const realDeps = (): SchedulerDeps => ({
         // …and when the founder's photographic backdrop is not there yet (the plain emerald is used, never clipart).
         const noBackdrop = d.assets?.backdrop && !nationalAssetsFor(d).backdrop ? "\n\nℹ️ មិនទាន់មានផ្ទាំងខាងក្រោយរូបថតផ្លូវការ (bg_royal_coronation.jpg) — ប្រើពណ៌បៃតងធម្មតា។" : ""
         const credit = portraitCredit(d)
-        return { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) + (credit ? `\n${credit}` : "") + missing + noBackdrop }
+        const dateNote = nationalDateNote(d)
+        return { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) + (credit ? `\n${credit}` : "") + missing + noBackdrop + (dateNote ? `\n\n${dateNote}` : "") }
       }
       case "ISLAMIC_BULLETIN":
         return { png: null, body: stripHtml((await islamicBulletinNow()) ?? "—") }
@@ -477,8 +478,8 @@ const realDeps = (): SchedulerDeps => ({
     }
   },
   targets(row) {
-    // The Islamic channel's own posts: there only, never the general channel or the Page.
-    if (channelFor(row.kind) === "islamic") return { telegram: islamicChannelConfigured(), facebook: false, channel: "islamic" }
+    // The Islamic channel's own posts: there only, never the general channel or the Page — also the Islamic holidays.
+    if (channelFor(row.kind) === "islamic" || islamicNationalDay(row)) return { telegram: islamicChannelConfigured(), facebook: false, channel: "islamic" }
     const fb = Boolean(facebookConfig())
     const telegram = communityChannelConfigured()
     if (row.kind === "MORNING") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "morning" }) }
@@ -496,7 +497,7 @@ const realDeps = (): SchedulerDeps => ({
     // (bot_post_take): the approval that opens the channel and the Page.
     const approval = founderApproved(`${row.kind} ${row.post_key}`)
     // One routing rule (lib/islamic-channel.ts channelFor): Islamic posts → @LuyChlatIslamic, all else → the general channel.
-    const islamic = channelFor(row.kind) === "islamic"
+    const islamic = channelFor(row.kind) === "islamic" || islamicNationalDay(row)
     const chat = islamic ? islamicChannel(approval) : communityChannel(approval)
     const buttons = await getChannelPostButtons()
     const ids: Published = { telegram: null, facebook: null }
@@ -515,7 +516,7 @@ const realDeps = (): SchedulerDeps => ({
       const credit = portraitCredit(d)
       const html = nationalCaptionHtml(d, day) + (credit ? `\n${credit}` : "")
       if (chat) ids.telegram = (await sendPosterPhoto(chat, png, html, { reply_markup: buttons.reply_markup })) ?? (await sentText(html, true))
-      if (facebookConfig() && shouldPublishToFacebook({ kind: "national" })) {
+      if (!islamic && facebookConfig() && shouldPublishToFacebook({ kind: "national" })) {
         const fb = await publishLogged(`national day ${d.key} ${day}`, () => publishPhotoToFacebook(approval, png, nationalCaptionText(d, day) + (credit ? `\n${credit}` : "")), fbLog)
         if (fb?.ok) ids.facebook = fb.postId
       }
@@ -725,6 +726,13 @@ async function islamicContent(kind: IslamicKind, day: string) {
 let scheduler: ReturnType<typeof createScheduler> | null = null
 const real = () => (scheduler ??= createScheduler(withReplace(realDeps())))
 
+/** An Islamic holiday (group B): published to @LuyChlatIslamic only, never the general channel or the Page. */
+const islamicNationalDay = (row: { kind: string; payload: Record<string, unknown> }) => {
+  if (row.kind !== "NATIONAL_DAY") return false
+  const d = nationalDayByKey(String(row.payload.key))
+  return Boolean(d && nationalChannel(d) === "islamic")
+}
+
 /** Called every minute by the dispatcher. */
 export async function scheduledPostsTick() {
   const now = phnomPenhToday()
@@ -732,9 +740,9 @@ export async function scheduledPostsTick() {
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
   const REPREVIEW_READY = ["five-am"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
-  // National days and royal ceremonies (founder, 20/10/2026): previewed from 48 hours before at 08:00, published at
-  // 07:00 on the day once approved (a missed preview window is caught up until then — idempotent).
-  for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute)) {
+  // Every holiday — national and royal, Islamic, Chinese, global (founder, 20/10/2026): previewed from 48 hours before at
+  // 08:00, published at 05:00 on the day once approved (a missed preview window is caught up until then — idempotent).
+  for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute, offset)) {
     const row = await real().schedulePost("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
     // Flagged «repreview» (a better version, e.g. with the official portrait): the old preview messages are deleted from
     // the approval room and a fresh preview is sent, once (bot_post_repreview_done clears the flag). Only a flag this build
