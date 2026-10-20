@@ -5,7 +5,7 @@ import { describe, it } from "node:test"
 
 import { presetFromWords } from "@/lib/bot/parse-entry"
 
-import { looksLikeNote, recentNoteText } from "./entry-card"
+import { looksLikeNote, mentionsChild, recentNoteText, savedCard } from "./entry-card"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 
@@ -45,5 +45,21 @@ describe("A follow-up note on the entry just recorded (founder, 20/10/2026)", ()
     assert.match(sql, /t := public\.bot_own_recent_tx\(p_chat_id, pr\.tx_id\);/)
     assert.match(sql, /where workspace_id = t\.workspace_id and type = t\.type and preset_key = p_preset/)
     assert.match(sql, /grant execute on function public\.bot_tx_note_recent\(text, bigint, text, text\) to anon, authenticated;/)
+  })
+})
+
+describe("A note about a child tags «👶 សម្រាប់កូន» (founder, 20/10/2026)", () => {
+  it("the founder's words — and «កូន» inside words that are not a child does not count", () => {
+    for (const t of ["ចំណាយសំភារៈសិក្សាកូន", "កូនតូច", "ទិញអាវកូនស្រី", "កូនប្រុសឈឺ", "នំកូនៗ", "ទឹកដោះគោទារក", "kid shoes", "baby milk", "for my child", "宝宝奶粉"]) assert.equal(mentionsChild(t), true, t)
+    for (const t of ["ធ្វើកូនសោ", "សងកូនបំណុល", "ឈ្នួលកូនជាង", "ទិញកូនមាន់", "កាហ្វេ", "kidney beans", "babylon"]) assert.equal(mentionsChild(t), false, t)
+  })
+  it("both note paths tag it (the 5-minute follow-up and a reply to the card); the card turns it off in one tap", () => {
+    const c = readFileSync(join(process.cwd(), "src/lib/server/bot-commands.ts"), "utf8")
+    const s = readFileSync(join(process.cwd(), "src/lib/server/slip-bot.ts"), "utf8")
+    for (const f of [c, s]) assert.match(f, /!r\.for_child && mentionsChild\(r\.user_note \?\? note\) \? \(await tagTransaction\(chatId, r\.tx_id, null, null, true\)\)\.data : null/)
+    // The saved card's toggle: ✓ when on, and its tap sends K0 (off).
+    const card = savedCard("km", "00000000-0000-0000-0000-000000000000", { amount: 1, currency: "KHR", wallet: "w", label: "l", food: false, subcategory: null, need_want: null, for_child: true, note: "កូន" })
+    const buttons = card.reply_markup.inline_keyboard.flat()
+    assert.ok(buttons.some((b) => b.text === "✓ 👶 សម្រាប់កូន" && b.callback_data.endsWith(":K0")))
   })
 })

@@ -29,7 +29,7 @@ import { convert, formatMoney } from "@/lib/money"
 import { blocked, botContext, contextLocale, handleEntryMessage, logEvHome, workspacesOf, type Context } from "@/lib/server/bot-commands"
 import { parseAmountText } from "@/lib/bot/parse-entry"
 import { photoRoute } from "@/lib/bot/photo-route"
-import { MEAL_KEY, cleanNote, rememberCard, savedCard, tagTransaction, taggedFrom, type Tagged, type TaggedRow } from "@/lib/server/entry-card"
+import { MEAL_KEY, cleanNote, mentionsChild, rememberCard, savedCard, tagTransaction, taggedFrom, type Tagged, type TaggedRow } from "@/lib/server/entry-card"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, maskNumbers, sendText, telegramFile, tg, tr } from "@/lib/server/telegram-bot"
@@ -729,9 +729,12 @@ export async function handleNoteReply(chatId: number, replyTo: number, text: str
     await sendText(chatId, tr(lang, why))
     return true
   }
-  await sendText(chatId, maskNumbers(tr(lang, "bot.noteSaved", { note: r.user_note ?? note })))
+  // A note about a child tags the expense «👶 សម្រាប់កូន» (founder, 20/10/2026); one tap on the card turns it off.
+  const child = r.tx_id && r.type === "EXPENSE" && !r.for_child && mentionsChild(r.user_note ?? note) ? (await tagTransaction(chatId, r.tx_id, null, null, true)).data : null
+  const row = child?.ok ? { ...r, ...child } : r
+  await sendText(chatId, maskNumbers([tr(lang, "bot.noteSaved", { note: r.user_note ?? note }), ...(child?.ok ? [tr(lang, "bot.forChildOn")] : [])].join("\n")))
   if (r.card_msg && r.tx_id && r.type === "EXPENSE") {
-    const card = savedCard(lang, r.tx_id, taggedFrom(lang, r))
+    const card = savedCard(lang, r.tx_id, taggedFrom(lang, row as TaggedRow))
     await tg("editMessageText", { chat_id: chatId, message_id: r.card_msg, ...card }).catch(() => null)
   }
   return true

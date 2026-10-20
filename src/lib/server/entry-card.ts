@@ -107,3 +107,15 @@ export function recentNoteText(lang: Locale, o: { note: string; amount: number; 
   const category = o.category ? categoryLabel({ name: o.category, preset_key: o.preset }, lang) : tr(lang, "entry.uncategorized")
   return [tr(lang, "bot.recentNoteSaved", { note: o.note, amount: formatMoney(o.amount, o.currency) }), tr(lang, "bot.recentNoteCategory", { category })].join("\n")
 }
+
+/**
+ * The note speaks of a child («កូន», «កូនស្រី», «ទារក», kid, baby…) → the entry is tagged «👶 សម្រាប់កូន» (founder,
+ * 20/10/2026); the card's button turns it off in one tap. «កូន» in words that are not a child (កូនសោ a key, កូនបំណុល a
+ * debtor, កូនជាង an apprentice…) does not count.
+ */
+const NOT_CHILD = ["កូនសោ", "កូនបំណុល", "កូនជាង", "កូនឈ្នួល", "កូនក្តី", "កូនក្ដី", "កូនកាត់", "កូនកាំបិត", "កូនឈើ", "កូនត្រី", "កូនមាន់", "កូនជ្រូក", "កូនគោ", "កូនឆ្កែ", "កូនឆ្មា", "កូនទា", "កូនអុក", "កូនប៉ោល", "កូនផ្ទះ", "កូនជួល"]
+export function mentionsChild(text: string): boolean {
+  let t = ` ${text.toLowerCase()} `
+  for (const w of NOT_CHILD) t = t.split(w).join(" ")
+  return /កូន|ទារក|孩子|宝宝|儿子|女儿/.test(t) || /(^|[^a-z])(kids?|baby|babies|child|children|son|daughter)([^a-z]|$)/.test(t)
+}

@@ -11,7 +11,7 @@ import { routeWorkspace } from "@/lib/bot/route-workspace"
 import { mealFor, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { defaultNeedWant } from "@/lib/need-want"
-import { MEAL_KEY, cleanNote, looksLikeNote, recentNoteText, rememberCard, savedCard, tagTransaction, taggedFrom, type TaggedRow } from "@/lib/server/entry-card"
+import { MEAL_KEY, cleanNote, looksLikeNote, mentionsChild, recentNoteText, rememberCard, savedCard, tagTransaction, taggedFrom, type TaggedRow } from "@/lib/server/entry-card"
 import { logEvent } from "@/lib/server/events"
 import { DEFAULT_ABOUT } from "@/lib/app-site"
 import { convert, formatMoney } from "@/lib/money"
@@ -205,10 +205,14 @@ export async function noteOnRecentEntry(chatId: number, text: string, lang: Loca
     await sendText(chatId, tr(lang, /plan_required/.test(msg) ? "bot.cmdPro" : /commands_off/.test(msg) ? "bot.cmdOff" : /not_writable/.test(msg) ? "bot.cmdReadonly" : "bot.saveFailed"))
     return true
   }
-  await sendText(chatId, recentNoteText(lang, { note: r.user_note ?? note, amount: Number(r.amount), currency: r.currency ?? "USD", category: r.category ?? null, preset: r.preset ?? null }))
-  // The card shows the note and the category now.
+  // A note about a child tags the expense «👶 សម្រាប់កូន» (founder, 20/10/2026); one tap on the card turns it off.
+  const child = r.type === "EXPENSE" && !r.for_child && mentionsChild(r.user_note ?? note) ? (await tagTransaction(chatId, r.tx_id, null, null, true)).data : null
+  const row = child?.ok ? { ...r, ...child } : r
+  const reply = recentNoteText(lang, { note: r.user_note ?? note, amount: Number(r.amount), currency: r.currency ?? "USD", category: r.category ?? null, preset: r.preset ?? null })
+  await sendText(chatId, child?.ok ? `${reply}\n${tr(lang, "bot.forChildOn")}` : reply)
+  // The card shows the note, the category and the tag now.
   if (r.card_msg && r.type === "EXPENSE") {
-    const card = savedCard(lang, r.tx_id, taggedFrom(lang, r))
+    const card = savedCard(lang, r.tx_id, taggedFrom(lang, row as TaggedRow))
     await tg("editMessageText", { chat_id: chatId, message_id: r.card_msg, ...card }).catch(() => null)
   }
   logEvent("info", "bot", `Follow-up note on the entry just recorded${presetFromWords(note) ? " (category from its words)" : ""}`, { fold: true })
