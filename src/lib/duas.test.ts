@@ -75,3 +75,42 @@ describe("The last three du'as vetted (founder, 20/10/2026)", () => {
     }
   })
 })
+
+/**
+ * Every wasl join (founder, 21/10/2026 — after «ប៊ីស-មី-កល់-ឡ-ហ៊ុម្ម៉ា»): where Arabic connects a word to the next
+ * (the article al-, a connecting hamza), the Khmer reading runs on with a hyphen — never a space, never a stray vowel
+ * («បា អាស» for dhahabaẓ-, «វ៉ា-អ៊ីប» for wabtallat-). Each Latin join «minal-hammi» names the joined Khmer it must have.
+ */
+const WASL: Record<string, string[]> = {
+  wake: ["លិល-ឡា-ហ៊ីល-ឡាហ្ស៊ី", "ឡៃ-ហ៊ីន-នុ-ស៊ូរ"],
+  "after-eating": ["លិល-ឡា-ហ៊ីល-ឡាហ្ស៊ី"],
+  "worry-debt": ["មី-ណាល់-ហាំ-មី", "វ៉ាល់-ហា-ហ្សាន", "វ៉ាល់-អាច-ហ្ស៊ី", "វ៉ាល់-កា-សាល់", "វ៉ាល់-ប៊ុខ-លី", "វ៉ាល់-ជុប-នី", "ឡា-អ៊ិឌ-ឌៃ-នី", "បា-ទីរ-រី-ចាល"],
+  distress: ["មី-ណាស់-ហ្ស-លី-មីន"],
+  "fast-niyyah": ["ហា-ហ្ស៊ិ-ហិស-សា-ណា-ទិ"],
+  iftar: ["ហ្សា-ហា-បាស-ហ្សា-ម៉ា-អ៊ុ", "វ៉ាប-តាល់-ឡា-ទីល-អ៊ុ-រូ-ក", "វ៉ា-សា-បា-តាល់-អាជ-រុ"],
+  travel: ["ស៊ុប-ហា-ណាល់-ឡាហ្ស៊ី"],
+  "both-worlds": ["ហ្វីឌ-ឌុន-យ៉ា", "វ៉ា-ហ្វីល-អា-ឃី-រ៉-ទី", "អា-ហ្សា-បាន-ណារ"],
+  sleep: ["ប៊ីស-មី-កល់-ឡ-ហ៊ុម្ម៉ា"],
+}
+/** Joins the Latin writes solid («‘alallāh», «billāh», «Allāhummaftaḥ») — the Khmer joins them too. */
+const SOLID: Record<string, string[]> = {
+  "leave-home": ["អា-ឡាល់-ឡោះ", "ប៊ីល-ឡោះ"],
+  "enter-mosque": ["ហ៊ុម្ម៉ាហ្វ-តះហ៍"],
+}
+
+describe("Wasl joins in the Khmer readings (founder, 21/10/2026)", () => {
+  it("regression: «ប៊ីស-មី កល់-ឡ» split the wasl — every join in every du'a runs on with a hyphen", () => {
+    for (const [id, joins] of Object.entries({ ...WASL, ...SOLID })) for (const j of joins) assert.ok(by(id).phonetic.includes(j), `${id}: «${j}»`)
+    // The splits found in the audit are gone.
+    for (const split of ["មី-ណាល់ ហាំ", "ណាស់ ហ្ស", "ហិស សា", "បា អាស", "វ៉ា-អ៊ីប", "តាល់ អាជ", "ហ្វីល អា", "ប៊ីស-មី កល់"])
+      assert.ok(!DUAS.some((d) => d.phonetic.includes(split)), split)
+  })
+  it("every Latin join is listed — a new du'a with a wasl cannot skip the check; the Latin is joined like the Khmer", () => {
+    for (const d of DUAS) {
+      // «lillāhil-ladhī», «minaẓ-ẓālimīn», «Bismika-llāhumma» — a hyphen inside the reading, not the sentence's first «Al-».
+      const joins = d.latin.replace(/^Al-/, "").match(/\S-\S/g)?.length ?? 0
+      assert.equal(joins, (WASL[d.id] ?? []).length, `${d.id}: ${joins} Latin join(s) — list each joined Khmer reading in WASL`)
+    }
+    assert.equal(by("sleep").latin, "Bismika-llāhumma amūtu wa aḥyā")
+  })
+})

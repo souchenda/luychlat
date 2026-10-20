@@ -198,7 +198,7 @@ describe("The Iftar du'a in natural Khmer (founder, 19/10/2026)", () => {
   it("the master text (lib/duas.ts) is the founder's reading and meaning; the channel and the poster use it", async () => {
     const { DUAS } = await import("../duas")
     const iftar = DUAS.find((d) => d.id === "iftar")!
-    assert.equal(iftar.phonetic, "ហ្សា-ហា-បា អាស-ហ្សា-ម៉ា-អ៊ុ, វ៉ា-អ៊ីប-តាល់-ឡា-ទីល អ៊ុ-រូ-ក, វ៉ា-សា-បា-តាល់ អាជ-រុ, អ៊ីន-ស្យា-អល់-ឡោះ")
+    assert.equal(iftar.phonetic, "ហ្សា-ហា-បាស-ហ្សា-ម៉ា-អ៊ុ, វ៉ាប-តាល់-ឡា-ទីល-អ៊ុ-រូ-ក, វ៉ា-សា-បា-តាល់-អាជ-រុ, អ៊ីន-ស្យា-អល់-ឡោះ") // the wasl joins (21/10/2026)
     assert.equal(iftar.km, "ភាពស្រេកទឹកបានរសាយបាត់ សរសៃឈាមទាំងឡាយបានទទួលសំណើមឡើងវិញ ហើយផលបុណ្យកុសលត្រូវបានបញ្ជាក់ជាប្រាកដ ប្រសិនបើអល់ឡោះទ្រង់សព្វព្រះទ័យ។")
     assert.equal(iftar.source, "Sunan Abi Dawud 2357")
     const c = islamicPostContent("ISLAMIC_IFTAR", "2026-10-19", h(7))

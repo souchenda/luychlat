@@ -193,6 +193,18 @@ const KIND_LABEL: Record<PostKind, string> = {
 export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "ISLAMIC_MORNING", "ISLAMIC_BULLETIN"]
 export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly string[]).includes(kind)
 
+/**
+ * Auto-published, yet previewed — the safety net (founder, 21/10/2026): the 05:30 prayer times with the waking du'a stay
+ * on the whitelist (nobody wakes at 05:00 to tap), and their card still reaches «LCA Approval» the evening before, from
+ * 21:30, with [ ❌ ផ្អាកថ្ងៃនេះ ] only (no 🚀 at night) and caption editing by reply. Silence = it publishes on time.
+ * The other factual feeds (the bulletin, the NBC rates) stay silent.
+ */
+export const SAFETY_NET_KINDS: readonly PostKind[] = ["ISLAMIC_MORNING"]
+export const isSafetyNet = (kind: string) => (SAFETY_NET_KINDS as readonly string[]).includes(kind)
+
+/** A card goes to the approval room for a post that waits for a tap, or an auto-published post with a safety net. */
+export const isPreviewed = (kind: string, status: PostStatus) => (status === "PENDING" && !isAutoPublish(kind)) || (status === "APPROVED" && isSafetyNet(kind))
+
 /** The preview's header (destination first), the post itself, then the status line. */
 export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus; decider?: Decider | null; now?: string }): string {
   const where = targetLabel(o.targets)
@@ -202,7 +214,8 @@ export function previewText(o: { kind: PostKind; targets: Targets; publishAt: st
     "",
     o.body,
     "",
-    (o.decider && deciderLine(o.status, where, o.publishAt, o.decider, o.now)) ?? statusLine(o.status, where, o.publishAt, o.now),
+    (o.decider && deciderLine(o.status, where, o.publishAt, o.decider, o.now)) ??
+      (o.status === "APPROVED" && isSafetyNet(o.kind) ? safetyNetLine(where, o.publishAt, o.now) : statusLine(o.status, where, o.publishAt, o.now)),
   ].join("\n")
 }
 
@@ -232,6 +245,14 @@ export function deciderLine(status: PostStatus, where: string, publishAt: string
   return null
 }
 
+/** The safety-net card's status: it publishes by itself; ❌ pauses it, a reply edits it. */
+export function safetyNetLine(where: string, publishAt: string, now?: string): string {
+  return [
+    `🤖 ព័ត៌មានស្វ័យប្រវត្តិ — នឹងផ្សាយទៅ [ ${where} ] នៅ${kmWhen(publishAt, now)} ដោយមិនចាំបាច់ចុច។`,
+    "❌ ចុចផ្អាក ប្រសិនបើមានកំហុស · ✏️ Reply លើកាតនេះ ដើម្បីកែអត្ថបទ។",
+  ].join("\n")
+}
+
 export function statusLine(status: PostStatus, where: string, publishAt: string, now?: string): string {
   switch (status) {
     case "PENDING":
@@ -259,6 +280,8 @@ export const COMEDY_KINDS: readonly string[] = ["DILEMMA"]
  */
 export function previewButtons(id: number, status: PostStatus, targets: Targets, kind?: string, when?: { publishAt: string; now: string }): { text: string; callback_data: string }[][] {
   if (status !== "PENDING" && status !== "APPROVED") return []
+  // The safety net (05:30): only ❌ — it publishes by itself, and a 🚀 at 21:30 would post it in the night.
+  if (status === "APPROVED" && kind && isSafetyNet(kind)) return [[{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }]]
   const short = targets.telegram && targets.facebook ? "Telegram + Facebook" : targets.facebook ? "Facebook" : "Telegram"
   return [
     // A later day is named on the button itself (founder, 20/10/2026): «✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)».

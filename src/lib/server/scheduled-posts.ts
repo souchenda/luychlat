@@ -14,7 +14,7 @@ import { postFooter, withFooter } from "@/lib/post-footer"
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import {
   dueAction,
-  isAutoPublish,
+  isPreviewed,
   isReplaceCallback,
   kmClock,
   parseReplaceCallback,
@@ -183,10 +183,10 @@ export function createScheduler(d: SchedulerDeps) {
    */
   async function schedulePost(kind: PostKind, postKey: string, payload: Record<string, string | null>, publishAt: string) {
     const row = await d.schedule(kind, postKey, payload, publishAt)
-    // Only a post that waits for the founder's decision is previewed. The factual feeds (AUTO_PUBLISH_KINDS: the
-    // market bulletin, the evening NBC rates, the 05:30 prayer times) are created APPROVED and publish silently at
-    // their time — nothing reaches the approval room (founder, 19/10/2026).
-    const previewable = row?.status === "PENDING" && !isAutoPublish(row.kind)
+    // A post that waits for the founder's decision is previewed; of the factual feeds (AUTO_PUBLISH_KINDS, created
+    // APPROVED, published at their time) only the safety net is — the 05:30 prayer times, the evening before with ❌
+    // and reply-editing (founder, 21/10/2026). The bulletin and the NBC rates publish silently (19/10/2026).
+    const previewable = Boolean(row && isPreviewed(row.kind, row.status))
     if (row && previewable && !row.previews?.length && d.now() < Date.parse(row.publish_at) && (row.created || (await d.adminChats()).length))
       await sendPreviews(row)
     return row

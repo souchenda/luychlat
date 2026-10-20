@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { atMinute, isAutoPublish, takeAllowed, type PostKind } from "../scheduled-posts"
+import { atMinute, isAutoPublish, previewButtons, previewText, SAFETY_NET_KINDS, takeAllowed, type PostKind } from "../scheduled-posts"
 
 import { createScheduler, type PostRow, type Preview, type SchedulerDeps } from "./scheduled-posts"
 
@@ -264,8 +264,8 @@ describe("preview-first — a fresh preview for a re-armed post", () => {
 })
 
 describe("Factual feeds publish on time; creative posts wait for the founder (founder, 19/10/2026)", () => {
-  it("the market bulletin, the evening NBC rates and the 05:30 prayer times: created approved, no preview to the approval room, published at their time", async () => {
-    for (const kind of ["BULLETIN", "RATES", "ISLAMIC_MORNING"] as const) {
+  it("the market bulletin and the evening NBC rates: created approved, no preview to the approval room, published at their time", async () => {
+    for (const kind of ["BULLETIN", "RATES"] as const) {
       const f = fake(clock(10, 30))
       await f.s.schedulePost(kind, DAY, { day: DAY }, new Date(clock(10, 31)).toISOString())
       assert.equal(f.rows[0].status, "APPROVED", kind)
@@ -274,6 +274,30 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
       assert.deepEqual(f.published, [1], kind)
       assert.equal(f.previewsSent.length, 0, kind)
     }
+  })
+  it("the 05:30 prayer times (founder, 21/10/2026): still auto-published — and previewed the evening before as a safety net", async () => {
+    assert.deepEqual(SAFETY_NET_KINDS, ["ISLAMIC_MORNING"])
+    assert.ok(isAutoPublish("ISLAMIC_MORNING")) // stays on the whitelist: nobody wakes at 05:00 to tap
+    const f = fake(clock(21, 30))
+    await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(23, 30)).toISOString())
+    assert.equal(f.rows[0].status, "APPROVED")
+    assert.equal(f.previewsSent.length, 1, "one card to the approval room")
+    assert.match(f.previewsSent[0].text, /🤖 ព័ត៌មានស្វ័យប្រវត្តិ — នឹងផ្សាយទៅ \[ [^\]]+ \] នៅ[^\n]+ដោយមិនចាំបាច់ចុច។\n❌ ចុចផ្អាក ប្រសិនបើមានកំហុស · ✏️ Reply លើកាតនេះ ដើម្បីកែអត្ថបទ។$/)
+    // Silence = it publishes on time, once.
+    await f.at(23, 30)
+    assert.deepEqual(f.published, [1])
+  })
+  it("the safety net's card has ❌ only (no 🚀 at night) — and ❌ stops the 05:30 post", async () => {
+    const targets = { telegram: true, facebook: false }
+    assert.deepEqual(previewButtons(7, "APPROVED", targets, "ISLAMIC_MORNING"), [[{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: "sp:7:x" }]])
+    assert.equal(previewButtons(7, "APPROVED", targets, "MORNING").length, 2) // an approved poster keeps 🚀 and ❌
+    assert.doesNotMatch(previewText({ kind: "MORNING", targets, publishAt: new Date(clock(7, 0)).toISOString(), body: "x", status: "APPROVED" }), /🤖/)
+    const f = fake(clock(21, 30))
+    await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(23, 30)).toISOString())
+    await f.press("sp:1:x")
+    assert.equal(f.rows[0].status, "PAUSED")
+    await f.at(23, 30)
+    assert.deepEqual(f.published, [])
   })
   it("a post that needs the founder's decision is still previewed (the 07:00 poster)", async () => {
     const f = fake(clock(6, 15))

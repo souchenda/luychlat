@@ -162,7 +162,11 @@ cluttered, and unreadable»):
 - **Factual feeds on time (founder, 19/10/2026):** the market bulletin (NBC rates, gold, fuel — 09:30–10:30, as soon
   as the gold shops publish), the evening NBC rates and the 05:30 prayer times with the waking du'a are created
   APPROVED by the database (`public.post_auto_publish` = `AUTO_PUBLISH_KINDS`) and publish at their time, Telegram
-  only; the preview still reaches the founder with ❌. Nothing creative, humorous or bound for Facebook is on the list.
+  only. Nothing creative, humorous or bound for Facebook is on the list. The bulletin and the NBC rates publish
+  silently; **the 05:30 prayer times keep a safety net (founder, 21/10/2026 — `SAFETY_NET_KINDS`):** still on the
+  whitelist (nobody wakes at 05:00 to tap), their card reaches «LCA Approval» the evening before, from 21:30, with
+  [ ❌ ផ្អាកថ្ងៃនេះ ] only (no 🚀 at night) and caption editing by reply; silence = it publishes on time. Every du'a's
+  Khmer reading connects each Arabic wasl join with a hyphen, never a space (`WASL` in `src/lib/duas.test.ts`).
 - **The approval room «LCA Approval» (founder, 19/10/2026):** every preview goes to the approval group (set from
   inside it by a super admin with `/setapprovalgroup`, or `TELEGRAM_APPROVAL_CHAT_ID`), else `MARKETING_CHAT_ID`, else
   the super admins' private chats — never a public channel (`reviewChats`). The bot never leaves it; only a super
