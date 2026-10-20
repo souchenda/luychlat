@@ -120,15 +120,17 @@ if [ -d /etc/cron.d ] && [ ! -f /etc/cron.d/luychlat-security ]; then
   echo "*/5 * * * * root cd $(pwd) && bash deploy/security-stats.sh >/dev/null 2>&1" > /etc/cron.d/luychlat-security
 fi
 bash ./deploy/security-stats.sh 1440 || echo "! Security stats not recorded"
-# Weekly Docker clean-up, Sundays 02:00 (the host runs on Cambodia time) — deploy/weekly-prune.sh, logged.
-if [ -d /etc/cron.d ] && [ ! -f /etc/cron.d/luychlat-weekly-prune ]; then
-  echo "0 2 * * 0 root cd $(pwd) && bash deploy/weekly-prune.sh >/dev/null 2>&1" > /etc/cron.d/luychlat-weekly-prune
+# Weekly clean-up, Sundays 03:00 (the host runs on Cambodia time) — deploy/weekly-prune.sh, logged. Rewritten when the
+# schedule changes (founder, 20/10/2026: 02:00 → 03:00).
+prune_cron="0 3 * * 0 root cd $(pwd) && bash deploy/weekly-prune.sh >/dev/null 2>&1"
+if [ -d /etc/cron.d ] && [ "$(cat /etc/cron.d/luychlat-weekly-prune 2>/dev/null)" != "$prune_cron" ]; then
+  echo "$prune_cron" > /etc/cron.d/luychlat-weekly-prune
 fi
 # Lets auto-update.sh redeploy when .env changes (e.g. a new token).
 sha256sum .env 2>/dev/null | cut -d' ' -f1 > deploy/.deployed-env || true
 docker image prune -f >/dev/null
-# The build cache, trimmed to its newest 10 GB after every release (founder, 20/10/2026 — fifteen releases in a day left
-# 32 GB of cache; the weekly clean-up alone let it pile up). The newest layers stay, so the next build is still fast.
-docker builder prune -f --keep-storage 10GB >/dev/null 2>&1 || echo "! Build cache not trimmed (the app is deployed)"
+# The build cache, trimmed to its newest 2 GB after every release (founder, 20/10/2026 — fifteen releases in a day left
+# 32 GB of cache; the weekly clean-up alone let it pile up). The newest layers stay. Never fails a live release.
+docker builder prune -f --keep-storage 2GB >/dev/null 2>&1 || echo "! Build cache not trimmed (the app is deployed)"
 echo "✓ Deployed $(git rev-parse --short HEAD) on $next"
 bash ./deploy/deploy-notify.sh ok "$prev_deployed" || echo "! Deploy notice not sent (the app is deployed)"

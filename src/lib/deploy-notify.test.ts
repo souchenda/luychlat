@@ -26,21 +26,29 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.ok(notify.includes(['  text="⚠️ <b>កិច្ចការទី #$task មិនបាន Live</b>', "• <b>មូលហេតុ៖</b> ${step}", '• <b>Server៖</b> 🟢 កំណែមុននៅដើរធម្មតា"'].join("\n")))
     assert.match(notify, /\[ "\$\(cat deploy\/run\/\.failed-notified 2>\/dev\/null\)" = "\$head" \] && exit 0/)
   })
-  it("the weekly Docker clean-up: Sundays 02:00, week-old build cache and dangling images, logged, never during a deploy or the APK build", () => {
+  it("the weekly clean-up: Sundays 03:00, unused Docker objects but NEVER volumes, week-old build cache, a 7-day journal, logged, never during a deploy or the APK build", () => {
     const prune = read("deploy/weekly-prune.sh")
     assert.match(prune, /docker builder prune -af --filter "until=168h"/)
     assert.match(prune, /docker image prune -f/)
+    assert.match(prune, /docker system prune -f --volumes=false/)
+    assert.doesNotMatch(prune.replace(/--volumes=false/g, ""), /--volumes|volume prune/) // the database's data
+    assert.match(prune, /weekly clean-up: disk free \$\{before\} GB → \$\{after\} GB[^\n]*>> \/var\/log\/luysmart-deploy\.log/)
     assert.match(prune, /flock -n \/tmp\/luysmart-deploy\.lock/)
     assert.match(prune, /\[b\]uild-apk/)
     assert.match(prune, /disk free: \$\{before\} GB → \$\{after\} GB/)
-    assert.match(update, /echo "0 2 \* \* 0 root cd \$\(pwd\) && bash deploy\/weekly-prune\.sh >\/dev\/null 2>&1" > \/etc\/cron\.d\/luychlat-weekly-prune/)
+    assert.match(update, /prune_cron="0 3 \* \* 0 root cd \$\(pwd\) && bash deploy\/weekly-prune\.sh >\/dev\/null 2>&1"/)
+    assert.match(update, /!= "\$prune_cron" \]; then\n  echo "\$prune_cron" > \/etc\/cron\.d\/luychlat-weekly-prune/) // an old 02:00 entry is rewritten
     assert.match(prune, /journalctl --vacuum-time=7d/)
   })
-  it("regression: fifteen releases in a day left 32 GB of build cache — every release trims it to its newest 10 GB; the APK build leaves no dangling images", () => {
+  it("regression: fifteen releases in a day left 32 GB of build cache — every release trims it to its newest 2 GB; the APK build leaves no temporary outputs or dangling images", () => {
     const after = update.slice(update.indexOf("trap - EXIT"))
     assert.match(after, /docker image prune -f >\/dev\/null\n/)
-    assert.match(after, /docker builder prune -f --keep-storage 10GB >\/dev\/null 2>&1 \|\| echo "! Build cache not trimmed \(the app is deployed\)"/) // never fails a live release
-    assert.match(read("deploy/build-apk.sh"), /docker image prune -f >\/dev\/null 2>&1 \|\| true/)
+    assert.match(after, /docker builder prune -f --keep-storage 2GB >\/dev\/null 2>&1 \|\| echo "! Build cache not trimmed \(the app is deployed\)"/) // never fails a live release
+    const apk = read("deploy/build-apk.sh").replace(/\r\n/g, "\n")
+    const end = apk.slice(apk.indexOf('echo "✓ $(du -h "$OUT/LuyChlat.apk"'))
+    assert.match(end, /rm -rf "\$SRC\/android\/app\/build" "\$SRC\/android\/build" "\$SRC\/android\/\.gradle"/) // after the APK is published
+    assert.match(end, /docker image prune -f >\/dev\/null 2>&1 \|\| true\ndocker builder prune -f --keep-storage 2GB >\/dev\/null 2>&1 \|\| true/)
+    assert.doesNotMatch(end, /rm -rf[^\n]*(\$GRADLE_HOME|\$SDK|\$KEYS|\$OUT)/) // the caches, the release key and the APK stay
   })
   it("regression: two sites share the upstream (app.luychlat.com, luy.ibmserp.com) — «found 2» made every deploy restart in place since 11/10", () => {
     const nginx = read("deploy/nginx-setup.sh")

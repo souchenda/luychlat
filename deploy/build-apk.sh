@@ -104,5 +104,9 @@ mv -f "$OUT/LuyChlat.apk.new" "$OUT/LuyChlat.apk"
 (cd "$OUT" && sha256sum LuyChlat.apk > LuyChlat.apk.sha256 && chmod 644 LuyChlat.apk.sha256)
 rm -f "$SRC/android/keystore.properties"
 echo "✓ $(du -h "$OUT/LuyChlat.apk" | cut -f1) → $OUT/LuyChlat.apk ($(cut -c1-16 "$OUT/LuyChlat.apk.sha256")…)"
-# Nothing left behind (founder, 20/10/2026): dangling images; the Gradle cache and the SDK stay for the next build.
+# Nothing left behind (founder, 20/10/2026): the APK is published, so the build's temporary Android outputs go (the
+# source folder is recreated by the next build), then dangling images and the build cache beyond its newest 2 GB.
+# The Gradle cache and the SDK stay, so the next build is still fast.
+rm -rf "$SRC/android/app/build" "$SRC/android/build" "$SRC/android/.gradle" "$SRC/android/capacitor-cordova-android-plugins/build"
 docker image prune -f >/dev/null 2>&1 || true
+docker builder prune -f --keep-storage 2GB >/dev/null 2>&1 || true
