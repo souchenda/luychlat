@@ -44,7 +44,7 @@ echo "▸ 2/5 Capacitor sync (only the Capacitor packages, at the locked version
 pkgs=$(python3 - "$REPO/package-lock.json" <<'PY'
 import json, sys
 lock = json.load(open(sys.argv[1]))["packages"]
-names = ["@capacitor/cli", "@capacitor/core", "@capacitor/android", "@capacitor/share", "@capacitor/filesystem", "typescript"]
+names = ["@capacitor/cli", "@capacitor/core", "@capacitor/android", "@capacitor/share", "@capacitor/filesystem", "@capacitor/local-notifications", "typescript"]
 print(" ".join(f"{n}@{lock['node_modules/' + n]['version']}" for n in names))
 PY
 )

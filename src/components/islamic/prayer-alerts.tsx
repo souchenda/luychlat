@@ -17,6 +17,8 @@ import { usePlan } from "@/lib/plan"
 import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { enablePush, setPrayerPush } from "@/lib/push"
+import { isNativeApp } from "@/lib/native-bridge"
+import { cancelNativePrayers, requestNativePrayerPermissions, scheduleNativePrayers } from "@/lib/native-prayer"
 import { cambodiaNow, formatMinutes, prayerTimes } from "@/lib/prayer"
 import {
   ADHAN_MAX_BYTES,
@@ -61,8 +63,33 @@ export function PrayerAlertScheduler() {
   // The notification's «🔇 បិទសំឡេង» reaches the app through the service worker.
   useEffect(() => listenForStopAdhan(), [])
 
+  // In the Android app (founder, 20/10/2026): the week's prayers as native alarms with the Adhan channel — they ring
+  // with the screen locked and the app closed. Re-planned at every launch and whenever the place, sound or language
+  // changes; the in-page timer below then stands down (never two Adhans). Off → the alarms are cancelled.
+  const [nativeOn, setNativeOn] = useState(false)
   useEffect(() => {
-    if (!alertsOn) return
+    if (!isNativeApp()) return
+    if (!alertsOn) {
+      setNativeOn(false)
+      void cancelNativePrayers().catch(() => {})
+      return
+    }
+    const { t, location } = latest.current
+    void scheduleNativePrayers({
+      lat: location.lat,
+      lng: location.lng,
+      sound: alertSound,
+      text: (prayer, time) => {
+        const name = t(`prayer.${prayer}` as MessageKey)
+        return { title: `🕌 ${t("prayerAlert.title", { name })}`, body: t("prayerAlert.body", { time, place: location.label }) }
+      },
+    })
+      .then((count) => setNativeOn(count > 0))
+      .catch(() => setNativeOn(false))
+  }, [alertsOn, alertSound, location.lat, location.lng, location.label, t])
+
+  useEffect(() => {
+    if (!alertsOn || nativeOn) return
     const tick = () => {
       const { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults } = latest.current
       const clock = cambodiaNow()
@@ -92,7 +119,7 @@ export function PrayerAlertScheduler() {
       window.clearInterval(id)
       document.removeEventListener("visibilitychange", tick)
     }
-  }, [alertsOn])
+  }, [alertsOn, nativeOn])
 
   return null
 }
@@ -141,6 +168,12 @@ export function PrayerAlertSettings() {
       // The server's prayer push for this phone goes off with the switch (lib/prayer-push.ts).
       void setPrayerPush(false).catch(() => false)
       return setAlerts({ alertsOn: false })
+    }
+    // In the Android app: Android's own notification and exact-alarm permissions (the native Adhan).
+    if (isNativeApp()) {
+      const granted = await requestNativePrayerPermissions().catch(() => false)
+      setAlerts({ alertsOn: true })
+      return void toast.success(t(granted ? "prayerAlert.on" : "prayerAlert.onInApp"))
     }
     let result = permission
     if (result === "default") {
