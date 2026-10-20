@@ -37,7 +37,7 @@ function save(userId: string | undefined, p: QuizProgress) {
 /**
  * «ល្បងប្រាជ្ញាច្បាប់សាសនា (Islamic Quiz Challenge)» on /islamic (founder, 18/10/2026): five questions a day, one at
  * a time; tap an answer → green if right (red on a wrong pick, the right one green), the explanation and its source;
- * the day's score and the streak of days played. /islamic?tab=quiz (the channel's 12:30 button) scrolls here.
+ * the day's score and the streak of days played. /islamic?tab=quiz scrolls here (the quiz is in the app only).
  * Only for Islamic Mode users: hidden otherwise, and /islamic itself shows the locked notice (layout.tsx).
  */
 export function IslamicQuizCard() {

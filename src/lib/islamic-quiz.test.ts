@@ -11,8 +11,6 @@ import {
   progressFor,
   QUIZ_APP_URL,
   QUIZ_SET_SIZE,
-  quizTeaserButtons,
-  quizTeaserHtml,
   scoreOf,
 } from "./islamic-quiz"
 
@@ -83,23 +81,19 @@ describe("In-app quiz — the day's set, the score and the streak", () => {
   })
 })
 
-describe("The channel's 12:30 teaser — a button into the app, no poll", () => {
-  it("[ 🎮 ចូលលេងក្នុងអេបឥឡូវនេះ ] → https://app.luychlat.com/islamic?tab=quiz", () => {
-    assert.deepEqual(quizTeaserButtons(), { inline_keyboard: [[{ text: "🎮 ចូលលេងក្នុងអេបឥឡូវនេះ", url: "https://app.luychlat.com/islamic?tab=quiz" }]] })
-    assert.equal(QUIZ_APP_URL, "https://app.luychlat.com/islamic?tab=quiz")
-  })
-  it("the teaser names today's topics and the first question, short", () => {
-    const html = quizTeaserHtml(D1)
-    assert.ok(html.includes("ល្បងប្រាជ្ញាច្បាប់សាសនា"))
-    assert.ok(html.includes(dailyQuizSet(D1)[0].question))
-    assert.ok(html.length < 900)
-  })
-  it("published as a text message with that button (never sendPoll); the in-app card reads ?tab=quiz", () => {
+describe("The quiz lives in the app only — never in the Telegram channel (founder, 20/10/2026)", () => {
+  it("regression: the 12:30 text teaser (no choices, read as clickbait) is gone — no slot, no kind, no send", async () => {
+    const { ISLAMIC_KINDS, ISLAMIC_SCHEDULE } = await import("@/lib/islamic-channel")
+    assert.ok(!(ISLAMIC_KINDS as readonly string[]).includes("ISLAMIC_QUIZ"))
+    assert.ok(!("ISLAMIC_QUIZ" in ISLAMIC_SCHEDULE))
     const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
-    const quiz = sp.slice(sp.indexOf('if (row.kind === "ISLAMIC_QUIZ") {'), sp.indexOf("if (islamic) {", sp.indexOf('if (row.kind === "ISLAMIC_QUIZ") {')))
-    assert.match(quiz, /"sendMessage"/)
-    assert.match(quiz, /reply_markup: quizTeaserButtons\(\)/)
-    assert.doesNotMatch(sp, /sendPoll/)
+    assert.doesNotMatch(sp, /ISLAMIC_QUIZ|quizTeaser|sendPoll/)
+    const mod = await import("./islamic-quiz")
+    assert.ok(!("quizTeaserHtml" in mod) && !("quizTeaserButtons" in mod))
+    assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270215000000_no_channel_quiz.sql"), "utf8"), /where kind = 'ISLAMIC_QUIZ' and status in \('PENDING', 'APPROVED'\)/)
+  })
+  it("the in-app card: /islamic?tab=quiz scrolls to it, on the Islamic hub", () => {
+    assert.equal(QUIZ_APP_URL, "https://app.luychlat.com/islamic?tab=quiz")
     const card = readFileSync(join(process.cwd(), "src/components/islamic/quiz-card.tsx"), "utf8")
     assert.match(card, /get\("tab"\) === "quiz"/)
     assert.match(readFileSync(join(process.cwd(), "src/app/(app)/islamic/page.tsx"), "utf8"), /<IslamicQuizCard \/>/)

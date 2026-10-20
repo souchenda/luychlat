@@ -45,7 +45,6 @@ import { channelFor, dateOf, isIslamicKind, islamicCaptionHtml, kmDay, islamicPl
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { silPosterContent } from "@/lib/sil-poster"
 import { renderSilPoster, silPosterReady } from "@/lib/server/sil-poster"
-import { quizTeaserButtons, quizTeaserHtml } from "@/lib/islamic-quiz"
 import { dilemmaOfDay, dilemmaPostText } from "@/lib/money-dilemmas"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
@@ -453,9 +452,6 @@ const realDeps = (): SchedulerDeps => ({
       }
       case "ISLAMIC_BULLETIN":
         return { png: null, body: stripHtml((await islamicBulletinNow()) ?? "—") }
-      case "ISLAMIC_QUIZ":
-        // A short teaser with a button into the in-app quiz (no poster).
-        return { png: null, body: stripHtml(quizTeaserHtml(day)) }
       case "ISLAMIC_MORNING":
       case "ISLAMIC_DAILY":
       case "ISLAMIC_JUMUAH":
@@ -498,20 +494,6 @@ const realDeps = (): SchedulerDeps => ({
     const sentText = async (text: string, html: boolean) => {
       const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, text, ...(html ? { parse_mode: "HTML" } : {}), disable_web_page_preview: true, ...buttons })
       return res.ok && res.result ? res.result.message_id : null
-    }
-    if (row.kind === "ISLAMIC_QUIZ") {
-      // The in-app quiz's teaser: a light text with one button into the app (founder, 18/10/2026).
-      if (chat) {
-        const res = await tg<{ message_id: number }>("sendMessage", {
-          chat_id: chat,
-          text: quizTeaserHtml(String(row.payload.day)),
-          parse_mode: "HTML",
-          disable_web_page_preview: true,
-          reply_markup: quizTeaserButtons(),
-        })
-        ids.telegram = res.ok && res.result ? res.result.message_id : null
-      }
-      return ids
     }
     if (row.kind === "NATIONAL_DAY") {
       // The commemoration poster: the community channel and the Page, once approved (founder, 20/10/2026).

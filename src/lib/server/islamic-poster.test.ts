@@ -115,8 +115,7 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     assert.ok(!FAMILIES.includes("Amiri"), FAMILIES)
   })
   it("posters are hooks, captions explain (founder, 18/10/2026): no reading or paragraph on a poster, all of it in the caption", () => {
-    const posters = ISLAMIC_KINDS.filter((k) => k !== "ISLAMIC_QUIZ")
-    for (const kind of posters)
+    for (const kind of ISLAMIC_KINDS)
       for (const d of ["2026-10-18", "2026-10-19", "2026-10-21", "2026-10-23"]) {
         const c = islamicPostContent(kind, d, h(8))
         if (!c.posterLines) continue // the kind is not posted that day (the content still exists)

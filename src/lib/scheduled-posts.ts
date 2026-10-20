@@ -146,7 +146,6 @@ const KIND_LABEL: Record<PostKind, string> = {
   ISLAMIC_DAILY: "ហ៊ីជរី និងមេរៀនហិរញ្ញវត្ថុហាឡាល់",
   ISLAMIC_FAST: "រំលឹកបួសស៊ុណ្ណះ (ច័ន្ទ / ព្រហស្បតិ៍)",
   ISLAMIC_JUMUAH: `${G.JUMUAH} (ថ្ងៃសុក្រ)`,
-  ISLAMIC_QUIZ: "ល្បងប្រាជ្ញាច្បាប់សាសនា (Quiz ក្នុងអេប)",
   ISLAMIC_MORNING: "ឌុអាពេលព្រឹក និងម៉ោងថ្វាយបង្គំ",
   ISLAMIC_IFTAR: `ឌុអា${G.IFTAR}`,
   ISLAMIC_NIGHT: "ឌុអាមុនចូលគេង",

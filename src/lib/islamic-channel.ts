@@ -4,9 +4,12 @@
  *   general  market news, fuel prices, Buddhist holy days (ថ្ងៃសីល), the 07:00 poster…
  *   Islamic  the 24-hour lifecycle (founder, 18/10/2026 — ISLAMIC_SCHEDULE below): 05:30 the waking du'a and
  *            the day's prayer times · 08:00 the Hijri date and a halal-finance lesson · Friday 11:30 Jumu'ah
- *            and Surah Al-Kahf · 12:30 the quiz poll · 17:30 the iftar du'a (Monday / Thursday, all of
+ *            and Surah Al-Kahf · 17:30 the iftar du'a (Monday / Thursday, all of
  *            Ramadan) · Sunday / Wednesday 19:00 tomorrow's sunnah fast · 21:00 the bedtime du'a. Never a
  *            holy-day note.
+ * No quiz in the channel (founder, 20/10/2026 — a text teaser without choices read as clickbait): the Islamic Quiz
+ * Challenge lives only in the app (/islamic?tab=quiz). The channel carries the market bulletin, the halal-finance
+ * lessons and du'as, and official community announcements.
  * Every post is preview-first with the founder's ✅ — the same gate as the general channel (lib/scheduled-posts.ts).
  * Pure (islamic-channel.test.ts).
  */
@@ -17,8 +20,7 @@ import { DUAS, posterMeaning, type Dua } from "@/lib/duas"
 import { ISLAMIC_TIPS, islamicTipOfTheDay } from "@/lib/islamic-tips"
 import { formatMinutes, imsakTime, prayerTimes, PROVINCES } from "@/lib/prayer"
 
-/** ISLAMIC_QUIZ: a Telegram quiz poll (lib/islamic-quiz.ts), not a poster. */
-export const ISLAMIC_KINDS = ["ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_QUIZ", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"] as const
+export const ISLAMIC_KINDS = ["ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"] as const
 export type IslamicKind = (typeof ISLAMIC_KINDS)[number]
 
 export const isIslamicKind = (kind: string): kind is IslamicKind => (ISLAMIC_KINDS as readonly string[]).includes(kind)
@@ -34,18 +36,16 @@ export const ISLAMIC_SCHEDULE = {
   ISLAMIC_MORNING: 5 * 60 + 30, // the waking du'a + the five prayer times (daily)
   ISLAMIC_DAILY: 8 * 60, // the Hijri date + a halal-finance lesson (daily)
   ISLAMIC_JUMUAH: 11 * 60 + 30, // Jumu'ah + Surah Al-Kahf (Friday)
-  ISLAMIC_QUIZ: 12 * 60 + 30, // the quiz poll (daily)
   ISLAMIC_IFTAR: 17 * 60 + 30, // the iftar du'a (fast days: Monday / Thursday, every day of Ramadan)
   ISLAMIC_FAST: 19 * 60, // tomorrow's sunnah fast (Sunday / Wednesday)
   ISLAMIC_NIGHT: 21 * 60, // the bedtime du'a (daily)
 } as const satisfies Record<IslamicKindName, number>
-type IslamicKindName = "ISLAMIC_MORNING" | "ISLAMIC_DAILY" | "ISLAMIC_JUMUAH" | "ISLAMIC_QUIZ" | "ISLAMIC_IFTAR" | "ISLAMIC_FAST" | "ISLAMIC_NIGHT"
+type IslamicKindName = "ISLAMIC_MORNING" | "ISLAMIC_DAILY" | "ISLAMIC_JUMUAH" | "ISLAMIC_IFTAR" | "ISLAMIC_FAST" | "ISLAMIC_NIGHT"
 /** 05:30 is too early for a 04:45 preview: it is previewed the evening before, from 21:30. */
 export const MORNING_PREVIEW_EVENING_MINUTE = 21 * 60 + 30
 export const ISLAMIC_DAILY_MINUTE = ISLAMIC_SCHEDULE.ISLAMIC_DAILY
 export const ISLAMIC_FAST_MINUTE = ISLAMIC_SCHEDULE.ISLAMIC_FAST
 export const ISLAMIC_JUMUAH_MINUTE = ISLAMIC_SCHEDULE.ISLAMIC_JUMUAH
-export const ISLAMIC_QUIZ_MINUTE = ISLAMIC_SCHEDULE.ISLAMIC_QUIZ
 
 export const ISLAMIC_COMMUNITY_URL = "https://t.me/LuyChlatIslamic"
 
@@ -99,7 +99,6 @@ export function islamicPlannedPosts(day: string, hijriOf: (day: string) => Hijri
   }
   if (open(S.ISLAMIC_DAILY)) plan("ISLAMIC_DAILY")
   if (weekday === 5 && open(S.ISLAMIC_JUMUAH)) plan("ISLAMIC_JUMUAH")
-  if (open(S.ISLAMIC_QUIZ)) plan("ISLAMIC_QUIZ")
   if (open(S.ISLAMIC_IFTAR) && isFastDay(day, hijriOf(day))) plan("ISLAMIC_IFTAR")
   // Sunday → Monday's fast, Wednesday → Thursday's.
   if ((weekday === 0 || weekday === 3) && open(S.ISLAMIC_FAST) && sunnahFastTomorrow(hijriOf(addDays(day, 1)))) plan("ISLAMIC_FAST")
@@ -279,10 +278,6 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       posterLines: [posterMeaning(sleep)],
       source: duaSource(sleep.source),
     }
-  }
-  if (kind === "ISLAMIC_QUIZ") {
-    // A poll, not a poster (lib/islamic-quiz.ts); this content only names it.
-    return { kind, ...dated, pill: "Quiz", title: "Quiz ហិរញ្ញវត្ថុហាឡាល់", paragraphs: [], source: { label: "lib/islamic-quiz.ts", url: "https://app.luychlat.com" } }
   }
   if (kind === "ISLAMIC_FAST") {
     // Dated the day it is POSTED (Sunday / Wednesday) and titled for tomorrow's fast (founder, 18/10/2026

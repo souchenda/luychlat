@@ -3,8 +3,8 @@
  * in the app, not a Telegram poll — to bring people back every day). Four answers, one correct, an explanation shown
  * after answering, and the exact source of every fact (Surah:Ayah, or the hadith with its sunnah.com numbering);
  * topics: fasting, Zakat, Salat and halal trade. Five questions a day (the same set for everyone), the day's score
- * and the streak of days played (kept on the device). At 12:30 the channel gets a short teaser with a button into
- * the app. The wording is to be reviewed with a local Imam (as lib/islamic-tips.ts). Pure (islamic-quiz.test.ts).
+ * and the streak of days played (kept on the device). In the app only — never posted to the Telegram channel
+ * (founder, 20/10/2026: the 12:30 text teaser had no choices and read as clickbait). The wording is to be reviewed with a local Imam (as lib/islamic-tips.ts). Pure (islamic-quiz.test.ts).
  */
 import * as G from "@/lib/islamic/glossary"
 
@@ -256,24 +256,6 @@ export function answerQuestion(p: QuizProgress, today: string, set: IslamicQuiz[
 
 export const scoreOf = (p: QuizProgress, set: IslamicQuiz[]) => set.filter((q) => p.answers[q.id] === q.correct).length
 
-// ─── The channel's 12:30 teaser ───────────────────────────────────────────────────────────────────
+// ─── The link into the quiz ──────────────────────────────────────────────────────────────────────
 
 export const QUIZ_APP_URL = "https://app.luychlat.com/islamic?tab=quiz"
-export const QUIZ_BUTTON_TEXT = "🎮 ចូលលេងក្នុងអេបឥឡូវនេះ"
-
-/** A short text (no poll, no poster): today's topics and the first question, then the button into the app. */
-export function quizTeaserHtml(day: string): string {
-  const set = dailyQuizSet(day)
-  const topics = [...new Set(set.map((q) => TOPIC_LABEL[q.topic]))].join(" · ")
-  const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-  return [
-    "🎮 <b>ល្បងប្រាជ្ញាច្បាប់សាសនា ប្រចាំថ្ងៃ</b>",
-    `ប្រធានបទថ្ងៃនេះ៖ ${topics}`,
-    "",
-    `❓ ${esc(set[0].question)}`,
-    "",
-    `ឆ្លើយ ${set.length} សំណួរក្នុងអេប ហើយរក្សាថ្ងៃលេងជាប់ៗគ្នា (Streak) របស់អ្នក!`,
-  ].join("\n")
-}
-
-export const quizTeaserButtons = () => ({ inline_keyboard: [[{ text: QUIZ_BUTTON_TEXT, url: QUIZ_APP_URL }]] })

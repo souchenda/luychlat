@@ -21,17 +21,17 @@ describe("GOLDEN · the Islamic channel's 24-hour schedule", () => {
       ISLAMIC_MORNING: at(5, 30),
       ISLAMIC_DAILY: at(8),
       ISLAMIC_JUMUAH: at(11, 30),
-      ISLAMIC_QUIZ: at(12, 30),
       ISLAMIC_IFTAR: at(17, 30),
       ISLAMIC_FAST: at(19),
       ISLAMIC_NIGHT: at(21),
     })
     assert.equal(MORNING_PREVIEW_EVENING_MINUTE, at(21, 30))
   })
-  it("daily: 05:30 morning du'a, 08:00 lesson, 12:30 quiz, 21:00 bedtime du'a — previewed 45 min before", () => {
+  it("daily: 05:30 morning du'a, 08:00 lesson, 21:00 bedtime du'a — previewed 45 min before", () => {
     assert.ok(kinds("2026-10-20", at(4, 45)).includes("ISLAMIC_MORNING:2026-10-20"))
     assert.ok(kinds("2026-10-20", at(7, 15)).includes("ISLAMIC_DAILY:2026-10-20"))
-    assert.ok(kinds("2026-10-20", at(11, 45)).includes("ISLAMIC_QUIZ:2026-10-20"))
+    // No quiz in the channel (founder, 20/10/2026 — a teaser without choices read as clickbait): the app only.
+    for (let m = 0; m < 24 * 60; m += 15) assert.ok(!kinds("2026-10-20", m).some((k) => k.startsWith("ISLAMIC_QUIZ")), String(m))
     assert.ok(kinds("2026-10-20", at(20, 15)).includes("ISLAMIC_NIGHT:2026-10-20"))
     assert.ok(!kinds("2026-10-20", at(20, 14)).includes("ISLAMIC_NIGHT:2026-10-20")) // not before its preview time
   })
