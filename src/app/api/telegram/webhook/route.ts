@@ -51,6 +51,7 @@ import { handlePlaceReviewCallback, isPlaceReviewCallback } from "@/lib/server/p
 import { handleApproverCommand, isApproverCommand } from "@/lib/server/co-approvers"
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
+import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink } from "@/lib/bot/gate"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -313,6 +314,32 @@ async function soon(callbackId: string, lang: Locale) {
   await tg("answerCallbackQuery", { callback_query_id: callbackId, text: tr(lang, "bot.featureSoon").slice(0, 190), show_alert: true })
 }
 
+/**
+ * The members-only gate (founder, 20/10/2026 — lib/bot/gate.ts): in a private chat, true when the chat is NOT linked
+ * to an «អេប លុយឆ្លាត» account — the polite note (or the button's alert) was sent and nothing else may run. The app's
+ * deep links pass; a failed lookup sends nothing and does nothing; admins' chats always pass. Never throws.
+ */
+async function gated(chat: { id: number; type: string } | undefined, opts: { text?: string | null; contact?: boolean; name?: string; callbackId?: string }): Promise<boolean> {
+  if (!chat || chat.type !== "private") return false
+  try {
+    // A deep link from the app (or the reset contact): through without asking the database.
+    if (isAppDeepLink(opts.text) || opts.contact) return false
+    const ctx = await botContext(chat.id)
+    const decision = gateDecision({ chatType: chat.type, text: opts.text, contact: opts.contact, linked: ctx ? ctx.linked : null })
+    if (decision === "pass") return false
+    if (decision === "gate" && (await isAdminChat(chat.id))) return false
+    if (decision === "quiet") {
+      logEvent("warn", "bot-gate", "Bot context lookup failed — the message was not handled", { fold: true })
+      return true
+    }
+    if (opts.callbackId) await tg("answerCallbackQuery", { callback_query_id: opts.callbackId, text: GATE_ALERT, show_alert: true })
+    else await sendText(chat.id, gateMessage(opts.name), { reply_markup: gateKeyboard() })
+    return true
+  } catch {
+    return true // never a crash or an error text; nothing processed
+  }
+}
+
 export async function POST(request: Request) {
   if (!sameSecret(request.headers.get("x-telegram-bot-api-secret-token"), webhookSecret())) {
     // Someone other than Telegram (or an old secret) calling the webhook.
@@ -336,6 +363,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
   if (update.callback_query) {
+    // Members only in a private chat (groups — LCA Approval, pools — are never gated).
+    const cb = update.callback_query
+    if (await gated(cb.message?.chat, { callbackId: cb.id })) return NextResponse.json({ ok: true })
     if (isAtmReportCallback(update.callback_query.data)) {
       await handleAtmReportCallback(update.callback_query)
     } else if (isGiftCallback(update.callback_query.data)) {
@@ -390,7 +420,8 @@ export async function POST(request: Request) {
     }
     // An approver's reply to a waiting post's card: its new caption, the card redrawn in place (founder, 20/10/2026).
     if (message.text && message.reply_to_message?.from?.is_bot) {
-      const editor = [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ").trim() || (message.from?.username ? `@${message.from.username}` : "")
+      // @username first (the founder's «បានកែសម្រួលដោយ @username»), else the name.
+      const editor = message.from?.username ? `@${message.from.username}` : [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ").trim()
       if (await editCardByReply(message.chat.id, message.reply_to_message.message_id, message.from?.id, editor, message.text)) return NextResponse.json({ ok: true })
     }
     const fileId = bestPhoto(message.photo)
@@ -404,6 +435,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
   if (!message || message.chat.type !== "private") return NextResponse.json({ ok: true })
+  // Members only (founder, 20/10/2026): an unlinked chat gets the polite note and the sign-up button — no slip reading,
+  // no logging, no commands. The app's deep links (/start <link code>, /start reset_…, the reset contact) pass.
+  if (await gated(message.chat, { text: message.text, contact: Boolean(message.contact), name: message.from?.first_name })) return NextResponse.json({ ok: true })
 
   // A du'a recording from the super admin (/setdua, or an audio file then the du'a's button) — anything else goes on.
   const duaFile: DuaIncoming | null = message.audio

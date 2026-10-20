@@ -783,10 +783,10 @@ const islamicNationalDay = (row: { kind: string; payload: Record<string, unknown
 /** The posts whose caption carries the standard footer (lib/post-footer.ts — not commemorations, Sil days or feeds). */
 const FOOTER_KINDS = new Set<string>(["MORNING", "HOLIDAY", "EVENING", "DILEMMA", "ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"])
 
-/** «✏️ កែអត្ថបទដោយ៖ 👤 {name} · ⏰ {time}» under an edited caption on the card. */
+/** «(✏️ បានកែសម្រួលដោយ @username ម៉ោង HH:mm)» under an edited caption on the card — the founder's wording. */
 function editedLine(row: PostRow): string {
   const at = row.payload.caption_at ? kmClock(String(row.payload.caption_at)) : ""
-  return `✏️ កែអត្ថបទដោយ៖ 👤 ${row.payload.caption_by || "—"}${at ? ` · ⏰ ${at}` : ""}`
+  return `(✏️ បានកែសម្រួលដោយ ${row.payload.caption_by || "អ្នកអនុម័ត"}${at ? ` ម៉ោង ${at}` : ""})`
 }
 
 /**

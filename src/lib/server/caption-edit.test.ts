@@ -24,7 +24,8 @@ describe("Editing a waiting post's caption by replying to its card (founder, 20/
   })
   it("the card shows the new caption and who edited it; it is redrawn in place", () => {
     assert.match(sp, /const body = row\.payload\.caption \? `\$\{row\.payload\.caption\}\\n\\n\$\{editedLine\(row\)\}` : content\.body/)
-    assert.match(sp, /return `✏️ កែអត្ថបទដោយ៖ 👤 \$\{row\.payload\.caption_by \|\| "—"\}/)
+    assert.match(sp, /return `\(✏️ បានកែសម្រួលដោយ \$\{row\.payload\.caption_by \|\| "អ្នកអនុម័ត"\}\$\{at \? ` ម៉ោង \$\{at\}` : ""\}\)`/)
+    assert.match(read("src/app/api/telegram/webhook/route.ts"), /const editor = message\.from\?\.username \? `@\$\{message\.from\.username\}` :/)
     assert.match(sp, /await real\(\)\.refresh\(row\)/)
   })
   it("published with the edited caption — its own poster, its channel (Islamic kept apart), the Page as usual, the footer", () => {
