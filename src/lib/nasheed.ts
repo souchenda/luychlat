@@ -15,8 +15,8 @@ export type SubmissionInput = {
   title: string
   artist: string
   file: { name: string; size: number; type: string } | null
+  /** The one confirmation (founder, 20/10/2026): an authentic Islamic qasidah / nasheed, nothing contrary to the faith. */
   authentic: boolean
-  rights: boolean
 }
 
 export type SubmissionError = "nasheed.titleRequired" | "nasheed.artistRequired" | "nasheed.fileRequired" | "nasheed.tooBig" | "nasheed.notAudio" | "nasheed.confirmRequired"
@@ -28,7 +28,7 @@ export function submissionError(v: SubmissionInput): SubmissionError | null {
   if (!v.file) return "nasheed.fileRequired"
   if (v.file.size > SUBMIT_MAX_BYTES) return "nasheed.tooBig"
   if (!submissionExt(v.file)) return "nasheed.notAudio"
-  if (!v.authentic || !v.rights) return "nasheed.confirmRequired"
+  if (!v.authentic) return "nasheed.confirmRequired"
   return null
 }
 
@@ -99,7 +99,7 @@ export function reviewCaption(v: { title: string; artist: string; submitter: str
     `🎤 អ្នកច្រៀង / ក្រុម៖ ${esc(v.artist)}`,
     `👤 អ្នកចែករំលែក៖ ${esc(v.submitter)}`,
     "",
-    "អ្នកចែករំលែកបានបញ្ជាក់ថា ជាបទកសាដះ / ណាស្សីដឥស្លាមពិតប្រាកដ ហើយជាសំឡេងថតផ្ទាល់ខ្លួន ឬមានការអនុញ្ញាតឱ្យចែករំលែក។",
+    "អ្នកចែករំលែកបានបញ្ជាក់ថា ជាបទកសាដះ / ណាស្សីដឥស្លាមពិតប្រាកដ គ្មានខ្លឹមសារខុសឆ្គង។ ចែករំលែកដើម្បីស្តាប់ក្នុងសហគមន៍ដោយមិនរកប្រាក់ចំណេញ — លុបចេញភ្លាមៗ បើម្ចាស់កម្មសិទ្ធិស្នើសុំ។",
     v.state === "PENDING" ? "សូមស្ដាប់មុននឹងអនុម័ត — មិនទាន់មានអ្នកណាឃើញទេ។" : "",
   ]
     .filter((line, i, all) => line || i < all.length - 1)

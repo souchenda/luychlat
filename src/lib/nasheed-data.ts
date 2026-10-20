@@ -95,7 +95,7 @@ export function useToggleNasheedLike() {
   })
 }
 
-export type SubmitInput = { title: string; artist: string; file: File; authentic: boolean; rights: boolean }
+export type SubmitInput = { title: string; artist: string; file: File; authentic: boolean }
 
 /** «📤 ចែករំលែកបទកសាដះ»: the file to the member's private folder, then the server records it and alerts the founder. */
 export function useSubmitNasheed() {
@@ -112,7 +112,7 @@ export function useSubmitNasheed() {
       const res = await fetch("/api/nasheed/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: v.title, artist: v.artist, path, authentic: v.authentic, rights: v.rights }),
+        body: JSON.stringify({ title: v.title, artist: v.artist, path, authentic: v.authentic }),
       })
       if (!res.ok) {
         await db().storage.from(SUBMISSIONS_BUCKET).remove([path])

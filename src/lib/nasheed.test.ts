@@ -6,7 +6,7 @@ import { describe, it } from "node:test"
 import { audioSrc, parseNasheedCallback, rankTracks, reviewButtons, reviewCaption, SUBMIT_MAX_BYTES, submissionError, submissionExt, submissionPath } from "./nasheed"
 
 const ID = "0b9f3c3e-1d2a-4c5b-9e8f-7a6b5c4d3e2f"
-const ok = { title: "សូឡាវ៉ាត់", artist: "ក្រុមកសាដះ", file: { name: "a.mp3", size: 3_000_000, type: "audio/mpeg" }, authentic: true, rights: true }
+const ok = { title: "សូឡាវ៉ាត់", artist: "ក្រុមកសាដះ", file: { name: "a.mp3", size: 3_000_000, type: "audio/mpeg" }, authentic: true }
 const sql = () => readFileSync(join(process.cwd(), "supabase/migrations/20270172000000_nasheed_community.sql"), "utf8")
 
 describe("Community qasidah — what a member may send", () => {
@@ -18,7 +18,7 @@ describe("Community qasidah — what a member may send", () => {
     assert.equal(submissionError({ ...ok, file: { ...ok.file, size: SUBMIT_MAX_BYTES + 1 } }), "nasheed.tooBig")
     assert.equal(submissionError({ ...ok, file: { name: "a.wav", size: 10, type: "audio/wav" } }), "nasheed.notAudio")
     assert.equal(submissionError({ ...ok, authentic: false }), "nasheed.confirmRequired")
-    assert.equal(submissionError({ ...ok, rights: false }), "nasheed.confirmRequired")
+    assert.equal(submissionError({ title: "x", artist: "y", file: ok.file, authentic: true }), null) // the one confirmation is enough (20/10/2026)
   })
   it("the extension comes from the type, or the name when the phone gives none", () => {
     assert.equal(submissionExt({ name: "x.bin", type: "audio/x-m4a" }), "m4a")
@@ -42,7 +42,11 @@ describe("Community qasidah — never public before the founder's ✅", () => {
     assert.match(s, /\(storage\.foldername\(name\)\)\[1\] = auth\.uid\(\)::text/)
     assert.match(s, /using \(\(active and status = 'APPROVED'\) or submitted_by = auth\.uid\(\) or public\.is_super_admin\(\)\)/)
     assert.match(s, /'PENDING', me, me, 100/)
-    assert.match(s, /if not coalesce\(p_authentic, false\) or not coalesce\(p_rights, false\) then raise exception 'confirmations required'/)
+    // One confirmation since 20/10/2026 (authentic Islamic content; non-commercial sharing under notice & take-down).
+    const now = readFileSync(join(process.cwd(), "supabase/migrations/20270204000000_nasheed_single_confirmation.sql"), "utf8")
+    assert.match(now, /if not coalesce\(p_authentic, false\) then raise exception 'confirmation required'/)
+    assert.doesNotMatch(now, /coalesce\(p_rights/)
+    assert.match(now, /p_path !~ '\^\[0-9a-f-\]\{36\}\/\[0-9a-f-\]\{36\}\\.\(mp3\|m4a\|aac\)\$'/)
   })
   it("only a super admin's chat can approve or reject, and only once", () => {
     const s = sql()
@@ -107,7 +111,7 @@ describe("Qasidah upload — a file named in Arabic (founder, 19/10/2026: such a
     assert.equal(submissionExt({ name: "صورة.jpg", type: "" }), null)
   })
   it("passes validation with every field filled", () => {
-    assert.equal(submissionError({ title: "អាល់ហាំឌូលិលឡាហ៍", artist: "ក្រុម El Mafaz", file: { name: arabic, size: 4_800_000, type: "application/octet-stream" }, authentic: true, rights: true }), null)
+    assert.equal(submissionError({ title: "អាល់ហាំឌូលិលឡាហ៍", artist: "ក្រុម El Mafaz", file: { name: arabic, size: 4_800_000, type: "application/octet-stream" }, authentic: true }), null)
   })
   it("is stored under a random UUID in the member's folder — never its own name — the path the database accepts", () => {
     const user = "6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b"
@@ -126,7 +130,7 @@ describe("Qasidah upload — a file named in Arabic (founder, 19/10/2026: such a
     assert.equal(dictionaries.km["nasheed.titleRequired"], "សូមបញ្ចូលចំណងជើងបទកសាដះ")
     assert.equal(dictionaries.km["nasheed.artistRequired"], "សូមបញ្ចូលឈ្មោះអ្នកច្រៀង ឬក្រុមចម្រៀង")
     assert.equal(dictionaries.km["nasheed.fileRequired"], "សូមជ្រើសរើសឯកសារសំឡេង MP3 ឬ M4A")
-    assert.equal(dictionaries.km["nasheed.confirmRequired"], "សូមធីកយល់ព្រមលើលក្ខខណ្ឌទាំងពីរ")
+    assert.equal(dictionaries.km["nasheed.confirmRequired"], "សូមធីកបញ្ជាក់ថា នេះជាបទកសាដះ ឬណាស្សីដឥស្លាមពិតប្រាកដ")
     assert.equal(dictionaries.km["nasheed.tooMany"], "អ្នកមានបទចំនួន ៣ កំពុងរង់ចាំការអនុម័តរួចហើយ")
   })
 })
@@ -141,14 +145,19 @@ describe("Yerny's «Hulum Takhrij» upload (founder, 20/10/2026)", () => {
     assert.doesNotMatch(path, /[^\x20-\x7e]/) // ASCII only
     assert.match(sql(), /p_path !~ '\^\[0-9a-f-\]\{36\}\/\[0-9a-f-\]\{36\}\\.\(mp3\|m4a\|aac\)\$'/)
   })
-  it("one box unticked: the reason stays under the boxes in red, the box outlined — not only a passing toast", async () => {
+  it("one confirmation only — no «I recorded it / have permission» box; unticked: red under it, not only a toast", async () => {
     const { dictionaries } = await import("./i18n/dictionaries")
-    assert.equal(submissionError({ ...ok, file: arabic, rights: false }), "nasheed.confirmRequired")
-    assert.equal(dictionaries.km["nasheed.confirmRequired"], "សូមធីកយល់ព្រមលើលក្ខខណ្ឌទាំងពីរ")
+    assert.equal(submissionError({ ...ok, file: arabic }), null) // Yerny's file, with the one confirmation
+    assert.equal(submissionError({ ...ok, file: arabic, authentic: false }), "nasheed.confirmRequired")
+    assert.equal(dictionaries.km["nasheed.confirmAuthentic"], "ខ្ញុំបញ្ជាក់ថា នេះជាបទកសាដះ ឬណាស្សីដឥស្លាមពិតប្រាកដ (គ្មានខ្លឹមសារខុសឆ្គង)")
+    assert.ok(!("nasheed.confirmRights" in dictionaries.km))
+    assert.match(dictionaries.km["nasheed.disclaimer"], /ដោយមិនរកប្រាក់ចំណេញ.+\(Notice & Take-down Policy\)។$/)
     const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/nasheed/page.tsx"), "utf8")
-    assert.match(page, /const missingConfirm = tried && !\(authentic && rights\)/)
+    assert.doesNotMatch(page, /s-rights|confirmRights/)
+    assert.match(page, /const missingConfirm = tried && !authentic/)
     assert.match(page, /role="alert" className="text-sm font-medium text-destructive" data-testid="nasheed-confirm-error"/)
-    assert.match(page, /tried && !checked && "ring-2 ring-destructive"/)
+    assert.match(page, /data-testid="nasheed-disclaimer"/)
+    assert.doesNotMatch(readFileSync(join(process.cwd(), "src/lib/nasheed-data.ts"), "utf8"), /rights: v\.rights/)
   })
   it("any signed-in member (a content admin too) may upload into their own folder; nobody else's", () => {
     const s = sql()

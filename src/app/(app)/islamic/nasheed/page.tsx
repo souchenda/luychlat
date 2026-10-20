@@ -180,19 +180,18 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
   const [artist, setArtist] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [authentic, setAuthentic] = useState(false)
-  const [rights, setRights] = useState(false)
-  // Tapped «send» without both confirmations (founder, 20/10/2026 — Yerny's upload stopped silently): the unticked box
-  // turns red and the reason stays under them, not only in a passing toast.
+  // Tapped «send» without the confirmation (founder, 20/10/2026 — Yerny's upload stopped silently): the box turns red
+  // and the reason stays under it, not only in a passing toast.
   const [tried, setTried] = useState(false)
-  const missingConfirm = tried && !(authentic && rights)
+  const missingConfirm = tried && !authentic
 
   const send = (e: React.FormEvent) => {
     e.preventDefault()
     setTried(true)
-    const problem = submissionError({ title, artist, file, authentic, rights })
+    const problem = submissionError({ title, artist, file, authentic })
     if (problem || !file) return void toast.error(t(problem ?? "nasheed.fileRequired"))
     submit.mutate(
-      { title: title.trim(), artist: artist.trim(), file, authentic, rights },
+      { title: title.trim(), artist: artist.trim(), file, authentic },
       {
         onSuccess: () => {
           toast.success(submittedThanks(islamic), { duration: 8_000 })
@@ -200,7 +199,6 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
           setArtist("")
           setFile(null)
           setAuthentic(false)
-          setRights(false)
           setTried(false)
           onOpenChange(false)
         },
@@ -234,12 +232,15 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
           <Input id="s-file" type="file" accept="audio/mpeg,audio/mp4,audio/aac,audio/x-m4a,.mp3,.m4a,.aac" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="h-11" />
         </div>
         {check("s-authentic", authentic, setAuthentic, t("nasheed.confirmAuthentic"))}
-        {check("s-rights", rights, setRights, t("nasheed.confirmRights"))}
         {missingConfirm && (
           <p role="alert" className="text-sm font-medium text-destructive" data-testid="nasheed-confirm-error">
             {t("nasheed.confirmRequired")}
           </p>
         )}
+        {/* Shared to listen together, not for profit; removed at once on the owner's request (founder, 20/10/2026). */}
+        <p className="text-xs text-muted-foreground" data-testid="nasheed-disclaimer">
+          {t("nasheed.disclaimer")}
+        </p>
         <Button type="submit" className="h-11 w-full" disabled={submit.isPending}>
           {submit.isPending && <Loader2Icon className="animate-spin" />}
           {t("nasheed.send")}

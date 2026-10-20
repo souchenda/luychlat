@@ -42,6 +42,10 @@ use come before feature count: no half-baked features, broken links or untested 
   `/opt/luysmart/.env` only while `/tmp/luysmart-deploy.lock` is free.
 - **Licensing:** only licensed services and assets (no Edge-TTS or other unofficial endpoints; Khmer
   SoundBox clips via Azure AI Speech or Google Cloud TTS — `scripts/soundbox-khmer-tts.mjs`).
+  **Exception — community qasidah (founder, 20/10/2026):** members may share nasheeds they found, for non-commercial
+  listening in the community, under Notice & Take-down: one confirmation (authentic Islamic content), the founder's ✅
+  before anything is public, and removal at once when an original owner asks. The app's own assets (Adhans, du'as,
+  posters, reels, voices) stay licensed-only.
 
 ## Regression Prevention Protocol — mandatory (founder, 14/10/2026)
 
