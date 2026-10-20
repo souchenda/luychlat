@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 20/10/2026 · 17:45 (Cambodia time)
+**Last updated:** 20/10/2026 · 23:45 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -10,8 +10,11 @@ dropped between sessions. The founder reviews it every evening.
 - `[x]` done and live on app.luychlat.com · `[/]` in progress or pushed, awaiting deploy · `[ ]` agreed, not started.
 - Each item ends with its commit(s) in brackets, checked against `git log`. An item is ticked only once it is live.
 - New requests are added the day they are agreed; nothing is deleted — a dropped item is struck through with the reason.
-- An open item that is blocked ends with «⛔ reason» in Khmer — the founder's nightly Daily Task Scorecard shows it
-  (src/lib/roadmap-scorecard.ts): completed = `[x]` naming a commit deployed today; stuck = open with today's commit or a «⛔».
+- An open item that waits on someone ends with «⛔ <owner> <next step>» in Khmer — the owner is one of 🟢 (live, the founder
+  tests) · 🟡 (the founder acts or approves) · ⏳ (someone outside: an Imam, a recording, a licence) · ⚙️ (engineering),
+  then the one next step, e.g. «⛔ 🟡 ចុច ✅ លើកាត #833». The nightly report groups and numbers them by owner
+  (CLAUDE.md › Reporting Standards; src/lib/roadmap-scorecard.ts): completed = `[x]` naming a commit deployed today;
+  pending = open with today's commit or a «⛔».
 - Update the **Last updated** line on every change.
 
 ---
@@ -30,21 +33,23 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Iftar du'a in natural Khmer with clear phonetics — du'a library, hub card, channel caption, poster (beb9a16)
 - [x] Du'a library vetted in one pass — 14 du'as, hyphenated readings, poster meanings without parentheses, notes only in captions; new: entering / leaving the mosque, travel, the fasting intention, distress (77d67ad, 047c64f)
 - [x] Halal provision (Ibn Majah 925), worry & debt (Bukhari 2893, Arabic corrected), both worlds (2:201) in the vetted style (7f02e42)
-- [ ] Hadith texts in the Islamic lessons and tips: review for word-for-word Khmer ⛔ រង់ចាំការពិនិត្យពីអ៊ីម៉ាំ
+- [ ] Hadith texts in the Islamic lessons and tips: review for word-for-word Khmer ⛔ ⏳ អ៊ីម៉ាំពិនិត្យអត្ថបទហាឌីសជាភាសាខ្មែរពាក្យដោយពាក្យ
 - [x] Hajj & Umrah savings planner «ផែនការសន្សំសម្រាប់ធ្វើរូកូន» — calculator & 1-tap savings goal (1c0d49c)
 - [x] Islamic thank-you to Yerny for the approved Kampot surau — Telegram and in-app, sent 19/10/2026 19:52 (eebe7d1)
 - [x] Admin publishes an Adhan for everyone or keeps it on the device (295b194)
 - [x] App-wide default Adhans (regular and Fajr), one tap per track in the prayer settings and the /admin Adhan manager (dd8be5a)
 - [x] «⬆️ បង្ហោះ និងកំណត់ជាសកល» — publish the phone's Adhan file and make it the default in one go (450e5e1)
 - [x] Set the first global default Adhan — «អាហ្សានផ្លូវការ អេប លុយឆ្លាត» (19/10/2026), the regular and Fajr default
-- [ ] Du'a recordings: none uploaded yet (card «📤 បញ្ចូលសំឡេង» or /setdua) ⛔ រង់ចាំការថតសំឡេងឌុអាពីអេដមីន
-- [ ] Kuwait Adhan (Sheikh Ahmad Al-Trabulsi) for everyone — needs the founder's publishing permission / licence first ⛔ រង់ចាំការអនុញ្ញាត / អាជ្ញាប័ណ្ណ
-- [ ] Bitesize lessons screen — 8 lessons written (a0ffcd7), each needs a local Imam's / teacher's review before it shows ⛔ រង់ចាំការពិនិត្យពីអ៊ីម៉ាំ
+- [ ] Du'a recordings: none uploaded yet (card «📤 បញ្ចូលសំឡេង» or /setdua) ⛔ ⏳ អេដមីនថតសំឡេងឌុអា ហើយបញ្ចូលតាម /setdua
+- [ ] Kuwait Adhan (Sheikh Ahmad Al-Trabulsi) for everyone — needs the founder's publishing permission / licence first ⛔ 🟡 សម្រេចថាស្នើសុំអាជ្ញាប័ណ្ណ ឬបោះបង់អាហ្សានគុយវ៉ែត
+- [ ] Bitesize lessons screen — 8 lessons written (a0ffcd7), each needs a local Imam's / teacher's review before it shows ⛔ ⏳ អ៊ីម៉ាំ ឬគ្រូពិនិត្យមេរៀនទាំង ៨
 - [ ] Fiqh reference assistant screen — the guarded back end is live (a0ffcd7)
-- [/] The founder's du'a texts vs the app's: after eating decided (Sunan Abi Dawud 3850), before eating rewritten; worry / debt still open ⛔ រង់ចាំស្ថាបនិកសម្រេចអត្ថបទឌុអា ទុក្ខ និងបំណុល
-- [/] Telegram bot audio Adhan alert — /adhan on | off and the switch under Settings › bot prayer alerts; the app-wide default Adhan with prayer, time and place (Telegram's own notification sound rings on a locked iPhone; the Adhan plays on a tap) ⛔ រង់ចាំគ្រួសារបើក /adhan on — តេស្តអាហ្សានបានដល់ទូរស័ព្ទទាំង ៣ ហើយ (20/10)
-- [/] Prayer-time web push for Islamic Mode members (Android rings with the app closed) and counts in the prayer-alert log (949fd3e)
-- [/] Native Adhan in the Android app — exact-minute alarms on the «Prayer Times Adhan» channel, screen locked, app closed (f88008f) ⛔ រង់ចាំការសាងសង់ APK 1.2 (deploy/build-apk.sh)
+- [/] The founder's du'a texts vs the app's: after eating decided (Sunan Abi Dawud 3850), before eating rewritten; worry / debt still open ⛔ 🟡 ជ្រើសអត្ថបទឌុអាពេលព្រួយបារម្ភ និងពេលជំពាក់បំណុល
+- [/] Telegram bot audio Adhan alert — /adhan on | off and the switch under Settings › bot prayer alerts; the app-wide default Adhan with prayer, time and place (Telegram's own notification sound rings on a locked iPhone; the Adhan plays on a tap) ⛔ 🟢 គ្រួសារបើក /adhan on ហើយបញ្ជាក់ថាឮអាហ្សាន (តេស្តបានដល់ទូរស័ព្ទទាំង ៣ ហើយ 20/10)
+- [/] Prayer-time web push for Islamic Mode members (Android rings with the app closed) and counts in the prayer-alert log (949fd3e) ⛔ 🟢 បើកការជូនដំណឹងម៉ោងសឡាតលើទូរស័ព្ទ Android ហើយបញ្ជាក់ថារោទ៍ពេលបិទអេប
+- [/] Native Adhan in the Android app — exact-minute alarms on the «Prayer Times Adhan» channel, screen locked, app closed (f88008f); APK 1.3 built and live at /LuyChlat.apk on 20/10 ⛔ 🟢 ដំឡើង APK 1.3 ពី app.luychlat.com/LuyChlat.apk ហើយសាកអាហ្សានពេលបិទអេប
+- [x] The Android app offer on the prayer page — to hear the Adhan with the screen locked (677781d)
+- [/] Bedtime du'a reading joins the kaf to the lam — «ប៊ីស-មី-កល់-ឡ-ហ៊ុម្ម៉ា …» (9037204) ⛔ 🟡 ចុច ✅ លើកាត #860 ក្នុង «LCA Approval»
 - [x] Place suggestions with a photo — the approval card is the photo; the directory shows it (0264ca3)
 - [x] Halal finance lesson posters: the principle and its money takeaway on every one of the 14 (a730c5f); today's lesson 13 replaced (c5c9d4c)
 
@@ -68,8 +73,11 @@ dropped between sessions. The founder reviews it every evening.
 - [x] REPLACE OLD WITH NEW — an improved version of today's published post is offered with 🔄 and replaces the old one (c5c9d4c)
 - [x] Reports (nightly card, morning briefing, end-of-day, fuel sync, new members) to the founder's private chat only — «LCA Approval» stays an approval queue (7f02e42)
 - [x] Toasts below the iPhone notch / Dynamic Island (4a2c4cd)
-- [/] A note typed after a slip or entry attaches to it (5 minutes, or a reply to the card); its words set the category and «👶 សម្រាប់កូន»; [📝 បន្ថែមចំណាំ] on the slip card (1458070, 41b35c1)
+- [/] A note typed after a slip or entry attaches to it (5 minutes, or a reply to the card); its words set the category and «👶 សម្រាប់កូន»; [📝 បន្ថែមចំណាំ] on the slip card (1458070, 41b35c1) ⛔ 🟢 ផ្ញើស្លីបមួយ រួចវាយចំណាំក្នុង ៥ នាទី ហើយមើលថាវាភ្ជាប់
 - [/] Daily Task Scorecard in the founder's nightly report — completed and stuck items with their reasons, from ROADMAP.md and today's deploys
+- [/] Edit a waiting post's caption by replying to its card in «LCA Approval» — «(✏️ បានកែសម្រួលដោយ @username ម៉ោង …)» (f19e266, e297385) ⛔ 🟢 Reply លើកាតមួយ ដើម្បីសាកកែអត្ថបទ
+- [/] The bot is for members only — an unlinked private chat gets the polite note and [ 📱 បង្កើតគណនីឥតគិតថ្លៃ ]; no admin bypass; the cold «not linked» text gone (e297385, fcc6987) ⛔ 🟢 សាកពី Telegram ដែលមិនទាន់ភ្ជាប់ ហើយបញ្ជាក់
+- [/] The Reporting Standard — ✅ key accomplishments on top, pending work numbered in four owner sections with [សកម្មភាព៖ …], never truncated (CLAUDE.md › Reporting Standards) ⛔ 🟢 វាយ /report ក្នុងឆាតឯកជនជាមួយបូត ដើម្បីមើលទម្រង់ថ្មី
 - [x] Approver name, @username and time on every post card after ✅ / 🚀 / ❌; per-approver counts (Staff Performance) in the founder's nightly card
 
 ## 3. 🎨 ផ្ទាំងផ្សព្វផ្សាយ & មាតិកា (Media & Posters)
@@ -78,24 +86,25 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Islamic minimalist poster engine (0c43fa7, 9c3fb09)
 - [x] Full poster audit: no parentheses on any graphic, explanations only in captions; datelines «… · ត្រូវនឹង …», Imsak / Iftar cards, footer, 10 tip / lesson lines rephrased; a test guards every poster text (50cf16b)
 - [x] Relatable comedy short video — Reel Ep 01 DRAFT (7e79b67, b947834)
-- [ ] Reel voices: Azure AI Speech key on the Droplet (the founder declined Azure for the du'as; reels still need a licensed voice) ⛔ រង់ចាំ Key សំឡេងមានអាជ្ញាប័ណ្ណ
-- [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E) ⛔ រង់ចាំឯកសារដើមពីស្ថាបនិក
+- [ ] Reel voices: Azure AI Speech key on the Droplet (the founder declined Azure for the du'as; reels still need a licensed voice) ⛔ 🟡 បញ្ចូល Key សំឡេងមានអាជ្ញាប័ណ្ណតាម Droplet console
+- [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E) ⛔ 🟡 ផ្ញើឯកសារដើម Mascot ≥ 1024 px, Logo និង Cover របស់ Page
 - [x] **Master Brand & Visual Design System** — `docs/BRAND_DESIGN_SYSTEM.md`, the permanent design foundation for every poster: the four pillars, royal protocol (verbatim table), Islamic terminology and two-tier colours, Sil days and festivals, daily education, the pre-flight four-layer checklist; referenced in CLAUDE.md. Evolves only on the founder's decisions (its change log)
-- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder) ⛔ រង់ចាំស្ថាបនិកអនុម័តកាត #833
-- [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 05:00 on 29/10 only after a tap (the card names the day) ⛔ រង់ចាំស្ថាបនិកចុច ✅ លើកាត #833
+- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder) ⛔ 🟡 ចុច ✅ លើកាត #833 ក្នុង «LCA Approval»
+- [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 05:00 on 29/10 only after a tap (the card names the day) ⛔ 🟡 ចុច ✅ លើកាត #833 (ផ្សាយ ០៥:០០ ថ្ងៃ ២៩ តុលា)
 - [x] National and royal holidays at 05:00; the approval card and its ✅ name the day «ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក» (811c2b1)
-- [/] All-inclusive holiday engine — national, Islamic, Chinese, global — every one at 05:00 (1de372a)
-- [/] Strict religious separation of the channels — constitutional, golden test (87b384b)
+- [/] All-inclusive holiday engine — national, Islamic, Chinese, global — every one at 05:00 (1de372a) ⛔ 🟢 ពិនិត្យកាតបុណ្យបន្ទាប់ក្នុង «LCA Approval» ថាឈ្មោះថ្ងៃ និងម៉ោង ០៥:០០ ត្រឹមត្រូវ
+- [x] Strict religious separation of the channels — constitutional, golden test (87b384b)
+- [x] The standard post footer — app links, the community and hashtags (the Charge+ format) (c20c09a)
 - [ ] 09/11 Independence Day — preview 07/11 08:00; text design until the founder provides an official portrait of the King Father
 - [ ] Water Festival (dates from the official sub-decree) — preview 48 h before at 08:00
-- [ ] Official portraits of the King Father (15/10, 09/11) and the Queen Mother (18/06), from the founder ⛔ រង់ចាំរូបផ្លូវការពីស្ថាបនិក
+- [ ] Official portraits of the King Father (15/10, 09/11) and the Queen Mother (18/06), from the founder ⛔ 🟡 ផ្ញើព្រះឆាយាលក្ខណ៍ផ្លូវការ HD នៃព្រះវររាជបិតា និងព្រះវររាជមាតា
 
 ## 4. 💰 ហិរញ្ញវត្ថុ & ការទូទាត់ស្នូល (Core App & DL MEAT SUPPLY)
 
 - [x] Bank slip auto-matching for DL MEAT SUPPLY ABA USD (3de602d)
 - [x] Droplet disk space maintenance (38 GB free at the time)
 - [x] Disk: Docker builder cache pruned — 43 GB reclaimed, 58 GB free (25 % used, 19/10/2026 21:00)
-- [/] Disk: weekly Docker clean-up, Sundays 02:00 — week-old build cache and dangling images, logged to /var/log/luysmart-prune.log (deploy/weekly-prune.sh)
+- [x] Disk never leaks: every deploy and APK build trims the build cache to 2 GB and removes dangling images and the APK's temporary outputs; Sundays 03:00 `docker system prune` (never volumes), week-old cache, a 7-day journal, logged to the deploy log; 26 → 54 GB free on 20/10 (3d43260, d259985)
 - [x] Nightly reports restored: the 23:59 end-of-day report reached no chat (no DevOps chat set) while logging «sent» — now the founder's chat; new 23:30 «📊 របាយការណ៍ប្រចាំថ្ងៃ & សុខភាព Server» card in «LCA Approval»; missed windows caught up until 06:00; /report on demand (3ed4182, ce4a4e9)
 - [x] Post-deploy health-check rule in CLAUDE.md (no silent failures)
 - [x] One-off morning briefing to the founder, 20/10/2026 07:00 — sent to 1 chat at 07:00:30

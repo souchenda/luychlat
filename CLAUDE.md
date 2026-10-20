@@ -77,6 +77,27 @@ use come before feature count: no half-baked features, broken links or untested 
    a message (never a bare «sent»), and a missed time window is caught up, not skipped (the 23:59 end-of-day report
    went to no chat for days while logging «sent» — `lib/server/dev-eod.ts`, `lib/server/nightly-report.ts`).
 
+## Reporting Standards (founder, 20/10/2026 — «establish app-wide standards; do not patch piecemeal»)
+
+Every automated status report to the founder — the 23:30 nightly report and its Daily Task Scorecard, the 23:59
+end-of-day development report, and any status card added later — is built from `src/lib/report-standard.ts`, never ad
+hoc (`report-standard.test.ts`):
+
+1. **✅ Accomplishments on top:** the day's 3–5 key deployed accomplishments open the report (`accomplishments` /
+   `highlights`); any others are listed in full right after them, never dropped. Release cards keep their one Khmer line.
+2. **Grouped by who acts next — four sections, in this order, empty ones left out** (`pendingSections`):
+   🟢 Deployed & Ready for Verification (live, the founder tests) · 🟡 Awaiting Founder Action / Approval ·
+   ⏳ Awaiting External Review (an Imam, a recording, a licence) · ⚙️ Engineering / Tech Pending (a build, a script,
+   a migration). Never one mixed list.
+3. **Numbered 1…N across all sections, each with one bracketed next step** «[សកម្មភាព៖ ចុច ✅ លើកាត #833]».
+4. **No truncation:** «… and N more», «… និង N ទៀត», cut titles and cut messages are banned. A report over Telegram's
+   4,096 characters is sent as numbered parts «(១/២)», every line kept (`paginate`); a chat counts as reached only
+   when every part arrived.
+5. **The owner is explicit, never guessed:** in `ROADMAP.md` an open item that waits on someone ends with
+   «⛔ <owner emoji> <next step>», e.g. «⛔ 🟡 ចុច ✅ លើកាត #833», «⛔ ⏳ អ៊ីម៉ាំពិនិត្យអត្ថបទហាឌីស»; an untagged
+   reason is engineering's to sort out, and a test fails the build on any untagged «⛔». An open item deployed today
+   with no reason is 🟢.
+
 ## Publishing and content standards (founder, 12/10/2026)
 
 - **STRICT RELIGIOUS SEPARATION — constitutional (founder, 20/10/2026: «Zero tolerance for cross-contamination»):**

@@ -5,9 +5,13 @@
  *
  * The source is ROADMAP.md (shipped inside the server image) and the commits deployed today (public.dev_changelog):
  *   completed — an item ticked `[x]` that names a commit deployed today
- *   stuck / pending — an open item (`[/]` or `[ ]`) that names a commit deployed today, or carries a blocker
- *                     «⛔ reason» (written in ROADMAP.md in Khmer, e.g. «⛔ រង់ចាំការពិនិត្យពីអ៊ីម៉ាំ»)
+ *   pending   — an open item (`[/]` or `[ ]`) that names a commit deployed today, or carries a blocker «⛔ reason»
+ *
+ * Rendered on the Reporting Standard (lib/report-standard.ts): the owner of each pending item comes from the tag that
+ * starts its reason — «⛔ 🟡 ចុច ✅ លើកាត #833», «⛔ ⏳ …», «⛔ ⚙️ …», «⛔ 🟢 …» — and the rest is its next step. An open
+ * item deployed today without a reason is 🟢 (live, waiting for the founder's test).
  */
+import { accomplishments, ownerTag, pendingSections, type Owner } from "./report-standard"
 
 export type RoadmapState = "done" | "doing" | "todo"
 
@@ -43,34 +47,41 @@ export function parseRoadmap(md: string): RoadmapItem[] {
   return items
 }
 
-export type Scorecard = { completed: RoadmapItem[]; stuck: { item: RoadmapItem; reason: string }[] }
+export type Pending = { item: RoadmapItem; owner: Owner; action: string }
+
+export type Scorecard = { completed: RoadmapItem[]; pending: Pending[] }
+
+/** The owner and next step of an open item: its tagged reason; untagged → engineering; none and live → 🟢 verify. */
+export function pendingOf(item: RoadmapItem, deployedToday: boolean): Pending {
+  if (item.blocker) {
+    const tagged = ownerTag(item.blocker)
+    return tagged ? { item, ...tagged } : { item, owner: "engineering", action: item.blocker }
+  }
+  if (item.state === "doing" || deployedToday) return { item, owner: "verify", action: "សាកល្បងលើ app.luychlat.com ហើយបញ្ជាក់" }
+  return { item, owner: "engineering", action: "ចាប់ផ្ដើមអភិវឌ្ឍ" }
+}
 
 /** Today's scorecard from the items and the full hashes of the commits deployed today. */
 export function dailyScorecard(items: RoadmapItem[], deployedToday: string[]): Scorecard {
   const today = (i: RoadmapItem) => i.hashes.some((h) => deployedToday.some((full) => full.startsWith(h)))
   const completed = items.filter((i) => i.state === "done" && today(i))
-  const stuck = items
-    .filter((i) => i.state !== "done" && (today(i) || i.blocker))
-    .map((item) => ({
-      item,
-      reason: item.blocker ?? (item.state === "doing" ? "បានដាក់ឱ្យដំណើរការ — រង់ចាំការផ្ទៀងផ្ទាត់ ឬការអនុម័ត" : "មិនទាន់ចាប់ផ្ដើម"),
-    }))
-  return { completed, stuck }
+  const pending = items.filter((i) => i.state !== "done" && (today(i) || i.blocker)).map((i) => pendingOf(i, today(i)))
+  return { completed, pending }
 }
 
-const short = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
+/** The scorecard in two parts: the ✅ header (top of the report) and the four pending sections — nothing capped. */
+export function scorecardParts(s: Scorecard): { top: string; pending: string } {
+  return {
+    top: [
+      `📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ (Daily Task Scorecard)៖ សរុប ${s.completed.length + s.pending.length} · សម្រេច ${s.completed.length} · កំពុងរង់ចាំ ${s.pending.length}`,
+      ...accomplishments(s.completed.map((i) => i.title)),
+    ].join("\n"),
+    pending: pendingSections(s.pending.map((p) => ({ title: p.item.title, owner: p.owner, action: p.action }))).join("\n"),
+  }
+}
 
-/** The section of the nightly report (plain text, as the rest of the report); at most `max` lines per list. */
-export function scorecardText(s: Scorecard, max = 15): string {
-  const more = (n: number) => (n > max ? [`   … និង ${n - max} ទៀត`] : [])
-  return [
-    "📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ (Daily Task Scorecard)៖",
-    `• ការងារសរុបថ្ងៃនេះ៖ ${s.completed.length + s.stuck.length} កិច្ចការ`,
-    `• សម្រេចបាន (Completed)៖ ${s.completed.length} កិច្ចការ`,
-    ...s.completed.slice(0, max).map((i) => `   ✅ ${short(i.title, 80)}`),
-    ...more(s.completed.length),
-    `• គាំង / មិនទាន់បញ្ចប់ (Stuck / Pending)៖ ${s.stuck.length} កិច្ចការ`,
-    ...s.stuck.slice(0, max).map(({ item, reason }) => `   ⏳ ${short(item.title, 70)} — ${short(reason, 70)}`),
-    ...more(s.stuck.length),
-  ].join("\n")
+/** The whole scorecard as one text (the ✅ header, then the pending sections). */
+export function scorecardText(s: Scorecard): string {
+  const { top, pending } = scorecardParts(s)
+  return `${top}\n\n${pending}`
 }

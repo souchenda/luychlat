@@ -3,6 +3,7 @@
 // shipped + the open roadmap) and a short digest goes to the super admins'
 // linked Telegram chats. A deploy at 23:59 is caught up just after midnight.
 import { groupByArea } from "@/lib/dev-areas"
+import { highlights, ownerTag, paginate, pendingSections, type PendingItem } from "@/lib/report-standard"
 
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
@@ -34,22 +35,33 @@ const AREA_LABEL: Record<string, string> = {
   admin: "🛠️ Admin & Ops",
   other: "📦 Other",
 }
-const PRIORITY = ["", "🔴", "🟡", "⚪"]
-const short = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
+const PRIORITY = ["", "🔴 ", "🟡 ", "⚪ "]
 
-/** The digest text (plain, under Telegram's limit). */
+/** An open roadmap item on the Reporting Standard: a «⛔ 🟡 …» tag in its title names its owner; otherwise engineering's. */
+function pendingOf(i: Report["roadmap"][number]): PendingItem {
+  const [title, ...reason] = i.title.split("⛔")
+  const tagged = reason.length ? ownerTag(reason.join("⛔")) : null
+  const prefix = i.status === "doing" ? "▶️ " : (PRIORITY[i.priority] ?? "")
+  if (tagged) return { title: `${prefix}${title.trim()}`, ...tagged }
+  return { title: `${prefix}${title.trim()}`, owner: "engineering", action: reason.length ? reason.join("⛔").trim() : i.status === "doing" ? "បញ្ចប់ការអភិវឌ្ឍ" : "ចាប់ផ្ដើមអភិវឌ្ឍ" }
+}
+
+/**
+ * The digest on the Reporting Standard (lib/report-standard.ts): the day's ✅ key accomplishments first, every commit by
+ * area, security and health, then every open item numbered in its owner's section — nothing cut (sent as parts).
+ */
 export function eodText(r: Report): string {
   const [y, m, d] = r.day.split("-")
-  const feats = r.commits.filter((c) => c.kind === "feat").length
-  const fixes = r.commits.filter((c) => c.kind === "fix").length
+  const feats = r.commits.filter((c) => c.kind === "feat")
+  const fixes = r.commits.filter((c) => c.kind === "fix")
   const lines = [`📋 App Luy Chlat · End of day ${d}/${m}/${y}`, ""]
   if (r.commits.length === 0) lines.push("✅ Shipped: nothing deployed today.")
   else {
-    lines.push(`✅ Shipped: ${r.commits.length} (${feats} features · ${fixes} fixes)`)
+    lines.push(...highlights([...feats, ...fixes, ...r.commits.filter((c) => c.kind !== "feat" && c.kind !== "fix")].map((c) => c.subject)))
+    lines.push("", `🚀 Shipped: ${r.commits.length} (${feats.length} features · ${fixes.length} fixes)`)
     for (const g of groupByArea(r.commits)) {
       lines.push("", `${AREA_LABEL[g.key] ?? g.key} (${g.items.length})`)
-      for (const c of g.items.slice(0, 8)) lines.push(`• ${c.kind === "fix" ? "🔧 " : ""}${short(c.subject, 90)}`)
-      if (g.items.length > 8) lines.push(`  … +${g.items.length - 8} more`)
+      for (const c of g.items) lines.push(`• ${c.kind === "fix" ? "🔧 " : ""}${c.subject}`)
     }
   }
   if (r.done_today.length) lines.push("", `☑️ Roadmap items done today: ${r.done_today.length}`)
@@ -64,12 +76,9 @@ export function eodText(r: Report): string {
     for (const i of sec.incidents)
       lines.push(`• ${i.ended_at ? "✅" : "🔴"} ${i.issue.toUpperCase()}${i.peak != null ? ` peak ${i.peak}` : ""}: ${hhmm(i.started_at)} → ${i.ended_at ? hhmm(i.ended_at) : "ongoing"} (${i.minutes} min)`)
   }
-  lines.push("", r.roadmap.length ? `⏭️ Next (${r.roadmap.length}):` : "⏭️ Next: nothing pending 🎉")
-  for (const i of r.roadmap.slice(0, 10)) lines.push(`${i.status === "doing" ? "▶️" : PRIORITY[i.priority] ?? "•"} ${short(i.title, 100)}`)
-  if (r.roadmap.length > 10) lines.push(`… +${r.roadmap.length - 10} more`)
+  lines.push("", ...pendingSections(r.roadmap.map(pendingOf)))
   lines.push("", "Full report: Admin › Super › Development")
-  const text = lines.join("\n")
-  return text.length > 3900 ? `${text.slice(0, 3890)}\n…` : text
+  return lines.join("\n")
 }
 
 /** Called every minute by the dispatcher. */
@@ -90,9 +99,13 @@ export async function devEodTick() {
     return
   }
   // The DevOps chat, else the founder's chat (founder, 19/10/2026 — with no DevOps chat set it went nowhere while the
-  // log said «sent»). The log counts the chats that really received it.
-  const text = eodText(data as Report)
+  // log said «sent»). The log counts the chats that really received every part (never cut — the Reporting Standard).
+  const pages = paginate(eodText(data as Report))
   let sent = 0
-  for (const chat of await founderChats()) if ((await sendText(chat, text).catch(() => null))?.ok) sent++
-  logEvent(sent ? "info" : "warn", "dev-eod", `End-of-day report ${day} sent to ${sent} chat(s)`, { fold: true })
+  for (const chat of await founderChats()) {
+    let all = true
+    for (const page of pages) if (!(await sendText(chat, page).catch(() => null))?.ok) { all = false; break }
+    if (all) sent++
+  }
+  logEvent(sent ? "info" : "warn", "dev-eod", `End-of-day report ${day} (${pages.length} part(s)) sent to ${sent} chat(s)`, { fold: true })
 }

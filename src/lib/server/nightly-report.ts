@@ -5,7 +5,8 @@ import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 
 import { MORNING_BRIEFING, morningBriefingText, nightlyReportDay, nightlyReportText } from "@/lib/nightly-report"
-import { dailyScorecard, parseRoadmap, scorecardText } from "@/lib/roadmap-scorecard"
+import { dailyScorecard, parseRoadmap, scorecardParts } from "@/lib/roadmap-scorecard"
+import { paginate } from "@/lib/report-standard"
 import { founderChats } from "./admin-routes"
 import { logEvent } from "./events"
 import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
@@ -56,31 +57,39 @@ export async function sendNightlyReport(day: string): Promise<number> {
     dockerOk: sample.db_ms !== null,
     webhookOk: !sample.webhook_error,
   })
-  // The Daily Task Scorecard (founder, 20/10/2026): today's completed and stuck items from ROADMAP.md and today's deploys.
+  // The Reporting Standard (founder, 20/10/2026 — lib/report-standard.ts): today's ✅ accomplishments at the top, the
+  // server's health, then every pending item numbered in its owner's section; nothing cut — numbered parts if long.
   const scorecard = await taskScorecard(day)
-  const full = scorecard ? `${text}\n\n${scorecard}` : text
+  const pages = paginate([scorecard.top, text, scorecard.pending].filter(Boolean).join("\n\n"))
   let sent = 0
-  // The founder's private chat only — never «LCA Approval» (an approval queue, founder 20/10/2026).
+  // The founder's private chat only — never «LCA Approval» (an approval queue, founder 20/10/2026). A chat counts as
+  // reached only when every part arrived.
   for (const chat of await founderChats()) {
-    const res = await tg("sendMessage", { chat_id: chat, text: full.length > 4000 ? `${full.slice(0, 3990)}\n…` : full, disable_web_page_preview: true })
-    if (res.ok) sent++
-    else logEvent("error", "nightly-report", `Nightly report not delivered: ${res.description ?? "?"}`, { fold: true })
+    let all = true
+    for (const page of pages) {
+      const res = await tg("sendMessage", { chat_id: chat, text: page, disable_web_page_preview: true })
+      if (res.ok) continue
+      all = false
+      logEvent("error", "nightly-report", `Nightly report not delivered: ${res.description ?? "?"}`, { fold: true })
+      break
+    }
+    if (all) sent++
   }
-  logEvent(sent ? "info" : "warn", "nightly-report", `Nightly report ${day} sent to ${sent} chat(s)`)
+  logEvent(sent ? "info" : "warn", "nightly-report", `Nightly report ${day} (${pages.length} part(s)) sent to ${sent} chat(s)`)
   return sent
 }
 
-/** The scorecard text, or null when the roadmap or today's deploys cannot be read (the report still goes out, and says so). */
-async function taskScorecard(day: string): Promise<string | null> {
+/** The scorecard's two parts; when the roadmap or today's deploys cannot be read, the report still goes out and says so. */
+async function taskScorecard(day: string): Promise<{ top: string; pending: string }> {
   const file = path.join(process.cwd(), "ROADMAP.md")
   if (!existsSync(file)) {
     logEvent("warn", "nightly-report", "Daily Task Scorecard: ROADMAP.md is not in the image", { fold: true })
-    return "📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ៖ មិនអាចអាន ROADMAP.md បានទេ"
+    return { top: "📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ៖ មិនអាចអាន ROADMAP.md បានទេ", pending: "" }
   }
   const { data, error } = await botDb().rpc("bot_deployed_hashes", { p_key: botKey(), p_day: day })
   if (error) {
     logEvent("warn", "nightly-report", `Daily Task Scorecard: ${error.message}`, { fold: true })
-    return "📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ៖ មិនអាចអានការដាក់ឱ្យដំណើរការថ្ងៃនេះបានទេ"
+    return { top: "📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ៖ មិនអាចអានការដាក់ឱ្យដំណើរការថ្ងៃនេះបានទេ", pending: "" }
   }
-  return scorecardText(dailyScorecard(parseRoadmap(readFileSync(file, "utf8")), (data as string[] | null) ?? []))
+  return scorecardParts(dailyScorecard(parseRoadmap(readFileSync(file, "utf8")), (data as string[] | null) ?? []))
 }
