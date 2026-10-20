@@ -44,7 +44,7 @@ describe("Money dilemmas for the community and the Facebook Page (founder, 18/10
   it("published through the approval (the same text on Telegram and the Page); the database accepts the kind", () => {
     const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
     const block = sp.slice(sp.indexOf('if (row.kind === "DILEMMA") {', sp.indexOf("async publish(row)")), sp.indexOf('if (row.kind === "HOLYDAY") {', sp.indexOf("async publish(row)")))
-    assert.match(block, /sentText\(text, false\)/)
+    assert.match(block, /sentText\(text, true\)/) // HTML since 21/10/2026: the words escaped, the footer's inline links
     assert.match(block, /publishTextToFacebook\(approval, fbText\)/)
     assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270177000000_money_dilemma_posts.sql"), "utf8"), /'DILEMMA'/)
   })

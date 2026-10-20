@@ -10,7 +10,7 @@ describe("daily tip caption & the channel's buttons (poster branding)", () => {
   const caption = tipCaption({ title: "សន្សំ <៣០%> & ចំណាយ", body: "កុំចំណាយលើស ៧០% នៃចំណូល។" })
   it("ends with the standard footer (founder, 20/10/2026 — lib/post-footer.ts)", () => {
     assert.ok(caption.endsWith(postFooter("community")))
-    assert.match(caption, /👉 Telegram Bot ៖ @luychlat_bot/)
+    assert.ok(caption.includes('<a href="https://t.me/luychlat_bot">Telegram Bot</a>')) // the inline link (HTML caption)
   })
   it("stays valid Telegram HTML (text escaped) and under the 1,024-character caption limit", () => {
     assert.match(caption, /សន្សំ &lt;៣០%&gt; &amp; ចំណាយ/)

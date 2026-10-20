@@ -524,10 +524,11 @@ const realDeps = (): SchedulerDeps => ({
       const targets = this.targets(row)
       const footer = FOOTER_KINDS.has(row.kind) ? (platform: "telegram" | "facebook") => postFooter(islamic ? "islamic" : "community", platform) : null
       const words = String(row.payload.caption)
-      const tgText = footer ? withFooter(words, footer("telegram"), png ? 1024 : 4096) : words
-      const fbText = footer ? withFooter(words, footer("facebook"), 60_000) : words
+      // HTML on Telegram (the footer's inline links): the approver's words escaped, the footer as it is.
       const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      if (chat && targets.telegram) ids.telegram = png ? ((await sendPosterPhoto(chat, png, esc(tgText), { reply_markup: buttons.reply_markup })) ?? (await sentText(tgText, false))) : await sentText(tgText, false)
+      const tgText = footer ? withFooter(esc(words), footer("telegram"), png ? 1024 : 4096) : esc(words)
+      const fbText = footer ? withFooter(words, footer("facebook"), 60_000) : words
+      if (chat && targets.telegram) ids.telegram = png ? ((await sendPosterPhoto(chat, png, tgText, { reply_markup: buttons.reply_markup })) ?? (await sentText(tgText, true))) : await sentText(tgText, true)
       if (!islamic && targets.facebook && facebookConfig()) {
         const fb = await publishLogged(`${row.kind} ${row.post_key} (edited caption)`, () => (png ? publishPhotoToFacebook(approval, png, fbText) : publishTextToFacebook(approval, fbText)), fbLog)
         if (fb?.ok) ids.facebook = fb.postId
@@ -638,12 +639,13 @@ const realDeps = (): SchedulerDeps => ({
     if (row.kind === "DILEMMA") {
       // The poster with the text as its caption (or the text alone) on the community channel and the Facebook Page.
       const d = dilemmaOfDay(String(row.payload.day))
-      const text = withFooter(dilemmaPostText(d), postFooter("community"), 4096)
+      // HTML on Telegram (the footer's inline links): the dilemma's own words escaped, the footer as it is.
+      const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      const text = withFooter(esc(dilemmaPostText(d)), postFooter("community"), 4096)
       const fbText = withFooter(dilemmaPostText(d), postFooter("community", "facebook"), 60_000)
       await posterAssetsReady
       const png = DILEMMA_POSTERS_ENABLED && d.poster ? renderDilemmaPoster(d.poster).png : null
-      const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      if (chat) ids.telegram = png ? ((await sendPosterPhoto(chat, png, esc(text), { reply_markup: buttons.reply_markup })) ?? (await sentText(text, false))) : await sentText(text, false)
+      if (chat) ids.telegram = png ? ((await sendPosterPhoto(chat, png, text, { reply_markup: buttons.reply_markup })) ?? (await sentText(text, true))) : await sentText(text, true)
       if (facebookConfig() && shouldPublishToFacebook({ kind: "dilemma" })) {
         const fb = await publishLogged(`money dilemma (${row.post_key})`, () => (png ? publishPhotoToFacebook(approval, png, fbText) : publishTextToFacebook(approval, fbText)), fbLog)
         if (fb?.ok) ids.facebook = fb.postId
