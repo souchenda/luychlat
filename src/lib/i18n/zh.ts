@@ -1828,7 +1828,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "bot.linked": "✅ 您的 App Luy Chlat 账户 {name} 已连接！\n您将收到债务、信用卡和礼拜时间提醒（可在应用设置中选择）。\n随时断开：/stop",
   "bot.linkFailed": "⚠️ 连接码错误或已过期。请重新打开 App Luy Chlat › 设置 › Telegram › “连接 Telegram”。",
   "bot.unlinked": "已与 App Luy Chlat 断开。您将不再收到提醒。",
-  "bot.notLinked": "此 Telegram 尚未连接 App Luy Chlat 账户。",
+  "bot.notLinked": "您好！🙏\n\n抱歉，Luy Chlat 机器人仅为拥有 App Luy Chlat 账户的会员服务。\n\n💡 使用机器人（扫描收据、记录支出、管理资金）只需：\n1. 免费注册账户 👉 app.luychlat.com\n2. 进入 设置 › 「连接 Telegram」\n\n只需几秒钟，即可立即使用机器人！欢迎加入 Luy Chlat 大家庭！🐰✨",
   "bot.help": "您好！这是 App Luy Chlat 官方机器人 🤖\n连接方法：打开 App Luy Chlat › 设置 › Telegram › “连接 Telegram”。\n🧮 计算器：/rate 100 usd to khr · /gold 2钱\n/stop — 断开连接",
   "bot.adminTitle": "官方 Telegram 机器人",
   "bot.adminActive": "@{name} 运行中",

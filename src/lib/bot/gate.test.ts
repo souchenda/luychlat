@@ -55,5 +55,26 @@ describe("The bot is for «អេប លុយឆ្លាត» members only (fo
     assert.match(fn, /if \(!chat \|\| chat\.type !== "private"\) return false/)
     assert.match(fn, /if \(isAppDeepLink\(opts\.text\) \|\| opts\.contact\) return false/)
     assert.match(fn, /\} catch \{\n    return true/)
+    // No bypass by Telegram id or role: the founder tests the unlinked experience with an unlinked account.
+    assert.doesNotMatch(fn, /isAdminChat|super_admin|SUPER/)
+    // Every unlinked reply in the private path is the same note with the button — never the old texts.
+    assert.doesNotMatch(hook, /bot\.notLinked|tr\("km", "bot\.help"\) \+ SIGNATURE\)|\/\/ Calculators: for every chat, linked or not/)
+    assert.match(hook, /return sendText\(chatId, gateMessage\(name\), \{ reply_markup: gateKeyboard\(\) \}\)/)
+  })
+  it("regression: unlinked users still saw «Telegram នេះមិនទាន់ភ្ជាប់ជាមួយគណនី អេប លុយឆ្លាត ទេ។» on /voice and /bills — the cold text is gone everywhere", async () => {
+    const { readdirSync, statSync } = await import("node:fs")
+    const files: string[] = []
+    const walk = (d: string) => {
+      for (const f of readdirSync(d)) {
+        const full = join(d, f)
+        if (statSync(full).isDirectory()) walk(full)
+        else if (/\.(ts|tsx)$/.test(f) && !f.endsWith("gate.test.ts")) files.push(full)
+      }
+    }
+    walk(join(process.cwd(), "src"))
+    for (const f of files) assert.ok(!readFileSync(f, "utf8").includes("Telegram នេះមិនទាន់ភ្ជាប់ជាមួយគណនី អេប លុយឆ្លាត ទេ"), f)
+    // Any module that still answers «not linked» (slips, gifts, AI, buttons) now says the polite note.
+    const { dictionaries } = await import("../i18n/dictionaries")
+    assert.equal(dictionaries.km["bot.notLinked"], gateMessage(undefined))
   })
 })

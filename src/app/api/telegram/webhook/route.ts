@@ -317,7 +317,8 @@ async function soon(callbackId: string, lang: Locale) {
 /**
  * The members-only gate (founder, 20/10/2026 — lib/bot/gate.ts): in a private chat, true when the chat is NOT linked
  * to an «អេប លុយឆ្លាត» account — the polite note (or the button's alert) was sent and nothing else may run. The app's
- * deep links pass; a failed lookup sends nothing and does nothing; admins' chats always pass. Never throws.
+ * deep links pass; a failed lookup sends nothing and does nothing. No bypass by Telegram id or role: an admin's
+ * unlinked Telegram sees exactly what a stranger sees (founder, 20/10/2026). Never throws.
  */
 async function gated(chat: { id: number; type: string } | undefined, opts: { text?: string | null; contact?: boolean; name?: string; callbackId?: string }): Promise<boolean> {
   if (!chat || chat.type !== "private") return false
@@ -327,17 +328,21 @@ async function gated(chat: { id: number; type: string } | undefined, opts: { tex
     const ctx = await botContext(chat.id)
     const decision = gateDecision({ chatType: chat.type, text: opts.text, contact: opts.contact, linked: ctx ? ctx.linked : null })
     if (decision === "pass") return false
-    if (decision === "gate" && (await isAdminChat(chat.id))) return false
     if (decision === "quiet") {
       logEvent("warn", "bot-gate", "Bot context lookup failed — the message was not handled", { fold: true })
       return true
     }
     if (opts.callbackId) await tg("answerCallbackQuery", { callback_query_id: opts.callbackId, text: GATE_ALERT, show_alert: true })
-    else await sendText(chat.id, gateMessage(opts.name), { reply_markup: gateKeyboard() })
+    else await sendGate(chat.id, opts.name)
     return true
   } catch {
     return true // never a crash or an error text; nothing processed
   }
+}
+
+/** The polite members-only note with the free sign-up button — the one reply an unlinked private chat ever gets. */
+function sendGate(chatId: number, name?: string) {
+  return sendText(chatId, gateMessage(name), { reply_markup: gateKeyboard() })
 }
 
 export async function POST(request: Request) {
@@ -455,7 +460,7 @@ export async function POST(request: Request) {
       // Not a du'a after all (a voice note with nothing waiting): the usual voice logging.
       if (!voice) return
       const ctx = await botContext(chatId)
-      if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
+      if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
       else await handleVoiceMessage(chatId, voice, ctx)
     })
     return NextResponse.json({ ok: true })
@@ -468,7 +473,7 @@ export async function POST(request: Request) {
     // Downloading and transcribing can take a while: answer Telegram now so it doesn't resend the update.
     after(async () => {
       const ctx = await botContext(chatId)
-      if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
+      if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
       else await handleVoiceMessage(chatId, voice, ctx, replyTo ? (text) => handleNoteReply(chatId, replyTo, text) : undefined)
     })
     return NextResponse.json({ ok: true })
@@ -480,7 +485,7 @@ export async function POST(request: Request) {
     // Reading takes several seconds: answer Telegram now so it doesn't resend the update.
     after(async () => {
       const ctx = await botContext(chatId)
-      if (!ctx?.linked) await sendText(chatId, tr("km", "bot.help") + SIGNATURE)
+      if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
       // A home-charging caption ("សាកឡាននៅផ្ទះ 56.9kwh") isn't a bank slip: logged even where slips are still off.
       else if (photoRoute(message.caption) === "slip" && !featureOk(await botFeatures(chatId), "bank_slips")) await sendText(chatId, tr(contextLocale(ctx), "bot.featureSoon"))
       else await handlePrivatePhoto(chatId, slipPhoto, message.caption)
@@ -600,7 +605,7 @@ export async function POST(request: Request) {
     const choice = short === "km" || short === "en" || short === "zh" ? short : payload?.toLowerCase()
     if (choice === "km" || choice === "en" || choice === "zh") {
       const { data } = await db.rpc("bot_set_language", { p_key: key, p_chat_id: chatId, p_language: choice })
-      await sendText(chatId, data ? tr(choice, "bot.langSet") : tr(choice, "bot.notLinked"), KEYBOARD_OFF)
+      await (data ? sendText(chatId, tr(choice, "bot.langSet"), KEYBOARD_OFF) : sendGate(chatId, message.from?.first_name))
     } else {
       const ctx = await botContext(chatId)
       await sendText(chatId, tr(ctx?.linked ? contextLocale(ctx) : lang, "bot.langPick"), { reply_markup: LANG_BUTTONS })
@@ -616,7 +621,7 @@ export async function POST(request: Request) {
   } else if (/^\/bills?(@\w+)?$/i.test(command) || /^វិក្កយបត្រ$/.test(text.trim())) {
     // /bills: the workspace's bills and deposit maturities.
     const ctx = await botContext(chatId)
-    if (!ctx?.linked) await sendText(chatId, tr(contextLocale(ctx), "bot.notLinked"))
+    if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
     else await sendBillsOverview(chatId)
   } else if (/^\/report(@\w+)?$/i.test(command)) {
     // The nightly report on demand (founder, 19/10/2026): super admins' private chat only.
@@ -638,11 +643,10 @@ export async function POST(request: Request) {
     const r = data as { status: string; on?: boolean } | null
     const { paymentVoiceNote } = await import("@/lib/server/voice-alert")
     const ready = Boolean(await paymentVoiceNote(1000, "KHR"))
-    await sendText(
+    if (r?.status !== "ok") await sendGate(chatId, message.from?.first_name)
+    else await sendText(
       chatId,
-      r?.status !== "ok"
-        ? tr(lang, "bot.notLinked")
-        : [
+        [
             r.on ? "🔔 សំឡេង Voice Telegram៖ បើក — ការលក់តាម KHQR នីមួយៗ នឹងផ្ញើជាសារសំឡេង «ទទួលបានប្រាក់ …» ផងដែរ។" : "🔕 សំឡេង Voice Telegram៖ បិទ — នៅតែទទួលសារជាអក្សរដដែល។",
             ...(r.on && !ready ? ["", "ℹ️ សំឡេងខ្មែរមិនទាន់ដំឡើងនៅឡើយ — សារសំឡេងនឹងចាប់ផ្ដើមភ្លាមៗពេលដំឡើងរួច។"] : []),
             "",
@@ -655,11 +659,10 @@ export async function POST(request: Request) {
     const want = /^(on|បើក)$/i.test(payload ?? "") ? true : /^(off|បិទ)$/i.test(payload ?? "") ? false : null
     const { data } = await db.rpc("bot_set_adhan_audio", { p_key: key, p_chat_id: chatId, p_on: want })
     const r = data as { status: string; on?: boolean } | null
-    await sendText(
+    if (r?.status !== "ok") await sendGate(chatId, message.from?.first_name)
+    else await sendText(
       chatId,
-      r?.status !== "ok"
-        ? tr(lang, "bot.notLinked")
-        : [
+        [
             r.on
               ? "🕌 អាហ្សានជាសំឡេង៖ បើក — ដល់ម៉ោងសឡាតនីមួយៗ បូតនឹងផ្ញើសំឡេងអាហ្សាន ជាមួយម៉ោង និងទីតាំង។"
               : "🔕 អាហ្សានជាសំឡេង៖ បិទ — នៅតែទទួលការរំលឹកម៉ោងសឡាតជាអក្សរដដែល។",
@@ -673,7 +676,7 @@ export async function POST(request: Request) {
     await handleAtmCommand(chatId, text.trim().replace(/^\S+\s*/, ""))
   } else if (/^\/(car|ev)(@\w+)?$/i.test(command)) {
     const ctx = await botContext(chatId)
-    if (!ctx?.linked) await sendText(chatId, tr(contextLocale(ctx), "bot.notLinked"))
+    if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
     else await sendCarReport(chatId, contextLocale(ctx))
   } else if (/^\/nssf(@\w+)?$/i.test(command)) {
     // NSSF basics, and the account's own cards with copy buttons.
@@ -686,14 +689,15 @@ export async function POST(request: Request) {
     // 🩺 The business owner's weekly health brief, now (private chat, numbers on).
     await sendCfoNow(chatId)
   } else if (/^\/(rate|gold)(@\w+)?$/i.test(command)) {
-    // Calculators: for every chat, linked or not.
+    // Calculators: members only (founder, 20/10/2026 — the gate above; checked again here).
     const ctx = await botContext(chatId)
-    const answer = await marketAnswer(text, ctx?.linked ? contextLocale(ctx) : lang)
-    if (answer) await sendText(chatId, answer)
+    const answer = ctx?.linked ? await marketAnswer(text, contextLocale(ctx)) : null
+    if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
+    else if (answer) await sendText(chatId, answer)
   } else if (/^\/(ai|ask)(@\w+)?$/i.test(command)) {
     // LuyChlat AI: "/ai <question>", or /ai alone (and the 🤖 button) to be asked for one. Answered after the reply to Telegram.
     const ctx = await botContext(chatId)
-    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE, KEYBOARD_OFF)
+    if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
     else {
       const question = text.trim().replace(/^\S+\s*/, "").slice(0, 1000)
       after(() => handleAiQuestion(chatId, question, contextLocale(ctx)))
@@ -707,7 +711,7 @@ export async function POST(request: Request) {
   } else if (/^\/gift(@\w+)?$/i.test(command)) {
     // /gift <name>: the two-way gift history (linked chats; the database checks plan and opt-in).
     const ctx = await botContext(chatId)
-    if (!ctx?.linked) await sendText(chatId, tr(lang, "bot.help") + SIGNATURE, KEYBOARD_OFF)
+    if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
     else if (!featureOk(await botFeatures(chatId), "gifts")) await sendText(chatId, tr(contextLocale(ctx), "bot.featureSoon"))
     else await handleGiftLookup(chatId, text.trim().replace(/^\S+\s*/, ""), contextLocale(ctx))
   } else if (/^\/(pool|fund|trip|spend)(@\w+)?$/i.test(command)) {
@@ -719,12 +723,11 @@ export async function POST(request: Request) {
     else await handleInvoiceMessage(chatId, text.trim().slice(0, 500), lang)
   } else if (command === "/stop") {
     const { data } = await db.rpc("bot_unlink_chat", { p_key: key, p_chat_id: chatId })
-    await sendText(chatId, tr(lang, data ? "bot.unlinked" : "bot.notLinked") + SIGNATURE)
+    await (data ? sendText(chatId, tr(lang, "bot.unlinked") + SIGNATURE) : sendGate(chatId, message.from?.first_name))
   } else {
     // Linked chats: /help shows the logging examples, other text is an entry to confirm.
     const ctx = await botContext(chatId)
-    const answer = ctx?.linked ? null : await marketAnswer(text, lang)
-    if (!ctx?.linked) await sendText(chatId, answer ?? tr(lang, "bot.help") + (await guideLine(lang)) + SIGNATURE, answer ? {} : KEYBOARD_OFF)
+    if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
     else if (asksForBalance(command)) await handleEntryMessage(chatId, command, ctx) // /balance → the in-app pointer
     else if (command.startsWith("/")) {
       const locale = contextLocale(ctx)
