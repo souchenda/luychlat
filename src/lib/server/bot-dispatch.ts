@@ -2,6 +2,7 @@
 import { pick, type Locale, type MessageKey } from "@/lib/i18n/dictionaries"
 import { cambodiaNow, formatMinutes, prayerTimes, PROVINCES } from "@/lib/prayer"
 import { duePrayer } from "@/lib/prayer-alerts"
+import { sendAdhanAudio } from "@/lib/server/adhan-audio"
 
 import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "./telegram-bot"
 import { sendCommunityBulletin, syncCommunityPost } from "@/lib/server/community-bulletin"
@@ -27,7 +28,7 @@ import { syncEnvApprovers } from "@/lib/server/co-approvers"
 import { nightlyReportTick } from "@/lib/server/nightly-report"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string; bill_id: string | null; due: string | null }
-type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string }
+type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string; adhan_audio?: boolean }
 
 /** Debt, installment and card reminders the database created, to each linked member, once. */
 async function sendDueNotifications() {
@@ -71,7 +72,11 @@ async function sendPrayerTimes() {
     const { data: claimed } = await db.rpc("bot_claim_prayer", { p_key: botKey(), p_user_id: s.user_id, p_day: day, p_prayer: prayer })
     if (!claimed) continue
     const name = tr(s.language, `prayer.${prayer}` as MessageKey)
-    await sendText(s.chat_id, `🕌 ${tr(s.language, "prayerAlert.title", { name })}\n${formatMinutes(times[prayer])} · ${pick(place, s.language)}${SIGNATURE}`)
+    // The Adhan as audio for members who chose it (founder, 20/10/2026 — /adhan on, or the app switch); the text
+    // alert when they didn't, or when the audio could not be sent.
+    let sent = false
+    if (s.adhan_audio) sent = await sendAdhanAudio(s.chat_id, { prayer, khmer: s.language === "km", prayerName: name, time: formatMinutes(times[prayer]), place: pick(place, s.language) })
+    if (!sent) await sendText(s.chat_id, `🕌 ${tr(s.language, "prayerAlert.title", { name })}\n${formatMinutes(times[prayer])} · ${pick(place, s.language)}${SIGNATURE}`)
   }
 }
 

@@ -610,6 +610,25 @@ export async function POST(request: Request) {
             `👉 /voice ${r.on ? "off" : "on"}`,
           ].join("\n"),
     )
+  } else if (/^\/adhan(@\w+)?$/i.test(command)) {
+    // The Adhan as audio at each prayer (founder, 20/10/2026): /adhan on | off, or toggle. Turning it on turns the
+    // prayer alerts on too; they go out only while Islamic Mode is on in the app.
+    const want = /^(on|បើក)$/i.test(payload ?? "") ? true : /^(off|បិទ)$/i.test(payload ?? "") ? false : null
+    const { data } = await db.rpc("bot_set_adhan_audio", { p_key: key, p_chat_id: chatId, p_on: want })
+    const r = data as { status: string; on?: boolean } | null
+    await sendText(
+      chatId,
+      r?.status !== "ok"
+        ? tr(lang, "bot.notLinked")
+        : [
+            r.on
+              ? "🕌 អាហ្សានជាសំឡេង៖ បើក — ដល់ម៉ោងសឡាតនីមួយៗ បូតនឹងផ្ញើសំឡេងអាហ្សាន ជាមួយម៉ោង និងទីតាំង។"
+              : "🔕 អាហ្សានជាសំឡេង៖ បិទ — នៅតែទទួលការរំលឹកម៉ោងសឡាតជាអក្សរដដែល។",
+            ...(r.on ? ["", "ℹ️ ទូរស័ព្ទរោទ៍តាមសំឡេងជូនដំណឹងរបស់ Telegram — ចុចលើសារ ដើម្បីស្ដាប់អាហ្សាន។ ត្រូវបើកមុខងារឥស្លាមក្នុងអេប។"] : []),
+            "",
+            `👉 /adhan ${r.on ? "off" : "on"}`,
+          ].join("\n"),
+    )
   } else if (/^\/atm(@\w+)?$/i.test(command)) {
     // The nearest ATMs and branches: a location button, or a province / town name. Public data.
     await handleAtmCommand(chatId, text.trim().replace(/^\S+\s*/, ""))

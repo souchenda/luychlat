@@ -34,6 +34,8 @@ type Link = {
   evening_checkin?: boolean
   prayer_alerts: boolean
   prayer_province: string | null
+  /** The Adhan as a Telegram audio at each prayer (founder, 20/10/2026). */
+  adhan_audio?: boolean
   commands_enabled: boolean
   workspace_id: string | null
   /** ULTRA: log into every workspace, routed per message. */
@@ -69,7 +71,7 @@ export function useTelegramLink() {
     enabled: Boolean(userId),
     queryFn: async () => {
       // Before the bot migration the table is missing: treat as "not linked".
-      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, weekly_digest, ai_numbers, holy_day_alerts, evening_checkin, prayer_alerts, prayer_province, commands_enabled, workspace_id, route_all").maybeSingle()
+      const { data, error } = await client().from("telegram_links").select("chat_id, username, language, debt_alerts, weekly_digest, ai_numbers, holy_day_alerts, evening_checkin, prayer_alerts, prayer_province, adhan_audio, commands_enabled, workspace_id, route_all").maybeSingle()
       return error ? null : (data as Link | null)
     },
   })
@@ -259,6 +261,16 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                   ))}
                 </SelectContent>
               </Select>
+            )}
+            {linked.prayer_alerts && (
+              <label className="flex items-center gap-3 text-sm">
+                <BellIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{t("bot.adhanAudio")}</span>
+                  <span className="block text-xs text-muted-foreground">{t("bot.adhanAudioHint")}</span>
+                </span>
+                <Switch checked={Boolean(linked.adhan_audio)} onCheckedChange={(v) => update.mutate({ adhan_audio: v })} aria-label={t("bot.adhanAudio")} />
+              </label>
             )}
             <label className="flex items-center gap-3 text-sm">
               <MessageSquarePlusIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />

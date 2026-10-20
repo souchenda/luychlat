@@ -25,6 +25,15 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.match(notify, /⚠️ <b>ការដាក់ឱ្យដំណើរការមិនជោគជ័យ \(Deploy Failed\)<\/b>/)
     assert.match(notify, /\[ "\$\(cat deploy\/run\/\.failed-notified 2>\/dev\/null\)" = "\$head" \] && exit 0/)
   })
+  it("the weekly Docker clean-up: Sundays 02:00, week-old build cache and dangling images, logged, never during a deploy or the APK build", () => {
+    const prune = read("deploy/weekly-prune.sh")
+    assert.match(prune, /docker builder prune -af --filter "until=168h"/)
+    assert.match(prune, /docker image prune -f/)
+    assert.match(prune, /flock -n \/tmp\/luysmart-deploy\.lock/)
+    assert.match(prune, /\[b\]uild-apk/)
+    assert.match(prune, /disk free: \$\{before\} GB → \$\{after\} GB/)
+    assert.match(update, /echo "0 2 \* \* 0 root cd \$\(pwd\) && bash deploy\/weekly-prune\.sh >\/dev\/null 2>&1" > \/etc\/cron\.d\/luychlat-weekly-prune/)
+  })
   it("regression: two sites share the upstream (app.luychlat.com, luy.ibmserp.com) — «found 2» made every deploy restart in place since 11/10", () => {
     const nginx = read("deploy/nginx-setup.sh")
     assert.ok(nginx.indexOf('if [ "${#sites[@]}" -gt 1 ] && [ -f "$SNIPPET" ]; then') < nginx.indexOf('echo "✗ Expected one Nginx site using luysmart_app'))

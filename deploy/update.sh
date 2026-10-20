@@ -120,6 +120,10 @@ if [ -d /etc/cron.d ] && [ ! -f /etc/cron.d/luychlat-security ]; then
   echo "*/5 * * * * root cd $(pwd) && bash deploy/security-stats.sh >/dev/null 2>&1" > /etc/cron.d/luychlat-security
 fi
 bash ./deploy/security-stats.sh 1440 || echo "! Security stats not recorded"
+# Weekly Docker clean-up, Sundays 02:00 (the host runs on Cambodia time) — deploy/weekly-prune.sh, logged.
+if [ -d /etc/cron.d ] && [ ! -f /etc/cron.d/luychlat-weekly-prune ]; then
+  echo "0 2 * * 0 root cd $(pwd) && bash deploy/weekly-prune.sh >/dev/null 2>&1" > /etc/cron.d/luychlat-weekly-prune
+fi
 # Lets auto-update.sh redeploy when .env changes (e.g. a new token).
 sha256sum .env 2>/dev/null | cut -d' ' -f1 > deploy/.deployed-env || true
 docker image prune -f >/dev/null

@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 20/10/2026 · 06:40 (Cambodia time)
+**Last updated:** 20/10/2026 · 10:30 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -39,7 +39,9 @@ dropped between sessions. The founder reviews it every evening.
 - [ ] Bitesize lessons screen — 8 lessons written (a0ffcd7), each needs a local Imam's / teacher's review before it shows
 - [ ] Fiqh reference assistant screen — the guarded back end is live (a0ffcd7)
 - [/] The founder's du'a texts vs the app's: after eating decided (Sunan Abi Dawud 3850), before eating rewritten; worry / debt still open
-- [ ] Telegram bot audio Adhan alert option (to overcome iPhone locked-screen PWA limitations)
+- [/] Telegram bot audio Adhan alert — /adhan on | off and the switch under Settings › bot prayer alerts; the app-wide default Adhan with prayer, time and place (Telegram's own notification sound rings on a locked iPhone; the Adhan plays on a tap)
+- [x] Place suggestions with a photo — the approval card is the photo; the directory shows it (0264ca3)
+- [x] Halal finance lesson posters: the principle and its money takeaway on every one of the 14 (a730c5f); today's lesson 13 replaced (c5c9d4c)
 
 ## 2. ⚙️ ប្រព័ន្ធអេដមីន & ស្វ័យប្រវត្តិកម្ម (Admin, Approval & Bot Engine)
 
@@ -56,6 +58,9 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Every approved suggestion thanks its member once, however it was approved (eebe7d1)
 - [x] Real-time cards to «LCA Approval»: new members and place / qasidah submissions, with the [ 🌙 ឥស្លាម ] / [ ☀️ មហាជន ] badge and thanks in each member's own words (9222f3e, ff5b964)
 - [x] New-member card «👤 សមាជិកថ្មីទើបបានចុះឈ្មោះ» with a welcome in the member's own words, sent quietly (77d67ad)
+- [x] Post cards name who approved / published / paused and when; Staff Performance in the founder's nightly card (f3f699a)
+- [x] ZERO unapproved public posts, locked — only the bulletin, NBC rates and prayer times post without a tap; a post still waiting at its time sends the founder an urgent reminder with ✅ / ❌ (7f6605c; the morning's auto-publish fallback d40d78a reverted)
+- [x] REPLACE OLD WITH NEW — an improved version of today's published post is offered with 🔄 and replaces the old one (c5c9d4c)
 - [x] Reports (nightly card, morning briefing, end-of-day, fuel sync, new members) to the founder's private chat only — «LCA Approval» stays an approval queue (7f02e42)
 - [/] Approver name, @username and time on every post card after ✅ / 🚀 / ❌; per-approver counts (Staff Performance) in the founder's nightly card
 
@@ -73,10 +78,12 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Bank slip auto-matching for DL MEAT SUPPLY ABA USD (3de602d)
 - [x] Droplet disk space maintenance (38 GB free at the time)
 - [x] Disk: Docker builder cache pruned — 43 GB reclaimed, 58 GB free (25 % used, 19/10/2026 21:00)
-- [ ] Disk: a weekly Docker builder-cache prune (cron) — not set up yet; 52 GB free on 19/10/2026 23:30, each deploy adds ~1–2 GB
+- [/] Disk: weekly Docker clean-up, Sundays 02:00 — week-old build cache and dangling images, logged to /var/log/luysmart-prune.log (deploy/weekly-prune.sh)
 - [x] Nightly reports restored: the 23:59 end-of-day report reached no chat (no DevOps chat set) while logging «sent» — now the founder's chat; new 23:30 «📊 របាយការណ៍ប្រចាំថ្ងៃ & សុខភាព Server» card in «LCA Approval»; missed windows caught up until 06:00; /report on demand (3ed4182, ce4a4e9)
 - [x] Post-deploy health-check rule in CLAUDE.md (no silent failures)
-- [/] One-off morning briefing to the founder, 20/10/2026 07:00
+- [x] One-off morning briefing to the founder, 20/10/2026 07:00 — sent to 1 chat at 07:00:30
+- [x] Deploy cards in natural Khmer to the founder's private chat after every release; «Deploy Failed» once per commit (8ea16c5, 77b258b)
+- [x] Zero-downtime deploys again — two Nginx sites share the upstream (cf850c5)
 
 ## 5. 🚀 ហេដ្ឋារចនាសម្ព័ន្ធទូទាត់ឆ្លាតវៃ (Smart Merchant & Payment Infrastructure — Long-term / Future Vision)
 
