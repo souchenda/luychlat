@@ -53,9 +53,9 @@ renders the poster. With a portrait the poster is 1080 × 1350; without one it i
    Majesty. The upper area holds only the portrait; the brand is a modest sign-off at the very
    bottom, centred: [mascot] «អេប លុយឆ្លាត · app.luychlat.com».
 5. **Foreground:** the **golden arched frame** holds the **official, high-definition royal portrait** — the one focal
-   point. **The vertical order (founder, 20/10/2026 — «the occasion first»):** the gold title at the top centre
-   (between the corner ornaments, ≤ 560 px), the arch with the portrait, the royal name, the dateline, the blessing, the
-   brand at the base.
+   point. **The vertical order (founder, 20/10/2026):** the arch with the portrait, then the gold title, the royal
+   name, the dateline, the blessing, the brand at the base. (The title on top, between the corner ornaments, was tried
+   and set aside the same day — `TITLE_POSITION`.)
 6. **Text, below the arch:** the title in gold, 52 px; the royal name and title in white, 30 px; the gold date chip;
    the blessing, 28 px, centred; then the footer.
 
@@ -240,3 +240,5 @@ an approver's tap.
   arch; the brand at the base.
 - **20/10/2026:** the portrait smaller (the arch 390 × 470) so the official photo is magnified at most ~1.4× and stays sharp —
   «the photo feels too big; it spoils the poster's quality». Never enlarge a portrait beyond what its source can carry.
+- **20/10/2026:** the title back under the portrait (founder: «try putting it back under the photo»); the portrait
+  raised (arch top 140 px).

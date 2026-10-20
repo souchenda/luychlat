@@ -184,6 +184,8 @@ const BLESSING_BAND_BOTTOM = 1090
 
 /** The widest the top title may be: clear of the kbach corner ornaments at the top. */
 const TITLE_TOP_WIDTH = 560
+/** The occasion's title: under the portrait (founder, 20/10/2026, after trying it on top) or at the top centre. */
+export const TITLE_POSITION: "top" | "below" = "below"
 
 function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nationalAssetsFor>): { png: Buffer; truncated: boolean } {
   const canvas = createCanvas(PW, PH)
@@ -235,19 +237,21 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   // official portrait (277 × 396 at source) is magnified ~1.4× instead of ~1.7× — sharper, with more air around it.
   const fw = 390
   const fh = 470
-  // The occasion first (founder, 20/10/2026 — «move the grand occasion title to the TOP CENTER above the King's
-  // portrait»): the gold title at the top centre, between the top corner ornaments (at most TITLE_TOP_WIDTH wide), then
-  // the arch below it; nothing else above His Majesty.
+  // Where the occasion's gold title goes (founder, 20/10/2026): at the top centre above the arch, or under the portrait
+  // (TITLE_POSITION). On top it stays between the corner ornaments (at most TITLE_TOP_WIDTH wide).
   const width = PW - 2 * 80
   ctx.textAlign = "center"
-  let titleSize = 50
-  ctx.font = `700 ${titleSize}px ${FAMILIES}`
-  while (titleSize > 38 && ctx.measureText(text.title).width > TITLE_TOP_WIDTH) ctx.font = `700 ${--titleSize}px ${FAMILIES}`
-  const titleLines = wrap(ctx, text.title, TITLE_TOP_WIDTH, 1)
-  if (titleLines.at(-1)?.endsWith("…")) truncated = true
-  ctx.fillStyle = "#fcd34d"
-  ctx.fillText(titleLines[0] ?? "", PW / 2, 122)
-  const fy = 200
+  const titleOnTop = TITLE_POSITION === "top"
+  if (titleOnTop) {
+    let titleSize = 50
+    ctx.font = `700 ${titleSize}px ${FAMILIES}`
+    while (titleSize > 38 && ctx.measureText(text.title).width > TITLE_TOP_WIDTH) ctx.font = `700 ${--titleSize}px ${FAMILIES}`
+    const top = wrap(ctx, text.title, TITLE_TOP_WIDTH, 1)
+    if (top.at(-1)?.endsWith("…")) truncated = true
+    ctx.fillStyle = "#fcd34d"
+    ctx.fillText(top[0] ?? "", PW / 2, 122)
+  }
+  const fy = titleOnTop ? 200 : 140
 
   // The portrait in the arched gold frame.
   const fx = (PW - fw) / 2
@@ -271,8 +275,18 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   ctx.strokeStyle = "rgba(253,230,138,0.7)"
   ctx.stroke()
 
-  // Below the portrait, centred: the royal name, the date chip, the blessing.
-  let y = fy + fh + 82
+  // Below the portrait, centred: the title (when it is not on top), the royal name, the date chip, the blessing.
+  let y = fy + fh + (titleOnTop ? 82 : 80)
+  if (!titleOnTop) {
+    ctx.font = `700 52px ${FAMILIES}`
+    ctx.fillStyle = "#fcd34d"
+    const below = wrap(ctx, text.title, width, 2)
+    if (below.at(-1)?.endsWith("…")) truncated = true
+    for (const line of below) {
+      ctx.fillText(line, PW / 2, y)
+      y += 68
+    }
+  }
   if (text.subtitle) {
     ctx.font = `600 30px ${FAMILIES}`
     ctx.fillStyle = "#ffffff"

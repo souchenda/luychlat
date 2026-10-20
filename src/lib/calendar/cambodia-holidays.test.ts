@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("smaller-portrait") && !listed.includes("title-top") && !listed.includes("raised-portrait")) // a used flag leaves the list
+    assert.ok(listed.includes("title-below") && !listed.includes("smaller-portrait") && !listed.includes("title-top")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -236,23 +236,20 @@ describe("The final composition: the portrait raised, the lower half open (found
   })
 })
 
-describe("The occasion first — the title at the top centre above the portrait (founder, 20/10/2026)", () => {
-  it("the gold title is drawn above the arch, within the space between the top corner ornaments; nothing else up there", async () => {
+describe("The occasion's title — under the portrait (founder, 20/10/2026, after trying it on top)", () => {
+  it("TITLE_POSITION is «below»: nothing is drawn above the arch; on top the title would stay between the corner ornaments", async () => {
+    const mod = await import("@/lib/server/national-day-poster")
+    assert.equal(mod.TITLE_POSITION, "below")
     const poster = read("src/lib/server/national-day-poster.ts")
     const royal = poster.slice(poster.indexOf("function portraitPoster("))
-    const title = royal.indexOf("ctx.fillText(titleLines[0] ?? \"\", PW / 2, 122)")
-    assert.ok(title > 0 && title < royal.indexOf("archPath(ctx, fx, fy, fw, fh)"), "the title before the arch")
-    assert.match(poster, /const TITLE_TOP_WIDTH = 560/)
-    const fy = Number(royal.match(/const fy = (\d+)/)![1])
-    assert.ok(fy - 16 > 122 + 20, String(fy)) // the arch's outer line below the title
-    // Rendered: whole, 1080 × 1350, nothing cut.
+    assert.match(royal, /const fy = titleOnTop \? 200 : 140/)
+    assert.ok(royal.indexOf("const below = wrap(ctx, text.title, width, 2)") > royal.indexOf("archPath(ctx, fx, fy, fw, fh)"), "the title after the arch")
+    assert.match(poster, /const TITLE_TOP_WIDTH = 560/) // the top option stays clear of the corners
     const { posterAssetsReady } = await import("@/lib/server/poster-kit")
-    const mod = await import("@/lib/server/national-day-poster")
     await posterAssetsReady
     await mod.nationalAssetsReady
-    const r = mod.nationalDayPoster(nationalDayByKey("coronation")!, "2026-10-29")
-    assert.equal(r.truncated, false)
-    assert.match(read("supabase/migrations/20270227000000_repreview_title_top.sql"), /'repreview', 'title-top'/)
+    assert.equal(mod.nationalDayPoster(nationalDayByKey("coronation")!, "2026-10-29").truncated, false)
+    assert.match(read("supabase/migrations/20270229000000_repreview_title_below.sql"), /'repreview', 'title-below'/)
   })
 })
 
