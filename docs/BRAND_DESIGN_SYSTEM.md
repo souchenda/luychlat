@@ -115,13 +115,20 @@ birthday and the Queen Mother's birthday.
 
 - The Telegram and Facebook caption repeats the poster's royal wording exactly (`nationalCaptionHtml` /
   `nationalCaptionText`): the title, the name lines, the dateline and the blessing.
-- **Approval:** the preview goes to «LCA Approval» 48 hours before, at 08:00. It publishes at 07:00 on the day to the
+- **Approval:** the preview goes to «LCA Approval» 48 hours before, at 08:00. It publishes at **05:00** on the day (founder, 20/10/2026 — first in the feed when people wake) to the
   Telegram channel and the Facebook Page, **only after a super admin's tap**. Every preview asks the approver to check
   the royal wording (រាជស័ព្ទ).
 - **A better version:** the waiting card is withdrawn and sent again once (the `repreview` flag, acted on only by the
   build listed in `REPREVIEW_READY`).
 
-### 2.6 The calendar
+### 2.6 Timing — mandatory (founder, 20/10/2026)
+
+**All national and royal holiday posters publish strictly at 05:00 Cambodia time, once pre-approved** — a holiday
+poster lives one day, and at 05:00 it is at the top of the feed when people wake (05:30–06:00). Not approved by 05:00:
+HOLD — never published by the timer — and the urgent founder reminder fires at once. The approval card and its ✅
+name the day and the time: «✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)».
+
+### 2.7 The calendar
 
 These follow the same standard: 7 January, the King's birthday (14 May), the Queen Mother's birthday (18 June),
 Constitution Day (24 September), the King Father's memorial (15 October), the **Coronation (29 October)**,

@@ -130,6 +130,24 @@ export function kmClock(iso: string): string {
   return `${khmerDigits(String(h).padStart(2, "0"))}:${khmerDigits(String(m).padStart(2, "0"))} ${part}`
 }
 
+const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
+const cambodiaDay = (iso: string) => new Date(Date.parse(iso) + 7 * 3_600_000).toISOString().slice(0, 10)
+
+/** «២៩ តុលា» — the Cambodian calendar day of an instant. */
+export function kmDayMonth(iso: string): string {
+  const [, m, d] = cambodiaDay(iso).split("-").map(Number)
+  return `${khmerDigits(String(d))} ${KM_MONTHS[m - 1]}`
+}
+
+/**
+ * When a post goes out, with no ambiguity (founder, 20/10/2026 — «does approving now publish tomorrow or on the 29th?»):
+ * «ម៉ោង ០៧:០០ ព្រឹក» the same day; «ថ្ងៃទី ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក» when it publishes on a later day than `now`.
+ */
+export function kmWhen(publishAt: string, now?: string): string {
+  const later = now !== undefined && cambodiaDay(publishAt) !== cambodiaDay(now)
+  return later ? `ថ្ងៃទី ${kmDayMonth(publishAt)} ម៉ោង ${kmClock(publishAt)}` : `ម៉ោង ${kmClock(publishAt)}`
+}
+
 const KIND_LABEL: Record<PostKind, string> = {
   MORNING: "ផុសព្រឹក (Poster)",
   HOLIDAY: "សារថ្ងៃឈប់សម្រាក",
@@ -163,7 +181,7 @@ export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "IS
 export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly string[]).includes(kind)
 
 /** The preview's header (destination first), the post itself, then the status line. */
-export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus; decider?: Decider | null }): string {
+export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus; decider?: Decider | null; now?: string }): string {
   const where = targetLabel(o.targets)
   return [
     `📢 គោលដៅផ្សាយ៖ [ ${where} ]`,
@@ -171,7 +189,7 @@ export function previewText(o: { kind: PostKind; targets: Targets; publishAt: st
     "",
     o.body,
     "",
-    (o.decider && deciderLine(o.status, where, o.publishAt, o.decider)) ?? statusLine(o.status, where, o.publishAt),
+    (o.decider && deciderLine(o.status, where, o.publishAt, o.decider, o.now)) ?? statusLine(o.status, where, o.publishAt, o.now),
   ].join("\n")
 }
 
@@ -189,24 +207,24 @@ export function deciderName(d: Pick<Decider, "name" | "username">): string {
  * The card once someone decided (founder, 20/10/2026): their name and the time, in «LCA Approval» for every
  * approver to see. Null when nobody is named (the timer's expiry, an older post) — the plain status line then.
  */
-export function deciderLine(status: PostStatus, where: string, publishAt: string, d: Decider): string | null {
+export function deciderLine(status: PostStatus, where: string, publishAt: string, d: Decider, now?: string): string | null {
   if (!d.how || !d.at || (!d.name?.trim() && !d.username)) return null
   const who = `👤 ${deciderName(d)}`
   const at = kmClock(d.at)
   if (status === "APPROVED" && d.how === "approve")
-    return [`✅ បានយល់ព្រមដោយ៖ ${who}`, `⏰ ម៉ោងអនុម័ត៖ ${at}`, `📢 នឹងផ្សាយទៅ [ ${where} ] នៅម៉ោង ${kmClock(publishAt)}។`].join("\n")
+    return [`✅ បានយល់ព្រមដោយ៖ ${who}`, `⏰ ម៉ោងអនុម័ត៖ ${at}`, `📢 នឹងផ្សាយទៅ [ ${where} ] នៅ${kmWhen(publishAt, now)}។`].join("\n")
   if (status === "PUBLISHED" && d.how === "publish") return [`🚀 បានបាញ់ផ្សាយភ្លាមៗដោយ៖ ${who}`, `⏰ ម៉ោងផ្សាយ៖ ${at}`].join("\n")
   if (status === "PUBLISHED" && d.how === "approve") return [`✅ បានផ្សាយរួចរាល់ នៅម៉ោង ${kmClock(publishAt)}`, `${who} បានយល់ព្រម · ⏰ ${at}`].join("\n")
   if (status === "PAUSED" && d.how === "pause") return [`❌ ត្រូវបានផ្អាកដោយ៖ ${who}`, `⏰ ម៉ោងផ្អាក៖ ${at}`].join("\n")
   return null
 }
 
-export function statusLine(status: PostStatus, where: string, publishAt: string): string {
+export function statusLine(status: PostStatus, where: string, publishAt: string, now?: string): string {
   switch (status) {
     case "PENDING":
-      return `🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម — ចុច «✅ យល់ព្រម» ដើម្បីផ្សាយទៅ [ ${where} ] នៅម៉ោង ${kmClock(publishAt)}។`
+      return `🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម — ចុច «✅ យល់ព្រម» ដើម្បីផ្សាយទៅ [ ${where} ] នៅ${kmWhen(publishAt, now)}។`
     case "APPROVED":
-      return `✅ បានយល់ព្រម — នឹងផ្សាយទៅ [ ${where} ] នៅម៉ោង ${kmClock(publishAt)}។`
+      return `✅ បានយល់ព្រម — នឹងផ្សាយទៅ [ ${where} ] នៅ${kmWhen(publishAt, now)}។`
     case "PUBLISHED":
       return "✅ បានផ្សាយរួចរាល់"
     case "PAUSED":
@@ -226,11 +244,12 @@ export const COMEDY_KINDS: readonly string[] = ["DILEMMA"]
  * Pending: [ ✅ យល់ព្រម ] (published at its time), [ 🚀 ផុសភ្លាមៗ ] (now) and [ ❌ ផ្អាក ]. Approved: publish now
  * or pause. Nothing once it has been published, paused or expired.
  */
-export function previewButtons(id: number, status: PostStatus, targets: Targets, kind?: string): { text: string; callback_data: string }[][] {
+export function previewButtons(id: number, status: PostStatus, targets: Targets, kind?: string, when?: { publishAt: string; now: string }): { text: string; callback_data: string }[][] {
   if (status !== "PENDING" && status !== "APPROVED") return []
   const short = targets.telegram && targets.facebook ? "Telegram + Facebook" : targets.facebook ? "Facebook" : "Telegram"
   return [
-    ...(status === "PENDING" ? [[{ text: "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)", callback_data: `sp:${id}:a` }]] : []),
+    // A later day is named on the button itself (founder, 20/10/2026): «✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)».
+    ...(status === "PENDING" ? [[{ text: when && kmWhen(when.publishAt, when.now).startsWith("ថ្ងៃទី") ? `✅ យល់ព្រម (ផ្សាយថ្ងៃ ${kmDayMonth(when.publishAt)} ម៉ោង ${kmClock(when.publishAt)})` : "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)", callback_data: `sp:${id}:a` }]] : []),
     [{ text: `🚀 ផុសភ្លាមៗ (${short})`, callback_data: `sp:${id}:p` }],
     [{ text: kind && COMEDY_KINDS.includes(kind) ? "❌ ផ្អាក / បដិសេធ" : "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }],
   ]

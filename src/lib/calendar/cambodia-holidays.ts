@@ -1,7 +1,7 @@
 /**
  * Cambodia's national days, royal ceremonies and international days (founder, 20/10/2026 — «LuyChlat was silent on
  * 15 October»): each one becomes a commemoration poster, previewed in «LCA Approval» 48 hours before at 08:00 and
- * published at 07:00 on the day to the community channel and the Page — only with an approver's tap (ZERO UNAPPROVED
+ * published at 05:00 on the day to the community channel and the Page — only with an approver's tap (ZERO UNAPPROVED
  * PUBLIC POSTS). Pure (cambodia-holidays.test.ts).
  *
  * Fixed days by month-day; the lunar days (Khmer New Year, Visak Bochea, the Royal Ploughing, the Water Festival) from
@@ -102,15 +102,18 @@ export function nationalDateLine(d: NationalDay, day: string): string {
   return `${kmDate(`${d.since}${day.slice(4)}`)} – ${kmDate(day)} · ខួបលើកទី${khmerDigits(String(years))}`
 }
 
-/** The preview opens 48 hours before at 08:00 (Cambodia), and stays open until the 07:00 publication. */
+/**
+ * The preview opens 48 hours before at 08:00 (Cambodia) and stays open until the publication at 05:00 (founder,
+ * 20/10/2026 — a national day lives one day: at 05:00 the poster is already at the top of the feed when people wake).
+ */
 export const PREVIEW_HOURS_BEFORE = 48
-export const PUBLISH_MINUTE = 7 * 60
+export const PUBLISH_MINUTE = 5 * 60
 export const PREVIEW_MINUTE = 8 * 60
 
 /** Days whose preview the founder asked for early (20/10/2026: the 22nd Coronation anniversary, to inspect now). */
 export const EARLY_PREVIEWS: Record<string, string> = { "coronation:2026-10-29": "2026-10-20" }
 
-/** The national days whose preview window is open on `today` at `minutes` (Cambodia): from D−2 08:00 until D 07:00. */
+/** The national days whose preview window is open on `today` at `minutes` (Cambodia): from D−2 08:00 until D 05:00. */
 export function nationalDaysToPreview(today: string, minutes: number): { day: NationalDay; date: string }[] {
   const year = Number(today.slice(0, 4))
   const out: { day: NationalDay; date: string }[] = []

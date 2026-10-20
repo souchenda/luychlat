@@ -32,11 +32,11 @@ describe("Cambodia's national days and royal ceremonies (founder, 20/10/2026)", 
     assert.match(nationalDateLine(nationalDayByKey("independence")!, "2026-11-09"), /ខួបលើកទី៧៣$/)
     assert.match(nationalDateLine(nationalDayByKey("king-father-memorial")!, "2026-10-15"), /ខួបលើកទី១៤$/)
   })
-  it("the preview: from 48 hours before at 08:00 until 07:00 on the day; the Coronation early on the founder's request", () => {
+  it("the preview: from 48 hours before at 08:00 until the 05:00 publication on the day; the Coronation early on the founder's request", () => {
     assert.ok(!keys("2026-11-07", 7 * 60 + 59).includes("independence:2026-11-09"))
     assert.ok(keys("2026-11-07", 8 * 60).includes("independence:2026-11-09"))
-    assert.ok(keys("2026-11-09", 6 * 60 + 59).includes("independence:2026-11-09")) // a missed window is caught up
-    assert.ok(!keys("2026-11-09", 7 * 60).includes("independence:2026-11-09"))
+    assert.ok(keys("2026-11-09", 4 * 60 + 59).includes("independence:2026-11-09")) // a missed window is caught up
+    assert.ok(!keys("2026-11-09", 5 * 60).includes("independence:2026-11-09"))
     assert.ok(keys("2026-10-20", 12 * 60).includes("coronation:2026-10-29")) // the founder asked to inspect it now
     assert.ok(!keys("2026-10-19", 12 * 60).includes("coronation:2026-10-29"))
   })
@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("title-below") && !listed.includes("smaller-portrait") && !listed.includes("title-top")) // a used flag leaves the list
+    assert.ok(listed.includes("five-am") && !listed.includes("title-below") && !listed.includes("smaller-portrait")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -262,5 +262,28 @@ describe("The portrait at a size that stays sharp (founder, 20/10/2026 — «the
     assert.deepEqual([fw, fh], [390, 470])
     assert.ok(fw / 277 <= 1.45, String(fw / 277)) // the source crop is 277 px wide (README.txt)
     assert.match(read("supabase/migrations/20270228000000_repreview_smaller_portrait.sql"), /'repreview', 'smaller-portrait'/)
+  })
+})
+
+describe("National days at 05:00, the day named on the card (founder, 20/10/2026)", () => {
+  it("published at 05:00; the waiting Coronation moves to 29 October 05:00; the card says the day, on the button too", async () => {
+    const { PUBLISH_MINUTE } = await import("./cambodia-holidays")
+    assert.equal(PUBLISH_MINUTE, 5 * 60)
+    // Locked in CLAUDE.md (founder, 20/10/2026): 05:00 sharp once approved; else held, with the urgent reminder.
+    assert.match(read("CLAUDE.md"), /NATIONAL HOLIDAY TIMING RULE — locked \(founder, 20\/10\/2026\):\*\* all Cambodian national and royal holiday posters MUST/)
+    assert.match(read("src/lib/server/scheduled-posts.ts"), /if \(action === "hold"\) await remindFounder\(row\)/)
+    const sql = read("supabase/migrations/20270230000000_national_day_five_am.sql")
+    assert.match(sql, /set publish_at = timestamptz '2026-10-29 05:00:00\+07'/)
+    assert.match(sql, /'repreview', 'five-am'/)
+    const { kmWhen, previewButtons, statusLine } = await import("@/lib/scheduled-posts")
+    const at = "2026-10-28T22:00:00Z" // 29 October 05:00, Cambodia
+    const now = "2026-10-20T08:30:00Z"
+    const where = "✈️ Telegram Channel + 🔵 Facebook Page"
+    assert.equal(kmWhen(at, now), "ថ្ងៃទី ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក")
+    assert.equal(statusLine("PENDING", where, at, now), `🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម — ចុច «✅ យល់ព្រម» ដើម្បីផ្សាយទៅ [ ${where} ] នៅថ្ងៃទី ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក។`)
+    assert.equal(previewButtons(7, "PENDING", { telegram: true, facebook: true }, "NATIONAL_DAY", { publishAt: at, now })[0][0].text, "✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)")
+    // The same day keeps the short wording (the golden publisher test).
+    assert.equal(kmWhen(at, "2026-10-28T21:00:00Z"), "ម៉ោង ០៥:០០ ព្រឹក")
+    assert.equal(previewButtons(7, "PENDING", { telegram: true, facebook: true }, "MORNING", { publishAt: at, now: "2026-10-28T21:00:00Z" })[0][0].text, "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)")
   })
 })

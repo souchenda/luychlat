@@ -137,7 +137,8 @@ export function createScheduler(d: SchedulerDeps) {
     const { png, body } = await d.content(row)
     const targets = d.targets(row)
     const decider = { name: row.decided_name ?? null, username: row.decided_username ?? null, at: row.decided_at ?? null, how: row.decided_how ?? null }
-    return { png, text: previewText({ kind: row.kind, targets, publishAt: row.publish_at, body, status, decider }), buttons: previewButtons(row.id, status, targets, row.kind) }
+    const now = new Date(d.now()).toISOString()
+    return { png, text: previewText({ kind: row.kind, targets, publishAt: row.publish_at, body, status, decider, now }), buttons: previewButtons(row.id, status, targets, row.kind, { publishAt: row.publish_at, now }) }
   }
 
   async function sendPreviews(row: PostRow) {
@@ -729,7 +730,7 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
-  const REPREVIEW_READY = ["title-below"]
+  const REPREVIEW_READY = ["five-am"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // National days and royal ceremonies (founder, 20/10/2026): previewed from 48 hours before at 08:00, published at
   // 07:00 on the day once approved (a missed preview window is caught up until then — idempotent).

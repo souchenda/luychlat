@@ -75,7 +75,7 @@ dropped between sessions. The founder reviews it every evening.
 - [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E)
 - [/] **Master Brand & Visual Design System** — `docs/BRAND_DESIGN_SYSTEM.md`, the permanent design foundation for every poster: the four pillars, royal protocol (verbatim table), Islamic terminology and two-tier colours, Sil days and festivals, daily education, the pre-flight four-layer checklist; referenced in CLAUDE.md. Evolves only on the founder's decisions (its change log)
 - [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder)
-- [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 07:00 only after a tap
+- [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 05:00 on 29/10 only after a tap (the card names the day)
 - [ ] 09/11 Independence Day — preview 07/11 08:00; text design until the founder provides an official portrait of the King Father
 - [ ] Water Festival (dates from the official sub-decree) — preview 48 h before at 08:00
 - [ ] Official portraits of the King Father (15/10, 09/11) and the Queen Mother (18/06), from the founder
