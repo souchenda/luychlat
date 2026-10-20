@@ -127,5 +127,8 @@ fi
 # Lets auto-update.sh redeploy when .env changes (e.g. a new token).
 sha256sum .env 2>/dev/null | cut -d' ' -f1 > deploy/.deployed-env || true
 docker image prune -f >/dev/null
+# The build cache, trimmed to its newest 10 GB after every release (founder, 20/10/2026 — fifteen releases in a day left
+# 32 GB of cache; the weekly clean-up alone let it pile up). The newest layers stay, so the next build is still fast.
+docker builder prune -f --keep-storage 10GB >/dev/null 2>&1 || echo "! Build cache not trimmed (the app is deployed)"
 echo "✓ Deployed $(git rev-parse --short HEAD) on $next"
 bash ./deploy/deploy-notify.sh ok "$prev_deployed" || echo "! Deploy notice not sent (the app is deployed)"

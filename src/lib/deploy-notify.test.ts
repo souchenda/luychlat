@@ -34,6 +34,13 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.match(prune, /\[b\]uild-apk/)
     assert.match(prune, /disk free: \$\{before\} GB → \$\{after\} GB/)
     assert.match(update, /echo "0 2 \* \* 0 root cd \$\(pwd\) && bash deploy\/weekly-prune\.sh >\/dev\/null 2>&1" > \/etc\/cron\.d\/luychlat-weekly-prune/)
+    assert.match(prune, /journalctl --vacuum-time=7d/)
+  })
+  it("regression: fifteen releases in a day left 32 GB of build cache — every release trims it to its newest 10 GB; the APK build leaves no dangling images", () => {
+    const after = update.slice(update.indexOf("trap - EXIT"))
+    assert.match(after, /docker image prune -f >\/dev\/null\n/)
+    assert.match(after, /docker builder prune -f --keep-storage 10GB >\/dev\/null 2>&1 \|\| echo "! Build cache not trimmed \(the app is deployed\)"/) // never fails a live release
+    assert.match(read("deploy/build-apk.sh"), /docker image prune -f >\/dev\/null 2>&1 \|\| true/)
   })
   it("regression: two sites share the upstream (app.luychlat.com, luy.ibmserp.com) — «found 2» made every deploy restart in place since 11/10", () => {
     const nginx = read("deploy/nginx-setup.sh")

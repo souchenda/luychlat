@@ -104,3 +104,5 @@ mv -f "$OUT/LuyChlat.apk.new" "$OUT/LuyChlat.apk"
 (cd "$OUT" && sha256sum LuyChlat.apk > LuyChlat.apk.sha256 && chmod 644 LuyChlat.apk.sha256)
 rm -f "$SRC/android/keystore.properties"
 echo "✓ $(du -h "$OUT/LuyChlat.apk" | cut -f1) → $OUT/LuyChlat.apk ($(cut -c1-16 "$OUT/LuyChlat.apk.sha256")…)"
+# Nothing left behind (founder, 20/10/2026): dangling images; the Gradle cache and the SDK stay for the next build.
+docker image prune -f >/dev/null 2>&1 || true

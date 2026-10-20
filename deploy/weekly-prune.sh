@@ -19,7 +19,8 @@ free_gb() { df -BG / | awk 'NR==2 { sub(/G$/, "", $4); print $4 }'; }
   # The deploy holds this lock while it migrates, builds and switches; skip rather than race it.
   if ! flock -n /tmp/luysmart-deploy.lock bash -c '
       docker builder prune -af --filter "until=168h" 2>&1 | grep -i "reclaimed" || echo "builder: nothing to reclaim"
-      docker image prune -f 2>&1 | grep -i "reclaimed" || echo "images: nothing to reclaim"'; then
+      docker image prune -f 2>&1 | grep -i "reclaimed" || echo "images: nothing to reclaim"
+      journalctl --vacuum-time=7d 2>&1 | tail -1 || true'; then
     echo "! a deploy is running: skipped"
     exit 0
   fi
