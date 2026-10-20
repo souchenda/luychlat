@@ -231,8 +231,10 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   // the open kbach tapestry and its golden glow; the portrait in the arch is the one focal point; the brand signs off in
   // the footer only.
   ctx.textBaseline = "alphabetic"
-  const fw = 470
-  const fh = 560
+  // The arch (founder, 20/10/2026 — «the photo feels too big; it spoils the poster's quality»): 390 × 470, so the
+  // official portrait (277 × 396 at source) is magnified ~1.4× instead of ~1.7× — sharper, with more air around it.
+  const fw = 390
+  const fh = 470
   // The occasion first (founder, 20/10/2026 — «move the grand occasion title to the TOP CENTER above the King's
   // portrait»): the gold title at the top centre, between the top corner ornaments (at most TITLE_TOP_WIDTH wide), then
   // the arch below it; nothing else above His Majesty.
@@ -245,7 +247,7 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   if (titleLines.at(-1)?.endsWith("…")) truncated = true
   ctx.fillStyle = "#fcd34d"
   ctx.fillText(titleLines[0] ?? "", PW / 2, 122)
-  const fy = 176
+  const fy = 200
 
   // The portrait in the arched gold frame.
   const fx = (PW - fw) / 2
@@ -270,7 +272,7 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   ctx.stroke()
 
   // Below the portrait, centred: the royal name, the date chip, the blessing.
-  let y = fy + fh + 62
+  let y = fy + fh + 82
   if (text.subtitle) {
     ctx.font = `600 30px ${FAMILIES}`
     ctx.fillStyle = "#ffffff"
@@ -292,7 +294,7 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   ctx.stroke()
   ctx.fillStyle = "#fde68a"
   ctx.fillText(text.date, PW / 2, y + 31)
-  y += 52 + 40
+  y += 52 + 54
 
   const footer = PH - 92
   if (d.posterMessage) {
@@ -317,7 +319,7 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   } else {
     // The blessing, 27 px, centred, in whole lines (no royal phrase split — ROYAL_UNBREAKABLE).
     const bodyWidth = PW - 2 * 130
-    const lead = 40
+    const lead = 44
     ctx.font = `500 27px ${FAMILIES}`
     ctx.fillStyle = "#ecfdf5"
     let lines = wrap(ctx, text.message, bodyWidth, 5)

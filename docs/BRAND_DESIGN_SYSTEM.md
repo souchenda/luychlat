@@ -196,6 +196,7 @@ check all four again together.
 **Layer 1 — Artwork**
 - [ ] Only official or app-drawn imagery; the source is recorded in the README.
 - [ ] The portrait is HD (at least 1000 px tall), centred in the arch, with no stray pixels or awkward crop.
+- [ ] The portrait is not enlarged beyond what its source can carry: it looks sharp at 100 % (founder, 20/10/2026).
 - [ ] Nothing above His Majesty: no crest, no logo; the composition is symmetrical and uncluttered.
 
 **Layer 2 — Background**
@@ -237,3 +238,5 @@ an approver's tap.
   space (arch top ≈ 84 px); the lower half open — the two-line blessing centred between the date chip and the corners.
 - **20/10/2026:** the occasion first — the title at the top centre above the portrait; the full palace blessing below the
   arch; the brand at the base.
+- **20/10/2026:** the portrait smaller (the arch 390 × 470) so the official photo is magnified at most ~1.4× and stays sharp —
+  «the photo feels too big; it spoils the poster's quality». Never enlarge a portrait beyond what its source can carry.

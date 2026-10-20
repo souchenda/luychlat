@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("title-top") && !listed.includes("raised-portrait") && !listed.includes("short-blessing")) // a used flag leaves the list
+    assert.ok(listed.includes("smaller-portrait") && !listed.includes("title-top") && !listed.includes("raised-portrait")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -253,5 +253,17 @@ describe("The occasion first — the title at the top centre above the portrait 
     const r = mod.nationalDayPoster(nationalDayByKey("coronation")!, "2026-10-29")
     assert.equal(r.truncated, false)
     assert.match(read("supabase/migrations/20270227000000_repreview_title_top.sql"), /'repreview', 'title-top'/)
+  })
+})
+
+describe("The portrait at a size that stays sharp (founder, 20/10/2026 — «the photo feels too big»)", () => {
+  it("regression: the arch at 470 px magnified the 277 px official portrait ~1.7× (soft) — now 390 × 470, at most ~1.45×", () => {
+    const poster = read("src/lib/server/national-day-poster.ts")
+    const royal = poster.slice(poster.indexOf("function portraitPoster("))
+    const fw = Number(royal.match(/const fw = (\d+)/)![1])
+    const fh = Number(royal.match(/const fh = (\d+)/)![1])
+    assert.deepEqual([fw, fh], [390, 470])
+    assert.ok(fw / 277 <= 1.45, String(fw / 277)) // the source crop is 277 px wide (README.txt)
+    assert.match(read("supabase/migrations/20270228000000_repreview_smaller_portrait.sql"), /'repreview', 'smaller-portrait'/)
   })
 })
