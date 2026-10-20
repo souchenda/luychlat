@@ -40,9 +40,9 @@ renders the poster. With a portrait the poster is 1080 × 1350; without one it i
 
 1. **Base layer:** a rich royal emerald gradient (`#052e26 → #064e3b → #047857`), a gold glow behind the portrait and
    a soft vignette.
-2. **The founder's backdrop (founder, 20/10/2026):** `bg_royal_coronation.jpg` (1080 × 1350), full bleed — today a
-   borderless traditional Khmer **kbach** tapestry: deep emerald, kbach and lotus motifs, a soft golden glow behind the
-   arch. A soft oval of deep emerald behind the text keeps every line legible. **Never draw
+2. **The founder's backdrop (founder, 20/10/2026):** `bg_royal_coronation.jpg` (1080 × 1350), full bleed — the
+   traditional Khmer **kbach** frame: deep emerald, the kbach / lotus watermark and four golden ornate corners. Nothing
+   is placed on the corner ornaments; the blessing lines stay within 800 px so they clear them. A soft oval of deep emerald behind the text keeps every line legible. **Never draw
    architecture or ornaments as vector shapes:** the founder rejected drawn silhouettes as «crude clipart … unworthy of
    His Majesty the King». Royal architecture, if shown, is photographic only. Without the backdrop, use the plain
    emerald gradient and gold glow.
@@ -231,3 +231,5 @@ an approver's tap.
 - **20/10/2026:** the backdrop is the founder's borderless kbach tapestry; **no crest and no logo above His Majesty** —
   the portrait in the golden arch stands alone; the brand only at the base.
 - **20/10/2026:** the poster breathes — two blessing lines on the graphic, the full palace paragraph in the caption.
+- **20/10/2026 (final):** the kbach frame with its four golden corners; no crest; the portrait raised into the freed
+  space (arch top ≈ 84 px); the lower half open — the two-line blessing centred between the date chip and the corners.

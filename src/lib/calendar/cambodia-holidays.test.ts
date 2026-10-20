@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("short-blessing") && !listed.includes("no-crest") && !listed.includes("crest-apex")) // a used flag leaves the list
+    assert.ok(listed.includes("raised-portrait") && !listed.includes("short-blessing") && !listed.includes("no-crest")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -177,7 +177,7 @@ describe("The Master Brand & Visual Design System (founder, 20/10/2026)", { skip
 })
 
 describe("The founder's kbach backdrop (20/10/2026)", () => {
-  it("the Coronation renders on the founder's borderless kbach tapestry, full bleed", async () => {
+  it("the Coronation renders on the founder's kbach backdrop (the four golden corners), full bleed", async () => {
     const { existsSync } = await import("node:fs")
     assert.ok(existsSync(join(process.cwd(), "public/images/holidays/bg_royal_coronation.jpg")))
     const jpg = readFileSync(join(process.cwd(), "public/images/holidays/bg_royal_coronation.jpg"))
@@ -227,5 +227,16 @@ describe("The Coronation poster breathes — two blessing lines, the full paragr
     const poster = read("src/lib/server/national-day-poster.ts")
     assert.match(poster, /let size = 30/) // 30 → 28 px, the largest that fits
     assert.match(read("supabase/migrations/20270225000000_repreview_short_blessing.sql"), /'repreview', 'short-blessing'/)
+  })
+})
+
+describe("The final composition: the portrait raised, the lower half open (founder, 20/10/2026)", () => {
+  it("the arch rises into the space the crest left; the blessing sits in a band clear of the corner ornaments", () => {
+    const poster = read("src/lib/server/national-day-poster.ts")
+    const fy = Number(poster.match(/const fy = (\d+)/)![1])
+    assert.ok(fy >= 60 && fy <= 100, String(fy)) // raised ~80 px from 150 (founder: «e.g. top: 70px»), clear of the border line
+    assert.match(poster, /const BLESSING_BAND_BOTTOM = 1090/)
+    assert.match(poster, /const lineWidth = PW - 2 \* 140/) // ≤ 800 px: clear of the bottom corner ornaments
+    assert.match(read("supabase/migrations/20270226000000_repreview_raised_portrait.sql"), /'repreview', 'raised-portrait'/)
   })
 })

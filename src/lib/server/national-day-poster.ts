@@ -179,6 +179,9 @@ function drawCover(ctx: SKRSContext2D, img: Image, x: number, y: number, w: numb
   ctx.drawImage(img, x + (w - dw) / 2, y, dw, img.height * scale)
 }
 
+/** The bottom of the blessing band; with lines at most 800 px wide they stay clear of the kbach corner ornaments. */
+const BLESSING_BAND_BOTTOM = 1090
+
 function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nationalAssetsFor>): { png: Buffer; truncated: boolean } {
   const canvas = createCanvas(PW, PH)
   const ctx = canvas.getContext("2d")
@@ -227,7 +230,7 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   ctx.textBaseline = "alphabetic"
   const fw = 470
   const fh = 560
-  const fy = 150
+  const fy = 84 // raised into the space the crest left (founder, 20/10/2026); clear of the top border line
 
   // The portrait in the arched gold frame.
   const fx = (PW - fw) / 2
@@ -289,15 +292,17 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   const footer = PH - 92
   if (d.posterMessage) {
     // The short blessing (founder, 20/10/2026): its own lines, larger (30 → 28 px, the largest that fits), centred in
-    // the space between the date chip and the footer so the poster breathes.
+    // the band between the date chip and the bottom corner ornaments (BLESSING_BAND_BOTTOM) so the poster breathes and
+    // no line touches the kbach corners.
     const given = text.message.split("\n")
+    const lineWidth = PW - 2 * 140
     let size = 30
     ctx.font = `500 ${size}px ${FAMILIES}`
-    while (size > 26 && given.some((l) => ctx.measureText(l).width > width)) ctx.font = `500 ${--size}px ${FAMILIES}`
+    while (size > 26 && given.some((l) => ctx.measureText(l).width > lineWidth)) ctx.font = `500 ${--size}px ${FAMILIES}`
     const lead = Math.round(size * 1.7)
-    const lines = given.flatMap((l) => wrap(ctx, l, width, 2))
+    const lines = given.flatMap((l) => wrap(ctx, l, lineWidth, 2))
     if (lines.some((l) => l.endsWith("…"))) truncated = true
-    const space = footer - 18 - (y - 30)
+    const space = Math.min(footer - 18, BLESSING_BAND_BOTTOM) - (y - 30)
     let by = y - 30 + (space - lines.length * lead) / 2 + size
     ctx.fillStyle = "#ecfdf5"
     for (const line of lines) {

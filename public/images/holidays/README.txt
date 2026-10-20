@@ -11,11 +11,12 @@ Information's official releases, with permission to use them (CLAUDE.md, Licensi
                                     (15 Oct Commemoration, 9 Nov Independence Day)
   portrait_queen_mother.png         the official portrait of Her Majesty Queen Mother Norodom Monineath Sihanouk
                                     (18 Jun Royal Birthday)
-  bg_royal_coronation.jpg           the founder's backdrop, 1080 × 1350 (sent by the founder, 20/10/2026): a borderless
-                                    traditional Khmer kbach tapestry — deep emerald, kbach and lotus motifs, a soft golden
-                                    glow behind the arch — full bleed (29 Oct Coronation). Nothing is placed above His
-                                    Majesty: no crest, no brand; the brand only in the footer (royal protocol). Without it
-                                    the plain emerald is used; the app never draws architecture or ornaments as clipart.
+  bg_royal_coronation.jpg           the founder's backdrop, 1080 × 1350 (sent by the founder, 20/10/2026): the
+                                    traditional Khmer kbach frame — deep emerald, the kbach / lotus watermark and four
+                                    golden ornate corners — full bleed (29 Oct Coronation). Nothing above His Majesty: no
+                                    crest, no brand; the portrait raised, the brand only in the footer (royal protocol).
+                                    Without it the plain emerald is used; the app never draws architecture or ornaments
+                                    as clipart.
   bg_independence_monument.png      a light silhouette of the Independence Monument, transparent background
                                     (a soft watermark on the national days)
 
