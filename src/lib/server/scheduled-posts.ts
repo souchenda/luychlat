@@ -244,6 +244,12 @@ export function createScheduler(d: SchedulerDeps) {
     const r = d.replace
     if (!r) return
     for (const row of await r.replaceTake()) {
+      // A retired or live-feed kind is never republished, even when a 🔄 was tapped before it was retired
+      // (20/10/2026 — the deleted channel quiz was retried every minute): left claimed, never sent.
+      if (!REPLACEABLE(row.kind)) {
+        d.log("warn", `${row.kind} ${row.post_key}: not replaceable — the 🔄 is ignored, nothing is published`)
+        continue
+      }
       let ids: Published = { telegram: null, facebook: null }
       try {
         ids = await d.publish(row)

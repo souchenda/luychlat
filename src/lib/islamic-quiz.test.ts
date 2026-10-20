@@ -98,6 +98,11 @@ describe("The quiz lives in the app only — never in the Telegram channel (foun
     assert.equal(REPLACEABLE("ISLAMIC_DAILY"), true)
     assert.equal(REPLACEABLE("BULLETIN"), false)
     assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270217000000_quiz_never_replaced.sql"), "utf8"), /set replace_status = 'KEPT'\s+where kind = 'ISLAMIC_QUIZ'/)
+    // Regression: a 🔄 tapped before the fix kept the row APPROVED and the scheduler retried it every minute.
+    const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    const due = sp.slice(sp.indexOf("async function replaceDue()"), sp.indexOf("ids = await d.publish(row)", sp.indexOf("async function replaceDue()")))
+    assert.match(due, /if \(!REPLACEABLE\(row\.kind\)\) \{[\s\S]*continue/)
+    assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270220000000_quiz_replace_stop.sql"), "utf8"), /replace_status in \('PENDING', 'APPROVED', 'REPLACING'\)/)
   })
   it("the in-app card: /islamic?tab=quiz scrolls to it, on the Islamic hub", () => {
     assert.equal(QUIZ_APP_URL, "https://app.luychlat.com/islamic?tab=quiz")
