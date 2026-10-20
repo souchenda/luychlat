@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("kbach-backdrop") && !listed.includes("no-clipart") && !listed.includes("hd-portrait-live")) // a used flag leaves the list
+    assert.ok(listed.includes("royal-footer") && !listed.includes("kbach-backdrop") && !listed.includes("no-clipart")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -188,5 +188,19 @@ describe("The founder's kbach backdrop (20/10/2026)", () => {
     assert.match(poster, /const bodyWidth = framed \? PW - 2 \* 140 : width/) // clear of the bottom corners
     assert.match(read("public/images/holidays/README.txt"), /traditional Khmer kbach/)
     assert.match(read("supabase/migrations/20270221000000_repreview_kbach_backdrop.sql"), /'repreview', 'kbach-backdrop'/)
+  })
+})
+
+describe("Royal protocol: nothing commercial above His Majesty (founder, 20/10/2026 — the CBC model)", () => {
+  it("regression: the brand badge sat above the King's head — on the royal poster the mascot and the name are drawn only in the footer", () => {
+    const poster = read("src/lib/server/national-day-poster.ts")
+    const royal = poster.slice(poster.indexOf("function portraitPoster("))
+    const footer = royal.indexOf("// The footer — the only place of the brand")
+    assert.ok(footer > 0)
+    const above = royal.slice(0, footer)
+    assert.doesNotMatch(above, /posterMascot\(\)|fillText\("អេប លុយឆ្លាត"/) // nothing commercial before the footer
+    assert.match(royal.slice(footer), /const brand = "អេប លុយឆ្លាត · app\.luychlat\.com"/)
+    assert.match(royal.slice(footer), /if \(mascot\) ctx\.drawImage\(mascot, bx, footer \+ 3, icon, icon\)/)
+    assert.match(read("supabase/migrations/20270222000000_repreview_royal_footer.sql"), /'repreview', 'royal-footer'/)
   })
 })

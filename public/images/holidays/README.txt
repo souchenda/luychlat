@@ -13,8 +13,8 @@ Information's official releases, with permission to use them (CLAUDE.md, Licensi
                                     (18 Jun Royal Birthday)
   bg_royal_coronation.jpg           the founder's backdrop, 1080 × 1350 (sent by the founder, 20/10/2026): the
                                     traditional Khmer kbach frame — deep emerald, the kbach / lotus watermark and four
-                                    golden ornate corners — full bleed behind the arch (29 Oct Coronation). The brand
-                                    sits at the top centre and the crest inside the top-right corner on this frame.
+                                    golden ornate corners — full bleed behind the arch (29 Oct Coronation). The crest
+                                    sits inside the top-right corner; the brand only in the footer (royal protocol).
                                     Without it the plain emerald is used; the app never draws architecture or ornaments
                                     as clipart (founder, 20/10/2026).
   bg_independence_monument.png      a light silhouette of the Independence Monument, transparent background

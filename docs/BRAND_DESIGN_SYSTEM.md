@@ -25,7 +25,8 @@ on a flat, careless background.
 | **4. Typography** | Clean Khmer type (MiSans Khmer, Kantumruy Pro fallback; Amiri only for whole Arabic lines), a clear hierarchy, centred and balanced lines. No compound word is ever split across lines. | Italic Khmer, parentheses on a graphic, «…» cuts, orphaned words, «&» in Khmer copy (use «និង»). |
 
 **Shared brand frame:** every poster carries «អេប លុយឆ្លាត» with the mascot (top left) and the footer
-«អេប លុយឆ្លាត · app.luychlat.com», or the shared frame of `src/lib/server/poster-kit.ts`. Write the brand as
+«អេប លុយឆ្លាត · app.luychlat.com», or the shared frame of `src/lib/server/poster-kit.ts`. **Except royal posters:**
+there the brand appears only at the bottom (§ 2.1). Write the brand as
 «អេប លុយឆ្លាត» / «App Luy Chlat», never «កម្មវិធី», «អែប» or a bare «LuyChlat».
 
 ---
@@ -45,11 +46,14 @@ renders the poster. With a portrait the poster is 1080 × 1350; without one it i
    architecture or ornaments as vector shapes:** the founder rejected drawn silhouettes as «crude clipart … unworthy of
    His Majesty the King». Royal architecture, if shown, is photographic only. Without the backdrop, use the plain
    emerald gradient and gold glow.
-3. **On a framed backdrop:** the corners belong to the ornaments — the brand moves to the top centre, the Coat of Arms
+3. **On a framed backdrop:** the corners belong to the ornaments — the Coat of Arms
    sits just inside the top-right ornament, and the blessing (26 px) keeps clear of the bottom corners.
-4. **Foreground:** the **golden arched frame** holds the **official, high-definition royal portrait**. The **official
+4. **Royal protocol — the brand at the base (founder, 20/10/2026, the CBC model):** nothing commercial above His
+   Majesty. The upper area holds only the portrait and the Royal Coat of Arms; the brand is a modest sign-off at the very
+   bottom, centred: [mascot] «អេប លុយឆ្លាត · app.luychlat.com».
+5. **Foreground:** the **golden arched frame** holds the **official, high-definition royal portrait**. The **official
    golden Royal Coat of Arms** sits at the **top right**, with a soft shadow.
-5. **Text, below the arch:** the title in gold, 52 px; the royal name and title in white, 30 px; the gold date chip;
+6. **Text, below the arch:** the title in gold, 52 px; the royal name and title in white, 30 px; the gold date chip;
    the blessing, 28 px, centred; then the footer.
 
 ### 2.2 Royal imagery — official only
@@ -184,7 +188,7 @@ check all four again together.
 **Layer 2 — Background**
 - [ ] The emerald gradient and the vignette are smooth, with no hard bands.
 - [ ] The backdrop is the founder's (never drawn clipart); nothing sits on its corner ornaments; the text is legible on it.
-- [ ] The brand badge and the footer are clean.
+- [ ] The brand badge and the footer are clean; on a royal poster nothing commercial sits above His Majesty (the brand only at the bottom).
 
 **Layer 3 — Content**
 - [ ] Every royal or religious term matches this document's tables verbatim.
@@ -211,3 +215,4 @@ an approver's tap.
   the founder's backdrop `bg_royal_coronation.jpg`.
 - **20/10/2026:** the Coronation backdrop is the founder's traditional Khmer kbach frame; on a framed backdrop the brand
   moves to the top centre and the crest inside the top-right ornament.
+- **20/10/2026:** royal posters carry no brand at the top — the brand is a modest sign-off at the bottom (the CBC model).

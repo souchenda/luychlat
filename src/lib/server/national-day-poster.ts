@@ -219,25 +219,12 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   }
 
   // The brand, top left.
-  // On the kbach frame (the founder's backdrop) the gold corners own the four corners: the brand sits at the top centre
-  // and the crest nestles just inside the top-right ornament; the text keeps clear of the bottom corners.
+  // Royal protocol (founder, 20/10/2026 — «placing the commercial rabbit brand logo directly above the King's head is
+  // completely unacceptable»): nothing commercial above His Majesty. The upper area holds only the portrait and the
+  // Royal Coat of Arms; the brand sits modestly in the footer. On the kbach frame the corners belong to the ornaments:
+  // the crest nestles just inside the top-right one and the text keeps clear of the bottom ones.
   const framed = Boolean(art.backdrop)
-  const mascot = posterMascot()
   ctx.textBaseline = "alphabetic"
-  ctx.font = `700 30px ${FAMILIES}`
-  ctx.fillStyle = "#ffffff"
-  if (framed) {
-    const label = "អេប លុយឆ្លាត"
-    const total = 52 + 14 + ctx.measureText(label).width
-    const bx = (PW - total) / 2
-    if (mascot) ctx.drawImage(mascot, bx, 56, 52, 52)
-    ctx.textAlign = "left"
-    ctx.fillText(label, bx + 66, 93)
-  } else {
-    if (mascot) ctx.drawImage(mascot, 56, 48, 64, 64)
-    ctx.textAlign = "left"
-    ctx.fillText("អេប លុយឆ្លាត", 134, 92)
-  }
 
   // The Royal Coat of Arms, top right, with a soft shadow.
   if (art.crest) {
@@ -325,16 +312,24 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
     y += lead
   }
 
-  // The footer: a gold rule and the app's address.
+  // The footer — the only place of the brand: a gold rule, then [mascot] «អេប លុយឆ្លាត · app.luychlat.com», centred.
   ctx.strokeStyle = "rgba(253,230,138,0.35)"
   ctx.lineWidth = 1.5
   ctx.beginPath()
   ctx.moveTo(framed ? 340 : 80, footer - 18)
   ctx.lineTo(PW - (framed ? 340 : 80), footer - 18)
   ctx.stroke()
-  ctx.font = `600 28px ${FAMILIES}`
+  const mascot = posterMascot()
+  const brand = "អេប លុយឆ្លាត · app.luychlat.com"
+  ctx.font = `600 26px ${FAMILIES}`
+  const icon = mascot ? 38 : 0
+  const gap = mascot ? 12 : 0
+  const total = icon + gap + ctx.measureText(brand).width
+  const bx = (PW - total) / 2
+  if (mascot) ctx.drawImage(mascot, bx, footer + 3, icon, icon)
+  ctx.textAlign = "left"
   ctx.fillStyle = "#fde68a"
-  ctx.fillText("អេប លុយឆ្លាត · app.luychlat.com", PW / 2, footer + 30)
+  ctx.fillText(brand, bx + icon + gap, footer + 31)
 
   return { png: canvas.toBuffer("image/png"), truncated }
 }
