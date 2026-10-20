@@ -21,7 +21,9 @@ After adding or changing a file, commit and deploy; then preview the day again i
 Official only (founder, 20/10/2026 — «We cannot just pull random images from the internet!»): web photos are never
 used for a royal poster. The portraits from Wikimedia Commons were removed the same day.
   portrait_king_sihamoni.png / .jpg the official ceremonial portrait the founder provided (His Majesty on the Royal
-                                    Throne, white royal uniform and collar), cropped inside its frame — 277 × 396;
-                                    a larger copy of the same portrait would be sharper in the arch
+                                    Throne, white royal uniform and collar), cropped inside its frame (277 × 396),
+                                    then upscaled 4× to 1108 × 1584 for the founder's HD standard: sharp's Lanczos-3,
+                                    an unsharp mask (sigma 1, 1.35, threshold 3), contrast ×1.05, colour ×1.03.
+                                    A larger original of the same portrait would still add real detail.
   royal_crest_gold.png              the Royal Coat of Arms (public-domain rendering «Royal arms of Cambodia.svg»)
   portrait_king_father_sihanouk.png, portrait_queen_mother.png — not present: the founder provides the official ones

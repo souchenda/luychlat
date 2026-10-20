@@ -102,3 +102,13 @@ describe("The royal images: official only (founder, 20/10/2026 — «We cannot j
     assert.match(read("supabase/migrations/20270212000000_repreview_with_portrait.sql"), /set payload = payload - 'repreview', previews = '\[\]'::jsonb where id = p_id and status = 'PENDING'/)
   })
 })
+
+describe("His Majesty's portrait in HD (founder, 20/10/2026 — «quality must be immaculate»)", () => {
+  it("the portrait is at least 1000 px tall (4× Lanczos, sharpened); the card is sent again once with it", async () => {
+    const png = readFileSync(join(process.cwd(), "public/images/holidays/portrait_king_sihamoni.png"))
+    const [w, h] = [png.readUInt32BE(16), png.readUInt32BE(20)]
+    assert.ok(h >= 1000 && w >= 700, `${w} × ${h}`)
+    assert.match(read("public/images/holidays/README.txt"), /upscaled 4× to 1108 × 1584/)
+    assert.match(read("supabase/migrations/20270214000000_repreview_hd_portrait.sql"), /'repreview', 'hd-portrait'/)
+  })
+})
