@@ -198,7 +198,42 @@ export function previewButtons(id: number, status: PostStatus, targets: Targets,
   ]
 }
 
-export const isScheduledPostCallback = (data: string | undefined) => Boolean(data && /^sp:\d+:[pxa]$/.test(data))
+export const isScheduledPostCallback = (data: string | undefined) => Boolean(data && (/^sp:\d+:[pxa]$/.test(data) || isReplaceCallback(data)))
+
+// ─── REPLACE OLD WITH NEW (founder, 20/10/2026) ───────────────────────────────────────────────────────────────────
+// A post published today whose content has since been improved: the new version is previewed in «LCA Approval»; on
+// [ 🔄 ] it is published and the old message deleted (lib/server/scheduled-posts.ts, migration 20270200000000).
+
+/** Kinds whose content is fixed by the day (a poster, a lesson, a quote) — a difference means a new version. The live
+ *  feeds (bulletin, NBC rates, a fuel notice) change by themselves and are never offered for replacement. */
+export const REPLACEABLE = (kind: string) => kind !== "BULLETIN" && kind !== "RATES" && kind !== "FUEL"
+
+export function replacePreviewText(kind: PostKind, body: string): string {
+  return [
+    `🔄 កំណែថ្មីនៃការផ្សាយថ្ងៃនេះ · ${KIND_LABEL[kind]}`,
+    "ការផ្សាយនេះបានចេញរួចហើយ ប៉ុន្តែខ្លឹមសារត្រូវបានកែលម្អ។ ចុច «🔄 ជំនួស» ដើម្បីផ្សាយកំណែថ្មីខាងក្រោម ហើយលុបសារចាស់ចេញ។",
+    "",
+    body,
+  ].join("\n")
+}
+
+export const replaceButtons = (id: number) => [
+  [{ text: "🔄 ជំនួសដោយកំណែថ្មី", callback_data: `spr:${id}:y` }],
+  [{ text: "❌ រក្សាកំណែចាស់", callback_data: `spr:${id}:n` }],
+]
+
+export const isReplaceCallback = (data: string | undefined) => Boolean(data && /^spr:\d+:[yn]$/.test(data))
+export function parseReplaceCallback(data: string | undefined): { id: number; replace: boolean } | null {
+  const m = /^spr:(\d+):([yn])$/.exec(data ?? "")
+  return m ? { id: Number(m[1]), replace: m[2] === "y" } : null
+}
+
+/** The founder's note once replaced — the old message is gone, the new one is live. */
+export function replacedNote(kind: PostKind, postKey: string, ok: { removed: boolean; telegram: number | null }): string {
+  return ok.removed
+    ? `🔄 បានជំនួសរួចរាល់ · ${KIND_LABEL[kind]} (${postKey})\nកំណែថ្មីបានផ្សាយ ហើយសារចាស់ត្រូវបានលុបចេញពីឆានែល។`
+    : `🔄 កំណែថ្មីបានផ្សាយ · ${KIND_LABEL[kind]} (${postKey})\n⚠️ មិនអាចលុបសារចាស់បានទេ — សូមលុបដោយដៃនៅក្នុងឆានែល។`
+}
 export function parseScheduledPostCallback(data: string | undefined): { id: number; action: "publish" | "pause" | "approve" } | null {
   const m = /^sp:(\d+):([pxa])$/.exec(data ?? "")
   return m ? { id: Number(m[1]), action: m[2] === "p" ? "publish" : m[2] === "a" ? "approve" : "pause" } : null

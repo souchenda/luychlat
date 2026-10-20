@@ -135,6 +135,23 @@ export function publishTextToFacebook(_approval: FounderApproval, message: strin
   return postToPage("feed", (form) => form.set("message", message), deps)
 }
 
+/**
+ * Removes a Page post — only with the founder's approval: the old version of a replaced post (REPLACE OLD WITH NEW,
+ * founder 20/10/2026). True when Facebook confirms it.
+ */
+export async function deleteFacebookPost(_approval: FounderApproval, postId: string, deps: Partial<Deps> = {}): Promise<boolean> {
+  const d = { ...defaultDeps(), ...deps }
+  const cfg = facebookConfig(d.env)
+  if (!cfg || !/^[0-9_]+$/.test(postId)) return false
+  try {
+    const res = await d.fetch(`${GRAPH}/${postId}`, { method: "DELETE", headers: { Authorization: `Bearer ${cfg.token}` }, signal: AbortSignal.timeout(20_000) })
+    const body = (await res.json().catch(() => ({}))) as { success?: boolean }
+    return res.ok && body.success === true
+  } catch {
+    return false
+  }
+}
+
 /** Run a Page post and log its outcome; never throws. */
 export async function publishLogged(label: string, send: () => Promise<FacebookResult>, log: (level: "info" | "error", message: string, fold?: boolean) => void) {
   try {

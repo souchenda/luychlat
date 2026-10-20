@@ -8,11 +8,20 @@
 // Every post is a public.scheduled_posts row that leaves PENDING exactly once (bot_post_take), so a
 // button pressed at 06:59:59 and the 07:00 timer can never both publish. The orchestration takes its
 // I/O as `deps` so it is tested with an in-memory fake (scheduled-posts.test.ts).
+import { createHash } from "node:crypto"
+
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import {
   dueAction,
   isAutoPublish,
+  isReplaceCallback,
+  kmClock,
+  parseReplaceCallback,
   parseScheduledPostCallback,
+  REPLACEABLE,
+  replaceButtons,
+  replacedNote,
+  replacePreviewText,
   plannedIslamicPosts,
   plannedPosts,
   previewButtons,
@@ -39,13 +48,13 @@ import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-post
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
 import { logEvent } from "@/lib/server/events"
-import { facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
+import { deleteFacebookPost, facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { sendPosterPhoto } from "@/lib/server/tip-bot"
-import { marketingChats } from "@/lib/server/admin-routes"
+import { founderChats, marketingChats } from "@/lib/server/admin-routes"
 
 export type Preview = { chat: number; msg: number; photo: boolean }
 export type PostRow = {
@@ -61,6 +70,30 @@ export type PostRow = {
   decided_username?: string | null
   decided_at?: string | null
   decided_how?: "approve" | "publish" | "pause" | null
+  /** Where it went and what was published — for REPLACE OLD WITH NEW (migration 20270200000000). */
+  telegram_message_id?: number | null
+  facebook_post_id?: string | null
+  content_hash?: string | null
+  replace_status?: "PENDING" | "APPROVED" | "REPLACING" | "DONE" | "KEPT" | null
+}
+
+/** REPLACE OLD WITH NEW (founder, 20/10/2026) — optional, so a test harness without it still runs the rest. */
+export type ReplaceDeps = {
+  publishedToday(): Promise<PostRow[]>
+  /** What the post would publish now (poster and caption), or null for a kind that is never replaced. */
+  contentHash(row: PostRow): Promise<string | null>
+  setHash(id: number, hash: string): Promise<void>
+  /** Asks once (PENDING); false when it was already asked or is being replaced. */
+  replaceAsk(id: number): Promise<boolean>
+  /** An approver's 🔄 / ❌; throws «super admin only» for anyone else. */
+  replaceDecide(id: number, replace: boolean, chatId: number): Promise<string>
+  /** The approved replacements, each claimed once. */
+  replaceTake(): Promise<PostRow[]>
+  /** Deletes the old message (and Page post); true when the old one is gone. */
+  unpublish(row: PostRow): Promise<boolean>
+  replaceDone(id: number, ok: boolean, ids: Published, hash: string | null, removed: boolean): Promise<void>
+  /** The founder's private chat: the replacement's outcome. */
+  notify(text: string): Promise<void>
 }
 
 export type SchedulerDeps = {
@@ -84,11 +117,12 @@ export type SchedulerDeps = {
   answer(callbackId: string, text: string, alert?: boolean): Promise<void>
   now(): number
   log(level: "info" | "warn" | "error", message: string): void
+  replace?: ReplaceDeps
 }
 
 export type Published = { telegram: number | null; facebook: string | null }
 
-export type Callback = { id: string; data?: string; from?: { id: number; first_name?: string; last_name?: string; username?: string }; message?: { message_id: number; chat: { id: number; type: string } } }
+export type Callback = { id: string; data?: string; from?: { id: number; first_name?: string; last_name?: string; username?: string }; message?: { message_id: number; photo?: unknown[]; chat: { id: number; type: string } } }
 
 export function createScheduler(d: SchedulerDeps) {
   async function render(row: PostRow, status: PostStatus) {
@@ -119,6 +153,9 @@ export function createScheduler(d: SchedulerDeps) {
       const ids = await d.publish(row)
       await d.recordIds(row.id, ids)
       d.log("info", `${row.kind} ${row.post_key} published (${how}) · Telegram ${ids.telegram ?? "—"} · Facebook ${ids.facebook ?? "—"}`)
+      // What was published, so a later, better version of today's post is noticed (REPLACE OLD WITH NEW).
+      const hash = d.replace ? await d.replace.contentHash(row) : null
+      if (hash) await d.replace!.setHash(row.id, hash)
     } catch (e) {
       d.log("error", `${row.kind} ${row.post_key} publish failed (${how}): ${e instanceof Error ? e.message : String(e)}`)
     }
@@ -164,10 +201,88 @@ export function createScheduler(d: SchedulerDeps) {
     // The Islamic channel's posts only when the Hijri calendar is given (the real tick); the same preview and gate.
     for (const p of [...plannedPosts(day, minutes), ...(hijriOf ? plannedIslamicPosts(day, minutes, hijriOf) : [])]) await schedulePost(p.kind, p.postKey, p.payload, atMinute(day, p.publishMinute))
     await processDue()
+    await replaceDue()
+    await checkVersions()
+  }
+
+  /**
+   * REPLACE OLD WITH NEW (founder, 20/10/2026): an approved replacement is published first, then the old message is
+   * deleted — the post is never missing; if the new one can't be sent, the old stays and it is tried again.
+   */
+  async function replaceDue() {
+    const r = d.replace
+    if (!r) return
+    for (const row of await r.replaceTake()) {
+      let ids: Published = { telegram: null, facebook: null }
+      try {
+        ids = await d.publish(row)
+      } catch (e) {
+        d.log("error", `${row.kind} ${row.post_key} replacement not published: ${e instanceof Error ? e.message : String(e)}`)
+      }
+      if (!ids.telegram && !ids.facebook) {
+        await r.replaceDone(row.id, false, ids, null, false)
+        d.log("warn", `${row.kind} ${row.post_key}: the new version was not sent — the old post stays, retried next minute`)
+        continue
+      }
+      const removed = await r.unpublish(row)
+      await r.replaceDone(row.id, true, ids, await r.contentHash(row), removed)
+      d.log(removed ? "info" : "warn", `${row.kind} ${row.post_key} replaced · new Telegram ${ids.telegram ?? "—"} · old ${row.telegram_message_id ?? "—"} ${removed ? "deleted" : "NOT deleted"}`)
+      await r.notify(replacedNote(row.kind, row.post_key, { removed, telegram: ids.telegram }))
+    }
+  }
+
+  // Each published version is compared once per process (a deploy brings the new code — that is when it changes).
+  const compared = new Map<number, string>()
+  /** Today's published posts whose content is now different: the new version is previewed with [ 🔄 ] [ ❌ ]. */
+  async function checkVersions() {
+    const r = d.replace
+    if (!r) return
+    for (const row of await r.publishedToday()) {
+      if (!row.content_hash || !REPLACEABLE(row.kind) || compared.get(row.id) === row.content_hash) continue
+      if (row.replace_status === "PENDING" || row.replace_status === "APPROVED" || row.replace_status === "REPLACING") continue
+      compared.set(row.id, row.content_hash)
+      const now = await r.contentHash(row)
+      if (!now || now === row.content_hash || !(await r.replaceAsk(row.id))) continue
+      const { png, body } = await d.content(row)
+      let sent = 0
+      for (const chat of await d.adminChats()) if (await d.sendPreview(chat, png, replacePreviewText(row.kind, body), replaceButtons(row.id))) sent++
+      d.log(sent ? "info" : "warn", `${row.kind} ${row.post_key}: a new version — the replacement preview sent to ${sent} chat(s)`)
+    }
+  }
+
+  /** [ 🔄 ជំនួសដោយកំណែថ្មី ] / [ ❌ រក្សាកំណែចាស់ ] — an approver's tap (checked and audited in the database). */
+  async function onReplaceCallback(cb: Callback) {
+    const parsed = parseReplaceCallback(cb.data)
+    const chat = cb.message?.chat
+    const actor = chat?.type === "private" ? chat.id : cb.from?.id
+    const r = d.replace
+    if (!parsed || !chat || !actor || !r) return d.answer(cb.id, "")
+    let status: string
+    try {
+      status = await r.replaceDecide(parsed.id, parsed.replace, actor)
+    } catch (e) {
+      return d.answer(cb.id, /super admin only/.test(e instanceof Error ? e.message : String(e)) ? "សម្រាប់អ្នកអនុម័តប៉ុណ្ណោះ។" : "មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។", true)
+    }
+    const who = [cb.from?.first_name, cb.from?.last_name].filter(Boolean).join(" ").trim() || (cb.from?.username ? `@${cb.from.username}` : "—")
+    const at = kmClock(new Date(d.now()).toISOString())
+    if (cb.message) {
+      const line = status === "APPROVED" ? `🔄 បានយល់ព្រមឱ្យជំនួសដោយ៖ 👤 ${who} · ⏰ ${at}` : status === "KEPT" ? `❌ រក្សាកំណែចាស់ដោយ៖ 👤 ${who} · ⏰ ${at}` : "✅ បានសម្រេចរួចហើយ"
+      await d.editPreview({ chat: chat.id, msg: cb.message.message_id, photo: Boolean(cb.message.photo) }, line, [])
+    }
+    if (status === "KEPT") {
+      // The newer version was seen and kept out: not asked again for it.
+      const row = await d.get(parsed.id)
+      const hash = row ? await r.contentHash(row) : null
+      if (hash) await r.setHash(parsed.id, hash)
+      return d.answer(cb.id, "❌ រក្សាកំណែចាស់")
+    }
+    await d.answer(cb.id, status === "APPROVED" ? "🔄 កំពុងជំនួស…" : "បានសម្រេចរួចហើយ។")
+    if (status === "APPROVED") await replaceDue()
   }
 
   /** [ ✅ យល់ព្រម ] / [ 🚀 ផុសភ្លាមៗ ] / [ ❌ ផ្អាកថ្ងៃនេះ ] — from a super admin: their private chat, or the marketing group (the person who tapped is checked). */
   async function onCallback(cb: Callback) {
+    if (isReplaceCallback(cb.data)) return onReplaceCallback(cb)
     const parsed = parseScheduledPostCallback(cb.data)
     const chat = cb.message?.chat
     const actor = chat?.type === "private" ? chat.id : cb.from?.id
@@ -203,7 +318,7 @@ export function createScheduler(d: SchedulerDeps) {
     }
   }
 
-  return { tick, processDue, schedulePost, onCallback }
+  return { tick, processDue, schedulePost, onCallback, replaceDue, checkVersions }
 }
 
 // ─── The real bot ────────────────────────────────────────────────────────────
@@ -470,6 +585,56 @@ const realDeps = (): SchedulerDeps => ({
   log: (level, message) => logEvent(level, "scheduled-posts", message),
 })
 
+/** REPLACE OLD WITH NEW on the real bot: the database (migration 20270200000000), the channel and the Page. */
+function withReplace(base: SchedulerDeps): SchedulerDeps {
+  const rows = (data: unknown) => ((data as PostRow[] | null) ?? []).filter((r) => r?.id)
+  const replace: ReplaceDeps = {
+    async publishedToday() {
+      const { data } = await botDb().rpc("bot_posts_published_today", { p_key: botKey() })
+      return rows(data)
+    },
+    async contentHash(row) {
+      if (!REPLACEABLE(row.kind)) return null
+      const { png, body } = await base.content(row)
+      return createHash("sha256").update(png ?? Buffer.alloc(0)).update(body).digest("hex")
+    },
+    async setHash(id, hash) {
+      await botDb().rpc("bot_post_set_hash", { p_key: botKey(), p_id: id, p_hash: hash })
+    },
+    async replaceAsk(id) {
+      const { data } = await botDb().rpc("bot_post_replace_ask", { p_key: botKey(), p_id: id })
+      return data === true
+    },
+    async replaceDecide(id, replace, chatId) {
+      const { data, error } = await botDb().rpc("bot_post_replace_decide", { p_key: botKey(), p_id: id, p_replace: replace, p_chat_id: chatId })
+      if (error) throw new Error(error.message)
+      return String(data)
+    },
+    async replaceTake() {
+      const { data } = await botDb().rpc("bot_post_replace_take", { p_key: botKey() })
+      return rows(data)
+    },
+    async unpublish(row) {
+      // The replacement was approved (bot_post_replace_decide, or the founder's own instruction — audited).
+      const approval = founderApproved(`replace ${row.kind} ${row.post_key}`)
+      const chat = isIslamicKind(row.kind) ? islamicChannel(approval) : communityChannel(approval)
+      let ok = true
+      if (row.telegram_message_id) ok = Boolean(chat) && (await tg("deleteMessage", { chat_id: chat, message_id: row.telegram_message_id })).ok
+      if (row.facebook_post_id && facebookConfig()) ok = (await deleteFacebookPost(approval, row.facebook_post_id)) && ok
+      return ok
+    },
+    async replaceDone(id, ok, ids, hash, removed) {
+      await botDb().rpc("bot_post_replace_done", { p_key: botKey(), p_id: id, p_ok: ok, p_telegram: ids.telegram, p_facebook: ids.facebook, p_hash: hash, p_old_removed: removed })
+    },
+    async notify(text) {
+      let sent = 0
+      for (const chat of await founderChats()) if ((await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true })).ok) sent++
+      logEvent("info", "scheduled-posts", `Replacement note sent to ${sent} chat(s)`)
+    },
+  }
+  return { ...base, replace }
+}
+
 // ─── The Islamic channel's posts ──────────────────────────────────────────────────────────────────
 
 let hijriOffsetCache: { value: number; at: number } | null = null
@@ -490,7 +655,7 @@ async function islamicContent(kind: IslamicKind, day: string) {
 }
 
 let scheduler: ReturnType<typeof createScheduler> | null = null
-const real = () => (scheduler ??= createScheduler(realDeps()))
+const real = () => (scheduler ??= createScheduler(withReplace(realDeps())))
 
 /** Called every minute by the dispatcher. */
 export async function scheduledPostsTick() {

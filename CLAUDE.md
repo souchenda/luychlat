@@ -114,6 +114,13 @@ use come before feature count: no half-baked features, broken links or untested 
   renders only as a draft preview with «DRAFT · មិនទាន់អនុម័ត» on every frame; every render is a DRAFT artifact
   (`<out>.json`), published by nothing in the renderer. Guard: `tests/golden/publisher.test.ts` (video sends and Facebook calls only via the approved
   publisher, the timer never publishes unapproved, the reel modules import nothing that publishes).
+- **REPLACE OLD WITH NEW (founder, 20/10/2026):** whenever a content or poster update is made for a post that was already
+  published on the same day, the system must delete/replace the old post with the newly approved version — never leave
+  outdated or unpolished versions live. Each published post records what it published (`scheduled_posts.content_hash`);
+  after a deploy, today's posts whose content changed are previewed in «LCA Approval» with [ 🔄 ជំនួសដោយកំណែថ្មី ]
+  [ ❌ រក្សាកំណែចាស់ ]; on 🔄 the new version is published first, then the old message deleted from the channel (and the
+  Page), and the founder is told (`replaceDue` / `checkVersions` in `src/lib/server/scheduled-posts.ts`, migration
+  `20270200000000`). Still preview-first: nothing is replaced without an approver's tap or the founder's own instruction.
 - **Wording guards:** never italicise Khmer in a caption (no `<i>`); banned phrases in quotes, tips and the
   spotlight fail the build (`tests/golden/content-guards.test.ts`).
 - **Video (Reels / MP4), whenever added:** length follows substance — 30–60 s with a complete

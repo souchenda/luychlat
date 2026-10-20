@@ -314,3 +314,114 @@ describe("The card names who decided and when (founder, 20/10/2026)", () => {
     assert.match(f.edits.at(-1)!.text, /❌ បានផ្អាកការផ្សាយថ្ងៃនេះ$/)
   })
 })
+
+describe("REPLACE OLD WITH NEW — today's published post, improved, replaces the old one (founder, 20/10/2026)", () => {
+  function harness(version: { v: string }) {
+    const row: PostRow = { id: 7, kind: "ISLAMIC_DAILY", post_key: DAY, payload: { day: DAY }, publish_at: atMinute(DAY, 480), status: "PUBLISHED", previews: [], telegram_message_id: 11, content_hash: "v1", replace_status: null }
+    const log = { published: 0, deleted: [] as number[], previews: [] as string[], notes: [] as string[], asked: 0, edits: [] as string[], answers: [] as string[] }
+    let failPublish = false
+    const deps = {
+      schedule: async () => null,
+      take: async () => null,
+      recordIds: async () => {},
+      get: async () => ({ ...row }),
+      due: async () => [],
+      setPreviews: async () => {},
+      adminChats: async () => [ADMIN],
+      content: async () => ({ png: null, body: `lesson ${version.v}` }),
+      targets: () => ({ telegram: true, facebook: false }),
+      publish: async () => {
+        if (failPublish) return { telegram: null, facebook: null }
+        log.published++
+        return { telegram: 12, facebook: null }
+      },
+      sendPreview: async (_c: number, _p: Buffer | null, text: string) => (log.previews.push(text), 950),
+      editPreview: async (_p: Preview, text: string) => void log.edits.push(text),
+      answer: async (_id: string, text: string) => void log.answers.push(text),
+      now: () => clock(9, 0),
+      log: () => {},
+      replace: {
+        publishedToday: async () => (row.status === "PUBLISHED" ? [{ ...row }] : []),
+        contentHash: async () => version.v,
+        setHash: async (_id: number, h: string) => void (row.content_hash = h),
+        replaceAsk: async () => {
+          if (row.replace_status === "PENDING" || row.replace_status === "APPROVED" || row.replace_status === "REPLACING") return false
+          log.asked++
+          row.replace_status = "PENDING"
+          return true
+        },
+        replaceDecide: async (_id: number, replace: boolean, chat: number) => {
+          if (chat !== ADMIN) throw new Error("super admin only")
+          if (row.replace_status !== "PENDING") return "done"
+          row.replace_status = replace ? "APPROVED" : "KEPT"
+          return row.replace_status
+        },
+        replaceTake: async () => {
+          if (row.replace_status !== "APPROVED") return []
+          row.replace_status = "REPLACING"
+          return [{ ...row }]
+        },
+        unpublish: async (r: PostRow) => (log.deleted.push(r.telegram_message_id!), true),
+        replaceDone: async (_id: number, ok: boolean, ids: { telegram: number | null }, hash: string | null) => {
+          if (!ok) return void (row.replace_status = "APPROVED")
+          Object.assign(row, { replace_status: "DONE", telegram_message_id: ids.telegram, content_hash: hash })
+        },
+        notify: async (t: string) => void log.notes.push(t),
+      },
+    } satisfies SchedulerDeps
+    const press = (data: string, from = ADMIN) => s.onCallback({ id: "cb", data, from: { id: from, first_name: "Sok" }, message: { message_id: 950, chat: { id: -100777, type: "supergroup" } } })
+    const s = createScheduler(deps)
+    return { row, log, s, press, failPublish: (v: boolean) => (failPublish = v) }
+  }
+
+  it("unchanged: nothing is asked", async () => {
+    const h = harness({ v: "v1" })
+    await h.s.checkVersions()
+    assert.equal(h.log.asked, 0)
+  })
+  it("a new version: previewed once in the approval room with 🔄 / ❌; nothing goes out without a tap", async () => {
+    const h = harness({ v: "v2" })
+    await h.s.checkVersions()
+    await h.s.checkVersions()
+    assert.equal(h.log.asked, 1)
+    assert.match(h.log.previews[0], /^🔄 កំណែថ្មីនៃការផ្សាយថ្ងៃនេះ/)
+    await h.s.replaceDue()
+    assert.equal(h.log.published, 0)
+    await h.press("spr:7:y", STRANGER) // not an approver
+    assert.equal(h.row.replace_status, "PENDING")
+  })
+  it("🔄: the new version is published first, then the old message deleted; the founder is told", async () => {
+    const h = harness({ v: "v2" })
+    await h.s.checkVersions()
+    await h.press("spr:7:y")
+    assert.equal(h.log.published, 1)
+    assert.deepEqual(h.log.deleted, [11])
+    assert.equal(h.row.telegram_message_id, 12)
+    assert.equal(h.row.replace_status, "DONE")
+    assert.match(h.log.edits[0], /^🔄 បានយល់ព្រមឱ្យជំនួសដោយ៖ 👤 Sok · ⏰ /)
+    assert.match(h.log.notes[0], /^🔄 បានជំនួសរួចរាល់/)
+    await h.s.replaceDue()
+    assert.equal(h.log.published, 1) // once
+  })
+  it("the new version could not be sent: the old post stays (never deleted first), retried next pass", async () => {
+    const h = harness({ v: "v2" })
+    h.row.replace_status = "APPROVED"
+    h.failPublish(true)
+    await h.s.replaceDue()
+    assert.deepEqual(h.log.deleted, [])
+    assert.equal(h.row.replace_status, "APPROVED")
+    h.failPublish(false)
+    await h.s.replaceDue()
+    assert.deepEqual(h.log.deleted, [11])
+  })
+  it("❌ keeps the old one and is not asked again for that version", async () => {
+    const h = harness({ v: "v2" })
+    await h.s.checkVersions()
+    await h.press("spr:7:n")
+    assert.equal(h.row.replace_status, "KEPT")
+    assert.equal(h.row.content_hash, "v2")
+    assert.equal(h.log.published, 0)
+    await h.s.checkVersions()
+    assert.equal(h.log.asked, 1)
+  })
+})
