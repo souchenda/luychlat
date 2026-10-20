@@ -98,7 +98,7 @@ describe("The royal images: official only (founder, 20/10/2026 — «We cannot j
     const r = mod.nationalDayPoster(d, "2026-10-29")
     assert.equal(r.truncated, false)
     assert.deepEqual([r.png.readUInt32BE(16), r.png.readUInt32BE(20)], [1080, 1350]) // the portrait layout
-    assert.match(read("src/lib/server/scheduled-posts.ts"), /if \(row\?\.status === "PENDING" && row\.payload\?\.repreview\) \{/)
+    assert.match(read("src/lib/server/scheduled-posts.ts"), /if \(row\?\.status === "PENDING" && REPREVIEW_READY\.includes\(String\(row\.payload\?\.repreview \?\? ""\)\)\) \{/)
     assert.match(read("supabase/migrations/20270212000000_repreview_with_portrait.sql"), /set payload = payload - 'repreview', previews = '\[\]'::jsonb where id = p_id and status = 'PENDING'/)
   })
 })
@@ -110,5 +110,14 @@ describe("His Majesty's portrait in HD (founder, 20/10/2026 — «quality must b
     assert.ok(h >= 1000 && w >= 700, `${w} × ${h}`)
     assert.match(read("public/images/holidays/README.txt"), /upscaled 4× to 1108 × 1584/)
     assert.match(read("supabase/migrations/20270214000000_repreview_hd_portrait.sql"), /'repreview', 'hd-portrait'/)
+  })
+})
+
+describe("A re-preview flag is used only by the build that knows it (regression, 20/10/2026)", () => {
+  it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
+    const sp = read("src/lib/server/scheduled-posts.ts")
+    const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
+    assert.ok(listed.includes("hd-portrait-live"))
+    assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })

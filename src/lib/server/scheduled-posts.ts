@@ -720,14 +720,18 @@ const real = () => (scheduler ??= createScheduler(withReplace(realDeps())))
 export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
+  // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
+  const REPREVIEW_READY = ["hd-portrait-live"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // National days and royal ceremonies (founder, 20/10/2026): previewed from 48 hours before at 08:00, published at
   // 07:00 on the day once approved (a missed preview window is caught up until then — idempotent).
   for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute)) {
     const row = await real().schedulePost("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
     // Flagged «repreview» (a better version, e.g. with the official portrait): the old preview messages are deleted from
-    // the approval room and a fresh preview is sent, once (bot_post_repreview_done clears the flag).
-    if (row?.status === "PENDING" && row.payload?.repreview) {
+    // the approval room and a fresh preview is sent, once (bot_post_repreview_done clears the flag). Only a flag this build
+    // knows: migrations run before the new build is live, so the old container must not consume a flag meant for the
+    // new art (20/10/2026 — the HD flag was used by the previous build, which re-sent the old-size portrait).
+    if (row?.status === "PENDING" && REPREVIEW_READY.includes(String(row.payload?.repreview ?? ""))) {
       let removed = 0
       for (const p of row.previews ?? []) if ((await tg("deleteMessage", { chat_id: p.chat, message_id: p.msg })).ok) removed++
       await botDb().rpc("bot_post_repreview_done", { p_key: botKey(), p_id: row.id })
