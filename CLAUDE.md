@@ -62,7 +62,7 @@ use come before feature count: no half-baked features, broken links or untested 
    3. SoundBox alerts — sales only, the Khmer amount, stays on, the locked-screen push.
    4. Privacy by default — balances hidden on launch, ***** never a digit, the bot masks numbers.
    5. Wallet accounting — exact money, 100 ៛ rounding only where computed, repayments ≤ what is left.
-   Plus the SoundBox isolation guard (`6-soundbox-isolation.test.ts`), the home hero layout guard
+   Plus the religious channel separation guard (`holiday-channels.test.ts`), the SoundBox isolation guard (`6-soundbox-isolation.test.ts`), the home hero layout guard
    (`layout-guards.test.ts`) and the published-wording guard (`content-guards.test.ts`).
 4. **Pre-deploy smoke gate:** the Dockerfile runs `npm run test:golden` before `npm test` and the build —
    one failure aborts the deploy and the running version stays live. Locally, `.githooks/pre-push`
@@ -79,6 +79,13 @@ use come before feature count: no half-baked features, broken links or untested 
 
 ## Publishing and content standards (founder, 12/10/2026)
 
+- **STRICT RELIGIOUS SEPARATION — constitutional (founder, 20/10/2026: «Zero tolerance for cross-contamination»):**
+  Islamic followers and non-Islamic audiences are kept strictly apart. NEVER a Buddhist day (Visak Bochea, Pchum Ben,
+  Sil days), a Chinese festival (Chinese New Year, Qingming, the Hungry Ghost day, Mid-Autumn), an ancestral offering or
+  a civic day in @LuyChlatIslamic; NEVER an Islamic day in the general channel or on the Page. Every holiday has a
+  category and its allowed channels (`holidayCategory` / `allowedChannels` in `src/lib/calendar/cambodia-holidays.ts`);
+  the dispatcher refuses any other route before sending (`holidayRouteAllowed`); `tests/golden/holiday-channels.test.ts`
+  fails the build on any violation.
 - **HOLIDAY TIMING & SCOPE — locked (founder, 20/10/2026):** the holiday engine (`NATIONAL_DAYS` in
   `src/lib/calendar/cambodia-holidays.ts`) covers **national and royal, Islamic, Chinese and global** holidays in
   Cambodia. ALL holiday posters MUST be scheduled and published strictly at **05:00** Cambodia time once pre-approved

@@ -140,6 +140,21 @@ Islamic dates come from the Hijri calendar with the admin's offset and can move 
 comes from a solar-term table — both are flagged on the card for the approver to confirm. Islamic posters use the
 glossary's terms only (lib/islamic/glossary.ts) and name @LuyChlatIslamic in their footer.
 
+### 2.6a Strict religious separation — constitutional (founder, 20/10/2026)
+
+«Must strictly separate Islamic followers from non-Islamic audiences … Zero tolerance for cross-contamination.»
+
+| Category | Days | Allowed channels | Forbidden |
+|---|---|---|---|
+| Islamic | Eid al-Fitr, Eid al-Adha, Arafah, 1 Muharram, Mawlid | @LuyChlatIslamic | the general channel, the Page |
+| Buddhist | Visak Bochea, Pchum Ben, the Sil days | @LuyChlatCommunity, the Page | **@LuyChlatIslamic** |
+| Chinese | Chinese New Year, Qingming, the Hungry Ghost day, Mid-Autumn | @LuyChlatCommunity, the Page | **@LuyChlatIslamic** |
+| Civic | national, royal and international days | @LuyChlatCommunity, the Page | @LuyChlatIslamic |
+
+The calendar declares each day's category and allowed channels; the dispatcher refuses any other route before
+sending; the golden test `tests/golden/holiday-channels.test.ts` fails the build on any violation, and checks that the
+Islamic channel's own posts never speak of a Buddhist day, a Chinese festival or an ancestral offering.
+
 ### 2.7 The calendar
 
 These follow the same standard: 7 January, the King's birthday (14 May), the Queen Mother's birthday (18 June),
@@ -262,3 +277,4 @@ an approver's tap.
 - **20/10/2026:** the title back under the portrait (founder: «try putting it back under the photo»); the portrait
   raised (arch top 140 px).
 - **20/10/2026:** the holiday engine covers four groups (national and royal, Islamic, Chinese, global), all at 05:00.
+- **20/10/2026:** strict religious separation of the channels — constitutional (§ 2.6a), enforced in code and by a golden test.

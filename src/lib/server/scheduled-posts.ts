@@ -53,7 +53,7 @@ import { logEvent } from "@/lib/server/events"
 import { deleteFacebookPost, facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
 import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster, portraitCredit } from "@/lib/server/national-day-poster"
-import { nationalCaptionHtml, nationalCaptionText, nationalChannel, nationalDateNote, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE } from "@/lib/calendar/cambodia-holidays"
+import { holidayRouteAllowed, nationalCaptionHtml, nationalCaptionText, nationalChannel, nationalDateNote, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE } from "@/lib/calendar/cambodia-holidays"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
@@ -510,13 +510,19 @@ const realDeps = (): SchedulerDeps => ({
       const d = nationalDayByKey(String(row.payload.key))
       const day = String(row.payload.day ?? "")
       if (!d) return ids
+      // STRICT RELIGIOUS SEPARATION (founder, 20/10/2026): a holiday reaches only its allowed channels — never a
+      // Buddhist, Chinese or civic day in @LuyChlatIslamic, never an Islamic day in the general channel or on the Page.
+      if (!holidayRouteAllowed(d, islamic ? "islamic" : "community")) {
+        logEvent("error", "scheduled-posts", `${d.key}: refused — not allowed on the ${islamic ? "Islamic" : "general"} channel (religious separation)`)
+        return ids
+      }
       await nationalAssetsReady
       const png = nationalDayPoster(d, day).png
       // The photo's credit, as its licence asks (README.txt).
       const credit = portraitCredit(d)
       const html = nationalCaptionHtml(d, day) + (credit ? `\n${credit}` : "")
       if (chat) ids.telegram = (await sendPosterPhoto(chat, png, html, { reply_markup: buttons.reply_markup })) ?? (await sentText(html, true))
-      if (!islamic && facebookConfig() && shouldPublishToFacebook({ kind: "national" })) {
+      if (holidayRouteAllowed(d, "facebook") && facebookConfig() && shouldPublishToFacebook({ kind: "national" })) {
         const fb = await publishLogged(`national day ${d.key} ${day}`, () => publishPhotoToFacebook(approval, png, nationalCaptionText(d, day) + (credit ? `\n${credit}` : "")), fbLog)
         if (fb?.ok) ids.facebook = fb.postId
       }

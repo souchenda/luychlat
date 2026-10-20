@@ -323,7 +323,7 @@ describe("The all-inclusive holiday engine — national, Islamic, Chinese, globa
     assert.equal(nationalDateNote(nationalDayByKey("coronation")!), null)
     const sp = read("src/lib/server/scheduled-posts.ts")
     assert.ok(sp.includes('if (channelFor(row.kind) === "islamic" || islamicNationalDay(row)) return { telegram: islamicChannelConfigured(), facebook: false, channel: "islamic" }'))
-    assert.ok(sp.includes('if (!islamic && facebookConfig() && shouldPublishToFacebook({ kind: "national" }))'))
+    assert.ok(sp.includes('if (holidayRouteAllowed(d, "facebook") && facebookConfig() && shouldPublishToFacebook({ kind: "national" }))'))
     assert.ok(sp.includes("nationalDaysToPreview(now.day, now.hour * 60 + now.minute, offset)"))
     assert.ok(read("src/lib/server/national-day-poster.ts").includes('drawFooter(ctx, d.kind === "islamic" ? { community: ISLAMIC_COMMUNITY_LINE } : {})'))
     assert.ok(nationalCaptionHtml(nationalDayByKey("eid-al-fitr")!, "2026-03-20").startsWith("🌙 "))

@@ -140,8 +140,30 @@ export function nationalDayDate(d: NationalDay, year: number, hijriOffset = 0): 
   return null
 }
 
+/**
+ * STRICT RELIGIOUS SEPARATION — constitutional (founder, 20/10/2026: «Zero tolerance for cross-contamination»).
+ * Each holiday has a category and the only channels it may reach:
+ *   islamic  — @LuyChlatIslamic only (never the general channel, never the Page)
+ *   buddhist — Visak Bochea, Pchum Ben (and the Sil days, lib/server/holy-days): community + Page; NEVER @LuyChlatIslamic
+ *   chinese  — Chinese New Year, Qingming, the Hungry Ghost day, Mid-Autumn: community + Page; NEVER @LuyChlatIslamic
+ *   civic    — national, royal and international days: community + Page
+ * The dispatcher refuses any other route (holidayRouteAllowed); tests/golden/holiday-channels.test.ts fails the build.
+ */
+export type HolidayCategory = "islamic" | "buddhist" | "chinese" | "civic"
+export type HolidayChannel = "islamic" | "community" | "facebook"
+
+export const holidayCategory = (d: NationalDay): HolidayCategory =>
+  d.kind === "islamic" ? "islamic" : d.kind === "merit" ? "buddhist" : d.kind === "chinese" ? "chinese" : "civic"
+
+export function allowedChannels(d: NationalDay): readonly HolidayChannel[] {
+  return holidayCategory(d) === "islamic" ? ["islamic"] : ["community", "facebook"]
+}
+
+/** May this holiday go to this channel? The one check the dispatcher makes before every send. */
+export const holidayRouteAllowed = (d: NationalDay, channel: HolidayChannel) => allowedChannels(d).includes(channel)
+
 /** Where a day's poster goes: the Islamic days to @LuyChlatIslamic only; all others to the community channel and the Page. */
-export const nationalChannel = (d: NationalDay): "islamic" | "community" => (d.kind === "islamic" ? "islamic" : "community")
+export const nationalChannel = (d: NationalDay): "islamic" | "community" => (allowedChannels(d).includes("islamic") ? "islamic" : "community")
 
 /** The approver is told when a date can move (founder's rule: no silent guessing). */
 export function nationalDateNote(d: NationalDay): string | null {
