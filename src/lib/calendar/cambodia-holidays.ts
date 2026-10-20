@@ -30,6 +30,8 @@ export type NationalDay = {
   since?: number
   /** The blessing or the words of remembrance. */
   message: string
+  /** The short blessing drawn on the poster (one line per line break); the caption keeps the full `message`. */
+  posterMessage?: string
   /** The official images it shows when their files are in public/images/holidays (README.txt) — never drawn without. */
   assets?: { portrait?: RoyalPortrait; crest?: boolean; monument?: boolean; backdrop?: boolean }
 }
@@ -45,6 +47,10 @@ const KING = "ព្រះករុណាព្រះបាទសម្តេច
 // The founder's official palace phrasing (20/10/2026 royal-protocol audit); the approver checks every royal line in the preview.
 const ROYAL_OPENING = "ទូលព្រះបង្គំយើងខ្ញុំជាថ្នាក់ដឹកនាំ និងបុគ្គលិកទាំងអស់នៃ «អេប លុយឆ្លាត» សូមលំឱនកាយក្រាបបង្គំថ្វាយព្រះសព្ទសាធុការពរជ័យ"
 const KING_BLESSING = `ក្នុងឱកាសដ៏មហានក្ខត្តឫក្សនេះ ${ROYAL_OPENING} សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង ទ្រង់ប្រកបដោយព្រះរាជសុខភាពដ៏ល្អបរិបូរណ៍ ព្រះកាយពលមាំមួន និងព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។`
+
+// On the Coronation poster, two spacious lines (founder, 20/10/2026 — «too many letters … like an administrative
+// letter»); the full palace paragraph stays in the caption.
+const CORONATION_POSTER_BLESSING = "សូមក្រាបបង្គំថ្វាយព្រះពរ សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង\nទ្រង់ប្រកបដោយព្រះរាជសុខភាពល្អបរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។"
 
 export const NATIONAL_DAYS: NationalDay[] = [
   { key: "new-year", date: { fixed: "01-01" }, kind: "international", pill: "ទិវាចូលឆ្នាំសកល", title: "សួស្តីឆ្នាំថ្មីសកល", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ជួបតែសេចក្តីសុខ សុខភាពល្អ និងសម្រេចគ្រប់គោលដៅហិរញ្ញវត្ថុក្នុងឆ្នាំថ្មីនេះ។" },
@@ -77,7 +83,7 @@ export const NATIONAL_DAYS: NationalDay[] = [
     message: "ក្រុមការងារ អេប លុយឆ្លាត សូមក្រាបបង្គំគោរពព្រះវិញ្ញាណក្ខន្ធ និងរំលឹកដល់ព្រះគុណូបការៈដ៏ធំធេងរបស់ព្រះអង្គ ចំពោះជាតិមាតុភូមិ។",
     assets: { portrait: "king_father_sihanouk", crest: true },
   },
-  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true, backdrop: true } },
+  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING, posterMessage: CORONATION_POSTER_BLESSING, assets: { portrait: "king_sihamoni", crest: true, backdrop: true } },
   { key: "independence", date: { fixed: "11-09" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាបុណ្យឯករាជ្យជាតិ", since: 1953, assets: { portrait: "king_father_sihanouk", crest: true, monument: true }, message: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត ដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។" },
   { key: "water-festival", date: { festival: "holiday.water_festival" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីបុណ្យអុំទូក បណ្តែតប្រទីប អកអំបុក និងសំពះព្រះខែ", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ធ្វើដំណើរ និងចូលរួមកម្សាន្តដោយសុវត្ថិភាព ព្រមទាំងជួបតែសេចក្តីសុខ។" },
 ]

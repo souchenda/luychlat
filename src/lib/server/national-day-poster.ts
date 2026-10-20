@@ -65,7 +65,7 @@ const { W, H, PAD } = FRAME
 
 /** Every line the poster draws (tested: no parentheses, nothing cut). */
 export function nationalPosterLines(d: NationalDay, day: string) {
-  return { pill: d.pill, title: d.title, subtitle: d.subtitle ?? null, date: nationalDateLine(d, day), message: d.message }
+  return { pill: d.pill, title: d.title, subtitle: d.subtitle ?? null, date: nationalDateLine(d, day), message: d.posterMessage ?? d.message }
 }
 
 export function nationalDayPoster(d: NationalDay, day: string): { png: Buffer; truncated: boolean } {
@@ -287,17 +287,36 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   y += 52 + 40
 
   const footer = PH - 92
-  // The blessing, 27 px, centred, in whole lines (no royal phrase split — ROYAL_UNBREAKABLE).
-  const bodyWidth = PW - 2 * 130
-  const lead = 40
-  ctx.font = `500 27px ${FAMILIES}`
-  ctx.fillStyle = "#ecfdf5"
-  let lines = wrap(ctx, text.message, bodyWidth, 5)
-  while (y + lines.length * lead > footer - 20 && lines.length > 2) lines = wrap(ctx, text.message, bodyWidth, lines.length - 1)
-  if (lines.at(-1)?.endsWith("…")) truncated = true
-  for (const line of lines) {
-    ctx.fillText(line, PW / 2, y)
-    y += lead
+  if (d.posterMessage) {
+    // The short blessing (founder, 20/10/2026): its own lines, larger (30 → 28 px, the largest that fits), centred in
+    // the space between the date chip and the footer so the poster breathes.
+    const given = text.message.split("\n")
+    let size = 30
+    ctx.font = `500 ${size}px ${FAMILIES}`
+    while (size > 26 && given.some((l) => ctx.measureText(l).width > width)) ctx.font = `500 ${--size}px ${FAMILIES}`
+    const lead = Math.round(size * 1.7)
+    const lines = given.flatMap((l) => wrap(ctx, l, width, 2))
+    if (lines.some((l) => l.endsWith("…"))) truncated = true
+    const space = footer - 18 - (y - 30)
+    let by = y - 30 + (space - lines.length * lead) / 2 + size
+    ctx.fillStyle = "#ecfdf5"
+    for (const line of lines) {
+      ctx.fillText(line, PW / 2, by)
+      by += lead
+    }
+  } else {
+    // The blessing, 27 px, centred, in whole lines (no royal phrase split — ROYAL_UNBREAKABLE).
+    const bodyWidth = PW - 2 * 130
+    const lead = 40
+    ctx.font = `500 27px ${FAMILIES}`
+    ctx.fillStyle = "#ecfdf5"
+    let lines = wrap(ctx, text.message, bodyWidth, 5)
+    while (y + lines.length * lead > footer - 20 && lines.length > 2) lines = wrap(ctx, text.message, bodyWidth, lines.length - 1)
+    if (lines.at(-1)?.endsWith("…")) truncated = true
+    for (const line of lines) {
+      ctx.fillText(line, PW / 2, y)
+      y += lead
+    }
   }
 
   // The footer — the only place of the brand: a gold rule, then [mascot] «អេប លុយឆ្លាត · app.luychlat.com», centred.

@@ -84,7 +84,15 @@ renders the poster. With a portrait the poster is 1080 × 1350; without one it i
 | Long life | ព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា | — |
 | Brand inside a royal text | «អេប លុយឆ្លាត» (in « ») | — |
 
-**The Coronation blessing (verbatim):**
+**On the poster — two spacious lines (founder, 20/10/2026, «too many letters … like an administrative letter»):**
+
+> សូមក្រាបបង្គំថ្វាយព្រះពរ សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង
+> ទ្រង់ប្រកបដោយព្រះរាជសុខភាពល្អបរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។
+
+The graphic carries only these two lines (30–28 px, centred between the date chip and the footer). The **caption**
+carries the full palace paragraph below, word for word.
+
+**The Coronation blessing (verbatim, in the caption):**
 
 > ក្នុងឱកាសដ៏មហានក្ខត្តឫក្សនេះ ទូលព្រះបង្គំយើងខ្ញុំជាថ្នាក់ដឹកនាំ និងបុគ្គលិកទាំងអស់នៃ «អេប លុយឆ្លាត»
 > សូមលំឱនកាយក្រាបបង្គំថ្វាយព្រះសព្ទសាធុការពរជ័យ សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង
@@ -222,3 +230,4 @@ an approver's tap.
 - **20/10/2026:** the Royal Coat of Arms is the apex at the top centre above the arch (147 px), for full symmetry.
 - **20/10/2026:** the backdrop is the founder's borderless kbach tapestry; **no crest and no logo above His Majesty** —
   the portrait in the golden arch stands alone; the brand only at the base.
+- **20/10/2026:** the poster breathes — two blessing lines on the graphic, the full palace paragraph in the caption.

@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("no-crest") && !listed.includes("crest-apex") && !listed.includes("royal-footer")) // a used flag leaves the list
+    assert.ok(listed.includes("short-blessing") && !listed.includes("no-crest") && !listed.includes("crest-apex")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -169,7 +169,7 @@ describe("The Master Brand & Visual Design System (founder, 20/10/2026)", { skip
     assert.match(read("CLAUDE.md"), /docs\/BRAND_DESIGN_SYSTEM\.md/)
     for (const chapter of ["Chapter 1", "Chapter 2", "Chapter 3", "Chapter 4", "Chapter 5", "Chapter 6"]) assert.ok(doc.includes(chapter), chapter)
     const d = nationalDayByKey("coronation")!
-    const quoted = doc.slice(doc.indexOf("**The Coronation blessing (verbatim):**")).split("\n").filter((l) => l.startsWith("> ")).slice(0, 3).map((l) => l.slice(2)).join(" ")
+    const quoted = doc.slice(doc.indexOf("**The Coronation blessing (verbatim, in the caption):**")).split("\n").filter((l) => l.startsWith("> ")).slice(0, 3).map((l) => l.slice(2)).join(" ")
     assert.equal(quoted, d.message)
     assert.ok(doc.includes(d.title) && doc.includes(nationalDateLine(d, "2026-10-29")))
     for (const line of d.subtitle!.split("\n")) assert.ok(doc.includes(line), line)
@@ -212,5 +212,20 @@ describe("Nothing above His Majesty — no crest, no logo (founder, 20/10/2026)"
     const footer = royal.indexOf("// The footer — the only place of the brand")
     assert.doesNotMatch(royal.slice(0, footer), /drawImage\((?!art\.backdrop|art\.portrait|img)/) // only the backdrop and the portrait above the footer
     assert.match(read("supabase/migrations/20270224000000_repreview_no_crest.sql"), /'repreview', 'no-crest'/)
+  })
+})
+
+describe("The Coronation poster breathes — two blessing lines, the full paragraph in the caption (founder, 20/10/2026)", () => {
+  it("regression: ten dense lines «like an administrative letter» — the graphic carries the founder's two lines, the caption the whole blessing", async () => {
+    const d = nationalDayByKey("coronation")!
+    assert.equal(d.posterMessage, "សូមក្រាបបង្គំថ្វាយព្រះពរ សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង\nទ្រង់ប្រកបដោយព្រះរាជសុខភាពល្អបរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។")
+    const { nationalPosterLines } = await import("@/lib/server/national-day-poster")
+    assert.equal(nationalPosterLines(d, "2026-10-29").message, d.posterMessage)
+    // The caption keeps the full palace paragraph, word for word.
+    assert.ok(nationalCaptionHtml(d, "2026-10-29").includes(d.message))
+    assert.match(d.message, /^ក្នុងឱកាសដ៏មហានក្ខត្តឫក្សនេះ/)
+    const poster = read("src/lib/server/national-day-poster.ts")
+    assert.match(poster, /let size = 30/) // 30 → 28 px, the largest that fits
+    assert.match(read("supabase/migrations/20270225000000_repreview_short_blessing.sql"), /'repreview', 'short-blessing'/)
   })
 })
