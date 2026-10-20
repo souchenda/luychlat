@@ -75,17 +75,18 @@ describe("Official royal portraits and the crest (founder, 20/10/2026)", () => {
   })
 })
 
-describe("The installed royal images (founder approved the download, 20/10/2026)", () => {
-  it("the crest and the three portraits are in place; each licence recorded; the King's photo credited in the caption", async () => {
+describe("The royal images: official only (founder, 20/10/2026 — «We cannot just pull random images from the internet!»)", () => {
+  it("the founder's official portrait of His Majesty and the crest are in place; no web portrait remains; no web credit", async () => {
     const { existsSync } = await import("node:fs")
-    for (const f of ["royal_crest_gold.png", "portrait_king_sihamoni.png", "portrait_king_father_sihanouk.png", "portrait_queen_mother.png"])
-      assert.ok(existsSync(join(process.cwd(), "public/images/holidays", f)), f)
+    for (const f of ["royal_crest_gold.png", "portrait_king_sihamoni.png", "portrait_king_sihamoni.jpg"]) assert.ok(existsSync(join(process.cwd(), "public/images/holidays", f)), f)
+    for (const f of ["portrait_king_father_sihanouk.png", "portrait_queen_mother.png"]) assert.ok(!existsSync(join(process.cwd(), "public/images/holidays", f)), `${f}: a web photo, removed`)
     const readme = read("public/images/holidays/README.txt")
-    assert.match(readme, /Government Open Data License – India: credit required/)
-    assert.match(readme, /«Norodom Sihanouk \(1983\)\.jpg», Rob Croes \/ Anefo, Nationaal Archief — CC0/)
+    assert.match(readme, /the official ceremonial portrait the founder provided/)
+    assert.match(readme, /web photos are never\s+used for a royal poster/)
     const { PORTRAIT_CREDITS } = await import("@/lib/server/national-day-poster")
-    assert.equal(PORTRAIT_CREDITS.king_sihamoni, "President's Secretariat, Government of India (GODL-India)")
+    assert.deepEqual(PORTRAIT_CREDITS, {})
     assert.ok(read("src/lib/server/scheduled-posts.ts").includes("const html = nationalCaptionHtml(d, day) + (credit ? `\\n${credit}` : \"\")"))
+    assert.match(read("supabase/migrations/20270213000000_repreview_official_portrait.sql"), /'repreview', 'official-portrait'/)
   })
   it("the Coronation renders with the portrait, nothing cut; a flagged waiting preview is withdrawn and sent again once", async () => {
     const { posterAssetsReady } = await import("@/lib/server/poster-kit")

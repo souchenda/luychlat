@@ -37,17 +37,16 @@ export const nationalAssetsReady: Promise<void> = Promise.all(
   }),
 ).then(() => undefined)
 
-/** The photo credit a portrait's licence asks for, added to the caption (README.txt). */
-export const PORTRAIT_CREDITS: Record<string, string> = {
-  king_sihamoni: "President's Secretariat, Government of India (GODL-India)",
-  king_father_sihanouk: "Rob Croes / Anefo, Nationaal Archief (CC0)",
-  queen_mother: "US Embassy Phnom Penh, Un Yarat (public domain)",
-}
+/**
+ * A credit a portrait's licence asks for, added to the caption (README.txt). The official royal portraits the founder
+ * provides need none (founder, 20/10/2026 — never a photo from the web for a royal poster).
+ */
+export const PORTRAIT_CREDITS: Partial<Record<string, string>> = {}
 
 /** «📷 រូបថត៖ …» for a day whose portrait is shown, else null. */
 export function portraitCredit(d: NationalDay): string | null {
   const key = d.assets?.portrait
-  return key && assets[key] ? `📷 រូបថត៖ ${PORTRAIT_CREDITS[key]}` : null
+  return key && assets[key] && PORTRAIT_CREDITS[key] ? `📷 រូបថត៖ ${PORTRAIT_CREDITS[key]}` : null
 }
 
 /** Which official images a day shows now. */

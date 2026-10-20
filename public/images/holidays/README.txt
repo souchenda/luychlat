@@ -18,11 +18,10 @@ Portraits: at least 1200 px tall, the face in the upper third (the arched frame 
 With a portrait, the poster is 1080 × 1350 (the arched gold frame); without one, the text design (1080 × 1080).
 After adding or changing a file, commit and deploy; then preview the day again in «LCA Approval».
 
-Installed 20/10/2026 (the founder approved the download; each file checked by eye; licences from Wikimedia Commons):
-  royal_crest_gold.png              «Royal arms of Cambodia.svg» by Sodacan — public domain (rendered to PNG, 600 px)
-  portrait_king_sihamoni.png        «King Norodom Sihamoni.jpg», Royal Palace 14/09/2010, President's Secretariat,
-                                    Government of India (PIB) — Government Open Data License – India: credit required
-  portrait_king_father_sihanouk.png «Norodom Sihanouk (1983).jpg», Rob Croes / Anefo, Nationaal Archief — CC0
-  portrait_queen_mother.png         «Norodom Monineath Sihanouk (cropped 3x2).jpg», US Embassy Phnom Penh (Un Yarat) —
-                                    public domain; small (265 × 400): replace with a larger official portrait when one comes
-The credits are added to the post's caption (lib/server/national-day-poster.ts PORTRAIT_CREDITS).
+Official only (founder, 20/10/2026 — «We cannot just pull random images from the internet!»): web photos are never
+used for a royal poster. The portraits from Wikimedia Commons were removed the same day.
+  portrait_king_sihamoni.png / .jpg the official ceremonial portrait the founder provided (His Majesty on the Royal
+                                    Throne, white royal uniform and collar), cropped inside its frame — 277 × 396;
+                                    a larger copy of the same portrait would be sharper in the arch
+  royal_crest_gold.png              the Royal Coat of Arms (public-domain rendering «Royal arms of Cambodia.svg»)
+  portrait_king_father_sihanouk.png, portrait_queen_mother.png — not present: the founder provides the official ones
