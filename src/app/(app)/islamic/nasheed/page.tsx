@@ -181,9 +181,14 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
   const [file, setFile] = useState<File | null>(null)
   const [authentic, setAuthentic] = useState(false)
   const [rights, setRights] = useState(false)
+  // Tapped «send» without both confirmations (founder, 20/10/2026 — Yerny's upload stopped silently): the unticked box
+  // turns red and the reason stays under them, not only in a passing toast.
+  const [tried, setTried] = useState(false)
+  const missingConfirm = tried && !(authentic && rights)
 
   const send = (e: React.FormEvent) => {
     e.preventDefault()
+    setTried(true)
     const problem = submissionError({ title, artist, file, authentic, rights })
     if (problem || !file) return void toast.error(t(problem ?? "nasheed.fileRequired"))
     submit.mutate(
@@ -196,6 +201,7 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
           setFile(null)
           setAuthentic(false)
           setRights(false)
+          setTried(false)
           onOpenChange(false)
         },
         onError: (err) =>
@@ -205,8 +211,8 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
   }
 
   const check = (id: string, checked: boolean, onChange: (v: boolean) => void, text: string) => (
-    <label htmlFor={id} className="flex min-h-11 items-start gap-3 rounded-xl bg-muted/50 px-3 py-2.5 text-sm">
-      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 size-5 shrink-0 accent-emerald-600" />
+    <label htmlFor={id} className={cn("flex min-h-11 items-start gap-3 rounded-xl bg-muted/50 px-3 py-2.5 text-sm", tried && !checked && "ring-2 ring-destructive")}>
+      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} aria-invalid={tried && !checked} className="mt-0.5 size-5 shrink-0 accent-emerald-600" />
       <span>{text}</span>
     </label>
   )
@@ -229,6 +235,11 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
         </div>
         {check("s-authentic", authentic, setAuthentic, t("nasheed.confirmAuthentic"))}
         {check("s-rights", rights, setRights, t("nasheed.confirmRights"))}
+        {missingConfirm && (
+          <p role="alert" className="text-sm font-medium text-destructive" data-testid="nasheed-confirm-error">
+            {t("nasheed.confirmRequired")}
+          </p>
+        )}
         <Button type="submit" className="h-11 w-full" disabled={submit.isPending}>
           {submit.isPending && <Loader2Icon className="animate-spin" />}
           {t("nasheed.send")}

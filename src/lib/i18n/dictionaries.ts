@@ -2083,7 +2083,7 @@ const km = {
   "nasheed.fileRequired": "សូមជ្រើសរើសឯកសារសំឡេង MP3 ឬ M4A",
   "nasheed.tooBig": "ឯកសារធំជាង ២០ MB",
   "nasheed.notAudio": "សូមជ្រើសរើសឯកសារ MP3 ឬ M4A",
-  "nasheed.confirmRequired": "សូមចុចយល់ព្រមលើលក្ខខណ្ឌទាំងពីរ",
+  "nasheed.confirmRequired": "សូមធីកយល់ព្រមលើលក្ខខណ្ឌទាំងពីរ",
   "nasheed.shareSheetTitle": "ចែករំលែកបទកសាដះ",
   "nasheed.shareTitlePlaceholder": "ឧ. អាល់ហាំឌូលិលឡាហ៍",
   "nasheed.shareArtist": "ឈ្មោះអ្នកច្រៀង ឬក្រុមចម្រៀង",

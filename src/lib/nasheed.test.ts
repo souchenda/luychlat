@@ -126,7 +126,32 @@ describe("Qasidah upload — a file named in Arabic (founder, 19/10/2026: such a
     assert.equal(dictionaries.km["nasheed.titleRequired"], "សូមបញ្ចូលចំណងជើងបទកសាដះ")
     assert.equal(dictionaries.km["nasheed.artistRequired"], "សូមបញ្ចូលឈ្មោះអ្នកច្រៀង ឬក្រុមចម្រៀង")
     assert.equal(dictionaries.km["nasheed.fileRequired"], "សូមជ្រើសរើសឯកសារសំឡេង MP3 ឬ M4A")
-    assert.equal(dictionaries.km["nasheed.confirmRequired"], "សូមចុចយល់ព្រមលើលក្ខខណ្ឌទាំងពីរ")
+    assert.equal(dictionaries.km["nasheed.confirmRequired"], "សូមធីកយល់ព្រមលើលក្ខខណ្ឌទាំងពីរ")
     assert.equal(dictionaries.km["nasheed.tooMany"], "អ្នកមានបទចំនួន ៣ កំពុងរង់ចាំការអនុម័តរួចហើយ")
+  })
+})
+
+describe("Yerny's «Hulum Takhrij» upload (founder, 20/10/2026)", () => {
+  const arabic = { name: "حلم_التخرج_تحقق_designer_128k.mp3", size: 4_200_000, type: "audio/mpeg" }
+  it("an Arabic filename never reaches the storage key: <user>/<uuid>.mp3, which the database accepts", () => {
+    assert.equal(submissionExt(arabic), "mp3")
+    assert.equal(submissionExt({ ...arabic, type: "" }), "mp3") // a phone that gives no type: by its name
+    const path = submissionPath(ID, "mp3")
+    assert.match(path, new RegExp(`^${ID}/[0-9a-f-]{36}\.mp3$`))
+    assert.doesNotMatch(path, /[^\x20-\x7e]/) // ASCII only
+    assert.match(sql(), /p_path !~ '\^\[0-9a-f-\]\{36\}\/\[0-9a-f-\]\{36\}\\.\(mp3\|m4a\|aac\)\$'/)
+  })
+  it("one box unticked: the reason stays under the boxes in red, the box outlined — not only a passing toast", async () => {
+    const { dictionaries } = await import("./i18n/dictionaries")
+    assert.equal(submissionError({ ...ok, file: arabic, rights: false }), "nasheed.confirmRequired")
+    assert.equal(dictionaries.km["nasheed.confirmRequired"], "សូមធីកយល់ព្រមលើលក្ខខណ្ឌទាំងពីរ")
+    const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/nasheed/page.tsx"), "utf8")
+    assert.match(page, /const missingConfirm = tried && !\(authentic && rights\)/)
+    assert.match(page, /role="alert" className="text-sm font-medium text-destructive" data-testid="nasheed-confirm-error"/)
+    assert.match(page, /tried && !checked && "ring-2 ring-destructive"/)
+  })
+  it("any signed-in member (a content admin too) may upload into their own folder; nobody else's", () => {
+    const s = sql()
+    assert.match(s, /with check \(bucket_id = 'nasheed-submissions' and \(storage\.foldername\(name\)\)\[1\] = auth\.uid\(\)::text\)/)
   })
 })
