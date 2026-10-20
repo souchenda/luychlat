@@ -58,6 +58,25 @@ install -m 0644 deploy/nginx/maintenance.html "$PAGE_DIR/maintenance.html"
 
 # 2. Our site file.
 mapfile -t sites < <(grep -l "luysmart_app" /etc/nginx/sites-enabled/* 2>/dev/null || true)
+if [ "${#sites[@]}" -gt 1 ] && [ -f "$SNIPPET" ]; then
+  # app.luychlat.com and the old luy.ibmserp.com (its 301s) share the upstream (20/10/2026: «found 2» made every
+  # deploy restart in place). Fine when each is already patched and the upstream snippet is included exactly once.
+  includes=0
+  for f in "${sites[@]}"; do
+    if ! grep -q "luysmart-maintenance" "$f" || ! grep -q "proxy_buffer_size" "$f" || ! grep -q "luysmart-downloads" "$f" || grep -q "upstream luysmart_app {" "$f"; then
+      echo "✗ $f uses luysmart_app but is not set up: fix it by hand (several sites are never patched automatically)" >&2
+      exit 1
+    fi
+    includes=$((includes + $(grep -c "^include /etc/nginx/snippets/luysmart-upstream.conf;" "$f" || true)))
+  done
+  if [ "$includes" -ne 1 ]; then
+    echo "✗ The upstream snippet is included $includes times across ${#sites[@]} sites (expected once)" >&2
+    exit 1
+  fi
+  nginx -t >/dev/null 2>&1 && nginx -s reload
+  echo "✓ Nginx already set up (${#sites[@]} sites share the upstream)"
+  exit 0
+fi
 if [ "${#sites[@]}" -ne 1 ]; then
   echo "✗ Expected one Nginx site using luysmart_app, found ${#sites[@]}" >&2
   exit 1

@@ -25,6 +25,12 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.match(notify, /⚠️ <b>ការដាក់ឱ្យដំណើរការមិនជោគជ័យ \(Deploy Failed\)<\/b>/)
     assert.match(notify, /\[ "\$\(cat deploy\/run\/\.failed-notified 2>\/dev\/null\)" = "\$head" \] && exit 0/)
   })
+  it("regression: two sites share the upstream (app.luychlat.com, luy.ibmserp.com) — «found 2» made every deploy restart in place since 11/10", () => {
+    const nginx = read("deploy/nginx-setup.sh")
+    assert.ok(nginx.indexOf('if [ "${#sites[@]}" -gt 1 ] && [ -f "$SNIPPET" ]; then') < nginx.indexOf('echo "✗ Expected one Nginx site using luysmart_app'))
+    assert.match(nginx, /if \[ "\$includes" -ne 1 \]; then/) // the snippet exactly once across the sites
+    assert.match(nginx, /several sites are never patched automatically/)
+  })
   it("the founder's private chat only — never «LCA Approval» or any group; the count is logged; never fails the deploy", () => {
     assert.match(notify, /chats=\$\(env_value FOUNDER_TELEGRAM_CHAT_ID\)/)
     assert.match(notify, /where l\.chat_id > 0/)
