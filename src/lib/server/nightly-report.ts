@@ -1,7 +1,11 @@
 // Server only: the nightly report before midnight (founder, 19/10/2026) — at 23:30 Cambodia time (or as soon as the
 // server is up inside 23:30–23:59), once a day, to «LCA Approval» (else the marketing chat, else the founder's chat):
 // the server's health, today's new members and approvals. Counts only.
+import { existsSync, readFileSync } from "node:fs"
+import path from "node:path"
+
 import { MORNING_BRIEFING, morningBriefingText, nightlyReportDay, nightlyReportText } from "@/lib/nightly-report"
+import { dailyScorecard, parseRoadmap, scorecardText } from "@/lib/roadmap-scorecard"
 import { founderChats } from "./admin-routes"
 import { logEvent } from "./events"
 import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
@@ -52,13 +56,31 @@ export async function sendNightlyReport(day: string): Promise<number> {
     dockerOk: sample.db_ms !== null,
     webhookOk: !sample.webhook_error,
   })
+  // The Daily Task Scorecard (founder, 20/10/2026): today's completed and stuck items from ROADMAP.md and today's deploys.
+  const scorecard = await taskScorecard(day)
+  const full = scorecard ? `${text}\n\n${scorecard}` : text
   let sent = 0
   // The founder's private chat only — never «LCA Approval» (an approval queue, founder 20/10/2026).
   for (const chat of await founderChats()) {
-    const res = await tg("sendMessage", { chat_id: chat, text, disable_web_page_preview: true })
+    const res = await tg("sendMessage", { chat_id: chat, text: full.length > 4000 ? `${full.slice(0, 3990)}\n…` : full, disable_web_page_preview: true })
     if (res.ok) sent++
     else logEvent("error", "nightly-report", `Nightly report not delivered: ${res.description ?? "?"}`, { fold: true })
   }
   logEvent(sent ? "info" : "warn", "nightly-report", `Nightly report ${day} sent to ${sent} chat(s)`)
   return sent
+}
+
+/** The scorecard text, or null when the roadmap or today's deploys cannot be read (the report still goes out, and says so). */
+async function taskScorecard(day: string): Promise<string | null> {
+  const file = path.join(process.cwd(), "ROADMAP.md")
+  if (!existsSync(file)) {
+    logEvent("warn", "nightly-report", "Daily Task Scorecard: ROADMAP.md is not in the image", { fold: true })
+    return "📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ៖ មិនអាចអាន ROADMAP.md បានទេ"
+  }
+  const { data, error } = await botDb().rpc("bot_deployed_hashes", { p_key: botKey(), p_day: day })
+  if (error) {
+    logEvent("warn", "nightly-report", `Daily Task Scorecard: ${error.message}`, { fold: true })
+    return "📋 វឌ្ឍនភាពកិច្ចការងារថ្ងៃនេះ៖ មិនអាចអានការដាក់ឱ្យដំណើរការថ្ងៃនេះបានទេ"
+  }
+  return scorecardText(dailyScorecard(parseRoadmap(readFileSync(file, "utf8")), (data as string[] | null) ?? []))
 }

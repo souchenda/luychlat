@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 20/10/2026 · 13:40 (Cambodia time)
+**Last updated:** 20/10/2026 · 17:10 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -10,6 +10,8 @@ dropped between sessions. The founder reviews it every evening.
 - `[x]` done and live on app.luychlat.com · `[/]` in progress or pushed, awaiting deploy · `[ ]` agreed, not started.
 - Each item ends with its commit(s) in brackets, checked against `git log`. An item is ticked only once it is live.
 - New requests are added the day they are agreed; nothing is deleted — a dropped item is struck through with the reason.
+- An open item that is blocked ends with «⛔ reason» in Khmer — the founder's nightly Daily Task Scorecard shows it
+  (src/lib/roadmap-scorecard.ts): completed = `[x]` naming a commit deployed today; stuck = open with today's commit or a «⛔».
 - Update the **Last updated** line on every change.
 
 ---
@@ -23,24 +25,25 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Prayer rooms in AEON Malls 1–3, Techo and Siem Reap-Angkor airports under ស៊ូរ៉ាវ (4980e18)
 - [x] Du'a audio player & admin recordings — app upload and bot /setdua (5d46fb9, 4602da9)
 - [x] Daily Islamic quiz challenge (5 questions)
-- [/] The quiz in the app only — the 12:30 channel teaser removed (no choices, read as clickbait); today's message deleted (f427225, 8126a43)
+- [x] The quiz in the app only — the 12:30 channel teaser removed (no choices, read as clickbait); today's message deleted (f427225, 8126a43)
 - [x] Saudi Riyal (SAR) rate card & 3-way converter, Islamic Mode only (4c13cf3 — live with 3ec7978)
 - [x] Iftar du'a in natural Khmer with clear phonetics — du'a library, hub card, channel caption, poster (beb9a16)
 - [x] Du'a library vetted in one pass — 14 du'as, hyphenated readings, poster meanings without parentheses, notes only in captions; new: entering / leaving the mosque, travel, the fasting intention, distress (77d67ad, 047c64f)
 - [x] Halal provision (Ibn Majah 925), worry & debt (Bukhari 2893, Arabic corrected), both worlds (2:201) in the vetted style (7f02e42)
-- [ ] Hadith texts in the Islamic lessons and tips: review for word-for-word Khmer
+- [ ] Hadith texts in the Islamic lessons and tips: review for word-for-word Khmer ⛔ រង់ចាំការពិនិត្យពីអ៊ីម៉ាំ
 - [x] Hajj & Umrah savings planner «ផែនការសន្សំសម្រាប់ធ្វើរូកូន» — calculator & 1-tap savings goal (1c0d49c)
 - [x] Islamic thank-you to Yerny for the approved Kampot surau — Telegram and in-app, sent 19/10/2026 19:52 (eebe7d1)
 - [x] Admin publishes an Adhan for everyone or keeps it on the device (295b194)
 - [x] App-wide default Adhans (regular and Fajr), one tap per track in the prayer settings and the /admin Adhan manager (dd8be5a)
 - [x] «⬆️ បង្ហោះ និងកំណត់ជាសកល» — publish the phone's Adhan file and make it the default in one go (450e5e1)
-- [ ] Set the first global default Adhan (none chosen yet — members hear the first built-in recording)
-- [ ] Du'a recordings: none uploaded yet (card «📤 បញ្ចូលសំឡេង» or /setdua)
-- [ ] Kuwait Adhan (Sheikh Ahmad Al-Trabulsi) for everyone — needs the founder's publishing permission / licence first
-- [ ] Bitesize lessons screen — 8 lessons written (a0ffcd7), each needs a local Imam's / teacher's review before it shows
+- [x] Set the first global default Adhan — «អាហ្សានផ្លូវការ អេប លុយឆ្លាត» (19/10/2026), the regular and Fajr default
+- [ ] Du'a recordings: none uploaded yet (card «📤 បញ្ចូលសំឡេង» or /setdua) ⛔ រង់ចាំការថតសំឡេងឌុអាពីអេដមីន
+- [ ] Kuwait Adhan (Sheikh Ahmad Al-Trabulsi) for everyone — needs the founder's publishing permission / licence first ⛔ រង់ចាំការអនុញ្ញាត / អាជ្ញាប័ណ្ណ
+- [ ] Bitesize lessons screen — 8 lessons written (a0ffcd7), each needs a local Imam's / teacher's review before it shows ⛔ រង់ចាំការពិនិត្យពីអ៊ីម៉ាំ
 - [ ] Fiqh reference assistant screen — the guarded back end is live (a0ffcd7)
-- [/] The founder's du'a texts vs the app's: after eating decided (Sunan Abi Dawud 3850), before eating rewritten; worry / debt still open
-- [/] Telegram bot audio Adhan alert — /adhan on | off and the switch under Settings › bot prayer alerts; the app-wide default Adhan with prayer, time and place (Telegram's own notification sound rings on a locked iPhone; the Adhan plays on a tap)
+- [/] The founder's du'a texts vs the app's: after eating decided (Sunan Abi Dawud 3850), before eating rewritten; worry / debt still open ⛔ រង់ចាំស្ថាបនិកសម្រេចអត្ថបទឌុអា ទុក្ខ និងបំណុល
+- [/] Telegram bot audio Adhan alert — /adhan on | off and the switch under Settings › bot prayer alerts; the app-wide default Adhan with prayer, time and place (Telegram's own notification sound rings on a locked iPhone; the Adhan plays on a tap) ⛔ រង់ចាំគ្រួសារបើក /adhan on — Push តាមម៉ោងសឡាតមិនទាន់មាន
+- [ ] Prayer-time web push for Islamic Mode members (Android rings with the app closed) and counts in the prayer-alert log ⛔ រង់ចាំស្ថាបនិកយល់ព្រម
 - [x] Place suggestions with a photo — the approval card is the photo; the directory shows it (0264ca3)
 - [x] Halal finance lesson posters: the principle and its money takeaway on every one of the 14 (a730c5f); today's lesson 13 replaced (c5c9d4c)
 
@@ -63,7 +66,9 @@ dropped between sessions. The founder reviews it every evening.
 - [x] ZERO unapproved public posts, locked — only the bulletin, NBC rates and prayer times post without a tap; a post still waiting at its time sends the founder an urgent reminder with ✅ / ❌ (7f6605c; the morning's auto-publish fallback d40d78a reverted)
 - [x] REPLACE OLD WITH NEW — an improved version of today's published post is offered with 🔄 and replaces the old one (c5c9d4c)
 - [x] Reports (nightly card, morning briefing, end-of-day, fuel sync, new members) to the founder's private chat only — «LCA Approval» stays an approval queue (7f02e42)
-- [/] Approver name, @username and time on every post card after ✅ / 🚀 / ❌; per-approver counts (Staff Performance) in the founder's nightly card
+- [x] Toasts below the iPhone notch / Dynamic Island (4a2c4cd)
+- [/] Daily Task Scorecard in the founder's nightly report — completed and stuck items with their reasons, from ROADMAP.md and today's deploys
+- [x] Approver name, @username and time on every post card after ✅ / 🚀 / ❌; per-approver counts (Staff Performance) in the founder's nightly card
 
 ## 3. 🎨 ផ្ទាំងផ្សព្វផ្សាយ & មាតិកា (Media & Posters)
 
@@ -71,14 +76,17 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Islamic minimalist poster engine (0c43fa7, 9c3fb09)
 - [x] Full poster audit: no parentheses on any graphic, explanations only in captions; datelines «… · ត្រូវនឹង …», Imsak / Iftar cards, footer, 10 tip / lesson lines rephrased; a test guards every poster text (50cf16b)
 - [x] Relatable comedy short video — Reel Ep 01 DRAFT (7e79b67, b947834)
-- [ ] Reel voices: Azure AI Speech key on the Droplet (the founder declined Azure for the du'as; reels still need a licensed voice)
-- [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E)
-- [/] **Master Brand & Visual Design System** — `docs/BRAND_DESIGN_SYSTEM.md`, the permanent design foundation for every poster: the four pillars, royal protocol (verbatim table), Islamic terminology and two-tier colours, Sil days and festivals, daily education, the pre-flight four-layer checklist; referenced in CLAUDE.md. Evolves only on the founder's decisions (its change log)
-- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder)
-- [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 05:00 on 29/10 only after a tap (the card names the day)
+- [ ] Reel voices: Azure AI Speech key on the Droplet (the founder declined Azure for the du'as; reels still need a licensed voice) ⛔ រង់ចាំ Key សំឡេងមានអាជ្ញាប័ណ្ណ
+- [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E) ⛔ រង់ចាំឯកសារដើមពីស្ថាបនិក
+- [x] **Master Brand & Visual Design System** — `docs/BRAND_DESIGN_SYSTEM.md`, the permanent design foundation for every poster: the four pillars, royal protocol (verbatim table), Islamic terminology and two-tier colours, Sil days and festivals, daily education, the pre-flight four-layer checklist; referenced in CLAUDE.md. Evolves only on the founder's decisions (its change log)
+- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder) ⛔ រង់ចាំស្ថាបនិកអនុម័តកាត #833
+- [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 05:00 on 29/10 only after a tap (the card names the day) ⛔ រង់ចាំស្ថាបនិកចុច ✅ លើកាត #833
+- [x] National and royal holidays at 05:00; the approval card and its ✅ name the day «ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក» (811c2b1)
+- [/] All-inclusive holiday engine — national, Islamic, Chinese, global — every one at 05:00 (1de372a)
+- [/] Strict religious separation of the channels — constitutional, golden test (87b384b)
 - [ ] 09/11 Independence Day — preview 07/11 08:00; text design until the founder provides an official portrait of the King Father
 - [ ] Water Festival (dates from the official sub-decree) — preview 48 h before at 08:00
-- [ ] Official portraits of the King Father (15/10, 09/11) and the Queen Mother (18/06), from the founder
+- [ ] Official portraits of the King Father (15/10, 09/11) and the Queen Mother (18/06), from the founder ⛔ រង់ចាំរូបផ្លូវការពីស្ថាបនិក
 
 ## 4. 💰 ហិរញ្ញវត្ថុ & ការទូទាត់ស្នូល (Core App & DL MEAT SUPPLY)
 

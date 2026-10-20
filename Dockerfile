@@ -59,6 +59,8 @@ RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
 RUN apk add --no-cache ffmpeg font-noto font-noto-khmer font-noto-arabic font-wqy-zenhei
 
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# The roadmap, for the Daily Task Scorecard in the nightly report (founder, 20/10/2026).
+COPY --from=builder --chown=nextjs:nodejs /app/ROADMAP.md ./ROADMAP.md
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Skia's native binary for this platform (the standalone trace may not pick it up).
