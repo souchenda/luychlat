@@ -53,6 +53,8 @@ import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
 import { logEvent } from "@/lib/server/events"
 import { deleteFacebookPost, facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
+import { nationalDayPoster } from "@/lib/server/national-day-poster"
+import { nationalCaptionHtml, nationalCaptionText, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE } from "@/lib/calendar/cambodia-holidays"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
@@ -438,6 +440,12 @@ const realDeps = (): SchedulerDeps => ({
       }
       case "DILEMMA":
         return { png: null, body: dilemmaPostText(dilemmaOfDay(day)) }
+      case "NATIONAL_DAY": {
+        // A national day or royal ceremony (founder, 20/10/2026): the poster and its caption.
+        const d = nationalDayByKey(String(row.payload.key))
+        const day = String(row.payload.day ?? "")
+        return d ? { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) } : { png: null, body: "—" }
+      }
       case "ISLAMIC_BULLETIN":
         return { png: null, body: stripHtml((await islamicBulletinNow()) ?? "—") }
       case "ISLAMIC_QUIZ":
@@ -464,6 +472,7 @@ const realDeps = (): SchedulerDeps => ({
     const fb = Boolean(facebookConfig())
     const telegram = communityChannelConfigured()
     if (row.kind === "MORNING") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "morning" }) }
+    if (row.kind === "NATIONAL_DAY") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "national" }) }
     if (row.kind === "HOLIDAY") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "holiday" }) }
     if (row.kind === "SPOTLIGHT") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "spotlight" }) }
     if (row.kind === "DILEMMA") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "dilemma" }) }
@@ -496,6 +505,19 @@ const realDeps = (): SchedulerDeps => ({
           reply_markup: quizTeaserButtons(),
         })
         ids.telegram = res.ok && res.result ? res.result.message_id : null
+      }
+      return ids
+    }
+    if (row.kind === "NATIONAL_DAY") {
+      // The commemoration poster: the community channel and the Page, once approved (founder, 20/10/2026).
+      const d = nationalDayByKey(String(row.payload.key))
+      const day = String(row.payload.day ?? "")
+      if (!d) return ids
+      const png = nationalDayPoster(d, day).png
+      if (chat) ids.telegram = (await sendPosterPhoto(chat, png, nationalCaptionHtml(d, day), { reply_markup: buttons.reply_markup })) ?? (await sentText(nationalCaptionHtml(d, day), true))
+      if (facebookConfig() && shouldPublishToFacebook({ kind: "national" })) {
+        const fb = await publishLogged(`national day ${d.key} ${day}`, () => publishPhotoToFacebook(approval, png, nationalCaptionText(d, day)), fbLog)
+        if (fb?.ok) ids.facebook = fb.postId
       }
       return ids
     }
@@ -708,6 +730,10 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
+  // National days and royal ceremonies (founder, 20/10/2026): previewed from 48 hours before at 08:00, published at
+  // 07:00 on the day once approved (a missed preview window is caught up until then — idempotent).
+  for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute))
+    await real().schedulePost("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
 }
 
 /**

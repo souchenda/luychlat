@@ -71,6 +71,8 @@ export type ChannelPostKind =
   | { kind: "dilemma" }
   /** The Buddhist Sil day poster (07:00 on the day, founder 19/10/2026): the community channel and the Page. */
   | { kind: "silday" }
+  /** A national day or royal ceremony poster (founder, 20/10/2026): the community channel and the Page. */
+  | { kind: "national" }
   | { kind: "fuel"; now: FuelPair; previous: FuelPair | null }
 
 export function shouldPublishToFacebook(post: ChannelPostKind): boolean {
@@ -80,6 +82,7 @@ export function shouldPublishToFacebook(post: ChannelPostKind): boolean {
     case "spotlight":
     case "dilemma":
     case "silday":
+    case "national":
       return true
     case "evening":
       return false

@@ -20,7 +20,7 @@ import { dateOf, islamicPlannedPosts, type IslamicKind } from "@/lib/islamic-cha
  * notices, the 20:00 reminder, the Saturday spotlight, the market bulletin, the evening NBC rates,
  * festival posters and holy-day notes.
  */
-export type PostKind = "MORNING" | "HOLIDAY" | "FUEL" | "EVENING" | "SPOTLIGHT" | "BULLETIN" | "RATES" | "POSTER" | "HOLYDAY" | "DILEMMA" | "ISLAMIC_BULLETIN" | IslamicKind
+export type PostKind = "MORNING" | "HOLIDAY" | "FUEL" | "EVENING" | "SPOTLIGHT" | "BULLETIN" | "RATES" | "POSTER" | "HOLYDAY" | "DILEMMA" | "ISLAMIC_BULLETIN" | "NATIONAL_DAY" | IslamicKind
 /** `channel`: which Telegram channel (lib/islamic-channel.ts channelFor) — the general one unless said. */
 export type Targets = { telegram: boolean; facebook: boolean; channel?: "community" | "islamic" }
 export type PostStatus = "PENDING" | "APPROVED" | "PUBLISHED" | "PAUSED" | "EXPIRED"
@@ -139,6 +139,7 @@ const KIND_LABEL: Record<PostKind, string> = {
   BULLETIN: "ព្រឹត្តិបត្រទីផ្សារ (NBC · មាស · ប្រេង)",
   RATES: "អត្រាប្តូរប្រាក់ NBC ពេលល្ងាច",
   ISLAMIC_BULLETIN: "ព្រឹត្តិបត្រហាងឆេង SAR និងនីស៊បមាសហ្សាកាត់ (Channel ឥស្លាម)",
+  NATIONAL_DAY: "ទិវាជាតិ / ព្រះរាជពិធី (Poster) — សូមពិនិត្យរាជស័ព្ទមុនអនុម័ត",
   POSTER: "Poster ពិធីបុណ្យ",
   HOLYDAY: "សារថ្ងៃសីល",
   DILEMMA: "សំណួរហិរញ្ញវត្ថុពិភាក្សា (Money Dilemma)",

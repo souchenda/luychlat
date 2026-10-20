@@ -1,0 +1,56 @@
+import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import { describe, it } from "node:test"
+
+import { AUTO_PUBLISH_KINDS } from "@/lib/scheduled-posts"
+import { shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
+
+import { NATIONAL_DAYS, nationalCaptionHtml, nationalDateLine, nationalDayByKey, nationalDayDate, nationalDaysToPreview } from "./cambodia-holidays"
+
+const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
+const keys = (today: string, minutes: number) => nationalDaysToPreview(today, minutes).map((x) => `${x.day.key}:${x.date}`)
+
+describe("Cambodia's national days and royal ceremonies (founder, 20/10/2026)", () => {
+  it("the calendar: 15 Oct, 29 Oct, 9 Nov and the rest; lunar days from the official dates", () => {
+    const at = (key: string, year = 2026) => nationalDayDate(nationalDayByKey(key)!, year)
+    assert.equal(at("king-father-memorial"), "2026-10-15")
+    assert.equal(at("coronation"), "2026-10-29")
+    assert.equal(at("independence"), "2026-11-09")
+    assert.equal(at("king-birthday"), "2026-05-14")
+    assert.equal(at("queen-mother-birthday"), "2026-06-18")
+    assert.equal(at("constitution-day"), "2026-09-24")
+    assert.equal(at("victory-day"), "2026-01-07")
+    assert.equal(at("water-festival"), "2026-11-23")
+    assert.equal(at("royal-ploughing"), "2026-05-05")
+    assert.equal(at("visak-bochea"), "2026-05-01")
+    assert.equal(at("khmer-new-year"), "2026-04-14")
+    assert.equal(at("water-festival", 2030), null) // no official date yet → nothing guessed
+  })
+  it("the anniversary line: «២៩ តុលា ២០០៤ - ២៩ តុលា ២០២៦ · ខួបលើកទី ២២»; Independence 73rd; the King Father 14th", () => {
+    assert.equal(nationalDateLine(nationalDayByKey("coronation")!, "2026-10-29"), "២៩ តុលា ២០០៤ - ២៩ តុលា ២០២៦ · ខួបលើកទី ២២")
+    assert.match(nationalDateLine(nationalDayByKey("independence")!, "2026-11-09"), /ខួបលើកទី ៧៣$/)
+    assert.match(nationalDateLine(nationalDayByKey("king-father-memorial")!, "2026-10-15"), /ខួបលើកទី ១៤$/)
+  })
+  it("the preview: from 48 hours before at 08:00 until 07:00 on the day; the Coronation early on the founder's request", () => {
+    assert.ok(!keys("2026-11-07", 7 * 60 + 59).includes("independence:2026-11-09"))
+    assert.ok(keys("2026-11-07", 8 * 60).includes("independence:2026-11-09"))
+    assert.ok(keys("2026-11-09", 6 * 60 + 59).includes("independence:2026-11-09")) // a missed window is caught up
+    assert.ok(!keys("2026-11-09", 7 * 60).includes("independence:2026-11-09"))
+    assert.ok(keys("2026-10-20", 12 * 60).includes("coronation:2026-10-29")) // the founder asked to inspect it now
+    assert.ok(!keys("2026-10-19", 12 * 60).includes("coronation:2026-10-29"))
+  })
+  it("royal wording on the poster and the caption; Visak with «សូមអនុមោទនា»; no parentheses on a poster", () => {
+    const html = nationalCaptionHtml(nationalDayByKey("coronation")!, "2026-10-29")
+    assert.match(html, /^🇰🇭 <b>ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ<\/b>\nព្រះករុណា ព្រះបាទសម្តេចព្រះបរមនាថ នរោត្តម សីហមុនី\nព្រះមហាក្សត្រនៃព្រះរាជាណាចក្រកម្ពុជា\n📅 ២៩ តុលា ២០០៤ - ២៩ តុលា ២០២៦ · ខួបលើកទី ២២/)
+    assert.match(nationalDayByKey("visak-bochea")!.message, /^សូមអនុមោទនា/)
+    for (const d of NATIONAL_DAYS) assert.doesNotMatch(`${d.pill} ${d.title} ${d.subtitle ?? ""} ${d.message}`, /[()]/, d.key)
+  })
+  it("approval first — never on the auto-publish list; the channel and the Page once approved", () => {
+    assert.ok(!AUTO_PUBLISH_KINDS.includes("NATIONAL_DAY" as never))
+    assert.equal(shouldPublishToFacebook({ kind: "national" }), true)
+    const sp = read("src/lib/server/scheduled-posts.ts")
+    assert.match(sp, /await real\(\)\.schedulePost\("NATIONAL_DAY", `\$\{day\.key\}-\$\{date\}`, \{ key: day\.key, day: date \}, atMinute\(date, PUBLISH_MINUTE\)\)/)
+    assert.match(read("supabase/migrations/20270210000000_national_day_posts.sql"), /'ISLAMIC_BULLETIN', 'NATIONAL_DAY'/)
+  })
+})

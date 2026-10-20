@@ -88,6 +88,10 @@ use come before feature count: no half-baked features, broken links or untested 
     no known previous period) → Telegram only.
   - 20:00 nightly reminder → Telegram **only**, never the Page.
   - Holiday notes (eve 18:00, day back 07:30) and the Saturday 17:00 core-value spotlight → both.
+  - National days and royal ceremonies (founder, 20/10/2026 — `lib/calendar/cambodia-holidays.ts`): a commemoration
+    poster previewed 48 h before at 08:00, published at 07:00 on the day once approved → both. Text and the brand's
+    art only — no royal portrait or emblem without a licensed copy; every preview asks the approver to check the royal
+    wording (រាជស័ព្ទ).
   - Tuesday / Friday 18:30 money dilemma (`lib/money-dilemmas.ts`, an open question + the app CTA) → both.
   - Buddhist Sil day (07:00 on 8 / 15 កើត, 8 រោច, ដាច់ខែ) → the branded poster (`lib/server/sil-poster.ts`) to the
     community channel **and** the Page — never @LuyChlatIslamic; the eve stays a channel note.

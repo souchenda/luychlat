@@ -51,6 +51,16 @@ const FESTIVALS: [MessageKey, string, string][] = [
   ["holiday.christmas", "12-25", "12-25"],
 ]
 
+/** A festival's first day in `year` (YYYY-MM-DD) from the list above, or null when that year has no entry. */
+export function festivalStart(key: MessageKey, year: number): string | null {
+  for (const [k, from] of FESTIVALS) {
+    if (k !== key) continue
+    const start = from.length === 5 ? `${year}-${from}` : from
+    if (start.startsWith(`${year}-`)) return start
+  }
+  return null
+}
+
 export type Greeting = { key: MessageKey; params?: Record<string, string | number> }
 
 const pad = (n: number) => String(n).padStart(2, "0")
