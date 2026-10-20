@@ -46,13 +46,16 @@ renders the poster. With a portrait the poster is 1080 × 1350; without one it i
    architecture or ornaments as vector shapes:** the founder rejected drawn silhouettes as «crude clipart … unworthy of
    His Majesty the King». Royal architecture, if shown, is photographic only. Without the backdrop, use the plain
    emerald gradient and gold glow.
-3. **On a framed backdrop:** the corners belong to the ornaments — the Coat of Arms
-   sits just inside the top-right ornament, and the blessing (26 px) keeps clear of the bottom corners.
+3. **On a framed backdrop:** the corners belong to the ornaments — nothing sits on them, and the blessing (26 px) keeps
+   clear of the bottom corners.
 4. **Royal protocol — the brand at the base (founder, 20/10/2026, the CBC model):** nothing commercial above His
    Majesty. The upper area holds only the portrait and the Royal Coat of Arms; the brand is a modest sign-off at the very
    bottom, centred: [mascot] «អេប លុយឆ្លាត · app.luychlat.com».
 5. **Foreground:** the **golden arched frame** holds the **official, high-definition royal portrait**. The **official
-   golden Royal Coat of Arms** sits at the **top right**, with a soft shadow.
+   golden Royal Coat of Arms** is the **apex, top centre**, centred between the top edge and the arch, 147 px tall,
+   with a soft shadow — perfect symmetry with the corners and the portrait (founder, 20/10/2026: the top right
+   «collides with the corner ornament and breaks the symmetrical balance»). The vertical order: the crest, the arch
+   with the portrait, the title, the royal name, the dateline, the blessing, the brand at the base.
 6. **Text, below the arch:** the title in gold, 52 px; the royal name and title in white, 30 px; the gold date chip;
    the blessing, 28 px, centred; then the footer.
 
@@ -183,7 +186,7 @@ check all four again together.
 **Layer 1 — Artwork**
 - [ ] Only official or app-drawn imagery; the source is recorded in the README.
 - [ ] The portrait is HD (at least 1000 px tall), centred in the arch, with no stray pixels or awkward crop.
-- [ ] The crest is crisp, golden and transparent at the top right.
+- [ ] The crest is crisp, golden and transparent at the top centre, above the arch; the composition is symmetrical.
 
 **Layer 2 — Background**
 - [ ] The emerald gradient and the vignette are smooth, with no hard bands.
@@ -216,3 +219,4 @@ an approver's tap.
 - **20/10/2026:** the Coronation backdrop is the founder's traditional Khmer kbach frame; on a framed backdrop the brand
   moves to the top centre and the crest inside the top-right ornament.
 - **20/10/2026:** royal posters carry no brand at the top — the brand is a modest sign-off at the bottom (the CBC model).
+- **20/10/2026:** the Royal Coat of Arms is the apex at the top centre above the arch (147 px), for full symmetry.

@@ -4,7 +4,7 @@ Place the OFFICIAL files here, exactly with these names. Only authorised copies:
 Information's official releases, with permission to use them (CLAUDE.md, Licensing). Never a copy found on the web.
 
   royal_crest_gold.png              the Royal Coat of Arms of the Kingdom of Cambodia — gold, transparent background
-                                    (top right of every royal, national and memorial poster)
+                                    (the apex, top centre above the arch, of every royal poster with a portrait)
   portrait_king_sihamoni.png        the official portrait of His Majesty King Norodom Sihamoni
                                     (29 Oct Coronation, 14 May Royal Birthday)
   portrait_king_father_sihanouk.png the official portrait of the late King Father Norodom Sihanouk
@@ -14,7 +14,7 @@ Information's official releases, with permission to use them (CLAUDE.md, Licensi
   bg_royal_coronation.jpg           the founder's backdrop, 1080 × 1350 (sent by the founder, 20/10/2026): the
                                     traditional Khmer kbach frame — deep emerald, the kbach / lotus watermark and four
                                     golden ornate corners — full bleed behind the arch (29 Oct Coronation). The crest
-                                    sits inside the top-right corner; the brand only in the footer (royal protocol).
+                                    is the apex at the top centre; the brand only in the footer (royal protocol).
                                     Without it the plain emerald is used; the app never draws architecture or ornaments
                                     as clipart (founder, 20/10/2026).
   bg_independence_monument.png      a light silhouette of the Independence Monument, transparent background

@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("royal-footer") && !listed.includes("kbach-backdrop") && !listed.includes("no-clipart")) // a used flag leaves the list
+    assert.ok(listed.includes("crest-apex") && !listed.includes("royal-footer") && !listed.includes("kbach-backdrop")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -184,7 +184,7 @@ describe("The founder's kbach backdrop (20/10/2026)", () => {
     assert.deepEqual([jpg[0], jpg[1]], [0xff, 0xd8]) // a real JPEG
     const poster = read("src/lib/server/national-day-poster.ts")
     assert.match(poster, /const framed = Boolean\(art\.backdrop\)/)
-    assert.match(poster, /ctx\.drawImage\(art\.crest, framed \? 800 : PW - 56 - cw, framed \? 178 : 36, cw, ch\)/) // inside the top-right ornament
+    assert.doesNotMatch(poster, /drawImage\(art\.crest, framed \? 800/) // never on a corner ornament
     assert.match(poster, /const bodyWidth = framed \? PW - 2 \* 140 : width/) // clear of the bottom corners
     assert.match(read("public/images/holidays/README.txt"), /traditional Khmer kbach/)
     assert.match(read("supabase/migrations/20270221000000_repreview_kbach_backdrop.sql"), /'repreview', 'kbach-backdrop'/)
@@ -202,5 +202,18 @@ describe("Royal protocol: nothing commercial above His Majesty (founder, 20/10/2
     assert.match(royal.slice(footer), /const brand = "អេប លុយឆ្លាត · app\.luychlat\.com"/)
     assert.match(royal.slice(footer), /if \(mascot\) ctx\.drawImage\(mascot, bx, footer \+ 3, icon, icon\)/)
     assert.match(read("supabase/migrations/20270222000000_repreview_royal_footer.sql"), /'repreview', 'royal-footer'/)
+  })
+})
+
+describe("The Royal Coat of Arms as the apex (founder, 20/10/2026 — symmetry)", () => {
+  it("regression: the crest on the top right collided with the corner ornament — now top centre, between the top edge and the arch, 15 % larger", async () => {
+    const poster = read("src/lib/server/national-day-poster.ts")
+    assert.match(poster, /ctx\.drawImage\(art\.crest, \(PW - cw\) \/ 2, \(top \+ archTop - ch\) \/ 2, cw, ch\)/)
+    const { CREST_HEIGHT } = await import("@/lib/server/national-day-poster")
+    assert.equal(CREST_HEIGHT, Math.round(128 * 1.15))
+    // It fits above the arch: the top edge (40) + the crest ≤ the arch's outer line (fy − 16).
+    const fy = Number(poster.match(/const fy = (\d+)/)![1])
+    assert.ok(40 + CREST_HEIGHT <= fy - 16, `${fy}`)
+    assert.match(read("supabase/migrations/20270223000000_repreview_crest_apex.sql"), /'repreview', 'crest-apex'/)
   })
 })

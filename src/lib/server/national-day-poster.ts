@@ -156,7 +156,7 @@ export function nationalDayPoster(d: NationalDay, day: string): { png: Buffer; t
   return { png: canvas.toBuffer("image/png"), truncated }
 }
 
-// With the official portrait (founder, 20/10/2026): 1080 x 1350, the arched gold frame, the crest top right.
+// With the official portrait (founder, 20/10/2026): 1080 x 1350, the arched gold frame, the crest at the apex (top centre).
 
 const PW = 1080
 const PH = 1350
@@ -178,6 +178,9 @@ function drawCover(ctx: SKRSContext2D, img: Image, x: number, y: number, w: numb
   const dw = img.width * scale
   ctx.drawImage(img, x + (w - dw) / 2, y, dw, img.height * scale)
 }
+
+/** The crest at the apex: 128 px × 1.15 (founder, 20/10/2026). */
+export const CREST_HEIGHT = 147
 
 function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nationalAssetsFor>): { png: Buffer; truncated: boolean } {
   const canvas = createCanvas(PW, PH)
@@ -222,27 +225,31 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   // Royal protocol (founder, 20/10/2026 — «placing the commercial rabbit brand logo directly above the King's head is
   // completely unacceptable»): nothing commercial above His Majesty. The upper area holds only the portrait and the
   // Royal Coat of Arms; the brand sits modestly in the footer. On the kbach frame the corners belong to the ornaments:
-  // the crest nestles just inside the top-right one and the text keeps clear of the bottom ones.
+  // nothing sits on them, and the text keeps clear of the bottom ones.
   const framed = Boolean(art.backdrop)
   ctx.textBaseline = "alphabetic"
 
-  // The Royal Coat of Arms, top right, with a soft shadow.
+  // The portrait's arch (a little smaller than before, lower) and, above it, the Royal Coat of Arms as the apex — top
+  // centre, centred between the top edge and the arch (founder, 20/10/2026: «floating it on the upper right collides
+  // with the corner ornament and breaks the symmetrical balance»), 15 % larger: perfect symmetry with the corners.
+  const fw = 420
+  const fh = 500
+  const fy = 218
   if (art.crest) {
-    const ch = framed ? 128 : 150
+    const ch = CREST_HEIGHT
     const cw = (art.crest.width / art.crest.height) * ch
+    const top = 40 // the top edge (the kbach frame's gold line)
+    const archTop = fy - 16 // the outer gold line of the arch
     ctx.save()
     ctx.shadowColor = "rgba(0,0,0,0.45)"
     ctx.shadowBlur = 18
     ctx.shadowOffsetY = 6
-    ctx.drawImage(art.crest, framed ? 800 : PW - 56 - cw, framed ? 178 : 36, cw, ch)
+    ctx.drawImage(art.crest, (PW - cw) / 2, (top + archTop - ch) / 2, cw, ch)
     ctx.restore()
   }
 
   // The portrait in the arched gold frame.
-  const fw = 470
-  const fh = 560
   const fx = (PW - fw) / 2
-  const fy = 150
   ctx.save()
   archPath(ctx, fx, fy, fw, fh)
   ctx.clip()
@@ -266,7 +273,7 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   // The text below the portrait, centred.
   const width = PW - 2 * 80
   ctx.textAlign = "center"
-  let y = fy + fh + 82
+  let y = fy + fh + 72
   ctx.font = `700 52px ${FAMILIES}`
   ctx.fillStyle = "#fcd34d"
   const titleLines = wrap(ctx, text.title, width, 2)
@@ -296,7 +303,7 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   ctx.stroke()
   ctx.fillStyle = "#fde68a"
   ctx.fillText(text.date, PW / 2, y + 31)
-  y += 52 + 44
+  y += 52 + 40
 
   const footer = PH - 92
   // Inside the kbach frame the blessing is a touch smaller, so all of it fits between the bottom corners.
