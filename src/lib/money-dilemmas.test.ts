@@ -81,13 +81,17 @@ describe("The money dilemma as an A / B poster (founder, 20/10/2026)", () => {
     assert.equal(r.truncated, false)
     assert.deepEqual([r.png.readUInt32BE(16), r.png.readUInt32BE(20)], [1080, 1080])
   })
-  it("the preview and the post carry the poster (caption = the text); today's text-only card is sent again once", async () => {
+  it("regression: the canvas poster was rejected as a wireframe (founder, 20/10/2026) — it is OFF: no card or post carries it", async () => {
     const { readFileSync } = await import("node:fs")
     const { join } = await import("node:path")
+    const { DILEMMA_POSTERS_ENABLED } = await import("./money-dilemmas")
+    assert.equal(DILEMMA_POSTERS_ENABLED, false) // turning it on is the founder's decision, with a high-fidelity template
     const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
-    assert.match(sp, /png: d\.poster \? poster\(\(\) => renderDilemmaPoster\(d\.poster!\)\.png\) : null, body: dilemmaPostText\(d\)/)
-    assert.match(sp, /png \? publishPhotoToFacebook\(approval, png, text\) : publishTextToFacebook\(approval, text\)/)
-    assert.match(sp, /await repreview\("DILEMMA", now\.day, \{ day: now\.day \}, atMinute\(now\.day, DILEMMA_MINUTE\)\)/)
-    assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270234000000_repreview_dilemma_poster.sql"), "utf8"), /'repreview', 'dilemma-poster'/)
+    assert.match(sp, /png: DILEMMA_POSTERS_ENABLED && d\.poster \? poster\(\(\) => renderDilemmaPoster\(d\.poster!\)\.png\) : null, body: dilemmaPostText\(d\)/)
+    assert.match(sp, /const png = DILEMMA_POSTERS_ENABLED && d\.poster \? renderDilemmaPoster\(d\.poster\)\.png : null/)
+    // Never ungated: every use of the poster sits behind the switch.
+    assert.equal((sp.match(/d\.poster \?/g) ?? []).length, (sp.match(/DILEMMA_POSTERS_ENABLED && d\.poster \?/g) ?? []).length)
+    // Tonight's dilemma: cancelled for good, published nowhere.
+    assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270235000000_dilemma_cancelled.sql"), "utf8"), /set status = 'PAUSED', payload = payload - 'repreview'\n where kind = 'DILEMMA' and post_key = '2026-10-20' and status in \('PENDING', 'APPROVED'\)/)
   })
 })

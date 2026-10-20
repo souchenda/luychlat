@@ -6,7 +6,14 @@
  * Pure (money-dilemmas.test.ts); the wording guard (tests/golden/content-guards.test.ts) covers every line.
  */
 
-/** The poster's two choices side by side (founder, 20/10/2026): A warm, B calm — no parentheses on the graphic. */
+/**
+ * EXPERIMENTAL — OFF (founder, 20/10/2026: the canvas-drawn poster was rejected as a «developer wireframe»): no
+ * dilemma poster is attached to a card or a post until a high-fidelity template designed to docs/BRAND_DESIGN_SYSTEM.md
+ * replaces lib/server/dilemma-poster.ts. Turning this on is the founder's decision.
+ */
+export const DILEMMA_POSTERS_ENABLED = false
+
+/** The poster's two choices side by side (experimental, see DILEMMA_POSTERS_ENABLED): no parentheses on the graphic. */
 export type DilemmaChoice = { title: string; sub: string; icon: "card" | "shield"; tone: "warm" | "calm" }
 export type DilemmaPoster = { headline: string; a: DilemmaChoice; b: DilemmaChoice; prompt: string }
 export type MoneyDilemma = { id: string; title: string; story: string; question: string; poster?: DilemmaPoster }

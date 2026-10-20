@@ -1,3 +1,5 @@
+// EXPERIMENTAL — OFF (DILEMMA_POSTERS_ENABLED): rejected by the founder (20/10/2026) as a low-fidelity wireframe; kept
+// only until a high-fidelity, asset-based template designed to docs/BRAND_DESIGN_SYSTEM.md replaces it.
 // Server only: the money dilemma as a poster (founder, 20/10/2026 — «text-only will have low engagement»): 1080 × 1080,
 // a premium dark emerald, «សំណួរហិរញ្ញវត្ថុ · បើជាបងវិញ?», the headline, two choices side by side (A warm, B emerald), the
 // question «តើគួររើសមួយណា? A ឬ B?» and the brand at the base. The server has no emoji font: the bubble, the card and the

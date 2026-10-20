@@ -222,6 +222,14 @@ dilemma, and the lesson posters.
 
 ---
 
+### 5.1 No wireframe posters (founder, 20/10/2026)
+
+A poster made of shapes drawn in code — emoji stand-ins, badges placed by arithmetic, empty space left over — looks like
+a developer's wireframe and is rejected. The money dilemma poster (`lib/server/dilemma-poster.ts`) is experimental and
+**off** (`DILEMMA_POSTERS_ENABLED`); the dilemma goes out as text until a high-fidelity, asset-based template (designed
+artwork or SVG, approved by the founder) exists. A new poster type is shown to the founder as a design before any engine
+attaches it to an approval card.
+
 ## Chapter 6 — The pre-flight four-layer checklist (before any preview reaches «LCA Approval»)
 
 Render the poster and **look at it**. Zoom into the portrait and every text block. Check every layer, then

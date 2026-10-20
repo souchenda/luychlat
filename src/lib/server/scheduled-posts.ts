@@ -45,7 +45,7 @@ import { channelFor, dateOf, isIslamicKind, islamicCaptionHtml, kmDay, islamicPl
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { silPosterContent } from "@/lib/sil-poster"
 import { renderSilPoster, silPosterReady } from "@/lib/server/sil-poster"
-import { DILEMMA_MINUTE, DILEMMA_WEEKDAYS, dilemmaOfDay, dilemmaPostText } from "@/lib/money-dilemmas"
+import { DILEMMA_MINUTE, DILEMMA_POSTERS_ENABLED, DILEMMA_WEEKDAYS, dilemmaOfDay, dilemmaPostText } from "@/lib/money-dilemmas"
 import { renderDilemmaPoster } from "@/lib/server/dilemma-poster"
 import { posterAssetsReady } from "@/lib/server/poster-kit"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
@@ -447,10 +447,10 @@ const realDeps = (): SchedulerDeps => ({
         return { png: sil ? poster(() => renderSilPoster(sil)) : null, body: String(row.payload.text ?? "—") }
       }
       case "DILEMMA": {
-        // With its A / B poster when the dilemma has one (founder, 20/10/2026 — text alone gets little engagement).
+        // Text only: the canvas poster is experimental and off (DILEMMA_POSTERS_ENABLED — founder, 20/10/2026).
         const d = dilemmaOfDay(day)
         await posterAssetsReady
-        return { png: d.poster ? poster(() => renderDilemmaPoster(d.poster!).png) : null, body: dilemmaPostText(d) }
+        return { png: DILEMMA_POSTERS_ENABLED && d.poster ? poster(() => renderDilemmaPoster(d.poster!).png) : null, body: dilemmaPostText(d) }
       }
       case "NATIONAL_DAY": {
         // A national day or royal ceremony (founder, 20/10/2026): the poster and its caption.
@@ -610,7 +610,7 @@ const realDeps = (): SchedulerDeps => ({
       const d = dilemmaOfDay(String(row.payload.day))
       const text = dilemmaPostText(d)
       await posterAssetsReady
-      const png = d.poster ? renderDilemmaPoster(d.poster).png : null
+      const png = DILEMMA_POSTERS_ENABLED && d.poster ? renderDilemmaPoster(d.poster).png : null
       const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       if (chat) ids.telegram = png ? ((await sendPosterPhoto(chat, png, esc(text), { reply_markup: buttons.reply_markup })) ?? (await sentText(text, false))) : await sentText(text, false)
       if (facebookConfig() && shouldPublishToFacebook({ kind: "dilemma" })) {
