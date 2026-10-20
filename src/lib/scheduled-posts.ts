@@ -41,6 +41,9 @@ export const EVENT_LEAD_MIN = 1
 /** The 07:00 post as Cambodia-time ISO for `day` + `minute`. */
 export const atMinute = (day: string, minute: number) => new Date(Date.parse(`${day}T00:00:00+07:00`) + minute * 60_000).toISOString()
 
+/** A 05:00 holiday note's preview the evening before (founder, 20/10/2026). */
+export const HOLIDAY_EVENING_PREVIEW_MINUTE = 21 * 60 + 30
+
 /** The posts whose preview window is open at this Cambodian minute: from 45 min before until 90 min after. */
 export function plannedPosts(day: string, minutes: number): { kind: PostKind; postKey: string; publishMinute: number; payload: Record<string, string> }[] {
   const open = (at: number) => minutes >= at - PREVIEW_LEAD_MIN && minutes < at + LATE_LIMIT_MIN
@@ -56,6 +59,16 @@ export function plannedPosts(day: string, minutes: number): { kind: PostKind; po
   if (m) {
     const at = m.stage === "pre" ? HOLIDAY_PRE_MINUTE : HOLIDAY_POST_MINUTE
     if (open(at)) out.push({ kind: "HOLIDAY", postKey: `${day}-${m.stage}`, publishMinute: at, payload: { day, stage: m.stage } })
+  }
+  // A 05:00 holiday note is previewed the evening before, from 21:30 (the founder approves before bed — as the
+  // 05:30 Islamic post); published at 05:00 once approved.
+  if (minutes >= HOLIDAY_EVENING_PREVIEW_MINUTE) {
+    const tomorrow = new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
+    const next = holidayMoment(tomorrow)
+    if (next) {
+      const at = next.stage === "pre" ? HOLIDAY_PRE_MINUTE : HOLIDAY_POST_MINUTE
+      out.push({ kind: "HOLIDAY", postKey: `${tomorrow}-${next.stage}`, publishMinute: 24 * 60 + at, payload: { day: tomorrow, stage: next.stage } })
+    }
   }
   return out
 }

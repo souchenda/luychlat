@@ -108,7 +108,8 @@ use come before feature count: no half-baked features, broken links or untested 
   - MoC fuel notice → Facebook **only** when EA92 or diesel changed (Δ ≠ 0, ▲ / ▼); unchanged (or
     no known previous period) → Telegram only.
   - 20:00 nightly reminder → Telegram **only**, never the Page.
-  - Holiday notes (eve 18:00, day back 07:30) and the Saturday 17:00 core-value spotlight → both.
+  - Holiday notes (the eve and the day back, both at 05:00 — founder, 20/10/2026; previewed the evening before from
+    21:30) and the Saturday 17:00 core-value spotlight → both.
   - National days and royal ceremonies (founder, 20/10/2026 — `lib/calendar/cambodia-holidays.ts`): a commemoration
     poster previewed 48 h before at 08:00, published at 05:00 on the day once approved → both (the card and its ✅
     name the day: «ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក»). Royal portraits only

@@ -1,6 +1,7 @@
 /**
- * Holiday lifecycle (founder, 12/10/2026): a thoughtful note at 18:00 the evening before a stretch of
- * days off, and a dry «welcome back to reality» at 07:30 on the first working day after it — in the
+ * Holiday lifecycle (founder, 12/10/2026): a thoughtful note the day before a stretch of days off, and a dry
+ * «welcome back to reality» on the first working day after it — both at 05:00 (founder, 20/10/2026: every holiday
+ * notification at 05:00; the 18:00 and 07:30 slots retired) — in the
  * community channel and the in-app bell. A stretch is a run of public holidays (lib/holidays) joined
  * with the weekends next to them, so a Monday holiday starts on Saturday and the note comes Friday.
  * Pchum Ben keeps the reverent «សូមអនុមោទនា» tone. Pure (holiday-lifecycle.test.ts).
@@ -13,9 +14,9 @@ export type HolidayKind = "PCHUM_BEN" | "KHMER_NEW_YEAR" | "WATER_FESTIVAL" | "G
 export type HolidayBlock = { start: string; end: string; days: number; kind: HolidayKind }
 export type HolidayMoment = { stage: "pre" | "post"; block: HolidayBlock }
 
-/** 18:00 the day before; 07:30 the first working day after (Cambodia time). */
-export const HOLIDAY_PRE_MINUTE = 18 * 60
-export const HOLIDAY_POST_MINUTE = 7 * 60 + 30
+/** 05:00 the day before; 05:00 the first working day after (Cambodia time — founder, 20/10/2026). */
+export const HOLIDAY_PRE_MINUTE = 5 * 60
+export const HOLIDAY_POST_MINUTE = 5 * 60
 
 const KIND_OF: Partial<Record<MessageKey, HolidayKind>> = {
   "holiday.pchum_ben": "PCHUM_BEN",
@@ -130,7 +131,7 @@ export function holidayPostHtml(m: HolidayMoment): string {
   return `<b>${esc(title)}</b>\n\n${esc(body)}\n\n— អេប លុយឆ្លាត`
 }
 
-/** Holiday lifecycle: the eve's note from 18:00, the day back's from 07:30 — each a 90-minute window. */
+/** Holiday lifecycle: the eve's note and the day back's, each from 05:00 — a 90-minute window. */
 export function holidayDue(day: string, minutes: number): "holiday-pre" | "holiday-post" | null {
   const m = holidayMoment(day)
   if (!m) return null
@@ -138,7 +139,7 @@ export function holidayDue(day: string, minutes: number): "holiday-pre" | "holid
   return minutes >= from && minutes < from + 90 ? `holiday-${m.stage}` : null
 }
 
-/** The bell's card: from 18:00 on the eve, from 07:30 on the day back; null otherwise. */
+/** The bell's card: from 05:00 on the eve and on the day back; null otherwise. */
 export function holidayCard(now: number): (HolidayMoment & { title: string; body: string; at: string }) | null {
   const t = new Date(now + 7 * 3_600_000)
   const day = t.toISOString().slice(0, 10)

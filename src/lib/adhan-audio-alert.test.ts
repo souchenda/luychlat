@@ -35,7 +35,9 @@ describe("The Adhan as audio in Telegram (founder, 20/10/2026)", () => {
   it("the dispatcher sends the audio to members who chose it, text otherwise (and when the audio fails); /adhan on | off; the app switch", () => {
     const d = read("src/lib/server/bot-dispatch.ts")
     assert.match(d, /if \(s\.adhan_audio\) sent = await sendAdhanAudio\(/)
-    assert.match(d, /if \(!sent\) await sendText\(s\.chat_id/)
+    assert.match(d, /if \(sent\) audio\+\+\n    else if \(\(await sendText\(s\.chat_id/)
+    // The real counts in the log (CLAUDE.md: never a bare «sent»).
+    assert.match(d, /Telegram prayer alerts: \$\{audio\} Adhan audio, \$\{text\} text/)
     assert.match(read("src/app/api/telegram/webhook/route.ts"), /bot_set_adhan_audio/)
     assert.match(read("src/components/settings/official-bot.tsx"), /update\.mutate\(\{ adhan_audio: v/)
     const sql = read("supabase/migrations/20270203000000_telegram_adhan_audio.sql")

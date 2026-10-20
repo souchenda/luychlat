@@ -45,7 +45,7 @@ describe("GOLDEN · strict religious separation of the channels", () => {
     for (const kind of ["HOLYDAY", "POSTER", "HOLIDAY", "NATIONAL_DAY", "MORNING", "EVENING", "DILEMMA", "SPOTLIGHT"]) assert.equal(channelFor(kind), "community", kind)
   })
   it("the Islamic channel's own posts never speak of a Buddhist day, a Chinese festival or an ancestral offering", () => {
-    const banned = /ថ្ងៃសីល|ភ្ជុំបិណ្ឌ|វិសាខបូជា|ចូលឆ្នាំចិន|ឆេងម៉េង|សែនក្បាលទឹក|សែនព្រះខែ|សែនព្រេន|ព្រះពុទ្ធ|វត្ត/
+    const banned = /ថ្ងៃសីល|ភ្ជុំបិណ្ឌ|វិសាខបូជា|ចូលឆ្នាំចិន|ឆេងម៉េង|សែនក្បាលទឹក|សែនព្រះខែ|សែននំលោកខែ|នំលោកខែ|សែនព្រេន|ព្រះពុទ្ធ|វត្ត/
     for (const kind of ISLAMIC_KINDS)
       for (let i = 0; i < 366; i += 7) {
         const day = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10)

@@ -133,7 +133,7 @@ the urgent founder reminder fires at once.
 |---|---|---|
 | A — National & royal | 7 Jan, royal birthdays, 24 Sep, 15 Oct, **29 Oct**, **9 Nov**, the Royal Ploughing, the Water Festival | Community + Page |
 | B — Islamic | 1 Muharram, Mawlid, Eid al-Fitr «ពិធីបុណ្យរ៉ាយ៉ាស្រាយបួស», the Day of Arafah, Eid al-Adha «ពិធីបុណ្យរ៉ាយ៉ាហាជ» | @LuyChlatIslamic only |
-| C — Chinese traditional | Chinese New Year, Qingming «ឆេងម៉េង», «ថ្ងៃសែនក្បាលទឹក», Mid-Autumn «ពិធីសែនព្រះខែ» | Community + Page |
+| C — Chinese traditional | Chinese New Year, Qingming «ឆេងម៉េង», «ថ្ងៃសែនក្បាលទឹក», Mid-Autumn «ពិធីសែននំលោកខែ» (never «សែនព្រះខែ» — the Water Festival's «សំពះព្រះខែ») | Community + Page |
 | D — Global & cultural | 1 Jan, 8 Mar, 1 May, Khmer New Year, Visak Bochea, Pchum Ben | Community + Page |
 
 Islamic dates come from the Hijri calendar with the admin's offset and can move with the moon sighting; Qingming

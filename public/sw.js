@@ -41,7 +41,7 @@ self.addEventListener("activate", (event) => {
   )
 })
 
-// Push notifications (the 07:00 morning message, a SoundBox payment): shown as sent; a tap opens LuyChlat
+// Push notifications (the 07:00 morning message, a SoundBox payment, a prayer time): shown as sent; a tap opens LuyChlat
 // (an open window is focused instead of opening a second one).
 self.addEventListener("push", (event) => {
   let data = {}
@@ -59,6 +59,8 @@ self.addEventListener("push", (event) => {
       // A payment alert buzzes the phone each time (SoundBox with the screen locked).
       renotify: Boolean(data.renotify),
       vibrate: Array.isArray(data.vibrate) ? data.vibrate : undefined,
+      // A prayer-time alert stays on the screen until it is seen (lib/prayer-push.ts).
+      requireInteraction: Boolean(data.requireInteraction),
       data: { url: data.url || "/" },
     }),
   )

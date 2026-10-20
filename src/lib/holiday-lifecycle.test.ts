@@ -37,25 +37,26 @@ describe("holiday lifecycle — when the notes go out", () => {
 })
 
 describe("holiday lifecycle — the channel's windows", () => {
-  it("the eve: 18:00–19:29; the day back: 07:30–08:59; nothing on other days", () => {
-    assert.equal(holidayDue("2026-11-20", 17 * 60 + 59), null)
-    assert.equal(holidayDue("2026-11-20", 18 * 60), "holiday-pre")
-    assert.equal(holidayDue("2026-11-20", 19 * 60 + 30), null)
-    assert.equal(holidayDue("2026-11-26", 7 * 60 + 29), null)
-    assert.equal(holidayDue("2026-11-26", 7 * 60 + 30), "holiday-post")
-    assert.equal(holidayDue("2026-11-26", 9 * 60), null)
-    assert.equal(holidayDue("2026-10-16", 18 * 60), null)
+  it("the eve and the day back, both 05:00–06:29 (founder, 20/10/2026 — the 18:00 and 07:30 slots retired)", () => {
+    assert.equal(holidayDue("2026-11-20", 4 * 60 + 59), null)
+    assert.equal(holidayDue("2026-11-20", 5 * 60), "holiday-pre")
+    assert.equal(holidayDue("2026-11-20", 6 * 60 + 30), null)
+    assert.equal(holidayDue("2026-11-20", 18 * 60), null) // the old 18:00 slot
+    assert.equal(holidayDue("2026-11-26", 4 * 60 + 59), null)
+    assert.equal(holidayDue("2026-11-26", 5 * 60), "holiday-post")
+    assert.equal(holidayDue("2026-11-26", 7 * 60 + 30), null) // the old 07:30 slot
+    assert.equal(holidayDue("2026-10-16", 5 * 60), null)
   })
 })
 
 describe("holiday lifecycle — the bell card and the words", () => {
-  it("the eve's card from 18:00, the day back's from 07:30 (Cambodia time)", () => {
-    assert.equal(holidayCard(at("2026-11-20T10:59:00Z")), null) // 17:59
-    assert.equal(holidayCard(at("2026-11-20T11:00:00Z"))?.stage, "pre") // 18:00
-    assert.equal(holidayCard(at("2026-11-26T00:29:00Z")), null) // 07:29
-    const back = holidayCard(at("2026-11-26T00:30:00Z"))! // 07:30
+  it("the eve's card and the day back's, both from 05:00 (Cambodia time)", () => {
+    assert.equal(holidayCard(at("2026-11-19T21:59:00Z")), null) // 04:59 on the 20th
+    assert.equal(holidayCard(at("2026-11-19T22:00:00Z"))?.stage, "pre") // 05:00
+    assert.equal(holidayCard(at("2026-11-25T21:59:00Z")), null) // 04:59 on the 26th
+    const back = holidayCard(at("2026-11-25T22:00:00Z"))! // 05:00
     assert.equal(back.stage, "post")
-    assert.equal(back.at, "2026-11-26T00:30:00.000Z")
+    assert.equal(back.at, "2026-11-25T22:00:00.000Z")
   })
   it("Khmer dates; Pchum Ben stays reverent (អនុមោទនា, never រីករាយ); no brand-standard slips", () => {
     assert.equal(kmRange({ start: "2026-11-21", end: "2026-11-25" }), "២១–២៥ វិច្ឆិកា")

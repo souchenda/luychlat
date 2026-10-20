@@ -10,11 +10,15 @@ describe("scheduled posts — the preview window", () => {
     assert.equal(plannedPosts("2026-10-16", 8 * 60 + 29).length, 1)
     assert.equal(plannedPosts("2026-10-16", 8 * 60 + 30).length, 0)
   })
-  it("holiday notes: the eve's preview at 17:15 (for 18:00), the day back's at 06:45 (for 07:30)", () => {
-    assert.equal(plannedPosts("2026-11-20", 17 * 60 + 14).length, 0)
-    assert.deepEqual(plannedPosts("2026-11-20", 17 * 60 + 15).map((p) => [p.kind, p.postKey, p.publishMinute]), [["HOLIDAY", "2026-11-20-pre", 1080]])
-    const back = plannedPosts("2026-11-26", 6 * 60 + 45)
-    assert.deepEqual(back.map((p) => [p.kind, p.postKey]), [["MORNING", "2026-11-26"], ["HOLIDAY", "2026-11-26-post"]])
+  it("holiday notes at 05:00, previewed the evening before from 21:30 (founder, 20/10/2026)", () => {
+    // The eve's note (20 Nov 05:00) is previewed on the 19th from 21:30; the day back's (26 Nov) on the 25th.
+    assert.ok(!plannedPosts("2026-11-19", 21 * 60 + 29).some((p) => p.kind === "HOLIDAY"))
+    assert.deepEqual(plannedPosts("2026-11-19", 21 * 60 + 30).filter((p) => p.kind === "HOLIDAY").map((p) => [p.postKey, p.publishMinute]), [["2026-11-20-pre", 24 * 60 + 5 * 60]])
+    assert.deepEqual(plannedPosts("2026-11-25", 22 * 60).filter((p) => p.kind === "HOLIDAY").map((p) => [p.postKey, p.publishMinute]), [["2026-11-26-post", 24 * 60 + 5 * 60]])
+    assert.equal(atMinute("2026-11-19", 24 * 60 + 5 * 60), "2026-11-19T22:00:00.000Z") // 20 Nov 05:00 in Cambodia
+    // Missed in the evening: caught up in the morning window (04:15–06:29), the same post key — never twice.
+    assert.deepEqual(plannedPosts("2026-11-20", 4 * 60 + 15).map((p) => [p.kind, p.postKey, p.publishMinute]), [["HOLIDAY", "2026-11-20-pre", 300]])
+    assert.ok(!plannedPosts("2026-11-26", 7 * 60 + 30).some((p) => p.kind === "HOLIDAY")) // the old 07:30 slot
   })
   it("the timer: publish ONLY an approved post; a pending one waits for the founder until the end of its day (20/10/2026)", () => {
     const at = atMinute("2026-10-16", 420)

@@ -16,6 +16,7 @@ import { useAdhanDefaults, useGlobalAdhanPresets, useRemoveGlobalAdhan } from "@
 import { usePlan } from "@/lib/plan"
 import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
+import { enablePush, setPrayerPush } from "@/lib/push"
 import { cambodiaNow, formatMinutes, prayerTimes } from "@/lib/prayer"
 import {
   ADHAN_MAX_BYTES,
@@ -136,7 +137,11 @@ export function PrayerAlertSettings() {
   const removeGlobal = useRemoveGlobalAdhan()
 
   const toggle = async (on: boolean) => {
-    if (!on) return setAlerts({ alertsOn: false })
+    if (!on) {
+      // The server's prayer push for this phone goes off with the switch (lib/prayer-push.ts).
+      void setPrayerPush(false).catch(() => false)
+      return setAlerts({ alertsOn: false })
+    }
     let result = permission
     if (result === "default") {
       result = await Notification.requestPermission()
@@ -144,6 +149,8 @@ export function PrayerAlertSettings() {
     }
     // Without notification permission the in-app sound and banner still work.
     setAlerts({ alertsOn: true })
+    // With permission, this phone also gets the server's prayer push — it rings with the app closed (founder, 20/10/2026).
+    if (result === "granted") void enablePush().then((state) => (state === "on" ? setPrayerPush(true) : false)).catch(() => false)
     toast.success(t(result === "granted" ? "prayerAlert.on" : "prayerAlert.onInApp"))
   }
 

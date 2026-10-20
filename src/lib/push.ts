@@ -68,3 +68,16 @@ export async function disablePush(): Promise<PushState> {
   }
   return "off"
 }
+
+/**
+ * The prayer-time push for this phone (founder, 20/10/2026): the server rings it at each prayer even with the app
+ * closed; the app's prayer-alert switch turns it on or off here. False when this phone has no push subscription.
+ */
+export async function setPrayerPush(on: boolean): Promise<boolean> {
+  if (!supported()) return false
+  const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription()
+  const supabase = getSupabaseBrowserClient()
+  if (!sub || !supabase) return false
+  const { data, error } = await supabase.rpc("set_prayer_push", { p_endpoint: sub.endpoint, p_on: on })
+  return !error && data === true
+}

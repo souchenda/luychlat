@@ -1,7 +1,7 @@
 // Server only: the 07:00 holy-day reminders — the eve (with festivals and Khmer-Chinese offering
 // days) and the day itself — for chats that switched them on and the channel, and one festival
 // wish to every linked chat.
-import { culturalDayOn, NO_EVE_REMINDER, type CulturalKey } from "@/lib/cultural-calendar"
+import { CHINESE_KEYS, culturalDayOn, NO_EVE_REMINDER, type CulturalKey } from "@/lib/cultural-calendar"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
 import { formatLunar, khmerLunarDate } from "@/lib/khmer-lunar"
 import { HOLY_DAY_MINUTE, holyDayStages, silDayText, silEveText } from "@/lib/holy-day-alerts"
@@ -88,21 +88,28 @@ async function sendStage(job: string, day: string, text: (lang: Locale) => strin
 }
 
 /**
- * From 08:00 Cambodia time on the first day of a festival (New Year, Chinese
- * New Year, Khmer New Year, Pchum Ben, Water Festival), every active linked
- * chat gets one wish (claimed per festival, so restarts don't repeat it).
- * Pchum Ben skips people who use Islamic Mode.
+ * From 05:00 Cambodia time (founder, 20/10/2026 — every holiday notification at 05:00) on the first day of a festival
+ * (New Year, Chinese New Year, Khmer New Year, Pchum Ben, Water Festival), every active linked chat gets one wish
+ * (claimed per festival, so restarts don't repeat it). Pchum Ben and the Chinese festivals skip people who use Islamic
+ * Mode (strict religious separation, CLAUDE.md).
  */
+/** 05:00: the festival wish to members' chats (founder, 20/10/2026). */
+export const FESTIVAL_GREETING_HOUR = 5
+
+/** A Buddhist day or a Chinese festival: never to an Islamic Mode member (strict religious separation). */
+export const skipsIslamicMode = (key: CulturalKey) => key === "pchum_ben" || CHINESE_KEYS.has(key)
+
 export async function festivalTick() {
   const now = phnomPenhToday()
-  if (now.hour < 8) return
+  if (now.hour < FESTIVAL_GREETING_HOUR) return
   const festival = culturalDayOn(now.day)
   if (!festival || festival.kind !== "festival" || festival.start !== now.day) return
 
   const db = botDb()
   const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `festival-${festival.key}`, p_day: now.day })
   if (claimed !== true) return
-  const { data, error } = await db.rpc("bot_festival_people", { p_key: botKey(), p_buddhist: festival.key === "pchum_ben" })
+  // «p_buddhist» skips Islamic Mode members: a Buddhist day or a Chinese festival never reaches them.
+  const { data, error } = await db.rpc("bot_festival_people", { p_key: botKey(), p_buddhist: skipsIslamicMode(festival.key) })
   if (error) {
     logEvent("error", "festivals", `Recipient query failed: ${error.message}`, { fold: true })
     return

@@ -50,6 +50,30 @@ export async function sendMorningPush(): Promise<number> {
 }
 
 /**
+ * One payload to a list of phones (the prayer-time push): the expired ones are removed, the working ones marked.
+ * Null when push is not configured on this server.
+ */
+export async function pushToPhones(phones: { endpoint: string; p256dh: string; auth: string }[], payload: object, ttlSeconds: number): Promise<{ ok: number; gone: number; failed: number } | null> {
+  if (!configured()) return null
+  const body = JSON.stringify(payload)
+  const gone: string[] = []
+  const ok: string[] = []
+  let failed = 0
+  for (const s of phones) {
+    try {
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, { TTL: ttlSeconds, urgency: "high" })
+      ok.push(s.endpoint)
+    } catch (e) {
+      const status = (e as { statusCode?: number }).statusCode
+      if (status === 404 || status === 410) gone.push(s.endpoint)
+      else failed += 1
+    }
+  }
+  if (gone.length || ok.length) await botDb().rpc("bot_push_result", { p_key: botKey(), p_gone: gone, p_ok: ok })
+  return { ok: ok.length, gone: gone.length, failed }
+}
+
+/**
  * A customer's payment, pushed to the phones of the business's owner and members — the SoundBox with
  * the screen locked (founder, 14/10/2026). Urgent and short-lived: a sale alert an hour late is noise.
  */

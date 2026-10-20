@@ -2,6 +2,8 @@
 import { pick, type Locale, type MessageKey } from "@/lib/i18n/dictionaries"
 import { cambodiaNow, formatMinutes, prayerTimes, PROVINCES } from "@/lib/prayer"
 import { duePrayer } from "@/lib/prayer-alerts"
+import { groupByMember, prayerPushPayload, type PrayerPushTarget } from "@/lib/prayer-push"
+import { pushToPhones } from "@/lib/server/web-push"
 import { sendAdhanAudio } from "@/lib/server/adhan-audio"
 
 import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "./telegram-bot"
@@ -64,6 +66,9 @@ async function sendPrayerTimes() {
   if (error || !data?.length) return
   const clock = cambodiaNow()
   const day = `${clock.date.year}-${String(clock.date.month).padStart(2, "0")}-${String(clock.date.day).padStart(2, "0")}`
+  let audio = 0
+  let text = 0
+  let failed = 0
   for (const s of data as Subscriber[]) {
     const place = PROVINCES.find((p) => p.key === s.province) ?? PROVINCES[0]
     const times = prayerTimes(clock.date, place.lat, place.lng)
@@ -76,8 +81,46 @@ async function sendPrayerTimes() {
     // alert when they didn't, or when the audio could not be sent.
     let sent = false
     if (s.adhan_audio) sent = await sendAdhanAudio(s.chat_id, { prayer, khmer: s.language === "km", prayerName: name, time: formatMinutes(times[prayer]), place: pick(place, s.language) })
-    if (!sent) await sendText(s.chat_id, `🕌 ${tr(s.language, "prayerAlert.title", { name })}\n${formatMinutes(times[prayer])} · ${pick(place, s.language)}${SIGNATURE}`)
+    if (sent) audio++
+    else if ((await sendText(s.chat_id, `🕌 ${tr(s.language, "prayerAlert.title", { name })}\n${formatMinutes(times[prayer])} · ${pick(place, s.language)}${SIGNATURE}`).catch(() => null))?.ok) text++
+    else failed++
   }
+  // The real counts (CLAUDE.md: a dispatcher logs how many chats received it — never a bare «sent»).
+  if (audio + text + failed) logEvent(failed ? "warn" : "info", "prayer", `Telegram prayer alerts: ${audio} Adhan audio, ${text} text${failed ? `, ${failed} failed` : ""}`, { fold: true })
+}
+
+/**
+ * The prayer-time Web Push (founder, 20/10/2026): Islamic Mode members' phones ring at each prayer even with the app
+ * closed — once per member, day and prayer, on all their phones; logged with the real counts.
+ */
+async function sendPrayerPush() {
+  const db = botDb()
+  const { data, error } = await db.rpc("bot_prayer_push_targets", { p_key: botKey() })
+  if (error || !data?.length) return
+  const clock = cambodiaNow()
+  const day = `${clock.date.year}-${String(clock.date.month).padStart(2, "0")}-${String(clock.date.day).padStart(2, "0")}`
+  let members = 0
+  let phones = 0
+  let failed = 0
+  for (const [userId, rows] of groupByMember(data as PrayerPushTarget[])) {
+    const first = rows[0]
+    const language = (["km", "en", "zh"].includes(first.language) ? first.language : "km") as Locale
+    const place = PROVINCES.find((p) => p.key === first.province) ?? PROVINCES[0]
+    const times = prayerTimes(clock.date, place.lat, place.lng)
+    const prayer = duePrayer(times, clock.minutes)
+    if (!prayer) continue
+    const { data: claimed } = await db.rpc("bot_claim_prayer_push", { p_key: botKey(), p_user_id: userId, p_day: day, p_prayer: prayer })
+    if (!claimed) continue
+    const name = tr(language, `prayer.${prayer}` as MessageKey)
+    const payload = prayerPushPayload({ prayer, title: tr(language, "prayerAlert.title", { name }), body: tr(language, "prayerAlert.body", { time: formatMinutes(times[prayer]), place: pick(place, language) }) })
+    // Kept 10 minutes for a phone that is briefly offline — an Adhan alert later than that is noise.
+    const r = await pushToPhones(rows, payload, 10 * 60)
+    if (!r) return // push not configured on this server
+    members++
+    phones += r.ok
+    failed += r.failed
+  }
+  if (members) logEvent(failed ? "warn" : "info", "prayer", `Prayer push: ${phones} phone(s) of ${members} member(s)${failed ? `, ${failed} failed` : ""}`, { fold: true })
 }
 
 let running = false
@@ -89,6 +132,7 @@ export async function dispatchOnce() {
   try {
     await sendDueNotifications()
     await sendPrayerTimes()
+    await sendPrayerPush()
     await marketScheduleTick()
     await sendCommunityBulletin()
     await sendIslamicBulletin()
