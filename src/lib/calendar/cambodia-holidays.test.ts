@@ -42,7 +42,9 @@ describe("Cambodia's national days and royal ceremonies (founder, 20/10/2026)", 
   })
   it("royal wording on the poster and the caption; Visak with «សូមអនុមោទនា»; no parentheses on a poster", () => {
     const html = nationalCaptionHtml(nationalDayByKey("coronation")!, "2026-10-29")
-    assert.match(html, /^🇰🇭 <b>ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ<\/b>\nព្រះករុណា ព្រះបាទសម្តេចព្រះបរមនាថ នរោត្តម សីហមុនី\nព្រះមហាក្សត្រនៃព្រះរាជាណាចក្រកម្ពុជា\n📅 ២៩ តុលា ២០០៤ - ២៩ តុលា ២០២៦ · ខួបលើកទី ២២/)
+    // The founder's header (20/10/2026): «ព្រះរាជពិធីគ្រងព្រះបរមសិរីរាជសម្បត្តិ», and the founder's royal opening.
+    assert.match(html, /ទូលព្រះបង្គំយើងខ្ញុំជាថ្នាក់ដឹកនាំ និងបុគ្គលិកទាំងអស់នៃ អេប លុយឆ្លាត សូមលំឱនកាយថ្វាយព្រះរាជសព្ទសាធុការពរជ័យ/)
+    assert.match(html, /^🇰🇭 <b>ព្រះរាជពិធីគ្រងព្រះបរមសិរីរាជសម្បត្តិ<\/b>\nព្រះករុណា ព្រះបាទសម្តេចព្រះបរមនាថ នរោត្តម សីហមុនី\nព្រះមហាក្សត្រនៃព្រះរាជាណាចក្រកម្ពុជា\n📅 ២៩ តុលា ២០០៤ - ២៩ តុលា ២០២៦ · ខួបលើកទី ២២/)
     assert.match(nationalDayByKey("visak-bochea")!.message, /^សូមអនុមោទនា/)
     for (const d of NATIONAL_DAYS) assert.doesNotMatch(`${d.pill} ${d.title} ${d.subtitle ?? ""} ${d.message}`, /[()]/, d.key)
   })
@@ -52,5 +54,23 @@ describe("Cambodia's national days and royal ceremonies (founder, 20/10/2026)", 
     const sp = read("src/lib/server/scheduled-posts.ts")
     assert.match(sp, /await real\(\)\.schedulePost\("NATIONAL_DAY", `\$\{day\.key\}-\$\{date\}`, \{ key: day\.key, day: date \}, atMinute\(date, PUBLISH_MINUTE\)\)/)
     assert.match(read("supabase/migrations/20270210000000_national_day_posts.sql"), /'ISLAMIC_BULLETIN', 'NATIONAL_DAY'/)
+  })
+})
+
+describe("Official royal portraits and the crest (founder, 20/10/2026)", () => {
+  it("each royal day names its official portrait; the files are documented; none is ever drawn without its file", async () => {
+    assert.equal(nationalDayByKey("coronation")!.assets?.portrait, "king_sihamoni")
+    assert.equal(nationalDayByKey("king-birthday")!.assets?.portrait, "king_sihamoni")
+    assert.equal(nationalDayByKey("king-father-memorial")!.assets?.portrait, "king_father_sihanouk")
+    assert.equal(nationalDayByKey("independence")!.assets?.portrait, "king_father_sihanouk")
+    assert.equal(nationalDayByKey("queen-mother-birthday")!.assets?.portrait, "queen_mother")
+    const readme = read("public/images/holidays/README.txt")
+    for (const f of ["royal_crest_gold.png", "portrait_king_sihamoni.png", "portrait_king_father_sihanouk.png", "portrait_queen_mother.png", "bg_independence_monument.png"]) assert.ok(readme.includes(f), f)
+    assert.match(readme, /Only authorised copies/)
+    const poster = read("src/lib/server/national-day-poster.ts")
+    assert.match(poster, /if \(!existsSync\(p\)\) return/) // a missing file is simply not there
+    assert.match(poster, /if \(art\.portrait\) return portraitPoster\(d, day, art\)/)
+    // The preview tells the approver when the official portrait is not on the server yet.
+    assert.match(read("src/lib/server/scheduled-posts.ts"), /មិនទាន់មានព្រះឆាយាល័ក្ខណ៍ផ្លូវការលើ Server ទេ/)
   })
 })

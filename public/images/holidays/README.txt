@@ -1,0 +1,19 @@
+Royal and national holiday poster assets (founder, 20/10/2026) — lib/server/national-day-poster.ts
+
+Place the OFFICIAL files here, exactly with these names. Only authorised copies: the Royal Palace / the Ministry of
+Information's official releases, with permission to use them (CLAUDE.md, Licensing). Never a copy found on the web.
+
+  royal_crest_gold.png              the Royal Coat of Arms of the Kingdom of Cambodia — gold, transparent background
+                                    (top right of every royal, national and memorial poster)
+  portrait_king_sihamoni.png        the official portrait of His Majesty King Norodom Sihamoni
+                                    (29 Oct Coronation, 14 May Royal Birthday)
+  portrait_king_father_sihanouk.png the official portrait of the late King Father Norodom Sihanouk
+                                    (15 Oct Commemoration, 9 Nov Independence Day)
+  portrait_queen_mother.png         the official portrait of Her Majesty Queen Mother Norodom Monineath Sihanouk
+                                    (18 Jun Royal Birthday)
+  bg_independence_monument.png      a light silhouette of the Independence Monument, transparent background
+                                    (a soft watermark on the national days)
+
+Portraits: at least 1200 px tall, the face in the upper third (the arched frame shows the top of the picture).
+With a portrait, the poster is 1080 × 1350 (the arched gold frame); without one, the text design (1080 × 1080).
+After adding or changing a file, commit and deploy; then preview the day again in «LCA Approval».

@@ -2,12 +2,49 @@
 // deep emerald and gold, the brand header and footer; centred — the title, the royal name or occasion, the dates as a
 // gold chip, then the blessing. Text only: no royal portrait or emblem (the app holds no licensed copy). A merit day
 // (Visak Bochea) carries the gold lotus; a memorial day is drawn quieter, in softer gold.
-import { createCanvas } from "@napi-rs/canvas"
+import { existsSync, readFileSync } from "node:fs"
+import path from "node:path"
+
+import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-rs/canvas"
 
 import { nationalDateLine, type NationalDay } from "@/lib/calendar/cambodia-holidays"
 
 import { lotus } from "./festival-poster"
-import { FAMILIES, FRAME, drawFooter, drawHeader, loadFonts, roundRect, wrap } from "./poster-kit"
+import { FAMILIES, FRAME, drawFooter, drawHeader, loadFonts, posterMascot, roundRect, wrap } from "./poster-kit"
+
+// The official images (public/images/holidays, README.txt): only the files really there; none is ever invented.
+const ASSET_FILES = {
+  crest: "royal_crest_gold.png",
+  monument: "bg_independence_monument.png",
+  king_sihamoni: "portrait_king_sihamoni.png",
+  king_father_sihanouk: "portrait_king_father_sihanouk.png",
+  queen_mother: "portrait_queen_mother.png",
+} as const
+type AssetName = keyof typeof ASSET_FILES
+const assets: Partial<Record<AssetName, Image>> = {}
+const ASSET_DIR = path.join(process.cwd(), "public", "images", "holidays")
+
+/** Decoded once at start-up (canvas decodes only asynchronously); a missing or broken file is simply left out. */
+export const nationalAssetsReady: Promise<void> = Promise.all(
+  (Object.entries(ASSET_FILES) as [AssetName, string][]).map(async ([name, file]) => {
+    const p = path.join(ASSET_DIR, file)
+    if (!existsSync(p)) return
+    try {
+      assets[name] = await loadImage(readFileSync(p))
+    } catch {
+      // Left out: the poster keeps its text design.
+    }
+  }),
+).then(() => undefined)
+
+/** Which official images a day shows now. */
+export function nationalAssetsFor(d: NationalDay): { portrait: Image | null; crest: Image | null; monument: Image | null } {
+  return {
+    portrait: d.assets?.portrait ? (assets[d.assets.portrait] ?? null) : null,
+    crest: d.assets?.crest ? (assets.crest ?? null) : null,
+    monument: d.assets?.monument ? (assets.monument ?? null) : null,
+  }
+}
 
 const { W, H, PAD } = FRAME
 
@@ -18,6 +55,8 @@ export function nationalPosterLines(d: NationalDay, day: string) {
 
 export function nationalDayPoster(d: NationalDay, day: string): { png: Buffer; truncated: boolean } {
   loadFonts()
+  const art = nationalAssetsFor(d)
+  if (art.portrait) return portraitPoster(d, day, art)
   const canvas = createCanvas(W, H)
   const ctx = canvas.getContext("2d")
   const memorial = d.kind === "memorial"
@@ -99,5 +138,160 @@ export function nationalDayPoster(d: NationalDay, day: string): { png: Buffer; t
   if (by - 56 > bottom + 10) truncated = true
 
   drawFooter(ctx)
+  return { png: canvas.toBuffer("image/png"), truncated }
+}
+
+// With the official portrait (founder, 20/10/2026): 1080 x 1350, the arched gold frame, the crest top right.
+
+const PW = 1080
+const PH = 1350
+
+/** The arch: a rectangle whose top is a half circle. */
+function archPath(ctx: SKRSContext2D, x: number, y: number, w: number, h: number) {
+  const r = w / 2
+  ctx.beginPath()
+  ctx.moveTo(x, y + r)
+  ctx.arc(x + r, y + r, r, Math.PI, 0)
+  ctx.lineTo(x + w, y + h)
+  ctx.lineTo(x, y + h)
+  ctx.closePath()
+}
+
+/** The picture filling the box from its top (the face is in the upper third, README.txt). */
+function drawCover(ctx: SKRSContext2D, img: Image, x: number, y: number, w: number, h: number) {
+  const scale = Math.max(w / img.width, h / img.height)
+  const dw = img.width * scale
+  ctx.drawImage(img, x + (w - dw) / 2, y, dw, img.height * scale)
+}
+
+function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nationalAssetsFor>): { png: Buffer; truncated: boolean } {
+  const canvas = createCanvas(PW, PH)
+  const ctx = canvas.getContext("2d")
+  const text = nationalPosterLines(d, day)
+  let truncated = false
+
+  // Deep emerald with a gold glow behind the portrait; the monument as a soft watermark when there is one.
+  const bg = ctx.createLinearGradient(0, 0, PW * 0.3, PH)
+  bg.addColorStop(0, "#052e26")
+  bg.addColorStop(0.55, "#064e3b")
+  bg.addColorStop(1, "#047857")
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, PW, PH)
+  const glow = ctx.createRadialGradient(PW / 2, 430, 0, PW / 2, 430, 560)
+  glow.addColorStop(0, "rgba(253,230,138,0.28)")
+  glow.addColorStop(1, "rgba(253,230,138,0)")
+  ctx.fillStyle = glow
+  ctx.fillRect(0, 0, PW, PH)
+  if (art.monument) {
+    ctx.globalAlpha = 0.08
+    const mh = 520
+    const mw = (art.monument.width / art.monument.height) * mh
+    ctx.drawImage(art.monument, PW - mw + 40, PH - mh - 140, mw, mh)
+    ctx.globalAlpha = 1
+  }
+
+  // The brand, top left.
+  const mascot = posterMascot()
+  if (mascot) ctx.drawImage(mascot, 56, 48, 64, 64)
+  ctx.textAlign = "left"
+  ctx.textBaseline = "alphabetic"
+  ctx.font = `700 30px ${FAMILIES}`
+  ctx.fillStyle = "#ffffff"
+  ctx.fillText("អេប លុយឆ្លាត", 134, 92)
+
+  // The Royal Coat of Arms, top right, with a soft shadow.
+  if (art.crest) {
+    const ch = 150
+    const cw = (art.crest.width / art.crest.height) * ch
+    ctx.save()
+    ctx.shadowColor = "rgba(0,0,0,0.45)"
+    ctx.shadowBlur = 18
+    ctx.shadowOffsetY = 6
+    ctx.drawImage(art.crest, PW - 56 - cw, 36, cw, ch)
+    ctx.restore()
+  }
+
+  // The portrait in the arched gold frame.
+  const fw = 470
+  const fh = 560
+  const fx = (PW - fw) / 2
+  const fy = 150
+  ctx.save()
+  archPath(ctx, fx, fy, fw, fh)
+  ctx.clip()
+  ctx.fillStyle = "#022c22"
+  ctx.fillRect(fx, fy, fw, fh)
+  drawCover(ctx, art.portrait!, fx, fy, fw, fh)
+  ctx.restore()
+  const rim = ctx.createLinearGradient(fx, fy, fx + fw, fy + fh)
+  rim.addColorStop(0, "#fde68a")
+  rim.addColorStop(0.5, "#d97706")
+  rim.addColorStop(1, "#fcd34d")
+  archPath(ctx, fx, fy, fw, fh)
+  ctx.lineWidth = 10
+  ctx.strokeStyle = rim
+  ctx.stroke()
+  archPath(ctx, fx - 16, fy - 16, fw + 32, fh + 32)
+  ctx.lineWidth = 2
+  ctx.strokeStyle = "rgba(253,230,138,0.7)"
+  ctx.stroke()
+
+  // The text below the portrait, centred.
+  const width = PW - 2 * 80
+  ctx.textAlign = "center"
+  let y = fy + fh + 82
+  ctx.font = `700 52px ${FAMILIES}`
+  ctx.fillStyle = "#fcd34d"
+  const titleLines = wrap(ctx, text.title, width, 2)
+  if (titleLines.at(-1)?.endsWith("…")) truncated = true
+  for (const line of titleLines) {
+    ctx.fillText(line, PW / 2, y)
+    y += 68
+  }
+  if (text.subtitle) {
+    ctx.font = `600 30px ${FAMILIES}`
+    ctx.fillStyle = "#ffffff"
+    const sub = wrap(ctx, text.subtitle, width, 3)
+    if (sub.at(-1)?.endsWith("…")) truncated = true
+    for (const line of sub) {
+      ctx.fillText(line, PW / 2, y)
+      y += 44
+    }
+  }
+  y += 4
+  ctx.font = `600 28px ${FAMILIES}`
+  const chipW = Math.min(width, ctx.measureText(text.date).width + 52)
+  roundRect(ctx, (PW - chipW) / 2, y - 4, chipW, 52, 26)
+  ctx.fillStyle = "rgba(251,191,36,0.16)"
+  ctx.fill()
+  ctx.lineWidth = 2
+  ctx.strokeStyle = "rgba(251,191,36,0.65)"
+  ctx.stroke()
+  ctx.fillStyle = "#fde68a"
+  ctx.fillText(text.date, PW / 2, y + 31)
+  y += 52 + 44
+
+  const footer = PH - 92
+  ctx.font = `500 28px ${FAMILIES}`
+  ctx.fillStyle = "#ecfdf5"
+  let lines = wrap(ctx, text.message, width, 5)
+  while (y + lines.length * 42 > footer - 20 && lines.length > 2) lines = wrap(ctx, text.message, width, lines.length - 1)
+  if (lines.at(-1)?.endsWith("…")) truncated = true
+  for (const line of lines) {
+    ctx.fillText(line, PW / 2, y)
+    y += 42
+  }
+
+  // The footer: a gold rule and the app's address.
+  ctx.strokeStyle = "rgba(253,230,138,0.35)"
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(80, footer - 18)
+  ctx.lineTo(PW - 80, footer - 18)
+  ctx.stroke()
+  ctx.font = `600 28px ${FAMILIES}`
+  ctx.fillStyle = "#fde68a"
+  ctx.fillText("អេប លុយឆ្លាត · app.luychlat.com", PW / 2, footer + 30)
+
   return { png: canvas.toBuffer("image/png"), truncated }
 }

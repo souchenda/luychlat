@@ -53,7 +53,7 @@ import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
 import { logEvent } from "@/lib/server/events"
 import { deleteFacebookPost, facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
-import { nationalDayPoster } from "@/lib/server/national-day-poster"
+import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster } from "@/lib/server/national-day-poster"
 import { nationalCaptionHtml, nationalCaptionText, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE } from "@/lib/calendar/cambodia-holidays"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { sendMorningPush } from "@/lib/server/web-push"
@@ -444,7 +444,11 @@ const realDeps = (): SchedulerDeps => ({
         // A national day or royal ceremony (founder, 20/10/2026): the poster and its caption.
         const d = nationalDayByKey(String(row.payload.key))
         const day = String(row.payload.day ?? "")
-        return d ? { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) } : { png: null, body: "—" }
+        if (!d) return { png: null, body: "—" }
+        await nationalAssetsReady
+        // The approver is told when an official portrait the day should carry is not on the server yet.
+        const missing = d.assets?.portrait && !nationalAssetsFor(d).portrait ? "\n\nℹ️ មិនទាន់មានព្រះឆាយាល័ក្ខណ៍ផ្លូវការលើ Server ទេ (public/images/holidays) — ផ្ទាំងនេះជាអក្សរ។" : ""
+        return { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) + missing }
       }
       case "ISLAMIC_BULLETIN":
         return { png: null, body: stripHtml((await islamicBulletinNow()) ?? "—") }
@@ -513,6 +517,7 @@ const realDeps = (): SchedulerDeps => ({
       const d = nationalDayByKey(String(row.payload.key))
       const day = String(row.payload.day ?? "")
       if (!d) return ids
+      await nationalAssetsReady
       const png = nationalDayPoster(d, day).png
       if (chat) ids.telegram = (await sendPosterPhoto(chat, png, nationalCaptionHtml(d, day), { reply_markup: buttons.reply_markup })) ?? (await sentText(nationalCaptionHtml(d, day), true))
       if (facebookConfig() && shouldPublishToFacebook({ kind: "national" })) {

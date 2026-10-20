@@ -18,6 +18,7 @@ import path from "node:path"
 
 import { GlobalFonts, type Image, loadImage, type SKRSContext2D } from "@napi-rs/canvas"
 
+import { ROYAL_UNBREAKABLE } from "@/lib/calendar/cambodia-holidays"
 import { UNBREAKABLE_TERMS } from "@/lib/islamic/glossary"
 
 export const FRAME = {
@@ -104,7 +105,7 @@ function pieces(paragraph: string): string[] {
  * Loanwords the Khmer word breaker splits: kept whole on a line (lib/islamic/glossary.ts UNBREAKABLE_TERMS —
  * add a term there when a poster breaks one).
  */
-const KEEP_TOGETHER = UNBREAKABLE_TERMS
+const KEEP_TOGETHER = [...UNBREAKABLE_TERMS, ...ROYAL_UNBREAKABLE]
 
 function keepTerms(pieces: string[]): string[] {
   const out: string[] = []

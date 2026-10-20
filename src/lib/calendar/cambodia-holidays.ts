@@ -29,12 +29,20 @@ export type NationalDay = {
   since?: number
   /** The blessing or the words of remembrance. */
   message: string
+  /** The official images it shows when their files are in public/images/holidays (README.txt) — never drawn without. */
+  assets?: { portrait?: RoyalPortrait; crest?: boolean; monument?: boolean }
 }
+
+export type RoyalPortrait = "king_sihamoni" | "king_father_sihanouk" | "queen_mother"
+
+/** Royal words a poster must never break across lines (lib/server/poster-kit.ts keeps them whole). */
+export const ROYAL_UNBREAKABLE = ["ព្រះពលានាម័យ", "ព្រះជន្មាយុយឺនយូរ", "ព្រះរាជសព្ទសាធុការពរជ័យ", "ព្រះវិញ្ញាណក្ខន្ធ", "ព្រះគុណូបការៈ", "ព្រះមហាក្សត្រ", "ព្រះករុណា", "ព្រះវររាជបិតាឯករាជ្យ", "ព្រះវររាជមាតាជាតិខ្មែរ"]
 
 // Line breaks at the right places of the royal names (never inside «ព្រះ…»).
 const KING = "ព្រះករុណា ព្រះបាទសម្តេចព្រះបរមនាថ នរោត្តម សីហមុនី\nព្រះមហាក្សត្រនៃព្រះរាជាណាចក្រកម្ពុជា"
-const KING_BLESSING =
-  "ក្នុងឱកាសដ៏មហានក្ខត្តឫក្សនេះ ក្រុមការងារ អេប លុយឆ្លាត សូមក្រាបបង្គំថ្វាយព្រះពរ សូមព្រះករុណាជាអម្ចាស់ជីវិតលើត្បូង ទ្រង់ប្រកបដោយព្រះពលានាម័យដ៏បរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរ។"
+// The founder's words (20/10/2026); the approver checks every royal line in the preview.
+const ROYAL_OPENING = "ទូលព្រះបង្គំយើងខ្ញុំជាថ្នាក់ដឹកនាំ និងបុគ្គលិកទាំងអស់នៃ អេប លុយឆ្លាត សូមលំឱនកាយថ្វាយព្រះរាជសព្ទសាធុការពរជ័យ"
+const KING_BLESSING = `${ROYAL_OPENING} សូមព្រះករុណាជាអម្ចាស់ជីវិតលើត្បូង ទ្រង់ប្រកបដោយព្រះពលានាម័យដ៏បរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរ។`
 
 export const NATIONAL_DAYS: NationalDay[] = [
   { key: "new-year", date: { fixed: "01-01" }, kind: "international", pill: "ទិវាចូលឆ្នាំសកល", title: "សួស្តីឆ្នាំថ្មីសកល", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ជួបតែសេចក្តីសុខ សុខភាពល្អ និងសម្រេចគ្រប់គោលដៅហិរញ្ញវត្ថុក្នុងឆ្នាំថ្មីនេះ។" },
@@ -44,7 +52,7 @@ export const NATIONAL_DAYS: NationalDay[] = [
   { key: "labor-day", date: { fixed: "05-01" }, kind: "international", pill: "ទិវាអន្តរជាតិ", title: "ទិវាពលកម្មអន្តរជាតិ ១ ឧសភា", message: "សូមគោរពដល់កម្មករ កម្មការិនី និងអ្នករកស៊ីទាំងអស់ ដែលកំពុងខិតខំប្រឹងប្រែងចិញ្ចឹមគ្រួសារ និងអភិវឌ្ឍជាតិ។" },
   { key: "visak-bochea", date: { festival: "holiday.visak_bochea" }, kind: "merit", pill: "ពិធីបុណ្យសាសនា", title: "ពិធីបុណ្យវិសាខបូជា", message: "សូមអនុមោទនា ក្នុងឱកាសរំលឹកដល់ថ្ងៃប្រសូត ត្រាស់ដឹង និងបរិនិព្វាននៃព្រះសម្មាសម្ពុទ្ធ។ សូមលោកអ្នក និងក្រុមគ្រួសារ ទទួលបានសេចក្តីសុខ និងសន្តិភាពក្នុងចិត្ត។" },
   { key: "royal-ploughing", date: { festival: "holiday.royal_ploughing" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីច្រត់ព្រះនង្គ័ល", message: "សូមបួងសួងឱ្យឆ្នាំនេះ មានភ្លៀងធ្លាក់ត្រូវរដូវ ផលដំណាំបរិបូរណ៍ សម្រាប់កសិករ និងប្រជាជនទូទាំងប្រទេស។" },
-  { key: "king-birthday", date: { fixed: "05-14" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម", subtitle: KING, message: KING_BLESSING },
+  { key: "king-birthday", date: { fixed: "05-14" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម", subtitle: KING, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true } },
   {
     key: "queen-mother-birthday",
     date: { fixed: "06-18" },
@@ -52,9 +60,10 @@ export const NATIONAL_DAYS: NationalDay[] = [
     pill: "ព្រះរាជពិធី",
     title: "ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម",
     subtitle: "សម្តេចព្រះមហាក្សត្រី នរោត្តម មុនិនាថ សីហនុ\nព្រះវររាជមាតាជាតិខ្មែរ",
-    message: "ក្នុងឱកាសដ៏មហានក្ខត្តឫក្សនេះ ក្រុមការងារ អេប លុយឆ្លាត សូមក្រាបបង្គំថ្វាយព្រះពរ សូមសម្តេចព្រះមហាក្សត្រី ទ្រង់ប្រកបដោយព្រះពលានាម័យដ៏បរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរ។",
+    message: `${ROYAL_OPENING} សូមសម្តេចព្រះមហាក្សត្រី ទ្រង់ប្រកបដោយព្រះពលានាម័យដ៏បរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរ។`,
+    assets: { portrait: "queen_mother", crest: true },
   },
-  { key: "constitution-day", date: { fixed: "09-24" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាប្រកាសរដ្ឋធម្មនុញ្ញ", since: 1993, message: "សូមរំលឹកដល់ថ្ងៃប្រកាសរដ្ឋធម្មនុញ្ញនៃព្រះរាជាណាចក្រកម្ពុជា — មូលដ្ឋាននៃសិទ្ធិ សេរីភាព និងនីតិរដ្ឋសម្រាប់ប្រជាជនគ្រប់រូប។" },
+  { key: "constitution-day", date: { fixed: "09-24" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាប្រកាសរដ្ឋធម្មនុញ្ញ", since: 1993, assets: { crest: true, monument: true }, message: "សូមរំលឹកដល់ថ្ងៃប្រកាសរដ្ឋធម្មនុញ្ញនៃព្រះរាជាណាចក្រកម្ពុជា — មូលដ្ឋាននៃសិទ្ធិ សេរីភាព និងនីតិរដ្ឋសម្រាប់ប្រជាជនគ្រប់រូប។" },
   {
     key: "king-father-memorial",
     date: { fixed: "10-15" },
@@ -64,9 +73,10 @@ export const NATIONAL_DAYS: NationalDay[] = [
     subtitle: "ព្រះករុណា ព្រះបាទសម្តេចព្រះ នរោត្តម សីហនុ ព្រះមហាវីរក្សត្រ\nព្រះវររាជបិតាឯករាជ្យ បូរណភាពទឹកដី និងឯកភាពជាតិខ្មែរ",
     since: 2012,
     message: "ក្រុមការងារ អេប លុយឆ្លាត សូមក្រាបបង្គំគោរពព្រះវិញ្ញាណក្ខន្ធ និងរំលឹកដល់ព្រះគុណូបការៈដ៏ធំធេងរបស់ព្រះអង្គ ចំពោះជាតិមាតុភូមិ។",
+    assets: { portrait: "king_father_sihanouk", crest: true },
   },
-  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING },
-  { key: "independence", date: { fixed: "11-09" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាបុណ្យឯករាជ្យជាតិ", since: 1953, message: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត ដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។" },
+  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមសិរីរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true } },
+  { key: "independence", date: { fixed: "11-09" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាបុណ្យឯករាជ្យជាតិ", since: 1953, assets: { portrait: "king_father_sihanouk", crest: true, monument: true }, message: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត ដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។" },
   { key: "water-festival", date: { festival: "holiday.water_festival" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីបុណ្យអុំទូក បណ្តែតប្រទីប អកអំបុក និងសំពះព្រះខែ", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ធ្វើដំណើរ និងចូលរួមកម្សាន្តដោយសុវត្ថិភាព ព្រមទាំងជួបតែសេចក្តីសុខ។" },
 ]
 
