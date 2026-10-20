@@ -27,10 +27,10 @@ describe("Cambodia's national days and royal ceremonies (founder, 20/10/2026)", 
     assert.equal(at("khmer-new-year"), "2026-04-14")
     assert.equal(at("water-festival", 2030), null) // no official date yet → nothing guessed
   })
-  it("the anniversary line: «២៩ តុលា ២០០៤ - ២៩ តុលា ២០២៦ · ខួបលើកទី ២២»; Independence 73rd; the King Father 14th", () => {
-    assert.equal(nationalDateLine(nationalDayByKey("coronation")!, "2026-10-29"), "២៩ តុលា ២០០៤ - ២៩ តុលា ២០២៦ · ខួបលើកទី ២២")
-    assert.match(nationalDateLine(nationalDayByKey("independence")!, "2026-11-09"), /ខួបលើកទី ៧៣$/)
-    assert.match(nationalDateLine(nationalDayByKey("king-father-memorial")!, "2026-10-15"), /ខួបលើកទី ១៤$/)
+  it("the anniversary line: «២៩ តុលា ២០០៤ – ២៩ តុលា ២០២៦ · ខួបលើកទី២២»; Independence 73rd; the King Father 14th", () => {
+    assert.equal(nationalDateLine(nationalDayByKey("coronation")!, "2026-10-29"), "២៩ តុលា ២០០៤ – ២៩ តុលា ២០២៦ · ខួបលើកទី២២")
+    assert.match(nationalDateLine(nationalDayByKey("independence")!, "2026-11-09"), /ខួបលើកទី៧៣$/)
+    assert.match(nationalDateLine(nationalDayByKey("king-father-memorial")!, "2026-10-15"), /ខួបលើកទី១៤$/)
   })
   it("the preview: from 48 hours before at 08:00 until 07:00 on the day; the Coronation early on the founder's request", () => {
     assert.ok(!keys("2026-11-07", 7 * 60 + 59).includes("independence:2026-11-09"))
@@ -42,9 +42,11 @@ describe("Cambodia's national days and royal ceremonies (founder, 20/10/2026)", 
   })
   it("royal wording on the poster and the caption; Visak with «សូមអនុមោទនា»; no parentheses on a poster", () => {
     const html = nationalCaptionHtml(nationalDayByKey("coronation")!, "2026-10-29")
-    // The founder's header (20/10/2026): «ព្រះរាជពិធីគ្រងព្រះបរមសិរីរាជសម្បត្តិ», and the founder's royal opening.
-    assert.match(html, /ទូលព្រះបង្គំយើងខ្ញុំជាថ្នាក់ដឹកនាំ និងបុគ្គលិកទាំងអស់នៃ អេប លុយឆ្លាត សូមលំឱនកាយថ្វាយព្រះរាជសព្ទសាធុការពរជ័យ/)
-    assert.match(html, /^🇰🇭 <b>ព្រះរាជពិធីគ្រងព្រះបរមសិរីរាជសម្បត្តិ<\/b>\nព្រះករុណា ព្រះបាទសម្តេចព្រះបរមនាថ នរោត្តម សីហមុនី\nព្រះមហាក្សត្រនៃព្រះរាជាណាចក្រកម្ពុជា\n📅 ២៩ តុលា ២០០៤ - ២៩ តុលា ២០២៦ · ខួបលើកទី ២២/)
+    // The founder's royal-protocol audit (20/10/2026): the sub-decree title «…គ្រងព្រះបរមរាជសម្បត្តិ», the King's title
+    // spacing, the dateline, and the official palace blessing — word for word.
+    assert.match(html, /^🇰🇭 <b>ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ<\/b>\nព្រះករុណាព្រះបាទសម្តេចព្រះបរមនាថ នរោត្តម សីហមុនី\nព្រះមហាក្សត្រ នៃព្រះរាជាណាចក្រកម្ពុជា\n📅 ២៩ តុលា ២០០៤ – ២៩ តុលា ២០២៦ · ខួបលើកទី២២/)
+    assert.equal(nationalDayByKey("coronation")!.message, "ក្នុងឱកាសដ៏មហានក្ខត្តឫក្សនេះ ទូលព្រះបង្គំយើងខ្ញុំជាថ្នាក់ដឹកនាំ និងបុគ្គលិកទាំងអស់នៃ «អេប លុយឆ្លាត» សូមលំឱនកាយក្រាបបង្គំថ្វាយព្រះសព្ទសាធុការពរជ័យ សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង ទ្រង់ប្រកបដោយព្រះរាជសុខភាពដ៏ល្អបរិបូរណ៍ ព្រះកាយពលមាំមួន និងព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។")
+    for (const d of NATIONAL_DAYS) assert.doesNotMatch(`${d.title} ${d.subtitle ?? ""} ${d.message}`, /សិរីរាជសម្បត្តិ|ព្រះពលានាម័យ|ព្រះរាជសព្ទ|ជីវិតលើត្បូង|ព្រះករុណា ព្រះបាទ|ព្រះមហាក្សត្រនៃ|ខួបលើកទី /, d.key)
     assert.match(nationalDayByKey("visak-bochea")!.message, /^សូមអនុមោទនា/)
     for (const d of NATIONAL_DAYS) assert.doesNotMatch(`${d.pill} ${d.title} ${d.subtitle ?? ""} ${d.message}`, /[()]/, d.key)
   })
@@ -117,7 +119,34 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("hd-portrait-live"))
+    assert.ok(listed.includes("royal-protocol") && !listed.includes("hd-portrait-live")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
+  })
+})
+
+describe("The royal-protocol audit and the national backdrop (founder, 20/10/2026 — «ZERO mistakes»)", () => {
+  it("no royal compound, the honorific or «អេប លុយឆ្លាត» is ever split across lines on the poster", async () => {
+    const { createCanvas } = await import("@napi-rs/canvas")
+    const { FAMILIES, posterAssetsReady, wrap } = await import("@/lib/server/poster-kit")
+    const { ROYAL_UNBREAKABLE } = await import("./cambodia-holidays")
+    await posterAssetsReady
+    const ctx = createCanvas(1080, 1350).getContext("2d")
+    ctx.font = `500 28px ${FAMILIES}`
+    const message = nationalDayByKey("coronation")!.message
+    for (const width of [920, 860, 760, 640]) {
+      const lines = wrap(ctx, message, width, 12)
+      for (const term of ROYAL_UNBREAKABLE) if (message.includes(term)) assert.ok(lines.some((l) => l.includes(term)), `${term} split at ${width}px: ${lines.join(" | ")}`)
+    }
+    for (const t of ["«អេប លុយឆ្លាត»", "សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង", "ព្រះសព្ទសាធុការពរជ័យ", "ព្រះរាជសុខភាព", "ព្រះកាយពលមាំមួន", "ព្រះជន្មាយុយឺនយូរ"]) assert.ok(ROYAL_UNBREAKABLE.includes(t), t)
+  })
+  it("the backdrop is drawn by the app (no photo): the Monument left, the Throne Hall right at 18 %, the flag ribbon at 20 %", () => {
+    const poster = read("src/lib/server/national-day-poster.ts")
+    assert.match(poster, /independenceMonument\(ctx, 150, base, [\d.]+\)/)
+    assert.match(poster, /throneHall\(ctx, PW - 150, base, [\d.]+\)/)
+    assert.match(poster, /ctx\.globalAlpha = 0\.18\r?\n/)
+    assert.match(poster, /"#032ea1"[\s\S]*"#e00025"[\s\S]*"#032ea1"/)
+    assert.match(poster, /nationalBackdrop\(ctx, 150 \+ 560\)/)
+    assert.doesNotMatch(poster, /art\.monument/) // no photo watermark
+    assert.match(read("supabase/migrations/20270218000000_repreview_royal_protocol.sql"), /'repreview', 'royal-protocol'/)
   })
 })

@@ -36,13 +36,14 @@ export type NationalDay = {
 export type RoyalPortrait = "king_sihamoni" | "king_father_sihanouk" | "queen_mother"
 
 /** Royal words a poster must never break across lines (lib/server/poster-kit.ts keeps them whole). */
-export const ROYAL_UNBREAKABLE = ["ព្រះពលានាម័យ", "ព្រះជន្មាយុយឺនយូរ", "ព្រះរាជសព្ទសាធុការពរជ័យ", "ព្រះវិញ្ញាណក្ខន្ធ", "ព្រះគុណូបការៈ", "ព្រះមហាក្សត្រ", "ព្រះករុណា", "ព្រះវររាជបិតាឯករាជ្យ", "ព្រះវររាជមាតាជាតិខ្មែរ"]
+export const ROYAL_UNBREAKABLE = ["«អេប លុយឆ្លាត»", "ក្រាបបង្គំថ្វាយព្រះសព្ទសាធុការពរជ័យ", "សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង", "ព្រះរាជសុខភាព", "ព្រះកាយពលមាំមួន", "ព្រះជន្មាយុយឺនយូរ", "ព្រះសព្ទសាធុការពរជ័យ", "ក្រាបបង្គំ", "ព្រះវស្សា", "តម្កល់លើត្បូង", "មហានក្ខត្តឫក្ស", "ព្រះវិញ្ញាណក្ខន្ធ", "ព្រះគុណូបការៈ", "ព្រះមហាក្សត្រ", "ព្រះករុណា", "ព្រះវររាជបិតាឯករាជ្យ", "ព្រះវររាជមាតាជាតិខ្មែរ"]
 
-// Line breaks at the right places of the royal names (never inside «ព្រះ…»).
-const KING = "ព្រះករុណា ព្រះបាទសម្តេចព្រះបរមនាថ នរោត្តម សីហមុនី\nព្រះមហាក្សត្រនៃព្រះរាជាណាចក្រកម្ពុជា"
-// The founder's words (20/10/2026); the approver checks every royal line in the preview.
-const ROYAL_OPENING = "ទូលព្រះបង្គំយើងខ្ញុំជាថ្នាក់ដឹកនាំ និងបុគ្គលិកទាំងអស់នៃ អេប លុយឆ្លាត សូមលំឱនកាយថ្វាយព្រះរាជសព្ទសាធុការពរជ័យ"
-const KING_BLESSING = `${ROYAL_OPENING} សូមព្រះករុណាជាអម្ចាស់ជីវិតលើត្បូង ទ្រង់ប្រកបដោយព្រះពលានាម័យដ៏បរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរ។`
+// Line breaks at the right places of the royal names (never inside «ព្រះ…»). Palace orthography (founder, 20/10/2026):
+// «ព្រះករុណាព្រះបាទ…» without a space, «ព្រះមហាក្សត្រ នៃ…» with one.
+const KING = "ព្រះករុណាព្រះបាទសម្តេចព្រះបរមនាថ នរោត្តម សីហមុនី\nព្រះមហាក្សត្រ នៃព្រះរាជាណាចក្រកម្ពុជា"
+// The founder's official palace phrasing (20/10/2026 royal-protocol audit); the approver checks every royal line in the preview.
+const ROYAL_OPENING = "ទូលព្រះបង្គំយើងខ្ញុំជាថ្នាក់ដឹកនាំ និងបុគ្គលិកទាំងអស់នៃ «អេប លុយឆ្លាត» សូមលំឱនកាយក្រាបបង្គំថ្វាយព្រះសព្ទសាធុការពរជ័យ"
+const KING_BLESSING = `ក្នុងឱកាសដ៏មហានក្ខត្តឫក្សនេះ ${ROYAL_OPENING} សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង ទ្រង់ប្រកបដោយព្រះរាជសុខភាពដ៏ល្អបរិបូរណ៍ ព្រះកាយពលមាំមួន និងព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។`
 
 export const NATIONAL_DAYS: NationalDay[] = [
   { key: "new-year", date: { fixed: "01-01" }, kind: "international", pill: "ទិវាចូលឆ្នាំសកល", title: "សួស្តីឆ្នាំថ្មីសកល", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ជួបតែសេចក្តីសុខ សុខភាពល្អ និងសម្រេចគ្រប់គោលដៅហិរញ្ញវត្ថុក្នុងឆ្នាំថ្មីនេះ។" },
@@ -60,7 +61,7 @@ export const NATIONAL_DAYS: NationalDay[] = [
     pill: "ព្រះរាជពិធី",
     title: "ព្រះរាជពិធីបុណ្យចម្រើនព្រះជន្ម",
     subtitle: "សម្តេចព្រះមហាក្សត្រី នរោត្តម មុនិនាថ សីហនុ\nព្រះវររាជមាតាជាតិខ្មែរ",
-    message: `${ROYAL_OPENING} សូមសម្តេចព្រះមហាក្សត្រី ទ្រង់ប្រកបដោយព្រះពលានាម័យដ៏បរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរ។`,
+    message: `${ROYAL_OPENING} សូមសម្តេចព្រះមហាក្សត្រី ទ្រង់ប្រកបដោយព្រះរាជសុខភាពដ៏ល្អបរិបូរណ៍ ព្រះកាយពលមាំមួន និងព្រះជន្មាយុយឺនយូរ។`,
     assets: { portrait: "queen_mother", crest: true },
   },
   { key: "constitution-day", date: { fixed: "09-24" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាប្រកាសរដ្ឋធម្មនុញ្ញ", since: 1993, assets: { crest: true, monument: true }, message: "សូមរំលឹកដល់ថ្ងៃប្រកាសរដ្ឋធម្មនុញ្ញនៃព្រះរាជាណាចក្រកម្ពុជា — មូលដ្ឋាននៃសិទ្ធិ សេរីភាព និងនីតិរដ្ឋសម្រាប់ប្រជាជនគ្រប់រូប។" },
@@ -70,12 +71,12 @@ export const NATIONAL_DAYS: NationalDay[] = [
     kind: "memorial",
     pill: "ទិវាជាតិ",
     title: "ទិវាប្រារព្ធពិធីគោរពព្រះវិញ្ញាណក្ខន្ធ",
-    subtitle: "ព្រះករុណា ព្រះបាទសម្តេចព្រះ នរោត្តម សីហនុ ព្រះមហាវីរក្សត្រ\nព្រះវររាជបិតាឯករាជ្យ បូរណភាពទឹកដី និងឯកភាពជាតិខ្មែរ",
+    subtitle: "ព្រះករុណាព្រះបាទសម្តេចព្រះ នរោត្តម សីហនុ ព្រះមហាវីរក្សត្រ\nព្រះវររាជបិតាឯករាជ្យ បូរណភាពទឹកដី និងឯកភាពជាតិខ្មែរ",
     since: 2012,
     message: "ក្រុមការងារ អេប លុយឆ្លាត សូមក្រាបបង្គំគោរពព្រះវិញ្ញាណក្ខន្ធ និងរំលឹកដល់ព្រះគុណូបការៈដ៏ធំធេងរបស់ព្រះអង្គ ចំពោះជាតិមាតុភូមិ។",
     assets: { portrait: "king_father_sihanouk", crest: true },
   },
-  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមសិរីរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true } },
+  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true } },
   { key: "independence", date: { fixed: "11-09" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាបុណ្យឯករាជ្យជាតិ", since: 1953, assets: { portrait: "king_father_sihanouk", crest: true, monument: true }, message: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត ដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។" },
   { key: "water-festival", date: { festival: "holiday.water_festival" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីបុណ្យអុំទូក បណ្តែតប្រទីប អកអំបុក និងសំពះព្រះខែ", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ធ្វើដំណើរ និងចូលរួមកម្សាន្តដោយសុវត្ថិភាព ព្រមទាំងជួបតែសេចក្តីសុខ។" },
 ]
@@ -91,11 +92,11 @@ export const kmDate = (iso: string) => {
   return `${khmerDigits(String(d))} ${KM_MONTHS[m - 1]} ${khmerDigits(String(y))}`
 }
 
-/** «២៩ តុលា ២០០៤ - ២៩ តុលា ២០២៦ · ខួបលើកទី ២២», or just the day. */
+/** «២៩ តុលា ២០០៤ – ២៩ តុលា ២០២៦ · ខួបលើកទី២២» (an en dash; the number joined to «ទី»), or just the day. */
 export function nationalDateLine(d: NationalDay, day: string): string {
   if (!d.since) return kmDate(day)
   const years = Number(day.slice(0, 4)) - d.since
-  return `${kmDate(`${d.since}${day.slice(4)}`)} - ${kmDate(day)} · ខួបលើកទី ${khmerDigits(String(years))}`
+  return `${kmDate(`${d.since}${day.slice(4)}`)} – ${kmDate(day)} · ខួបលើកទី${khmerDigits(String(years))}`
 }
 
 /** The preview opens 48 hours before at 08:00 (Cambodia), and stays open until the 07:00 publication. */
