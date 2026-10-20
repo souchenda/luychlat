@@ -53,8 +53,9 @@ renders the poster. With a portrait the poster is 1080 × 1350; without one it i
    Majesty. The upper area holds only the portrait; the brand is a modest sign-off at the very
    bottom, centred: [mascot] «អេប លុយឆ្លាត · app.luychlat.com».
 5. **Foreground:** the **golden arched frame** holds the **official, high-definition royal portrait** — the one focal
-   point. The vertical order: the arch with the portrait, the title, the royal name, the dateline, the blessing, the brand
-   at the base.
+   point. **The vertical order (founder, 20/10/2026 — «the occasion first»):** the gold title at the top centre
+   (between the corner ornaments, ≤ 560 px), the arch with the portrait, the royal name, the dateline, the blessing, the
+   brand at the base.
 6. **Text, below the arch:** the title in gold, 52 px; the royal name and title in white, 30 px; the gold date chip;
    the blessing, 28 px, centred; then the footer.
 
@@ -89,8 +90,9 @@ renders the poster. With a portrait the poster is 1080 × 1350; without one it i
 > សូមក្រាបបង្គំថ្វាយព្រះពរ សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង
 > ទ្រង់ប្រកបដោយព្រះរាជសុខភាពល្អបរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។
 
-The graphic carries only these two lines (30–28 px, centred between the date chip and the footer). The **caption**
-carries the full palace paragraph below, word for word.
+A day may carry these two lines on the graphic (`posterMessage`, 30–28 px). With the title moved to the top
+(founder, 20/10/2026) the Coronation shows the **full palace paragraph** below the arch again; the **caption** always
+carries it word for word.
 
 **The Coronation blessing (verbatim, in the caption):**
 
@@ -233,3 +235,5 @@ an approver's tap.
 - **20/10/2026:** the poster breathes — two blessing lines on the graphic, the full palace paragraph in the caption.
 - **20/10/2026 (final):** the kbach frame with its four golden corners; no crest; the portrait raised into the freed
   space (arch top ≈ 84 px); the lower half open — the two-line blessing centred between the date chip and the corners.
+- **20/10/2026:** the occasion first — the title at the top centre above the portrait; the full palace blessing below the
+  arch; the brand at the base.

@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("raised-portrait") && !listed.includes("short-blessing") && !listed.includes("no-crest")) // a used flag leaves the list
+    assert.ok(listed.includes("title-top") && !listed.includes("raised-portrait") && !listed.includes("short-blessing")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -215,17 +215,14 @@ describe("Nothing above His Majesty — no crest, no logo (founder, 20/10/2026)"
   })
 })
 
-describe("The Coronation poster breathes — two blessing lines, the full paragraph in the caption (founder, 20/10/2026)", () => {
-  it("regression: ten dense lines «like an administrative letter» — the graphic carries the founder's two lines, the caption the whole blessing", async () => {
+describe("A short poster blessing is possible; the caption always keeps the full paragraph (founder, 20/10/2026)", () => {
+  it("posterMessage is drawn on the graphic when a day has one; the Coronation shows the full palace paragraph (the founder's latest layout)", async () => {
     const d = nationalDayByKey("coronation")!
-    assert.equal(d.posterMessage, "សូមក្រាបបង្គំថ្វាយព្រះពរ សូមព្រះករុណាជាអម្ចាស់ជីវិតតម្កល់លើត្បូង\nទ្រង់ប្រកបដោយព្រះរាជសុខភាពល្អបរិបូរណ៍ និងព្រះជន្មាយុយឺនយូរជាងរយព្រះវស្សា។")
+    assert.equal(d.posterMessage, undefined)
     const { nationalPosterLines } = await import("@/lib/server/national-day-poster")
-    assert.equal(nationalPosterLines(d, "2026-10-29").message, d.posterMessage)
-    // The caption keeps the full palace paragraph, word for word.
+    assert.equal(nationalPosterLines(d, "2026-10-29").message, d.message)
+    assert.equal(nationalPosterLines({ ...d, posterMessage: "a\nb" }, "2026-10-29").message, "a\nb")
     assert.ok(nationalCaptionHtml(d, "2026-10-29").includes(d.message))
-    assert.match(d.message, /^ក្នុងឱកាសដ៏មហានក្ខត្តឫក្សនេះ/)
-    const poster = read("src/lib/server/national-day-poster.ts")
-    assert.match(poster, /let size = 30/) // 30 → 28 px, the largest that fits
     assert.match(read("supabase/migrations/20270225000000_repreview_short_blessing.sql"), /'repreview', 'short-blessing'/)
   })
 })
@@ -233,10 +230,28 @@ describe("The Coronation poster breathes — two blessing lines, the full paragr
 describe("The final composition: the portrait raised, the lower half open (founder, 20/10/2026)", () => {
   it("the arch rises into the space the crest left; the blessing sits in a band clear of the corner ornaments", () => {
     const poster = read("src/lib/server/national-day-poster.ts")
-    const fy = Number(poster.match(/const fy = (\d+)/)![1])
-    assert.ok(fy >= 60 && fy <= 100, String(fy)) // raised ~80 px from 150 (founder: «e.g. top: 70px»), clear of the border line
     assert.match(poster, /const BLESSING_BAND_BOTTOM = 1090/)
     assert.match(poster, /const lineWidth = PW - 2 \* 140/) // ≤ 800 px: clear of the bottom corner ornaments
     assert.match(read("supabase/migrations/20270226000000_repreview_raised_portrait.sql"), /'repreview', 'raised-portrait'/)
+  })
+})
+
+describe("The occasion first — the title at the top centre above the portrait (founder, 20/10/2026)", () => {
+  it("the gold title is drawn above the arch, within the space between the top corner ornaments; nothing else up there", async () => {
+    const poster = read("src/lib/server/national-day-poster.ts")
+    const royal = poster.slice(poster.indexOf("function portraitPoster("))
+    const title = royal.indexOf("ctx.fillText(titleLines[0] ?? \"\", PW / 2, 122)")
+    assert.ok(title > 0 && title < royal.indexOf("archPath(ctx, fx, fy, fw, fh)"), "the title before the arch")
+    assert.match(poster, /const TITLE_TOP_WIDTH = 560/)
+    const fy = Number(royal.match(/const fy = (\d+)/)![1])
+    assert.ok(fy - 16 > 122 + 20, String(fy)) // the arch's outer line below the title
+    // Rendered: whole, 1080 × 1350, nothing cut.
+    const { posterAssetsReady } = await import("@/lib/server/poster-kit")
+    const mod = await import("@/lib/server/national-day-poster")
+    await posterAssetsReady
+    await mod.nationalAssetsReady
+    const r = mod.nationalDayPoster(nationalDayByKey("coronation")!, "2026-10-29")
+    assert.equal(r.truncated, false)
+    assert.match(read("supabase/migrations/20270227000000_repreview_title_top.sql"), /'repreview', 'title-top'/)
   })
 })

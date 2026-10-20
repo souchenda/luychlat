@@ -182,6 +182,9 @@ function drawCover(ctx: SKRSContext2D, img: Image, x: number, y: number, w: numb
 /** The bottom of the blessing band; with lines at most 800 px wide they stay clear of the kbach corner ornaments. */
 const BLESSING_BAND_BOTTOM = 1090
 
+/** The widest the top title may be: clear of the kbach corner ornaments at the top. */
+const TITLE_TOP_WIDTH = 560
+
 function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nationalAssetsFor>): { png: Buffer; truncated: boolean } {
   const canvas = createCanvas(PW, PH)
   const ctx = canvas.getContext("2d")
@@ -230,7 +233,19 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   ctx.textBaseline = "alphabetic"
   const fw = 470
   const fh = 560
-  const fy = 84 // raised into the space the crest left (founder, 20/10/2026); clear of the top border line
+  // The occasion first (founder, 20/10/2026 — «move the grand occasion title to the TOP CENTER above the King's
+  // portrait»): the gold title at the top centre, between the top corner ornaments (at most TITLE_TOP_WIDTH wide), then
+  // the arch below it; nothing else above His Majesty.
+  const width = PW - 2 * 80
+  ctx.textAlign = "center"
+  let titleSize = 50
+  ctx.font = `700 ${titleSize}px ${FAMILIES}`
+  while (titleSize > 38 && ctx.measureText(text.title).width > TITLE_TOP_WIDTH) ctx.font = `700 ${--titleSize}px ${FAMILIES}`
+  const titleLines = wrap(ctx, text.title, TITLE_TOP_WIDTH, 1)
+  if (titleLines.at(-1)?.endsWith("…")) truncated = true
+  ctx.fillStyle = "#fcd34d"
+  ctx.fillText(titleLines[0] ?? "", PW / 2, 122)
+  const fy = 176
 
   // The portrait in the arched gold frame.
   const fx = (PW - fw) / 2
@@ -254,18 +269,8 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   ctx.strokeStyle = "rgba(253,230,138,0.7)"
   ctx.stroke()
 
-  // The text below the portrait, centred.
-  const width = PW - 2 * 80
-  ctx.textAlign = "center"
-  let y = fy + fh + 72
-  ctx.font = `700 52px ${FAMILIES}`
-  ctx.fillStyle = "#fcd34d"
-  const titleLines = wrap(ctx, text.title, width, 2)
-  if (titleLines.at(-1)?.endsWith("…")) truncated = true
-  for (const line of titleLines) {
-    ctx.fillText(line, PW / 2, y)
-    y += 68
-  }
+  // Below the portrait, centred: the royal name, the date chip, the blessing.
+  let y = fy + fh + 62
   if (text.subtitle) {
     ctx.font = `600 30px ${FAMILIES}`
     ctx.fillStyle = "#ffffff"
