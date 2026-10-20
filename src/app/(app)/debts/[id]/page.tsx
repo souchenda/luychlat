@@ -1,6 +1,7 @@
 "use client"
 
 import { format, parseISO } from "date-fns"
+import { CbcStrip } from "@/components/loans/cbc-strip"
 import { ArrowDownLeftIcon, ArrowLeftIcon, ArrowUpRightIcon, CheckIcon, ImageIcon, MegaphoneIcon, PencilIcon, PhoneIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
@@ -287,6 +288,8 @@ export default function DebtDetailPage() {
         )}
       </Card>
 
+      {/* The last 24 cycles as CBC codes, and the credit-health line (founder, 20/10/2026). */}
+      {debt.type === "PAYABLE" && <CbcStrip debt={debt} />}
       <ScheduleCard debt={debt} />
 
       <section className="space-y-2">

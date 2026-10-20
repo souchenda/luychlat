@@ -16,6 +16,7 @@ import { DebtFormSheet } from "@/components/debts/debt-form-sheet";
 import { OutstandingAmount } from "@/components/debts/debt-summary";
 import { Segmented } from "@/components/common/segmented";
 import { CreditHealthCard } from "@/components/debts/credit-health-card";
+import { CbcCodeGuide } from "@/components/loans/cbc-code-guide";
 import { TontineList } from "@/components/tontine/tontine-list";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -120,6 +121,8 @@ function DebtsView() {
 
           {/* CBC K-Score with the loans that build it (the person's own; Personal workspace only). */}
           {tab === "PAYABLE" && workspace?.type === "PERSONAL" && <CreditHealthCard workspaceId={workspace.id} />}
+          {/* «ℹ️ ស្វែងយល់ពីកូដ CBC» — what the bank sees (founder, 20/10/2026). */}
+          {tab === "PAYABLE" && <CbcCodeGuide className="w-full justify-center" />}
 
           <Card className="flex-row items-center justify-between px-4 py-3">
             <div>
