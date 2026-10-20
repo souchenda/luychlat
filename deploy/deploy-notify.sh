@@ -112,6 +112,9 @@ else
   container=$([ "$slot" = "green" ] && echo luysmart-green || echo luysmart)
   health=$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || echo "?")
   # Every commit this release shipped (newest first), beyond the headline one.
+  # This release's number, kept once per commit (lost in b9ac958 — two releases showed #374; regression test below).
+  mkdir -p deploy/run
+  awk -v h="$full" '$2 == h { found = 1 } END { exit !found }' "$TASKS" 2>/dev/null || echo "$task $full" >> "$TASKS"
   # Three lines (founder, 20/10/2026 — easy to scan): the task, the change in one short Khmer line, the server.
   extra=""
   if [ -n "$prev" ] && git cat-file -e "$prev" 2>/dev/null && [ "$(git rev-parse "$prev")" != "$(git rev-parse HEAD)" ]; then

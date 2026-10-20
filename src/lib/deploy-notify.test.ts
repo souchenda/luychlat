@@ -63,6 +63,9 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.equal(run("ddd", "fix: z\n\nTask: #049"), "49") // the commit's own tag
     assert.equal(run("eee", "fix: z\n\nកិច្ចការ: #75"), "75")
     assert.match(notify, /TASKS=deploy\/run\/task-numbers/) // on the server, outside git
+    // Regression (20/10/2026): the 3-line card dropped the recording — two releases were both «#374». Recorded before the card.
+    const record = notify.indexOf(`|| echo "$task $full" >> "$TASKS"`)
+    assert.ok(record > 0 && record < notify.indexOf('text="🚀'), "each live release's number is recorded")
   })
   it("the release summary is natural Khmer, never raw git jargon (founder, 20/10/2026)", async () => {
     const { execFileSync } = await import("node:child_process")
