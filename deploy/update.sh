@@ -22,6 +22,16 @@ if [ "${1:-}" != "--pulled" ]; then
   exec ./deploy/update.sh --pulled
 fi
 
+# The founder hears of every release (deploy/deploy-notify.sh — his private chat only): a failed step sends one
+# «Deploy Failed» card per commit; a live version, the «Production (Live)» card at the end.
+prev_deployed=$(cat deploy/.deployed 2>/dev/null || echo "")
+step="database migration"
+notify_failure() {
+  local code=$?
+  [ "$code" = "0" ] || bash ./deploy/deploy-notify.sh fail "$step" "$code" || true
+}
+trap notify_failure EXIT
+
 echo "→ Updating the database"
 ./deploy/migrate.sh
 
@@ -53,13 +63,16 @@ compose() {
 
 mkdir -p deploy/run
 echo "→ Building $next (port $(slot_port "$next")) while $active keeps serving"
+step="build (golden paths, tests, Next.js)"
 compose "$next" build
+step="container start"
 if [ "$next" != "$active" ]; then
   compose "$next" down --remove-orphans >/dev/null 2>&1 || true
 fi
 compose "$next" up -d
 
 echo "→ Waiting for the health check"
+step="health check"
 container=$(slot_project "$next")
 healthy=0
 for i in $(seq 1 40); do
@@ -81,6 +94,7 @@ if [ "$healthy" != "1" ]; then
 fi
 echo "✓ $container is healthy"
 
+step="Nginx switch"
 if [ "$next" != "$active" ]; then
   echo "→ Switching Nginx to $next"
   $sudo_cmd bash ./deploy/nginx-setup.sh --switch "$(slot_port "$next")"
@@ -97,6 +111,8 @@ fi
 COMPOSE_PROJECT_NAME=$(slot_project "$next") CONTAINER_NAME=$(slot_project "$next") APP_PORT=$(slot_port "$next") APP_SLOT=$next \
   bash ./deploy/bot-activate.sh || echo "! Bot activation failed (the app is deployed; activate it in /admin)"
 git rev-parse HEAD > deploy/.deployed
+# Live and healthy: what follows is bookkeeping and never counts as a failed deploy.
+trap - EXIT
 # Super Admin › Development: record the commits this deploy shipped (never fails the deploy).
 bash ./deploy/changelog-sync.sh || echo "! Changelog not recorded (the app is deployed)"
 # Security stats (blocked / rate-limited requests per minute) every 5 minutes, plus a backfill of the last day now.
@@ -108,3 +124,4 @@ bash ./deploy/security-stats.sh 1440 || echo "! Security stats not recorded"
 sha256sum .env 2>/dev/null | cut -d' ' -f1 > deploy/.deployed-env || true
 docker image prune -f >/dev/null
 echo "✓ Deployed $(git rev-parse --short HEAD) on $next"
+bash ./deploy/deploy-notify.sh ok "$prev_deployed" || echo "! Deploy notice not sent (the app is deployed)"
