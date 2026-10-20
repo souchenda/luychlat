@@ -11,7 +11,15 @@ import { shouldPublishToFacebook } from "./server/facebook-publisher"
 // 2026-10-20 Tuesday · 21 Wednesday · 23 Friday
 describe("Money dilemmas for the community and the Facebook Page (founder, 18/10/2026)", () => {
   it("every post ends with the call to the app, word for word", () => {
-    assert.equal(DILEMMA_CTA, "📊 ចង់ដឹងសុខភាពហិរញ្ញវត្ថុ និងគណនា DTI របស់អ្នក? សាកល្បងឥតគិតថ្លៃលើ អេប លុយឆ្លាត 👉 app.luychlat.com")
+    // «DTI» explained in plain Khmer (founder, 20/10/2026 — the bare word confused people).
+    assert.equal(
+      DILEMMA_CTA,
+      [
+        "📊 ចង់ដឹងសុខភាពហិរញ្ញវត្ថុ និងគណនាបន្ទុកបំណុលធៀបនឹងចំណូល (DTI) របស់អ្នក?",
+        "(DTI គឺជារង្វាស់ថាតើបងចំណាយប៉ុន្មាន % នៃចំណូលប្រចាំខែទៅលើបំណុល)",
+        "👉 គណនាឥតគិតថ្លៃលើ អេប លុយឆ្លាត៖ app.luychlat.com",
+      ].join("\n"),
+    )
     for (const d of MONEY_DILEMMAS) {
       const text = dilemmaPostText(d)
       assert.ok(text.endsWith(DILEMMA_CTA), d.id)
@@ -50,5 +58,36 @@ describe("In-app Islamic quiz — Islamic Mode users only", () => {
     assert.match(layout, /IslamicModeOff/)
     const users = ["src/app/(app)/islamic/page.tsx"]
     assert.match(readFileSync(join(process.cwd(), users[0]), "utf8"), /<IslamicQuizCard \/>/)
+  })
+})
+
+describe("The money dilemma as an A / B poster (founder, 20/10/2026)", () => {
+  it("«សងបំណុលមុន ឬទុកប្រាក់បម្រុងមុន?»: the founder's words; no parentheses on the graphic; renders whole at 1080 × 1080", async () => {
+    const d = MONEY_DILEMMAS.find((x) => x.id === "debt-or-savings")!
+    assert.deepEqual(d.poster, {
+      headline: "មានលុយសល់ $១,០០០ ក្នុងដៃ...",
+      a: { title: "សងកាតឥណទានមុន", sub: "កាត់បន្ថយការប្រាក់ ១៨%/ឆ្នាំ", icon: "card", tone: "warm" },
+      b: { title: "ទុកប្រាក់បម្រុងមុន", sub: "ការពារពេលមានអាសន្ន", icon: "shield", tone: "calm" },
+      prompt: "តើគួររើសមួយណា? A ឬ B?",
+    })
+    for (const x of MONEY_DILEMMAS.filter((m) => m.poster)) {
+      const p = x.poster!
+      assert.doesNotMatch([p.headline, p.a.title, p.a.sub, p.b.title, p.b.sub, p.prompt].join(" "), /[()]/, x.id)
+    }
+    const { posterAssetsReady } = await import("./server/poster-kit")
+    const { renderDilemmaPoster } = await import("./server/dilemma-poster")
+    await posterAssetsReady
+    const r = renderDilemmaPoster(d.poster!)
+    assert.equal(r.truncated, false)
+    assert.deepEqual([r.png.readUInt32BE(16), r.png.readUInt32BE(20)], [1080, 1080])
+  })
+  it("the preview and the post carry the poster (caption = the text); today's text-only card is sent again once", async () => {
+    const { readFileSync } = await import("node:fs")
+    const { join } = await import("node:path")
+    const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    assert.match(sp, /png: d\.poster \? poster\(\(\) => renderDilemmaPoster\(d\.poster!\)\.png\) : null, body: dilemmaPostText\(d\)/)
+    assert.match(sp, /png \? publishPhotoToFacebook\(approval, png, text\) : publishTextToFacebook\(approval, text\)/)
+    assert.match(sp, /await repreview\("DILEMMA", now\.day, \{ day: now\.day \}, atMinute\(now\.day, DILEMMA_MINUTE\)\)/)
+    assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270234000000_repreview_dilemma_poster.sql"), "utf8"), /'repreview', 'dilemma-poster'/)
   })
 })

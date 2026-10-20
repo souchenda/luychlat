@@ -45,7 +45,9 @@ import { channelFor, dateOf, isIslamicKind, islamicCaptionHtml, kmDay, islamicPl
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { silPosterContent } from "@/lib/sil-poster"
 import { renderSilPoster, silPosterReady } from "@/lib/server/sil-poster"
-import { dilemmaOfDay, dilemmaPostText } from "@/lib/money-dilemmas"
+import { DILEMMA_MINUTE, DILEMMA_WEEKDAYS, dilemmaOfDay, dilemmaPostText } from "@/lib/money-dilemmas"
+import { renderDilemmaPoster } from "@/lib/server/dilemma-poster"
+import { posterAssetsReady } from "@/lib/server/poster-kit"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
@@ -444,8 +446,12 @@ const realDeps = (): SchedulerDeps => ({
         if (sil) await silPosterReady
         return { png: sil ? poster(() => renderSilPoster(sil)) : null, body: String(row.payload.text ?? "—") }
       }
-      case "DILEMMA":
-        return { png: null, body: dilemmaPostText(dilemmaOfDay(day)) }
+      case "DILEMMA": {
+        // With its A / B poster when the dilemma has one (founder, 20/10/2026 — text alone gets little engagement).
+        const d = dilemmaOfDay(day)
+        await posterAssetsReady
+        return { png: d.poster ? poster(() => renderDilemmaPoster(d.poster!).png) : null, body: dilemmaPostText(d) }
+      }
       case "NATIONAL_DAY": {
         // A national day or royal ceremony (founder, 20/10/2026): the poster and its caption.
         const d = nationalDayByKey(String(row.payload.key))
@@ -600,11 +606,15 @@ const realDeps = (): SchedulerDeps => ({
       return ids
     }
     if (row.kind === "DILEMMA") {
-      // The same plain text on the community channel and the Facebook Page.
-      const text = dilemmaPostText(dilemmaOfDay(String(row.payload.day)))
-      if (chat) ids.telegram = await sentText(text, false)
+      // The poster with the text as its caption (or the text alone) on the community channel and the Facebook Page.
+      const d = dilemmaOfDay(String(row.payload.day))
+      const text = dilemmaPostText(d)
+      await posterAssetsReady
+      const png = d.poster ? renderDilemmaPoster(d.poster).png : null
+      const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      if (chat) ids.telegram = png ? ((await sendPosterPhoto(chat, png, esc(text), { reply_markup: buttons.reply_markup })) ?? (await sentText(text, false))) : await sentText(text, false)
       if (facebookConfig() && shouldPublishToFacebook({ kind: "dilemma" })) {
-        const fb = await publishLogged(`money dilemma (${row.post_key})`, () => publishTextToFacebook(approval, text), fbLog)
+        const fb = await publishLogged(`money dilemma (${row.post_key})`, () => (png ? publishPhotoToFacebook(approval, png, text) : publishTextToFacebook(approval, text)), fbLog)
         if (fb?.ok) ids.facebook = fb.postId
       }
       return ids
@@ -744,24 +754,28 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
-  const REPREVIEW_READY = ["five-am"]
+  const REPREVIEW_READY = ["dilemma-poster"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // Every holiday — national and royal, Islamic, Chinese, global (founder, 20/10/2026): previewed from 48 hours before at
   // 08:00, published at 05:00 on the day once approved (a missed preview window is caught up until then — idempotent).
-  for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute, offset)) {
-    const row = await real().schedulePost("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
-    // Flagged «repreview» (a better version, e.g. with the official portrait): the old preview messages are deleted from
-    // the approval room and a fresh preview is sent, once (bot_post_repreview_done clears the flag). Only a flag this build
-    // knows: migrations run before the new build is live, so the old container must not consume a flag meant for the
-    // new art (20/10/2026 — the HD flag was used by the previous build, which re-sent the old-size portrait).
-    if (row?.status === "PENDING" && REPREVIEW_READY.includes(String(row.payload?.repreview ?? ""))) {
-      let removed = 0
-      for (const p of row.previews ?? []) if ((await tg("deleteMessage", { chat_id: p.chat, message_id: p.msg })).ok) removed++
-      await botDb().rpc("bot_post_repreview_done", { p_key: botKey(), p_id: row.id })
-      await real().schedulePost("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
-      logEvent("info", "scheduled-posts", `${row.post_key}: the old preview withdrawn (${removed} message(s)) and sent again`)
-    }
+  // Flagged «repreview» (a better version, e.g. with the official portrait or a poster): the old preview messages are
+  // deleted from the approval room and a fresh preview is sent, once (bot_post_repreview_done clears the flag). Only a
+  // flag this build knows: migrations run before the new build is live, so the old container must not consume a flag
+  // meant for the new art (20/10/2026 — the HD flag was used by the previous build, which re-sent the old-size portrait).
+  const repreview = async (kind: PostKind, key: string, payload: Record<string, string>, at: string) => {
+    const row = await real().schedulePost(kind, key, payload, at)
+    if (row?.status !== "PENDING" || !REPREVIEW_READY.includes(String(row.payload?.repreview ?? ""))) return
+    let removed = 0
+    for (const p of row.previews ?? []) if ((await tg("deleteMessage", { chat_id: p.chat, message_id: p.msg })).ok) removed++
+    await botDb().rpc("bot_post_repreview_done", { p_key: botKey(), p_id: row.id })
+    await real().schedulePost(kind, key, payload, at)
+    logEvent("info", "scheduled-posts", `${row.post_key}: the old preview withdrawn (${removed} message(s)) and sent again`)
   }
+  for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute, offset))
+    await repreview("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
+  // Today's money dilemma, from its preview time until midnight (a held post can still be approved till then).
+  if (DILEMMA_WEEKDAYS.includes(new Date(`${now.day}T00:00:00Z`).getUTCDay()) && now.hour * 60 + now.minute >= DILEMMA_MINUTE - 45)
+    await repreview("DILEMMA", now.day, { day: now.day }, atMinute(now.day, DILEMMA_MINUTE))
 }
 
 /**

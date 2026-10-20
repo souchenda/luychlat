@@ -6,9 +6,17 @@
  * Pure (money-dilemmas.test.ts); the wording guard (tests/golden/content-guards.test.ts) covers every line.
  */
 
-export type MoneyDilemma = { id: string; title: string; story: string; question: string }
+/** The poster's two choices side by side (founder, 20/10/2026): A warm, B calm — no parentheses on the graphic. */
+export type DilemmaChoice = { title: string; sub: string; icon: "card" | "shield"; tone: "warm" | "calm" }
+export type DilemmaPoster = { headline: string; a: DilemmaChoice; b: DilemmaChoice; prompt: string }
+export type MoneyDilemma = { id: string; title: string; story: string; question: string; poster?: DilemmaPoster }
 
-export const DILEMMA_CTA = "📊 ចង់ដឹងសុខភាពហិរញ្ញវត្ថុ និងគណនា DTI របស់អ្នក? សាកល្បងឥតគិតថ្លៃលើ អេប លុយឆ្លាត 👉 app.luychlat.com"
+/** The call to the app — «DTI» explained in plain Khmer (founder, 20/10/2026: the bare word confused people). */
+export const DILEMMA_CTA = [
+  "📊 ចង់ដឹងសុខភាពហិរញ្ញវត្ថុ និងគណនាបន្ទុកបំណុលធៀបនឹងចំណូល (DTI) របស់អ្នក?",
+  "(DTI គឺជារង្វាស់ថាតើបងចំណាយប៉ុន្មាន % នៃចំណូលប្រចាំខែទៅលើបំណុល)",
+  "👉 គណនាឥតគិតថ្លៃលើ អេប លុយឆ្លាត៖ app.luychlat.com",
+].join("\n")
 
 export const MONEY_DILEMMAS: MoneyDilemma[] = [
   {
@@ -52,6 +60,12 @@ export const MONEY_DILEMMAS: MoneyDilemma[] = [
     title: "សងបំណុលមុន ឬទុកប្រាក់បម្រុងមុន?",
     story: "បងមានលុយសល់ $១.០០០។ មានបំណុលកាតឥណទាន ការប្រាក់ ១៨% ក្នុងមួយឆ្នាំ ហើយក៏មិនទាន់មានប្រាក់បម្រុងសម្រាប់ពេលអាសន្នសោះ។",
     question: "បើជាបង នឹងសងបំណុលមុន ទុកប្រាក់បម្រុងមុន ឬចែកពាក់កណ្ដាល?",
+    poster: {
+      headline: "មានលុយសល់ $១,០០០ ក្នុងដៃ...",
+      a: { title: "សងកាតឥណទានមុន", sub: "កាត់បន្ថយការប្រាក់ ១៨%/ឆ្នាំ", icon: "card", tone: "warm" },
+      b: { title: "ទុកប្រាក់បម្រុងមុន", sub: "ការពារពេលមានអាសន្ន", icon: "shield", tone: "calm" },
+      prompt: "តើគួររើសមួយណា? A ឬ B?",
+    },
   },
   {
     id: "parents-support",

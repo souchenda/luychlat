@@ -54,7 +54,7 @@ describe("Cambodia's national days and royal ceremonies (founder, 20/10/2026)", 
     assert.ok(!AUTO_PUBLISH_KINDS.includes("NATIONAL_DAY" as never))
     assert.equal(shouldPublishToFacebook({ kind: "national" }), true)
     const sp = read("src/lib/server/scheduled-posts.ts")
-    assert.match(sp, /await real\(\)\.schedulePost\("NATIONAL_DAY", `\$\{day\.key\}-\$\{date\}`, \{ key: day\.key, day: date \}, atMinute\(date, PUBLISH_MINUTE\)\)/)
+    assert.match(sp, /await repreview\("NATIONAL_DAY", `\$\{day\.key\}-\$\{date\}`, \{ key: day\.key, day: date \}, atMinute\(date, PUBLISH_MINUTE\)\)/)
     assert.match(read("supabase/migrations/20270210000000_national_day_posts.sql"), /'ISLAMIC_BULLETIN', 'NATIONAL_DAY'/)
   })
 })
@@ -100,7 +100,7 @@ describe("The royal images: official only (founder, 20/10/2026 — «We cannot j
     const r = mod.nationalDayPoster(d, "2026-10-29")
     assert.equal(r.truncated, false)
     assert.deepEqual([r.png.readUInt32BE(16), r.png.readUInt32BE(20)], [1080, 1350]) // the portrait layout
-    assert.match(read("src/lib/server/scheduled-posts.ts"), /if \(row\?\.status === "PENDING" && REPREVIEW_READY\.includes\(String\(row\.payload\?\.repreview \?\? ""\)\)\) \{/)
+    assert.match(read("src/lib/server/scheduled-posts.ts"), /if \(row\?\.status !== "PENDING" \|\| !REPREVIEW_READY\.includes\(String\(row\.payload\?\.repreview \?\? ""\)\)\) return/)
     assert.match(read("supabase/migrations/20270212000000_repreview_with_portrait.sql"), /set payload = payload - 'repreview', previews = '\[\]'::jsonb where id = p_id and status = 'PENDING'/)
   })
 })
@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("five-am") && !listed.includes("title-below") && !listed.includes("smaller-portrait")) // a used flag leaves the list
+    assert.ok(listed.includes("dilemma-poster") && !listed.includes("five-am") && !listed.includes("title-below")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })
@@ -298,7 +298,7 @@ describe("The all-inclusive holiday engine — national, Islamic, Chinese, globa
     for (const k of ["new-year", "womens-day", "labor-day", "khmer-new-year", "pchum-ben"]) assert.ok(keys.includes(k), k) // D
     assert.equal(new Set(keys).size, keys.length)
     const sp = read("src/lib/server/scheduled-posts.ts")
-    assert.equal((sp.match(/schedulePost\("NATIONAL_DAY"[^\n]*atMinute\(date, PUBLISH_MINUTE\)\)/g) ?? []).length, 2) // one time for all
+    assert.equal((sp.match(/repreview\("NATIONAL_DAY"[^\n]*atMinute\(date, PUBLISH_MINUTE\)\)/g) ?? []).length, 1) // one time for all
   })
   it("the dates: Hijri days by the calendar, Chinese days by the lunisolar calendar, Qingming by its table", () => {
     const at = (key: string, year: number) => nationalDayDate(nationalDayByKey(key)!, year)
