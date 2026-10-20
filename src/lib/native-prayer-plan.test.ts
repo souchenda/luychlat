@@ -36,7 +36,11 @@ describe("The native Adhan's plan (founder, 20/10/2026)", () => {
     assert.deepEqual(NATIVE_CHANNELS.adhan, { id: "prayer_adhan_v1", name: "Prayer Times Adhan", sound: "adhan.mp3", importance: 5 })
     assert.match(read("android/app/src/main/AndroidManifest.xml"), /<uses-permission android:name="android\.permission\.USE_EXACT_ALARM" \/>/)
     assert.match(read("android/app/capacitor.build.gradle"), /implementation project\(':capacitor-local-notifications'\)/)
-    assert.match(read("android/app/build.gradle"), /versionCode 3\n\s+versionName "1\.2"/)
+    assert.match(read("android/app/build.gradle"), /versionCode 4\n\s+versionName "1\.3"/)
+    // One brand name on the home screen: the APK and the PWA both «អេប លុយឆ្លាត» (founder, 20/10/2026 — two names confused).
+    assert.match(read("android/app/src/main/res/values/strings.xml"), /<string name="app_name">អេប លុយឆ្លាត<\/string>/)
+    assert.match(read("capacitor.config.ts"), /appName: "អេប លុយឆ្លាត"/)
+    assert.match(read("src/app/manifest.ts"), /short_name: "អេប លុយឆ្លាត"/)
     if (existsSync(join(process.cwd(), "deploy/build-apk.sh"))) assert.match(read("deploy/build-apk.sh"), /"@capacitor\/local-notifications"/)
   })
   it("in the app: native alarms replace the in-page timer (never two Adhans); in a browser nothing changes", () => {

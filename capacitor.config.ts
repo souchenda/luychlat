@@ -8,7 +8,8 @@ import type { CapacitorConfig } from "@capacitor/cli"
  */
 const config: CapacitorConfig = {
   appId: "com.luychlat.app",
-  appName: "លុយឆ្លាត",
+  // The brand, the same as the PWA's home-screen name (src/app/manifest.ts short_name).
+  appName: "អេប លុយឆ្លាត",
   // Shown only when the live site can't be reached at launch (offline).
   webDir: "capacitor-www",
   server: {

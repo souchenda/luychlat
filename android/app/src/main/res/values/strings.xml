@@ -1,7 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">លុយឆ្លាត</string>
-    <string name="title_activity_main">លុយឆ្លាត</string>
+    <!-- The brand, the same as the home-screen PWA (src/app/manifest.ts short_name) — founder, 20/10/2026. -->
+    <string name="app_name">អេប លុយឆ្លាត</string>
+    <string name="title_activity_main">អេប លុយឆ្លាត</string>
     <string name="package_name">com.luychlat.app</string>
     <string name="custom_url_scheme">com.luychlat.app</string>
 </resources>
