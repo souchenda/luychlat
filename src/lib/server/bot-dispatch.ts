@@ -5,7 +5,7 @@ import { duePrayer } from "@/lib/prayer-alerts"
 import { sendAdhanAudio } from "@/lib/server/adhan-audio"
 
 import { botDb, botKey, botToken, sendText, SIGNATURE, tr, unescapeHtml } from "./telegram-bot"
-import { sendCommunityBulletin, syncCommunityPost } from "@/lib/server/community-bulletin"
+import { sendCommunityBulletin, sendIslamicBulletin, syncCommunityPost } from "@/lib/server/community-bulletin"
 import { communityRoutineTick } from "@/lib/server/community-routine"
 import { scheduledPostsTick } from "@/lib/server/scheduled-posts"
 import { dailyTipTick } from "@/lib/server/tip-bot"
@@ -91,6 +91,7 @@ export async function dispatchOnce() {
     await sendPrayerTimes()
     await marketScheduleTick()
     await sendCommunityBulletin()
+    await sendIslamicBulletin()
     await syncCommunityPost()
     await communityRoutineTick()
     await scheduledPostsTick()

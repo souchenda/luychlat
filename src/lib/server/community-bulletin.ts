@@ -8,7 +8,9 @@ import { currentMarket, hasLocalToday, syncMarket } from "@/lib/server/market-sy
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { logEvent } from "@/lib/server/events"
-import { communityChannel, communityChannelConfigured, isCommunityChannel, type FounderApproval } from "@/lib/server/channel"
+import { communityChannel, communityChannelConfigured, isCommunityChannel, islamicChannelConfigured, type FounderApproval } from "@/lib/server/channel"
+import { islamicBulletinHtml, islamicMarket } from "@/lib/islamic/market"
+import { SITE_URL } from "@/lib/app-site"
 import { holdForApproval } from "@/lib/server/scheduled-posts"
 
 /**
@@ -211,6 +213,34 @@ export async function sendCommunityBulletin(): Promise<boolean> {
   await holdForApproval("BULLETIN", now.day, { day: now.day })
   logEvent("info", "bulletin", `Daily bulletin ready — publishes automatically in a minute${hasLocalToday(market) ? "" : " (no local gold prices yet)"}`)
   return true
+}
+
+// ─── The Islamic market bulletin for @LuyChlatIslamic (founder, 20/10/2026) ─────────────────────────────────────────
+// The same timing as the general bulletin (09:30, or once the gold shops publish, by 10:30), its own daily claim, a
+// factual feed (AUTO_PUBLISH_KINDS): created approved, published a minute later to the Islamic channel only — the
+// general channel never gets it (lib/islamic-channel.ts channelFor). Nothing without an NBC rate.
+const ISLAMIC_JOB = "islamic-bulletin"
+
+export async function sendIslamicBulletin(): Promise<boolean> {
+  if (!islamicChannelConfigured()) return false
+  const now = phnomPenhNow()
+  if (now.hour < FROM.hour || (now.hour === FROM.hour && now.minute < FROM.minute) || now.hour >= LAST_HOUR) return false
+  const market = await currentMarket()
+  const pastDeadline = now.hour > DEADLINE.hour || (now.hour === DEADLINE.hour && now.minute >= DEADLINE.minute)
+  if (!hasLocalToday(market) && !pastDeadline) return false
+  if (!market?.nbc?.usd_khr) return false
+  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: ISLAMIC_JOB, p_day: now.day })
+  if (claimed !== true) return false
+  await holdForApproval("ISLAMIC_BULLETIN", now.day, { day: now.day })
+  logEvent("info", "bulletin", "Islamic market bulletin ready for @LuyChlatIslamic — publishes automatically in a minute")
+  return true
+}
+
+/** The Islamic bulletin's text now (HTML), with the Hijri and Khmer dates given; null without an NBC rate. */
+export async function islamicBulletinText(hijri: string, gregorian: string): Promise<string | null> {
+  let market = await currentMarket()
+  if (!market || Date.now() - Date.parse(market.fetched_at) > 2 * 3_600_000) market = (await syncMarket(true)) ?? market
+  return islamicBulletinHtml(islamicMarket(market, phnomPenhNow().day), { hijri, gregorian, appUrl: (await appUrl()) ?? SITE_URL })
 }
 
 /** The post's text as it would go out now — the preview (BULLETIN: the daily bulletin; RATES: the evening NBC rates). */

@@ -13,6 +13,7 @@ import { ScriptureRefs } from "@/components/islamic/scripture-refs"
 import { DailyTipCard } from "@/components/dashboard/daily-tip-card"
 import { IslamicQuizCard } from "@/components/islamic/quiz-card"
 import { ContextualDuaCard, IslamicHubHero, IslamicQuickActions } from "@/components/islamic/hub"
+import { IslamicMarketCard } from "@/components/islamic/islamic-market-card"
 import { SarCard } from "@/components/islamic/sar-card"
 import { HajjPlanCard } from "@/components/islamic/hajj-plan-card"
 import { Card } from "@/components/ui/card"
@@ -275,6 +276,20 @@ export default function IslamicPage() {
       },
       { onSuccess: () => toast.success(t("admin.saved")), onError: () => toast.error(t("common.error")) },
     )
+  // «យកតម្លៃនីស៊បនេះទៅគណនាហ្សាកាត់»: today's gold price per gram, on the gold basis — the calculator then shows the Nisab.
+  const applyGoldPrice = (perGram: number) => {
+    setGoldPrice(String(perGram))
+    update.mutate(
+      { gold_price: perGram, nisab_basis: "GOLD" },
+      {
+        onSuccess: () => {
+          toast.success(t("islamic.goldPriceApplied"))
+          document.getElementById("zakat")?.scrollIntoView({ behavior: "smooth", block: "start" })
+        },
+        onError: () => toast.error(t("common.error")),
+      },
+    )
+  }
   const openLog = (kind: LogKind, amount: number) => {
     setLogAmount(amount)
     setLogKind(kind)
@@ -294,6 +309,8 @@ export default function IslamicPage() {
       {/* Today's Islamic financial wisdom, with its Quran / Hadith source (founder, 18/10/2026). */}
       <DailyTipCard />
       <IslamicQuizCard />
+      {/* The rates, gold and the Zakat Nisab (founder, 20/10/2026) — one tap puts today's gold price into the calculator. */}
+      <IslamicMarketCard busy={update.isPending} onUseGoldPrice={applyGoldPrice} />
       {/* Zakat calculator — the «គណនាហ្សាកាត់» quick action scrolls here. */}
       <section id="zakat" className="scroll-mt-4 space-y-2">
         <h2 className="flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground">

@@ -24,7 +24,7 @@ export type IslamicKind = (typeof ISLAMIC_KINDS)[number]
 export const isIslamicKind = (kind: string): kind is IslamicKind => (ISLAMIC_KINDS as readonly string[]).includes(kind)
 
 /** Which channel a post kind goes to — the only routing rule (a Buddhist holy-day note is never Islamic). */
-export const channelFor = (kind: string): "islamic" | "community" => (isIslamicKind(kind) ? "islamic" : "community")
+export const channelFor = (kind: string): "islamic" | "community" => (isIslamicKind(kind) || kind === "ISLAMIC_BULLETIN" ? "islamic" : "community")
 
 /**
  * The 24-hour schedule (founder, 18/10/2026), minutes after midnight, Cambodia time — locked by

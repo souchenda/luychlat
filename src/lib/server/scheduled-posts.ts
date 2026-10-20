@@ -38,10 +38,10 @@ import {
 import { eveningButtons } from "@/lib/evening-reminder"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
-import { bulletinPreview, publishBulletin } from "@/lib/server/community-bulletin"
+import { bulletinPreview, islamicBulletinText, publishBulletin } from "@/lib/server/community-bulletin"
 import { communityChannel, communityChannelConfigured, founderApproved, islamicChannel, islamicChannelConfigured } from "@/lib/server/channel"
-import { toHijri, type HijriDate } from "@/lib/islamic"
-import { dateOf, isIslamicKind, islamicCaptionHtml, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
+import { formatHijri, toHijri, type HijriDate } from "@/lib/islamic"
+import { channelFor, dateOf, isIslamicKind, islamicCaptionHtml, kmDay, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { silPosterContent } from "@/lib/sil-poster"
 import { renderSilPoster, silPosterReady } from "@/lib/server/sil-poster"
@@ -438,6 +438,8 @@ const realDeps = (): SchedulerDeps => ({
       }
       case "DILEMMA":
         return { png: null, body: dilemmaPostText(dilemmaOfDay(day)) }
+      case "ISLAMIC_BULLETIN":
+        return { png: null, body: stripHtml((await islamicBulletinNow()) ?? "—") }
       case "ISLAMIC_QUIZ":
         // A short teaser with a button into the in-app quiz (no poster).
         return { png: null, body: stripHtml(quizTeaserHtml(day)) }
@@ -458,7 +460,7 @@ const realDeps = (): SchedulerDeps => ({
   },
   targets(row) {
     // The Islamic channel's own posts: there only, never the general channel or the Page.
-    if (isIslamicKind(row.kind)) return { telegram: islamicChannelConfigured(), facebook: false, channel: "islamic" }
+    if (channelFor(row.kind) === "islamic") return { telegram: islamicChannelConfigured(), facebook: false, channel: "islamic" }
     const fb = Boolean(facebookConfig())
     const telegram = communityChannelConfigured()
     if (row.kind === "MORNING") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "morning" }) }
@@ -475,7 +477,7 @@ const realDeps = (): SchedulerDeps => ({
     // (bot_post_take): the approval that opens the channel and the Page.
     const approval = founderApproved(`${row.kind} ${row.post_key}`)
     // One routing rule (lib/islamic-channel.ts channelFor): Islamic posts → @LuyChlatIslamic, all else → the general channel.
-    const islamic = isIslamicKind(row.kind)
+    const islamic = channelFor(row.kind) === "islamic"
     const chat = islamic ? islamicChannel(approval) : communityChannel(approval)
     const buttons = await getChannelPostButtons()
     const ids: Published = { telegram: null, facebook: null }
@@ -495,6 +497,12 @@ const realDeps = (): SchedulerDeps => ({
         })
         ids.telegram = res.ok && res.result ? res.result.message_id : null
       }
+      return ids
+    }
+    if (row.kind === "ISLAMIC_BULLETIN") {
+      // The Islamic market bulletin (founder, 20/10/2026): @LuyChlatIslamic only — never the general channel.
+      const text = await islamicBulletinNow()
+      if (chat && text) ids.telegram = await sentText(text, true)
       return ids
     }
     if (islamic) {
@@ -734,3 +742,11 @@ export const holdForApproval = (kind: PostKind, postKey: string, payload: Record
 
 export { isScheduledPostCallback } from "@/lib/scheduled-posts"
 export const handleScheduledPostCallback = (cb: Callback) => real().onCallback(cb)
+
+/** The Islamic market bulletin as it would go out now: the Hijri day with the admin's offset, the live rates and gold. */
+async function islamicBulletinNow(): Promise<string | null> {
+  const now = phnomPenhToday()
+  const offset = await hijriOffset()
+  const hijri = toHijri(dateOf(now.day), offset)
+  return islamicBulletinText(hijri ? formatHijri(hijri, "km") : "", kmDay(now.day))
+}

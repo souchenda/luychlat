@@ -20,7 +20,7 @@ import { dateOf, islamicPlannedPosts, type IslamicKind } from "@/lib/islamic-cha
  * notices, the 20:00 reminder, the Saturday spotlight, the market bulletin, the evening NBC rates,
  * festival posters and holy-day notes.
  */
-export type PostKind = "MORNING" | "HOLIDAY" | "FUEL" | "EVENING" | "SPOTLIGHT" | "BULLETIN" | "RATES" | "POSTER" | "HOLYDAY" | "DILEMMA" | IslamicKind
+export type PostKind = "MORNING" | "HOLIDAY" | "FUEL" | "EVENING" | "SPOTLIGHT" | "BULLETIN" | "RATES" | "POSTER" | "HOLYDAY" | "DILEMMA" | "ISLAMIC_BULLETIN" | IslamicKind
 /** `channel`: which Telegram channel (lib/islamic-channel.ts channelFor) — the general one unless said. */
 export type Targets = { telegram: boolean; facebook: boolean; channel?: "community" | "islamic" }
 export type PostStatus = "PENDING" | "APPROVED" | "PUBLISHED" | "PAUSED" | "EXPIRED"
@@ -138,6 +138,7 @@ const KIND_LABEL: Record<PostKind, string> = {
   SPOTLIGHT: "តម្លៃស្នូលប្រចាំសប្តាហ៍ (Poster)",
   BULLETIN: "ព្រឹត្តិបត្រទីផ្សារ (NBC · មាស · ប្រេង)",
   RATES: "អត្រាប្តូរប្រាក់ NBC ពេលល្ងាច",
+  ISLAMIC_BULLETIN: "ព្រឹត្តិបត្រហាងឆេង SAR និងនីស៊បមាសហ្សាកាត់ (Channel ឥស្លាម)",
   POSTER: "Poster ពិធីបុណ្យ",
   HOLYDAY: "សារថ្ងៃសីល",
   DILEMMA: "សំណួរហិរញ្ញវត្ថុពិភាក្សា (Money Dilemma)",
@@ -157,7 +158,8 @@ const KIND_LABEL: Record<PostKind, string> = {
  * and they publish silently: no preview reaches the approval room (founder, 19/10/2026). Everything else waits for
  * the founder's ✅ / 🚀.
  */
-export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "ISLAMIC_MORNING"]
+// The Islamic market bulletin (NBC, SAR, gold, the Zakat Nisab — founder, 20/10/2026) is factual too: @LuyChlatIslamic only.
+export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "ISLAMIC_MORNING", "ISLAMIC_BULLETIN"]
 export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly string[]).includes(kind)
 
 /** The preview's header (destination first), the post itself, then the status line. */
