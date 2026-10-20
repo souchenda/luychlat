@@ -51,7 +51,28 @@ esc() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 
 kind=${1:-ok}
 head=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
+full=$(git rev-parse HEAD 2>/dev/null || echo "?")
 when=$(TZ=Asia/Phnom_Penh date '+%d/%m/%Y %H:%M')
+
+# Task numbers instead of commit hashes (founder, 20/10/2026): every release gets the next number — «កិច្ចការទី #N» —
+# kept on the server («N <commit>» per line, outside git, so a pull never resets it). A commit that names its task
+# («Task: #049» or «កិច្ចការ: #049» in its message) gets that number. A redeploy of the same commit keeps its number.
+TASKS=deploy/run/task-numbers
+task_number() {
+  local tag known last
+  tag=$(git log -1 --format=%B "$full" 2>/dev/null | grep -oiE '(Task|កិច្ចការ)[[:space:]]*:[[:space:]]*#?[0-9]+' | head -1 | grep -oE '[0-9]+$')
+  if [ -n "$tag" ]; then echo $((10#$tag)); return; fi
+  known=$(awk -v h="$full" '$2 == h { n = $1 } END { if (n) print n }' "$TASKS" 2>/dev/null)
+  if [ -n "$known" ]; then echo "$known"; return; fi
+  last=$(awk '$1 + 0 > max { max = $1 + 0 } END { print max + 0 }' "$TASKS" 2>/dev/null)
+  # The first time: number the releases so far from the deploy log (this one's «✓ Deployed» line is already in it).
+  if [ "${last:-0}" = "0" ]; then
+    last=$(grep -c "✓ Deployed" /var/log/luysmart-deploy.log 2>/dev/null || echo 0)
+    [ "$kind" = "ok" ] && last=$((last - 1))
+  fi
+  echo $((last + 1))
+}
+task=$(task_number)
 
 if [ "$kind" = "fail" ]; then
   # Once per commit: the cron retries a failed version every 5 minutes.
@@ -68,11 +89,13 @@ if [ "$kind" = "fail" ]; then
     *) step=$(printf '%s' "${2:-?}" | esc) ;;
   esac
   text="⚠️ <b>ការដាក់ឱ្យដំណើរការមិនជោគជ័យ (Deploy Failed)</b>
-• <b>កូដកំណែ (Commit)៖</b> <code>$head</code> — $(khmer_summaries -1 2>/dev/null | cut -d$'\x1f' -f2 | esc)
+• <b>លេខរៀងការងារ៖</b> កិច្ចការទី #$task
+• <b>មុខងារ៖</b> $(khmer_summaries -1 2>/dev/null | cut -d$'\x1f' -f2 | esc)
 • <b>មូលហេតុ៖</b> ${step} (លេខកូដ ${3:-?})
 • <b>វេលាម៉ោង៖</b> $when
 កំណែមុនកំពុងដំណើរការធម្មតា — /var/log/luysmart-deploy.log
-— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត"
+— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត
+[ref: $head]"
 else
   rm -f deploy/run/.failed-notified
   prev=${2:-}
@@ -95,13 +118,17 @@ $list"
     more="
 • ប្រភេទ៖ ចាប់ផ្ដើមឡើងវិញ (ការកំណត់ .env ផ្លាស់ប្ដូរ) — គ្មានកូដថ្មីទេ"
   fi
+  # This release's number, kept (once per commit).
+  mkdir -p deploy/run
+  awk -v h="$full" '$2 == h { found = 1 } END { exit !found }' "$TASKS" 2>/dev/null || echo "$task $full" >> "$TASKS"
   text="🚀 <b>ប្រព័ន្ធបានដាក់ឱ្យដំណើរការលើ Production (Live)</b>
-• <b>កូដកំណែថ្មី (Commit)៖</b> <code>$head</code>
-• <b>ខ្លឹមសារកែប្រែ៖</b> $(khmer_summaries -1 | cut -d$'\x1f' -f2 | esc)$more
-• <b>ស្ថានភាព Server៖</b> $status (${free:-?} ទំនេរ · $container)
+• <b>លេខរៀងការងារ៖</b> កិច្ចការទី #$task
+• <b>មុខងារដែលបានសម្រេច៖</b> $(khmer_summaries -1 | cut -d$'\x1f' -f2 | esc)$more
+• <b>ស្ថានភាព Server៖</b> $status (${free:-?} ទំនេរ)
 • <b>វេលាម៉ោង៖</b> $when
 • <b>តំណភ្ជាប់៖</b> https://app.luychlat.com
-— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត"
+— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត
+[ref: $head]"
 fi
 
 token=$(env_value TELEGRAM_BOT_TOKEN)
@@ -120,5 +147,5 @@ for chat in $chats; do
     --data-urlencode "disable_web_page_preview=true" --data-urlencode "text=$text" | grep -c '"ok":true')
   [ "$ok" = "1" ] && sent=$((sent + 1))
 done
-echo "Deploy notice ($kind $head) sent to $sent chat(s)"
+echo "Deploy notice ($kind $head, task #$task) sent to $sent chat(s)"
 exit 0

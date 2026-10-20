@@ -14,8 +14,22 @@ describe("Every production release reaches the founder's private chat (founder, 
   it("live: after the health check and the switch, the «Production (Live)» card with the commit, the disk and the time", () => {
     assert.match(update, /echo "✓ Deployed \$\(git rev-parse --short HEAD\) on \$next"\nbash \.\/deploy\/deploy-notify\.sh ok "\$prev_deployed"/)
     assert.ok(update.indexOf('step="health check"') < update.indexOf("deploy-notify.sh ok"))
-    for (const line of ["🚀 <b>ប្រព័ន្ធបានដាក់ឱ្យដំណើរការលើ Production (Live)</b>", "• <b>កូដកំណែថ្មី (Commit)៖</b> <code>$head</code>", "• <b>ខ្លឹមសារកែប្រែ៖</b>", "• <b>ស្ថានភាព Server៖</b> $status (${free:-?} ទំនេរ", "• <b>វេលាម៉ោង៖</b> $when", "• <b>តំណភ្ជាប់៖</b> https://app.luychlat.com", "— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត"])
-      assert.ok(notify.includes(line), line)
+    // The founder's format (20/10/2026): a task number, never the commit hash up front — it is only a small «[ref: …]».
+    assert.ok(
+      notify.includes(
+        [
+          "🚀 <b>ប្រព័ន្ធបានដាក់ឱ្យដំណើរការលើ Production (Live)</b>",
+          "• <b>លេខរៀងការងារ៖</b> កិច្ចការទី #$task",
+          "• <b>មុខងារដែលបានសម្រេច៖</b> $(khmer_summaries -1 | cut -d$'\\x1f' -f2 | esc)$more",
+          "• <b>ស្ថានភាព Server៖</b> $status (${free:-?} ទំនេរ)",
+          "• <b>វេលាម៉ោង៖</b> $when",
+          "• <b>តំណភ្ជាប់៖</b> https://app.luychlat.com",
+          "— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត",
+          "[ref: $head]",
+        ].join("\n"),
+      ),
+    )
+    assert.doesNotMatch(notify, /Commit\)៖|<code>\$head<\/code>/)
     assert.match(notify, /TZ=Asia\/Phnom_Penh date/)
   })
   it("failed: one «Deploy Failed» card per commit with the step that failed — the 5-minute retries never repeat it", () => {
@@ -39,6 +53,29 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.ok(nginx.indexOf('if [ "${#sites[@]}" -gt 1 ] && [ -f "$SNIPPET" ]; then') < nginx.indexOf('echo "✗ Expected one Nginx site using luysmart_app'))
     assert.match(nginx, /if \[ "\$includes" -ne 1 \]; then/) // the snippet exactly once across the sites
     assert.match(nginx, /several sites are never patched automatically/)
+  })
+  it("task numbers: the next release number, kept per commit outside git; a «Task: #N» / «កិច្ចការ: #N» tag wins", async () => {
+    const { execFileSync } = await import("node:child_process")
+    const { mkdtempSync, writeFileSync } = await import("node:fs")
+    const { tmpdir } = await import("node:os")
+    const fn = notify.slice(notify.indexOf("task_number() {"), notify.indexOf("\n}\n", notify.indexOf("task_number() {")) + 2)
+    const dir = mkdtempSync(join(tmpdir(), "tasks-"))
+    const tasks = join(dir, "task-numbers").replace(/\\/g, "/")
+    writeFileSync(tasks, "368 aaa\n369 bbb\n")
+    const run = (full: string, message: string) => {
+      try {
+        return execFileSync("bash", ["-c", `git() { printf '%s' ${JSON.stringify(message)}; }\nTASKS=${JSON.stringify(tasks)}\nfull=${full}\nkind=ok\n${fn}\ntask_number`], { encoding: "utf8" }).trim()
+      } catch {
+        return null // no bash here (checked on the Droplet and by the pre-push hook)
+      }
+    }
+    const next = run("ccc", "feat(x): y")
+    if (next === null) return
+    assert.equal(next, "370") // the next number
+    assert.equal(run("bbb", "feat(x): y"), "369") // a redeploy of a numbered commit keeps it
+    assert.equal(run("ddd", "fix: z\n\nTask: #049"), "49") // the commit's own tag
+    assert.equal(run("eee", "fix: z\n\nកិច្ចការ: #75"), "75")
+    assert.match(notify, /TASKS=deploy\/run\/task-numbers/) // on the server, outside git
   })
   it("the release summary is natural Khmer, never raw git jargon (founder, 20/10/2026)", async () => {
     const { execFileSync } = await import("node:child_process")
