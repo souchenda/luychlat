@@ -1,6 +1,6 @@
 // Server only: a national day or royal ceremony as a poster (founder, 20/10/2026) on the standard frame (poster-kit.ts):
 // deep emerald and gold, the brand header and footer; centred — the title, the royal name or occasion, the dates as a
-// gold chip, then the blessing. With the founder's official portrait: 1080 × 1350, the arched gold frame, the crest and
+// gold chip, then the blessing. With the founder's official portrait: 1080 × 1350, the arched gold frame (no crest) and
 // the founder's photographic royal backdrop when it is there (docs/BRAND_DESIGN_SYSTEM.md, chapter 2); without one, text only. A merit day
 // (Visak Bochea) carries the gold lotus; a memorial day is drawn quieter, in softer gold.
 import { existsSync, readFileSync } from "node:fs"
@@ -156,7 +156,7 @@ export function nationalDayPoster(d: NationalDay, day: string): { png: Buffer; t
   return { png: canvas.toBuffer("image/png"), truncated }
 }
 
-// With the official portrait (founder, 20/10/2026): 1080 x 1350, the arched gold frame, the crest at the apex (top centre).
+// With the official portrait (founder, 20/10/2026): 1080 x 1350, the arched gold frame; nothing above His Majesty (no crest, no brand).
 
 const PW = 1080
 const PH = 1350
@@ -178,9 +178,6 @@ function drawCover(ctx: SKRSContext2D, img: Image, x: number, y: number, w: numb
   const dw = img.width * scale
   ctx.drawImage(img, x + (w - dw) / 2, y, dw, img.height * scale)
 }
-
-/** The crest at the apex: 128 px × 1.15 (founder, 20/10/2026). */
-export const CREST_HEIGHT = 147
 
 function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nationalAssetsFor>): { png: Buffer; truncated: boolean } {
   const canvas = createCanvas(PW, PH)
@@ -222,31 +219,15 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   }
 
   // The brand, top left.
-  // Royal protocol (founder, 20/10/2026 — «placing the commercial rabbit brand logo directly above the King's head is
-  // completely unacceptable»): nothing commercial above His Majesty. The upper area holds only the portrait and the
-  // Royal Coat of Arms; the brand sits modestly in the footer. On the kbach frame the corners belong to the ornaments:
-  // nothing sits on them, and the text keeps clear of the bottom ones.
-  const framed = Boolean(art.backdrop)
+  // Royal protocol (founder, 20/10/2026): nothing above His Majesty — no brand («placing the commercial rabbit brand logo
+  // directly above the King's head is completely unacceptable») and no crest («we cannot place any logo directly above
+  // the King's head; the official ceremonial portrait … is already complete and majestic on its own»). The upper area is
+  // the open kbach tapestry and its golden glow; the portrait in the arch is the one focal point; the brand signs off in
+  // the footer only.
   ctx.textBaseline = "alphabetic"
-
-  // The portrait's arch (a little smaller than before, lower) and, above it, the Royal Coat of Arms as the apex — top
-  // centre, centred between the top edge and the arch (founder, 20/10/2026: «floating it on the upper right collides
-  // with the corner ornament and breaks the symmetrical balance»), 15 % larger: perfect symmetry with the corners.
-  const fw = 420
-  const fh = 500
-  const fy = 218
-  if (art.crest) {
-    const ch = CREST_HEIGHT
-    const cw = (art.crest.width / art.crest.height) * ch
-    const top = 40 // the top edge (the kbach frame's gold line)
-    const archTop = fy - 16 // the outer gold line of the arch
-    ctx.save()
-    ctx.shadowColor = "rgba(0,0,0,0.45)"
-    ctx.shadowBlur = 18
-    ctx.shadowOffsetY = 6
-    ctx.drawImage(art.crest, (PW - cw) / 2, (top + archTop - ch) / 2, cw, ch)
-    ctx.restore()
-  }
+  const fw = 470
+  const fh = 560
+  const fy = 150
 
   // The portrait in the arched gold frame.
   const fx = (PW - fw) / 2
@@ -306,10 +287,10 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   y += 52 + 40
 
   const footer = PH - 92
-  // Inside the kbach frame the blessing is a touch smaller, so all of it fits between the bottom corners.
-  const bodyWidth = framed ? PW - 2 * 140 : width
-  const lead = framed ? 38 : 42
-  ctx.font = `500 ${framed ? 26 : 28}px ${FAMILIES}`
+  // The blessing, 27 px, centred, in whole lines (no royal phrase split — ROYAL_UNBREAKABLE).
+  const bodyWidth = PW - 2 * 130
+  const lead = 40
+  ctx.font = `500 27px ${FAMILIES}`
   ctx.fillStyle = "#ecfdf5"
   let lines = wrap(ctx, text.message, bodyWidth, 5)
   while (y + lines.length * lead > footer - 20 && lines.length > 2) lines = wrap(ctx, text.message, bodyWidth, lines.length - 1)
@@ -323,8 +304,8 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   ctx.strokeStyle = "rgba(253,230,138,0.35)"
   ctx.lineWidth = 1.5
   ctx.beginPath()
-  ctx.moveTo(framed ? 340 : 80, footer - 18)
-  ctx.lineTo(PW - (framed ? 340 : 80), footer - 18)
+  ctx.moveTo(300, footer - 18)
+  ctx.lineTo(PW - 300, footer - 18)
   ctx.stroke()
   const mascot = posterMascot()
   const brand = "អេប លុយឆ្លាត · app.luychlat.com"
