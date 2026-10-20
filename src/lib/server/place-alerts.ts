@@ -3,15 +3,50 @@
 // pending place is claimed once in the database, so it is never sent twice. A tap is checked there too
 // (bot_place_review → super admin only, audited); an approval thanks the member (bell + Telegram), in their
 // community's words (lib/contributor-thanks.ts).
+import { createClient } from "@supabase/supabase-js"
+
 import { approvedThanks, communityBadge, decidedCard, placeThanks, thanksToast as thankToast, type Contribution, type ThanksStatus } from "@/lib/contributor-thanks"
-import { isPlaceReviewCallback, parsePlaceReviewCallback, placeAlertButtons, placeAlertText, placeDecisionLine, type PendingPlace } from "@/lib/place-alerts"
+import { isPlaceReviewCallback, parsePlaceReviewCallback, placeAlertButtons, placeAlertText, placeAlertTextNoPhoto, placeDecisionLine, type PlaceCard } from "@/lib/place-alerts"
 import { marketingChats } from "@/lib/server/admin-routes"
 import { logEvent } from "@/lib/server/events"
-import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
+import { botDb, botKey, botToken, tg } from "@/lib/server/telegram-bot"
+import { withCleanFetch } from "@/lib/supabase/clean-fetch"
+import { supabaseUrl } from "@/lib/supabase/config"
 
 export { isPlaceReviewCallback }
 
 let flushing: Promise<void> | null = null
+
+const PHOTO_BUCKET = "place-photos"
+const serviceKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || null
+
+/** The member's photo from the private bucket (the server's service key), or null — the card then goes as text. */
+async function placePhoto(path: string | null | undefined): Promise<Uint8Array | null> {
+  const key = serviceKey()
+  if (!path || !key || !supabaseUrl) return null
+  const db = createClient(supabaseUrl, key, withCleanFetch({ auth: { persistSession: false, autoRefreshToken: false } }))
+  const file = await db.storage.from(PHOTO_BUCKET).download(path)
+  if (file.error || !file.data) {
+    logEvent("warn", "places", `Place photo not readable (${path}): ${file.error?.message ?? "?"} — sent as text`, { fold: true })
+    return null
+  }
+  return new Uint8Array(await file.data.arrayBuffer())
+}
+
+/** sendPhoto with the uploaded JPEG, the card as its HTML caption and the ✅ / ❌ buttons. */
+async function sendPlacePhoto(chat: number, photo: Uint8Array, caption: string, buttons: unknown): Promise<{ ok: boolean; description?: string }> {
+  const token = botToken()
+  if (!token) return { ok: false, description: "no bot token" }
+  const form = new FormData()
+  form.append("chat_id", String(chat))
+  form.append("photo", new Blob([new Uint8Array(photo)], { type: "image/jpeg" }), "place.jpg")
+  form.append("caption", caption)
+  form.append("parse_mode", "HTML")
+  form.append("reply_markup", JSON.stringify({ inline_keyboard: buttons }))
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
+  const json = (await res?.json().catch(() => null)) as { ok?: boolean; description?: string } | null
+  return { ok: Boolean(json?.ok), description: json?.description ?? (res ? undefined : "no answer") }
+}
 
 /** Send each new pending place to the approval room, once (one pass at a time; a second caller waits for it). */
 export function flushPlaceSubmissions(): Promise<void> {
@@ -21,13 +56,19 @@ export function flushPlaceSubmissions(): Promise<void> {
     if (!chats.length) return
     const { data, error } = await botDb().rpc("bot_places_to_notify", { p_key: botKey() })
     if (error || !data?.length) return
-    for (const p of data as (PendingPlace & { islamic: boolean })[]) {
+    for (const p of data as (PlaceCard & { islamic: boolean; photo_path: string | null })[]) {
       let sent = false
+      // With the member's photo: the photo is the card, the details its caption (founder, 20/10/2026); else text.
+      const photo = await placePhoto(p.photo_path)
       for (const chat of chats) {
-        const res = await tg("sendMessage", { chat_id: chat, text: `${communityBadge(p.islamic)}\n${placeAlertText(p)}`, disable_web_page_preview: true, reply_markup: { inline_keyboard: placeAlertButtons(p) } })
+        let res = photo ? await sendPlacePhoto(chat, photo, `${communityBadge(p.islamic)}\n${placeAlertText(p)}`, placeAlertButtons(p)) : null
+        if (res && !res.ok) logEvent("warn", "places", `Place photo card not sent (${res.description ?? "?"}) — sending as text`, { fold: true })
+        if (!res?.ok)
+          res = await tg("sendMessage", { chat_id: chat, text: `${communityBadge(p.islamic)}\n${placeAlertTextNoPhoto(p)}`, parse_mode: "HTML", disable_web_page_preview: true, reply_markup: { inline_keyboard: placeAlertButtons(p) } })
         if (res.ok) sent = true
         else logEvent("error", "places", `Place alert not sent: ${res.description ?? "?"}`, { fold: true })
       }
+      logEvent(sent ? "info" : "warn", "places", `Place suggestion ${p.id} ${photo ? "with its photo" : "as text"} → ${sent ? "the approval room" : "no chat — handed back"}`)
       // Not delivered anywhere: hand it back for the next pass.
       if (!sent) await botDb().rpc("bot_place_unclaim", { p_key: botKey(), p_id: p.id })
     }
@@ -90,7 +131,7 @@ type Callback = {
   id: string
   data?: string
   from?: { id: number; first_name?: string; last_name?: string; username?: string }
-  message?: { message_id: number; text?: string; chat: { id: number; type: string } }
+  message?: { message_id: number; text?: string; caption?: string; photo?: unknown[]; chat: { id: number; type: string } }
 }
 
 /**
@@ -121,14 +162,13 @@ export async function handlePlaceReviewCallback(cb: Callback, deps: ReviewDeps =
   const thanks = r.status === "approved" ? await thankContributor("place", parsed.id, r.name ?? "", deps) : null
   await answer(r.status === "done" ? "✅ បានអនុម័តរួចហើយ។" : !approved ? "❌ បានបដិសេធ" : thankToast(thanks ?? "no_submitter"))
   const by = [cb.from?.first_name, cb.from?.last_name].filter(Boolean).join(" ") || cb.from?.username || String(actor)
-  const edit = await deps.tg("editMessageText", {
-    chat_id: chat.id,
-    message_id: cb.message!.message_id,
-    text: decidedCard({ approved, by, thanks, original: cb.message?.text ?? "", footer: placeDecisionLine(approved ? "approved" : "rejected", r) }),
-    parse_mode: "HTML",
-    disable_web_page_preview: true,
-    reply_markup: { inline_keyboard: [] },
-  })
+  // A photo card keeps its photo: the decision goes into its caption (Telegram allows 1024 characters there).
+  const isPhoto = Boolean(cb.message?.photo?.length)
+  const original = (isPhoto ? cb.message?.caption : cb.message?.text) ?? ""
+  const card = decidedCard({ approved, by, thanks, original: isPhoto ? original.slice(0, 700) : original, footer: placeDecisionLine(approved ? "approved" : "rejected", r) })
+  const edit = isPhoto
+    ? await deps.tg("editMessageCaption", { chat_id: chat.id, message_id: cb.message!.message_id, caption: card.slice(0, 1024), parse_mode: "HTML", reply_markup: { inline_keyboard: [] } })
+    : await deps.tg("editMessageText", { chat_id: chat.id, message_id: cb.message!.message_id, text: card, parse_mode: "HTML", disable_web_page_preview: true, reply_markup: { inline_keyboard: [] } })
   if (!edit.ok) await deps.tg("editMessageReplyMarkup", { chat_id: chat.id, message_id: cb.message!.message_id, reply_markup: { inline_keyboard: [] } })
   deps.log("info", `Place ${r.status} from Telegram by ${by} (${parsed.id})${thanks ? ` · thanks: ${thanks}` : ""}`)
 }

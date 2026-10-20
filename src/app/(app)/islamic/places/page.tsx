@@ -26,11 +26,28 @@ const TONES: Record<PlaceKind, string> = {
 }
 const PAGE = 20
 
-function PlacePhoto({ path }: { path: string }) {
+const BANNERS: Record<PlaceKind, string> = {
+  MOSQUE: "from-emerald-500/20 to-emerald-500/5 text-emerald-700 dark:text-emerald-400",
+  SURAU: "from-sky-500/20 to-sky-500/5 text-sky-700 dark:text-sky-400",
+  HALAL: "from-amber-500/20 to-amber-500/5 text-amber-700 dark:text-amber-400",
+}
+
+/**
+ * The place's verified photo at the top of its card (founder, 20/10/2026) — visible to everyone once approved (the
+ * bucket's policy). Without one: the open card shows its kind's banner; a list card stays compact (its icon).
+ */
+function PlacePhoto({ path, kind, compact }: { path: string | null | undefined; kind: PlaceKind; compact: boolean }) {
   const url = usePlacePhotoUrl(path)
-  if (!url) return null
-  // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
-  return <img src={url} alt="" className="mb-2 aspect-video w-full rounded-lg object-cover" loading="lazy" />
+  if (url)
+    // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
+    return <img src={url} alt="" className={cn("w-full rounded-lg object-cover", compact ? "aspect-[16/7]" : "aspect-video")} loading="lazy" />
+  if (compact) return null
+  const Icon = ICONS[kind]
+  return (
+    <div className={cn("flex h-24 w-full items-center justify-center rounded-lg bg-gradient-to-br", BANNERS[kind])} aria-hidden data-testid="place-banner">
+      <Icon className="size-10 opacity-80" />
+    </div>
+  )
 }
 
 /** «១.២ គ.ម» / «៨ គ.ម» — Khmer digits. */
@@ -85,7 +102,7 @@ export default function PlacesPage() {
     const Icon = ICONS[p.kind]
     return (
       <Card className={cn("gap-2 px-4 py-3", p.id === selected && "ring-2 ring-primary")}>
-        {!compact && p.photo_path && <PlacePhoto path={p.photo_path} />}
+        <PlacePhoto path={p.photo_path} kind={p.kind} compact={compact} />
         <button type="button" className="flex items-start gap-3 text-left" onClick={() => setSelected(p.id)}>
           <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", TONES[p.kind])} aria-hidden>
             <Icon className="size-5" />

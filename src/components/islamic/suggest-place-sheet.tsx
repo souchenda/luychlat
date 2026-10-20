@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2Icon, LocateFixedIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
@@ -15,8 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { submittedThanks } from "@/lib/contributor-thanks"
 import { useKhmerT } from "@/lib/i18n/use-t"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
-import { PLACE_KINDS, usePlaceMutations, type PlaceKind } from "@/lib/places"
+import { placePhotoError } from "@/lib/place-photo"
+import { PLACE_KINDS, uploadPlacePhoto, usePlaceMutations, type PlaceKind } from "@/lib/places"
 import { PROVINCES } from "@/lib/prayer"
+import { useSessionStore } from "@/stores/session-store"
 
 /**
  * «ស្នើសុំបន្ថែមទីតាំង» (founder, 19/10/2026): a light suggestion for a place the finder is missing — the kind, the
@@ -35,6 +37,25 @@ export function SuggestPlaceSheet({ open, onOpenChange }: { open: boolean; onOpe
   const [address, setAddress] = useState("")
   const [point, setPoint] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)
+  // The place's photo (founder, 20/10/2026): the mosque's front or the shop's sign, so approvers can see it.
+  const userId = useSessionStore((s) => s.user?.id)
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const photoInput = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (!photo) return void setPreview(null)
+    const url = URL.createObjectURL(photo)
+    setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photo])
+
+  const pickPhoto = (file: File | undefined) => {
+    if (!file) return
+    const problem = placePhotoError(file)
+    if (problem) return void toast.error(t(problem))
+    setPhoto(file)
+  }
 
   const locate = async () => {
     setLocating(true)
@@ -52,16 +73,30 @@ export function SuggestPlaceSheet({ open, onOpenChange }: { open: boolean; onOpe
     setProvince("")
     setAddress("")
     setPoint(null)
+    setPhoto(null)
     void locate()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per opening
   }, [open])
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return void toast.error(t("suggest.nameRequired"))
     if (!point) return void toast.error(t("suggest.pinRequired"))
+    // The photo first (compressed, the member's own folder in the private bucket); a failure keeps the form open.
+    let photoPath: string | null = null
+    if (photo) {
+      if (!userId) return void toast.error(t("suggest.photoFailed"))
+      setUploading(true)
+      try {
+        photoPath = await uploadPlacePhoto(photo, userId)
+      } catch {
+        return void toast.error(t("suggest.photoFailed"))
+      } finally {
+        setUploading(false)
+      }
+    }
     add.mutate(
-      { kind, name: name.trim(), province: province || null, address: address.trim() || null, lat: point.lat, lng: point.lng, phone: null, note: null, photo_path: null },
+      { kind, name: name.trim(), province: province || null, address: address.trim() || null, lat: point.lat, lng: point.lng, phone: null, note: null, photo_path: photoPath },
       {
         onSuccess: () => {
           toast.success(submittedThanks(islamic), { duration: 8_000 })
@@ -74,7 +109,7 @@ export function SuggestPlaceSheet({ open, onOpenChange }: { open: boolean; onOpe
 
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={t("suggest.title")} description={t("suggest.intro")}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={(e) => void submit(e)} className="space-y-4">
         <div className="space-y-1.5">
           <Label>{t("suggest.kind")}</Label>
           <Segmented aria-label={t("suggest.kind")} value={kind} onChange={(v) => setKind(v as PlaceKind)} options={PLACE_KINDS.map((k) => ({ value: k, label: t(`suggest.kind.${k}`) }))} />
@@ -122,8 +157,42 @@ export function SuggestPlaceSheet({ open, onOpenChange }: { open: boolean; onOpe
           </div>
           <p className="text-xs text-muted-foreground">{t("suggest.pinHint")}</p>
         </div>
-        <Button type="submit" className="h-12 w-full text-base" disabled={add.isPending}>
-          {add.isPending && <Loader2Icon className="animate-spin" />}
+        <div className="space-y-1.5">
+          <Label htmlFor="suggest-photo">{t("suggest.photo")}</Label>
+          {/* No `capture`: the phone offers both the camera and the gallery. */}
+          <input
+            ref={photoInput}
+            id="suggest-photo"
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => {
+              pickPhoto(e.target.files?.[0])
+              e.target.value = ""
+            }}
+          />
+          {preview ? (
+            <div className="flex items-center gap-3 rounded-xl border p-2" data-testid="suggest-photo-preview">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a local preview (object URL) */}
+              <img src={preview} alt="" className="size-20 shrink-0 rounded-lg object-cover" />
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <Button type="button" size="sm" variant="outline" className="h-10" onClick={() => photoInput.current?.click()}>
+                  {t("suggest.photoReplace")}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" className="h-10 text-destructive" onClick={() => setPhoto(null)}>
+                  {t("suggest.photoRemove")}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button type="button" variant="outline" className="h-12 w-full" onClick={() => photoInput.current?.click()}>
+              {t("suggest.photoPick")}
+            </Button>
+          )}
+          <p className="text-xs text-muted-foreground">{t("suggest.photoHint")}</p>
+        </div>
+        <Button type="submit" className="h-12 w-full text-base" disabled={add.isPending || uploading}>
+          {(add.isPending || uploading) && <Loader2Icon className="animate-spin" />}
           {t("suggest.submit")}
         </Button>
       </form>

@@ -1,6 +1,6 @@
 /**
  * A member's place suggestion in the approval room «LCA Approval» (founder, 19/10/2026): the alert's text, its
- * [ ✅ អនុម័ត ] [ ❌ បដិសេធ ] [ 🗺️ Google Maps ] buttons and the line that replaces them once decided. Pure
+ * [ ✅ អនុម័ត ] [ ❌ បដិសេធ ] buttons and the line that replaces them once decided. Pure
  * (place-alerts.test.ts); sent by lib/server/place-alerts.ts.
  */
 
@@ -23,31 +23,50 @@ export const PLACE_KIND_LABEL: Record<PlaceKind, string> = {
   HALAL: "អាហារហាឡាល់ (Halal Food)",
 }
 
-export function placeAlertText(p: PendingPlace): string {
-  const where = [p.province, p.address].map((v) => v?.trim()).filter(Boolean).join(" · ") || "—"
+export type PlaceCard = PendingPlace & { contact?: string | null }
+
+/** The kind's mark on the card. */
+export const PLACE_KIND_BADGE: Record<PlaceKind, string> = { MOSQUE: "🕌", SURAU: "🤲", HALAL: "🍽️" }
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+/**
+ * The card in «LCA Approval» (founder, 20/10/2026) — HTML, the caption under the member's photo when they attached
+ * one (≤ 1024 characters), else the message itself: name, kind, province, the Google Maps link, who suggested it.
+ */
+export function placeAlertText(p: PlaceCard): string {
+  const url = mapsUrl(p.lat, p.lng)
+  const who = p.submitter?.trim() && p.submitter !== "—" ? p.submitter.trim() : "—"
+  const contact = p.contact?.trim()
+  const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
   return [
-    "🔔 សំណើបន្ថែមទីតាំងថ្មី (New Place Submission):",
-    `📍 ឈ្មោះ៖ ${p.name}`,
-    `🏷️ ប្រភេទ៖ ${PLACE_KIND_LABEL[p.kind] ?? p.kind}`,
-    `🗺️ ខេត្ត/អាសយដ្ឋាន៖ ${where}`,
-    ...(p.note?.trim() ? [`📝 កំណត់សម្គាល់៖ ${p.note.trim()}`] : []),
-    `👤 អ្នកស្នើសុំ៖ ${p.submitter || "—"}`,
+    "📍 <b>សំណើបញ្ចូលទីតាំងថ្មី</b>",
+    `• <b>ឈ្មោះ៖</b> ${esc(clip(p.name, 120))}`,
+    `• <b>ប្រភេទ៖</b> ${PLACE_KIND_BADGE[p.kind] ?? "📍"} ${PLACE_KIND_LABEL[p.kind] ?? esc(p.kind)}`,
+    `• <b>ខេត្ត/រាជធានី៖</b> ${esc(p.province?.trim() || "—")}`,
+    ...(p.address?.trim() ? [`• <b>អាសយដ្ឋាន៖</b> ${esc(clip(p.address.trim(), 200))}`] : []),
+    ...(p.note?.trim() ? [`• <b>កំណត់សម្គាល់៖</b> ${esc(clip(p.note.trim(), 200))}`] : []),
+    `• <b>តំណភ្ជាប់ផែនទី៖</b> ${url ? `<a href="${url}">មើលលើ Google Maps</a>` : "—"}`,
+    `• <b>អ្នកស្នើសុំ៖</b> 👤 ${esc(who)}${contact && contact !== who ? ` (${esc(contact)})` : ""}`,
+    "",
+    "សូមពិនិត្យរូបភាពខាងលើ និងចុចសម្រេចចិត្ត៖",
   ].join("\n")
 }
+
+/** No photo attached: the same card, as a message — it asks to check the details rather than a photo. */
+export const placeAlertTextNoPhoto = (p: PlaceCard) => placeAlertText(p).replace("សូមពិនិត្យរូបភាពខាងលើ និងចុចសម្រេចចិត្ត៖", "គ្មានរូបថតភ្ជាប់មកទេ — សូមពិនិត្យព័ត៌មានខាងលើ និងចុចសម្រេចចិត្ត៖")
 
 export const mapsUrl = (lat: number | null, lng: number | null) =>
   lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng) ? `https://www.google.com/maps?q=${lat},${lng}` : null
 
-export function placeAlertButtons(p: Pick<PendingPlace, "id" | "lat" | "lng">) {
-  const rows: ({ text: string; callback_data: string } | { text: string; url: string })[][] = [
+/** [ ✅ អនុម័ត ] [ ❌ បដិសេធ ] — the Google Maps link is in the card itself. */
+export function placeAlertButtons(p: Pick<PendingPlace, "id">) {
+  return [
     [
-      { text: "✅ អនុម័ត (Approve)", callback_data: `plr:a:${p.id}` },
-      { text: "❌ បដិសេធ (Reject)", callback_data: `plr:r:${p.id}` },
+      { text: "✅ អនុម័ត", callback_data: `plr:a:${p.id}` },
+      { text: "❌ បដិសេធ", callback_data: `plr:r:${p.id}` },
     ],
   ]
-  const url = mapsUrl(p.lat, p.lng)
-  if (url) rows.push([{ text: "🗺️ មើលលើ Google Maps", url }])
-  return rows
 }
 
 export const isPlaceReviewCallback = (data: string | undefined) => typeof data === "string" && data.startsWith("plr:")
