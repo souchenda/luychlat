@@ -119,7 +119,7 @@ describe("A re-preview flag is used only by the build that knows it (regression,
   it("the HD flag was consumed by the previous build (old-size portrait, message 806): each flag is listed in the code it is meant for", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     const listed = JSON.parse(sp.match(/const REPREVIEW_READY = (\[[^\]]*\])/)![1].replace(/'/g, '"')) as string[]
-    assert.ok(listed.includes("dilemma-poster") && !listed.includes("five-am") && !listed.includes("title-below")) // a used flag leaves the list
+    assert.ok(listed.includes("sleep-dua-wasl") && !listed.includes("dilemma-poster") && !listed.includes("five-am")) // a used flag leaves the list
     assert.match(read("supabase/migrations/20270216000000_repreview_hd_portrait_live.sql"), /'repreview', 'hd-portrait-live'/)
   })
 })

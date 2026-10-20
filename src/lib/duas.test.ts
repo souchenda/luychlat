@@ -44,7 +44,8 @@ describe("Posters: no parentheses, no word-for-word Khmer (founder, 19/10/2026)"
     assert.equal(posterMeaning(sleep), "« ឱអល់ឡោះ! ដោយព្រះនាមទ្រង់ ទូលបង្គំលង់លក់ និងភ្ញាក់ដឹងខ្លួនឡើងវិញ។ »")
     assert.equal(sleep.km, "« ឱអល់ឡោះ! ដោយព្រះនាមទ្រង់ ទូលបង្គំលង់លក់ (ស្លាប់) និងភ្ញាក់ដឹងខ្លួនឡើងវិញ (រស់)។ »")
     assert.match(sleep.note!, /^ក្នុងសាសនាឥស្លាម ដំណេកត្រូវបានចាត់ទុកជាការស្លាប់តូចមួយ/)
-    assert.equal(sleep.phonetic, "ប៊ីស-មី-កា អាល់-ឡា-ហ៊ុម្ម៉ា អា-មូ-ទុ វ៉ា-អាហ៍-យ៉ា")
+    // Regression (founder, 20/10/2026): «ប៊ីស-មី-កា អាល់-ឡា…» split the wasl — the kaf joins the lam.
+    assert.equal(sleep.phonetic, "ប៊ីស-មី-កល់-ឡ-ហ៊ុម្ម៉ា អា-មូ-ទូ វ៉ា-អាហ៍-យ៉ា")
   })
   it("the loan phrases are gone from the library the founder vetted", () => {
     for (const id of ["wake", "leave-home", "enter-mosque", "leave-mosque", "before-eating", "after-eating", "distress", "iftar", "travel", "sleep"]) {

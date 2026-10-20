@@ -759,7 +759,7 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
-  const REPREVIEW_READY = ["dilemma-poster"]
+  const REPREVIEW_READY = ["sleep-dua-wasl"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // Every holiday — national and royal, Islamic, Chinese, global (founder, 20/10/2026): previewed from 48 hours before at
   // 08:00, published at 05:00 on the day once approved (a missed preview window is caught up until then — idempotent).
@@ -778,6 +778,10 @@ export async function scheduledPostsTick() {
   }
   for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute, offset))
     await repreview("NATIONAL_DAY", `${day.key}-${date}`, { key: day.key, day: date }, atMinute(date, PUBLISH_MINUTE))
+  // Any other waiting post flagged by a migration (e.g. a corrected du'a reading — founder, 20/10/2026).
+  const { data: flagged } = await botDb().rpc("bot_posts_flagged", { p_key: botKey() })
+  for (const f of (flagged as { kind: PostKind; post_key: string; payload: Record<string, string>; publish_at: string }[] | null) ?? [])
+    if (f.kind !== "NATIONAL_DAY" && f.kind !== "DILEMMA") await repreview(f.kind, f.post_key, f.payload, f.publish_at)
   // Today's money dilemma, from its preview time until midnight (a held post can still be approved till then).
   if (DILEMMA_WEEKDAYS.includes(new Date(`${now.day}T00:00:00Z`).getUTCDay()) && now.hour * 60 + now.minute >= DILEMMA_MINUTE - 45)
     await repreview("DILEMMA", now.day, { day: now.day }, atMinute(now.day, DILEMMA_MINUTE))

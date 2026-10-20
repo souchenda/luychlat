@@ -184,7 +184,8 @@ export const DUAS: Dua[] = [
     id: "sleep",
     title: { km: "ឌុអាមុនចូលគេង", en: "Before sleeping" },
     arabic: "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",
-    phonetic: "ប៊ីស-មី-កា អាល់-ឡា-ហ៊ុម្ម៉ា អា-មូ-ទុ វ៉ា-អាហ៍-យ៉ា",
+    // The kaf joins the lam (wasl: «bismika-llāhumma») — the founder's correction, 20/10/2026.
+    phonetic: "ប៊ីស-មី-កល់-ឡ-ហ៊ុម្ម៉ា អា-មូ-ទូ វ៉ា-អាហ៍-យ៉ា",
     latin: "Bismika Allāhumma amūtu wa aḥyā",
     km: "« ឱអល់ឡោះ! ដោយព្រះនាមទ្រង់ ទូលបង្គំលង់លក់ (ស្លាប់) និងភ្ញាក់ដឹងខ្លួនឡើងវិញ (រស់)។ »",
     poster: "« ឱអល់ឡោះ! ដោយព្រះនាមទ្រង់ ទូលបង្គំលង់លក់ និងភ្ញាក់ដឹងខ្លួនឡើងវិញ។ »",
