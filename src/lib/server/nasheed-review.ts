@@ -3,9 +3,10 @@
 // ❌ rejects it and deletes the file. Who may tap is checked in the database (bot_nasheed_review → super admin).
 import { createClient } from "@supabase/supabase-js"
 
-import { contentTypeOf, parseNasheedCallback, reviewButtons, reviewCaption, SUBMISSIONS_BUCKET, type ReviewState } from "@/lib/nasheed"
+import { contentTypeOf, demotedNotice, demotedReport, NASHEED_PUBLIC_CAP, overflowReport, parseNasheedCallback, reviewButtons, reviewCaption, submittedThanksNasheed, SUBMISSIONS_BUCKET, type ReviewState } from "@/lib/nasheed"
+import { kmClock } from "@/lib/scheduled-posts"
 import { communityBadge } from "@/lib/contributor-thanks"
-import { marketingChats } from "@/lib/server/admin-routes"
+import { founderChats, marketingChats } from "@/lib/server/admin-routes"
 import { logEvent } from "@/lib/server/events"
 import { thankContributor } from "@/lib/server/place-alerts"
 import { botDb, botKey, botToken, tg } from "@/lib/server/telegram-bot"
@@ -26,10 +27,20 @@ async function submitterBadge(db: ReturnType<typeof service>, userId: string | n
   return communityBadge(Boolean((data as { enabled?: boolean } | null)?.enabled))
 }
 
-async function submitterName(db: ReturnType<typeof service>, userId: string | null) {
-  if (!userId) return "—"
-  const { data } = await db.from("profiles").select("display_name").eq("id", userId).maybeSingle()
-  return (data as { display_name?: string } | null)?.display_name ?? "—"
+type Contact = { name: string; contact: string | null; chat_id: number | null }
+/** The submitter's name, phone or Telegram @, and their chat (bot_member_contact). */
+async function submitterContact(userId: string | null): Promise<Contact> {
+  if (!userId) return { name: "—", contact: null, chat_id: null }
+  const { data } = await botDb().rpc("bot_member_contact", { p_key: botKey(), p_user: userId })
+  const c = (data as Partial<Contact> | null) ?? {}
+  return { name: c.name ?? "—", contact: c.contact ?? null, chat_id: c.chat_id ? Number(c.chat_id) : null }
+}
+
+/** The thank-you right after a public submission, in the submitter's private Telegram chat when linked (founder, 20/10/2026). */
+async function thankSubmitterNow(title: string, contact: Contact) {
+  if (!contact.chat_id) return
+  const res = await tg("sendMessage", { chat_id: contact.chat_id, text: submittedThanksNasheed(title, true), parse_mode: "HTML", disable_web_page_preview: true })
+  logEvent(res.ok ? "info" : "warn", "nasheed", res.ok ? "Submission thanks sent on Telegram" : `Submission thanks not delivered: ${res.description ?? "?"}`, { fold: !res.ok })
 }
 
 /** Sends a new submission to the founder (once). False when it could not be sent; the track stays PENDING. */
@@ -47,7 +58,9 @@ export async function notifySubmission(id: string): Promise<boolean> {
   }
   const bytes = new Uint8Array(await file.data.arrayBuffer())
   const ext = path.split(".").pop() ?? "mp3"
-  const caption = reviewCaption({ title: row.title_km, artist: row.artist, submitter: await submitterName(db, row.submitted_by), state: "PENDING", badge: await submitterBadge(db, row.submitted_by) })
+  const who = await submitterContact(row.submitted_by)
+  await thankSubmitterNow(row.title_km, who)
+  const caption = reviewCaption({ title: row.title_km, artist: row.artist, submitter: who.name, contact: who.contact, state: "PENDING", badge: await submitterBadge(db, row.submitted_by) })
   let sent = false
   for (const chat of await marketingChats()) {
     const form = new FormData()
@@ -68,7 +81,7 @@ export async function notifySubmission(id: string): Promise<boolean> {
   return sent
 }
 
-type Callback = { id: string; data?: string; from?: { id: number }; message?: { message_id: number; chat: { id: number; type: string } } }
+type Callback = { id: string; data?: string; from?: { id: number; first_name?: string; last_name?: string; username?: string }; message?: { message_id: number; chat: { id: number; type: string } } }
 
 const answer = (id: string, text: string, alert = false) => tg("answerCallbackQuery", { callback_query_id: id, text, show_alert: alert })
 
@@ -107,12 +120,66 @@ export async function handleNasheedCallback(cb: Callback) {
   await answer(cb.id, parsed.approve ? "✅ បានអនុម័ត — ផ្សាយហើយ" : "❌ បានបដិសេធ")
   // The member's thanks, in their community's words (bell + Telegram).
   if (parsed.approve) await thankContributor("qasidah", row.id).catch(() => {})
+  // At most 30 public tracks: the least-played member track past its first week moves to its submitter's own tracks.
+  if (parsed.approve) await enforceNasheedCapacity().catch((e) => logEvent("error", "nasheed", `Capacity check failed: ${(e as Error).message}`, { fold: true }))
   const state: ReviewState = parsed.approve ? "APPROVED" : "REJECTED"
   await tg("editMessageCaption", {
     chat_id: chat.id,
     message_id: cb.message!.message_id,
-    caption: reviewCaption({ title: row.title_km, artist: row.artist, submitter: await submitterName(db, row.submitted_by), state, badge: await submitterBadge(db, row.submitted_by) }),
+    caption: reviewCaption({
+      title: row.title_km,
+      artist: row.artist,
+      ...(await submitterContact(row.submitted_by).then((c) => ({ submitter: c.name, contact: c.contact }))),
+      state,
+      badge: await submitterBadge(db, row.submitted_by),
+      // Who decided and when (founder, 20/10/2026).
+      decidedBy: [cb.from?.first_name, cb.from?.last_name].filter(Boolean).join(" ").trim() || (cb.from?.username ? `@${cb.from.username}` : null),
+      decidedAt: kmClock(new Date().toISOString()),
+    }),
     parse_mode: "HTML",
     reply_markup: { inline_keyboard: [] },
   })
+}
+
+/**
+ * The community library holds at most 30 public tracks (founder, 20/10/2026). Over it, the least-played member track
+ * approved more than 7 days ago is moved — never deleted — into its submitter's «បទផ្ទាល់ខ្លួន»: its file is copied
+ * back into their own private folder, the public copy removed, the submitter thanked (bell + Telegram) and the founder
+ * told. Nothing movable (every member track in its first week): the founder is told, nothing is moved.
+ */
+export async function enforceNasheedCapacity(): Promise<number> {
+  if (!reviewConfigured()) return 0
+  const db = service()
+  let moved = 0
+  for (let guard = 0; guard < 5; guard++) {
+    const { data, error } = await botDb().rpc("bot_nasheed_overflow", { p_key: botKey(), p_cap: NASHEED_PUBLIC_CAP })
+    if (error) throw new Error(error.message)
+    const r = data as { total: number; track: { id: string; title_km: string; audio_path: string; submitted_by: string; play_count: number } | null } | null
+    if (!r || r.total <= NASHEED_PUBLIC_CAP) break
+    if (!r.track) {
+      for (const chat of await founderChats()) await tg("sendMessage", { chat_id: chat, text: overflowReport(r.total), parse_mode: "HTML" })
+      break
+    }
+    const t = r.track
+    const ext = t.audio_path.split(".").pop() ?? "mp3"
+    const ownPath = `${t.submitted_by}/${crypto.randomUUID()}.${ext}`
+    const file = await db.storage.from(PUBLIC_BUCKET).download(t.audio_path)
+    if (file.error || !file.data) throw new Error(`public file not readable: ${t.audio_path}`)
+    const up = await db.storage.from(SUBMISSIONS_BUCKET).upload(ownPath, file.data, { contentType: contentTypeOf(ext), upsert: false })
+    if (up.error) throw new Error(`private copy failed: ${up.error.message}`)
+    const note = demotedNotice(t.title_km)
+    const { data: done, error: demoteError } = await botDb().rpc("bot_nasheed_demote", { p_key: botKey(), p_id: t.id, p_own_path: ownPath, p_title: note.title, p_message: note.plain })
+    const d = done as { chat_id: number | null; title: string; play_count: number } | null
+    if (demoteError || !d) {
+      await db.storage.from(SUBMISSIONS_BUCKET).remove([ownPath])
+      throw new Error(`demote refused: ${demoteError?.message ?? "already moved"}`)
+    }
+    await db.storage.from(PUBLIC_BUCKET).remove([t.audio_path])
+    moved++
+    if (d.chat_id) await tg("sendMessage", { chat_id: d.chat_id, text: note.html, parse_mode: "HTML", disable_web_page_preview: true })
+    let told = 0
+    for (const chat of await founderChats()) if ((await tg("sendMessage", { chat_id: chat, text: demotedReport(d.title, d.play_count), parse_mode: "HTML" })).ok) told++
+    logEvent("info", "nasheed", `«${d.title}» (${d.play_count} plays) moved to its submitter's own tracks · founder told in ${told} chat(s)`)
+  }
+  return moved
 }

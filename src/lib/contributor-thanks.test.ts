@@ -41,9 +41,9 @@ describe("Thanks to contributors, in their own community's words (founder, 19/10
     assert.match(sql, /where p\.id = p_id and p\.approved and p\.source = 'community'/)
     assert.match(sql, /where t\.id = p_id and t\.status = 'APPROVED'/)
     // The toasts follow the member's mode too.
-    for (const f of ["src/components/islamic/suggest-place-sheet.tsx", "src/app/(app)/islamic/nasheed/page.tsx"]) {
-      assert.match(readFileSync(join(process.cwd(), f), "utf8"), /toast\.success\(submittedThanks\(islamic\)/, f)
-    }
+    assert.match(readFileSync(join(process.cwd(), "src/components/islamic/suggest-place-sheet.tsx"), "utf8"), /toast\.success\(submittedThanks\(islamic\)/)
+    // A qasidah is thanked in a dialog with the founder's Islamic words (20/10/2026 — lib/nasheed submittedThanksNasheed).
+    assert.match(readFileSync(join(process.cwd(), "src/app/(app)/islamic/nasheed/page.tsx"), "utf8"), /submittedThanksNasheed\(thanked, false\)/)
   })
 
   it("the approval room's cards carry the member's community: [ 🌙 ឥស្លាម ] or [ ☀️ មហាជន ]", () => {

@@ -11,6 +11,8 @@ import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 import { isCacheableAudio } from "@/lib/audio-cache"
 import { clock, quranAudioUrl, reciterOf, SLEEP_MINUTES, sleepAfter, sleepDue, type SleepTimer } from "@/lib/quran-audio"
 import { cn } from "@/lib/utils"
+import { PLAY_COUNT_SECONDS } from "@/lib/nasheed"
+import { countNasheedPlay } from "@/lib/nasheed-data"
 
 type PlayerState = { kind: AudioKind | null; queue: Track[]; index: number; playing: boolean; position: number; duration: number; sleep: SleepTimer; loading: boolean }
 
@@ -21,6 +23,8 @@ type PlayerState = { kind: AudioKind | null; queue: Track[]; index: number; play
 export const useAudioPlayer = create<PlayerState>(() => ({ kind: null, queue: [], index: 0, playing: false, position: 0, duration: 0, sleep: null, loading: false }))
 
 let audio: HTMLAudioElement | null = null
+/** The qasidah already counted for this listen (founder, 20/10/2026: a play = past 15 seconds). */
+let counted: string | null = null
 
 function element(): HTMLAudioElement {
   if (audio) return audio
@@ -34,6 +38,13 @@ function element(): HTMLAudioElement {
   a.addEventListener("loadedmetadata", () => set({ duration: a.duration }))
   a.addEventListener("timeupdate", () => {
     set({ position: a.currentTime })
+    // A qasidah listened to past 15 seconds counts once per listen (the database throttles each listener).
+    const { kind, queue, index } = useAudioPlayer.getState()
+    const key = queue[index]?.key
+    if (kind === "nasheed" && key?.startsWith("nasheed:") && counted !== key && a.currentTime >= PLAY_COUNT_SECONDS) {
+      counted = key
+      void countNasheedPlay(key.slice("nasheed:".length))
+    }
     // The sleep timer (minutes): stop softly when it runs out.
     if (sleepDue(useAudioPlayer.getState().sleep, Date.now())) {
       a.pause()
@@ -91,6 +102,7 @@ async function playAt(index: number) {
   if (!track || !kind) return
   const a = element()
   useAudioPlayer.setState({ index, position: 0, duration: 0, loading: true })
+  counted = null
   // A recitation is asked with CORS, so the service worker can keep it for offline listening (lib/audio-cache.ts);
   // our own files (the Adhan, cleared nasheeds) as before.
   if (isCacheableAudio(track.src)) a.crossOrigin = "anonymous"

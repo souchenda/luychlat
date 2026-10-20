@@ -64,7 +64,7 @@ describe("Community qasidah — never public before the founder's ✅", () => {
     const c = reviewCaption({ title: "<b>x</b>", artist: "A & B", submitter: "Sok", state: "PENDING" })
     assert.match(c, /&lt;b&gt;x&lt;\/b&gt;/)
     assert.match(c, /A &amp; B/)
-    assert.match(c, /👤 អ្នកចែករំលែក៖ Sok/)
+    assert.match(c, /• <b>អ្នកចែករំលែក៖<\/b> 👤 Sok$/m)
     assert.doesNotMatch(c, /<i>/)
   })
 })

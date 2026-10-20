@@ -27,6 +27,10 @@ export type NasheedTrack = {
   credit: string | null
   submitted_by: string | null
   likes: number
+  /** Listens past 15 seconds (nasheed_count_play). */
+  play_count?: number
+  /** Moved from the community library into its submitter's own tracks (the 30-track cap). */
+  demoted_at?: string | null
   created_at: string
 }
 
@@ -216,4 +220,9 @@ export function usePrivateQueue(tracks: NasheedTrack[], locale: string) {
       })
     },
   })
+}
+
+/** A listen past 15 seconds (the player calls it once per listen); the database counts it at most every 30 minutes. */
+export async function countNasheedPlay(id: string): Promise<void> {
+  await getSupabaseBrowserClient()?.rpc("nasheed_count_play", { p_id: id })
 }

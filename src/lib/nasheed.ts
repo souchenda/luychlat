@@ -7,6 +7,8 @@
  *   "community/<id>.mp3" or "<uuid>.mp3"  a file in the public bucket «nasheed-audio»
  */
 
+import * as G from "@/lib/islamic/glossary"
+
 export const SUBMIT_MAX_BYTES = 20 * 1024 * 1024
 export const SUBMIT_TYPES = ["audio/mpeg", "audio/mp4", "audio/aac", "audio/x-m4a"] as const
 export const SUBMISSIONS_BUCKET = "nasheed-submissions"
@@ -91,27 +93,80 @@ export function parseNasheedCallback(data: string | undefined): { id: string; ap
   return m ? { id: m[1], approve: m[2] === "a" } : null
 }
 
-export const reviewButtons = (id: string) => [[{ text: "✅ អនុម័ត (Approve)", callback_data: `ns:${id}:a` }, { text: "❌ បដិសេធ (Reject)", callback_data: `ns:${id}:r` }]]
+export const reviewButtons = (id: string) => [[{ text: "✅ អនុម័តចូលបណ្ណាល័យរួម", callback_data: `ns:${id}:a` }, { text: "❌ បដិសេធ", callback_data: `ns:${id}:r` }]]
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 export type ReviewState = "PENDING" | "APPROVED" | "REJECTED"
 
-/** The caption under the audio in the founder's chat. */
-export function reviewCaption(v: { title: string; artist: string; submitter: string; state: ReviewState; badge?: string }) {
-  const head =
-    v.state === "APPROVED" ? "✅ បានអនុម័ត — ផ្សាយក្នុង «🎧 ស្ដាប់ក្នុងអេប» ហើយ" : v.state === "REJECTED" ? "❌ បានបដិសេធ — ឯកសារត្រូវបានលុប" : "📤 បទកសាដះថ្មីពីសមាជិក — រង់ចាំការអនុម័ត"
+/**
+ * The review card in «LCA Approval» (founder, 20/10/2026): the request, title, singer, who shared it (name and phone or
+ * Telegram @), then the decision with who decided and when once tapped.
+ */
+export function reviewCaption(v: { title: string; artist: string; submitter: string; contact?: string | null; state: ReviewState; badge?: string; decidedBy?: string | null; decidedAt?: string | null }) {
+  const who = `${esc(v.submitter)}${v.contact && v.contact !== v.submitter ? ` (${esc(v.contact)})` : ""}`
+  const decided =
+    v.state === "PENDING"
+      ? []
+      : [
+          v.state === "APPROVED" ? "✅ <b>បានអនុម័តចូលបណ្ណាល័យរួម</b>" : "❌ <b>បានបដិសេធ — ឯកសារត្រូវបានលុប</b>",
+          ...(v.decidedBy ? [`👤 ដោយ៖ ${esc(v.decidedBy)}${v.decidedAt ? ` · ⏰ ${esc(v.decidedAt)}` : ""}`] : []),
+          "",
+        ]
   return [
     ...(v.badge ? [esc(v.badge)] : []),
-    `<b>${head}</b>`,
+    ...decided,
+    "🎵 <b>សំណើចែករំលែកបទកសាដះ/ណាស្សីដថ្មី</b>",
+    `• <b>ចំណងជើងបទ៖</b> ${esc(v.title)}`,
+    `• <b>អ្នកសូត្រ/ច្រៀង៖</b> ${esc(v.artist)}`,
+    `• <b>អ្នកចែករំលែក៖</b> 👤 ${who}`,
     "",
-    `🎵 ចំណងជើង៖ ${esc(v.title)}`,
-    `🎤 អ្នកច្រៀង / ក្រុម៖ ${esc(v.artist)}`,
-    `👤 អ្នកចែករំលែក៖ ${esc(v.submitter)}`,
-    "",
-    "អ្នកចែករំលែកបានបញ្ជាក់ថា ជាបទកសាដះ / ណាស្សីដឥស្លាមពិតប្រាកដ គ្មានខ្លឹមសារខុសឆ្គង។ ចែករំលែកដើម្បីស្តាប់ក្នុងសហគមន៍ដោយមិនរកប្រាក់ចំណេញ — លុបចេញភ្លាមៗ បើម្ចាស់កម្មសិទ្ធិស្នើសុំ។",
-    v.state === "PENDING" ? "សូមស្ដាប់មុននឹងអនុម័ត — មិនទាន់មានអ្នកណាឃើញទេ។" : "",
-  ]
-    .filter((line, i, all) => line || i < all.length - 1)
-    .join("\n")
+    v.state === "PENDING" ? "សូមស្តាប់សាកល្បង និងចុចសម្រេចចិត្ត៖" : "ចែករំលែកដើម្បីស្តាប់ក្នុងសហគមន៍ដោយមិនរកប្រាក់ចំណេញ — លុបចេញភ្លាមៗ បើម្ចាស់កម្មសិទ្ធិស្នើសុំ។",
+  ].join("\n")
 }
+
+// ─── The community library: 30 public tracks, plays, and the polite move into «បទផ្ទាល់ខ្លួន» (founder, 20/10/2026) ───
+
+export const NASHEED_PUBLIC_CAP = 30
+export const NASHEED_GRACE_DAYS = 7
+/** A listen counts once it passes 15 seconds (once per listener and track every 30 minutes — the database). */
+export const PLAY_COUNT_SECONDS = 15
+
+/** «🎧 ១២ ដង» on a public track. */
+export const playsChip = (n: number) => `🎧 ${String(n).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])} ដង`
+
+/** The thank-you right after a public submission — the app's dialog (plain) and the submitter's Telegram (HTML). */
+export function submittedThanksNasheed(title: string, html: boolean): string {
+  const b = (s: string) => (html ? `<b>${esc(s)}</b>` : s)
+  return [
+    `🕌 ${b(`${G.ASSALAMU_ALAIKUM} បងប្អូន!`)}`,
+    "",
+    `អេប លុយឆ្លាត សូមថ្លែងអំណរគុណយ៉ាងជ្រាលជ្រៅចំពោះការចូលរួមចែករំលែកបទ ${b(`«${title}»`)}។ ក្រុមការងារអេដមីននឹងពិនិត្យ និងអនុម័តដាក់បញ្ចូលក្នុងបណ្ណាល័យសហគមន៍ឆាប់ៗនេះ។`,
+    "",
+    `${G.JAZAKALLAH} (Jazakallahu Khayran)! សូមអល់ឡោះ ﷻ ប្រទានពរជ័យ និង${G.BARAKAH}ដល់បងប្អូន! 🤲✨`,
+  ].join("\n")
+}
+
+/** The submitter's note when their track makes room for new ones (Telegram HTML and the in-app bell). */
+export function demotedNotice(title: string): { html: string; title: string; plain: string } {
+  const body = (b: (s: string) => string) =>
+    [
+      `🕌 ${b("សារពី អេប លុយឆ្លាត (សហគមន៍ឥស្លាម)")}`,
+      "",
+      `« ${b(`${G.ASSALAMU_ALAIKUM} បងប្អូន!`)}`,
+      `បទ ${b(title)} ដែលបងប្អូនបានចូលរួមចែករំលែក ត្រូវបានប្រព័ន្ធដកចេញពីបណ្ណាល័យសាធារណៈជាបណ្តោះអាសន្ន ដោយសារមិនសូវមានការចុចស្តាប់គាំទ្រ ដើម្បីទុកកន្លែងសម្រាប់បទថ្មីៗ។`,
+      "",
+      `${G.JAZAKALLAH} (Jazakallahu Khayran) សម្រាប់ការចូលរួមចំណែកដ៏មានតម្លៃរបស់បងប្អូន! សូមអល់ឡោះ ﷻ ប្រទានពរជ័យ និង${G.BARAKAH}ដល់បងប្អូន និងក្រុមគ្រួសារ! 🤲✨ »`,
+      "",
+      "បញ្ជាក់៖ បទនេះនៅតែរក្សាទុកក្នុងផ្ទាំង «បទផ្ទាល់ខ្លួន» (My Tracks) របស់បងប្អូនដដែល។",
+    ].join("\n")
+  return { html: body((s) => `<b>${esc(s)}</b>`), title: `🕌 ${G.ASSALAMU_ALAIKUM} — បទ «${title}» នៅក្នុងបទផ្ទាល់ខ្លួនរបស់អ្នក`, plain: body((s) => s) }
+}
+
+/** The line to the founder when a track was moved. */
+export const demotedReport = (title: string, plays: number) =>
+  `ℹ️ <b>បង្វិលបទចម្រៀង៖</b> បទ «${esc(title)}» (អ្នកស្តាប់៖ ${plays} ដង) ត្រូវបានប្តូរទៅកាន់បទផ្ទាល់ខ្លួនរបស់អ្នក Upload ដើម្បីបើកផ្លូវឱ្យបទថ្មី។`
+
+/** Over 30 with nothing movable (every member track still in its first 7 days, or the app's own): the founder is told. */
+export const overflowReport = (total: number) =>
+  `ℹ️ <b>បណ្ណាល័យកសាដះ៖</b> មាន ${total} បទ (លើស ${NASHEED_PUBLIC_CAP}) — មិនទាន់មានបទណាអាចបង្វិលចេញបានទេ ព្រោះបទរបស់សមាជិកទាំងអស់នៅក្នុង ${NASHEED_GRACE_DAYS} ថ្ងៃដំបូង។`

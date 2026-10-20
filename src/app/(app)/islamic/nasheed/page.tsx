@@ -12,9 +12,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useKhmerT, useT } from "@/lib/i18n/use-t"
-import { submittedThanks } from "@/lib/contributor-thanks"
-import { useIslamicEnabled } from "@/lib/islamic-settings"
-import { privateError, submissionError, type NasheedVisibility } from "@/lib/nasheed"
+import { playsChip, privateError, submissionError, submittedThanksNasheed, type NasheedVisibility } from "@/lib/nasheed"
 import {
   nasheedQueue,
   useDeletePrivateNasheed,
@@ -113,7 +111,7 @@ export default function NasheedPage() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{x.title_km}</span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {x.artist} · {t("nasheed.privateBadge")}
+                      {x.artist} · {t(x.demoted_at ? "nasheed.demotedBadge" : "nasheed.privateBadge")}
                     </span>
                   </span>
                   <button
@@ -163,7 +161,9 @@ export default function NasheedPage() {
                   <PlayButton kind="nasheed" queue={queue} index={queue().findIndex((q) => q.key === `nasheed:${x.id}`)} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{title(x)}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{x.artist}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {x.artist} · {playsChip(x.play_count ?? 0)}
+                    </span>
                     {(x.credit || x.submitted_by) && (
                       <span className="block truncate text-[11px] text-muted-foreground/80">{x.credit ?? t("nasheed.byMember")}</span>
                     )}
@@ -253,13 +253,14 @@ function LikeButton({ liked, count, label, onToggle }: { liked: boolean; count: 
  */
 function ShareSheet({ open, onOpenChange, onSavedPrivate }: { open: boolean; onOpenChange: (open: boolean) => void; onSavedPrivate: () => void }) {
   const t = useKhmerT()
-  const islamic = useIslamicEnabled()
   const submit = useSubmitNasheed()
   const savePrivate = useSavePrivateNasheed()
   // 🌐 to the community library (reviewed first) or 🔒 for my own listening at once (founder, 20/10/2026).
   const [visibility, setVisibility] = useState<NasheedVisibility>("public")
   const isPublic = visibility === "public"
   const busy = submit.isPending || savePrivate.isPending
+  // The thank-you right after a public submission (founder, 20/10/2026) — a dialog, not a passing toast.
+  const [thanked, setThanked] = useState<string | null>(null)
   const [title, setTitle] = useState("")
   const [artist, setArtist] = useState("")
   const [file, setFile] = useState<File | null>(null)
@@ -316,7 +317,7 @@ function ShareSheet({ open, onOpenChange, onSavedPrivate }: { open: boolean; onO
       { title: title.trim(), artist: artist.trim(), file, authentic },
       {
         onSuccess: () => {
-          toast.success(submittedThanks(islamic), { duration: 8_000 })
+          setThanked(title.trim())
           reset()
           onOpenChange(false)
         },
@@ -333,6 +334,15 @@ function ShareSheet({ open, onOpenChange, onSavedPrivate }: { open: boolean; onO
   )
 
   return (
+    <>
+    <BottomSheet open={thanked !== null} onOpenChange={(v) => !v && setThanked(null)} title={t("nasheed.thanksTitle")}>
+      <div className="space-y-4" data-testid="nasheed-thanks">
+        <p className="whitespace-pre-line text-sm leading-relaxed">{thanked !== null ? submittedThanksNasheed(thanked, false) : ""}</p>
+        <Button type="button" className="h-11 w-full" onClick={() => setThanked(null)}>
+          {t("nasheed.thanksClose")}
+        </Button>
+      </div>
+    </BottomSheet>
     <BottomSheet open={open} onOpenChange={onOpenChange} title={t("nasheed.shareSheetTitle")}>
       <form onSubmit={send} className="space-y-3">
         <Segmented
@@ -377,6 +387,7 @@ function ShareSheet({ open, onOpenChange, onSavedPrivate }: { open: boolean; onO
         </Button>
       </form>
     </BottomSheet>
+    </>
   )
 }
 
