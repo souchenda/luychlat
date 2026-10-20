@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 20/10/2026 · 18:00 (Cambodia time)
+**Last updated:** 20/10/2026 · 17:45 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -43,7 +43,8 @@ dropped between sessions. The founder reviews it every evening.
 - [ ] Fiqh reference assistant screen — the guarded back end is live (a0ffcd7)
 - [/] The founder's du'a texts vs the app's: after eating decided (Sunan Abi Dawud 3850), before eating rewritten; worry / debt still open ⛔ រង់ចាំស្ថាបនិកសម្រេចអត្ថបទឌុអា ទុក្ខ និងបំណុល
 - [/] Telegram bot audio Adhan alert — /adhan on | off and the switch under Settings › bot prayer alerts; the app-wide default Adhan with prayer, time and place (Telegram's own notification sound rings on a locked iPhone; the Adhan plays on a tap) ⛔ រង់ចាំគ្រួសារបើក /adhan on — តេស្តអាហ្សានបានដល់ទូរស័ព្ទទាំង ៣ ហើយ (20/10)
-- [/] Prayer-time web push for Islamic Mode members (Android rings with the app closed) and counts in the prayer-alert log — approved by the founder 20/10/2026
+- [/] Prayer-time web push for Islamic Mode members (Android rings with the app closed) and counts in the prayer-alert log (949fd3e)
+- [/] Native Adhan in the Android app — exact-minute alarms on the «Prayer Times Adhan» channel, screen locked, app closed (f88008f) ⛔ រង់ចាំការសាងសង់ APK 1.2 (deploy/build-apk.sh)
 - [x] Place suggestions with a photo — the approval card is the photo; the directory shows it (0264ca3)
 - [x] Halal finance lesson posters: the principle and its money takeaway on every one of the 14 (a730c5f); today's lesson 13 replaced (c5c9d4c)
 
@@ -67,6 +68,7 @@ dropped between sessions. The founder reviews it every evening.
 - [x] REPLACE OLD WITH NEW — an improved version of today's published post is offered with 🔄 and replaces the old one (c5c9d4c)
 - [x] Reports (nightly card, morning briefing, end-of-day, fuel sync, new members) to the founder's private chat only — «LCA Approval» stays an approval queue (7f02e42)
 - [x] Toasts below the iPhone notch / Dynamic Island (4a2c4cd)
+- [/] A note typed after a slip or entry attaches to it (5 minutes, or a reply to the card); its words set the category and «👶 សម្រាប់កូន»; [📝 បន្ថែមចំណាំ] on the slip card (1458070, 41b35c1)
 - [/] Daily Task Scorecard in the founder's nightly report — completed and stuck items with their reasons, from ROADMAP.md and today's deploys
 - [x] Approver name, @username and time on every post card after ✅ / 🚀 / ❌; per-approver counts (Staff Performance) in the founder's nightly card
 
