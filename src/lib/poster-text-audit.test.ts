@@ -18,7 +18,8 @@ const LOANS = /ក្នុងនាមព្រះអង្គ|មានចេ�
 function posterTexts(): [string, string][] {
   const rows: [string, string][] = []
   for (const t of TIPS) rows.push([`tip ${t.id} title`, t.title.km], [`tip ${t.id} body`, t.body.km])
-  for (const t of ISLAMIC_TIPS) rows.push([`islamic tip ${t.id} title`, t.title.km], [`islamic tip ${t.id} body`, t.body.km])
+  for (const t of ISLAMIC_TIPS)
+    rows.push([`islamic tip ${t.id} title`, t.title.km], [`islamic tip ${t.id} body`, t.body.km], [`islamic tip ${t.id} poster principle`, t.poster.principle], [`islamic tip ${t.id} poster takeaway`, t.poster.takeaway])
   MORNING_QUOTES.forEach((q, i) => rows.push([`morning quote ${i}`, q]))
   rows.push(["spotlight hook", SPOTLIGHT_HOOK], ["spotlight call", SPOTLIGHT_CALL])
   for (const p of SPOTLIGHT_PILLARS) rows.push([`spotlight ${p.title}`, `${p.title} ${p.line} ${p.sub}`])

@@ -8,7 +8,12 @@
 import * as G from "@/lib/islamic/glossary"
 import type { Tip } from "@/lib/tips"
 
-export type IslamicTip = Tip & { ref: { label: string; url: string } }
+/**
+ * `poster`: the lesson on its graphic (founder, 20/10/2026 — lesson 13 repeated its title and lost the advice): the
+ * religious principle (white), then the practical money takeaway (gold) — saving, debts, budgets, honest trade —
+ * each one sentence, together at most three lines, no parentheses. The whole lesson stays in the caption.
+ */
+export type IslamicTip = Tip & { ref: { label: string; url: string }; poster: { principle: string; takeaway: string } }
 
 const quran = (surah: string, s: number, a: number) => ({ label: `${surah} ${s}:${a}`, url: `https://quran.com/${s}/${a}` })
 const bukhari = (n: number) => ({ label: `Sahih al-Bukhari ${n}`, url: `https://sunnah.com/bukhari:${n}` })
@@ -18,6 +23,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-write-debt",
     topic: "islamic",
+    poster: { principle: "អល់ឡោះបង្គាប់ឱ្យកត់ត្រាបំណុល ដើម្បីរក្សាយុត្តិធម៌។", takeaway: "ខ្ចី ឬឱ្យខ្ចីលុយ ចូរកត់ត្រាចំនួន ថ្ងៃខ្ចី និងថ្ងៃសង ហើយមានសាក្សី។" },
     title: { km: "កត់ត្រាបំណុលជានិច្ច", en: "Write every debt down" },
     body: {
       km: "ពេលខ្ចី ឬឱ្យខ្ចីលុយ ទោះតិចឬច្រើន ចូរកត់ត្រាចំនួន ថ្ងៃខ្ចី និងថ្ងៃសង ហើយមានសាក្សី។ អល់ឡោះបានបង្គាប់ឱ្យកត់ត្រាបំណុល ដើម្បីរក្សាភាពយុត្តិធម៌ និងទំនាក់ទំនងល្អ។",
@@ -28,6 +34,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-trade-not-riba",
     topic: "islamic",
+    poster: { principle: "អល់ឡោះអនុញ្ញាតការជួញដូរ ហើយហាមឃាត់ការប្រាក់។", takeaway: "មុនខ្ចីលុយពង្រីកហាង ចូរស្វែងរកជម្រើសគ្មានការប្រាក់ ដូចជាការចែករំលែកប្រាក់ចំណេញ។" },
     title: { km: "ជួញដូរ ហាឡាល់ — ការប្រាក់ ហារ៉ាម", en: "Trade is lawful — interest is not" },
     body: {
       km: "អល់ឡោះអនុញ្ញាតការជួញដូរ ហើយហាមឃាត់ការប្រាក់ ឬ «រីបា»។ មុនខ្ចីលុយមកពង្រីកហាង ចូរស្វែងរកជម្រើសគ្មានការប្រាក់ ដូចជាការចែករំលែកប្រាក់ចំណេញ ឬការខ្ចីដោយគ្មានការប្រាក់។",
@@ -38,6 +45,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-respite",
     topic: "islamic",
+    poster: { principle: "បើអ្នកជំពាក់ពិតជាជួបការលំបាក ចូរពន្យារពេលឱ្យគេ។", takeaway: "ទុកពេលឱ្យគេសងតាមលទ្ធភាព ហើយបើលើកលែងបំណុលជាទាន រឹតតែប្រសើរ។" },
     title: { km: "ផ្តល់ពេលដល់អ្នកជំពាក់ដែលជួបការលំបាក", en: "Give time to a debtor in hardship" },
     body: {
       km: "បើអតិថិជន ឬញាតិមិត្តជំពាក់អ្នក ហើយពិតជាជួបការលំបាក ចូរពន្យារពេលឱ្យគេរហូតដល់គេមានលទ្ធភាព។ ហើយបើអ្នកលើកលែងបំណុលនោះជាទាន វារឹតតែប្រសើរ។",
@@ -48,6 +56,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-pay-on-time",
     topic: "islamic",
+    poster: { principle: "ពន្យារការសងបំណុល ពេលមានលទ្ធភាពសង គឺជាអំពើអយុត្តិធម៌។", takeaway: "ដាក់ថ្ងៃសងក្នុង អេប លុយឆ្លាត ហើយសងឱ្យទាន់ពេលរាល់ខែ។" },
     title: { km: "មានលុយហើយ កុំពន្យារការសងបំណុល", en: "Able to pay? Don't delay" },
     body: {
       km: "ការពន្យារការសងបំណុល ពេលខ្លួនមានលទ្ធភាពសងហើយ គឺជាអំពើអយុត្តិធម៌។ ដាក់ថ្ងៃសងក្នុង អេប លុយឆ្លាត ហើយសងឱ្យទាន់ពេល។",
@@ -58,6 +67,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-honest-trade",
     topic: "islamic",
+    poster: { principle: "ការលក់ដូរដោយនិយាយការពិត នាំមកនូវពរជ័យ។", takeaway: "ប្រាប់ចំណុចខ្វះខាតរបស់ទំនិញដោយត្រង់ៗ អតិថិជននឹងជឿទុកចិត្ត ហើយត្រឡប់មកទិញទៀត។" },
     title: { km: "លក់ដូរដោយស្មោះត្រង់", en: "Sell with honesty" },
     body: {
       km: "អ្នកទិញ និងអ្នកលក់ដែលនិយាយការពិត ហើយប្រាប់ចំណុចខ្វះខាតរបស់ទំនិញដោយត្រង់ៗ នឹងទទួលបានពរជ័យក្នុងការជួញដូរ។ ការកុហក និងលាក់កំហុសទំនិញ ធ្វើឱ្យពរជ័យនោះបាត់បង់។",
@@ -68,6 +78,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-no-cheating",
     topic: "islamic",
+    poster: { principle: "អ្នកណាបោកប្រាស់ មិនមែនជាពួកយើងទេ។", takeaway: "កុំដាក់ទំនិញល្អខាងមុខ ហើយលាក់ទំនិញខូចខាងក្រោយ ភាពស្មោះត្រង់គឺជាដើមទុនរបស់ហាង។" },
     title: { km: "កុំបោកប្រាស់អតិថិជន", en: "Never cheat a customer" },
     body: {
       km: `${G.PROPHET_FULL} បានឃើញគំនរអាហារដែលសើមនៅខាងក្រោម ហើយមានប្រសាសន៍ថា អ្នកណាបោកប្រាស់ មិនមែនជាពួកយើងទេ។ ទំនិញល្អដាក់ខាងមុខ ទំនិញខូចលាក់ខាងក្រោយ — កុំធ្វើ។`,
@@ -78,6 +89,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-full-measure",
     topic: "islamic",
+    poster: { principle: "ចូរថ្លឹង និងវាស់ឱ្យគ្រប់ ដោយជញ្ជីងត្រឹមត្រូវ។", takeaway: "ការថ្លឹងត្រឹមត្រូវ ធ្វើឱ្យអតិថិជនជឿទុកចិត្ត និងទិញពីហាងអ្នកយូរអង្វែង។" },
     title: { km: "ថ្លឹង និងវាស់ឱ្យគ្រប់", en: "Give full weight and measure" },
     body: {
       km: "ពេលថ្លឹងសាច់ ថ្លឹងអង្ករ ឬវាស់ទំនិញ ចូរថ្លឹងឱ្យគ្រប់ ដោយជញ្ជីងត្រឹមត្រូវ។ នេះជាការល្អ ហើយនាំឱ្យអតិថិជនជឿទុកចិត្តយូរអង្វែង។",
@@ -88,6 +100,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-sadaqah-wealth",
     topic: "islamic",
+    poster: { principle: "ការធ្វើទាន មិនធ្វើឱ្យទ្រព្យរបស់អ្នកថយចុះឡើយ។", takeaway: "កំណត់ថវិកាទានតិចៗរៀងរាល់សប្តាហ៍ ក្នុងផែនការចំណាយរបស់អ្នក។" },
     title: { km: "ទានមិនធ្វើឱ្យទ្រព្យថយចុះ", en: "Charity never lessens wealth" },
     body: {
       km: "ការចែករំលែកដល់អ្នកខ្វះខាត មិនធ្វើឱ្យទ្រព្យរបស់អ្នកថយចុះឡើយ។ សូម្បីតែទានតិចតួចរៀងរាល់សប្តាហ៍ ក៏មានតម្លៃខ្ពស់ដែរ។",
@@ -98,6 +111,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-sadaqah-seed",
     topic: "islamic",
+    poster: { principle: "ទានក្នុងមាគ៌ាអល់ឡោះ ប្រៀបដូចគ្រាប់ពូជដែលដុះជាប្រាំពីររយគ្រាប់។", takeaway: "ទុកថវិកាទានមួយផ្នែកពីចំណូលរៀងរាល់ខែ មុនពេលចាយលើអ្វីផ្សេង។" },
     title: { km: "ទានប្រៀបដូចគ្រាប់ពូជ", en: "Charity is like a seed" },
     body: {
       km: "ទានក្នុងមាគ៌ាអល់ឡោះ ប្រៀបដូចគ្រាប់ពូជមួយ ដុះចេញជាប្រាំពីរកួរ ហើយកួរនីមួយៗមានមួយរយគ្រាប់។ ចូរទុកថវិកាទានមួយផ្នែកពីចំណូលរៀងរាល់ខែ។",
@@ -108,6 +122,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-no-waste",
     topic: "islamic",
+    poster: { principle: "ចូរហូប និងផឹក តែកុំខ្ជះខ្ជាយ។", takeaway: "មុនទិញអ្វីមួយ សួរខ្លួនឯងថា តើខ្ញុំត្រូវការវាពិតមែនឬ?" },
     title: { km: "ហូប និងចាយ តែកុំខ្ជះខ្ជាយ", en: "Eat and spend — but don't waste" },
     body: {
       km: "ចូរហូប និងផឹក តែកុំហួសហេតុ — អល់ឡោះមិនស្រឡាញ់អ្នកខ្ជះខ្ជាយឡើយ។ មុនទិញអ្វីមួយ សួរខ្លួនឯងថា «តើខ្ញុំត្រូវការវាពិតមែនឬ?»",
@@ -118,6 +133,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-balance",
     topic: "islamic",
+    poster: { principle: "កុំចាយហួសហេតុ ហើយក៏កុំកំណាញ់ ចូរនៅចំកណ្តាល។", takeaway: "ធ្វើថវិកាប្រចាំខែ ដើម្បីរក្សាតុល្យភាពរវាងការចាយ និងការសន្សំ។" },
     title: { km: "ចាយដោយសមរម្យ", en: "Spend in balance" },
     body: {
       km: "អ្នកមានគុណធម៌ គឺអ្នកដែលចាយមិនហួសហេតុ ហើយក៏មិនកំណាញ់ដែរ គឺនៅចំកណ្តាល។ ធ្វើថវិកាប្រចាំខែ ដើម្បីរក្សាតុល្យភាពនេះ។",
@@ -128,6 +144,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-own-hands",
     topic: "islamic",
+    poster: { principle: "គ្មានអាហារណាល្អជាងអាហារពីកម្លាំងដៃខ្លួនឯងឡើយ។", takeaway: "ការងារស្មោះត្រង់ ទោះតូចក៏ដោយ គឺជាកិត្តិយស និងជាចំណូលហាឡាល់។" },
     title: { km: "ចំណូលពីកម្លាំងដៃខ្លួនឯង", en: "Earn by your own hands" },
     body: {
       km: "គ្មានអាហារណាល្អជាងអាហារដែលបានមកពីកម្លាំងដៃខ្លួនឯងឡើយ — ព្យាការីដាវូដក៏ហូបពីការងារដៃខ្លួនឯងដែរ។ ការងារស្មោះត្រង់ ទោះតូចក៏ដោយ គឺជាកិត្តិយស។",
@@ -138,6 +155,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-upper-hand",
     topic: "islamic",
+    poster: { principle: "ដៃដែលផ្តល់ឱ្យ ប្រសើរជាងដៃដែលទទួល។", takeaway: "សន្សំ និងគ្រប់គ្រងលុយឱ្យល្អ ដើម្បីកុំឱ្យពឹងអ្នកដទៃ ហើយថែមទាំងអាចជួយគេបានទៀតផង។" },
     title: { km: "ដៃខាងលើ ប្រសើរជាងដៃខាងក្រោម", en: "The upper hand is better" },
     body: {
       km: "ដៃដែលផ្តល់ឱ្យ ប្រសើរជាងដៃដែលទទួល។ សន្សំ និងគ្រប់គ្រងលុយឱ្យល្អ ដើម្បីកុំឱ្យពឹងអ្នកដទៃ ហើយថែមទាំងអាចជួយគេបានទៀតផង។",
@@ -148,6 +166,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
   {
     id: "isl-avoid-debt",
     topic: "islamic",
+    poster: { principle: `${G.PROPHET_FULL} តែងសុំការការពារពីបំណុល។`, takeaway: "ខ្ចីតែពេលចាំបាច់ ហើយមានផែនការសងច្បាស់លាស់ មុនពេលខ្ចី។" },
     title: { km: "កុំជំពាក់បំណុលដោយមិនចាំបាច់", en: "Avoid unnecessary debt" },
     body: {
       km: `${G.PROPHET_FULL} តែងសុំការការពារពីអល់ឡោះ ពីបាបកម្ម និងពីបំណុល ព្រោះអ្នកជំពាក់បំណុល ងាយនិយាយកុហក និងមិនរក្សាការសន្យា។ ខ្ចីតែពេលចាំបាច់ ហើយមានផែនការសងច្បាស់លាស់។`,

@@ -30,6 +30,9 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
       const r = renderIslamicPoster(islamicPostContent("ISLAMIC_DAILY", day(i), h(7)))
       assert.equal(r.truncated, false, `lesson ${i}`)
       assert.ok(r.type.hookLines.every((l) => l.length <= 2), `lesson ${i}: ${JSON.stringify(r.type.hookLines)}`)
+      // The principle and its takeaway, at most three lines in all (founder, 20/10/2026).
+      assert.equal(r.type.hookLines.length, 2, `lesson ${i}`)
+      assert.ok(r.type.hookLines.flat().length <= 3, `lesson ${i}: ${JSON.stringify(r.type.hookLines)}`)
     }
     assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-18", null)).truncated, false, "fast (Sunday)")
     assert.equal(renderIslamicPoster(islamicPostContent("ISLAMIC_FAST", "2026-10-21", null)).truncated, false, "fast (Wednesday)")
@@ -139,9 +142,10 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     assert.ok(morning.includes("អានថា៖") && morning.includes("អត្ថន័យ៖"))
     assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12))).includes("Surah Al-Kahf"))
     assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7))).includes("អំពើរបស់មនុស្សត្រូវបានបង្ហាញ"))
-    // A lesson's hook is its first sentence; the whole lesson is in the caption.
+    // A lesson's poster: its principle and its money takeaway (founder, 20/10/2026); the whole lesson is in the caption.
     const lesson = islamicPostContent("ISLAMIC_DAILY", "2026-10-18", h(7))
-    assert.deepEqual(lesson.posterLines, [firstSentence(lesson.paragraphs[0])])
+    const tip = ISLAMIC_TIPS.find((t) => t.body.km === lesson.paragraphs[0])!
+    assert.deepEqual(lesson.posterLines, [tip.poster.principle, tip.poster.takeaway])
     assert.equal(firstSentence("មួយ។ ពីរ។"), "មួយ។")
     assert.equal(firstSentence("គ្មានខណ្ឌ"), "គ្មានខណ្ឌ")
   })

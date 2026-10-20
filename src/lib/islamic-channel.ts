@@ -337,8 +337,9 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
     date: kmDay(day),
     title: tip.title.km,
     paragraphs: [tip.body.km],
-    // The poster: the lesson's first sentence as its hook; the whole lesson is in the caption (founder, 18/10/2026).
-    posterLines: [firstSentence(tip.body.km)],
+    // The poster: the principle and its money takeaway (founder, 20/10/2026 — the first sentence alone repeated the
+    // title and lost the advice); the whole lesson is in the caption. At most three lines in all (islamic-tips.test.ts).
+    posterLines: [tip.poster.principle, tip.poster.takeaway],
     source: tip.ref,
   }
 }

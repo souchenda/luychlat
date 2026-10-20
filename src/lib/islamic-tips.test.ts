@@ -33,3 +33,23 @@ describe("Islamic tips — Islamic Mode's daily wisdom (founder, 18/10/2026)", (
     assert.equal(islamicTipOfTheDay(0, ISLAMIC_TIPS.length).id, islamicTipOfTheDay(0).id)
   })
 })
+
+describe("A lesson's poster: the principle and its money takeaway (founder, 20/10/2026)", () => {
+  it("lesson 13 «ដៃខាងលើ ប្រសើរជាងដៃខាងក្រោម» carries the saving and self-reliance advice", () => {
+    const t = ISLAMIC_TIPS.find((x) => x.id === "isl-upper-hand")!
+    assert.equal(ISLAMIC_TIPS.indexOf(t) + 1, 13)
+    assert.equal(t.title.km, "ដៃខាងលើ ប្រសើរជាងដៃខាងក្រោម")
+    assert.deepEqual(t.poster, { principle: "ដៃដែលផ្តល់ឱ្យ ប្រសើរជាងដៃដែលទទួល។", takeaway: "សន្សំ និងគ្រប់គ្រងលុយឱ្យល្អ ដើម្បីកុំឱ្យពឹងអ្នកដទៃ ហើយថែមទាំងអាចជួយគេបានទៀតផង។" })
+    assert.equal(t.ref.label, "Sahih al-Bukhari 1429")
+  })
+  it("every lesson: two different sentences, neither repeating the title, no parentheses", () => {
+    for (const t of ISLAMIC_TIPS) {
+      const { principle, takeaway } = t.poster
+      assert.ok(principle.trim() && takeaway.trim(), t.id)
+      assert.notEqual(principle, takeaway, t.id)
+      assert.notEqual(principle.replace(/។$/, ""), t.title.km, t.id)
+      assert.doesNotMatch(`${principle} ${takeaway}`, /[()]/, t.id)
+      assert.ok(principle.length <= 90 && takeaway.length <= 110, `${t.id}: keep it short`)
+    }
+  })
+})
