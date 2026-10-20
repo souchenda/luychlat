@@ -14,12 +14,24 @@ import { Label } from "@/components/ui/label"
 import { useKhmerT, useT } from "@/lib/i18n/use-t"
 import { submittedThanks } from "@/lib/contributor-thanks"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
-import { submissionError } from "@/lib/nasheed"
-import { nasheedQueue, useMyNasheedLikes, useNasheedMutations, useNasheedTracks, useSubmitNasheed, useToggleNasheedLike, type NasheedTrack } from "@/lib/nasheed-data"
+import { privateError, submissionError, type NasheedVisibility } from "@/lib/nasheed"
+import {
+  nasheedQueue,
+  useDeletePrivateNasheed,
+  useMyNasheedLikes,
+  useNasheedMutations,
+  useNasheedTracks,
+  usePrivateQueue,
+  useSavePrivateNasheed,
+  useSubmitNasheed,
+  useToggleNasheedLike,
+  type NasheedTrack,
+} from "@/lib/nasheed-data"
 import { canPublishGlobally } from "@/lib/adhan-presets"
 import { usePlan } from "@/lib/plan"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
+import { useSessionStore } from "@/stores/session-store"
 
 /**
  * /islamic/nasheed — «កសាដះ និងណាស្សីដ (قصائد وأناشيد)» (founder, 18/10/2026): recordings we hold the rights to
@@ -39,10 +51,17 @@ export default function NasheedPage() {
   const toggleLike = useToggleNasheedLike()
   const [adding, setAdding] = useState(false)
   const [sharing, setSharing] = useState(false)
+  // Two tabs (founder, 20/10/2026): the community library, and my own tracks (private ones and my submissions).
+  const [tab, setTab] = useState<"community" | "mine">("community")
+  const me = useSessionStore((s) => s.user?.id)
   const list = tracks.data ?? []
   const streamed = list.filter((x) => x.kind === "STREAM" && x.status === "APPROVED")
-  // Only the submitter (and the super admin) can see a track that is not approved (RLS).
-  const waiting = list.filter((x) => x.kind === "STREAM" && x.status !== "APPROVED")
+  // Others' submissions waiting for review — only content managers see them (RLS); never anyone's private tracks.
+  const waiting = list.filter((x) => x.kind === "STREAM" && (x.status === "PENDING" || x.status === "REJECTED") && x.submitted_by !== me)
+  const myPrivate = list.filter((x) => x.status === "PRIVATE" && x.submitted_by === me)
+  const mySubmissions = list.filter((x) => x.submitted_by === me && (x.status === "PENDING" || x.status === "REJECTED"))
+  const privateQueue = usePrivateQueue(myPrivate, locale).data ?? []
+  const removePrivate = useDeletePrivateNasheed()
   const links = list.filter((x) => x.kind === "LINK")
   const queue = () => nasheedQueue(list, locale)
   const title = (x: NasheedTrack) => (locale === "km" ? x.title_km : (x.title_en ?? x.title_km))
@@ -62,8 +81,69 @@ export default function NasheedPage() {
       </button>
     )
 
+  const shareButton = (
+    <Button type="button" variant="outline" className="h-11 w-full" onClick={() => setSharing(true)}>
+      <UploadIcon />
+      {t("nasheed.share")}
+    </Button>
+  )
+
   return (
     <div className="space-y-4">
+      <Segmented
+        aria-label={t("nasheed.tabs")}
+        value={tab}
+        onChange={(v) => setTab(v as "community" | "mine")}
+        options={[
+          { value: "community", label: t("nasheed.tabCommunity") },
+          { value: "mine", label: t("nasheed.tabMine") },
+        ]}
+      />
+      {tab === "mine" ? (
+        <section className="space-y-2" data-testid="nasheed-mine">
+          {myPrivate.length === 0 && mySubmissions.length === 0 ? (
+            <Card className="px-4 py-3">
+              <p className="text-sm text-muted-foreground">{t("nasheed.mineEmpty")}</p>
+            </Card>
+          ) : (
+            <Card className="gap-0 divide-y py-0">
+              {myPrivate.map((x) => (
+                <div key={x.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <PlayButton kind="nasheed" queue={() => privateQueue} index={privateQueue.findIndex((q) => q.key === `nasheed:${x.id}`)} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{x.title_km}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {x.artist} · {t("nasheed.privateBadge")}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={t("common.delete")}
+                    className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted"
+                    onClick={() => {
+                      if (!window.confirm(t("nasheed.removeConfirm"))) return
+                      removePrivate.mutate(x.id, { onError: () => toast.error(t("common.error")) })
+                    }}
+                  >
+                    <Trash2Icon className="size-4" />
+                  </button>
+                </div>
+              ))}
+              {mySubmissions.map((x) => (
+                <div key={x.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{x.title_km}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{x.artist}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{t(x.status === "PENDING" ? "nasheed.pending" : "nasheed.rejected")}</span>
+                </div>
+              ))}
+            </Card>
+          )}
+          {shareButton}
+        </section>
+      ) : (
+      <>
       <p className="px-1 text-sm text-muted-foreground">{t("nasheed.intro")}</p>
 
       <section className="space-y-2">
@@ -101,10 +181,7 @@ export default function NasheedPage() {
           </Card>
         )}
 
-        <Button type="button" variant="outline" className="h-11 w-full" onClick={() => setSharing(true)}>
-          <UploadIcon />
-          {t("nasheed.share")}
-        </Button>
+        {shareButton}
         {waiting.length > 0 && (
           <Card className="gap-0 divide-y py-0">
             {waiting.map((x) => (
@@ -147,8 +224,10 @@ export default function NasheedPage() {
           {t("nasheed.add")}
         </Button>
       )}
+      </>
+      )}
       {owner && <AddSheet open={adding} onOpenChange={setAdding} />}
-      <ShareSheet open={sharing} onOpenChange={setSharing} />
+      <ShareSheet open={sharing} onOpenChange={setSharing} onSavedPrivate={() => setTab("mine")} />
     </div>
   )
 }
@@ -172,10 +251,15 @@ function LikeButton({ liked, count, label, onToggle }: { liked: boolean; count: 
  * «📤 ចែករំលែកបទកសាដះ»: a member's recording, private until the founder approves it in Telegram. Always in Khmer,
  * with one clear message per missing field (founder, 19/10/2026).
  */
-function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function ShareSheet({ open, onOpenChange, onSavedPrivate }: { open: boolean; onOpenChange: (open: boolean) => void; onSavedPrivate: () => void }) {
   const t = useKhmerT()
   const islamic = useIslamicEnabled()
   const submit = useSubmitNasheed()
+  const savePrivate = useSavePrivateNasheed()
+  // 🌐 to the community library (reviewed first) or 🔒 for my own listening at once (founder, 20/10/2026).
+  const [visibility, setVisibility] = useState<NasheedVisibility>("public")
+  const isPublic = visibility === "public"
+  const busy = submit.isPending || savePrivate.isPending
   const [title, setTitle] = useState("")
   const [artist, setArtist] = useState("")
   const [file, setFile] = useState<File | null>(null)
@@ -183,11 +267,49 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
   // Tapped «send» without the confirmation (founder, 20/10/2026 — Yerny's upload stopped silently): the box turns red
   // and the reason stays under it, not only in a passing toast.
   const [tried, setTried] = useState(false)
-  const missingConfirm = tried && !authentic
+  const missingConfirm = tried && isPublic && !authentic
+  const reset = () => {
+    setTitle("")
+    setArtist("")
+    setFile(null)
+    setAuthentic(false)
+    setTried(false)
+  }
+  const failed = (err: Error) =>
+    toast.error(
+      t(
+        err.message === "too_many"
+          ? "nasheed.tooMany"
+          : err.message === "too_many_private"
+            ? "nasheed.privateTooMany"
+            : err.message === "too_big"
+              ? "nasheed.tooBig"
+              : err.message === "upload_failed"
+                ? "nasheed.uploadFailed"
+                : "nasheed.sendFailed",
+      ),
+    )
 
   const send = (e: React.FormEvent) => {
     e.preventDefault()
     setTried(true)
+    if (!isPublic) {
+      // 🔒 Mine only: no confirmation, no review — saved and playable at once in «បទផ្ទាល់ខ្លួន».
+      const problem = privateError({ title, artist, file })
+      if (problem || !file) return void toast.error(t(problem ?? "nasheed.fileRequired"))
+      return savePrivate.mutate(
+        { title: title.trim(), artist: artist.trim(), file },
+        {
+          onSuccess: () => {
+            toast.success(t("nasheed.savedPrivate"))
+            reset()
+            onOpenChange(false)
+            onSavedPrivate()
+          },
+          onError: failed,
+        },
+      )
+    }
     const problem = submissionError({ title, artist, file, authentic })
     if (problem || !file) return void toast.error(t(problem ?? "nasheed.fileRequired"))
     submit.mutate(
@@ -195,15 +317,10 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
       {
         onSuccess: () => {
           toast.success(submittedThanks(islamic), { duration: 8_000 })
-          setTitle("")
-          setArtist("")
-          setFile(null)
-          setAuthentic(false)
-          setTried(false)
+          reset()
           onOpenChange(false)
         },
-        onError: (err) =>
-          toast.error(t(err.message === "too_many" ? "nasheed.tooMany" : err.message === "too_big" ? "nasheed.tooBig" : err.message === "upload_failed" ? "nasheed.uploadFailed" : "nasheed.sendFailed")),
+        onError: failed,
       },
     )
   }
@@ -218,7 +335,16 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title={t("nasheed.shareSheetTitle")}>
       <form onSubmit={send} className="space-y-3">
-        <p className="text-xs text-muted-foreground">{t("nasheed.shareIntro")}</p>
+        <Segmented
+          aria-label={t("nasheed.visibility")}
+          value={visibility}
+          onChange={(v) => setVisibility(v as NasheedVisibility)}
+          options={[
+            { value: "public", label: t("nasheed.visPublic") },
+            { value: "private", label: t("nasheed.visPrivate") },
+          ]}
+        />
+        <p className="text-xs text-muted-foreground">{t(isPublic ? "nasheed.shareIntro" : "nasheed.privateHint")}</p>
         <div className="space-y-1.5">
           <Label htmlFor="s-title">{t("nasheed.shareTitle")}</Label>
           <Input id="s-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder={t("nasheed.shareTitlePlaceholder")} className="h-11" />
@@ -231,19 +357,23 @@ function ShareSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open
           <Label htmlFor="s-file">{t("nasheed.shareFile")}</Label>
           <Input id="s-file" type="file" accept="audio/mpeg,audio/mp4,audio/aac,audio/x-m4a,.mp3,.m4a,.aac" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="h-11" />
         </div>
-        {check("s-authentic", authentic, setAuthentic, t("nasheed.confirmAuthentic"))}
-        {missingConfirm && (
-          <p role="alert" className="text-sm font-medium text-destructive" data-testid="nasheed-confirm-error">
-            {t("nasheed.confirmRequired")}
-          </p>
+        {isPublic && (
+          <>
+            {check("s-authentic", authentic, setAuthentic, t("nasheed.confirmAuthentic"))}
+            {missingConfirm && (
+              <p role="alert" className="text-sm font-medium text-destructive" data-testid="nasheed-confirm-error">
+                {t("nasheed.confirmRequired")}
+              </p>
+            )}
+            {/* Shared to listen together, not for profit; removed at once on the owner's request (founder, 20/10/2026). */}
+            <p className="text-xs text-muted-foreground" data-testid="nasheed-disclaimer">
+              {t("nasheed.disclaimer")}
+            </p>
+          </>
         )}
-        {/* Shared to listen together, not for profit; removed at once on the owner's request (founder, 20/10/2026). */}
-        <p className="text-xs text-muted-foreground" data-testid="nasheed-disclaimer">
-          {t("nasheed.disclaimer")}
-        </p>
-        <Button type="submit" className="h-11 w-full" disabled={submit.isPending}>
-          {submit.isPending && <Loader2Icon className="animate-spin" />}
-          {t("nasheed.send")}
+        <Button type="submit" className="h-11 w-full" disabled={busy}>
+          {busy && <Loader2Icon className="animate-spin" />}
+          {t(isPublic ? "nasheed.send" : "nasheed.savePrivate")}
         </Button>
       </form>
     </BottomSheet>

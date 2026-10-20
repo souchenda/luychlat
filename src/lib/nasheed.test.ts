@@ -151,10 +151,10 @@ describe("Yerny's «Hulum Takhrij» upload (founder, 20/10/2026)", () => {
     assert.equal(submissionError({ ...ok, file: arabic, authentic: false }), "nasheed.confirmRequired")
     assert.equal(dictionaries.km["nasheed.confirmAuthentic"], "ខ្ញុំបញ្ជាក់ថា នេះជាបទកសាដះ ឬណាស្សីដឥស្លាមពិតប្រាកដ (គ្មានខ្លឹមសារខុសឆ្គង)")
     assert.ok(!("nasheed.confirmRights" in dictionaries.km))
-    assert.match(dictionaries.km["nasheed.disclaimer"], /ដោយមិនរកប្រាក់ចំណេញ.+\(Notice & Take-down Policy\)។$/)
+    assert.equal(dictionaries.km["nasheed.disclaimer"], "ℹ️ សំឡេងសាធារណៈចែករំលែកដើម្បីស្តាប់ក្នុងសហគមន៍ដោយមិនរកប្រាក់ចំណេញ។ ប្រព័ន្ធនឹងលុបចេញវិញភ្លាមៗ ប្រសិនបើមានការស្នើសុំពីម្ចាស់កម្មសិទ្ធិដើម។")
     const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/nasheed/page.tsx"), "utf8")
     assert.doesNotMatch(page, /s-rights|confirmRights/)
-    assert.match(page, /const missingConfirm = tried && !authentic/)
+    assert.match(page, /const missingConfirm = tried && isPublic && !authentic/)
     assert.match(page, /role="alert" className="text-sm font-medium text-destructive" data-testid="nasheed-confirm-error"/)
     assert.match(page, /data-testid="nasheed-disclaimer"/)
     assert.doesNotMatch(readFileSync(join(process.cwd(), "src/lib/nasheed-data.ts"), "utf8"), /rights: v\.rights/)
@@ -162,5 +162,44 @@ describe("Yerny's «Hulum Takhrij» upload (founder, 20/10/2026)", () => {
   it("any signed-in member (a content admin too) may upload into their own folder; nobody else's", () => {
     const s = sql()
     assert.match(s, /with check \(bucket_id = 'nasheed-submissions' and \(storage\.foldername\(name\)\)\[1\] = auth\.uid\(\)::text\)/)
+  })
+})
+
+describe("🌐 public or 🔒 private, and the two tabs (founder, 20/10/2026)", () => {
+  const priv = () => readFileSync(join(process.cwd(), "supabase/migrations/20270205000000_nasheed_private_tracks.sql"), "utf8")
+  it("a private track needs no confirmation; it is never streamed from the public bucket, only its own signed URL", async () => {
+    const { ownPath, privateError } = await import("./nasheed")
+    assert.equal(privateError({ title: "Hulum Takhrij", artist: "x", file: { name: "حلم_التخرج.mp3", size: 4_200_000, type: "audio/mpeg" } }), null)
+    assert.equal(privateError({ title: "", artist: "x", file: ok.file }), "nasheed.titleRequired")
+    const path = `${ID}/${ID}.mp3`
+    assert.equal(audioSrc(`own:${path}`, () => "PUBLIC"), null)
+    assert.equal(ownPath(`own:${path}`), path)
+    assert.equal(ownPath(`sub:${path}`), null)
+    assert.equal(ownPath("own:../other/file.mp3"), null)
+  })
+  it("the database: PRIVATE status, the member's own folder, at most 50, deleted only by its owner; never listed for others", () => {
+    const s = priv()
+    assert.match(s, /check \(status in \('PENDING', 'APPROVED', 'REJECTED', 'PRIVATE'\)\)/)
+    assert.match(s, /using \(\(active and status = 'APPROVED'\) or submitted_by = auth\.uid\(\) or \(public\.is_content_manager\(\) and status <> 'PRIVATE'\)\)/)
+    assert.match(s, /split_part\(p_path, '\/', 1\) <> me::text or p_path !~ '\^\[0-9a-f-\]\{36\}\/\[0-9a-f-\]\{36\}\\.\(mp3\|m4a\|aac\)\$'/)
+    assert.match(s, /t\.status = 'PRIVATE'\) >= 50 then/)
+    assert.match(s, /'own:' \|\| p_path, 'Private: the member''s own listening only — never shown to others',\s+'PRIVATE', false, me, me, 100\)/)
+    assert.match(s, /delete from public\.nasheed_tracks t where t\.id = p_id and t\.submitted_by = auth\.uid\(\) and t\.status = 'PRIVATE'/)
+  })
+  it("the page: Community and My Tracks tabs; the sheet: 🌐 (✅ checkbox, «ផ្ញើសុំការអនុម័ត») or 🔒 (no checkbox, «រក្សាទុកស្តាប់ផ្ទាល់ខ្លួន»)", async () => {
+    const { dictionaries } = await import("./i18n/dictionaries")
+    const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/nasheed/page.tsx"), "utf8")
+    assert.match(page, /\{ value: "community", label: t\("nasheed\.tabCommunity"\) \},\s+\{ value: "mine", label: t\("nasheed\.tabMine"\) \}/)
+    assert.match(page, /useState<NasheedVisibility>\("public"\)/) // public by default
+    assert.match(page, /\{isPublic && \(\s+<>\s+\{check\("s-authentic"/)
+    assert.match(page, /t\(isPublic \? "nasheed\.send" : "nasheed\.savePrivate"\)/)
+    assert.equal(dictionaries.km["nasheed.tabCommunity"], "🌐 បណ្ណាល័យរួម (Community)")
+    assert.equal(dictionaries.km["nasheed.tabMine"], "👤 បទផ្ទាល់ខ្លួន (My Tracks)")
+    assert.equal(dictionaries.km["nasheed.visPublic"], "🌐 ចែករំលែកជាសាធារណៈ")
+    assert.equal(dictionaries.km["nasheed.visPrivate"], "🔒 ទុកស្តាប់ផ្ទាល់ខ្លួន")
+    assert.equal(dictionaries.km["nasheed.savePrivate"], "រក្សាទុកស្តាប់ផ្ទាល់ខ្លួន")
+    assert.equal(dictionaries.km["nasheed.send"], "ផ្ញើសុំការអនុម័ត")
+    // Private tracks are never sent to the approval room.
+    assert.match(readFileSync(join(process.cwd(), "src/lib/server/nasheed-review.ts"), "utf8"), /row\.status !== "PENDING" \|\| row\.notified \|\| !row\.audio_path\?\.startsWith\("sub:"\)/)
   })
 })

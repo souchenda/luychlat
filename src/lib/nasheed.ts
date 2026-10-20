@@ -57,10 +57,20 @@ export const contentTypeOf = (ext: string) => (ext === "mp3" ? "audio/mpeg" : ex
 
 /** Where the player streams a track from; null when it must not be played (a submission still in review). */
 export function audioSrc(path: string | null, publicUrl: (path: string) => string): string | null {
-  if (!path || path.startsWith("sub:")) return null
+  // «sub:» a submission in review; «own:» a member's private track (played through a signed URL, ownPath).
+  if (!path || path.startsWith("sub:") || path.startsWith("own:")) return null
   if (path.startsWith("/audio/nasheed/")) return path
   return publicUrl(path)
 }
+
+/** A private track's file in the member's own folder of the private bucket («own:<user>/<uuid>.mp3»), or null. */
+export const ownPath = (path: string | null) => (path?.startsWith("own:") && /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(mp3|m4a|aac)$/.test(path.slice(4)) ? path.slice(4) : null)
+
+/** 🌐 shared with the community (reviewed first) or 🔒 kept for one's own listening (founder, 20/10/2026). */
+export type NasheedVisibility = "public" | "private"
+
+/** Private tracks need only a title, an artist and the audio file — no confirmation, no review. */
+export const privateError = (v: Omit<SubmissionInput, "authentic">): SubmissionError | null => submissionError({ ...v, authentic: true })
 
 type Rankable = { likes: number; sort: number; created_at?: string }
 

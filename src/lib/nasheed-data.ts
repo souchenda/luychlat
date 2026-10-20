@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { Track } from "@/lib/audio-queue"
-import { audioSrc, contentTypeOf, rankTracks, submissionExt, submissionPath, SUBMISSIONS_BUCKET } from "@/lib/nasheed"
+import { audioSrc, contentTypeOf, ownPath, rankTracks, submissionExt, submissionPath, SUBMISSIONS_BUCKET } from "@/lib/nasheed"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 /**
@@ -22,7 +22,8 @@ export type NasheedTrack = {
   rights_note: string | null
   sort: number
   active: boolean
-  status: "PENDING" | "APPROVED" | "REJECTED"
+  /** PRIVATE: a member's own track — only they see it (founder, 20/10/2026). */
+  status: "PENDING" | "APPROVED" | "REJECTED" | "PRIVATE"
   credit: string | null
   submitted_by: string | null
   likes: number
@@ -161,4 +162,58 @@ export function useNasheedMutations() {
     onSuccess: done,
   })
   return { add, remove }
+}
+
+export type PrivateInput = { title: string; artist: string; file: File }
+
+/** 🔒 «ទុកស្តាប់ផ្ទាល់ខ្លួន»: the file to the member's own private folder (a UUID name), then their private track. */
+export function useSavePrivateNasheed() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (v: PrivateInput) => {
+      const { data: auth } = await db().auth.getUser()
+      const ext = submissionExt(v.file)
+      if (!auth.user || !ext) throw new Error("invalid")
+      const path = submissionPath(auth.user.id, ext)
+      const up = await db().storage.from(SUBMISSIONS_BUCKET).upload(path, v.file, { contentType: contentTypeOf(ext), upsert: false })
+      if (up.error) throw new Error(/size|large|413/i.test(up.error.message) ? "too_big" : "upload_failed")
+      const { error } = await db().rpc("nasheed_save_private", { p_title: v.title, p_artist: v.artist, p_path: path })
+      if (error) {
+        await db().storage.from(SUBMISSIONS_BUCKET).remove([path])
+        throw new Error(/too many private/.test(error.message) ? "too_many_private" : "failed")
+      }
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: KEY }),
+  })
+}
+
+/** 🗑 One of my private tracks: the row, then its file. */
+export function useDeletePrivateNasheed() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await db().rpc("nasheed_delete_private", { p_id: id })
+      if (error) throw error
+      if (typeof data === "string" && data) await db().storage.from(SUBMISSIONS_BUCKET).remove([data])
+    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: KEY }),
+  })
+}
+
+/** My private tracks as the player's queue — signed URLs from the private bucket (an hour; refreshed every 50 minutes). */
+export function usePrivateQueue(tracks: NasheedTrack[], locale: string) {
+  const mine = tracks.filter((t) => t.status === "PRIVATE" && ownPath(t.audio_path))
+  return useQuery({
+    queryKey: ["nasheed-private-urls", mine.map((t) => t.id).join(",")],
+    enabled: mine.length > 0,
+    staleTime: 50 * 60_000,
+    queryFn: async (): Promise<Track[]> => {
+      const { data, error } = await db().storage.from(SUBMISSIONS_BUCKET).createSignedUrls(mine.map((t) => ownPath(t.audio_path)!), 60 * 60)
+      if (error) throw error
+      return mine.flatMap((t, i) => {
+        const src = data?.[i]?.signedUrl
+        return src ? [{ key: `nasheed:${t.id}`, title: locale === "km" ? t.title_km : (t.title_en ?? t.title_km), subtitle: t.artist, src }] : []
+      })
+    },
+  })
 }
