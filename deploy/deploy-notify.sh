@@ -46,13 +46,25 @@ for rec in sys.stdin.read().split("\x1e"):
 '
 }
 
+# One short line (founder, 20/10/2026): at most 80 characters, cut between words with «…» when longer.
+short_line() {
+  PYTHONIOENCODING=utf-8 python3 -c '
+import sys
+lines = sys.stdin.read().strip().splitlines()
+t = lines[0] if lines else ""
+if len(t) > 80:
+    cut = t[:79]
+    t = (cut[: cut.rfind(" ")] if " " in cut[40:] else cut).rstrip(" —,") + "…"
+print(t)
+'
+}
+
 env_value() { grep -E "^$1=" .env 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '\r' | sed -e "s/^[\"']//" -e "s/[\"']\$//"; }
 esc() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 
 kind=${1:-ok}
 head=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
 full=$(git rev-parse HEAD 2>/dev/null || echo "?")
-when=$(TZ=Asia/Phnom_Penh date '+%d/%m/%Y %H:%M')
 
 # Task numbers instead of commit hashes (founder, 20/10/2026): every release gets the next number — «កិច្ចការទី #N» —
 # kept on the server («N <commit>» per line, outside git, so a pull never resets it). A commit that names its task
@@ -88,14 +100,10 @@ if [ "$kind" = "fail" ]; then
     "Nginx switch") step="ការប្តូរទៅកំណែថ្មី (Nginx)" ;;
     *) step=$(printf '%s' "${2:-?}" | esc) ;;
   esac
-  text="⚠️ <b>ការដាក់ឱ្យដំណើរការមិនជោគជ័យ (Deploy Failed)</b>
-• <b>លេខរៀងការងារ៖</b> កិច្ចការទី #$task
-• <b>មុខងារ៖</b> $(khmer_summaries -1 2>/dev/null | cut -d$'\x1f' -f2 | esc)
-• <b>មូលហេតុ៖</b> ${step} (លេខកូដ ${3:-?})
-• <b>វេលាម៉ោង៖</b> $when
-កំណែមុនកំពុងដំណើរការធម្មតា — /var/log/luysmart-deploy.log
-— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត
-[ref: $head]"
+  # Three lines (founder, 20/10/2026): what, why, and that the running version is untouched.
+  text="⚠️ <b>កិច្ចការទី #$task មិនបាន Live</b>
+• <b>មូលហេតុ៖</b> ${step}
+• <b>Server៖</b> 🟢 កំណែមុននៅដើរធម្មតា"
 else
   rm -f deploy/run/.failed-notified
   prev=${2:-}
@@ -103,32 +111,22 @@ else
   slot=$(cat deploy/run/active-slot 2>/dev/null || echo "?")
   container=$([ "$slot" = "green" ] && echo luysmart-green || echo luysmart)
   health=$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || echo "?")
-  status=$([ "$health" = "healthy" ] && echo "🟢 សកម្មធម្មតា" || echo "🟠 $health")
   # Every commit this release shipped (newest first), beyond the headline one.
-  more=""
+  # Three lines (founder, 20/10/2026 — easy to scan): the task, the change in one short Khmer line, the server.
+  extra=""
   if [ -n "$prev" ] && git cat-file -e "$prev" 2>/dev/null && [ "$(git rev-parse "$prev")" != "$(git rev-parse HEAD)" ]; then
     count=$(git rev-list --count "$prev"..HEAD)
-    if [ "$count" -gt 1 ]; then
-      list=$(khmer_summaries "$prev"..HEAD | sed -n '2,6p' | cut -d$'\x1f' -f2 | sed 's/^/  - /' | esc)
-      more="
-• រួមទាំង $((count - 1)) កំណែផ្សេងទៀត៖
-$list"
-    fi
-  elif [ -n "$prev" ] && [ "$(git rev-parse "$prev" 2>/dev/null)" = "$(git rev-parse HEAD)" ]; then
-    more="
-• ប្រភេទ៖ ចាប់ផ្ដើមឡើងវិញ (ការកំណត់ .env ផ្លាស់ប្ដូរ) — គ្មានកូដថ្មីទេ"
+    [ "$count" -gt 1 ] && extra=" (+$((count - 1)) ទៀត)"
+    summary=$(khmer_summaries -1 | cut -d$'\x1f' -f2 | short_line | esc)
+  elif [ -n "$prev" ]; then
+    summary="ចាប់ផ្ដើមឡើងវិញ (ការកំណត់ .env) — គ្មានកូដថ្មី"
+  else
+    summary=$(khmer_summaries -1 | cut -d$'\x1f' -f2 | short_line | esc)
   fi
-  # This release's number, kept (once per commit).
-  mkdir -p deploy/run
-  awk -v h="$full" '$2 == h { found = 1 } END { exit !found }' "$TASKS" 2>/dev/null || echo "$task $full" >> "$TASKS"
-  text="🚀 <b>ប្រព័ន្ធបានដាក់ឱ្យដំណើរការលើ Production (Live)</b>
-• <b>លេខរៀងការងារ៖</b> កិច្ចការទី #$task
-• <b>មុខងារដែលបានសម្រេច៖</b> $(khmer_summaries -1 | cut -d$'\x1f' -f2 | esc)$more
-• <b>ស្ថានភាព Server៖</b> $status (${free:-?} ទំនេរ)
-• <b>វេលាម៉ោង៖</b> $when
-• <b>តំណភ្ជាប់៖</b> https://app.luychlat.com
-— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត
-[ref: $head]"
+  [ "$health" = "healthy" ] && server="🟢 ដើរល្អ" || server="🟠 $health"
+  text="🚀 <b>កិច្ចការទី #$task បាន Live</b>$extra
+• <b>ខ្លឹមសារ៖</b> $summary
+• <b>Server៖</b> $server (${free:-?} ទំនេរ)"
 fi
 
 token=$(env_value TELEGRAM_BOT_TOKEN)

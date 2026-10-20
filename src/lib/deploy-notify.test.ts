@@ -14,29 +14,16 @@ describe("Every production release reaches the founder's private chat (founder, 
   it("live: after the health check and the switch, the «Production (Live)» card with the commit, the disk and the time", () => {
     assert.match(update, /echo "✓ Deployed \$\(git rev-parse --short HEAD\) on \$next"\nbash \.\/deploy\/deploy-notify\.sh ok "\$prev_deployed"/)
     assert.ok(update.indexOf('step="health check"') < update.indexOf("deploy-notify.sh ok"))
-    // The founder's format (20/10/2026): a task number, never the commit hash up front — it is only a small «[ref: …]».
-    assert.ok(
-      notify.includes(
-        [
-          "🚀 <b>ប្រព័ន្ធបានដាក់ឱ្យដំណើរការលើ Production (Live)</b>",
-          "• <b>លេខរៀងការងារ៖</b> កិច្ចការទី #$task",
-          "• <b>មុខងារដែលបានសម្រេច៖</b> $(khmer_summaries -1 | cut -d$'\\x1f' -f2 | esc)$more",
-          "• <b>ស្ថានភាព Server៖</b> $status (${free:-?} ទំនេរ)",
-          "• <b>វេលាម៉ោង៖</b> $when",
-          "• <b>តំណភ្ជាប់៖</b> https://app.luychlat.com",
-          "— ប្រព័ន្ធស្វ័យប្រវត្តិ អេប លុយឆ្លាត",
-          "[ref: $head]",
-        ].join("\n"),
-      ),
-    )
-    assert.doesNotMatch(notify, /Commit\)៖|<code>\$head<\/code>/)
-    assert.match(notify, /TZ=Asia\/Phnom_Penh date/)
+    // Three lines (founder, 20/10/2026 — easy to scan): no time, link, signature or commit ref.
+    assert.ok(notify.includes(['  text="🚀 <b>កិច្ចការទី #$task បាន Live</b>$extra', "• <b>ខ្លឹមសារ៖</b> $summary", '• <b>Server៖</b> $server (${free:-?} ទំនេរ)"'].join("\n")))
+    assert.doesNotMatch(notify, /វេលាម៉ោង|https:\/\/app\.luychlat\.com|ប្រព័ន្ធស្វ័យប្រវត្តិ|\[ref: |Commit\)៖/)
+    assert.match(notify, /summary=\$\(khmer_summaries -1 \| cut -d\$'\\x1f' -f2 \| short_line \| esc\)/) // at most 80 characters
   })
   it("failed: one «Deploy Failed» card per commit with the step that failed — the 5-minute retries never repeat it", () => {
     assert.match(update, /trap notify_failure EXIT/)
     assert.match(update, /\[ "\$code" = "0" \] \|\| bash \.\/deploy\/deploy-notify\.sh fail "\$step" "\$code"/)
     assert.match(update, /git rev-parse HEAD > deploy\/\.deployed\n# Live and healthy[^\n]*\ntrap - EXIT/)
-    assert.match(notify, /⚠️ <b>ការដាក់ឱ្យដំណើរការមិនជោគជ័យ \(Deploy Failed\)<\/b>/)
+    assert.ok(notify.includes(['  text="⚠️ <b>កិច្ចការទី #$task មិនបាន Live</b>', "• <b>មូលហេតុ៖</b> ${step}", '• <b>Server៖</b> 🟢 កំណែមុននៅដើរធម្មតា"'].join("\n")))
     assert.match(notify, /\[ "\$\(cat deploy\/run\/\.failed-notified 2>\/dev\/null\)" = "\$head" \] && exit 0/)
   })
   it("the weekly Docker clean-up: Sundays 02:00, week-old build cache and dangling images, logged, never during a deploy or the APK build", () => {
@@ -104,5 +91,26 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.doesNotMatch(notify, /APPROVAL|MARKETING_CHAT_ID|DEVOPS_CHAT_ID|5578121916"/)
     assert.match(notify, /sent to \$sent chat\(s\)/)
     assert.match(notify, /\nexit 0\n$/)
+  })
+})
+
+describe("The deploy card's one line (founder, 20/10/2026)", () => {
+  it("at most 80 characters, cut between words with «…»; a short line untouched", async () => {
+    const { execFileSync } = await import("node:child_process")
+    const notify = existsSync(join(process.cwd(), "deploy/deploy-notify.sh")) ? readFileSync(join(process.cwd(), "deploy/deploy-notify.sh"), "utf8") : ""
+    if (!notify) return
+    const fn = notify.slice(notify.indexOf("short_line() {"), notify.indexOf("\n}\n", notify.indexOf("short_line() {")) + 2)
+    const run = (s: string) => {
+      try {
+        return execFileSync("bash", ["-c", `${fn}\nshort_line`], { input: s, encoding: "utf8", env: { ...process.env, PYTHONIOENCODING: "utf-8" } }).trim()
+      } catch {
+        return null
+      }
+    }
+    const short = run("ផ្ទាំងបន្ថែមកាបូបសាច់ប្រាក់សុទ្ធ លែងបង្ហាញជម្រើសប័ណ្ណឥណទានទៀតហើយ")
+    if (short === null) return // no bash / python3 here
+    assert.equal(short, "ផ្ទាំងបន្ថែមកាបូបសាច់ប្រាក់សុទ្ធ លែងបង្ហាញជម្រើសប័ណ្ណឥណទានទៀតហើយ")
+    const long = run("បណ្ណាល័យកសាដះរួមមានអតិបរមា ៣០ បទ — បទដែលមានអ្នកស្តាប់តិចបំផុតត្រូវផ្លាស់ទៅ «បទផ្ទាល់ខ្លួន» របស់អ្នកចែករំលែកដោយមិនលុបចោល")!
+    assert.ok(long.length <= 80 && long.endsWith("…"), long)
   })
 })

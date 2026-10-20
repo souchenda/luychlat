@@ -32,7 +32,8 @@ use come before feature count: no half-baked features, broken links or untested 
 - **Secrets:** never in `NEXT_PUBLIC_*`, never in chat or git; the founder enters them via the Droplet
   console. `NEXT_PUBLIC_*` are build arguments — after any `.env` edit, check `NEXT_PUBLIC_SUPABASE_URL`
   is still there. A variable reaches the container only if `docker-compose.yml` lists it.
-- **Commit messages in Khmer for the founder (founder, 20/10/2026):** every commit body carries one natural Khmer line
+- **Commit messages in Khmer for the founder (founder, 20/10/2026):** every commit body carries one short, natural
+  Khmer line (at most 80 characters, one sentence — the 3-line deploy card shows it; longer is cut with «…»)
   `Khmer: …` (e.g. `Khmer: ផ្ទាំងបន្ថែមកាបូបសាច់ប្រាក់សុទ្ធ លែងបង្ហាញជម្រើសប័ណ្ណឥណទានទៀតហើយ`) — what changed for
   the people using the app, no developer jargon. The founder's «Production (Live)» Telegram card shows it
   (`deploy/deploy-notify.sh`); a commit without one shows only its kind of change (or a line in
