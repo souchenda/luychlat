@@ -12,8 +12,8 @@ const ARABIC_OR_ISLAMIC = /[؀-ۿ]|Jazakallah|Barakallah|អាល់ហាំ�
 describe("Thanks to contributors, in their own community's words (founder, 19/10/2026)", () => {
   it("Islamic Mode: Alhamdulillah and Jazakallahu Khayran on sending, Barakallahu Feek once approved — the glossary's words", () => {
     assert.equal(
-      submittedThanks(true),
-      "អាល់ហាំឌូលិលឡាហ៍! សំណើរបស់អ្នកត្រូវបានបញ្ជូនរួចរាល់ហើយ។ យ៉ាហ្សាស្កាល់ឡាហូ ខាយរ៉ន (Jazakallahu Khayran / جَزَاكَ اللَّهُ خَيْرًا) — សូមអល់ឡោះតបស្នងនូវសេចក្ដីល្អសម្រាប់ការចូលរួមចំណែកកសាងសហគមន៍។",
+      submittedThanks(true, "Yerny"),
+      "អាស្សាឡាមុអាឡៃកុម Yerny! អាល់ហាំឌូលិលឡាហ៍! សំណើរបស់អ្នកត្រូវបានបញ្ជូនរួចរាល់ហើយ។ យ៉ាហ្សាស្កាល់ឡាហូ ខាយរ៉ន (Jazakallahu Khayran / جَزَاكَ اللَّهُ خَيْرًا) — សូមអល់ឡោះតបស្នងនូវសេចក្ដីល្អសម្រាប់ការចូលរួមចំណែកកសាងសហគមន៍។",
     )
     assert.equal(
       approvedThanks(true, "place").message,
@@ -41,9 +41,9 @@ describe("Thanks to contributors, in their own community's words (founder, 19/10
     assert.match(sql, /where p\.id = p_id and p\.approved and p\.source = 'community'/)
     assert.match(sql, /where t\.id = p_id and t\.status = 'APPROVED'/)
     // The toasts follow the member's mode too.
-    assert.match(readFileSync(join(process.cwd(), "src/components/islamic/suggest-place-sheet.tsx"), "utf8"), /toast\.success\(submittedThanks\(islamic\)/)
+    assert.match(readFileSync(join(process.cwd(), "src/components/islamic/suggest-place-sheet.tsx"), "utf8"), /toast\.success\(submittedThanks\(islamic, myName\)/) // by name (20/10/2026)
     // A qasidah is thanked in a dialog with the founder's Islamic words (20/10/2026 — lib/nasheed submittedThanksNasheed).
-    assert.match(readFileSync(join(process.cwd(), "src/app/(app)/islamic/nasheed/page.tsx"), "utf8"), /submittedThanksNasheed\(thanked, false\)/)
+    assert.match(readFileSync(join(process.cwd(), "src/app/(app)/islamic/nasheed/page.tsx"), "utf8"), /submittedThanksNasheed\(thanked, false, myName\)/)
   })
 
   it("the approval room's cards carry the member's community: [ 🌙 ឥស្លាម ] or [ ☀️ មហាជន ]", () => {

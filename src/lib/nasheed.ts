@@ -135,30 +135,37 @@ export const PLAY_COUNT_SECONDS = 15
 /** «🎧 ១២ ដង» on a public track. */
 export const playsChip = (n: number) => `🎧 ${String(n).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])} ដង`
 
-/** The thank-you right after a public submission — the app's dialog (plain) and the submitter's Telegram (HTML). */
-export function submittedThanksNasheed(title: string, html: boolean): string {
+/**
+ * The thank-you right after a public submission — the app's dialog (plain) and the submitter's Telegram (HTML). One to one:
+ * greeted by name (founder, 20/10/2026), «បងប្អូន» when there is none.
+ */
+export function submittedThanksNasheed(title: string, html: boolean, name?: string | null): string {
   const b = (s: string) => (html ? `<b>${esc(s)}</b>` : s)
+  const who = G.personName(name)
   return [
-    `🕌 ${b(`${G.ASSALAMU_ALAIKUM} បងប្អូន!`)}`,
+    `🕌 ${b("សារពី អេប លុយឆ្លាត (សហគមន៍ឥស្លាម)")}`,
+    "",
+    `« ${b(G.salamTo(name))}`,
     "",
     `អេប លុយឆ្លាត សូមថ្លែងអំណរគុណយ៉ាងជ្រាលជ្រៅចំពោះការចូលរួមចែករំលែកបទ ${b(`«${title}»`)}។ ក្រុមការងារអេដមីននឹងពិនិត្យ និងអនុម័តដាក់បញ្ចូលក្នុងបណ្ណាល័យសហគមន៍ឆាប់ៗនេះ។`,
     "",
-    `${G.JAZAKALLAH} (Jazakallahu Khayran)! សូមអល់ឡោះ ﷻ ប្រទានពរជ័យ និង${G.BARAKAH}ដល់បងប្អូន! 🤲✨`,
+    `${G.JAZAKALLAH} (Jazakallahu Khayran)! សូមអល់ឡោះ ﷻ ប្រទានពរជ័យ សេចក្តីសុខ និង${G.BARAKAH}ដល់ ${b(who)} និងក្រុមគ្រួសារ! 🤲✨ »`,
   ].join("\n")
 }
 
-/** The submitter's note when their track makes room for new ones (Telegram HTML and the in-app bell). */
-export function demotedNotice(title: string): { html: string; title: string; plain: string } {
+/** The submitter's note when their track makes room for new ones (Telegram HTML and the in-app bell) — by name. */
+export function demotedNotice(title: string, name?: string | null): { html: string; title: string; plain: string } {
+  const who = G.personName(name)
   const body = (b: (s: string) => string) =>
     [
       `🕌 ${b("សារពី អេប លុយឆ្លាត (សហគមន៍ឥស្លាម)")}`,
       "",
-      `« ${b(`${G.ASSALAMU_ALAIKUM} បងប្អូន!`)}`,
-      `បទ ${b(title)} ដែលបងប្អូនបានចូលរួមចែករំលែក ត្រូវបានប្រព័ន្ធដកចេញពីបណ្ណាល័យសាធារណៈជាបណ្តោះអាសន្ន ដោយសារមិនសូវមានការចុចស្តាប់គាំទ្រ ដើម្បីទុកកន្លែងសម្រាប់បទថ្មីៗ។`,
+      `« ${b(G.salamTo(name))}`,
+      `បទ ${b(title)} ដែល${who}បានចូលរួមចែករំលែក ត្រូវបានប្រព័ន្ធដកចេញពីបណ្ណាល័យសាធារណៈជាបណ្តោះអាសន្ន ដោយសារមិនសូវមានការចុចស្តាប់គាំទ្រ ដើម្បីទុកកន្លែងសម្រាប់បទថ្មីៗ។`,
       "",
-      `${G.JAZAKALLAH} (Jazakallahu Khayran) សម្រាប់ការចូលរួមចំណែកដ៏មានតម្លៃរបស់បងប្អូន! សូមអល់ឡោះ ﷻ ប្រទានពរជ័យ និង${G.BARAKAH}ដល់បងប្អូន និងក្រុមគ្រួសារ! 🤲✨ »`,
+      `${G.JAZAKALLAH} (Jazakallahu Khayran) សម្រាប់ការចូលរួមចំណែកដ៏មានតម្លៃរបស់${who}! សូមអល់ឡោះ ﷻ ប្រទានពរជ័យ និង${G.BARAKAH}ដល់${who} និងក្រុមគ្រួសារ! 🤲✨ »`,
       "",
-      "បញ្ជាក់៖ បទនេះនៅតែរក្សាទុកក្នុងផ្ទាំង «បទផ្ទាល់ខ្លួន» (My Tracks) របស់បងប្អូនដដែល។",
+      `បញ្ជាក់៖ បទនេះនៅតែរក្សាទុកក្នុងផ្ទាំង «បទផ្ទាល់ខ្លួន» (My Tracks) របស់${who}ដដែល។`,
     ].join("\n")
   return { html: body((s) => `<b>${esc(s)}</b>`), title: `🕌 ${G.ASSALAMU_ALAIKUM} — បទ «${title}» នៅក្នុងបទផ្ទាល់ខ្លួនរបស់អ្នក`, plain: body((s) => s) }
 }

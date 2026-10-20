@@ -49,8 +49,14 @@ describe("The community qasidah library: 30 tracks, plays, a polite move to «�
     assert.match(read("src/lib/server/nasheed-review.ts"), /for \(const chat of await founderChats\(\)\) if \(\(await tg\("sendMessage", \{ chat_id: chat, text: demotedReport/) // the founder's chat, never the group
   })
   it("a public submission: thanked at once (the app's dialog and the submitter's Telegram); the review card with name and contact", () => {
-    const thanks = submittedThanksNasheed("Hulum Takhrij", false)
-    assert.match(thanks, /^🕌 អាស្សាឡាមុអាឡៃកុម បងប្អូន!\n\nអេប លុយឆ្លាត សូមថ្លែងអំណរគុណយ៉ាងជ្រាលជ្រៅចំពោះការចូលរួមចែករំលែកបទ «Hulum Takhrij»។/)
+    // One to one: by name (founder, 20/10/2026); «បងប្អូន» only without a name.
+    const thanks = submittedThanksNasheed("Hulum Takhrij", false, "Yerny")
+    assert.match(thanks, /^🕌 សារពី អេប លុយឆ្លាត \(សហគមន៍ឥស្លាម\)\n\n« អាស្សាឡាមុអាឡៃកុម Yerny!\n\nអេប លុយឆ្លាត សូមថ្លែងអំណរគុណយ៉ាងជ្រាលជ្រៅចំពោះការចូលរួមចែករំលែកបទ «Hulum Takhrij»។/)
+    assert.match(thanks, /ប្រទានពរជ័យ សេចក្តីសុខ និងបារ៉ាកាត់ដល់ Yerny និងក្រុមគ្រួសារ! 🤲✨ »$/)
+    assert.match(submittedThanksNasheed("x", false, null), /« អាស្សាឡាមុអាឡៃកុម បងប្អូន!/)
+    assert.match(demotedNotice("x", "Yerny").plain, /« អាស្សាឡាមុអាឡៃកុម Yerny!/)
+    assert.match(read("src/lib/server/nasheed-review.ts"), /submittedThanksNasheed\(title, true, contact\.name\)/)
+    assert.match(read("src/app/(app)/islamic/nasheed/page.tsx"), /submittedThanksNasheed\(thanked, false, myName\)/)
     assert.match(read("src/app/(app)/islamic/nasheed/page.tsx"), /data-testid="nasheed-thanks"/)
     assert.match(read("src/lib/server/nasheed-review.ts"), /await thankSubmitterNow\(row\.title_km, who\)/)
     const card = reviewCaption({ title: "Hulum Takhrij", artist: "Ahmed", submitter: "Yerny", contact: "+85512345678", state: "PENDING" })

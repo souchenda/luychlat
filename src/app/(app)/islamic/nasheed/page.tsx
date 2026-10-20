@@ -27,6 +27,7 @@ import {
 } from "@/lib/nasheed-data"
 import { canPublishGlobally } from "@/lib/adhan-presets"
 import { usePlan } from "@/lib/plan"
+import { useProfile } from "@/lib/data/hooks"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
@@ -253,6 +254,8 @@ function LikeButton({ liked, count, label, onToggle }: { liked: boolean; count: 
  */
 function ShareSheet({ open, onOpenChange, onSavedPrivate }: { open: boolean; onOpenChange: (open: boolean) => void; onSavedPrivate: () => void }) {
   const t = useKhmerT()
+  // One to one: the member by name (founder, 20/10/2026).
+  const myName = useProfile().data?.display_name
   const submit = useSubmitNasheed()
   const savePrivate = useSavePrivateNasheed()
   // 🌐 to the community library (reviewed first) or 🔒 for my own listening at once (founder, 20/10/2026).
@@ -337,7 +340,7 @@ function ShareSheet({ open, onOpenChange, onSavedPrivate }: { open: boolean; onO
     <>
     <BottomSheet open={thanked !== null} onOpenChange={(v) => !v && setThanked(null)} title={t("nasheed.thanksTitle")}>
       <div className="space-y-4" data-testid="nasheed-thanks">
-        <p className="whitespace-pre-line text-sm leading-relaxed">{thanked !== null ? submittedThanksNasheed(thanked, false) : ""}</p>
+        <p className="whitespace-pre-line text-sm leading-relaxed">{thanked !== null ? submittedThanksNasheed(thanked, false, myName) : ""}</p>
         <Button type="button" className="h-11 w-full" onClick={() => setThanked(null)}>
           {t("nasheed.thanksClose")}
         </Button>

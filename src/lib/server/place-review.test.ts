@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { parseApproverIds } from "../co-approvers"
-import { placeThanks } from "../contributor-thanks"
+import { fillName, placeThanks } from "../contributor-thanks"
 import { handlePlaceReviewCallback, type ReviewDeps } from "./place-alerts"
 
 const PLACE = "3f2b1c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"
@@ -26,7 +26,7 @@ function fake(o: { approvers?: number[]; review?: "approved" | "done" | "rejecte
         if (!approvers.includes(args.p_actor as number)) return { data: null, error: { message: "super admin only" } }
         return { data: { status: args.p_approve ? (o.review ?? "approved") : "rejected", name: "Surau", province: "កំពត" }, error: null }
       }
-      if (fn === "bot_contributor_thank") return { data: o.submitter === undefined ? { islamic: true, chat_id: YERNY_CHAT } : o.submitter, error: null }
+      if (fn === "bot_contributor_thank") return { data: o.submitter === undefined ? { islamic: true, chat_id: YERNY_CHAT, name: "Yerny" } : o.submitter, error: null }
       return { data: null, error: null }
     },
     tg: async (method, payload) => {
@@ -48,7 +48,8 @@ describe("Approving a place in «LCA Approval» — dry run (founder, 19/10/2026
     assert.equal(f.rpcs[1].fn, "bot_contributor_thank")
     const dm = f.calls.find((c) => c.method === "sendMessage")!
     assert.equal(dm.payload.chat_id, YERNY_CHAT)
-    assert.equal(dm.payload.text, placeThanks(true, "Surau").html)
+    assert.equal(dm.payload.text, fillName(placeThanks(true, "Surau").html, "Yerny", true)) // by name (20/10/2026)
+    assert.match(dm.payload.text as string, /« <b>អាស្សាឡាមុអាឡៃកុម Yerny!<\/b>/)
     assert.equal(dm.payload.parse_mode, "HTML")
     const toast = f.calls.find((c) => c.method === "answerCallbackQuery")!
     assert.equal(toast.payload.text, "✅ បានអនុម័ត និងផ្ញើសារអរគុណរួចរាល់!")
@@ -92,7 +93,9 @@ describe("Approving a place in «LCA Approval» — dry run (founder, 19/10/2026
 
   it("the thank-you: the founder's words naming the place; Islamic blessings only in Islamic Mode", () => {
     const islamic = placeThanks(true, "Surau")
-    assert.match(islamic.html, /^🕌 <b>សារពី អេប លុយឆ្លាត<\/b>\n\n« យ៉ាហ្សាស្កាល់ឡាហូ ខាយរ៉ន \(Jazakallahu Khayran\) បងប្អូន! ទីតាំង <b>Surau<\/b>/)
+    assert.match(islamic.html, /^🕌 <b>សារពី អេប លុយឆ្លាត \(សហគមន៍ឥស្លាម\)<\/b>\n\n« <b>អាស្សាឡាមុអាឡៃកុម \{name\}!<\/b>\nយ៉ាហ្សាស្កាល់ឡាហូ ខាយរ៉ន \(Jazakallahu Khayran\)! ទីតាំង <b>Surau<\/b>/)
+    assert.match(fillName(islamic.html, null, true), /អាស្សាឡាមុអាឡៃកុម បងប្អូន!/) // no name → «បងប្អូន»
+    assert.match(fillName(islamic.html, "+85512345678", true), /អាស្សាឡាមុអាឡៃកុម បងប្អូន!/) // a phone is not a name
     assert.match(islamic.html, /សូមអល់ឡោះ ﷻ ប្រទានពរជ័យ សេចក្តីសុខ និងបារ៉ាកាត់/)
     const general = placeThanks(false, "<script>")
     assert.match(general.html, /^✨ <b>សារពី អេប លុយឆ្លាត<\/b>\n\n« អរគុណច្រើនសម្រាប់ការចូលរួមចំណែក! ទីតាំង <b>&lt;script&gt;<\/b>/)

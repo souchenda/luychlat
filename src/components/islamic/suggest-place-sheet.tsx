@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { submittedThanks } from "@/lib/contributor-thanks"
 import { useKhmerT } from "@/lib/i18n/use-t"
+import { useProfile } from "@/lib/data/hooks"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { placePhotoError } from "@/lib/place-photo"
 import { PLACE_KINDS, uploadPlacePhoto, usePlaceMutations, type PlaceKind } from "@/lib/places"
@@ -29,6 +30,7 @@ export function SuggestPlaceSheet({ open, onOpenChange }: { open: boolean; onOpe
   const t = useKhmerT()
   // Thanks in the member's own words: Islamic blessings only in Islamic Mode (lib/contributor-thanks.ts).
   const islamic = useIslamicEnabled()
+  const myName = useProfile().data?.display_name
   const around = useIslamicLocation()
   const { add } = usePlaceMutations()
   const [kind, setKind] = useState<PlaceKind>("MOSQUE")
@@ -99,7 +101,7 @@ export function SuggestPlaceSheet({ open, onOpenChange }: { open: boolean; onOpe
       { kind, name: name.trim(), province: province || null, address: address.trim() || null, lat: point.lat, lng: point.lng, phone: null, note: null, photo_path: photoPath },
       {
         onSuccess: () => {
-          toast.success(submittedThanks(islamic), { duration: 8_000 })
+          toast.success(submittedThanks(islamic, myName), { duration: 8_000 })
           onOpenChange(false)
         },
         onError: (error) => toast.error(t(error.message.includes("too many") ? "suggest.tooMany" : "suggest.failed")),

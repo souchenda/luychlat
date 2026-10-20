@@ -10,10 +10,10 @@ export type Contribution = "place" | "qasidah"
 
 const WHAT: Record<Contribution, string> = { place: "ទីតាំង", qasidah: "បទកសាដះ" }
 
-/** The toast when the suggestion is sent. */
-export function submittedThanks(islamic: boolean): string {
+/** The toast when the suggestion is sent — in Islamic Mode it greets the member by name (founder, 20/10/2026). */
+export function submittedThanks(islamic: boolean, name?: string | null): string {
   return islamic
-    ? `${G.ALHAMDULILLAH}! សំណើរបស់អ្នកត្រូវបានបញ្ជូនរួចរាល់ហើយ។ ${G.JAZAKALLAH_LABEL} — សូមអល់ឡោះតបស្នងនូវសេចក្ដីល្អសម្រាប់ការចូលរួមចំណែកកសាងសហគមន៍។`
+    ? `${G.salamTo(name)} ${G.ALHAMDULILLAH}! សំណើរបស់អ្នកត្រូវបានបញ្ជូនរួចរាល់ហើយ។ ${G.JAZAKALLAH_LABEL} — សូមអល់ឡោះតបស្នងនូវសេចក្ដីល្អសម្រាប់ការចូលរួមចំណែកកសាងសហគមន៍។`
     : "អរគុណច្រើនសម្រាប់ការចូលរួមចំណែក! សំណើរបស់អ្នកត្រូវបានបញ្ជូនរួចរាល់ហើយ ក្រុមការងារនឹងពិនិត្យផ្ទៀងផ្ទាត់យ៉ាងឆាប់រហ័សបំផុត។"
 }
 
@@ -36,6 +36,13 @@ export const communityBadge = (islamic: boolean) => (islamic ? "[ 🌙 ឥស្
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 /**
+ * The member's name in a one-to-one thank-you (founder, 20/10/2026): a placeholder the database fills in for the bell
+ * notice (bot_contributor_thank) and the server for the Telegram note (fillName) — «បងប្អូន» when there is no name.
+ */
+export const NAME = "{name}"
+export const fillName = (text: string, name: string | null | undefined, html = false) => text.split(NAME).join(html ? esc(G.personName(name)) : G.personName(name))
+
+/**
  * The founder's private thank-you from @luychlat_bot once a place is approved (19/10/2026), naming the place — HTML
  * for Telegram (`html`) and plain for the bell notice (`plain`). Islamic blessings only in Islamic Mode.
  */
@@ -43,7 +50,7 @@ export function placeThanks(islamic: boolean, placeName: string): { title: strin
   const name = placeName.trim() || "—"
   const build = (b: (s: string) => string) =>
     islamic
-      ? `🕌 ${b("សារពី អេប លុយឆ្លាត")}\n\n« ${G.JAZAKALLAH} (Jazakallahu Khayran) បងប្អូន! ទីតាំង ${b(name)} ដែលបងប្អូនបានចូលរួមចែករំលែក ត្រូវបានក្រុមការងារពិនិត្យ និងអនុម័តដាក់បញ្ចូលក្នុងអេបជាផ្លូវការហើយ។\n\nសូមអល់ឡោះ ﷻ ប្រទានពរជ័យ សេចក្តីសុខ និង${G.BARAKAH}ដល់ការលះបង់ និងការចូលរួមរបស់បងប្អូន! 🤲✨ »\n\n— ក្រុមការងារ អេប លុយឆ្លាត`
+      ? `🕌 ${b("សារពី អេប លុយឆ្លាត (សហគមន៍ឥស្លាម)")}\n\n« ${b(`${G.ASSALAMU_ALAIKUM} ${NAME}!`)}\n${G.JAZAKALLAH} (Jazakallahu Khayran)! ទីតាំង ${b(name)} ដែល${NAME}បានចូលរួមចែករំលែក ត្រូវបានក្រុមការងារពិនិត្យ និងអនុម័តដាក់បញ្ចូលក្នុងអេបជាផ្លូវការហើយ។\n\nសូមអល់ឡោះ ﷻ ប្រទានពរជ័យ សេចក្តីសុខ និង${G.BARAKAH}ដល់ ${b(NAME)} និងក្រុមគ្រួសារ! 🤲✨ »\n\n— ក្រុមការងារ អេប លុយឆ្លាត`
       : `✨ ${b("សារពី អេប លុយឆ្លាត")}\n\n« អរគុណច្រើនសម្រាប់ការចូលរួមចំណែក! ទីតាំង ${b(name)} ដែលលោកអ្នកបានស្នើសុំ ត្រូវបានក្រុមការងារពិនិត្យ និងអនុម័តដាក់បញ្ចូលក្នុងអេបជាផ្លូវការហើយ ដើម្បីជាប្រយោជន៍ដល់អ្នកប្រើប្រាស់រួមគ្នា។ 🙏❤️ »\n\n— ក្រុមការងារ អេប លុយឆ្លាត`
   return {
     title: islamic ? `🕌 ${G.JAZAKALLAH} — ទីតាំងរបស់អ្នកត្រូវបានអនុម័ត` : "✨ ទីតាំងរបស់អ្នកត្រូវបានអនុម័ត",

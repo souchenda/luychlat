@@ -5,7 +5,7 @@
 // community's words (lib/contributor-thanks.ts).
 import { createClient } from "@supabase/supabase-js"
 
-import { approvedThanks, communityBadge, decidedCard, placeThanks, thanksToast as thankToast, type Contribution, type ThanksStatus } from "@/lib/contributor-thanks"
+import { approvedThanks, communityBadge, decidedCard, fillName, placeThanks, thanksToast as thankToast, type Contribution, type ThanksStatus } from "@/lib/contributor-thanks"
 import { isPlaceReviewCallback, parsePlaceReviewCallback, placeAlertButtons, placeAlertText, placeAlertTextNoPhoto, placeDecisionLine, type PlaceCard } from "@/lib/place-alerts"
 import { marketingChats } from "@/lib/server/admin-routes"
 import { logEvent } from "@/lib/server/events"
@@ -112,16 +112,17 @@ export async function thankContributor(kind: Contribution, id: string, placeName
     deps.log("error", `Thanks for ${kind} ${id} not recorded: ${error.message}`)
     return "failed"
   }
-  const r = data as { islamic: boolean; chat_id: number | null } | null
+  const r = data as { islamic: boolean; chat_id: number | null; name?: string | null } | null
   if (!r) return "no_submitter"
   if (!r.chat_id) {
     deps.log("info", `Thanks for ${kind} ${id}: the member has no linked Telegram — in-app notice only`)
     return "no_telegram"
   }
-  const html = islamic && general ? (r.islamic ? islamic.html : general.html) : null
+  // One to one: the member by name (founder, 20/10/2026 — «{name}», filled in by the database for the bell).
+  const html = islamic && general ? fillName(r.islamic ? islamic.html : general.html, r.name, true) : null
   const res = html
     ? await deps.tg("sendMessage", { chat_id: r.chat_id, text: html, parse_mode: "HTML", disable_web_page_preview: true })
-    : await deps.tg("sendMessage", { chat_id: r.chat_id, text: (r.islamic ? fallbackI : fallbackG).message, disable_web_page_preview: true })
+    : await deps.tg("sendMessage", { chat_id: r.chat_id, text: fillName((r.islamic ? fallbackI : fallbackG).message, r.name), disable_web_page_preview: true })
   if (res.ok) return "sent"
   deps.log("warn", `Thanks for ${kind} ${id} not delivered on Telegram: ${res.description ?? "?"}`)
   return "failed"

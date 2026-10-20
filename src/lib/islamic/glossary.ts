@@ -95,6 +95,18 @@ export const ASSALAMU_ALAIKUM = "អាស្សាឡាមុអាឡៃក�
 export const ASSALAMU_ALAIKUM_LABEL = `${ASSALAMU_ALAIKUM} (Assalamu Alaikum / السَّلَامُ عَلَيْكُمْ)`
 export const FORBIDDEN_GREETINGS = ["ជំរាបសួរ", "ជម្រាបសួរ", "សូមជម្រាបសួរ", "សូមជំរាបសួរ"] as const
 
+/** Everyone together — a public channel or post (founder, 20/10/2026). */
+export const BROTHERS_AND_SISTERS = "បងប្អូន"
+export const SALAM_ALL = `${ASSALAMU_ALAIKUM} ${BROTHERS_AND_SISTERS}!`
+
+/** The person by name in a one-to-one message (a DM, an upload's thank-you); no usable name → «បងប្អូន». */
+export const personName = (name: string | null | undefined): string => {
+  const n = (name ?? "").trim()
+  // A phone number or a placeholder is not a name to greet.
+  return !n || n === "—" || /^\+?[\d\s-]{6,}$/.test(n) ? BROTHERS_AND_SISTERS : n.slice(0, 40)
+}
+export const salamTo = (name: string | null | undefined) => `${ASSALAMU_ALAIKUM} ${personName(name)}!`
+
 export const ALHAMDULILLAH = "អាល់ហាំឌូលិលឡាហ៍"
 export const JAZAKALLAH = "យ៉ាហ្សាស្កាល់ឡាហូ ខាយរ៉ន"
 export const JAZAKALLAH_LABEL = `${JAZAKALLAH} (Jazakallahu Khayran / جَزَاكَ اللَّهُ خَيْرًا)`

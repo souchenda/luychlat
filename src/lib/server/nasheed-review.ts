@@ -39,7 +39,7 @@ async function submitterContact(userId: string | null): Promise<Contact> {
 /** The thank-you right after a public submission, in the submitter's private Telegram chat when linked (founder, 20/10/2026). */
 async function thankSubmitterNow(title: string, contact: Contact) {
   if (!contact.chat_id) return
-  const res = await tg("sendMessage", { chat_id: contact.chat_id, text: submittedThanksNasheed(title, true), parse_mode: "HTML", disable_web_page_preview: true })
+  const res = await tg("sendMessage", { chat_id: contact.chat_id, text: submittedThanksNasheed(title, true, contact.name), parse_mode: "HTML", disable_web_page_preview: true })
   logEvent(res.ok ? "info" : "warn", "nasheed", res.ok ? "Submission thanks sent on Telegram" : `Submission thanks not delivered: ${res.description ?? "?"}`, { fold: !res.ok })
 }
 
@@ -167,7 +167,8 @@ export async function enforceNasheedCapacity(): Promise<number> {
     if (file.error || !file.data) throw new Error(`public file not readable: ${t.audio_path}`)
     const up = await db.storage.from(SUBMISSIONS_BUCKET).upload(ownPath, file.data, { contentType: contentTypeOf(ext), upsert: false })
     if (up.error) throw new Error(`private copy failed: ${up.error.message}`)
-    const note = demotedNotice(t.title_km)
+    // One to one: the submitter by name (founder, 20/10/2026).
+    const note = demotedNotice(t.title_km, (await submitterContact(t.submitted_by)).name)
     const { data: done, error: demoteError } = await botDb().rpc("bot_nasheed_demote", { p_key: botKey(), p_id: t.id, p_own_path: ownPath, p_title: note.title, p_message: note.plain })
     const d = done as { chat_id: number | null; title: string; play_count: number } | null
     if (demoteError || !d) {
