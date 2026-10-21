@@ -310,3 +310,7 @@ an approver's tap.
 - **20/10/2026:** the holiday engine covers four groups (national and royal, Islamic, Chinese, global), all at 05:00.
 - **20/10/2026:** strict religious separation of the channels — constitutional (§ 2.6a), enforced in code and by a golden test.
 - **20/10/2026:** the caption structure — a hook, the content, the standard footer (§ 5.0).
+- **21/10/2026:** the fuel price poster (`lib/server/fuel-poster.ts`): navy into emerald with faint diagonal lines, the
+  title and the cycle centred, one glass card per fuel — its name, its grade in a gold pill, the price in large Khmer
+  digits and its change badge (green «▼ ចុះ», red «▲ ឡើង», neutral «មិនប្រែប្រួល»), no parentheses. Attached to the fuel
+  announcement card at the founder's request («attach the generated poster … immediately»), who approves it there.

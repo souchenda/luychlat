@@ -1,0 +1,70 @@
+import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import { describe, it } from "node:test"
+
+import { cycleLine, fuelChange, fuelPosterContent, FUEL_POSTER_TITLE } from "@/lib/fuel-poster"
+import { postFooter, withFooter } from "@/lib/post-footer"
+
+import { fuelPoster } from "./fuel-poster"
+import { newPricesText } from "./moc-fuel-sync"
+import { posterAssetsReady } from "./poster-kit"
+
+const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
+const notice36200 = { regular: 5050, super: null, diesel: 5550, from: "2026-10-21", to: "2026-11-01" }
+const before = { regular: 5350, super: null, diesel: 5550 }
+
+describe("fuel price poster (founder, 21/10/2026 — Task #428)", () => {
+  it("the change badge: ▼ ចុះ when the price fell, ▲ ឡើង when it rose, មិនប្រែប្រួល when unchanged, nothing without the cycle before", () => {
+    assert.deepEqual(fuelChange(5050, 5350), { tone: "down", text: "▼ ចុះ ៣០០ ៛" })
+    assert.deepEqual(fuelChange(5650, 5550), { tone: "up", text: "▲ ឡើង ១០០ ៛" })
+    assert.deepEqual(fuelChange(5550, 5550), { tone: "same", text: "មិនប្រែប្រួល" })
+    assert.equal(fuelChange(5550, null), null)
+  })
+
+  it("notice #36200 on the poster: the title, the cycle, EA92 ៥,០៥០ ▼ ៣០០ and diesel ៥,៥៥០ unchanged", () => {
+    const p = fuelPosterContent(notice36200, before)
+    assert.equal(p.title, FUEL_POSTER_TITLE)
+    assert.equal(p.cycle, "ចាប់ពីថ្ងៃទី ២១ តុលា ដល់ ០១ វិច្ឆិកា ២០២៦")
+    assert.deepEqual(
+      p.cards.map((c) => [c.label, c.code, c.price, c.unit, c.change?.text]),
+      [
+        ["សាំងធម្មតា", "EA92", "៥,០៥០", "៛ / លីត្រ", "▼ ចុះ ៣០០ ៛"],
+        ["ប្រេងម៉ាស៊ូត", "DIESEL", "៥,៥៥០", "៛ / លីត្រ", "មិនប្រែប្រួល"],
+      ],
+    )
+  })
+
+  it("brand rules: no parentheses and no «&» on the graphic, Khmer digits only, EA95 only when the notice lists it", () => {
+    const p = fuelPosterContent({ ...notice36200, super: 5450 }, { ...before, super: 5450 })
+    const all = [p.pill, p.title, p.cycle, p.source, ...p.cards.flatMap((c) => [c.label, c.price, c.unit, c.change?.text ?? ""])].join(" ")
+    assert.doesNotMatch(all, /[()&]|[0-9]/)
+    assert.deepEqual(p.cards.map((c) => c.code), ["EA92", "EA95", "DIESEL"])
+    assert.equal(fuelPosterContent(notice36200, before).cards.length, 2)
+    // A cycle across the year names both years.
+    assert.equal(cycleLine("2026-12-21", "2027-01-01"), "ចាប់ពីថ្ងៃទី ២១ ធ្នូ ២០២៦ ដល់ ០១ មករា ២០២៧")
+  })
+
+  it("draws a 1080 × 1080 PNG", async () => {
+    await posterAssetsReady
+    const png = fuelPoster(fuelPosterContent(notice36200, before))
+    assert.equal(png.subarray(1, 4).toString(), "PNG")
+    assert.equal(png.readUInt32BE(16), 1080)
+    assert.equal(png.readUInt32BE(20), 1080)
+  })
+
+  it("the channel caption: the post with the standard footer, within a photo caption's 1,024 characters", () => {
+    const caption = withFooter(newPricesText(notice36200, before, 36200), postFooter("community"), 1024)
+    assert.ok(caption.endsWith(postFooter("community")), "the footer is not dropped")
+    assert.ok(caption.length <= 1024, `${caption.length}`)
+    assert.match(caption, /៥,០៥០ ៛\/លីត្រ \(▼ ៣០០\)/)
+  })
+
+  it("wired: the card previews the poster, approval publishes the photo on the channel and the Page, the waiting card is re-sent", () => {
+    const sp = read("src/lib/server/scheduled-posts.ts")
+    assert.match(sp, /case "FUEL": \{[\s\S]*?png: f \? poster\(\(\) => fuelPoster\(f\)\) : null/)
+    assert.match(sp, /if \(row\.kind === "FUEL"\) \{[\s\S]*?sendPosterPhoto\(chat, png, caption[\s\S]*?publishPhotoToFacebook\(approval, png, fbText\)/)
+    assert.match(sp, /REPREVIEW_READY = \[[^\]]*"fuel-poster"/)
+    assert.match(read("supabase/migrations/20270243000000_repreview_fuel_poster.sql"), /'repreview', 'fuel-poster'[\s\S]*post_key = 'notice-36200' and status = 'PENDING'/)
+  })
+})

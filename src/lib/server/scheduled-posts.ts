@@ -58,7 +58,9 @@ import { deleteFacebookPost, facebookConfig, facebookHolidayMessage, publishLogg
 import { holidayPoster } from "@/lib/server/holiday-poster"
 import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster, portraitCredit } from "@/lib/server/national-day-poster"
 import { holidayRouteAllowed, nationalCaptionHtml, nationalCaptionText, nationalChannel, nationalDateNote, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE } from "@/lib/calendar/cambodia-holidays"
-import { phnomPenhToday } from "@/lib/server/market-sync"
+import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
+import { fuelPoster } from "@/lib/server/fuel-poster"
+import { fuelPosterContent, type FuelPoster } from "@/lib/fuel-poster"
 import { sendMorningPush } from "@/lib/server/web-push"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { sendPosterPhoto } from "@/lib/server/tip-bot"
@@ -487,6 +489,12 @@ const realDeps = (): SchedulerDeps => ({
         const dateNote = nationalDateNote(d)
         return { png: poster(() => nationalDayPoster(d, day).png), body: nationalCaptionText(d, day) + (credit ? `\n${credit}` : "") + missing + noBackdrop + (dateNote ? `\n\n${dateNote}` : "") }
       }
+      case "FUEL": {
+        // The fuel price poster (founder, 21/10/2026 — «text-only fuel posts get low reach»), with the post as its caption.
+        const f = await fuelPosterOf(row)
+        if (f) await posterAssetsReady
+        return { png: f ? poster(() => fuelPoster(f)) : null, body: String(row.payload.telegram ?? "—") }
+      }
       case "ISLAMIC_BULLETIN":
         return { png: null, body: stripHtml((await islamicBulletinNow()) ?? "—") }
       case "ISLAMIC_MORNING":
@@ -686,6 +694,20 @@ const realDeps = (): SchedulerDeps => ({
       if (chat && row.payload.text) ids.telegram = await sentText(String(row.payload.text), false)
       return ids
     }
+    if (row.kind === "FUEL") {
+      // The poster with the post and the standard footer (founder, 21/10/2026) — the text alone if no poster can be drawn.
+      const { png } = await this.content(row)
+      const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      const words = String(row.payload.telegram ?? "")
+      const caption = withFooter(esc(words), postFooter("community"), png ? 1024 : 4096)
+      if (chat && words) ids.telegram = png ? ((await sendPosterPhoto(chat, png, caption, { reply_markup: buttons.reply_markup })) ?? (await sentText(caption, true))) : await sentText(caption, true)
+      const fbText = row.payload.facebook
+      if (fbText && facebookConfig()) {
+        const fb = await publishLogged("fuel price change", () => (png ? publishPhotoToFacebook(approval, png, fbText) : publishTextToFacebook(approval, fbText)), fbLog)
+        if (fb?.ok) ids.facebook = fb.postId
+      }
+      return ids
+    }
     if (chat && row.payload.telegram) ids.telegram = await sentText(row.payload.telegram, false)
     const fbMessage = row.payload.facebook
     if (fbMessage && facebookConfig()) {
@@ -812,7 +834,15 @@ const islamicNationalDay = (row: { kind: string; payload: Record<string, unknown
 }
 
 /** The posts whose caption carries the standard footer (lib/post-footer.ts — not commemorations, Sil days or feeds). */
-const FOOTER_KINDS = new Set<string>(["MORNING", "HOLIDAY", "EVENING", "DILEMMA", "ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"])
+/** The fuel poster of a FUEL post: the stored prices when they are the notice it announces (post key «notice-<id>»). */
+async function fuelPosterOf(row: PostRow): Promise<FuelPoster | null> {
+  const fuel = (await currentMarket())?.fuel
+  const notice = Number(String(row.post_key).replace(/^notice-/, ""))
+  if (!fuel || !Number.isFinite(notice) || fuel.post !== notice) return null
+  return fuelPosterContent(fuel, fuel.previous ?? null)
+}
+
+const FOOTER_KINDS = new Set<string>(["MORNING", "HOLIDAY", "EVENING", "DILEMMA", "FUEL", "ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"])
 
 /** «(✏️ បានកែសម្រួលដោយ @username ម៉ោង HH:mm)» under an edited caption on the card — the founder's wording. */
 function editedLine(row: PostRow): string {
@@ -896,7 +926,7 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
-  const REPREVIEW_READY = ["sleep-dua-wasl", "lesson14-hadith"]
+  const REPREVIEW_READY = ["sleep-dua-wasl", "lesson14-hadith", "fuel-poster"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // Every holiday — national and royal, Islamic, Chinese, global (founder, 20/10/2026): previewed from 48 hours before at
   // 08:00, published at 05:00 on the day once approved (a missed preview window is caught up until then — idempotent).
