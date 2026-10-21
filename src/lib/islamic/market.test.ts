@@ -34,7 +34,8 @@ describe("Rates, gold and the Zakat Nisab for the Islamic community (founder, 20
     const html = islamicBulletinHtml(islamicMarket(market, "2026-10-20"), { hijri: "៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.", gregorian: "ថ្ងៃអង្គារ ២០ តុលា ២០២៦", appUrl: "https://app.luychlat.com/" })!
     assert.match(html, /^🌙 <b>ព្រឹត្តិបត្រហាងឆេងរូបិយប័ណ្ណ និងនីស៊បមាសហ្សាកាត់<\/b>\n📅 ៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ\.ស\. \(ត្រូវនឹង ថ្ងៃអង្គារ ២០ តុលា ២០២៦\)\n\n<b>អាស្សាឡាមុអាឡៃកុម បងប្អូន!<\/b>/)
     assert.match(html, /• 1 SAR ≈ 1,070 ៛\n• 1 USD = 3\.75 SAR \(\$100 ≈ 375 SAR\)/)
-    assert.match(html, /• 1 USD = 4,012 ៛ \(អត្រាផ្លូវការ 20\/10\/2026\)/)
+    // The full NBC table, as in the community bulletin (founder, 21/10/2026) — here only USD is in the test market.
+    assert.match(html, /💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ ធនាគារជាតិនៃកម្ពុជា \(NBC\)<\/b> · 20\/10\/2026\n<pre>🇺🇸 1 USD {7}= {2}4,012 ៛<\/pre>/)
     // The Nisab in Cambodian units too (founder, 21/10/2026): 85 g ≈ ២ តម្លឹង ២ ជី ៦ ហ៊ុន ៧ លី.
     assert.match(html, /• <b>កម្រិតនីស៊បហ្សាកាត់ \(មាស ៨៥ ក្រាម ≈ ២ តម្លឹង ២ ជី ៦ ហ៊ុន ៧ លី\) = \$9,350 \(~37,512,200 ៛\)<\/b>/)
     assert.match(html, /ℹ️ បញ្ជាក់៖ ប្រសិនបើបងប្អូនមានទ្រព្យសន្សំសរុបស្មើ ឬលើសពីកម្រិតនីស៊បនេះ/)

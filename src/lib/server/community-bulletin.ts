@@ -10,6 +10,8 @@ import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { logEvent } from "@/lib/server/events"
 import { communityChannel, communityChannelConfigured, isCommunityChannel, islamicChannelConfigured, type FounderApproval } from "@/lib/server/channel"
 import { islamicBulletinHtml, islamicMarket } from "@/lib/islamic/market"
+import { nbcRatesBlock } from "@/lib/nbc-rates"
+import { compactFooter } from "@/lib/post-footer"
 import { SITE_URL } from "@/lib/app-site"
 import { holdForApproval } from "@/lib/server/scheduled-posts"
 
@@ -20,9 +22,9 @@ import { holdForApproval } from "@/lib/server/scheduled-posts"
  * and festival, NBC official rates with their "As of" day, Phnom Penh gold
  * counter prices per damlung and per chi (CSNJ via Oknha News, or an admin's
  * /setgold) and buttons to calculate with the bot and to open the app. Market data only
- * — no tips (founder's rule; tips stay in the app and the weekly digest), and no fuel
- * (founder's rule, 08/10): new MoC prices get their own post when they come out
- * (moc-fuel-sync.ts), and /fuel and the app's Market page always show the current ones.
+ * — no tips (founder's rule; tips stay in the app and the weekly digest). Since 21/10/2026 (the founder, replacing
+ * the 08/10 «no fuel» rule) it also carries the MoC's current EA92 and diesel prices; a new MoC notice still gets
+ * its own post when it comes out (moc-fuel-sync.ts).
  *
  * Timing: from 09:30 (Cambodia) it posts as soon as today's local gold prices
  * are in (shops publish around 09:00); at 10:30 it posts anyway, with the
@@ -72,18 +74,34 @@ const updatedLine = (at: Date) => `🔄 ធ្វើបច្ចុប្បន�
 const html = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 /** The approved rate block: flags and aligned columns in a monospaced block (Telegram HTML). */
-function ratesBlock(nbc: NonNullable<MarketLive["nbc"]>): string {
-  const rows: string[] = []
-  for (const code of ["USD", "CNY", "EUR", "VND", "MYR", "THB"]) {
-    const v = nbc.khr_per[code]
-    if (!v) continue
-    const unit = v < 1 ? 1000 : v < 10 ? 100 : 1
-    const label = `${fmt(unit)} ${code}`.padEnd(11)
-    const value = fmt(v * unit, v * unit >= 100 ? 0 : 2).padStart(6)
-    rows.push(`${FLAGS[code] ?? "💱"} ${label} = ${value} ៛`)
-  }
-  return `<pre>${rows.join("\n")}</pre>`
+/** The NBC table — one for both channels (lib/nbc-rates.ts: USD, THB, MYR, CNY, EUR, VND). */
+const ratesBlock = (nbc: NonNullable<MarketLive["nbc"]>) => nbcRatesBlock(nbc)
+
+/**
+ * «• ហាងឆេងមាស ២៤K (ផ្សារភ្នំពេញ) ៖ ១ ជី ≈ $413 · ១ តម្លឹង ≈ $4,125» (founder, 21/10/2026): Cambodian units, from today's
+ * Phnom Penh kilo gold — or, when it is over 3 days old, the international 24K reference, said so.
+ */
+export function goldBlock(market: MarketLive, today: string): string[] {
+  const g = islamicMarket(market, today).gold
+  if (!g) return []
+  const where = g.source === "local" ? "ផ្សារភ្នំពេញ" : "តម្លៃយោងអន្តរជាតិ"
+  return ["", `🥇 <b>ហាងឆេងមាស ២៤K (${where})</b>`, `• ១ ជី ≈ ${fmtUsd(g.perChi)} · ១ តម្លឹង ≈ ${fmtUsd(g.perDamlung)}`]
 }
+
+/** The MoC's current retail prices (founder, 21/10/2026): EA92 and diesel per litre; an ended cycle says so. */
+export function fuelBlock(market: MarketLive, today: string): string[] {
+  const f = market.fuel
+  if (!f?.regular || !f.diesel) return []
+  return [
+    "",
+    "⛽ <b>តម្លៃប្រេងឥន្ធនៈ (ក្រសួងពាណិជ្ជកម្ម)</b>",
+    `• សាំងធម្មតា (EA92) ៖ ${fmt(f.regular)} ៛/លីត្រ`,
+    `• ម៉ាស៊ូត (Diesel) ៖ ${fmt(f.diesel)} ៛/លីត្រ`,
+    ...(f.to < today ? ["ℹ️ តម្លៃវដ្តមុន — មិនទាន់មានសេចក្តីជូនដំណឹងថ្មីពីក្រសួងពាណិជ្ជកម្ម"] : []),
+  ]
+}
+
+const cambodiaDay = (d: Date) => new Date(d.getTime() + 7 * 3_600_000).toISOString().slice(0, 10)
 
 const SIGNUP = "✨ ចុះឈ្មោះប្រើអេប លុយឆ្លាត ដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត! 👇👇"
 
@@ -105,14 +123,11 @@ export function bulletinText(date: Date, market: MarketLive | null, updatedAt?: 
   if (nbc) {
     lines.push("", `💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ (NBC)</b> · គិតត្រឹម ${asOf(nbc.date)}`, "", ratesBlock(nbc), "ℹ️ អត្រាចេញផ្សាយដោយ ធនាគារជាតិនៃកម្ពុជា")
   }
-  // Gold: the same figure as the app (the latest local kilo price per damlung).
-  if (market) lines.push(...goldLine(market))
-  lines.push("", SIGNUP, ...(updatedAt ? ["", updatedLine(updatedAt)] : []))
+  // Gold in ជី and តម្លឹង, and the MoC fuel prices (founder, 21/10/2026).
+  if (market) lines.push(...goldBlock(market, cambodiaDay(date)), ...fuelBlock(market, cambodiaDay(date)))
+  lines.push("", SIGNUP, ...(updatedAt ? ["", updatedLine(updatedAt)] : []), "", compactFooter("community"))
   return lines.join("\n")
 }
-
-/** Evening: NBC's rate for the next working day (published ~16:30). */
-const FLAGS: Record<string, string> = { USD: "🇺🇸", CNY: "🇨🇳", EUR: "🇪🇺", VND: "🇻🇳", MYR: "🇲🇾", THB: "🇹🇭" }
 
 /**
  * Evening: NBC's rate for the next working day (published ~16:30), as Telegram

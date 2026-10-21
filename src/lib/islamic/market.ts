@@ -12,6 +12,7 @@ import { NISAB_GOLD_GRAMS } from "@/lib/islamic"
 import { khrPerSar, SAR_PER_USD } from "@/lib/islamic/sar"
 import type { MarketLive } from "@/lib/market-calc"
 import { roundRiel } from "@/lib/money"
+import { nbcRatesBlock } from "@/lib/nbc-rates"
 import { compactFooter } from "@/lib/post-footer"
 
 export const GRAMS_PER_DAMLUNG = 37.5
@@ -52,6 +53,8 @@ export type IslamicMarket = {
   /** The NBC rate's official day (YYYY-MM-DD), or null without one. */
   rateDate: string | null
   usdKhr: number | null
+  /** NBC's riel per unit of each currency (the full table — lib/nbc-rates.ts). */
+  rates: Record<string, number> | null
   sarKhr: number | null
   gold: { perGram: number; perChi: number; perDamlung: number; source: "local" | "spot"; date: string } | null
   nisab: { usd: number; khr: number | null } | null
@@ -77,6 +80,7 @@ export function islamicMarket(market: MarketLive | null | undefined, today: stri
   return {
     rateDate: market?.nbc?.date ?? null,
     usdKhr,
+    rates: market?.nbc?.khr_per ? { ...market.nbc.khr_per, ...(usdKhr ? { USD: usdKhr } : {}) } : usdKhr ? { USD: usdKhr } : null,
     sarKhr: usdKhr ? Math.round(khrPerSar(usdKhr)) : null,
     gold,
     nisab: nisabUsd !== null ? { usd: nisabUsd, khr: usdKhr ? roundRiel(nisabUsd * usdKhr) : null } : null,
@@ -130,8 +134,9 @@ export function islamicBulletinHtml(m: IslamicMarket, o: { hijri: string; gregor
     `• 1 SAR ≈ ${riel(m.sarKhr!)}`,
     `• 1 USD = ${SAR_PER_USD} SAR ($100 ≈ ${num(100 * SAR_PER_USD)} SAR)`,
     "",
-    "💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ ធនាគារជាតិនៃកម្ពុជា (NBC)</b>",
-    `• 1 USD = ${riel(m.usdKhr)}${m.rateDate ? ` (អត្រាផ្លូវការ ${esc(m.rateDate.split("-").reverse().join("/"))})` : ""}`,
+    // The full NBC table, as in the community bulletin (founder, 21/10/2026): USD, THB, MYR, CNY, EUR, VND.
+    `💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ ធនាគារជាតិនៃកម្ពុជា (NBC)</b>${m.rateDate ? ` · ${esc(m.rateDate.split("-").reverse().join("/"))}` : ""}`,
+    nbcRatesBlock({ khr_per: m.rates ?? { USD: m.usdKhr } }),
   ]
   if (m.gold && m.nisab) {
     lines.push(
