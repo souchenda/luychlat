@@ -49,10 +49,38 @@ describe("home quick actions — nine essential actions, three a row (founder, 2
     assert.deepEqual([by("goals").href, by("bills").href, by("budgets").href], ["/goals", "/bills", "/budgets"])
   })
   it("every label in three languages; Khmer says «និង», never «&», and uses no Khmer digits", () => {
-    for (const a of [...quickActions(base), ...quickActions({ ...base, islamic: true, personal: false })]) {
+    for (const a of [...quickActions(base), ...quickActions({ ...base, islamic: true, personal: false }), ...quickActions({ ...base, personal: false, business: true })]) {
       const km = dictionaries.km[a.label]
       assert.ok(km && dictionaries.en[a.label] && dictionaries.zh[a.label], a.label)
       assert.ok(!km.includes("&") && !/[០-៩]/.test(km), `${a.label}: ${km}`)
     }
+  })
+})
+
+describe("the Business grid — merchant operations (founder, 21/10/2026 — Task #438)", () => {
+  const biz = { ...base, personal: false, business: true }
+  it("scan · sales / income · general expense | transfer · customers owe · we owe | monthly bills · market · export", () => {
+    assert.deepEqual(keys(biz), ["scan", "income", "expense", "transfer", "receivable", "payable", "bills", "market", "export"])
+    assert.deepEqual(
+      quickActions(biz).map((a) => dictionaries.km[a.label]),
+      ["ស្កេនវិក្កយបត្រ", "លក់ដាច់/ចំណូល", "ចំណាយទូទៅ", "ផ្ទេរប្រាក់", "អតិថិជនជំពាក់ (AR)", "ជំពាក់គេ (AP)", "វិក្កយបត្រប្រចាំខែ", "ទីផ្សារ NBC/សាំង", "នាំចេញរបាយការណ៍"],
+    )
+    assert.deepEqual([by("receivable", biz).href, by("payable", biz).href, by("market", biz).href, by("export", biz).href], ["/debts?tab=RECEIVABLE", "/debts?tab=PAYABLE", "/market", "/reports#export"])
+    // No savings goals or budgets in the merchant grid; no Islamic tile (the menu keeps it); the sheets have no href.
+    for (const k of ["goals", "budgets", "islamic", "loans"]) assert.ok(!keys({ ...biz, islamic: true }).includes(k as never), k)
+    for (const k of ["scan", "income", "expense", "transfer"]) assert.equal(by(k, biz).href, undefined, k)
+    assert.equal(by("transfer", { ...biz, walletCount: 1 }).disabled, true)
+  })
+  it("a viewer looks, never records: no scan, entry or transfer tiles", () => {
+    assert.deepEqual(keys({ ...biz, editable: false }), ["receivable", "payable", "bills", "market", "export"])
+  })
+  it("wired: «លក់ដាច់/ចំណូល» opens the entry sheet on income, «ចំណាយទូទៅ» on expense; Personal keeps its own grid", async () => {
+    const { readFileSync } = await import("node:fs")
+    const grid = readFileSync("src/components/dashboard/quick-actions.tsx", "utf8")
+    assert.match(grid, /a\.key === "income" && onIncome \? onIncome : onEntry/)
+    const home = readFileSync("src/app/(app)/home/page.tsx", "utf8")
+    assert.match(home, /business: workspace\?\.type === "BUSINESS"/)
+    assert.match(home, /onIncome=\{\(\) => setEntryType\("INCOME"\)\}/)
+    assert.deepEqual(keys(base), ["scan", "entry", "transfer", "loans", "goals", "bills", "budgets", "market", "export"])
   })
 })

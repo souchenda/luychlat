@@ -5,6 +5,10 @@
  *   obligations  — loans and CBC · savings goals · monthly bills
  *   control      — budgets · the market hub (NBC rates, gold, fuel) · the Islamic hub with Islamic Mode, else the
  *                  report export (Excel / PDF)
+ * A Business workspace (founder, 21/10/2026 — Task #438, merchant operations, not personal savings):
+ *   daily cash   — scan a slip · sales / income · general expense                        (editors only)
+ *   money owed   — transfer (editors only) · customers owe (AR) · we owe (AP)
+ *   operations   — monthly bills · the market hub (NBC and fuel) · the report export
  * Pure — the tiles are components/dashboard/quick-actions.tsx.
  */
 import type { MessageKey } from "@/lib/i18n/dictionaries"
@@ -15,12 +19,26 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
  */
 export const SLIP_BOT_URL = "https://t.me/luychlat_bot"
 
-export type QuickActionKey = "scan" | "entry" | "transfer" | "loans" | "goals" | "bills" | "budgets" | "market" | "islamic" | "export"
+export type QuickActionKey =
+  | "scan"
+  | "entry"
+  | "income"
+  | "expense"
+  | "transfer"
+  | "loans"
+  | "receivable"
+  | "payable"
+  | "goals"
+  | "bills"
+  | "budgets"
+  | "market"
+  | "islamic"
+  | "export"
 
 export type QuickAction = {
   key: QuickActionKey
   label: MessageKey
-  /** A page (or an outside link, `external`), else a sheet the home page opens (`scan`, `entry`, `transfer`). */
+  /** A page (or an outside link, `external`), else a sheet the home page opens (`scan`, `entry` / `income` / `expense`, `transfer`). */
   href?: string
   external?: boolean
   disabled?: boolean
@@ -29,6 +47,7 @@ export type QuickAction = {
 export function quickActions({
   editable,
   personal,
+  business = false,
   islamic,
   walletCount,
 }: {
@@ -36,11 +55,31 @@ export function quickActions({
   editable: boolean
   /** The K-Score is the person's own credit report: Personal only (as the smart hub). */
   personal: boolean
+  /** A Business workspace: the merchant grid (sales, expenses, AR / AP) instead of goals and budgets. */
+  business?: boolean
   /** Islamic Mode is opt-in: the hub only for those who turned it on. */
   islamic: boolean
   /** A transfer needs two wallets. */
   walletCount: number
 }): QuickAction[] {
+  if (business) {
+    const transfer: QuickAction[] = editable ? [{ key: "transfer", label: "quick.transfer", disabled: walletCount < 2 }] : []
+    return [
+      ...(editable
+        ? ([
+            { key: "scan", label: "quick.scan" },
+            { key: "income", label: "quick.sale" },
+            { key: "expense", label: "quick.expense" },
+          ] satisfies QuickAction[])
+        : []),
+      ...transfer,
+      { key: "receivable", label: "quick.receivable", href: "/debts?tab=RECEIVABLE" },
+      { key: "payable", label: "quick.payable", href: "/debts?tab=PAYABLE" },
+      { key: "bills", label: "quick.bills", href: "/bills" },
+      { key: "market", label: "quick.marketBiz", href: "/market" },
+      { key: "export", label: "quick.export", href: "/reports#export" },
+    ]
+  }
   const daily: QuickAction[] = editable
     ? [
         { key: "scan", label: "quick.scan" },

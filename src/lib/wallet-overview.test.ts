@@ -4,7 +4,7 @@ import { describe, it } from "node:test"
 import type { Wallet } from "@/lib/data/types"
 import { restorePrefs, usePrefsStore } from "@/stores/prefs-store"
 
-import { filterByTab, heroTotals, primaryWalletId, ringArcs, walletKind, walletMix } from "./wallet-overview"
+import { filterByTab, heroTotals, KIND_ACCENT, KIND_RING_ALT, primaryWalletId, walletArcs, walletKind, walletMix } from "./wallet-overview"
 
 const w = (id: string, over: Partial<Wallet> = {}): Wallet => ({
   id,
@@ -44,14 +44,28 @@ describe("wallet overview — the hero ring, the accent bars and the tabs (found
     assert.deepEqual(walletMix([]), { total: 0, cash: 0, bank: 0, card: 0, savings: 0 })
   })
 
-  it("the ring's arcs fill the circle in kind order, a gap between kinds, one whole ring for a single kind", () => {
+  it("the ring, one segment per wallet (Task #438): kind order, length by its share of the money, alternating shades, a sliver for an empty wallet", () => {
     const C = 100
-    const arcs = ringArcs(walletMix([cash, aba, named, goal]), C, 2)
-    assert.deepEqual(arcs.map((a) => a.kind), ["cash", "bank", "savings"])
-    assert.deepEqual(arcs.map((a) => a.offset), [0, 25, 75])
-    assert.deepEqual(arcs.map((a) => a.length), [23, 48, 23])
-    assert.deepEqual(ringArcs(walletMix([aba, named]), C, 2), [{ kind: "bank", length: 100, offset: 0 }])
-    assert.deepEqual(ringArcs(walletMix([]), C), [])
+    const a = w("a", { balance: 300 })
+    const b = w("b", { name: "ACLEDA", icon: "acleda", balance: 100 })
+    const kh = w("kh", { icon: "cash", name: "សាច់ប្រាក់សុទ្ធ", currency: "KHR", balance: 400_000 }) // $100 at 4,000
+    const arcs = walletArcs([a, b, kh, goal], 4000, C)
+    assert.deepEqual(arcs.map((x) => x.id), ["kh", "a", "b", "goal"]) // cash · bank · bank · savings
+    assert.deepEqual(arcs.map((x) => x.color), [KIND_ACCENT.cash.ring, KIND_ACCENT.bank.ring, KIND_RING_ALT.bank, KIND_ACCENT.savings.ring])
+    // Slots: a 4 floor each + 84 by share ($100 · $300 · $100 · $0 of $500) → 20.8, 54.4, 20.8, 4; a 1.5 gap off each.
+    const slot = (x: { length: number }) => Math.round((x.length + 1.5) * 10) / 10
+    assert.deepEqual(arcs.map(slot), [20.8, 54.4, 20.8, 4])
+    assert.deepEqual(arcs.map((x) => Math.round(x.offset * 10) / 10), [0, 20.8, 75.2, 96])
+    // The whole circle, no more.
+    assert.ok(Math.abs(arcs.reduce((s, x) => s + x.length + 1.5, 0) - C) < 1e-9)
+    // Balances hidden: equal segments — the ring never shows how the money is split.
+    assert.deepEqual(walletArcs([a, b, kh, goal], 4000, C, { byBalance: false }).map(slot), [25, 25, 25, 25])
+    // No money anywhere: equal; one wallet: the whole ring, no gap; none: nothing.
+    assert.deepEqual(walletArcs([w("x"), w("y")], 4000, C).map(slot), [50, 50])
+    assert.deepEqual(walletArcs([a], 4000, C).map((x) => [x.length, x.offset]), [[100, 0]])
+    assert.deepEqual(walletArcs([], 4000, C), [])
+    // The card (a debt, no money) and a shared pool: the card keeps its sliver, the pool is the group's.
+    assert.deepEqual(walletArcs([a, card, pool], 4000, C).map((x) => x.id), ["a", "card"])
   })
 
   it("the tabs: All everything; Bank the banks, e-wallets and their cards; Cash the cash in hand", () => {

@@ -195,15 +195,16 @@ export default function HomePage() {
         gaps={assets.gaps}
         onRetryGaps={assets.retry}
         liabilitiesUsd={liabilities}
-        // NBC $1 = …៛ · gold per damlung: one slim line at the bottom inside the card — opens /market.
-        footer={<MarketRatesCard />}
+        // NBC $1 = …៛ · gold per damlung (fuel in a Business workspace): one slim line at the bottom inside the card — opens /market.
+        footer={<MarketRatesCard workspaceType={workspace?.type} />}
       />
 
       {/* Quick actions, three a row (founder, 21/10/2026 — after ACLEDA Mobile): a full-width sibling below the hero. */}
       <QuickActionGrid
-        actions={quickActions({ editable, personal: workspace?.type === "PERSONAL", islamic, walletCount: active.length })}
+        actions={quickActions({ editable, personal: workspace?.type === "PERSONAL", business: workspace?.type === "BUSINESS", islamic, walletCount: active.length })}
         onScan={() => setScanOpen(true)}
         onEntry={() => setEntryType("EXPENSE")}
+        onIncome={() => setEntryType("INCOME")}
         onTransfer={() => setTransferOpen(true)}
       />
 

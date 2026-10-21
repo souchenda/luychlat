@@ -13,7 +13,7 @@ const ticker = readFileSync(join(process.cwd(), "src", "components", "dashboard"
 
 describe("home — the hero card's layout", () => {
   it("the ticker is the card's footer, once — never inside the quick actions", () => {
-    assert.match(home, /footer=\{<MarketRatesCard \/>\}/)
+    assert.match(home, /footer=\{<MarketRatesCard workspaceType=\{workspace\?\.type\} \/>\}/) // fuel for a business (Task #438)
     assert.equal(home.match(/<MarketRatesCard/g)?.length, 1)
     assert.doesNotMatch(home.slice(home.indexOf("<QuickActionGrid"), home.indexOf("/>", home.indexOf("<QuickActionGrid"))), /MarketRatesCard/)
   })

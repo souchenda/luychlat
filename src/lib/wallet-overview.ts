@@ -47,16 +47,39 @@ export function walletMix(wallets: Wallet[]): WalletMix {
   return mix
 }
 
-/** The ring's arcs: each kind's share of the circle, in KIND_ORDER, with a small gap between arcs (none for one kind). */
-export function ringArcs(mix: WalletMix, circumference: number, gap = 3): { kind: WalletKindTag; length: number; offset: number }[] {
-  if (mix.total === 0) return []
-  const kinds = KIND_ORDER.filter((k) => mix[k] > 0)
-  const space = kinds.length > 1 ? gap : 0
+/** The second shade of each kind on the ring: two wallets of one kind side by side alternate, so each reads as its own. */
+export const KIND_RING_ALT: Record<WalletKindTag, string> = { cash: "#34d399", bank: "#38bdf8", savings: "#fbbf24", card: "#a78bfa" }
+
+export type WalletArc = { id: string; kind: WalletKindTag; color: string; length: number; offset: number }
+
+/**
+ * The hero ring, one segment per wallet (founder, 21/10/2026 — Task #438): in kind order (cash · bank · savings · card),
+ * each wallet's arc its share of the money in dollars at `khrPerUsd`, in its kind's colour — the shades alternating within
+ * a kind. Every wallet keeps a visible sliver (a card or an empty wallet holds no money but is still counted), with a
+ * small gap between segments. With the balances hidden (`byBalance: false`) the segments are equal: the ring never
+ * gives away how the money is split.
+ */
+export function walletArcs(wallets: Wallet[], khrPerUsd: number, circumference: number, opts: { byBalance?: boolean } = {}): WalletArc[] {
+  const set = personalWallets(wallets)
+    .filter((w) => !w.archived_at)
+    .map((w, i) => ({ w, kind: walletKind(w), i }))
+    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.i - b.i)
+  const n = set.length
+  if (n === 0) return []
+  const weights = set.map(({ w }) => (opts.byBalance === false ? 1 : Math.max(0, convert(w.balance, w.currency, "USD", khrPerUsd))))
+  const total = weights.reduce((a, b) => a + b, 0)
+  const share = total > 0 ? weights.map((x) => x / total) : weights.map(() => 1 / n)
+  // A floor of 4% each (never more than an equal split), the rest by share.
+  const floor = Math.min(circumference * 0.04, circumference / n)
+  const free = circumference - floor * n
+  const gap = n > 1 ? Math.min(1.5, (circumference / n) * 0.25) : 0
   let at = 0
-  return kinds.map((kind) => {
-    const share = (mix[kind] / mix.total) * circumference
-    const arc = { kind, length: Math.max(share - space, 0.5), offset: at }
-    at += share
+  const seen: Partial<Record<WalletKindTag, number>> = {}
+  return set.map(({ w, kind }, i) => {
+    const slot = floor + free * share[i]
+    const nth = (seen[kind] = (seen[kind] ?? -1) + 1)
+    const arc = { id: w.id, kind, color: nth % 2 === 0 ? KIND_ACCENT[kind].ring : KIND_RING_ALT[kind], length: Math.max(slot - gap, 0.3), offset: at }
+    at += slot
     return arc
   })
 }

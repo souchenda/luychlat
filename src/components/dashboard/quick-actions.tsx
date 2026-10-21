@@ -3,15 +3,19 @@
 import {
   ArrowLeftRightIcon,
   CalendarClockIcon,
+  CircleMinusIcon,
+  CirclePlusIcon,
   ChartCandlestickIcon,
   FileDownIcon,
   type LucideIcon,
   MoonStarIcon,
+  PackageIcon,
   PlusIcon,
   ScaleIcon,
   ScanLineIcon,
   ShieldCheckIcon,
   TargetIcon,
+  UsersIcon,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -21,8 +25,12 @@ import type { QuickAction, QuickActionKey } from "@/lib/quick-actions"
 const ICONS: Record<QuickActionKey, LucideIcon> = {
   scan: ScanLineIcon,
   entry: PlusIcon,
+  income: CirclePlusIcon,
+  expense: CircleMinusIcon,
   transfer: ArrowLeftRightIcon,
   loans: ShieldCheckIcon,
+  receivable: UsersIcon,
+  payable: PackageIcon,
   // A target for the goals: no pig imagery anywhere — Islamic Mode users see this grid (founder, 21/10/2026).
   goals: TargetIcon,
   bills: CalendarClockIcon,
@@ -43,12 +51,15 @@ export function QuickActionGrid({
   actions,
   onScan,
   onEntry,
+  onIncome,
   onTransfer,
 }: {
   actions: QuickAction[]
   /** The in-app slip scanner (components/transactions/scan-slip-modal.tsx). */
   onScan: () => void
   onEntry: () => void
+  /** The Business grid's «លក់ដាច់/ចំណូល»: the entry sheet on income (its «ចំណាយទូទៅ» is `onEntry`). */
+  onIncome?: () => void
   onTransfer: () => void
 }) {
   const t = useT()
@@ -80,7 +91,7 @@ export function QuickActionGrid({
           )
         }
         return (
-          <button key={a.key} type="button" onClick={a.key === "scan" ? onScan : a.key === "transfer" ? onTransfer : onEntry} disabled={a.disabled} className={TILE}>
+          <button key={a.key} type="button" onClick={a.key === "scan" ? onScan : a.key === "transfer" ? onTransfer : a.key === "income" && onIncome ? onIncome : onEntry} disabled={a.disabled} className={TILE}>
             {body}
           </button>
         )
