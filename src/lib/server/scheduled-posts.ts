@@ -43,7 +43,7 @@ import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLo
 import { bulletinPreview, islamicBulletinText, publishBulletin } from "@/lib/server/community-bulletin"
 import { communityChannel, communityChannelConfigured, founderApproved, islamicChannel, islamicChannelConfigured } from "@/lib/server/channel"
 import { formatHijri, toHijri, type HijriDate } from "@/lib/islamic"
-import { channelFor, dateOf, isIslamicKind, islamicCaptionHtml, kmDay, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
+import { channelFor, dateOf, islamicCaptionHtml, kmDay, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { silPosterContent } from "@/lib/sil-poster"
 import { renderSilPoster, silPosterReady } from "@/lib/server/sil-poster"
@@ -753,7 +753,10 @@ function withReplace(base: SchedulerDeps): SchedulerDeps {
     async unpublish(row) {
       // The replacement was approved (bot_post_replace_decide, or the founder's own instruction — audited).
       const approval = founderApproved(`replace ${row.kind} ${row.post_key}`)
-      const chat = isIslamicKind(row.kind) ? islamicChannel(approval) : communityChannel(approval)
+      // The very rule publish uses (21/10/2026 — the old copy of the Islamic bulletin was looked for in the community
+      // channel: the narrower Islamic-post list leaves out ISLAMIC_BULLETIN and Islamic national days — a wrong message).
+      const islamic = channelFor(row.kind) === "islamic" || islamicNationalDay(row)
+      const chat = islamic ? islamicChannel(approval) : communityChannel(approval)
       let ok = true
       if (row.telegram_message_id) ok = Boolean(chat) && (await tg("deleteMessage", { chat_id: chat, message_id: row.telegram_message_id })).ok
       if (row.facebook_post_id && facebookConfig()) ok = (await deleteFacebookPost(approval, row.facebook_post_id)) && ok

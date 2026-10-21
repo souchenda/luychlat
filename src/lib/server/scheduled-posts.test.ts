@@ -357,6 +357,13 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270240000000_posts_waiting_cards.sql"), "utf8")
     assert.match(sql, /where status in \('PENDING', 'APPROVED'\)\n\s+and jsonb_array_length\(coalesce\(previews, '\[\]'::jsonb\)\) > 0/)
   })
+  it("regression: replacing the Islamic bulletin looked for the old copy in the community channel — unpublish routes as publish does", () => {
+    const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    const unpublish = sp.slice(sp.indexOf("async unpublish(row) {"), sp.indexOf("async replaceDone("))
+    assert.match(unpublish, /const islamic = channelFor\(row\.kind\) === "islamic" \|\| islamicNationalDay\(row\)/)
+    assert.doesNotMatch(unpublish, /isIslamicKind/)
+    assert.match(sp, /const islamic = channelFor\(row\.kind\) === "islamic" \|\| islamicNationalDay\(row\)\n\s+const chat = islamic \? islamicChannel\(approval\) : communityChannel\(approval\)\n\s+const buttons/) // publish
+  })
   it("a post that needs the founder's decision is still previewed (the 07:00 poster)", async () => {
     const f = fake(clock(6, 15))
     await f.s.schedulePost("MORNING", DAY, {}, new Date(clock(7, 0)).toISOString())
