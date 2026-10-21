@@ -1,29 +1,23 @@
 "use client"
 
 import { PushInviteCard } from "@/components/notifications/push-prompt"
-import { ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, ReceiptTextIcon, SparklesIcon, TargetIcon, WalletIcon } from "lucide-react"
+import { ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, ReceiptTextIcon, SparklesIcon, WalletIcon } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 
-import { BudgetHomeCard } from "@/components/budgets/budget-home-card"
 import { TontineDueCard } from "@/components/tontine/tontine-due-card"
 import { FamilyStrip } from "@/components/family/family-strip"
 import { ExperienceSelector } from "@/components/islamic/islamic-mode"
 import { NextPrayerChip } from "@/components/islamic/next-prayer-chip"
 import { SourceSelector } from "@/components/onboarding/source-selector"
-import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
 import { QuickActionGrid } from "@/components/dashboard/quick-actions"
 import { SmartHub } from "@/components/dashboard/smart-hub"
 import { SpendingTrendCard } from "@/components/dashboard/spending-trend-card"
-import { TopCategoriesCard } from "@/components/dashboard/top-categories-card"
 import { MarketRatesCard } from "@/components/dashboard/market-rates-card"
-import { BillsWidget } from "@/components/dashboard/bills-widget"
-import { DebtTrackerWidget } from "@/components/dashboard/debt-tracker-widget"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
 import { InsuranceRenewalCard } from "@/components/debts/insurance-card"
 import { BusinessTrialTag } from "@/components/billing/business-trial"
-import { GoalsHomeCard } from "@/components/goals/goals-home-card"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
 import { ScanSlipModal } from "@/components/transactions/scan-slip-modal"
@@ -34,20 +28,16 @@ import { useToday } from "@/hooks/use-today"
 import { Skeleton } from "@/components/ui/skeleton"
 import { NetWorthCard } from "@/components/wallets/net-worth-card"
 import { BusinessValueCard } from "@/components/business/business-value-card"
-import { personalTransactions } from "@/lib/pool-ledger"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
-import { cashFlow } from "@/lib/analytics"
-import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { liabilitiesUsd } from "@/lib/debts"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
-import { headerDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
+import { headerDate, monthRange, recentMonths } from "@/lib/dates"
 import { headerBadge, toHijri } from "@/lib/islamic"
 import { homeGreeting } from "@/lib/islamic-expressions"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
-import { isCard } from "@/lib/credit-card"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
@@ -60,7 +50,6 @@ import { LunarPill } from "@/components/dashboard/lunar-pill"
 import { CalendarSwitchSheet } from "@/components/dashboard/calendar-switch-sheet"
 import { FestivalBanner } from "@/components/dashboard/festival-banner"
 import { HolyDayReminder } from "@/components/dashboard/holy-day-reminder"
-import { WalletPreviewGrid } from "@/components/wallets/wallet-preview-grid"
 
 const RECENT_COUNT = 4
 const TREND_MONTHS = 6
@@ -97,26 +86,13 @@ export default function HomePage() {
   const wallets = walletsQuery.data ?? []
   // Wallets section lists ordinary wallets; savings goals show in their own card.
   const active = wallets.filter((w) => !w.archived_at && !isGoal(w))
-  // Home previews the first two cash / bank wallets; credit cards and the rest are on /wallets.
-  const preview = active.filter((w) => !isCard(w))
   const transactions = useMemo(() => txQuery.data ?? [], [txQuery.data])
-  const thisMonth = monthKey()
-  const monthTransactions = useMemo(
-    () => transactions.filter((tx) => monthKey(new Date(tx.transaction_date)) === thisMonth),
-    [transactions, thisMonth],
-  )
-  // This month's income / spending: the owner's own wallets — a shared pool's contributions are the group's money.
-  const flow = useMemo(
-    () => cashFlow(personalTransactions(monthTransactions, walletsQuery.data ?? []), khrPerUsd, adjustmentCategoryIds(categoriesQuery.data ?? [])),
-    [monthTransactions, walletsQuery.data, khrPerUsd, categoriesQuery.data],
-  )
   // The display name from Settings, once the user has set one.
   // Cambodian names are family name first ("ស៊ូ ចិន្តា"): greet by the given name, the last word.
   const profile = useProfile().data
   const givenName = profile?.display_name?.trim().split(/\s+/).pop()
   const today = useToday()
   const locale = useLocaleStore((s) => s.locale)
-  const count = String(active.length)
   // Islamic tools (optional): Ramadan / Eid greetings in season. The Hijri date itself is on /islamic.
   const islamic = useIslamicEnabled()
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
@@ -231,43 +207,25 @@ export default function HomePage() {
       <SpendingTrendCard transactions={transactions} categories={categoriesQuery.data ?? []} />
       <SmartHub workspaceId={ws} personal={workspace?.type === "PERSONAL"} />
 
-
       {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}
       {workspace?.type === "BUSINESS" && <BusinessValueCard workspaceId={ws} wallets={walletsQuery.data} debts={debtsQuery.data} transactions={txQuery.data} categories={categoriesQuery.data} />}
 
       <BirthdayCard />
       <BirthdayCelebrationModal />
 
-      <section className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            {t("nav.wallets")}
-            {active.length > 0 && ` (${count})`}
-          </h2>
-          {active.length > preview.length && (
-            <Link href="/wallets" className="flex items-center text-sm text-primary">
-              {t("wallets.seeAllCount", { n: count })}
-              <ChevronRightIcon className="size-4" />
-            </Link>
-          )}
-        </div>
-        {walletsQuery.isLoading ? (
-          <Skeleton className="h-36 w-full rounded-xl" />
-        ) : active.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => setWalletFormOpen(true)}
-            className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed p-6 text-center hover:bg-muted/50"
-          >
-            <WalletIcon className="size-8 text-muted-foreground" />
-            <span className="font-medium">{t("wallets.empty")}</span>
-            <span className="text-sm text-muted-foreground">{t("wallets.emptyHint")}</span>
-          </button>
-        ) : (
-          <WalletPreviewGrid wallets={preview} onAdd={editable ? () => setWalletFormOpen(true) : undefined} />
-        )}
-      </section>
-
+      {/* Decluttered (founder, 21/10/2026 — Task #445): the wallets are the ring's tap (/wallets); only a first wallet is
+          offered here, while there is none. */}
+      {!walletsQuery.isLoading && active.length === 0 && (
+        <button
+          type="button"
+          onClick={() => setWalletFormOpen(true)}
+          className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed p-6 text-center hover:bg-muted/50"
+        >
+          <WalletIcon className="size-8 text-muted-foreground" />
+          <span className="font-medium">{t("wallets.empty")}</span>
+          <span className="text-sm text-muted-foreground">{t("wallets.emptyHint")}</span>
+        </button>
+      )}
 
       {workspace?.role === "VIEWER" && (
         <p className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
@@ -275,27 +233,6 @@ export default function HomePage() {
           {t("family.viewerNotice")}
         </p>
       )}
-
-      <CashFlowCard
-        flow={flow}
-        loading={txQuery.isLoading}
-        action={
-          <Link href="/budgets" className="flex items-center gap-1 text-sm text-primary">
-            <TargetIcon className="size-4" aria-hidden />
-            {t("budget.title")}
-            <ChevronRightIcon className="size-4" />
-          </Link>
-        }
-      />
-      <TopCategoriesCard transactions={transactions} categories={categoriesQuery.data ?? []} />
-
-
-      <BudgetHomeCard
-        workspaceId={ws}
-        currency={workspace?.currency_default ?? "USD"}
-        categories={categoriesQuery.data ?? []}
-        monthTransactions={monthTransactions}
-      />
 
       <section className="space-y-2">
         <div className="flex items-center justify-between px-1">
@@ -335,11 +272,6 @@ export default function HomePage() {
           />
         )}
       </section>
-
-      <GoalsHomeCard wallets={walletsQuery.data} />
-
-      <BillsWidget workspaceId={ws} />
-      <DebtTrackerWidget debts={debtsQuery.data} loading={debtsQuery.isLoading} onAdd={editable ? () => setDebtFormOpen(true) : undefined} />
 
       <TontineDueCard workspaceId={ws} />
 

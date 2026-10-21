@@ -67,3 +67,22 @@ describe("the hero's balances flush right, the ring pinned left (founder, 21/10/
     assert.match(card, /className="mt-1\.5 flex w-full flex-col items-end space-y-1"/)
   })
 })
+
+describe("home, decluttered (founder, 21/10/2026 — Task #445): header, hero, the 3×3 grid, the trend, the last entries", () => {
+  it("no dense widgets on home — each has its own page, one tap from the grid", () => {
+    for (const w of ["GoalsHomeCard", "BillsWidget", "DebtTrackerWidget", "CashFlowCard", "TopCategoriesCard", "BudgetHomeCard", "WalletPreviewGrid"])
+      assert.doesNotMatch(home, new RegExp(`<${w}\b|import \{ ${w} \}`), w)
+    // The order: the hero, the grid, then the trend and the smart hub, then the last few entries.
+    const at = (s: string) => home.indexOf(s)
+    assert.ok(at("<NetWorthCard") < at("<QuickActionGrid") && at("<QuickActionGrid") < at("<SpendingTrendCard") && at("<SpendingTrendCard") < at("<TransactionList"))
+    assert.match(home, /const RECENT_COUNT = [3-5]\n/)
+    assert.match(home, /transactions=\{transactions\.slice\(0, RECENT_COUNT\)\}/)
+    // A first wallet is still offered while there is none.
+    assert.match(home, /\{!walletsQuery\.isLoading && active\.length === 0 && \(\s*<button/)
+  })
+  it("the grid is the gateway: goals, bills, loans with CBC and the reports are one tap away", async () => {
+    const { quickActions } = await import("../src/lib/quick-actions")
+    const hrefs = quickActions({ editable: true, personal: true, islamic: false, walletCount: 3 }).map((a) => a.href)
+    for (const h of ["/goals", "/bills", "/debts?tab=PAYABLE#credit-health", "/reports#export"]) assert.ok(hrefs.includes(h), h)
+  })
+})
