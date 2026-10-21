@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Segmented } from "@/components/common/segmented"
 import { todayDate } from "@/lib/debts"
-import { khmerDigits } from "@/lib/dates"
+import { latinDigits } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
 import { formatHijri, toHijri } from "@/lib/islamic"
 import { useIslamicDefaults, useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
@@ -31,9 +31,9 @@ export function CalendarSwitchSheet({ open, onOpenChange }: { open: boolean; onO
 
   const today = todayDate()
   const l = khmerLunarDate(today)
-  const lunar = locale === "km" ? khmerDigits(`${l.day}${l.phase === "kert" ? "កើត" : "រោច"}`) : `${l.day} ${l.phase === "kert" ? "waxing" : "waning"}`
+  const lunar = locale === "km" ? `${l.day} ${l.phase === "kert" ? "កើត" : "រោច"}` : `${l.day} ${l.phase === "kert" ? "waxing" : "waning"}`
   const h = toHijri(new Date(), offset)
-  const hijri = h ? formatHijri(h, locale === "km" ? "km" : "en", { short: true }) : "—"
+  const hijri = h ? latinDigits(formatHijri(h, locale === "km" ? "km" : "en", { short: true })) : "—"
 
   const choose = (next: Calendar) => {
     if (next === value || setEnabled.isPending) return

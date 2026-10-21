@@ -24,11 +24,11 @@ describe("Home header — greeting on its own line, never «…»", () => {
     assert.match(header, /\{headerDate\(today, locale\)\}/)
     assert.doesNotMatch(header, /max-w-\[58%\]/)
   })
-  it("the short date: «ថ្ងៃអាទិត្យ ទី១៨ តុលា»", () => {
-    assert.equal(headerDate(new Date(2026, 9, 18, 12), "km"), "ថ្ងៃអាទិត្យ ទី១៨ តុលា")
+  it("the short date: «ថ្ងៃអាទិត្យ 18 តុលា» (international digits — founder, 21/10/2026)", () => {
+    assert.equal(headerDate(new Date(2026, 9, 18, 12), "km"), "ថ្ងៃអាទិត្យ 18 តុលា")
     assert.equal(headerDate(new Date(2026, 9, 18, 12), "en"), "Sunday, 18 October")
   })
-  it("the Hijri badge without «ហ.ស.»: «🌙 ៧ ជុម៉ាដាល់អូឡា ១៤៤៨»", () => {
-    assert.deepEqual(headerBadge({ islamic: true, hijri: { day: 7, month: 5, year: 1448 }, locale: "km" }), { kind: "hijri", text: "🌙 ៧ ជុម៉ាដាល់អូឡា ១៤៤៨" })
+  it("the Hijri badge without «ហ.ស.»: «🌙 7 ជុម៉ាដាល់អូឡា 1448» (international digits)", () => {
+    assert.deepEqual(headerBadge({ islamic: true, hijri: { day: 7, month: 5, year: 1448 }, locale: "km" }), { kind: "hijri", text: "🌙 7 ជុម៉ាដាល់អូឡា 1448" })
   })
 })

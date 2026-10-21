@@ -10,11 +10,9 @@ import { localToday } from "@/lib/assets"
 import { usePhysicalAssets } from "@/lib/assets-data"
 import { businessValue, type InventoryPurchase } from "@/lib/business-value"
 import type { Category, Debt, Transaction, Wallet } from "@/lib/data/types"
-import { khmerDigits } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
 import { personalTransactions } from "@/lib/pool-ledger"
 import { cn } from "@/lib/utils"
-import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 /** The local YYYY-MM-DD of a transaction's date. */
@@ -41,7 +39,6 @@ export function BusinessValueCard({
   categories?: Category[]
 }) {
   const t = useT()
-  const locale = useLocaleStore((s) => s.locale)
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const assets = usePhysicalAssets(workspaceId).data
   const today = localToday()
@@ -56,10 +53,7 @@ export function BusinessValueCard({
   const v = useMemo(() => businessValue(wallets ?? [], assets ?? [], debts ?? [], khrPerUsd, today, purchases), [wallets, assets, debts, khrPerUsd, today, purchases])
   if (!wallets) return null
 
-  const ddmm = (iso: string) => {
-    const s = `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
-    return locale === "km" ? khmerDigits(s) : s
-  }
+  const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
   const s = v.stockDetail
   const stockNote = s.countedOn ? t("bizValue.stockCounted", { date: ddmm(s.countedOn) }) : s.bought > 0 ? t("bizValue.stockSince", { date: ddmm(s.since) }) : null
 

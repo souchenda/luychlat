@@ -16,9 +16,14 @@ use come before feature count: no half-baked features, broken links or untested 
 4. **Tests before push:** `npm test` (0 failures), `npx tsc --noEmit -p .`, `npx eslint <files>`.
    Pure logic lives in `src/lib/**` with a `*.test.ts` beside it.
 5. **Mobile-first:** glanceable, large touch targets, iPhone safe areas, clean Khmer typography.
-6. **Dashboard layout (founder, 18/10/2026):** dashboard components (charts, lists, hubs) must be standalone
-   siblings below the hero card, never nested inside it. The hero holds only the balance, the three stacked
-   actions and the NBC / gold ticker (`tests/golden/layout-guards.test.ts`).
+6. **Dashboard layout (founder, 18/10/2026; ACLEDA layout 21/10/2026):** dashboard components (charts, lists, hubs)
+   must be standalone siblings below the hero card, never nested inside it. The hero holds only the wallet ring, the
+   totals (eye toggle, USD / KHR, loans and net) and the NBC / gold ticker — no buttons: the 3×3 quick-action grid right
+   below it is the one place for actions (`tests/golden/layout-guards.test.ts`).
+7. **International digits (founder, 21/10/2026 — like ABA / ACLEDA):** every number on the app's screens is 0-9
+   («13», «មាស 24K», «ថ្ងៃពុធ 21 តុលា»), never Khmer digits beside Latin ones. `latinDigits()` in `src/lib/dates.ts`
+   for a shared formatter that still writes Khmer digits for posters and Telegram posts (those keep theirs); the bot's
+   messages (`bot.*`) too (`src/lib/latin-digits.test.ts`).
 
 ## Standards
 

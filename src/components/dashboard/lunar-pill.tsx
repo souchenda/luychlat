@@ -6,7 +6,6 @@ import { useEffect, useState } from "react"
 
 import { CULTURAL_ICON } from "@/components/culture/cultural-look"
 import { CHINESE_KEYS, culturalDayOn, daysUntil, upcomingCulturalDays, type CulturalKey } from "@/lib/cultural-calendar"
-import { khmerDigits } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -60,7 +59,7 @@ export function LunarPill({ onOpen }: { onOpen?: () => void } = {}) {
     } else {
       const next = nextHolyDay(today)
       const phase = locale === "km" ? (l.phase === "kert" ? "កើត" : "រោច") : locale === "zh" ? (l.phase === "kert" ? "上弦" : "下弦") : l.phase === "kert" ? "waxing" : "waning"
-      const day = locale === "km" ? `${l.day}${phase}` : locale === "zh" ? `${phase}${l.day}` : `${l.day} ${phase}`
+      const day = locale === "km" ? `${l.day} ${phase}` : locale === "zh" ? `${phase}${l.day}` : `${l.day} ${phase}`
       const what = next ? (next.festival ? t(`holyDay.festival.${next.festival}` as MessageKey) : t("holyDay.pill")) : null
       const when = next ? (next.daysAway === 0 ? t("holyDay.pillToday") : t("holyDay.pillDays", { n: next.daysAway })) : null
       text = [day, what && `${what} (${when})`].filter(Boolean).join(" · ")
@@ -74,7 +73,7 @@ export function LunarPill({ onOpen }: { onOpen?: () => void } = {}) {
   const inner = (
     <>
       <Icon className={`size-3.5 shrink-0 ${red ? "text-red-600 dark:text-red-300" : key ? "text-amber-600" : "fill-amber-300 text-amber-500"}`} aria-hidden />
-      <span className="truncate">{locale === "km" ? khmerDigits(text) : text}</span>
+      <span className="truncate">{text}</span>
       <ChevronRightIcon className="size-3.5 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5" aria-hidden />
     </>
   )

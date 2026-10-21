@@ -9,7 +9,6 @@
  * Screens use these instead of formatting by hand.
  */
 import type { Currency } from "@/lib/data/types"
-import { khmerDigits } from "@/lib/dates"
 import { addDays, addMonths, differenceInCalendarDays, differenceInMonths, parseISO } from "date-fns"
 
 import { todayDate } from "@/lib/debts"
@@ -54,7 +53,7 @@ export function formatDuration(days: number, kind: DurationKind, locale: Locale,
   if (locale === "km") {
     const parts = total < 30 ? `${total} ថ្ងៃ` : years > 0 ? `${years} ឆ្នាំ${months ? ` ${months} ខែ` : ""}` : `${months} ខែ${rest ? ` ${rest} ថ្ងៃ` : ""}`
     text = `${word} ${parts}${total < 30 ? "" : ` (${sum} ថ្ងៃ)`}`
-    return khmerDigits(text)
+    return text
   }
   if (locale === "zh") {
     const parts = total < 30 ? `${total}天` : years > 0 ? `${years}年${months ? `${months}个月` : ""}` : `${months}个月${rest ? `${rest}天` : ""}`

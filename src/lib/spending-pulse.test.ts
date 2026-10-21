@@ -48,9 +48,9 @@ describe("spending pulse — per day, week or month, in riel", () => {
 })
 
 describe("riel guide labels", () => {
-  it("«១០ ម៉ឺន», «១,៥ លាន» in Khmer; K / M in English", () => {
-    assert.equal(rielTick(100_000, "km"), "១០ ម៉ឺន")
-    assert.equal(rielTick(1_500_000, "km"), "១,៥ លាន")
+  it("«10 ម៉ឺន», «1.5 លាន» in Khmer (international digits — founder, 21/10/2026); K / M in English", () => {
+    assert.equal(rielTick(100_000, "km"), "10 ម៉ឺន")
+    assert.equal(rielTick(1_500_000, "km"), "1.5 លាន")
     assert.equal(rielTick(200_000, "en"), "200K")
     assert.equal(rielTick(0, "km"), "0")
   })

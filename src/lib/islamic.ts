@@ -187,7 +187,8 @@ export function headerBadge(o: { islamic: boolean; hijri: HijriDate | null; loca
   const greeting = islamicGreeting(o.hijri)
   if (greeting) return { kind: "greeting", key: greeting }
   if (!o.hijri) return { kind: "none" }
-  return { kind: "hijri", text: `🌙 ${formatHijri(o.hijri, o.locale === "km" ? "km" : "en", { short: true, era: false })}` }
+  // International digits on the home header (founder, 21/10/2026): «🌙 21 រ៉ាប៊ីអ៊ុលអាឃីរ 1448».
+  return { kind: "hijri", text: `🌙 ${formatHijri(o.hijri, o.locale === "km" ? "km" : "en", { short: true, era: false }).replace(/[០-៩]/g, (d) => String("០១២៣៤៥៦៧៨៩".indexOf(d)))}` }
 }
 
 /** The Arabic name shown beside the Khmer one in the Islamic hub (founder, 18/10/2026). */

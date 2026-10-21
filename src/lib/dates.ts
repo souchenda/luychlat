@@ -49,6 +49,12 @@ const KM_WEEKDAYS = ["អាទិត្យ", "ច័ន្ទ", "អង្គ�
 const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
 export const khmerDigits = (value: string) => value.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
+/**
+ * International digits on every screen of the app (founder, 21/10/2026 — like ABA and ACLEDA: «13», «មាស 24K», never
+ * «១៣» beside «$4,959»). For a shared formatter that still writes Khmer digits for posters and Telegram posts.
+ */
+export const latinDigits = (value: string) => value.replace(/[០-៩]/g, (d) => String("០១២៣៤៥៦៧៨៩".indexOf(d)))
+
 /** "ថ្ងៃសុក្រ ទី០២ ខែតុលា ឆ្នាំ២០២៦" / "Friday, 02 October 2026" (device-local date). */
 export function longDate(date: Date, locale: Locale): string {
   if (locale === "zh") return format(date, "yyyy年M月d日 EEEE", { locale: zhCN })
@@ -57,11 +63,11 @@ export function longDate(date: Date, locale: Locale): string {
   return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${khmerDigits(String(date.getFullYear()))}`
 }
 
-/** The home header's short date (founder, 18/10/2026): «ថ្ងៃអាទិត្យ ទី១៨ តុលា» / "Sunday, 18 October" / "10月18日 星期日". */
+/** The home header's short date (founder, 18/10/2026; Latin digits 21/10/2026): «ថ្ងៃអាទិត្យ 18 តុលា» / "Sunday, 18 October" / "10月18日 星期日". */
 export function headerDate(date: Date, locale: Locale): string {
   if (locale === "zh") return format(date, "M月d日 EEEE", { locale: zhCN })
   if (locale === "en") return format(date, "EEEE, d MMMM")
-  return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ទី${khmerDigits(String(date.getDate()))} ${KM_MONTHS[date.getMonth()]}`
+  return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ${date.getDate()} ${KM_MONTHS[date.getMonth()]}`
 }
 
 /** "ទី០១ ខែកញ្ញា ឆ្នាំ២០២៦" / "01 September 2026" (no weekday). */

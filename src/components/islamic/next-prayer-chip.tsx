@@ -5,15 +5,14 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 
 import { useIslamicLocation } from "@/components/islamic/location-picker"
-import { khmerDigits } from "@/lib/dates"
 import { PRAYER_NAMES } from "@/lib/islamic/glossary"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { cambodiaNow, formatMinutes, nextPrayer, prayerTimes } from "@/lib/prayer"
 
-/** «២:០៥» hours:minutes left (or «៤៥ នាទី»). */
+/** «2:05» hours:minutes left (or «45 នាទី») — international digits (founder, 21/10/2026). */
 const left = (seconds: number) => {
   const m = Math.max(1, Math.ceil(seconds / 60))
-  return m < 60 ? `${khmerDigits(String(m))} នាទី` : khmerDigits(`${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`)
+  return m < 60 ? `${m} នាទី` : `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`
 }
 
 /**
@@ -44,7 +43,7 @@ export function NextPrayerChip() {
     >
       <span aria-hidden>🕌</span>
       <span className="min-w-0 flex-1 truncate">
-        សឡាតបន្ទាប់ <b className="font-semibold">{PRAYER_NAMES[next.key as keyof typeof PRAYER_NAMES]}</b> {khmerDigits(formatMinutes(next.at))}
+        សឡាតបន្ទាប់ <b className="font-semibold">{PRAYER_NAMES[next.key as keyof typeof PRAYER_NAMES]}</b> {formatMinutes(next.at)}
         <span className="text-emerald-700/80 dark:text-emerald-300/80"> · នៅសល់ {left(next.inSeconds)}</span>
       </span>
       <ChevronRightIcon className="size-4 shrink-0 opacity-60" aria-hidden />

@@ -1,7 +1,7 @@
-// The home dashboard's hero card (founder, 17/10/2026): balance on the left, the three quick actions stacked
-// on the right, and the NBC / gold ticker as ONE slim line in the card's footer. Once the ticker was dropped
-// inside the quick-action fragment and rendered as a squeezed cell over the card («NBC», «មាស», «/», «តម្លឹង»
-// stacked one syllable per line) — never again.
+// The home dashboard's hero card (founder, 17/10/2026; the ACLEDA layout 21/10/2026): the wallet ring and the totals
+// across the card — no buttons inside, the quick-action grid below is the one place for actions — and the NBC / gold
+// ticker as ONE slim line in the card's footer. Once the ticker was dropped inside the old stacked quick actions and
+// rendered as a squeezed cell over the card («NBC», «មាស», «/», «តម្លឹង» stacked one syllable per line) — never again.
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
@@ -12,16 +12,14 @@ const card = readFileSync(join(process.cwd(), "src", "components", "wallets", "n
 const ticker = readFileSync(join(process.cwd(), "src", "components", "dashboard", "market-rates-card.tsx"), "utf8")
 
 describe("home — the hero card's layout", () => {
-  it("the ticker is the card's footer, never inside the quick actions", () => {
+  it("the ticker is the card's footer, once — never inside the quick actions", () => {
     assert.match(home, /footer=\{<MarketRatesCard \/>\}/)
-    const actions = home.indexOf("actions={")
-    const actionsEnd = home.indexOf("</>", actions)
-    assert.ok(actions > 0 && actionsEnd > actions)
-    assert.doesNotMatch(home.slice(actions, actionsEnd), /MarketRatesCard/)
     assert.equal(home.match(/<MarketRatesCard/g)?.length, 1)
+    assert.doesNotMatch(home.slice(home.indexOf("<QuickActionGrid"), home.indexOf("/>", home.indexOf("<QuickActionGrid"))), /MarketRatesCard/)
   })
-  it("the actions stay stacked on the right of the balance; the ticker is one line that never wraps", () => {
-    assert.match(card, /\{actions && <div className="flex w-\[[\d.]+rem\] shrink-0 flex-col justify-center gap-2">\{actions\}<\/div>\}/)
+  it("the wallet ring sits left of the totals with nothing stacked on the right; the ticker is one line that never wraps", () => {
+    assert.match(card, /\{!loading && <WalletRing wallets=\{wallets \?\? \[\]\} \/>\}\s*<div className="min-w-0 flex-1">/)
+    assert.doesNotMatch(card, /flex-col justify-center gap-2/)
     assert.match(ticker, /flex w-full flex-row items-center/)
     assert.match(ticker, /whitespace-nowrap/)
     assert.doesNotMatch(ticker, /flex-wrap/)

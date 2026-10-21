@@ -10,8 +10,6 @@ const ICT = 7 * 3_600_000
 const DAY = 86_400_000
 /** Sunday first, as Date.getUTCDay() counts. */
 export const KHMER_WEEKDAYS = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"]
-const KHMER_DIGITS = "០១២៣៤៥៦៧៨៩"
-const kmDigits = (s: string) => s.replace(/\d/g, (d) => KHMER_DIGITS[Number(d)])
 
 /** The Cambodian calendar day of an instant, as a day number (days since 1970-01-01 in UTC+7). */
 const ictDay = (ms: number) => Math.floor((ms + ICT) / DAY)
@@ -54,7 +52,7 @@ function labelOf(period: PulsePeriod, key: string, locale: string): string {
   }
   if (period === "week") {
     const [, m, d] = key.split("-")
-    return locale === "km" ? kmDigits(`${Number(d)}/${Number(m)}`) : `${Number(d)}/${Number(m)}`
+    return `${Number(d)}/${Number(m)}`
   }
   const m = Number(key.slice(5, 7))
   return locale === "km"
@@ -92,7 +90,7 @@ export function spendingPulse(
 export function rielTick(v: number, locale: string): string {
   if (v === 0) return "0"
   if (locale !== "km") return v >= 1_000_000 ? `${+(v / 1_000_000).toFixed(1)}M` : `${Math.round(v / 1000)}K`
-  if (v >= 1_000_000) return `${kmDigits(String(+(v / 1_000_000).toFixed(1)).replace(".", ","))} លាន`
-  if (v >= 10_000) return `${kmDigits(String(+(v / 10_000).toFixed(1)).replace(".", ","))} ម៉ឺន`
-  return kmDigits(v.toLocaleString("en-US"))
+  if (v >= 1_000_000) return `${+(v / 1_000_000).toFixed(1)} លាន`
+  if (v >= 10_000) return `${+(v / 10_000).toFixed(1)} ម៉ឺន`
+  return v.toLocaleString("en-US")
 }

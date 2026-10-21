@@ -79,7 +79,7 @@ export default function MarketPage() {
       {isLoading && <Loader2Icon className="mx-auto size-6 animate-spin text-muted-foreground" />}
 
       {/* Any pair, converted through riel on today's NBC rates. */}
-      {market?.nbc && <CurrencyConverter khrPer={market.nbc.khr_per} locale={locale} asOf={nbcShortDate(market.nbc, locale)} />}
+      {market?.nbc && <CurrencyConverter khrPer={market.nbc.khr_per} locale={locale} asOf={nbcShortDate(market.nbc)} />}
 
       {market?.local_gold && (
         <SettingsGroup id="gold" title={t("market.localTitle")}>

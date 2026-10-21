@@ -1,6 +1,6 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon, HomeIcon, RotateCwIcon, type LucideIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, HomeIcon, RotateCwIcon } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 
@@ -39,24 +39,23 @@ export function computeTotals(wallets: Wallet[], khrPerUsd: number, assetsUsd = 
 
 const usd2 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })
 
-/** The headline total shrinks a step as it grows, so it never truncates beside the action column. */
-function totalSize(usd: number, narrow: boolean) {
-  if (!narrow) return "text-3xl"
+/** The headline total shrinks a step as it grows, so it never truncates beside the wallet ring. */
+function totalSize(usd: number) {
   const len = usd2.format(usd).length
   return len <= 9 ? "text-3xl" : len <= 11 ? "text-2xl" : "text-xl"
 }
 
 /**
  * Total of the active workspace (wallets, savings goals and assets), in USD and KHR at the configured rate.
- * Home passes `actions` (stacked on the right, beside the totals) and `footer` (the market ticker,
- * under a hairline at the bottom of the card); /wallets shows the totals alone.
+ * The ACLEDA layout (founder, 21/10/2026): the wallet ring on the left, the totals across the rest of the card, the
+ * loans and the net after them, and on home the market ticker (`footer`) under a hairline. No buttons inside: the
+ * actions are the quick-action grid below the card (tests/golden/layout-guards.test.ts).
  */
 export function NetWorthCard({
   wallets,
   loading,
   assetsUsd = 0,
   liabilitiesUsd = 0,
-  actions,
   footer,
   gaps = [],
   onRetryGaps,
@@ -66,7 +65,6 @@ export function NetWorthCard({
   assetsUsd?: number
   /** Loans and other money owed (liabilitiesUsd in lib/debts): a line under the totals, never subtracted from the headline. */
   liabilitiesUsd?: number
-  actions?: ReactNode
   footer?: ReactNode
   /** Assets that could not be counted (useAssetsTotal().gaps): said under the total, never a silent $0. */
   gaps?: AssetGap[]
@@ -86,11 +84,10 @@ export function NetWorthCard({
       <span aria-hidden className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-amber-300/80 to-transparent" />
 
       <div className="flex gap-3">
-        {/* The wallet ring on the left (/wallets); beside the action column on home it shrinks into the title row. */}
-        {!actions && !loading && <WalletRing wallets={wallets ?? []} />}
+        {/* The wallet ring on the left: how many wallets the total counts. */}
+        {!loading && <WalletRing wallets={wallets ?? []} />}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
-            {actions && !loading && <span className="mr-1"><WalletRing wallets={wallets ?? []} size="sm" /></span>}
             {/* «សមតុល្យសរុប» while the total is the wallets; «ទ្រព្យសកម្មសរុប» once gold, land or a vehicle is counted in it. */}
             <p className="text-[15px] font-medium text-white/85">{t(totals.assets > 0 ? "netWorth.title" : "netWorth.balanceTitle")}</p>
             <button
@@ -114,7 +111,7 @@ export function NetWorthCard({
               <Amount
                 value={totals.totalUsd}
                 currency="USD"
-                className={`mt-1 block font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm ${totalSize(totals.totalUsd, Boolean(actions))}`}
+                className={`mt-1 block font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm ${totalSize(totals.totalUsd)}`}
               />
               <p className="text-[15px] whitespace-nowrap text-white/90 tabular-nums">
                 ≈ <Amount value={totals.totalKhr} currency="KHR" />
@@ -166,43 +163,9 @@ export function NetWorthCard({
             </div>
           )}
         </div>
-
-        {actions && <div className="flex w-[7.75rem] shrink-0 flex-col justify-center gap-2">{actions}</div>}
       </div>
 
       {footer && <div className="mt-3 border-t border-white/15 pt-2 -mb-1 empty:hidden">{footer}</div>}
     </section>
-  )
-}
-
-/**
- * Quick entry, stacked (and centred) on the right of the hero card: compact frosted glass with a white icon disc,
- * 36px tall. The glass is a dark tint (not white) so white text stays readable on the light top-right bloom.
- */
-export function HeroAction({
-  icon: Icon,
-  tone,
-  label,
-  onClick,
-  disabled,
-}: {
-  icon: LucideIcon
-  tone: string
-  label: string
-  onClick: () => void
-  disabled?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-emerald-950/25 px-2.5 text-[13px] font-medium text-white backdrop-blur-sm transition-all hover:bg-emerald-950/35 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none active:scale-[0.97] disabled:opacity-50"
-    >
-      <span className={`grid size-5 shrink-0 place-items-center rounded-full bg-white shadow-sm ${tone}`}>
-        <Icon className="size-3" strokeWidth={3} aria-hidden />
-      </span>
-      <span className="truncate text-center">{label}</span>
-    </button>
   )
 }

@@ -6,7 +6,6 @@ import Link from "next/link"
 import { nbcShortDate } from "@/components/market/nbc-stamp"
 import { useT } from "@/lib/i18n/use-t"
 import { useMarket } from "@/lib/market"
-import { useLocaleStore } from "@/stores/locale-store"
 
 const khr = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
 const usd = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
@@ -19,13 +18,12 @@ const usd = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
 export function MarketRatesCard() {
   const t = useT()
   const market = useMarket().data
-  const locale = useLocaleStore((s) => s.locale)
   const usdKhr = market?.nbc?.usd_khr
   // Local Phnom Penh kilo gold (sell) when recent, else the world reference for 24K.
   const local = market?.local_gold && Date.now() - Date.parse(`${market.local_gold.date}T00:00:00+07:00`) < 4 * 86_400_000 ? market.local_gold : null
   const gold24 = local?.kilo.sell ?? market?.gold?.reference.GOLD_24K
   if (!usdKhr && !gold24) return null
-  const title = [market?.nbc && `NBC · ${nbcShortDate(market.nbc, locale)}`, gold24 && t(local ? "market.kiloGold" : "market.goldPerDamlung")].filter(Boolean).join(" · ")
+  const title = [market?.nbc && `NBC · ${nbcShortDate(market.nbc)}`, gold24 && t(local ? "market.kiloGold" : "market.goldPerDamlung")].filter(Boolean).join(" · ")
   return (
     <Link
       href="/market"

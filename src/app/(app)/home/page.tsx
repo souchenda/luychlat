@@ -1,7 +1,7 @@
 "use client"
 
 import { PushInviteCard } from "@/components/notifications/push-prompt"
-import { ArrowLeftRightIcon, ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, MinusIcon, PlusIcon, ReceiptTextIcon, SparklesIcon, TargetIcon, WalletIcon } from "lucide-react"
+import { ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, ReceiptTextIcon, SparklesIcon, TargetIcon, WalletIcon } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 import { useMemo, useState } from "react"
@@ -31,7 +31,7 @@ import { TransactionList } from "@/components/transactions/transaction-list"
 import { Button } from "@/components/ui/button"
 import { useToday } from "@/hooks/use-today"
 import { Skeleton } from "@/components/ui/skeleton"
-import { HeroAction, NetWorthCard } from "@/components/wallets/net-worth-card"
+import { NetWorthCard } from "@/components/wallets/net-worth-card"
 import { BusinessValueCard } from "@/components/business/business-value-card"
 import { personalTransactions } from "@/lib/pool-ledger"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
@@ -41,7 +41,7 @@ import { adjustmentCategoryIds } from "@/lib/categories/presets"
 import { liabilitiesUsd } from "@/lib/debts"
 import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useTransactions, useWallets } from "@/lib/data/hooks"
 import type { CategoryType, Transaction } from "@/lib/data/types"
-import { headerDate, khmerDigits, monthKey, monthRange, recentMonths } from "@/lib/dates"
+import { headerDate, monthKey, monthRange, recentMonths } from "@/lib/dates"
 import { headerBadge, toHijri } from "@/lib/islamic"
 import { homeGreeting } from "@/lib/islamic-expressions"
 import { useAssetsTotal } from "@/lib/assets-total"
@@ -113,7 +113,7 @@ export default function HomePage() {
   const givenName = useProfile().data?.display_name?.trim().split(/\s+/).pop()
   const today = useToday()
   const locale = useLocaleStore((s) => s.locale)
-  const count = locale === "km" ? khmerDigits(String(active.length)) : String(active.length)
+  const count = String(active.length)
   // Islamic tools (optional): Ramadan / Eid greetings in season. The Hijri date itself is on /islamic.
   const islamic = useIslamicEnabled()
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
@@ -195,21 +195,6 @@ export default function HomePage() {
         liabilitiesUsd={liabilities}
         // NBC $1 = …៛ · gold per damlung: one slim line at the bottom inside the card — opens /market.
         footer={<MarketRatesCard />}
-        actions={
-          editable && (
-            <>
-              <HeroAction icon={PlusIcon} tone="text-emerald-700" label={t("tx.INCOME")} onClick={() => setEntryType("INCOME")} />
-              <HeroAction icon={MinusIcon} tone="text-rose-600" label={t("tx.EXPENSE")} onClick={() => setEntryType("EXPENSE")} />
-              <HeroAction
-                icon={ArrowLeftRightIcon}
-                tone="text-teal-700"
-                label={t("tx.TRANSFER")}
-                onClick={() => setTransferOpen(true)}
-                disabled={active.length < 2}
-              />
-            </>
-          )
-        }
       />
 
       {/* Quick actions, three a row (founder, 21/10/2026 — after ACLEDA Mobile): a full-width sibling below the hero. */}
@@ -349,6 +334,7 @@ export default function HomePage() {
         workspaceId={ws}
         wallets={wallets}
         type={entryType ?? "EXPENSE"}
+        onTypeChange={setEntryType}
       />
       <DebtFormSheet open={debtFormOpen} onOpenChange={setDebtFormOpen} workspaceId={ws} />
       <TransactionEditor workspaceId={ws} wallets={wallets} transaction={editing} onClose={() => setEditing(null)} />

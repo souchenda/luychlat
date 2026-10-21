@@ -131,7 +131,7 @@ describe("Qasidah upload — a file named in Arabic (founder, 19/10/2026: such a
     assert.equal(dictionaries.km["nasheed.artistRequired"], "សូមបញ្ចូលឈ្មោះអ្នកច្រៀង ឬក្រុមចម្រៀង")
     assert.equal(dictionaries.km["nasheed.fileRequired"], "សូមជ្រើសរើសឯកសារសំឡេង MP3 ឬ M4A")
     assert.equal(dictionaries.km["nasheed.confirmRequired"], "សូមធីកបញ្ជាក់ថា នេះជាបទកសាដះ ឬណាស្សីដឥស្លាមពិតប្រាកដ")
-    assert.equal(dictionaries.km["nasheed.tooMany"], "អ្នកមានបទចំនួន ៣ កំពុងរង់ចាំការអនុម័តរួចហើយ")
+    assert.equal(dictionaries.km["nasheed.tooMany"], "អ្នកមានបទចំនួន 3 កំពុងរង់ចាំការអនុម័តរួចហើយ")
   })
 })
 

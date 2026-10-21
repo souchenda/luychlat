@@ -53,9 +53,14 @@ type EntryFormSheetProps = {
   type: CategoryType
   /** Edit this income/expense instead of creating one. */
   transaction?: Transaction | null
+  /**
+   * A new entry may switch between expense and income at the top of the sheet (founder, 21/10/2026 — home's one
+   * «កត់ត្រាចំណាយ» tile, now that the hero card has no separate «+ ចំណូល» button).
+   */
+  onTypeChange?: (type: CategoryType) => void
 }
 
-export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type: newType, transaction }: EntryFormSheetProps) {
+export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type: newType, transaction, onTypeChange }: EntryFormSheetProps) {
   const t = useT()
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const categoriesQuery = useCategories(workspaceId)
@@ -213,6 +218,21 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
                   <Link href={`/debts/${transaction.debt_id}`}>{t("ledger.openDebt")}</Link>
                 </Button>
               </div>
+            )}
+            {onTypeChange && !editing && (
+              <Segmented
+                aria-label={title}
+                value={type}
+                onChange={(next: CategoryType) => {
+                  // The category list is the other kind's: start the category over.
+                  setValue("categoryId", "")
+                  onTypeChange(next)
+                }}
+                options={[
+                  { value: "EXPENSE", label: t("tx.EXPENSE") },
+                  { value: "INCOME", label: t("tx.INCOME") },
+                ]}
+              />
             )}
             <fieldset disabled={debtLinked} className="space-y-4 disabled:opacity-60">
             <div className="space-y-2">
