@@ -16,9 +16,9 @@ export const CBC_CODES: CbcCode[] = [
   { code: "0", km: "សងទាន់ពេល", en: "On time", tier: "good" },
   { code: "C", km: "ឥណទានបិទ", en: "Closed", tier: "good" },
   { code: "Q", km: "គ្មានប្រតិបត្តិការក្នុងវដ្ដនេះ", en: "No transaction this cycle", tier: "good" },
-  { code: "1", km: "សងយឺត ១-២៩ ថ្ងៃ", en: "1–29 days late", tier: "warn" },
-  { code: "2", km: "សងយឺត ៣០-៥៩ ថ្ងៃ", en: "30–59 days late", tier: "warn" },
-  { code: "3 – L", km: "សងយឺត ៦០ ថ្ងៃ ដល់ ៣៦០ ថ្ងៃឡើងទៅ", en: "60 to 360+ days late", tier: "bad" },
+  { code: "1", km: "សងយឺត 1-29 ថ្ងៃ", en: "1–29 days late", tier: "warn" },
+  { code: "2", km: "សងយឺត 30-59 ថ្ងៃ", en: "30–59 days late", tier: "warn" },
+  { code: "3 – L", km: "សងយឺត 60 ថ្ងៃ ដល់ 360 ថ្ងៃឡើងទៅ", en: "60 to 360+ days late", tier: "bad" },
   { code: "D", km: "ពន្យារពេលនៃការសង", en: "Restructured", tier: "bad" },
   { code: "W", km: "ឥណទានខូច", en: "Write-off (bad debt)", tier: "bad" },
   { code: "R", km: "ឥណទានបដិសេធ", en: "Rejected", tier: "bad" },
@@ -60,12 +60,11 @@ export function cbcStrip(rows: { n: number; date: string; paid: boolean }[], pai
 export function cbcHealth(cells: StripCell[]): { tier: CbcTier | "unknown"; km: string; en: string } {
   const known = cells.filter((c) => c.tier !== "unknown")
   if (!known.length) return { tier: "unknown", km: "⚪ សុខភាពក្រេឌីត៖ មិនទាន់មានទិន្នន័យគ្រប់គ្រាន់ (ចុចបង់តាមអេប ដើម្បីកត់ត្រាថ្ងៃបង់)", en: "⚪ Credit health: not enough data yet (pay through the app to record the dates)" }
-  if (known.some((c) => c.tier === "bad")) return { tier: "bad", km: "🔴 សុខភាពក្រេឌីត៖ គ្រោះថ្នាក់ (យឺត ៦០ ថ្ងៃ ឡើងទៅ)", en: "🔴 Credit health: at risk (60+ days late)" }
+  if (known.some((c) => c.tier === "bad")) return { tier: "bad", km: "🔴 សុខភាពក្រេឌីត៖ គ្រោះថ្នាក់ (យឺត 60 ថ្ងៃ ឡើងទៅ)", en: "🔴 Credit health: at risk (60+ days late)" }
   if (known.some((c) => c.tier === "warn")) return { tier: "warn", km: "🟡 សុខភាពក្រេឌីត៖ ត្រូវប្រុងប្រយ័ត្ន (មានការសងយឺត)", en: "🟡 Credit health: careful (late payments)" }
   const run = cells.length - [...cells].reverse().findIndex((c) => c.code !== "0") - 1
   const streak = run === cells.length ? cells.length : cells.length - 1 - run
-  const kmN = String(streak).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
-  return { tier: "good", km: `🟢 សុខភាពក្រេឌីត៖ ល្អឥតខ្ចោះ (កូដ ០ ជាប់គ្នា ${kmN} ខែ)`, en: `🟢 Credit health: excellent (code 0, ${streak} in a row)` }
+  return { tier: "good", km: `🟢 សុខភាពក្រេឌីត៖ ល្អឥតខ្ចោះ (កូដ 0 ជាប់គ្នា ${streak} ខែ)`, en: `🟢 Credit health: excellent (code 0, ${streak} in a row)` }
 }
 
 /** Under every strip: what it is and is not. */
@@ -74,10 +73,9 @@ export const CBC_ESTIMATE_NOTE = "ការប៉ាន់ស្មានពី�
 // ─── The 24-month calendar strip (founder, 21/10/2026) ───────────────────────────────────────────────────────────────
 
 const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
-const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
-/** «តុលា ២៦» for "2026-10". */
-export const kmMonthLabel = (ym: string) => `${KM_MONTHS[Number(ym.slice(5, 7)) - 1]} ${kmDigits(ym.slice(2, 4))}`
+/** «តុលា 26» for "2026-10". */
+export const kmMonthLabel = (ym: string) => `${KM_MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(2, 4)}`
 
 /** The month's cell: a CBC code from the loan's own record, or X (before the loan), Q (nothing due), C (paid off), «…» (due later this month). */
 export type MonthCell = { month: string; label: string; code: string; tier: CbcTier | "unknown"; due: string | null }

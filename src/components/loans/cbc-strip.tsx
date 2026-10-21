@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 
 /**
  * The loan's last 24 months as CBC codes (founder, 20–21/10/2026) — from the installments' due dates and the payment
- * dates recorded with the 1-tap «បង់»: a calendar strip with each month's name («តុលា ២៦»), a colour per code, X before
+ * dates recorded with the 1-tap «បង់»: a calendar strip with each month's name («តុលា 26»), a colour per code, X before
  * the loan and C once it is paid off — and the credit-health line. An estimate, labelled as such (lib/loans/cbc.ts).
  */
 export function CbcStrip({ debt }: { debt: Debt }) {
@@ -29,14 +29,14 @@ export function CbcStrip({ debt }: { debt: Debt }) {
   return (
     <Card className="gap-2.5 px-4 py-3" data-testid="cbc-strip">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">ប្រវត្តិសងប្រាក់ ២៤ ខែ (CBC)</h2>
+        <h2 className="text-sm font-semibold">ប្រវត្តិសងប្រាក់ 24 ខែ (CBC)</h2>
         <CbcHealthModal />
       </div>
-      <ol className="grid grid-cols-6 gap-1.5 sm:grid-cols-8 md:grid-cols-12" aria-label="ប្រវត្តិសងប្រាក់ ២៤ ខែ">
+      <ol className="grid grid-cols-6 gap-1.5 sm:grid-cols-8 md:grid-cols-12" aria-label="ប្រវត្តិសងប្រាក់ 24 ខែ">
         {months.map((c) => (
           <li key={c.month} className="flex flex-col items-center gap-0.5" title={c.due ? `${c.label} · ថ្ងៃបង់ ${c.due}` : c.label}>
             <span className={cn("grid h-9 w-full place-items-center rounded-md font-mono text-xs font-semibold", CODE_TONE[c.code] ?? CODE_TONE["✓"])}>{c.code}</span>
-            {/* «តុលា» over «២៦»: two short lines, never cut on a 360 px phone. */}
+            {/* «តុលា» over «26»: two short lines, never cut on a 360 px phone. */}
             <span className="text-center text-[10px] leading-tight text-muted-foreground">
               {c.label.split(" ")[0]}
               <br />

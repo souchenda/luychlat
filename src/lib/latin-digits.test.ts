@@ -36,6 +36,10 @@ const SCREENS = [
   "src/components/islamic/next-prayer-chip.tsx",
   "src/components/market/nbc-stamp.tsx",
   "src/components/business/business-value-card.tsx",
+  "src/components/loans/cbc-health-modal.tsx",
+  "src/components/loans/cbc-strip.tsx",
+  "src/lib/loans/cbc.ts",
+  "src/lib/cbc-engine.ts",
 ]
 
 describe("International digits on every screen (founder, 21/10/2026 — like ABA and ACLEDA)", () => {

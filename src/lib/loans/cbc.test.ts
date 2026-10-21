@@ -14,7 +14,7 @@ describe("CBC — the 24-month repayment codes (founder, 20/10/2026)", () => {
     assert.deepEqual(by("good"), ["0", "C", "Q"])
     assert.deepEqual(by("warn"), ["1", "2"])
     assert.deepEqual(by("bad"), ["3 – L", "D", "W", "R", "N", "V", "M"])
-    assert.equal(CBC_CODES.find((c) => c.code === "1")!.km, "សងយឺត ១-២៩ ថ្ងៃ")
+    assert.equal(CBC_CODES.find((c) => c.code === "1")!.km, "សងយឺត 1-29 ថ្ងៃ")
     assert.equal(CBC_CODES.find((c) => c.code === "W")!.km, "ឥណទានខូច")
   })
   it("days late → code: 0 on time, 1 for 1–29, 2 for 30–59, «3+» from 60 (the letters beyond are not guessed)", () => {
@@ -44,7 +44,7 @@ describe("CBC — the 24-month repayment codes (founder, 20/10/2026)", () => {
   })
   it("the health line: excellent with a run of 0, careful with a 1 or 2, at risk from 60 days; unknown without dates", () => {
     const zeros = [1, 2, 3].map((n) => ({ n, due: "x", code: "0", tier: "good" as const }))
-    assert.equal(cbcHealth(zeros).km, "🟢 សុខភាពក្រេឌីត៖ ល្អឥតខ្ចោះ (កូដ ០ ជាប់គ្នា ៣ ខែ)")
+    assert.equal(cbcHealth(zeros).km, "🟢 សុខភាពក្រេឌីត៖ ល្អឥតខ្ចោះ (កូដ 0 ជាប់គ្នា 3 ខែ)")
     assert.equal(cbcHealth([...zeros, { n: 4, due: "x", code: "1", tier: "warn" }]).tier, "warn")
     assert.equal(cbcHealth([{ n: 1, due: "x", code: "3+", tier: "bad" }, ...zeros]).tier, "bad")
     assert.equal(cbcHealth([{ n: 1, due: "x", code: "✓", tier: "unknown" }]).tier, "unknown")
@@ -61,7 +61,7 @@ describe("CBC — the 24-month repayment codes (founder, 20/10/2026)", () => {
 
 describe("The 24-month calendar strip and «🛡️ សុខភាពឥណទាន CBC» (founder, 21/10/2026)", () => {
   const today = "2026-10-21"
-  it("24 calendar months up to this one, each named «តុលា ២៦»; X before the loan; each month's code from its installment", () => {
+  it("24 calendar months up to this one, each named «តុលា 26»; X before the loan; each month's code from its installment", () => {
     const rows = monthly(30) // 2025-10-05 onwards, imported as paid
     rows[12].paid = false // installment 13, due 2026-10-05: unpaid
     const paidOn = new Map([
@@ -71,13 +71,13 @@ describe("The 24-month calendar strip and «🛡️ សុខភាពឥណទ�
     const cells = cbcMonthStrip(rows, paidOn, today, "2025-10-01", null)
     assert.equal(cells.length, 24)
     assert.equal(cells[0].month, "2024-11")
-    assert.equal(cells[0].label, "វិច្ឆិកា ២៤")
-    assert.equal(cells[23].label, "តុលា ២៦")
+    assert.equal(cells[0].label, "វិច្ឆិកា 24")
+    assert.equal(cells[23].label, "តុលា 26")
     assert.deepEqual(cells.slice(0, 11).map((c) => c.code), Array(11).fill("X")) // Nov 2024 – Sep 2025: before the loan
     assert.equal(cells.find((c) => c.month === "2025-10")!.code, "✓") // imported history: paid, no date
     assert.equal(cells.find((c) => c.month === "2026-08")!.code, "2") // paid 46 days late
     assert.equal(cells.find((c) => c.month === "2026-09")!.code, "0")
-    assert.deepEqual(cells.at(-1), { month: "2026-10", label: "តុលា ២៦", code: "1", tier: "warn", due: "2026-10-05" }) // 16 days late, unpaid
+    assert.deepEqual(cells.at(-1), { month: "2026-10", label: "តុលា 26", code: "1", tier: "warn", due: "2026-10-05" }) // 16 days late, unpaid
   })
   it("an installment due later this month waits («…»), never counted late; a month with nothing due is Q (CBC's own code)", () => {
     const rows = monthly(30)
@@ -99,7 +99,7 @@ describe("The 24-month calendar strip and «🛡️ សុខភាពឥណទ�
     assert.equal(cbcClosedOn([...six, { n: 7, date: "2026-04-05", paid: false }], paidOn), null) // not all paid: open
     const twice = [{ n: 1, date: "2026-09-05", paid: true }, { n: 2, date: "2026-09-19", paid: true }]
     assert.equal(cbcMonthStrip(twice, new Map([[1, "2026-09-05"], [2, "2026-10-25"]]), today, "2026-09-01", null).find((c) => c.month === "2026-09")!.code, "2")
-    assert.equal(kmMonthLabel("2026-01"), "មករា ២៦")
+    assert.equal(kmMonthLabel("2026-01"), "មករា 26")
   })
   it("the code meanings stay the live CBC table (founder, 20/10/2026): 1 = 1–29 days, 2 = 30–59, «3+» from 60, W a write-off", () => {
     assert.equal(cbcCodeForDaysLate(29).code, "1")
@@ -114,7 +114,7 @@ describe("The 24-month calendar strip and «🛡️ សុខភាពឥណទ�
     const { renderToStaticMarkup } = await import("react-dom/server")
     const { CbcHealthContent, STRIP_LEGEND, CODE_TONE } = await import("../../components/loans/cbc-health-modal")
     const html = renderToStaticMarkup(React.createElement(CbcHealthContent))
-    for (const s of ["CBC ជាអ្វី?", "មុននឹងអនុម័តកម្ចីថ្មី ធនាគារពិនិត្យប្រវត្តិនេះជានិច្ច", "វចនានុក្រមកូដ CBC", "២៤ វដ្តចុងក្រោយ", "បង់ទាន់ពេលជាប់គ្នា ២៤ ខែ", "មិនមែនរបាយការណ៍ផ្លូវការរបស់ CBC ទេ"])
+    for (const s of ["CBC ជាអ្វី?", "មុននឹងអនុម័តកម្ចីថ្មី ធនាគារពិនិត្យប្រវត្តិនេះជានិច្ច", "វចនានុក្រមកូដ CBC", "24 វដ្តចុងក្រោយ", "បង់ទាន់ពេលជាប់គ្នា 24 ខែ", "មិនមែនរបាយការណ៍ផ្លូវការរបស់ CBC ទេ"])
       assert.ok(html.includes(s), s)
     for (const c of CBC_CODES) assert.ok(html.includes(`>${c.code}<`), c.code)
     for (const l of STRIP_LEGEND) assert.ok(CODE_TONE[l.code] && html.includes(l.km), l.code)

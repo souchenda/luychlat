@@ -3,8 +3,13 @@
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/bottom-sheet";
+import { Amount } from "@/components/money/amount";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cbcVerdict, GRADE_BADGE, gradeBadge, type CbcAssessment } from "@/lib/cbc-engine";
+import { useActiveWorkspace } from "@/lib/data/hooks";
 import { CBC_CODES, CBC_ESTIMATE_NOTE, type CbcTier } from "@/lib/loans/cbc";
+import { useCbcAssessment } from "@/lib/loans/use-cbc-assessment";
 import { cn } from "@/lib/utils";
 
 export const TIER_TONE: Record<CbcTier | "unknown", string> = {
@@ -33,9 +38,9 @@ export const CODE_TONE: Record<string, string> = {
 /** The strip's colours, in plain words. */
 export const STRIP_LEGEND: { code: string; km: string }[] = [
   { code: "0", km: "បង់ទាន់ពេល" },
-  { code: "1", km: "យឺត ១–២៩ ថ្ងៃ" },
-  { code: "2", km: "យឺត ៣០–៥៩ ថ្ងៃ" },
-  { code: "3+", km: "យឺត ៦០ ថ្ងៃឡើងទៅ" },
+  { code: "1", km: "យឺត 1–29 ថ្ងៃ" },
+  { code: "2", km: "យឺត 30–59 ថ្ងៃ" },
+  { code: "3+", km: "យឺត 60 ថ្ងៃឡើងទៅ" },
   { code: "C", km: "បង់ផ្តាច់រួច" },
   { code: "Q", km: "គ្មានការបង់ក្នុងខែនោះ" },
   { code: "X", km: "មុនពេលខ្ចី" },
@@ -70,11 +75,104 @@ export function CbcHealthModal({ className }: { className?: string }) {
         open={open}
         onOpenChange={setOpen}
         title="🛡️ សុខភាពឥណទាន CBC"
-        description="ប្រវត្តិសងប្រាក់ ២៤ ខែ — អ្វីដែលធនាគារមើល មុនពេលផ្តល់កម្ចីឱ្យលោកអ្នក។"
+        description="ប្រវត្តិសងប្រាក់ 24 ខែ — អ្វីដែលធនាគារមើល មុនពេលផ្តល់កម្ចីឱ្យលោកអ្នក។"
       >
+        {/* The person's own assessment first (founder, 21/10/2026), the code dictionary below as the legend. */}
+        {open && <CbcAssessmentSection />}
         <CbcHealthContent />
       </BottomSheet>
     </>
+  );
+}
+
+/** The badge's colours, by grade. */
+const GRADE_TONE = {
+  good: "bg-emerald-500/15 text-emerald-800 ring-emerald-500/30 dark:text-emerald-200",
+  fine: "bg-yellow-400/20 text-yellow-900 ring-yellow-500/30 dark:text-yellow-100",
+  warn: "bg-orange-500/20 text-orange-900 ring-orange-500/30 dark:text-orange-100",
+  bad: "bg-rose-500/15 text-rose-800 ring-rose-500/30 dark:text-rose-200",
+} as const;
+
+/** The active workspace's assessment, loaded when the sheet opens. */
+function CbcAssessmentSection() {
+  const { workspace } = useActiveWorkspace();
+  const { assessment, unscheduled } = useCbcAssessment(workspace?.id, true);
+  if (!assessment)
+    return (
+      <div className="mb-5 space-y-2" aria-busy>
+        <Skeleton className="h-12 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full rounded-2xl" />
+      </div>
+    );
+  return <CbcAssessmentView a={assessment} unscheduled={unscheduled} />;
+}
+
+/**
+ * The real assessment (founder, 21/10/2026 — lib/cbc-engine): the grade badge, the on-time rate and the DTI, every loan's
+ * 24 months together, the bank's verdict with the way back to green, and what it is based on. Pure view (tested alone).
+ */
+export function CbcAssessmentView({ a, unscheduled = 0 }: { a: CbcAssessment; unscheduled?: number }) {
+  if (a.loans === 0)
+    return (
+      <p className="mb-5 rounded-2xl bg-muted p-4 text-sm" data-testid="cbc-assessment">
+        មិនទាន់មានកម្ចីដែលមានតារាងបង់ក្នុងអេបនៅឡើយ — បន្ថែមកម្ចីជាមួយតារាងបង់ ដើម្បីទទួលការវាយតម្លៃសុខភាពឥណទាន។
+      </p>
+    );
+  const verdict = cbcVerdict(a);
+  return (
+    <section className="mb-6 space-y-3" data-testid="cbc-assessment">
+      {a.grade ? (
+        <p className={cn("rounded-2xl px-4 py-3 text-center text-base font-bold ring-1", GRADE_TONE[GRADE_BADGE[a.grade].tone])}>{gradeBadge(a.grade)}</p>
+      ) : (
+        <p className="rounded-2xl bg-muted px-4 py-3 text-center text-base font-semibold">⚪ សុខភាពឥណទាន៖ មិនទាន់មានទិន្នន័យគ្រប់គ្រាន់</p>
+      )}
+
+      {/* The metrics strip: the on-time rate and the debt-to-income ratio. */}
+      <div className="grid grid-cols-2 divide-x rounded-2xl border bg-card py-2.5 text-center tabular-nums">
+        <div className="min-w-0 px-2">
+          <p className="text-xs text-muted-foreground">អត្រាសងទៀងទាត់</p>
+          <p className="text-lg font-bold">{a.rate === null ? "—" : `${a.rate}%`}</p>
+          <p className="text-[11px] text-muted-foreground">{a.counted ? `${a.onTime}/${a.counted} ខែ` : "មិនទាន់មានថ្ងៃបង់កត់ត្រា"}</p>
+        </div>
+        <div className="min-w-0 px-2">
+          <p className="text-xs text-muted-foreground">បន្ទុកបំណុល (DTI)</p>
+          <p className="text-lg font-bold">{a.dti === null ? "—" : `${a.dti}%`}</p>
+          <p className="truncate text-[11px] text-muted-foreground">
+            {a.monthlyIncomeUsd === null ? (
+              "គ្មានចំណូលកត់ត្រា 3 ខែចុងក្រោយ"
+            ) : (
+              <>
+                <Amount value={a.monthlyDebtUsd} currency="USD" /> ÷ <Amount value={a.monthlyIncomeUsd} currency="USD" /> ក្នុង 1 ខែ
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Every loan's 24 months together: the worst code due each month. */}
+      <ol className="grid grid-cols-12 gap-1" aria-label="ប្រវត្តិសងប្រាក់ 24 ខែ — កម្ចីទាំងអស់">
+        {a.months.map((m) => (
+          <li key={m.month} title={`${m.label} · ${m.code}`} className={cn("grid h-6 place-items-center rounded font-mono text-[10px] font-semibold", CODE_TONE[m.code] ?? CODE_TONE["✓"])}>
+            {m.code}
+          </li>
+        ))}
+      </ol>
+      {a.streak > 0 && <p className="text-xs text-muted-foreground">✅ បង់ទាន់ពេលជាប់គ្នា {a.streak} ខែចុងក្រោយ</p>}
+
+      <div className="space-y-1.5 rounded-2xl bg-emerald-500/10 p-3.5">
+        <h3 className="font-semibold">🏦 សេចក្តីសន្និដ្ឋានរបស់ធនាគារ</h3>
+        {verdict.map((line) => (
+          <p key={line}>{line}</p>
+        ))}
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        ℹ️ វាយតម្លៃពីកម្ចី {a.loans} ដែលកត់ក្នុង អេប លុយឆ្លាត
+        {unscheduled > 0 && ` (កម្ចី ${unscheduled} គ្មានតារាងបង់ មិនបានរាប់)`}
+        {a.unknownPaid > 0 && ` · ${a.unknownPaid} ខែបានបង់ តែគ្មានថ្ងៃបង់កត់ត្រា មិនបានរាប់`} — កម្ចីនៅកន្លែងផ្សេង មិនមាននៅទីនេះទេ។ {CBC_ESTIMATE_NOTE}
+      </p>
+      <h3 className="pt-2 text-xs font-semibold tracking-wide text-muted-foreground">📖 ឯកសារយោង៖ កូដ CBC</h3>
+    </section>
   );
 }
 
@@ -101,7 +199,7 @@ export function CbcHealthContent() {
       </section>
 
       <section className="space-y-2">
-        <h3 className="font-semibold">ពណ៌នៅលើតារាង ២៤ ខែ</h3>
+        <h3 className="font-semibold">ពណ៌នៅលើតារាង 24 ខែ</h3>
         <ul className="grid grid-cols-2 gap-1.5">
           {STRIP_LEGEND.map((l) => (
             <li key={l.code} className="flex items-center gap-2">
@@ -150,13 +248,13 @@ export function CbcHealthContent() {
           💡 របៀបធ្វើឱ្យប្រវត្តិត្រឡប់មកពណ៌បៃតងវិញ
         </h3>
         <p>
-          CBC បង្ហាញតែ ២៤ វដ្តចុងក្រោយ (ប្រហែល ២ ឆ្នាំ) — រៀងរាល់ខែ
-          ខែចាស់បំផុតរំកិលចេញ។ បើលោកអ្នកបង់ទាន់ពេលជាប់គ្នា ២៤ ខែ
+          CBC បង្ហាញតែ 24 វដ្តចុងក្រោយ (ប្រហែល 2 ឆ្នាំ) — រៀងរាល់ខែ
+          ខែចាស់បំផុតរំកិលចេញ។ បើលោកអ្នកបង់ទាន់ពេលជាប់គ្នា 24 ខែ
           ការសងយឺតពីមុននឹងរំកិលចេញពីប្រវត្តិ
           ហើយតារាងនឹងក្លាយជាពណ៌បៃតងទាំងអស់វិញ។
         </p>
         <p>
-          ការសងយឺតសូម្បីតែ ១ ថ្ងៃ អាចបង្ហាញជាកូដ [1] — ចុច «បង់»
+          ការសងយឺតសូម្បីតែ 1 ថ្ងៃ អាចបង្ហាញជាកូដ [1] — ចុច «បង់»
           ក្នុងអេបនៅថ្ងៃបង់ ដើម្បីកត់ត្រាថ្ងៃពិតប្រាកដ។
         </p>
       </section>

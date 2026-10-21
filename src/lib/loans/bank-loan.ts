@@ -30,16 +30,19 @@ const client = () => getSupabaseBrowserClient()!
 
 export const loanInstallmentsKey = (debtId: string) => ["loan-installments", debtId] as const
 
+/** The installments paid on a loan, with their dates — one query, shared by the loan page and the credit assessment. */
+export const loanInstallmentsQuery = (debtId: string | undefined, enabled = true) => ({
+  queryKey: loanInstallmentsKey(debtId ?? ""),
+  enabled: Boolean(debtId) && enabled,
+  queryFn: async () => {
+    const { data, error } = await client().from("debt_loan_installments").select("*").eq("debt_id", debtId!).order("n")
+    if (error) throw error
+    return (data as LoanInstallmentPaid[]).map((r) => ({ ...r, principal: Number(r.principal), interest: Number(r.interest), fee: Number(r.fee) }))
+  },
+})
+
 export function useLoanInstallments(debtId: string | undefined, enabled = true) {
-  return useQuery({
-    queryKey: loanInstallmentsKey(debtId ?? ""),
-    enabled: Boolean(debtId) && enabled,
-    queryFn: async () => {
-      const { data, error } = await client().from("debt_loan_installments").select("*").eq("debt_id", debtId!).order("n")
-      if (error) throw error
-      return (data as LoanInstallmentPaid[]).map((r) => ({ ...r, principal: Number(r.principal), interest: Number(r.interest), fee: Number(r.fee) }))
-    },
-  })
+  return useQuery(loanInstallmentsQuery(debtId, enabled))
 }
 
 /** Everything a payment touches: the loan, its history, wallets, the ledger and the new expense categories. */
