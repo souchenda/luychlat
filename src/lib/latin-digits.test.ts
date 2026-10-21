@@ -51,7 +51,7 @@ describe("International digits on every screen (founder, 21/10/2026 — like ABA
   })
 
   it("the home header: the date and the Hijri badge in 0-9", () => {
-    assert.equal(headerDate(new Date(2026, 9, 21, 12), "km"), "ថ្ងៃពុធ 21 តុលា")
+    assert.equal(headerDate(new Date(2026, 9, 21, 12), "km"), "ថ្ងៃពុធ 21 តុលា 2026")
     assert.deepEqual(headerBadge({ islamic: true, hijri: { day: 9, month: 5, year: 1448 }, locale: "km" }), { kind: "hijri", text: "🌙 9 ជុម៉ាដាល់អូឡា 1448" })
   })
 

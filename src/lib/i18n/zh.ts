@@ -3688,6 +3688,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "netWorth.loans": "待还贷款",
   "netWorth.net": "净资产（扣除贷款后）",
   "netWorth.netShort": "净资产",
+  "netWorth.assetsShort": "资产",
   "home.spendTitle": "近 6 个月支出",
   "home.spendThisMonth": "本月支出",
   "home.spendVsLast": "较上月 {pct}%",

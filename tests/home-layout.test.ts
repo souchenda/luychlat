@@ -29,18 +29,23 @@ describe("home — the hero card's layout", () => {
     const hub = readFileSync(join(process.cwd(), "src", "components", "dashboard", "smart-hub.tsx"), "utf8")
     assert.match(hub, /const score = personal \? kscore : null/)
   })
-  it("one clean stack, no repeated pills (founder, 21/10/2026): title + eye, the dollars, ≈ the riel — then loans and net in a full-width row", () => {
-    // The [USD …] [KHR …] pill row repeated the headline — gone.
-    assert.doesNotMatch(card, /netWorth\.inUsd|netWorth\.inKhr|>USD<\/span>|>KHR<\/span>/)
-    // Top: the ring beside the three-line stack.
+  it("compact, like ACLEDA (founder, 21/10/2026): the ring, then title + eye, riel on top and dollars below — no converted headline", () => {
+    // Top: the ring beside the stack.
     assert.match(card, /<div className="flex items-center gap-4">\s*\{!loading && <WalletRing/)
+    // What is held in each currency, riel first, each with its badge — the held sums, not a converted total.
+    assert.match(card, /\(\["KHR", "USD"\] as const\)\.map/)
+    assert.match(card, /c === "KHR" \? totals\.khrWallets : totals\.usdWallets/)
+    // Gone: the big converted «$…» line and its «≈ …៛» twin.
+    assert.doesNotMatch(card, /totals\.totalUsd|totals\.totalKhr|≈ <Amount/)
     const top = card.indexOf('<div className="flex items-center gap-4">')
-    const row = card.indexOf('grid grid-cols-2 divide-x')
+    const row = card.indexOf("divide-x divide-white/15")
     const ticker = card.indexOf("{footer &&")
-    assert.ok(top > 0 && row > top && ticker > row, "ring + stack, then the loans row, then the ticker")
-    // The loans row spans the card (a sibling of the top, not inside the stack): owed on the left, the net on the right.
+    assert.ok(top > 0 && row > top && ticker > row, "ring + stack, then the loans / assets / net row, then the ticker")
+    // That row spans the card (a sibling of the top, not inside the stack): owed on the left, the net worth on the right —
+    // two halves (three cells cut the amounts on a phone; the assets are a small line in the stack).
     const between = card.slice(top, card.lastIndexOf("<div", row))
-    assert.equal(between.match(/<div\b/g)?.length, between.match(/<\/div>/g)?.length, "the top block is closed before the loans row")
-    assert.ok(card.indexOf("netWorth.loans") < card.indexOf("netWorth.netShort"))
+    assert.equal(between.match(/<div\b/g)?.length, between.match(/<\/div>/g)?.length, "the top block is closed before the row")
+    assert.doesNotMatch(card, /grid-cols-3/)
+    assert.ok(card.indexOf("netWorth.assetsShort") < row && row < card.indexOf("netWorth.loans") && card.indexOf("netWorth.loans") < card.indexOf("netWorth.netShort"))
   })
 })

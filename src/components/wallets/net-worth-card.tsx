@@ -1,6 +1,6 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon, RotateCwIcon, ShieldCheckIcon, TrendingDownIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, GemIcon, RotateCwIcon, ShieldCheckIcon, TrendingDownIcon } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 
@@ -14,12 +14,10 @@ import { usePrefsStore } from "@/stores/prefs-store"
 
 import { WalletRing } from "./wallet-ring"
 
-const usd2 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })
-
-/** The headline total shrinks a step as it grows, so it never truncates beside the wallet ring. */
-function totalSize(usd: number) {
-  const len = usd2.format(usd).length
-  return len <= 9 ? "text-3xl" : len <= 11 ? "text-2xl" : "text-xl"
+/** A balance line steps down a size as it grows, so it never truncates beside the ring (riel runs longer than dollars). */
+function balanceSize(value: number, currency: "USD" | "KHR") {
+  const len = Math.abs(Math.round(value)).toLocaleString("en-US").length + (currency === "USD" ? 4 : 1)
+  return len <= 11 ? "text-[22px]" : len <= 14 ? "text-lg" : "text-base"
 }
 
 /**
@@ -60,14 +58,14 @@ export function NetWorthCard({
       <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 bg-linear-to-b from-white/12 to-transparent" />
       <span aria-hidden className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-amber-300/80 to-transparent" />
 
-      {/* Top: the wallet ring and, beside it, ONE three-line stack (founder, 21/10/2026 — no repeated USD / KHR pills):
-          the title with the eye, the total in dollars, the same total in riel. */}
+      {/* Top (founder, 21/10/2026 — the ACLEDA layout, compact): the wallet ring and, level with it, the title with the eye,
+          then what is held in each currency — riel on top, dollars below — each with its currency badge. No converted
+          headline, no repeated pills. */}
       <div className="flex items-center gap-4">
         {!loading && <WalletRing wallets={wallets ?? []} />}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
-            {/* «សមតុល្យសរុប» while the total is the wallets; «ទ្រព្យសកម្មសរុប» once gold, land or a vehicle is counted in it. */}
-            <p className="text-[15px] font-medium text-white/85">{t(totals.assets > 0 ? "netWorth.title" : "netWorth.balanceTitle")}</p>
+            <p className="text-[15px] font-medium text-white/85">{t("netWorth.balanceTitle")}</p>
             <button
               type="button"
               onClick={toggleHideBalances}
@@ -81,21 +79,28 @@ export function NetWorthCard({
 
           {loading ? (
             <div className="mt-2 space-y-2">
-              <Skeleton className="h-9 w-36 bg-white/20" />
-              <Skeleton className="h-5 w-28 bg-white/20" />
+              <Skeleton className="h-7 w-40 bg-white/20" />
+              <Skeleton className="h-7 w-32 bg-white/20" />
             </div>
           ) : (
-            <>
-              <Amount
-                value={totals.totalUsd}
-                currency="USD"
-                className={`mt-0.5 block font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm ${totalSize(totals.totalUsd)}`}
-              />
-              {/* The same total in riel — «≈»: converted at the rate, not the riel held. */}
-              <p className="text-[15px] whitespace-nowrap text-white/85 tabular-nums">
-                ≈ <Amount value={totals.totalKhr} currency="KHR" />
-              </p>
-            </>
+            <div className="mt-1.5 space-y-1">
+              {(["KHR", "USD"] as const).map((c) => {
+                const held = c === "KHR" ? totals.khrWallets : totals.usdWallets
+                return (
+                  <p key={c} className="flex min-w-0 items-center gap-2" title={t(c === "KHR" ? "netWorth.inKhr" : "netWorth.inUsd")}>
+                    <span className={`w-11 shrink-0 rounded-full text-center text-[11px] leading-5 font-bold ${c === "KHR" ? "bg-amber-300 text-amber-950" : "bg-white text-emerald-800"}`}>{c}</span>
+                    <Amount value={held} currency={c} className={`truncate font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm ${balanceSize(held, c)}`} />
+                  </p>
+                )
+              })}
+              {totals.assets > 0 && (
+                <Link href="/assets" className="flex items-center gap-1 pt-0.5 text-[13px] text-white/80 hover:text-white" title={t("assets.pageTitle")}>
+                  <GemIcon className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{t("netWorth.assetsShort")}</span>
+                  <Amount value={totals.assets} currency="USD" className="font-semibold whitespace-nowrap tabular-nums" /> ›
+                </Link>
+              )}
+            </div>
           )}
           {!loading && gaps.length > 0 && (
             <button
@@ -110,19 +115,22 @@ export function NetWorthCard({
         </div>
       </div>
 
-      {/* Loans: a full-width row of two halves under the top (founder, 21/10/2026) — what is owed (opens the loans with the
-          CBC K-Score) and the net after it; the headline stays the total held. */}
-      {!loading && totals.liabilities > 0 && (
-        <div className="mt-4 grid grid-cols-2 divide-x divide-white/15 rounded-2xl bg-white/10 py-2.5 ring-1 ring-white/15 backdrop-blur-sm tabular-nums">
-          <Link href="/debts?tab=PAYABLE#credit-health" className="min-w-0 px-3 transition-opacity hover:opacity-90">
-            <span className="flex items-center gap-1 text-[12px] text-white/75">
-              <TrendingDownIcon className="size-3.5 shrink-0" aria-hidden />
-              <span className="truncate">{t("netWorth.loans")} ›</span>
-            </span>
-            <span className="block truncate text-[15px] font-semibold">
-              −<Amount value={totals.liabilities} currency="USD" />
-            </span>
-          </Link>
+      {/* A full-width row under the top (founder, 21/10/2026): what is owed (opens the loans with the CBC K-Score) on the
+          left, the net worth on the right — the balances and the assets at the rate, minus the loans. With assets and no
+          loans, the net worth alone. */}
+      {!loading && (totals.liabilities > 0 || totals.assets > 0) && (
+        <div className={`mt-4 grid ${totals.liabilities > 0 ? "grid-cols-2" : "grid-cols-1"} divide-x divide-white/15 rounded-2xl bg-white/10 py-2.5 ring-1 ring-white/15 backdrop-blur-sm tabular-nums`}>
+          {totals.liabilities > 0 && (
+            <Link href="/debts?tab=PAYABLE#credit-health" className="min-w-0 px-3 transition-opacity hover:opacity-90">
+              <span className="flex items-center gap-1 text-[12px] text-white/75">
+                <TrendingDownIcon className="size-3.5 shrink-0" aria-hidden />
+                <span className="truncate">{t("netWorth.loans")} ›</span>
+              </span>
+              <span className="block truncate text-[15px] font-semibold">
+                −<Amount value={totals.liabilities} currency="USD" />
+              </span>
+            </Link>
+          )}
           <div className="min-w-0 px-3" title={t("netWorth.net")}>
             <span className="flex items-center gap-1 text-[12px] text-white/75">
               <ShieldCheckIcon className="size-3.5 shrink-0" aria-hidden />

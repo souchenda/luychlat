@@ -25,8 +25,11 @@ describe("Home header — greeting on its own line, never «…»", () => {
     assert.doesNotMatch(header, /max-w-\[58%\]/)
   })
   it("the short date: «ថ្ងៃអាទិត្យ 18 តុលា» (international digits — founder, 21/10/2026)", () => {
-    assert.equal(headerDate(new Date(2026, 9, 18, 12), "km"), "ថ្ងៃអាទិត្យ 18 តុលា")
-    assert.equal(headerDate(new Date(2026, 9, 18, 12), "en"), "Sunday, 18 October")
+    assert.equal(headerDate(new Date(2026, 9, 18, 12), "km"), "ថ្ងៃអាទិត្យ 18 តុលា 2026") // with the year (founder, 21/10/2026)
+    assert.equal(headerDate(new Date(2026, 9, 18, 12), "en"), "Sunday, 18 October 2026")
+    assert.equal(headerDate(new Date(2026, 9, 18, 12), "zh"), "2026年10月18日 星期日")
+    // The full four-digit year, in every language.
+    for (const l of ["km", "en", "zh"] as const) assert.match(headerDate(new Date(2027, 0, 5, 12), l), /2027/)
   })
   it("the Hijri badge without «ហ.ស.»: «🌙 7 ជុម៉ាដាល់អូឡា 1448» (international digits)", () => {
     assert.deepEqual(headerBadge({ islamic: true, hijri: { day: 7, month: 5, year: 1448 }, locale: "km" }), { kind: "hijri", text: "🌙 7 ជុម៉ាដាល់អូឡា 1448" })
