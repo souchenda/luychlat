@@ -12,31 +12,7 @@ import { createHash } from "node:crypto"
 import { postFooter, withFooter } from "@/lib/post-footer"
 
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
-import {
-  dueAction,
-  endOfCambodiaDay,
-  isPreviewed,
-  isReplaceCallback,
-  kmClock,
-  parseReplaceCallback,
-  parseScheduledPostCallback,
-  REPLACEABLE,
-  replaceButtons,
-  replacedNote,
-  replacePreviewText,
-  reminderLevel,
-  urgentReminderButtons,
-  urgentReminderText,
-  plannedIslamicPosts,
-  plannedPosts,
-  previewButtons,
-  previewText,
-  atMinute,
-  EVENT_LEAD_MIN,
-  type PostKind,
-  type PostStatus,
-  type Targets,
-} from "@/lib/scheduled-posts"
+import { dueAction, endOfCambodiaDay, isPreviewed, isReplaceCallback, kmClock, parseReplaceCallback, parseScheduledPostCallback, REPLACEABLE, replaceButtons, replacedNote, replacePreviewText, reminderLevel, urgentReminderButtons, urgentReminderText, plannedIslamicPosts, plannedPosts, previewButtons, previewText, atMinute, EVENT_LEAD_MIN, type PostKind, type PostStatus, type Targets, pastedCardBody } from "@/lib/scheduled-posts"
 import { eveningButtons } from "@/lib/evening-reminder"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
@@ -904,6 +880,19 @@ export async function editCardByReply(chatId: number, replyTo: number, actor: nu
   logEvent("info", "scheduled-posts", `${row.kind} ${row.post_key}: caption edited by ${editor || "an approver"} (reply to the card)`)
   await reply(`✏️ បានកែអត្ថបទរួចរាល់ — ${editor || "អ្នកអនុម័ត"}`)
   return true
+}
+
+/**
+ * A pasted card (pastedCardBody): the edit goes to the latest waiting card in this chat, exactly as a reply would — the
+ * same approver check, the card redrawn, a reply under it saying so. False when nothing waits here.
+ */
+export async function editLatestCardByPaste(chatId: number, actor: number | undefined, editor: string, text: string): Promise<boolean> {
+  const body = pastedCardBody(text)
+  if (!body || !actor) return false
+  const { data } = await botDb().rpc("bot_posts_waiting", { p_key: botKey() })
+  const cards = ((data as PostRow[] | null) ?? []).flatMap((r) => (r.previews ?? []).filter((p) => p.chat === chatId).map((p) => p.msg))
+  if (!cards.length) return false
+  return editCardByReply(chatId, Math.max(...cards), actor, editor, body)
 }
 
 /** Called every minute by the dispatcher. */

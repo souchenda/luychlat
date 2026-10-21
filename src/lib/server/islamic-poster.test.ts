@@ -150,7 +150,8 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     const morning = islamicCaptionHtml(islamicPostContent("ISLAMIC_MORNING", "2026-10-19", h(8)))
     assert.ok(morning.includes("អានថា៖") && morning.includes("អត្ថន័យ៖"))
     assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12))).includes("Surah Al-Kahf"))
-    assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7))).includes("អំពើរបស់មនុស្សត្រូវបានបង្ហាញ"))
+    // The hadith in Yerny's verified wording (founder, 21/10/2026).
+    assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7))).includes("អំពើល្អទាំងឡាយត្រូវបានលើកយកទៅបង្ហាញនៅថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍"))
     // A lesson's poster: its principle and its money takeaway (founder, 20/10/2026); the whole lesson is in the caption.
     const lesson = islamicPostContent("ISLAMIC_DAILY", "2026-10-18", h(7))
     const tip = ISLAMIC_TIPS.find((t) => t.body.km === lesson.paragraphs[0])!

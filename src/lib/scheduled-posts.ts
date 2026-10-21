@@ -360,3 +360,20 @@ export function takeAllowed(from: PostStatus, to: Exclude<PostStatus, "PENDING">
   if (to === "PAUSED") return byFounder && (from === "PENDING" || from === "APPROVED")
   return !byFounder && (from === "PENDING" || from === "APPROVED")
 }
+
+/**
+ * A card pasted back into «LCA Approval» as a new message (founder, 21/10/2026 — Yerny corrected the fasting text but sent
+ * it without swiping to reply, so the bot never saw it as an edit): text that starts with the card's own header
+ * «📢 គោលដៅផ្សាយ…» is an edit of the latest waiting card. Its body is the text without the card's lines (the header, the
+ * «👀 មើលជាមុន» line, an «(✏️ បានកែសម្រួលដោយ …)» line); null when it is not such a paste or nothing is left.
+ */
+export function pastedCardBody(text: string): string | null {
+  const lines = text.replace(/\r\n/g, "\n").split("\n")
+  if (!/^\s*(?:📢|📣)\s*គោលដៅផ្សាយ/.test(lines[0] ?? "")) return null
+  const body = lines
+    .slice(1)
+    .filter((l) => !/^\s*👀\s*មើលជាមុន/.test(l) && !/^\s*\(✏️ បានកែសម្រួលដោយ/.test(l))
+    .join("\n")
+    .trim()
+  return body || null
+}

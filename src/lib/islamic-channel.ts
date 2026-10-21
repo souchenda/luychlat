@@ -26,6 +26,10 @@ export type IslamicKind = (typeof ISLAMIC_KINDS)[number]
 export const isIslamicKind = (kind: string): kind is IslamicKind => (ISLAMIC_KINDS as readonly string[]).includes(kind)
 
 /** Which channel a post kind goes to — the only routing rule (a Buddhist holy-day note is never Islamic). */
+/** The Monday / Thursday hadith (Jami' at-Tirmidhi 747) as the fasting reminder quotes it — Yerny's verified wording. */
+export const FAST_HADITH =
+  "អំពើល្អទាំងឡាយត្រូវបានលើកយកទៅបង្ហាញនៅថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយខ្ញុំចង់ឱ្យអំពើល្អរបស់ខ្ញុំត្រូវបានលើកយកទៅបង្ហាញ ខណៈពេលដែលខ្ញុំកំពុងតមអាហារ។"
+
 export const channelFor = (kind: string): "islamic" | "community" => (isIslamicKind(kind) || kind === "ISLAMIC_BULLETIN" ? "islamic" : "community")
 
 /**
@@ -296,7 +300,8 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       lead: `🌙 <b>${G.fastReminderLead(monday ? "monday" : "thursday")}</b>`,
       paragraphs: [
         G.sahurReminder(times.imsak),
-        `ការបួសនេះជា${G.SUNNAH} — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
+        // The hadith (Jami' at-Tirmidhi 747) in Yerny's verified wording (founder, 21/10/2026).
+        `ការបួសនេះជា${G.SUNNAH} — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា «${FAST_HADITH}»`,
       ],
       posterLines: [...POSTER_HOOKS.fast],
       source: { label: "Jami' at-Tirmidhi 747", url: "https://sunnah.com/tirmidhi:747" },

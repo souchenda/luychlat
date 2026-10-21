@@ -30,7 +30,7 @@ import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
-import { editCardByReply, handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
+import { editCardByReply, editLatestCardByPaste, handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
 import { handleNasheedCallback } from "@/lib/server/nasheed-review"
 import { isNasheedCallback } from "@/lib/nasheed"
 import { handleAccountCallback, handleAccountGoalReply } from "@/lib/server/account-bot"
@@ -457,6 +457,12 @@ export async function POST(request: Request) {
       // @username first (the founder's «បានកែសម្រួលដោយ @username»), else the name.
       const editor = message.from?.username ? `@${message.from.username}` : [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ").trim()
       if (await editCardByReply(message.chat.id, message.reply_to_message.message_id, message.from?.id, editor, message.text)) return NextResponse.json({ ok: true })
+    }
+    // A card pasted back without swiping to reply (founder, 21/10/2026): starting with «📢 គោលដៅផ្សាយ…», it edits the
+    // latest waiting card here — the same approver check as a reply.
+    if (message.text && !message.reply_to_message) {
+      const editor = message.from?.username ? `@${message.from.username}` : [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ").trim()
+      if (await editLatestCardByPaste(message.chat.id, message.from?.id, editor, message.text)) return NextResponse.json({ ok: true })
     }
     const fileId = bestPhoto(message.photo)
     await handleGroupMessage(message.chat.id, message.text ?? message.caption ?? "", telegramLocale(message.from?.language_code), message.from?.id, {
