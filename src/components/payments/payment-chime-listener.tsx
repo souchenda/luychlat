@@ -2,7 +2,8 @@
 
 /**
  * 💰 The payment chime on this phone (founder, 21/10/2026 — lib/payment-chime.ts): on every screen of the app, a KHQR
- * sale the bank just reported rings «ទីង-ទីង» with «💰 ទទួលបានប្រាក់ +50,000 ៛». In the Android app it is a notification
+ * sale the bank just reported (A) or an income slip confirmed in the bot (B) rings «ទីង-ទីង» with «💰 ទទួលបានប្រាក់
+ * +50,000 ៛» — once per transaction. In the Android app it is a notification
  * on the «Payment Alerts» channel (its own sound, vibration, the lock screen) while the app is open or running; in a
  * browser the chime plays while the page is on screen. On /soundbox the SoundBox announces it itself.
  */
@@ -10,7 +11,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
 
 import { isNativeApp } from "@/lib/native-bridge"
-import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentFromRow, paymentNotificationId, shouldChime, type PaymentEvent } from "@/lib/payment-chime"
+import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
@@ -64,7 +65,7 @@ async function ring(e: PaymentEvent): Promise<void> {
     await ensurePaymentChannel()
     const n = await plugin()
     // No schedule: shown at once, on the channel whose sound is the chime (vibration, the lock screen).
-    await n.schedule({ notifications: [{ id: paymentNotificationId(e.id), title, body, channelId: PAYMENT_CHANNEL.id, sound: PAYMENT_CHANNEL.sound, extra: { url: "/soundbox" } }] })
+    await n.schedule({ notifications: [{ id: paymentNotificationId(ringKey(e)), title, body, channelId: PAYMENT_CHANNEL.id, sound: PAYMENT_CHANNEL.sound, extra: { url: "/soundbox" } }] })
     return
   }
   if (typeof document !== "undefined" && document.visibilityState === "visible") playPaymentChimeSound()
@@ -91,12 +92,17 @@ export function PaymentChimeListener() {
     // New receipts only, live (RLS: the workspaces this person belongs to) — rejoined with a growing delay if dropped.
     const connect = () => {
       if (stopped) return
-      const ch = supabase.channel(`payment-chime:${userId}:${Date.now()}`).on("postgres_changes", { schema: "public", table: "soundbox_events", event: "INSERT" }, ({ new: row }) => {
-        const e = paymentFromRow(row as Record<string, unknown>)
+      const onRow = (source: PaymentSource) => ({ new: row }: { new: unknown }) => {
+        const e = paymentFromRow(row as Record<string, unknown>, source)
         if (!e || !shouldChime({ enabled: on.current, path: path.current ?? "", event: e, seen: seen.current, now: Date.now() })) return
-        seen.current.add(e.id)
+        seen.current.add(ringKey(e))
         void ring(e).catch((err) => console.error("[payment-chime]", err))
-      })
+      }
+      // A — the KHQR sales (the SoundBox's events); B — the income slips confirmed in the bot.
+      const ch = supabase
+        .channel(`payment-chime:${userId}:${Date.now()}`)
+        .on("postgres_changes", { schema: "public", table: "soundbox_events", event: "INSERT" }, onRow("khqr"))
+        .on("postgres_changes", { schema: "public", table: "payment_chimes", event: "INSERT" }, onRow("slip"))
       channel = ch
       ch.subscribe((status) => {
         if (stopped || channel !== ch) return

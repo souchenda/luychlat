@@ -3,8 +3,13 @@
  * when a customer's KHQR payment arrives, the app rings «ទីង-ទីង» and shows «💰 ទទួលបានប្រាក់ +50,000 ៛». Pure
  * (payment-chime.test.ts); the listener is components/payments/payment-chime-listener.tsx.
  *
- * The same payments as the SoundBox (lib/soundbox.ts — the golden «sales only» rule): a KHQR sale the bank just
- * reported (soundbox_events), never a slip booked later, a held payment, a transfer, or one more than 10 minutes late.
+ * Two triggers (founder, 21/10/2026 — «smart dual-trigger»):
+ *   A  a KHQR sale the bank just reported (soundbox_events — the SoundBox's own, the golden «sales only» rule; never one
+ *      more than 10 minutes late);
+ *   B  an income slip scanned and confirmed in the bot (payment_chimes — bot_payment_chime_emit: business income only,
+ *      never an expense, a transfer or a loan repayment) — «វិក្កយបត្រ ABA · កត់ត្រាជោគជ័យ».
+ * Never twice: one ring per transaction on this phone, and the database never emits a slip chime for a payment (its
+ * bank reference) that already rang.
  *
  * In the Android app: a notification on its own channel «Payment Alerts» (importance max, its sound
  * res/raw/payment_received.wav, vibration, on the lock screen) — while the app is open or still running in the
@@ -33,8 +38,16 @@ export function paymentNotificationId(eventId: string): number {
   return PAYMENT_ID_BASE + (h % 100_000_000)
 }
 
+export type PaymentSource = "khqr" | "slip"
+
 export type PaymentEvent = {
   id: string
+  /** A — a KHQR sale (soundbox_events); B — a confirmed income slip (payment_chimes). */
+  source: PaymentSource
+  /** The transaction it rang for — one ring per transaction, whichever trigger came first. */
+  transaction_id?: string | null
+  /** The slip's bank («ABA Bank») — B only. */
+  bank?: string | null
   amount: number
   currency: "KHR" | "USD"
   account_name?: string | null
@@ -43,28 +56,37 @@ export type PaymentEvent = {
   created_at?: string | null
 }
 
-/** «💰 ទទួលបានប្រាក់ +50,000 ៛» and «payer · account» — the SoundBox's own words (lib/soundbox.ts soundboxPush). */
+/**
+ * «💰 ទទួលបានប្រាក់ +50,000 ៛» — the SoundBox's own words (lib/soundbox.ts soundboxPush) — with «payer · account» for a
+ * KHQR sale, «វិក្កយបត្រ ABA Bank · កត់ត្រាជោគជ័យ» for a confirmed slip.
+ */
 export function paymentChimeText(e: PaymentEvent): { title: string; body: string } {
   const p = soundboxPush({ id: e.id, amount: e.amount, currency: e.currency, account_name: e.account_name, payer: e.payer })
+  if (e.source === "slip") return { title: p.title, body: `វិក្កយបត្រ${e.bank ? ` ${e.bank}` : ""} · កត់ត្រាជោគជ័យ` }
   return { title: p.title, body: p.body }
 }
 
+/** The key a ring is remembered by: its transaction (both triggers), else the event. */
+export const ringKey = (e: PaymentEvent) => e.transaction_id || `${e.source}:${e.id}`
+
 /**
- * Whether this phone rings for a payment: the switch is on, it is not on /soundbox (the SoundBox announces it), it is
- * not late (more than 10 minutes after the bank's time — never a late ring), and it has not rung for it already.
+ * Whether this phone rings: the switch is on and it has not rung for this transaction already (either trigger). A KHQR
+ * sale: not on /soundbox (the SoundBox announces it) and not late (more than 10 minutes after the bank's time — never
+ * a late ring). A confirmed slip always rings — it is the confirmation of what was just recorded.
  */
 export function shouldChime(o: { enabled: boolean; path: string; event: PaymentEvent; seen: ReadonlySet<string>; now: number }): boolean {
-  if (!o.enabled || o.seen.has(o.event.id)) return false
+  if (!o.enabled || o.seen.has(ringKey(o.event))) return false
+  if (o.event.source === "slip") return true
   if (o.path === "/soundbox" || o.path.startsWith("/soundbox/")) return false
   return !isLatePush(o.event.transaction_time, o.event.created_at ?? o.now)
 }
 
-/** A realtime row as a payment (amounts arrive as strings from Postgres numerics). */
-export function paymentFromRow(row: Record<string, unknown>): PaymentEvent | null {
+/** A realtime row as a payment (amounts arrive as strings from Postgres numerics): soundbox_events → A, payment_chimes → B. */
+export function paymentFromRow(row: Record<string, unknown>, source: PaymentSource = "khqr"): PaymentEvent | null {
   const id = typeof row.id === "string" ? row.id : null
   const amount = Number(row.amount)
   const currency = row.currency === "USD" ? "USD" : row.currency === "KHR" ? "KHR" : null
   if (!id || !Number.isFinite(amount) || amount <= 0 || !currency) return null
   const str = (v: unknown) => (typeof v === "string" ? v : null)
-  return { id, amount, currency, account_name: str(row.account_name), payer: str(row.payer), transaction_time: str(row.transaction_time), created_at: str(row.created_at) }
+  return { id, source, transaction_id: str(row.transaction_id), bank: str(row.bank), amount, currency, account_name: str(row.account_name), payer: str(row.payer), transaction_time: str(row.transaction_time), created_at: str(row.created_at) }
 }

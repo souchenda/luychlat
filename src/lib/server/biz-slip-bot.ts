@@ -22,6 +22,7 @@ import { logEvent } from "./events"
 import { notifyOwner } from "./biz-group-bot"
 import { readSlip } from "./slip-bot"
 import { botDb, botKey, maskNumbers, tg } from "./telegram-bot"
+import { emitSlipChime } from "./payment-chime"
 
 type Context = { name: string; wallets: BotWallet[]; categories: BotCategory[]; allowed: boolean }
 type Photo = { fileId: string; fileUniqueId: string | null; messageId: number; fromId: number; fromName: string; caption: string | null }
@@ -49,7 +50,14 @@ export function bizCategory(kind: "EXPENSE" | "INCOME", text: string, categories
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
-type Recorded = { status?: string; workspace?: string; wallet?: string; account_no?: string | null; icon?: string | null; category?: string | null; amount?: number; currency?: "USD" | "KHR"; kind?: string }
+type Recorded = { status?: string; tx_id?: string; workspace?: string; wallet?: string; account_no?: string | null; icon?: string | null; category?: string | null; amount?: number; currency?: "USD" | "KHR"; kind?: string }
+
+/** The bank for the chime's «វិក្កយបត្រ …»: the slip's own, else the receiving wallet's institution. */
+const chimeBank = (r: Recorded, slipBank?: string | null) => {
+  if (slipBank) return slipBank
+  const bank = walletInstitution({ icon: r.icon ?? null, name: r.wallet ?? "" })
+  return bank.key !== "other" && bank.key !== "cash" ? bank.name.en : null
+}
 
 /** "✅ -$5.00 បានកត់ត្រា (DL MEAT SUPPLY · ABA)\n🏷️ ប្រភេទ៖ …\n👤 បញ្ចូលដោយ៖ …" */
 function recordedText(r: Recorded, sender: string) {
@@ -132,6 +140,8 @@ export async function handleGroupSlip(chatId: number, photo: Photo): Promise<boo
   } else if (r.status === "ok") {
     logEvent("info", "biz-slip", `Group slip recorded (${r.workspace}, by a group admin)`, { fold: true })
     await tell(recordedText(r, photo.fromName))
+    // An income slip recorded: the counter phone rings «ទីង-ទីង» (founder, 21/10/2026).
+    if (r.kind === "INCOME") await emitSlipChime(r.tx_id, chimeBank(r, slip.bank))
   } else if (r.status === "duplicate") {
     await tell("ℹ️ វិក្កយបត្រនេះបានកត់ត្រារួចហើយ។")
   }
@@ -156,6 +166,7 @@ export async function handleGroupSlipCallback(cb: Callback) {
   if (r.status === "duplicate") return answer("បានកត់ត្រារួចហើយ។", true)
   if (r.status !== "ok") return answer("មិនអាចកត់ត្រាបានទេ។", true)
   await answer("✅")
+  if (r.kind === "INCOME") await emitSlipChime(r.tx_id, chimeBank(r))
   // "Entered by" is whoever sent the slip (kept on the pending entry), not the admin who picked the wallet.
   const tapper = [cb.from.first_name, cb.from.last_name].filter(Boolean).join(" ") || cb.from.username || "Admin"
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: recordedText(r, r.sender ?? tapper) }).catch(() => null)

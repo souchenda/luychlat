@@ -33,6 +33,7 @@ import { MEAL_KEY, cleanNote, mentionsChild, rememberCard, savedCard, tagTransac
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, maskNumbers, sendText, telegramFile, tg, tr } from "@/lib/server/telegram-bot"
+import { emitSlipChime } from "./payment-chime"
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
 // The fallback reader while Gemini is overloaded (503s / no answer): fast, good on Latin print, weak on Khmer script.
@@ -599,6 +600,8 @@ export async function handleSlipCallback(cb: Callback) {
   if (!r?.ok) return answer(tr(lang, "bot.expired"), true)
 
   await answer(tr(lang, "bot.slipSaved"))
+  // An income slip confirmed: the counter phone rings «ទីង-ទីង» (founder, 21/10/2026 — lib/server/payment-chime.ts).
+  if (action.kind === "INCOME") await emitSlipChime(r.tx_id, action.slip?.bank)
   // Food: the meal from the payment time (☕ is always a snack); the card lets the user change it.
   const food = isFoodChoice(choice)
   const meal: Meal | null = food ? (choice.tag ? "snack" : (action.meal ?? null)) : null

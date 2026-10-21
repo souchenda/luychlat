@@ -4,11 +4,11 @@ import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { NATIVE_CHANNELS, isNativePrayerId } from "./native-prayer-plan"
-import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, PAYMENT_ID_BASE, paymentChimeText, paymentFromRow, paymentNotificationId, shouldChime, type PaymentEvent } from "./payment-chime"
+import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, PAYMENT_ID_BASE, paymentChimeText, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent } from "./payment-chime"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 const at = (iso: string) => Date.parse(iso)
-const sale: PaymentEvent = { id: "e1", amount: 50000, currency: "KHR", account_name: "DL MEAT SUPPLY", payer: "SOK DARA", transaction_time: "2026-10-21T03:00:00Z", created_at: "2026-10-21T03:00:20Z" }
+const sale: PaymentEvent = { id: "e1", source: "khqr", transaction_id: "tx-1", amount: 50000, currency: "KHR", account_name: "DL MEAT SUPPLY", payer: "SOK DARA", transaction_time: "2026-10-21T03:00:00Z", created_at: "2026-10-21T03:00:20Z" }
 
 describe("The payment chime on the phone (founder, 21/10/2026)", () => {
   it("its own Android channel: «Payment Alerts», importance max, the chime as its sound — never a prayer channel", () => {
@@ -25,7 +25,7 @@ describe("The payment chime on the phone (founder, 21/10/2026)", () => {
     assert.equal(shouldChime({ ...base, enabled: false }), false)
     assert.equal(shouldChime({ ...base, path: "/soundbox" }), false)
     assert.equal(shouldChime({ ...base, path: "/wallets" }), true)
-    assert.equal(shouldChime({ ...base, seen: new Set(["e1"]) }), false)
+    assert.equal(shouldChime({ ...base, seen: new Set(["tx-1"]) }), false)
     // More than 10 minutes after the bank's time: never a late ring (the golden SoundBox rule).
     assert.equal(shouldChime({ ...base, event: { ...sale, created_at: "2026-10-21T03:10:30Z" } }), false)
   })
@@ -64,5 +64,43 @@ describe("Wiring (founder, 21/10/2026)", () => {
     assert.match(s, /const business = \(useWorkspaces\(\)\.data \?\? \[\]\)\.some\(\(w\) => w\.type === "BUSINESS"\)/)
     assert.match(s, /<PushSettingsRow \/>\n\s+<PaymentChimeRow \/>/)
     assert.match(read("src/stores/prefs-store.ts"), /paymentChime: true,/)
+  })
+})
+
+describe("The dual trigger — KHQR sales and confirmed income slips (founder, 21/10/2026)", () => {
+  const slip: PaymentEvent = { id: "c1", source: "slip", transaction_id: "tx-9", bank: "ABA Bank", amount: 25, currency: "USD", created_at: "2026-10-21T03:00:00Z" }
+  it("a confirmed slip: the same title, «វិក្កយបត្រ ABA Bank · កត់ត្រាជោគជ័យ» under it", () => {
+    assert.deepEqual(paymentChimeText(slip), { title: "💰 ទទួលបានប្រាក់ +$25.00", body: "វិក្កយបត្រ ABA Bank · កត់ត្រាជោគជ័យ" })
+    assert.equal(paymentChimeText({ ...slip, bank: null }).body, "វិក្កយបត្រ · កត់ត្រាជោគជ័យ")
+  })
+  it("a slip always rings once it is confirmed — on /soundbox too (the SoundBox never announces a slip), whatever its date", () => {
+    const base = { enabled: true, path: "/soundbox", event: { ...slip, transaction_time: "2026-10-20T01:00:00Z" }, seen: new Set<string>(), now: at("2026-10-21T03:00:01Z") }
+    assert.equal(shouldChime(base), true)
+    assert.equal(shouldChime({ ...base, enabled: false }), false)
+  })
+  it("regression guard: one ring per transaction, whichever trigger came first", () => {
+    const seen = new Set([ringKey({ ...sale, transaction_id: "tx-7" })])
+    assert.equal(shouldChime({ enabled: true, path: "/", event: { ...slip, transaction_id: "tx-7" }, seen, now: at("2026-10-21T03:00:21Z") }), false)
+    assert.equal(ringKey({ ...slip, transaction_id: null }), "slip:c1") // no transaction: the event itself
+    assert.equal(paymentFromRow({ id: "c2", transaction_id: "tx-2", amount: "10", currency: "USD", bank: "Bakong" }, "slip")?.bank, "Bakong")
+  })
+  it("the database decides a slip chime: business INCOME only (never an expense, a transfer, a loan repayment), once, never a bank reference that already rang", () => {
+    const sql = read("supabase/migrations/20270239000000_payment_chimes.sql")
+    assert.match(sql, /where tx\.id = p_transaction_id\n\s+and tx\.type = 'INCOME' and tx\.debt_id is null and w\.type = 'BUSINESS';/)
+    assert.match(sql, /exists \(select 1 from public\.soundbox_events e where e\.transaction_id = t\.id\)/)
+    assert.match(sql, /where o\.workspace_id = t\.workspace_id and o\.bank_ref = t\.bank_ref\)/)
+    assert.match(sql, /transaction_id uuid not null unique/)
+    assert.match(sql, /create policy payment_chimes_member on public\.payment_chimes\n\s+for select to authenticated using \(public\.is_workspace_member\(workspace_id\)\)/)
+    assert.match(sql, /alter publication supabase_realtime add table public\.payment_chimes/)
+  })
+  it("emitted where an income slip is confirmed: the private chat's category tap, the business group's slip and its wallet tap", () => {
+    assert.match(read("src/lib/server/slip-bot.ts"), /if \(action\.kind === "INCOME"\) await emitSlipChime\(r\.tx_id, action\.slip\?\.bank\)/)
+    const biz = read("src/lib/server/biz-slip-bot.ts")
+    assert.match(biz, /if \(r\.kind === "INCOME"\) await emitSlipChime\(r\.tx_id, chimeBank\(r, slip\.bank\)\)/)
+    assert.match(biz, /if \(r\.kind === "INCOME"\) await emitSlipChime\(r\.tx_id, chimeBank\(r\)\)/)
+    const l = read("src/components/payments/payment-chime-listener.tsx")
+    assert.match(l, /table: "soundbox_events", event: "INSERT" \}, onRow\("khqr"\)\)/)
+    assert.match(l, /table: "payment_chimes", event: "INSERT" \}, onRow\("slip"\)\)/)
+    assert.match(read("src/lib/server/payment-chime.ts"), /\} catch \(e\) \{/) // never fails the bot's reply
   })
 })
