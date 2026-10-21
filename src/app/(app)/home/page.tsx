@@ -108,16 +108,12 @@ export default function HomePage() {
           into «…»): the greeting on its own full-width line, never cut; under it the short date (left) and the
           lunar / Hijri pill (right), wrapping rather than overlapping. tests/home-header.test.ts */}
       <header>
-        {/* The person's photo beside the greeting (founder, 21/10/2026 — Task #444, after ACLEDA): round, a hairline
-            emerald ring and a soft shadow; their initials (or a person) without a photo. The photo and the greeting open
-            Settings. A Business workspace shows its logo and name instead. */}
-        <div className="flex items-start gap-3">
-          {workspace?.type !== "BUSINESS" && (
-            <Link href="/settings" tabIndex={-1} aria-hidden className="shrink-0 rounded-full transition-transform active:scale-95">
-              <ProfileAvatar path={profile?.avatar_path} name={profile?.display_name?.trim() ?? ""} className="size-12 border-2 border-emerald-500/25 text-sm shadow-sm dark:border-emerald-400/30" />
-            </Link>
-          )}
-          <div className="min-w-0 flex-1">
+        {/* Two columns (founder, 21/10/2026 — Task #447): who on the left — the photo and the greeting, nothing else; when on
+            the right — the date with its year, the lunar (or Hijri) pill under it, flush right. The greeting wraps, never
+            «…»; the date column keeps its width, so the two never collide on a 360 px phone. A Business workspace shows its
+            logo and name on the left. The photo and the greeting open Settings. */}
+        <div className="flex w-full items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             {workspace?.type === "BUSINESS" ? (
               // Business workspace: the business's logo and name instead of a personal greeting.
               <h1 className="flex min-w-0 items-center gap-2 text-lg font-bold">
@@ -125,45 +121,50 @@ export default function HomePage() {
                 <span className="min-w-0 break-words">{workspace.name}</span>
               </h1>
             ) : (
-              <Link href="/settings" className="block rounded-md" aria-label={t("settings.title")}>
-                <h1 className="block w-full break-words pt-0.5 text-lg leading-snug font-bold">
-                  {/* Islamic Mode: «អាស្សាឡាមុអាឡៃកុម, [ឈ្មោះ]» without the waving hand (lib/islamic-expressions). */}
-                  {t(greeting.key, greeting.params)}
-                  {greeting.wave && (
-                    <>
-                      {" "}
-                      <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
-                    </>
-                  )}
-                </h1>
-              </Link>
-            )}
-            <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground">
-                <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
-                  {headerDate(today, locale)}
-                </time>
-              </p>
-              {/* A small gold pill with today's lunar day and the next holy day (opens the calendar switch).
-                  Islamic Mode: today's Hijri date instead (founder, 18/10/2026), or its greeting in season. */}
-              {badge.kind === "greeting" ? (
-                <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                  <SparklesIcon className="size-3.5 shrink-0" aria-hidden />
-                  <span className="truncate">{t(badge.key)}</span>
-                </span>
-              ) : badge.kind === "hijri" ? (
-                <Link
-                  href="/islamic"
-                  className="inline-flex max-w-full cursor-pointer items-center rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-emerald-900 shadow-xs transition-transform active:scale-95 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200"
-                >
-                  {/* One tap to the Islamic hub (founder, 19/10/2026). */}
-                  {badge.text}
+              <>
+                <Link href="/settings" tabIndex={-1} aria-hidden className="shrink-0 rounded-full transition-transform active:scale-95">
+                  <ProfileAvatar path={profile?.avatar_path} name={profile?.display_name?.trim() ?? ""} className="size-11 border-2 border-emerald-500/25 text-sm shadow-sm dark:border-emerald-400/30" />
                 </Link>
-              ) : badge.kind === "lunar" ? (
-                <LunarPill onOpen={() => setCalendarOpen(true)} />
-              ) : null}
-              <CalendarSwitchSheet open={calendarOpen} onOpenChange={setCalendarOpen} />
-            </div>
+                <Link href="/settings" className="min-w-0 flex-1 rounded-md" aria-label={t("settings.title")}>
+                  <h1 className="block w-full break-words text-lg leading-snug font-bold">
+                    {/* Islamic Mode: «អាស្សាឡាមុអាឡៃកុម, [ឈ្មោះ]» without the waving hand (lib/islamic-expressions). */}
+                    {t(greeting.key, greeting.params)}
+                    {greeting.wave && (
+                      <>
+                        {" "}
+                        <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
+                      </>
+                    )}
+                  </h1>
+                </Link>
+              </>
+            )}
+          </div>
+          <div className="flex max-w-[55%] shrink-0 flex-col items-end gap-1 text-right">
+            <p className="text-xs whitespace-nowrap text-muted-foreground">
+              <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
+                {headerDate(today, locale)}
+              </time>
+            </p>
+            {/* A small gold pill with today's lunar day and the next holy day (opens the calendar switch).
+                Islamic Mode: today's Hijri date instead (founder, 18/10/2026), or its greeting in season. */}
+            {badge.kind === "greeting" ? (
+              <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                <SparklesIcon className="size-3.5 shrink-0" aria-hidden />
+                <span className="truncate">{t(badge.key)}</span>
+              </span>
+            ) : badge.kind === "hijri" ? (
+              <Link
+                href="/islamic"
+                className="inline-flex max-w-full cursor-pointer items-center rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-emerald-900 shadow-xs transition-transform active:scale-95 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-200"
+              >
+                {/* One tap to the Islamic hub (founder, 19/10/2026). */}
+                {badge.text}
+              </Link>
+            ) : badge.kind === "lunar" ? (
+              <LunarPill onOpen={() => setCalendarOpen(true)} />
+            ) : null}
+            <CalendarSwitchSheet open={calendarOpen} onOpenChange={setCalendarOpen} />
           </div>
         </div>
         {workspace?.type === "FAMILY" && <FamilyStrip workspace={workspace} />}

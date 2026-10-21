@@ -18,11 +18,17 @@ describe("Home header — greeting on its own line, never «…»", () => {
     assert.match(h1, /className="block w-full break-words/)
     assert.doesNotMatch(h1, /truncate/)
   })
-  it("the date and the pill share a wrapping row under it", () => {
-    assert.match(header, /<div className="mt-1 flex flex-wrap items-center justify-between gap-2">/)
-    assert.ok(header.indexOf("</h1>") < header.indexOf("flex flex-wrap items-center justify-between gap-2"))
-    assert.match(header, /\{headerDate\(today, locale\)\}/)
-    assert.doesNotMatch(header, /max-w-\[58%\]/)
+  it("two columns (Task #447): the photo and the greeting left, the date and the pill stacked flush right", () => {
+    assert.match(header, /<div className="flex w-full items-center justify-between gap-3">\s*<div className="flex min-w-0 flex-1 items-center gap-3">/)
+    // The right column: the date with its year on top, the lunar / Hijri pill under it — right-aligned, never wider than
+    // 55% (the pill truncates, the greeting wraps — never «…», never a collision at 360 px).
+    const right = header.slice(header.indexOf('<div className="flex max-w-[55%] shrink-0 flex-col items-end gap-1 text-right">'))
+    assert.ok(right.length < header.length, "the right column")
+    assert.ok(header.indexOf("</h1>") < header.indexOf("max-w-[55%] shrink-0 flex-col items-end"), "the greeting is in the left column, before the dates")
+    assert.ok(right.indexOf("{headerDate(today, locale)}") < right.indexOf("<LunarPill onOpen="), "the date above the pill")
+    assert.match(right, /badge\.kind === "hijri" \?/) // the Hijri pill in Islamic Mode, in the same place
+    assert.match(header, /<p className="text-xs whitespace-nowrap text-muted-foreground">\s*<time/)
+    assert.doesNotMatch(header, /mt-1 flex flex-wrap items-center justify-between/) // the date is no longer under the greeting
   })
   it("the short date: «ថ្ងៃអាទិត្យ 18 តុលា» (international digits — founder, 21/10/2026)", () => {
     assert.equal(headerDate(new Date(2026, 9, 18, 12), "km"), "ថ្ងៃអាទិត្យ 18 តុលា 2026") // with the year (founder, 21/10/2026)
@@ -37,10 +43,10 @@ describe("Home header — greeting on its own line, never «…»", () => {
 })
 
 describe("the person's photo beside the greeting (founder, 21/10/2026 — Task #444, after ACLEDA)", () => {
-  it("a round 48 px avatar with the emerald hairline and a soft shadow, left of the greeting; both open Settings", () => {
-    assert.match(header, /<div className="flex items-start gap-3">\s*\{workspace\?\.type !== "BUSINESS" && \(\s*<Link href="\/settings" tabIndex=\{-1\} aria-hidden[^>]*>\s*<ProfileAvatar path=\{profile\?\.avatar_path\} name=\{profile\?\.display_name\?\.trim\(\) \?\? ""\} className="size-12 border-2 border-emerald-500\/25 text-sm shadow-sm dark:border-emerald-400\/30" \/>/)
-    assert.match(header, /<Link href="\/settings" className="block rounded-md" aria-label=\{t\("settings\.title"\)\}>\s*<h1 className="block w-full break-words/)
-    // The avatar comes before the greeting; the date and the pill stay on their row under it.
+  it("a round 44 px avatar with the emerald hairline and a soft shadow, left of the greeting; both open Settings", () => {
+    assert.match(header, /<Link href="\/settings" tabIndex=\{-1\} aria-hidden[^>]*>\s*<ProfileAvatar path=\{profile\?\.avatar_path\} name=\{profile\?\.display_name\?\.trim\(\) \?\? ""\} className="size-11 border-2 border-emerald-500\/25 text-sm shadow-sm dark:border-emerald-400\/30" \/>/)
+    assert.match(header, /<Link href="\/settings" className="min-w-0 flex-1 rounded-md" aria-label=\{t\("settings\.title"\)\}>\s*<h1 className="block w-full break-words/)
+    // The avatar comes before the greeting; the dates are in the right column after it.
     assert.ok(header.indexOf("avatar_path") < header.indexOf("{t(greeting.key, greeting.params)}"))
     assert.ok(header.indexOf("</h1>") < header.indexOf("{headerDate(today, locale)}"))
     assert.match(header, /<LunarPill onOpen=/)
