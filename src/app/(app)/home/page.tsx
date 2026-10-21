@@ -109,7 +109,9 @@ export default function HomePage() {
             lunar or Hijri pill under it, flush right, at most 55% wide). Who is two lines beside the 42 px photo (Task #448):
             the greeting small — «អាស្សាឡាមុអាឡៃកុម» with a moon in Islamic Mode, else by the time of day (Task #449:
             «អរុណសួស្តី» / «ទិវាសួស្តី» / «សាយណ្ហសួស្តី», no waving hand) — and the given name bold under it, cut with «…» when it is very long, so nothing ever collides on a 360 px phone.
-            A Business workspace shows its logo and name. The photo and the name open Settings. */}
+            A Business workspace shows its logo and name. The photo and the name open Settings.
+            Both columns are 48 px tall, their two lines at the top and the bottom edge (Task #451): the greeting and the date
+            share one line, the name and the pill the other. */}
         <div className="flex w-full items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {workspace?.type === "BUSINESS" ? (
@@ -121,21 +123,21 @@ export default function HomePage() {
             ) : (
               <>
                 <Link href="/settings" tabIndex={-1} aria-hidden className="shrink-0 rounded-full transition-transform active:scale-95">
-                  <ProfileAvatar path={profile?.avatar_path} name={profile?.display_name?.trim() ?? ""} className="size-[42px] border-2 border-emerald-500/25 text-sm shadow-sm dark:border-emerald-400/30" />
+                  <ProfileAvatar path={profile?.avatar_path} name={profile?.display_name?.trim() ?? ""} className="size-12 border-2 border-emerald-500/25 text-sm shadow-sm dark:border-emerald-400/30" />
                 </Link>
-                <Link href="/settings" className="flex min-w-0 flex-col justify-center rounded-md" aria-label={t("settings.title")}>
-                  <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400" suppressHydrationWarning>
+                <Link href="/settings" className="flex h-12 min-w-0 flex-col justify-between rounded-md" aria-label={t("settings.title")}>
+                  <span className="flex items-center gap-1 text-xs leading-tight font-medium text-slate-500 dark:text-slate-400" suppressHydrationWarning>
                     {t(greeting.greeting)}
                     {greeting.moon && <MoonIcon className="size-3.5 fill-amber-300 text-amber-500" strokeWidth={2} aria-hidden />}
                   </span>
-                  {greeting.name && <h1 className="max-w-[130px] truncate text-base font-bold text-slate-900 sm:max-w-[200px] dark:text-white">{greeting.name}</h1>}
+                  {greeting.name && <h1 className="max-w-[130px] truncate text-base leading-7 font-bold text-slate-900 sm:max-w-[200px] dark:text-white">{greeting.name}</h1>}
                 </Link>
               </>
             )}
           </div>
-          <div className="flex max-w-[55%] shrink-0 flex-col items-end gap-1 text-right">
+          <div className="flex h-12 max-w-[55%] shrink-0 flex-col items-end justify-between text-right">
             {/* Crisp, easy to read (Task #449) — not the faint grey. */}
-            <p className="text-xs font-medium whitespace-nowrap text-slate-700 dark:text-slate-200">
+            <p className="text-xs leading-tight font-medium whitespace-nowrap text-slate-700 dark:text-slate-200">
               <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
                 {headerDate(today, locale)}
               </time>

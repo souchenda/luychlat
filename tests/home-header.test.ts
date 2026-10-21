@@ -14,27 +14,27 @@ const header = home.slice(home.indexOf("<header>"), home.indexOf("</header>"))
 
 describe("Home header — who on the left, the dates on the right, never a collision", () => {
   it("two lines beside the photo (Task #448): the greeting small, the given name bold under it — a very long name is cut with «…»", () => {
-    const who = header.slice(header.indexOf('<Link href="/settings" className="flex min-w-0 flex-col justify-center rounded-md"'), header.indexOf("</Link>", header.indexOf('className="flex min-w-0 flex-col justify-center')))
-    assert.match(who, /<span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400" suppressHydrationWarning>\s*\{t\(greeting\.greeting\)\}/)
+    const who = header.slice(header.indexOf('<Link href="/settings" className="flex h-12 min-w-0 flex-col justify-between rounded-md"'), header.indexOf("</Link>", header.indexOf('className="flex h-12 min-w-0 flex-col justify-between')))
+    assert.match(who, /<span className="flex items-center gap-1 text-xs leading-tight font-medium text-slate-500 dark:text-slate-400" suppressHydrationWarning>\s*\{t\(greeting\.greeting\)\}/)
     // The moon in Islamic Mode; no waving hand anywhere (Task #449); the greeting follows the hour, so it may differ from
     // the server's render by a minute — hydration is told so.
     assert.match(who, /\{greeting\.moon && <MoonIcon className="size-3\.5 fill-amber-300 text-amber-500"/)
     assert.doesNotMatch(header, /HandIcon|✋/)
     assert.match(who, /text-slate-400" suppressHydrationWarning>/)
-    assert.match(who, /\{greeting\.name && <h1 className="max-w-\[130px\] truncate text-base font-bold text-slate-900 sm:max-w-\[200px\] dark:text-white">\{greeting\.name\}<\/h1>\}/)
+    assert.match(who, /\{greeting\.name && <h1 className="max-w-\[130px\] truncate text-base leading-7 font-bold text-slate-900 sm:max-w-\[200px\] dark:text-white">\{greeting\.name\}<\/h1>\}/)
     assert.ok(who.indexOf("{t(greeting.greeting)}") < who.indexOf("{greeting.name}"), "the greeting above the name")
   })
   it("two columns (Task #447): the photo and the greeting left, the date and the pill stacked flush right", () => {
     assert.match(header, /<div className="flex w-full items-center justify-between gap-3">\s*<div className="flex min-w-0 flex-1 items-center gap-3">/)
     // The right column: the date with its year on top, the lunar / Hijri pill under it — right-aligned, never wider than
     // 55% (the pill truncates, the greeting wraps — never «…», never a collision at 360 px).
-    const right = header.slice(header.indexOf('<div className="flex max-w-[55%] shrink-0 flex-col items-end gap-1 text-right">'))
+    const right = header.slice(header.indexOf('<div className="flex h-12 max-w-[55%] shrink-0 flex-col items-end justify-between text-right">'))
     assert.ok(right.length < header.length, "the right column")
     assert.ok(header.indexOf("</h1>") < header.indexOf("max-w-[55%] shrink-0 flex-col items-end"), "the greeting is in the left column, before the dates")
     assert.ok(right.indexOf("{headerDate(today, locale)}") < right.indexOf("<LunarPill onOpen="), "the date above the pill")
     assert.match(right, /badge\.kind === "hijri" \?/) // the Hijri pill in Islamic Mode, in the same place
     // Crisp, legible date (Task #449): slate-700 / slate-200, medium — not the faint grey.
-    assert.match(header, /<p className="text-xs font-medium whitespace-nowrap text-slate-700 dark:text-slate-200">\s*<time/)
+    assert.match(header, /<p className="text-xs leading-tight font-medium whitespace-nowrap text-slate-700 dark:text-slate-200">\s*<time/)
     assert.doesNotMatch(header, /mt-1 flex flex-wrap items-center justify-between/) // the date is no longer under the greeting
   })
   it("the short date: «ថ្ងៃអាទិត្យ 18 តុលា» (international digits — founder, 21/10/2026)", () => {
@@ -51,8 +51,8 @@ describe("Home header — who on the left, the dates on the right, never a colli
 
 describe("the person's photo beside the greeting (founder, 21/10/2026 — Task #444, after ACLEDA)", () => {
   it("a round 42 px avatar with the emerald hairline and a soft shadow, left of the greeting; both open Settings", () => {
-    assert.match(header, /<Link href="\/settings" tabIndex=\{-1\} aria-hidden[^>]*>\s*<ProfileAvatar path=\{profile\?\.avatar_path\} name=\{profile\?\.display_name\?\.trim\(\) \?\? ""\} className="size-\[42px\] border-2 border-emerald-500\/25 text-sm shadow-sm dark:border-emerald-400\/30" \/>/)
-    assert.match(header, /<Link href="\/settings" className="flex min-w-0 flex-col justify-center rounded-md" aria-label=\{t\("settings\.title"\)\}>/)
+    assert.match(header, /<Link href="\/settings" tabIndex=\{-1\} aria-hidden[^>]*>\s*<ProfileAvatar path=\{profile\?\.avatar_path\} name=\{profile\?\.display_name\?\.trim\(\) \?\? ""\} className="size-12 border-2 border-emerald-500\/25 text-sm shadow-sm dark:border-emerald-400\/30" \/>/)
+    assert.match(header, /<Link href="\/settings" className="flex h-12 min-w-0 flex-col justify-between rounded-md" aria-label=\{t\("settings\.title"\)\}>/)
     // The avatar comes before the greeting; the dates are in the right column after it.
     assert.ok(header.indexOf("avatar_path") < header.indexOf("{t(greeting.greeting)}"))
     assert.ok(header.indexOf("</h1>") < header.indexOf("{headerDate(today, locale)}"))
@@ -77,5 +77,20 @@ describe("the wallet ring: the icon and the count inside, a tap to the wallets (
     assert.doesNotMatch(ring, /netWorth\.walletCount", \{ n: "" \}/) // no label hanging below
     assert.ok(ring.indexOf("</svg>") < ring.indexOf("<WalletIcon")) // drawn over the segmented ring, centred in it
     assert.match(ring, /walletArcs\(wallets, khrPerUsd, C, \{ byBalance: !hidden \}\)/) // the segments stay
+  })
+})
+
+describe("the header's two columns line up (founder, 21/10/2026 — Task #451)", () => {
+  it("both 48 px tall, lines at the top and bottom edges: greeting ↔ date on top, name ↔ pill below; the 48 px photo", () => {
+    assert.match(header, /<div className="flex w-full items-center justify-between gap-3">/)
+    // Left: the 48 px photo and a 48 px stack; right: a 48 px stack, flush right.
+    assert.match(header, /className="size-12 border-2 border-emerald-500\/25/)
+    assert.match(header, /className="flex h-12 min-w-0 flex-col justify-between rounded-md"/)
+    assert.match(header, /className="flex h-12 max-w-\[55%\] shrink-0 flex-col items-end justify-between text-right"/)
+    // The top lines are the same size and leading (text-xs, tight) — one line; the name is as tall as the pill (28 px).
+    assert.match(header, /text-xs leading-tight font-medium text-slate-500[^"]*" suppressHydrationWarning>\s*\{t\(greeting\.greeting\)\}/)
+    assert.match(header, /<p className="text-xs leading-tight font-medium whitespace-nowrap text-slate-700 dark:text-slate-200">/)
+    assert.match(header, /truncate text-base leading-7 font-bold/)
+    assert.doesNotMatch(header, /HandIcon|✋/)
   })
 })
