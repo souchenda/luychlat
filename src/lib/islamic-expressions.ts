@@ -12,6 +12,17 @@ export function homeGreeting(islamic: boolean, name: string | null | undefined):
   return n ? { key: "home.greetingName", params: { name: n }, wave: true } : { key: "home.greeting", wave: true }
 }
 
+/**
+ * The home header as two lines beside the photo (founder, 21/10/2026 — Task #448, so a long name or the Islamic greeting
+ * never pushes the dates): the greeting on its own small line — «អាស្សាឡាមុអាឡៃកុម» with a moon in Islamic Mode, else
+ * «សួស្តី» with the waving hand — and the given name under it, bold, cut with «…» when it is very long. No name yet: the
+ * greeting alone.
+ */
+export function greetingStack(islamic: boolean, name: string | null | undefined): { greeting: MessageKey; name: string | null; icon: "moon" | "wave" } {
+  const n = name?.trim() || null
+  return islamic ? { greeting: "islamic.greeting", name: n, icon: "moon" } : { greeting: "home.greeting", name: n, icon: "wave" }
+}
+
 export type SavedKind = "INCOME" | "EXPENSE" | "GOAL"
 
 /**

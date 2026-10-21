@@ -1,7 +1,7 @@
 "use client"
 
 import { PushInviteCard } from "@/components/notifications/push-prompt"
-import { ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, ReceiptTextIcon, SparklesIcon, WalletIcon } from "lucide-react"
+import { ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, MoonIcon, ReceiptTextIcon, SparklesIcon, WalletIcon } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 import { useMemo, useState } from "react"
@@ -35,7 +35,7 @@ import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useT
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { headerDate, monthRange, recentMonths } from "@/lib/dates"
 import { headerBadge, toHijri } from "@/lib/islamic"
-import { homeGreeting } from "@/lib/islamic-expressions"
+import { greetingStack } from "@/lib/islamic-expressions"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
@@ -98,20 +98,18 @@ export default function HomePage() {
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
   const hijri = islamic ? toHijri(today, hijriOffset) : null
   const badge = headerBadge({ islamic, hijri, locale })
-  const greeting = homeGreeting(islamic, givenName)
+  const greeting = greetingStack(islamic, givenName)
   const [calendarOpen, setCalendarOpen] = useState(false)
 
   return (
     // «dash»: readable Khmer on the dashboard (globals.css — line-height 1.6, nothing under 13 px).
     <div className="dash space-y-4">
-      {/* Two lines (founder, 18/10/2026 — on a 360 px phone the greeting and the Hijri badge squeezed each other
-          into «…»): the greeting on its own full-width line, never cut; under it the short date (left) and the
-          lunar / Hijri pill (right), wrapping rather than overlapping. tests/home-header.test.ts */}
       <header>
-        {/* Two columns (founder, 21/10/2026 — Task #447): who on the left — the photo and the greeting, nothing else; when on
-            the right — the date with its year, the lunar (or Hijri) pill under it, flush right. The greeting wraps, never
-            «…»; the date column keeps its width, so the two never collide on a 360 px phone. A Business workspace shows its
-            logo and name on the left. The photo and the greeting open Settings. */}
+        {/* Two columns (founder, 21/10/2026 — Task #447): who on the left, when on the right (the date with its year, the
+            lunar or Hijri pill under it, flush right, at most 55% wide). Who is two lines beside the 42 px photo (Task #448):
+            the greeting small — «អាស្សាឡាមុអាឡៃកុម» with a moon in Islamic Mode, «សួស្តី» with the waving hand otherwise —
+            and the given name bold under it, cut with «…» when it is very long, so nothing ever collides on a 360 px phone.
+            A Business workspace shows its logo and name. The photo and the name open Settings. */}
         <div className="flex w-full items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {workspace?.type === "BUSINESS" ? (
@@ -123,19 +121,18 @@ export default function HomePage() {
             ) : (
               <>
                 <Link href="/settings" tabIndex={-1} aria-hidden className="shrink-0 rounded-full transition-transform active:scale-95">
-                  <ProfileAvatar path={profile?.avatar_path} name={profile?.display_name?.trim() ?? ""} className="size-11 border-2 border-emerald-500/25 text-sm shadow-sm dark:border-emerald-400/30" />
+                  <ProfileAvatar path={profile?.avatar_path} name={profile?.display_name?.trim() ?? ""} className="size-[42px] border-2 border-emerald-500/25 text-sm shadow-sm dark:border-emerald-400/30" />
                 </Link>
-                <Link href="/settings" className="min-w-0 flex-1 rounded-md" aria-label={t("settings.title")}>
-                  <h1 className="block w-full break-words text-lg leading-snug font-bold">
-                    {/* Islamic Mode: «អាស្សាឡាមុអាឡៃកុម, [ឈ្មោះ]» without the waving hand (lib/islamic-expressions). */}
-                    {t(greeting.key, greeting.params)}
-                    {greeting.wave && (
-                      <>
-                        {" "}
-                        <HandIcon className="inline size-5 origin-[70%_80%] animate-wave align-[-3px] text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
-                      </>
+                <Link href="/settings" className="flex min-w-0 flex-col justify-center rounded-md" aria-label={t("settings.title")}>
+                  <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {t(greeting.greeting)}
+                    {greeting.icon === "wave" ? (
+                      <HandIcon className="size-3.5 origin-[70%_80%] animate-wave text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
+                    ) : (
+                      <MoonIcon className="size-3.5 fill-amber-300 text-amber-500" strokeWidth={2} aria-hidden />
                     )}
-                  </h1>
+                  </span>
+                  {greeting.name && <h1 className="max-w-[130px] truncate text-base font-bold text-slate-900 sm:max-w-[200px] dark:text-white">{greeting.name}</h1>}
                 </Link>
               </>
             )}

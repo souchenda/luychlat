@@ -5,7 +5,7 @@ import { describe, it } from "node:test"
 
 import { dictionaries } from "@/lib/i18n/dictionaries"
 
-import { homeGreeting, savedMessage } from "./islamic-expressions"
+import { greetingStack, homeGreeting, savedMessage } from "./islamic-expressions"
 
 const render = (g: ReturnType<typeof homeGreeting>, locale: "km" | "en" = "km") =>
   dictionaries[locale][g.key].replace("{name}", g.params?.name ?? "")
@@ -24,9 +24,16 @@ describe("Home greeting — Islamic Mode (founder, 18/10/2026)", () => {
     assert.equal(render(g), "សួស្តី ចិន្តា")
     assert.equal(g.wave, true)
   })
-  it("the home page uses it (and the hand only when it waves)", () => {
+  it("the home header (Task #448): the greeting and the name on two lines — Islamic: «អាស្សាឡាមុអាឡៃកុម» with a moon, never «សួស្តី»", () => {
+    const km = dictionaries.km as Record<string, string>
+    const islamic = greetingStack(true, "មូហាំម៉ាត់")
+    assert.deepEqual(islamic, { greeting: "islamic.greeting", name: "មូហាំម៉ាត់", icon: "moon" })
+    assert.equal(km[islamic.greeting], "អាស្សាឡាមុអាឡៃកុម")
+    assert.deepEqual(greetingStack(false, " ចិន្តា "), { greeting: "home.greeting", name: "ចិន្តា", icon: "wave" })
+    assert.equal(km[greetingStack(false, null).greeting], "សួស្តី")
+    assert.equal(greetingStack(true, "  ").name, null) // no name yet: the greeting alone
     const page = readFileSync(join(process.cwd(), "src/app/(app)/home/page.tsx"), "utf8")
-    assert.match(page, /homeGreeting\(islamic, givenName\)/)
+    assert.match(page, /const greeting = greetingStack\(islamic, givenName\)/)
     assert.doesNotMatch(page, /t\("home\.greetingName"/)
   })
 })

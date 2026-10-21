@@ -12,11 +12,13 @@ import { headerBadge } from "../src/lib/islamic"
 const home = readFileSync(join(process.cwd(), "src", "app", "(app)", "home", "page.tsx"), "utf8")
 const header = home.slice(home.indexOf("<header>"), home.indexOf("</header>"))
 
-describe("Home header — greeting on its own line, never «…»", () => {
-  it("the greeting is a full-width block that wraps (no truncate)", () => {
-    const h1 = header.slice(header.indexOf('<h1 className="block w-full'), header.indexOf("</h1>", header.indexOf('<h1 className="block w-full')))
-    assert.match(h1, /className="block w-full break-words/)
-    assert.doesNotMatch(h1, /truncate/)
+describe("Home header — who on the left, the dates on the right, never a collision", () => {
+  it("two lines beside the photo (Task #448): the greeting small, the given name bold under it — a very long name is cut with «…»", () => {
+    const who = header.slice(header.indexOf('<Link href="/settings" className="flex min-w-0 flex-col justify-center rounded-md"'), header.indexOf("</Link>", header.indexOf('className="flex min-w-0 flex-col justify-center')))
+    assert.match(who, /<span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">\s*\{t\(greeting\.greeting\)\}/)
+    assert.match(who, /greeting\.icon === "wave" \? \(\s*<HandIcon[^>]*\/>\s*\) : \(\s*<MoonIcon/) // the moon in Islamic Mode, never the hand
+    assert.match(who, /\{greeting\.name && <h1 className="max-w-\[130px\] truncate text-base font-bold text-slate-900 sm:max-w-\[200px\] dark:text-white">\{greeting\.name\}<\/h1>\}/)
+    assert.ok(who.indexOf("{t(greeting.greeting)}") < who.indexOf("{greeting.name}"), "the greeting above the name")
   })
   it("two columns (Task #447): the photo and the greeting left, the date and the pill stacked flush right", () => {
     assert.match(header, /<div className="flex w-full items-center justify-between gap-3">\s*<div className="flex min-w-0 flex-1 items-center gap-3">/)
@@ -43,11 +45,11 @@ describe("Home header — greeting on its own line, never «…»", () => {
 })
 
 describe("the person's photo beside the greeting (founder, 21/10/2026 — Task #444, after ACLEDA)", () => {
-  it("a round 44 px avatar with the emerald hairline and a soft shadow, left of the greeting; both open Settings", () => {
-    assert.match(header, /<Link href="\/settings" tabIndex=\{-1\} aria-hidden[^>]*>\s*<ProfileAvatar path=\{profile\?\.avatar_path\} name=\{profile\?\.display_name\?\.trim\(\) \?\? ""\} className="size-11 border-2 border-emerald-500\/25 text-sm shadow-sm dark:border-emerald-400\/30" \/>/)
-    assert.match(header, /<Link href="\/settings" className="min-w-0 flex-1 rounded-md" aria-label=\{t\("settings\.title"\)\}>\s*<h1 className="block w-full break-words/)
+  it("a round 42 px avatar with the emerald hairline and a soft shadow, left of the greeting; both open Settings", () => {
+    assert.match(header, /<Link href="\/settings" tabIndex=\{-1\} aria-hidden[^>]*>\s*<ProfileAvatar path=\{profile\?\.avatar_path\} name=\{profile\?\.display_name\?\.trim\(\) \?\? ""\} className="size-\[42px\] border-2 border-emerald-500\/25 text-sm shadow-sm dark:border-emerald-400\/30" \/>/)
+    assert.match(header, /<Link href="\/settings" className="flex min-w-0 flex-col justify-center rounded-md" aria-label=\{t\("settings\.title"\)\}>/)
     // The avatar comes before the greeting; the dates are in the right column after it.
-    assert.ok(header.indexOf("avatar_path") < header.indexOf("{t(greeting.key, greeting.params)}"))
+    assert.ok(header.indexOf("avatar_path") < header.indexOf("{t(greeting.greeting)}"))
     assert.ok(header.indexOf("</h1>") < header.indexOf("{headerDate(today, locale)}"))
     assert.match(header, /<LunarPill onOpen=/)
   })
