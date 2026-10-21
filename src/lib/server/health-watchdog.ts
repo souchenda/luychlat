@@ -229,6 +229,34 @@ async function sendCritical(text: string) {
 const issueValue = (issue: Issue, s: Sample): number | null =>
   ({ cpu: s.cpu_pct, ram: s.ram_pct, disk: s.disk_pct, app_mem: s.app_mem_pct, db_slow: s.db_ms, db_down: null, webhook: s.pending_updates })[issue] ?? null
 
+/**
+ * Builds are not incidents (founder, 21/10/2026 — every deploy raised «Alert: cpu» at 93–98%): the deploy and the APK
+ * build write the time they started to deploy/run (mounted read-only at /run/luysmart) and remove it when they end.
+ * While one runs, its CPU and RAM are left out of the samples, so they neither alert during the build nor count towards a
+ * «sustained» alert after it; disk, the app's memory, the database and the webhook are watched as always. A marker older
+ * than 90 minutes is a crashed build's leftover and is ignored.
+ */
+export const BUILD_MARKERS = ["/run/luysmart/building-deploy", "/run/luysmart/building-apk"]
+export const BUILD_MAX_MS = 90 * 60_000
+
+/** Is a build running? `startedAt`: each marker's start (ms), null when absent or unreadable. */
+export function buildActive(startedAt: (number | null)[], now: number): boolean {
+  return startedAt.some((t) => t !== null && now - t > -60_000 && now - t < BUILD_MAX_MS)
+}
+
+/** The sample as the watchdog keeps it: during a build, without the build's own CPU and RAM. */
+export const duringBuild = (sample: Sample, building: boolean): Sample => (building ? { ...sample, cpu_pct: null, ram_pct: null } : sample)
+
+const readMarkers = () =>
+  BUILD_MARKERS.map((file) => {
+    try {
+      const secs = Number(fs.readFileSync(file, "utf8").trim())
+      return Number.isFinite(secs) && secs > 0 ? secs * 1000 : null
+    } catch {
+      return null
+    }
+  })
+
 const history: Sample[] = []
 /** Open alerts (issue → when last alerted), shared with the database so deploys don't lose them. */
 const lastAlert = new Map<Issue, number>()
@@ -251,7 +279,8 @@ async function loadOpenAlerts() {
 export async function watchdogTick() {
   if (!loaded) await loadOpenAlerts()
   const sample = await takeSample()
-  history.push(sample)
+  const building = buildActive(readMarkers(), Date.now())
+  history.push(duringBuild(sample, building))
   if (history.length > 30) history.shift()
   const issues = findIssues(history)
   const now = Date.now()

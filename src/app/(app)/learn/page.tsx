@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
 import { TopicIcon } from "@/components/tips/topic-icon"
+import { latinDigits } from "@/lib/dates"
 
 /** Financial knowledge hub: rounded topic cards, each opening short, practical tips. */
 export default function LearnPage() {
@@ -49,8 +50,8 @@ export default function LearnPage() {
                 <ul className="divide-y border-t">
                   {tips.map((tip) => (
                     <li key={tip.id} className="px-4 py-3">
-                      <p className="text-sm font-semibold">{pick(tip.title, locale)}</p>
-                      <p className="mt-0.5 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{pick(tip.body, locale)}</p>
+                      <p className="text-sm font-semibold">{latinDigits(pick(tip.title, locale))}</p>
+                      <p className="mt-0.5 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{latinDigits(pick(tip.body, locale))}</p>
                     </li>
                   ))}
                 </ul>

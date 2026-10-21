@@ -27,8 +27,6 @@ import { takesBlessing } from "@/lib/pool-blessing"
 import { ClosingBlessing, PendingPayments, PoolKhqr, PoolProgress } from "@/components/pools/pool-extras"
 import { MemberSheet } from "@/components/pools/member-sheet"
 import { cn } from "@/lib/utils"
-import { khmerDigits } from "@/lib/dates"
-import { useLocaleStore } from "@/stores/locale-store"
 
 const ddmm = (iso: string) => {
   const d = new Date(new Date(iso).getTime() + 7 * 3_600_000)
@@ -295,9 +293,8 @@ export default function PoolPage() {
   const [settleOpen, setSettleOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [editMember, setEditMember] = useState<PoolMember | null>(null)
-  const locale = useLocaleStore((s) => s.locale)
-  // Counts in Khmer digits for Khmer ("សមាជិក (៥)").
-  const num = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
+  // Counts in international digits («សមាជិក (5)» — rule 7).
+  const num = (n: number) => String(n)
   const [code, setCode] = useState<string | null>(null)
 
   if (query.isLoading) return <Skeleton className="h-80 w-full rounded-xl" />

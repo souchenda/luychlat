@@ -18,6 +18,7 @@ import { useMarket, useRefreshMarket } from "@/lib/market"
 import { NBC_CURRENCIES } from "@/lib/market-calc"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
+import { latinDigits } from "@/lib/dates"
 
 /** Shown before "Show more": the currencies most used in Cambodia. */
 const POPULAR = 5
@@ -26,7 +27,6 @@ const KINDS = ["GOLD_BAR", "GOLD_24K", "GOLD_18K", "GOLD_14K", "PLATINUM"] as co
 type Kind = (typeof KINDS)[number]
 
 const money = (n: number, digits = 2) => new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n)
-const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
 /** Market rates: NBC official exchange rates, gold / platinum reference prices per damlung, and a calculator. */
 export default function MarketPage() {
@@ -43,7 +43,7 @@ export default function MarketPage() {
   const when = (iso?: string) => {
     if (!iso) return ""
     const text = format(new Date(iso), "HH:mm · dd/MM/yyyy")
-    return locale === "km" ? kmDigits(text) : text
+    return locale === "km" ? latinDigits(text) : text
   }
   const num = (v: string) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : 0)
   const hun = num(weight.damlung) * HUN_PER_DAMLUNG + num(weight.chi) * HUN_PER_CHI + num(weight.hun)
@@ -95,7 +95,7 @@ export default function MarketPage() {
             ) : null,
           )}
           <p className="px-4 pt-1 pb-2.5 text-xs text-muted-foreground">
-            {t("market.localDate", { date: locale === "km" ? kmDigits(market.local_gold.date.split("-").reverse().join("/")) : market.local_gold.date })} ·{" "}
+            {t("market.localDate", { date: locale === "km" ? latinDigits(market.local_gold.date.split("-").reverse().join("/")) : market.local_gold.date })} ·{" "}
             {market.local_gold.source === "csnj" && market.local_gold.url ? (
               <a href={market.local_gold.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
                 {t("market.localSourceCsnj")}

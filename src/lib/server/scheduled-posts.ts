@@ -962,5 +962,5 @@ async function islamicBulletinNow(): Promise<string | null> {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   const hijri = toHijri(dateOf(now.day), offset)
-  return islamicBulletinText(hijri ? formatHijri(hijri, "km") : "", kmDay(now.day))
+  return islamicBulletinText(hijri ? formatHijri(hijri, "km", { khmerDigits: true }) : "", kmDay(now.day))
 }

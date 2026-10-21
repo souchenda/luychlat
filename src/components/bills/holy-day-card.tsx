@@ -11,7 +11,7 @@ import { useTelegramLink } from "@/components/settings/official-bot"
 import { Switch } from "@/components/ui/switch"
 import { CHINESE_KEYS, culturalDayOn, daysUntil, upcomingCulturalDays } from "@/lib/cultural-calendar"
 import { formatDuration } from "@/lib/format"
-import { khmerDigits } from "@/lib/dates"
+import { latinDigits } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -30,7 +30,7 @@ const EN_MONTHS = ["January", "February", "March", "April", "May", "June", "July
 /** "១១ តុលា" / "11 October" / "10月11日" — written out, since phones often lack Khmer date formatting. */
 function shortDate(iso: string, locale: string) {
   const [, m, d] = iso.split("-").map(Number)
-  if (locale === "km") return khmerDigits(`${d} ${KM_MONTHS[m - 1]}`)
+  if (locale === "km") return latinDigits(`${d} ${KM_MONTHS[m - 1]}`)
   if (locale === "zh") return `${m}月${d}日`
   return `${d} ${EN_MONTHS[m - 1]}`
 }
@@ -42,7 +42,7 @@ function dateRange(start: string, end: string, locale: string) {
   const [, m2] = end.split("-").map(Number)
   if (m1 === m2 && locale !== "zh") {
     const tail = shortDate(end, locale)
-    return locale === "km" ? `${khmerDigits(String(d1))}–${tail}` : `${d1}–${tail}`
+    return locale === "km" ? `${latinDigits(String(d1))}–${tail}` : `${d1}–${tail}`
   }
   return `${shortDate(start, locale)} – ${shortDate(end, locale)}`
 }

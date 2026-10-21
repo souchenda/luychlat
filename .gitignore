@@ -48,6 +48,7 @@ deploy/.deployed
 deploy/.deployed-env
 # Which blue / green slot Nginx points at (deploy/update.sh)
 deploy/run/active-slot
+deploy/run/building-*
 
 # Real bank statements used to build parsers: never commit
 /samples/

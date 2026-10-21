@@ -27,7 +27,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { canManageIslamicMode } from "@/lib/islamic-access"
 import { khmerLunarDate } from "@/lib/khmer-lunar"
 import { todayDate } from "@/lib/debts"
-import { khmerDigits } from "@/lib/dates"
+import { latinDigits } from "@/lib/dates"
 import { formatHijri, toHijri } from "@/lib/islamic"
 import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
 import { parseAmount } from "@/lib/money"
@@ -44,7 +44,7 @@ import { useOnboardingStore } from "@/lib/onboarding"
 function calendarExamples(locale: string): { lunar: string; hijri: string } {
   const l = khmerLunarDate(todayDate())
   const km = locale === "km"
-  const lunar = km ? khmerDigits(`${l.day}${l.phase === "kert" ? "កើត" : "រោច"} · ថ្ងៃសីល`) : `${l.day} ${l.phase === "kert" ? "waxing" : "waning"} · holy day`
+  const lunar = km ? latinDigits(`${l.day}${l.phase === "kert" ? "កើត" : "រោច"} · ថ្ងៃសីល`) : `${l.day} ${l.phase === "kert" ? "waxing" : "waning"} · holy day`
   const h = toHijri(new Date())
   return { lunar, hijri: h ? formatHijri(h, km ? "km" : "en", { short: true }) : "—" }
 }

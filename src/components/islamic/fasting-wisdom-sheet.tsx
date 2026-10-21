@@ -67,7 +67,7 @@ export function FastingWisdomSheet({ open, onOpenChange }: { open: boolean; onOp
           t("fasting.imsakIftarTitle"),
           FASTING_VERSES[1].aya,
           lang === "km"
-            ? `ការតមចាប់ផ្តើមនៅពេលអរុណោទ័យ (ស៊ុពហ៍) — ${G.IMSAK} ១០ នាទីមុននោះ ជាការប្រុងប្រយ័ត្ន — ហើយបញ្ចប់នៅពេលយប់ចូល (ម៉ាហ្គ្រិប) ជាពេល${G.IFTAR}។`
+            ? `ការតមចាប់ផ្តើមនៅពេលអរុណោទ័យ (ស៊ុពហ៍) — ${G.IMSAK} 10 នាទីមុននោះ ជាការប្រុងប្រយ័ត្ន — ហើយបញ្ចប់នៅពេលយប់ចូល (ម៉ាហ្គ្រិប) ជាពេល${G.IFTAR}។`
             : "The fast begins at dawn (Fajr) — Imsak, 10 minutes earlier, is a precaution — and ends at nightfall (Maghrib), the time of Iftar.",
         )}
         {/* Wajib or Sunnah, and what each means (founder, 18/10/2026). */}

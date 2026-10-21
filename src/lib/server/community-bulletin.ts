@@ -111,7 +111,7 @@ const SIGNUP = "✨ ចុះឈ្មោះប្រើអេប លុយឆ�
  * aligned columns, the app's gold price per damlung, the free sign-up line.
  */
 export function bulletinText(date: Date, market: MarketLive | null, updatedAt?: Date): string {
-  const lines: string[] = ["📊 <b>ព័ត៌មានទីផ្សារប្រចាំថ្ងៃ</b>", `📅 ${html(longDate(date, "km"))}`]
+  const lines: string[] = ["📊 <b>ព័ត៌មានទីផ្សារប្រចាំថ្ងៃ</b>", `📅 ${html(longDate(date, "km", { khmerDigits: true }))}`]
   const greeting = homeGreeting(date)
   if (greeting.key !== "holiday.everyday") {
     const params = Object.fromEntries(Object.entries(greeting.params ?? {}).map(([k, v]) => [k, kmDigits(String(v))]))

@@ -3,7 +3,7 @@ import dns, { type LookupAddress, type LookupOptions } from "dns"
 import https from "https"
 
 import { findCsnjItem, parseCsnjArticle, plausible, type LocalGold } from "@/lib/local-gold"
-import { khrPerUnit, NBC_CURRENCIES, nextWorkingDay, pickNbc, referenceRates, type FuelPrices, type MarketLive, type NbcRates } from "@/lib/market-calc"
+import { khrPerUnit, NBC_CURRENCIES, nextWorkingDay, pickNbc, referenceRates, type FuelPrices, type MarketLive, type NbcRates, previousCycle } from "@/lib/market-calc"
 import { parseNbcPage } from "@/lib/nbc"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { logEvent } from "@/lib/server/events"
@@ -287,7 +287,7 @@ export async function setManualRate(input: { usd_khr: number; date: string } | "
 /** /setfuel and /admin (manual), or the Ministry's notice (moc): the fuel and gas prices for a period. */
 export async function setFuelPrices(input: Omit<FuelPrices, "source" | "updated_at">, source: FuelPrices["source"] = "manual"): Promise<MarketLive | null> {
   const previous = await currentMarket()
-  const fuel: FuelPrices = { ...input, source, updated_at: new Date().toISOString() }
+  const fuel: FuelPrices = { ...input, source, updated_at: new Date().toISOString(), previous: previousCycle(previous?.fuel, input) }
   const next: MarketLive = { ...(previous ?? { fetched_at: new Date().toISOString() }), fuel }
   return (await store(next)) ? next : null
 }
@@ -301,6 +301,7 @@ export const GOLD_SLOTS = ["09:00", "09:15", "09:30", "09:45", "10:00", "10:15"]
 export const dueSlot = (slots: string[], hour: number, minute: number) => slots.find((s) => s === `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`) ?? null
 
 const ranSlots = new Set<string>()
+let fuelAnnounceChecked = false
 /** Runs a slot once (per process and, through bot_claim_daily, across restarts / both deploy slots). */
 async function claimSlot(kind: string, day: string, slot: string) {
   const key = `${kind}:${day}:${slot}`
@@ -348,7 +349,12 @@ export async function marketScheduleTick() {
   }
 
   // MoC fuel prices from the Ministry's Telegram channel (src/lib/server/moc-fuel-sync.ts).
-  const { MOC_SLOTS, checkMocFuel } = await import("./moc-fuel-sync")
+  const { MOC_SLOTS, announceAppliedFuel, checkMocFuel } = await import("./moc-fuel-sync")
+  // Once per start (after a deploy): a notice stored by hand still gets its announcement card (founder, 21/10/2026).
+  if (!fuelAnnounceChecked) {
+    fuelAnnounceChecked = true
+    await announceAppliedFuel(day)
+  }
   const mocSlot = dueSlot(MOC_SLOTS, hour, minute)
   if (mocSlot && (await claimSlot("moc", day, mocSlot))) await checkMocFuel(day, mocSlot === "15:00")
 

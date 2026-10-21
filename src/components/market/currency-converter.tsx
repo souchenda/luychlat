@@ -20,7 +20,7 @@ const PAIRS: [string, string][] = [
  * Quick currency converter on today's NBC official rates (KHR per 1 unit of
  * each currency, from the market sync). Any pair converts through riel.
  */
-export function CurrencyConverter({ khrPer, locale, asOf }: { khrPer: Record<string, number>; locale: Locale; asOf?: string }) {
+export function CurrencyConverter({ khrPer, asOf }: { khrPer: Record<string, number>; locale?: Locale; asOf?: string }) {
   const t = useT()
   const rates: Record<string, number> = { ...khrPer, KHR: 1 }
   const codes = Object.keys(rates)
@@ -33,7 +33,7 @@ export function CurrencyConverter({ khrPer, locale, asOf }: { khrPer: Record<str
   const converted = value * rate
   const digits = (code: string, n: number) => (code === "KHR" || n >= 1000 ? 0 : n >= 1 ? 2 : 4)
   const format = (n: number, code: string) => n.toLocaleString("en-US", { maximumFractionDigits: digits(code, n) })
-  const one = locale === "km" ? "១" : "1"
+  const one = "1"
 
   const currencySelect = (current: string, set: (code: string) => void, label: string) => (
     <Select value={current} onValueChange={set}>

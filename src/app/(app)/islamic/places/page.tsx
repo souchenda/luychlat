@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { directionsUrl } from "@/lib/atm"
-import { khmerDigits } from "@/lib/dates"
+import { latinDigits } from "@/lib/dates"
 import { useKhmerT } from "@/lib/i18n/use-t"
 import { PLACE_KINDS, usePlacePhotoUrl, usePlaces, type IslamicPlace, type PlaceKind } from "@/lib/places"
 import { distanceKm } from "@/lib/prayer"
@@ -51,7 +51,7 @@ function PlacePhoto({ path, kind, compact }: { path: string | null | undefined; 
 }
 
 /** «១.២ គ.ម» / «៨ គ.ម» — Khmer digits. */
-const kmText = (km: number) => `${khmerDigits(km < 10 ? km.toFixed(1) : String(Math.round(km)))} គ.ម`
+const kmText = (km: number) => `${latinDigits(km < 10 ? km.toFixed(1) : String(Math.round(km)))} គ.ម`
 
 type Row = IslamicPlace & { km: number | null }
 
@@ -157,7 +157,7 @@ export default function PlacesPage() {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <p className="min-w-0 flex-1 px-1 text-xs text-muted-foreground">
-          {t("finder.count", { count: khmerDigits(String(rows.length)) })} · {t("finder.nearestFrom", { place: me ? t("finder.myPlace") : location.label })}
+          {t("finder.count", { count: latinDigits(String(rows.length)) })} · {t("finder.nearestFrom", { place: me ? t("finder.myPlace") : location.label })}
         </p>
         <Button type="button" variant="outline" className="h-10 shrink-0" onClick={() => void nearMe()} disabled={locating}>
           {locating && <Loader2Icon className="animate-spin" />}
@@ -220,7 +220,7 @@ export default function PlacesPage() {
       )}
       {rows.length > shown && (
         <Button type="button" variant="ghost" className="h-10 w-full" onClick={() => setShown(shown + PAGE)}>
-          {t("finder.more", { count: khmerDigits(String(rows.length - shown)) })}
+          {t("finder.more", { count: latinDigits(String(rows.length - shown)) })}
         </Button>
       )}
 

@@ -5,13 +5,11 @@ import { useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { khmerDigits } from "@/lib/dates"
 import { todayDate } from "@/lib/debts"
 import { useT } from "@/lib/i18n/use-t"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { answerQuestion, dailyQuizSet, EMPTY_PROGRESS, progressFor, scoreOf, TOPIC_LABEL, type QuizProgress } from "@/lib/islamic-quiz"
 import { cn } from "@/lib/utils"
-import { useLocaleStore } from "@/stores/locale-store"
 import { useSessionStore } from "@/stores/session-store"
 
 const LETTERS = ["ក", "ខ", "គ", "ឃ"]
@@ -42,8 +40,7 @@ function save(userId: string | undefined, p: QuizProgress) {
  */
 export function IslamicQuizCard() {
   const t = useT()
-  const km = useLocaleStore((s) => s.locale) === "km"
-  const num = (n: number) => (km ? khmerDigits(String(n)) : String(n))
+  const num = (n: number) => String(n)
   const userId = useSessionStore((s) => s.user?.id)
   const [today, setToday] = useState<string | null>(null)
   const [progress, setProgress] = useState<QuizProgress>(EMPTY_PROGRESS)

@@ -141,7 +141,7 @@ export function HajjPlanCard() {
         </Button>
       )}
 
-      <p className="text-center text-sm text-emerald-800 dark:text-emerald-200">« អល់ឡោះ ﷻ ទ្រង់នឹងជួយសម្រួលដល់អ្នកដែលមានបំណងប្រាថ្នាស្មោះត្រង់ក្នុងការបំពេញរូកូនទី ៥ របស់ទ្រង់។ »</p>
+      <p className="text-center text-sm text-emerald-800 dark:text-emerald-200">« អល់ឡោះ ﷻ ទ្រង់នឹងជួយសម្រួលដល់អ្នកដែលមានបំណងប្រាថ្នាស្មោះត្រង់ក្នុងការបំពេញរូកូនទី 5 របស់ទ្រង់។ »</p>
       <p className="text-[11px] text-muted-foreground">ការប៉ាន់ស្មាន៖ តម្លៃកញ្ចប់ពិតប្រាកដ សូមសួរភ្នាក់ងារធ្វើដំណើរ។ SAR តាមអត្រា NBC ÷ 3.75។</p>
     </Card>
   )

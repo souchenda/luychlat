@@ -14,6 +14,7 @@ import { useKhmerT } from "@/lib/i18n/use-t"
 import { currentSource, onPlaybackChange, playPreset, stopSound } from "@/lib/prayer-alerts"
 import { cn } from "@/lib/utils"
 import { useLocaleStore } from "@/stores/locale-store"
+import { latinDigits } from "@/lib/dates"
 
 /**
  * The app-wide default Adhans (founder, 19/10/2026): under each track a content manager taps «🌐 កំណត់ជាសកល» (the
@@ -70,7 +71,7 @@ export function AdhanManager() {
           <div className="flex items-center gap-2">
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{pick(p.name, locale)}</span>
-              {p.credit && <span className="block truncate text-[11px] text-muted-foreground">{p.credit}</span>}
+              {p.credit && <span className="block truncate text-[11px] text-muted-foreground">{latinDigits(p.credit)}</span>}
             </span>
             <Button
               size="icon"

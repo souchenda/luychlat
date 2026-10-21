@@ -78,7 +78,7 @@ export function tipPoster(tip: { title: string; body: string }, day: string, opt
 
   // Header pill: the date, "ថ្ងៃព្រហស្បតិ៍ ទី០៨ តុលា ២០២៦".
   const [yy, mm, dd] = day.split("-").map(Number)
-  const date = longDate(new Date(yy, mm - 1, dd, 12), "km").replace("ខែ", "").replace("ឆ្នាំ", "").replace(/\s+/g, " ").trim()
+  const date = longDate(new Date(yy, mm - 1, dd, 12), "km", { khmerDigits: true }).replace("ខែ", "").replace("ឆ្នាំ", "").replace(/\s+/g, " ").trim()
   drawHeader(ctx, { text: date, icon: "calendar" })
 
   // The tip tag right above the headline.

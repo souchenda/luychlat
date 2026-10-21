@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useT } from "@/lib/i18n/use-t"
 import { cn } from "@/lib/utils"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
+import { latinDigits } from "@/lib/dates"
 
 const PHRASES = [
   { arabic: "سبحان الله", latin: "SubhanAllah" },
@@ -15,7 +16,6 @@ const PHRASES = [
   { arabic: "أستغفر الله", latin: "Astaghfirullah" },
 ]
 const TARGETS = [33, 99, 100, 0] // 0 = no limit
-const khmerDigits = (value: string) => value.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
 /** Dhikr counter: tap the big button; rounds of 33 / 99 / 100 with a vibration at the end of each. Kept on this device. */
 export default function TasbihPage() {
@@ -81,14 +81,14 @@ export default function TasbihPage() {
             </svg>
           )}
           <span className="flex flex-col items-center">
-            <span className="text-6xl font-bold tabular-nums">{khmerDigits(String(shown))}</span>
-            {target > 0 && <span className="text-sm text-white/80">/ {khmerDigits(String(target))}</span>}
+            <span className="text-6xl font-bold tabular-nums">{latinDigits(String(shown))}</span>
+            {target > 0 && <span className="text-sm text-white/80">/ {latinDigits(String(target))}</span>}
           </span>
         </button>
       </div>
 
       <p className="text-center text-sm text-muted-foreground">
-        {target > 0 ? t("tasbih.rounds", { rounds: khmerDigits(String(rounds)), total: khmerDigits(String(count)) }) : t("tasbih.total", { total: khmerDigits(String(count)) })}
+        {target > 0 ? t("tasbih.rounds", { rounds: latinDigits(String(rounds)), total: latinDigits(String(count)) }) : t("tasbih.total", { total: latinDigits(String(count)) })}
       </p>
 
       <div className="flex items-center justify-between gap-2">
@@ -101,7 +101,7 @@ export default function TasbihPage() {
               aria-pressed={target === n}
               className={cn("min-w-11 rounded-full px-3 py-1.5 text-sm", target === n ? "bg-primary font-semibold text-primary-foreground" : "bg-muted text-muted-foreground")}
             >
-              {n ? khmerDigits(String(n)) : "∞"}
+              {n ? latinDigits(String(n)) : "∞"}
             </button>
           ))}
         </div>

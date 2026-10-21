@@ -6,10 +6,8 @@ import { Amount } from "@/components/money/amount"
 import { Card } from "@/components/ui/card"
 import { dualTotal } from "@/lib/analytics"
 import type { Transaction } from "@/lib/data/types"
-import { khmerDigits } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
 import { useMoney } from "@/lib/use-money"
-import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 const monthOf = (iso: string) => {
@@ -34,7 +32,6 @@ export function KidsCard({ transactions, period = false }: { transactions: Trans
   const t = useT()
   const money = useMoney()
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
-  const locale = useLocaleStore((s) => s.locale)
   const now = new Date()
   const thisMonth = monthOf(now.toISOString())
   const lastMonth = monthOf(new Date(now.getFullYear(), now.getMonth() - 1, 15).toISOString())
@@ -50,7 +47,7 @@ export function KidsCard({ transactions, period = false }: { transactions: Trans
   )
   // Home shows it once there is something to show; Reports always (with the how-to).
   if (!period && current.count === 0 && (previous?.count ?? 0) === 0) return null
-  const n = (v: number) => (locale === "km" ? khmerDigits(String(v)) : String(v))
+  const n = (v: number) => String(v)
 
   return (
     <Card className="gap-1 px-4 py-3">

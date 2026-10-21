@@ -133,8 +133,9 @@ const KM_DIGITS = "០១២៣៤៥៦៧៨៩"
 const kmNum = (n: number) => String(n).replace(/\d/g, (c) => KM_DIGITS[Number(c)])
 
 /** "៨ កើត ខែកត្ដិក" / "8 waxing, Kadeuk". */
-export function formatLunar(l: KhmerLunarDate, locale: "km" | "en" | "zh"): string {
-  if (locale === "km") return `${kmNum(l.day)} ${l.phase === "kert" ? "កើត" : "រោច"} ខែ${LUNAR_MONTHS_KM[l.month]}`
+export function formatLunar(l: KhmerLunarDate, locale: "km" | "en" | "zh", opts?: { khmerDigits?: boolean }): string {
+  // 0-9 on the app's screens (rule 7); Khmer digits when a poster or a post asks for them.
+  if (locale === "km") return `${opts?.khmerDigits ? kmNum(l.day) : l.day} ${l.phase === "kert" ? "កើត" : "រោច"} ខែ${LUNAR_MONTHS_KM[l.month]}`
   const phase = locale === "zh" ? (l.phase === "kert" ? "上弦" : "下弦") : l.phase === "kert" ? "waxing" : "waning"
   return locale === "zh" ? `${LUNAR_MONTHS_EN[l.month]}月 ${phase}${l.day}日` : `${l.day} ${phase}, ${LUNAR_MONTHS_EN[l.month]}`
 }
@@ -163,12 +164,12 @@ export function khmerYearName(iso: string): { animal: number; sak: number } {
  * The full Chhankitek line: "ថ្ងៃអង្គារ ១០ រោច ខែភទ្របទ ឆ្នាំមមី អដ្ឋស័ក ព.ស. ២៥៧០"
  * (English / Chinese spelled out the same way).
  */
-export function formatChhankitek(iso: string, locale: "km" | "en" | "zh"): string {
+export function formatChhankitek(iso: string, locale: "km" | "en" | "zh", opts?: { khmerDigits?: boolean }): string {
   const l = khmerLunarDate(iso)
   const { animal, sak } = khmerYearName(iso)
   const [y, m, d] = iso.split("-").map(Number)
   const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay()
-  if (locale === "km") return `ថ្ងៃ${WEEKDAYS_KM[weekday]} ${formatLunar(l, "km")} ឆ្នាំ${ANIMALS_KM[animal]} ${SAK_KM[sak]} ព.ស. ${kmNum(l.be)}`
+  if (locale === "km") return `ថ្ងៃ${WEEKDAYS_KM[weekday]} ${formatLunar(l, "km", opts)} ឆ្នាំ${ANIMALS_KM[animal]} ${SAK_KM[sak]} ព.ស. ${opts?.khmerDigits ? kmNum(l.be) : l.be}`
   const day = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { weekday: "long", timeZone: "UTC" })
   if (locale === "zh") return `${day} ${formatLunar(l, "zh")} ${ANIMALS_ZH[animal]}年 ${SAK_EN[sak]} 佛历 ${l.be}`
   return `${day}, ${formatLunar(l, "en")}, Year of the ${ANIMALS_EN[animal]}, ${SAK_EN[sak]}, BE ${l.be}`

@@ -18,8 +18,8 @@ export function holyDayStages(day: string): { eve: string | null; today: string 
   const tomorrow = khmerLunarDate(nextDay(day))
   const today = khmerLunarDate(day)
   return {
-    eve: isSilDay(tomorrow) ? formatLunar(tomorrow, "km") : null,
-    today: isSilDay(today) ? formatLunar(today, "km") : null,
+    eve: isSilDay(tomorrow) ? formatLunar(tomorrow, "km", { khmerDigits: true }) : null, // a channel post: Khmer digits
+    today: isSilDay(today) ? formatLunar(today, "km", { khmerDigits: true }) : null,
   }
 }
 

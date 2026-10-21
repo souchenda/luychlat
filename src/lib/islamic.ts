@@ -84,14 +84,16 @@ export const HIJRI_MONTHS_KM = [
  * Khmer: "ថ្ងៃទី២១ ខែរ៉ាប៊ីអ៊ុលអាឃីរ ឆ្នាំ១៤៤៨ ${G.HIJRI_ERA_FULL}" (short: "២១ រ៉ាប៊ីអ៊ុលអាឃីរ ១៤៤៨ ${G.HIJRI_ERA}").
  * English: "21 Rabiʻ al-Thani 1448 AH".
  */
-export function formatHijri(h: HijriDate, locale: "km" | "en", opts?: { short?: boolean; era?: boolean }): string {
+export function formatHijri(h: HijriDate, locale: "km" | "en", opts?: { short?: boolean; era?: boolean; khmerDigits?: boolean }): string {
   // `era: false` (the home header badge): without «${G.HIJRI_ERA}» / "AH", to fit a phone's header row.
   const era = opts?.era !== false
   if (locale === "en") return `${h.day} ${HIJRI_MONTHS[h.month - 1]} ${h.year}${era ? " AH" : ""}`
-  const day = khmerDigits(String(h.day).padStart(2, "0"))
+  // 0-9 on the app's screens (rule 7); Khmer digits when a channel post asks for them.
+  const kd = (s: string) => (opts?.khmerDigits ? khmerDigits(s) : s)
+  const day = kd(String(h.day).padStart(2, "0"))
   const month = HIJRI_MONTHS_KM[h.month - 1]
-  const year = khmerDigits(String(h.year))
-  return opts?.short ? `${khmerDigits(String(h.day))} ${month} ${year}${era ? ` ${G.HIJRI_ERA}` : ""}` : `ថ្ងៃទី${day} ខែ${month} ឆ្នាំ${year} ${G.HIJRI_ERA_FULL}`
+  const year = kd(String(h.year))
+  return opts?.short ? `${kd(String(h.day))} ${month} ${year}${era ? ` ${G.HIJRI_ERA}` : ""}` : `ថ្ងៃទី${day} ខែ${month} ឆ្នាំ${year} ${G.HIJRI_ERA_FULL}`
 }
 
 export type IslamicGreeting = "islamic.ramadan" | "islamic.eidFitr" | "islamic.eidAdha" | null
@@ -188,7 +190,7 @@ export function headerBadge(o: { islamic: boolean; hijri: HijriDate | null; loca
   if (greeting) return { kind: "greeting", key: greeting }
   if (!o.hijri) return { kind: "none" }
   // International digits on the home header (founder, 21/10/2026): «🌙 21 រ៉ាប៊ីអ៊ុលអាឃីរ 1448».
-  return { kind: "hijri", text: `🌙 ${formatHijri(o.hijri, o.locale === "km" ? "km" : "en", { short: true, era: false }).replace(/[០-៩]/g, (d) => String("០១២៣៤៥៦៧៨៩".indexOf(d)))}` }
+  return { kind: "hijri", text: `🌙 ${formatHijri(o.hijri, o.locale === "km" ? "km" : "en", { short: true, era: false })}` }
 }
 
 /** The Arabic name shown beside the Khmer one in the Islamic hub (founder, 18/10/2026). */

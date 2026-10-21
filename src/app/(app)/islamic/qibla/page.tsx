@@ -9,12 +9,12 @@ import { Card } from "@/components/ui/card"
 import { useT } from "@/lib/i18n/use-t"
 import { qiblaBearing } from "@/lib/prayer"
 import { cn } from "@/lib/utils"
+import { latinDigits } from "@/lib/dates"
 
 type OrientationEventWithCompass = DeviceOrientationEvent & { webkitCompassHeading?: number }
 type PermissionRequester = { requestPermission?: () => Promise<"granted" | "denied"> }
 
 const ALIGNED_DEGREES = 5
-const khmerDigits = (value: string) => value.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
 /** Device heading from the compass (iOS: webkitCompassHeading; Android: absolute alpha). Null until available. */
 function useHeading(enabled: boolean): number | null {
@@ -114,7 +114,7 @@ export default function QiblaPage() {
 
         <div className="text-center">
           <p className={cn("text-lg font-bold", aligned && "text-emerald-600 dark:text-emerald-400")}>
-            {aligned ? t("qibla.aligned") : t("qibla.bearing", { degrees: khmerDigits(String(degrees)) })}
+            {aligned ? t("qibla.aligned") : t("qibla.bearing", { degrees: latinDigits(String(degrees)) })}
           </p>
           <p className="text-xs text-muted-foreground">{location.label}</p>
         </div>

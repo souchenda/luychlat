@@ -11,6 +11,7 @@ import { goldReference, goldUnitsLine, islamicMarket, khmerGoldWeight, nisabChec
 import { NISAB_GOLD_GRAMS } from "@/lib/islamic"
 import { useMarket } from "@/lib/market"
 import { parseAmount } from "@/lib/money"
+import { latinDigits } from "@/lib/dates"
 
 const cambodiaToday = () => new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)
 const ddmm = (iso: string) => iso.split("-").reverse().join("/")
@@ -49,15 +50,15 @@ export function IslamicMarketCard({ onUseGoldPrice, busy }: { onUseGoldPrice: (p
         <>
           <div className="space-y-1 rounded-xl bg-amber-500/10 px-3 py-2.5 text-sm">
             <p className="text-[11px] text-muted-foreground">
-              🥇 ហាងឆេងមាស ២៤K{m.gold.date ? ` · ${ddmm(m.gold.date)}` : ""}
+              🥇 ហាងឆេងមាស 24K{m.gold.date ? ` · ${ddmm(m.gold.date)}` : ""}
             </p>
             {/* Cambodian units first, the gram in brackets (founder, 21/10/2026). */}
-            <p className="font-medium tabular-nums">{goldUnitsLine(m.gold)}</p>
-            <p className="text-[11px] text-muted-foreground">{goldReference(m.gold.source)}</p>
+            <p className="font-medium tabular-nums">{latinDigits(goldUnitsLine(m.gold))}</p>
+            <p className="text-[11px] text-muted-foreground">{latinDigits(goldReference(m.gold.source))}</p>
           </div>
           <div className="rounded-xl bg-emerald-500/10 px-3 py-3 text-center">
             <p className="text-[11px] text-muted-foreground">
-              កម្រិតនីស៊បហ្សាកាត់ (Zakat Nisab · មាស ៨៥ ក្រាម ≈ {khmerGoldWeight(NISAB_GOLD_GRAMS)})
+              កម្រិតនីស៊បហ្សាកាត់ (Zakat Nisab · មាស 85 ក្រាម ≈ {latinDigits(khmerGoldWeight(NISAB_GOLD_GRAMS))})
             </p>
             <p className="text-lg font-semibold tabular-nums" data-testid="islamic-nisab">
               {usd(m.nisab.usd)}
@@ -65,7 +66,7 @@ export function IslamicMarketCard({ onUseGoldPrice, busy }: { onUseGoldPrice: (p
             </p>
           </div>
           <NisabQuickCheck m={m} />
-          <p className="text-xs text-muted-foreground">ℹ️ {zakatNote("app")}</p>
+          <p className="text-xs text-muted-foreground">ℹ️ {latinDigits(zakatNote("app"))}</p>
           <Button type="button" variant="outline" className="h-11 w-full" disabled={busy} onClick={() => onUseGoldPrice(m.gold!.perGram)}>
             <CalculatorIcon />
             យកតម្លៃនីស៊បនេះទៅគណនាហ្សាកាត់
@@ -112,7 +113,7 @@ function NisabQuickCheck({ m }: { m: IslamicMarket }) {
       {r ? (
         r.meets ? (
           <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm" data-testid="nisab-result">
-            ✅ ដល់កម្រិតនីស៊ប — ហ្សាកាត់ ២.៥% ≈{" "}
+            ✅ ដល់កម្រិតនីស៊ប — ហ្សាកាត់ 2.5% ≈{" "}
             <b className="tabular-nums">
               {currency === "KHR" && r.zakatKhr !== null ? riel(r.zakatKhr) : usd(r.zakatUsd, 2)}
             </b>

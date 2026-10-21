@@ -53,6 +53,21 @@ export type FuelPrices = {
   /** moc: the notice's post id on t.me/mocnewsfeed. */
   post?: number | null
   updated_at: string
+  /**
+   * The cycle before (founder, 21/10/2026): kept when a new cycle is stored, so its announcement can show ▲ / ▼ even
+   * when the prices came in by hand (/setfuel, a migration) rather than through the automatic reading.
+   */
+  previous?: FuelCycle | null
+}
+
+/** One cycle's prices, as kept for the change arrows. */
+export type FuelCycle = { regular: number; super: number | null; diesel: number; from: string; to: string; post?: number | null }
+
+/** What `previous` becomes when `next` is stored over `stored`: the stored cycle when next is a later one; a correction keeps its own. */
+export function previousCycle(stored: FuelPrices | null | undefined, next: { from: string }): FuelCycle | null {
+  if (!stored) return null
+  if (stored.to <= next.from) return { regular: stored.regular, super: stored.super, diesel: stored.diesel, from: stored.from, to: stored.to, post: stored.post ?? null }
+  return stored.previous ?? null
 }
 
 /** The MoC 10-day cycle containing a day: 1–10, 11–20, 21–end of month. */

@@ -42,7 +42,7 @@ export function silPosterContent(day: string): SilPosterContent | null {
   const l = khmerLunarDate(day)
   if (!isSilDay(l)) return null
   const phase = l.phase === "kert" && l.day === 15 ? "ពេញបូណ៌មី" : l.phase === "roch" && l.day === l.monthLength - 15 ? "ដាច់ខែ" : null
-  const base = formatLunar(l, "km")
+  const base = formatLunar(l, "km", { khmerDigits: true })
   // No parentheses on a graphic (founder, 19/10/2026): «ថ្ងៃសីល · ១៥ កើត ខែអស្សុជ · ពេញបូណ៌មី».
   const sil = `ថ្ងៃសីល · ${phase ? `${base} · ${phase}` : base}`
   return {

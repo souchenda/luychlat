@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDebts } from "@/lib/data/hooks"
-import { dayDate, khmerDigits } from "@/lib/dates"
+import { dayDate } from "@/lib/dates"
 import { useT } from "@/lib/i18n/use-t"
 import { compressImage, MAX_RECEIPT_INPUT_BYTES } from "@/lib/image"
 import { gaugeFraction, guardianLenders, KSCORE_MAX, KSCORE_MIN, KSCORE_TIERS, kscoreTier, kscoreTrend, type KScoreRead, type KScoreTier } from "@/lib/kscore"
@@ -94,7 +94,7 @@ export function CreditHealthCard({ workspaceId }: { workspaceId?: string }) {
   const tierKey = k ? kscoreTier(k.score) : null
   const tier = tierKey ? KSCORE_TIERS[tierKey] : null
   const trend = k ? kscoreTrend(k) : null
-  const kmNum = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
+  const kmNum = (n: number) => String(n) // international digits (rule 7)
 
   const pick = async (file: File | undefined) => {
     if (!file) return

@@ -13,6 +13,7 @@ import { tipOfTheDay } from "@/lib/tips"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
 import { TopicIcon } from "@/components/tips/topic-icon"
+import { latinDigits } from "@/lib/dates"
 
 const DISMISS_KEY = "luychlat-tip-dismissed"
 
@@ -69,9 +70,9 @@ export function DailyTipCard({ wallets, debts, workspace }: { wallets?: Wallet[]
       <div key={tip.id} className="mt-2 animate-in fade-in-0 duration-300">
         <p className="flex items-center gap-2 text-sm font-semibold">
           <TopicIcon topic={tip.topic} className="size-6 rounded-lg" iconClassName="size-3.5" />
-          {pick(tip.title, locale)}
+          {latinDigits(pick(tip.title, locale))}
         </p>
-        <p className="mt-1 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{pick(tip.body, locale)}</p>
+        <p className="mt-1 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{latinDigits(pick(tip.body, locale))}</p>
         {"ref" in tip && (
           // The exact source of an Islamic tip (Quran / Bukhari / Muslim).
           <a href={tip.ref.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex min-h-8 items-center text-xs font-medium text-emerald-800 underline-offset-4 hover:underline dark:text-emerald-300">

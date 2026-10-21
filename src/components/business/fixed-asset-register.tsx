@@ -18,13 +18,11 @@ import { dualTotal } from "@/lib/analytics"
 import { ASSET_EMOJI, localToday, type AssetKind, type PhysicalAsset, type PhysicalAssetInput } from "@/lib/assets"
 import { usePhysicalAssetMutations, usePhysicalAssets } from "@/lib/assets-data"
 import type { Currency } from "@/lib/data/types"
-import { khmerDigits } from "@/lib/dates"
 import { FIXED_ASSET_CATEGORIES, RECOMMENDED_LIFE, isFixedAssetCategory, registerTotals, schedule, type FixedAssetCategory, type FixedAssetStatus } from "@/lib/fixed-assets"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
-import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 /** A register entry: one of the standard categories, or stock on hand (valued, never depreciated). */
@@ -35,8 +33,7 @@ const catKey = (k: string) => `fa.cat.${k}` as MessageKey
 const emojiOf = (k: string) => ASSET_EMOJI[k as AssetKind] ?? "📦"
 
 function useNum() {
-  const locale = useLocaleStore((s) => s.locale)
-  return (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
+  return (n: number) => String(n)
 }
 
 /**

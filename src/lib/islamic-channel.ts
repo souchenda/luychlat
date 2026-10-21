@@ -224,7 +224,7 @@ export function duaSource(label: string): { label: string; url: string } {
 const duaLines = (x: Dua) => [`អានថា៖ ${x.phonetic}`, `អត្ថន័យ៖ ${x.km}`, ...(x.note ? [`ℹ️ បញ្ជាក់៖ ${x.note}`] : [])]
 
 export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriDate | null, tomorrowHijri: HijriDate | null = null): IslamicPostContent {
-  const dated = { hijri: hijri ? formatHijri(hijri, "km") : null, hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null, date: kmDay(day) }
+  const dated = { hijri: hijri ? formatHijri(hijri, "km", { khmerDigits: true }) : null, hijriShort: hijri ? formatHijri(hijri, "km", { short: true, khmerDigits: true }) : null, date: kmDay(day) }
   if (kind === "ISLAMIC_MORNING") {
     const wake = dua("wake")
     return {
@@ -287,8 +287,8 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
     return {
       kind,
       pill: "រំលឹកត្រៀមបួសស្អែក",
-      hijri: hijri ? formatHijri(hijri, "km") : null,
-      hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
+      hijri: hijri ? formatHijri(hijri, "km", { khmerDigits: true }) : null,
+      hijriShort: hijri ? formatHijri(hijri, "km", { short: true, khmerDigits: true }) : null,
       date: kmDay(day),
       // The hero is short (one line, the largest text); the Arabic below it, centred (founder, 18/10/2026).
       title: monday ? G.FAST_HERO_TITLES.monday : G.FAST_HERO_TITLES.thursday,
@@ -307,8 +307,8 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
     return {
       kind,
       pill: `រំលឹកសឡាត${G.JUMUAH} (${G.JUMUAH_ARABIC})`,
-      hijri: hijri ? formatHijri(hijri, "km") : null,
-      hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
+      hijri: hijri ? formatHijri(hijri, "km", { khmerDigits: true }) : null,
+      hijriShort: hijri ? formatHijri(hijri, "km", { short: true, khmerDigits: true }) : null,
       date: kmDay(day),
       title: `${G.JUMUAH} មូបារ៉ក់`,
       titleArabic: G.JUMUAH_MUBARAK_ARABIC,
@@ -327,8 +327,8 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
   return {
     kind,
     pill: `មេរៀនហិរញ្ញវត្ថុហាឡាល់ ${khmerDigits(String(lesson))}/${khmerDigits(String(ISLAMIC_TIPS.length))}`,
-    hijri: hijri ? formatHijri(hijri, "km") : null,
-    hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
+    hijri: hijri ? formatHijri(hijri, "km", { khmerDigits: true }) : null,
+    hijriShort: hijri ? formatHijri(hijri, "km", { short: true, khmerDigits: true }) : null,
     date: kmDay(day),
     title: tip.title.km,
     // A lesson in the Prophet's own words carries the reviewer's full translation (founder, 21/10/2026); else its text.

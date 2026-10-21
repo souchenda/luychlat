@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
@@ -9,7 +9,10 @@ import { headerBadge } from "@/lib/islamic"
 import { rielTick } from "@/lib/spending-pulse"
 import { walletMix } from "@/lib/wallet-overview"
 
-import { headerDate, latinDigits } from "./dates"
+import { formatHijri } from "@/lib/islamic"
+import { formatLunar, khmerLunarDate } from "@/lib/khmer-lunar"
+
+import { dayDate, headerDate, latinDigits, longDate, monthLabel } from "./dates"
 
 const KHMER_DIGIT = /[០-៩]/
 
@@ -77,5 +80,51 @@ describe("International digits on every screen (founder, 21/10/2026 — like ABA
   it("the app's Khmer strings use 0-9 — the bot's messages and the server-shared keys aside", () => {
     const left = Object.entries(dictionaries.km).filter(([k, v]) => KHMER_DIGIT.test(v) && !k.startsWith("bot.") && !KEEPS_KHMER_DIGITS.has(k))
     assert.deepEqual(left.map(([k]) => k), [])
+  })
+
+  it("app-wide (founder, 21/10/2026 — Islamic hub, Settings, Assets and every other screen): no Khmer digit in any component or page", () => {
+    const walk = (d: string): string[] =>
+      readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : /\.tsx?$/.test(e.name) && !/\.test\./.test(e.name) ? [join(d, e.name)] : []))
+    const ui = [...walk(join(process.cwd(), "src", "components")), ...walk(join(process.cwd(), "src", "app"))].filter((f) => !/[\\/]app[\\/]api[\\/]/.test(f))
+    const bad: string[] = []
+    for (const f of ui)
+      readFileSync(f, "utf8")
+        .split("\n")
+        .forEach((line, i) => {
+          if (/^\s*(\/\/|\*|\/\*|\{\/\*)/.test(line)) return
+          if (KHMER_DIGIT.test(line) || /\b(khmerDigits|kmDigits)\(/.test(line)) bad.push(`${f}:${i + 1}`)
+        })
+    assert.deepEqual(bad, [])
+  })
+
+  it("the shared dates are 0-9 on the screens; a post or a poster asks for Khmer digits — and still gets them", () => {
+    const d = new Date(2026, 9, 2, 12)
+    assert.equal(longDate(d, "km"), "ថ្ងៃសុក្រ ទី02 ខែតុលា ឆ្នាំ2026")
+    assert.equal(longDate(d, "km", { khmerDigits: true }), "ថ្ងៃសុក្រ ទី០២ ខែតុលា ឆ្នាំ២០២៦")
+    assert.equal(dayDate(d, "km"), "ទី02 ខែតុលា ឆ្នាំ2026")
+    assert.equal(monthLabel("2026-10", "km"), "ខែតុលា 2026")
+    const l = khmerLunarDate("2026-10-21")
+    assert.doesNotMatch(formatLunar(l, "km"), KHMER_DIGIT)
+    assert.match(formatLunar(l, "km", { khmerDigits: true }), KHMER_DIGIT)
+    assert.equal(formatHijri({ day: 9, month: 5, year: 1448 }, "km", { short: true, era: false }), "9 ជុម៉ាដាល់អូឡា 1448")
+    // The posts and posters ask explicitly.
+    for (const [f, re] of [
+      ["src/lib/server/community-bulletin.ts", /longDate\(date, "km", \{ khmerDigits: true \}\)/],
+      ["src/lib/server/tip-poster.ts", /longDate\([^)]*\), "km", \{ khmerDigits: true \}\)/],
+      ["src/lib/sil-poster.ts", /formatLunar\(l, "km", \{ khmerDigits: true \}\)/],
+      ["src/lib/holy-day-alerts.ts", /formatLunar\(tomorrow, "km", \{ khmerDigits: true \}\)/],
+      ["src/lib/server/scheduled-posts.ts", /formatHijri\(hijri, "km", \{ khmerDigits: true \}\)/],
+      ["src/lib/islamic-channel.ts", /formatHijri\(hijri, "km", \{ short: true, khmerDigits: true \}\)/],
+    ] as const)
+      assert.match(readFileSync(join(process.cwd(), f), "utf8"), re, f)
+  })
+
+  it("regression: the login trust line keeps «រក្សាការសម្ងាត់ 100%» together now that it reads 0-9", () => {
+    const login = readFileSync(join(process.cwd(), "src/app/login/page.tsx"), "utf8")
+    const keep = new RegExp(/const TRUST_KEEP = \/(.*)\/\n/.exec(login)![1])
+    for (const phrase of ["សុវត្ថិភាពកម្រិតធនាគារ", "ស្លីបធនាគារ", "រក្សាការសម្ងាត់ 100%"]) {
+      assert.ok(dictionaries.km["login.trustUnified"].includes(phrase), phrase)
+      assert.match(phrase, keep)
+    }
   })
 })

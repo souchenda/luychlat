@@ -30,6 +30,10 @@ CMDLINE_TOOLS=commandlinetools-linux-14742923_latest.zip
 # One build at a time.
 exec 9>/var/lock/luysmart-apk.lock
 flock -n 9 || { echo "✗ Another APK build is running" >&2; exit 1; }
+# The APK build's CPU is not an incident (lib/server/health-watchdog › BUILD_MARKERS): marked while it runs.
+mkdir -p "$REPO/deploy/run"
+date +%s > "$REPO/deploy/run/building-apk"
+trap 'rm -f "$REPO/deploy/run/building-apk"' EXIT
 
 mkdir -p "$SDK" "$KEYS" "$GRADLE_HOME" "$OUT"
 chmod 700 "$KEYS"

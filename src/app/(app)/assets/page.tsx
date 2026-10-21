@@ -23,7 +23,6 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
-import { khmerDigits } from "@/lib/dates"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -63,7 +62,7 @@ export default function AssetsPage() {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   // Month counts in Khmer digits for Khmer ("១២/៣៦ ខែ").
-  const num = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
+  const num = (n: number) => String(n)
   const { khrPerUsd, hideBalances } = usePrefsStore()
   const { workspace } = useActiveWorkspace()
   const ws = workspace?.id

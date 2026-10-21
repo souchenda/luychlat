@@ -21,9 +21,10 @@ use come before feature count: no half-baked features, broken links or untested 
    totals (eye toggle, USD / KHR, loans and net) and the NBC / gold ticker — no buttons: the 3×3 quick-action grid right
    below it is the one place for actions (`tests/golden/layout-guards.test.ts`).
 7. **International digits (founder, 21/10/2026 — like ABA / ACLEDA):** every number on the app's screens is 0-9
-   («13», «មាស 24K», «ថ្ងៃពុធ 21 តុលា»), never Khmer digits beside Latin ones. `latinDigits()` in `src/lib/dates.ts`
-   for a shared formatter that still writes Khmer digits for posters and Telegram posts (those keep theirs); the bot's
-   messages (`bot.*`) too (`src/lib/latin-digits.test.ts`).
+   («13», «មាស 24K», «ថ្ងៃពុធ 21 តុលា 2026»), never Khmer digits beside Latin ones — app-wide (every component and page;
+   the test scans them all). The shared dates (`longDate`, `dayDate`, `monthLabel`, `formatHijri`, `formatLunar`) are 0-9
+   by default; a post or a poster asks `{ khmerDigits: true }` and keeps its Khmer digits, as do the bot's messages
+   (`bot.*`); post text shown on a screen goes through `latinDigits()` (`src/lib/latin-digits.test.ts`).
 
 ## Standards
 

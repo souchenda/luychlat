@@ -22,7 +22,7 @@ export type KhanPrice = { key: string; km: string; en: string; min: number; max:
 export const PHNOM_PENH_KHANS: KhanPrice[] = [
   { key: "daun_penh", km: "ដូនពេញ", en: "Daun Penh", min: 1600, max: 10400 },
   { key: "bkk", km: "បឹងកេងកង", en: "Boeung Keng Kang", min: 1700, max: 6300 },
-  { key: "7_makara", km: "៧មករា", en: "7 Makara", min: 2100, max: 6600 },
+  { key: "7_makara", km: "7មករា", en: "7 Makara", min: 2100, max: 6600 },
   { key: "chamkarmorn", km: "ចំការមន", en: "Chamkarmorn", min: 1200, max: 5800 },
   { key: "toul_kork", km: "ទួលគោក", en: "Toul Kork", min: 1400, max: 4800 },
   { key: "mean_chey", km: "មានជ័យ", en: "Mean Chey", min: 380, max: 2850 },

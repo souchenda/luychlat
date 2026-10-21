@@ -55,12 +55,16 @@ export const khmerDigits = (value: string) => value.replace(/\d/g, (d) => "០�
  */
 export const latinDigits = (value: string) => value.replace(/[០-៩]/g, (d) => String("០១២៣៤៥៦៧៨៩".indexOf(d)))
 
-/** "ថ្ងៃសុក្រ ទី០២ ខែតុលា ឆ្នាំ២០២៦" / "Friday, 02 October 2026" (device-local date). */
-export function longDate(date: Date, locale: Locale): string {
+/** Digits for a Khmer date: 0-9 on the app's screens (rule 7); Khmer digits when a post or a poster asks for them. */
+export type DigitsOpt = { khmerDigits?: boolean }
+const kmd = (s: string, opts?: DigitsOpt) => (opts?.khmerDigits ? khmerDigits(s) : s)
+
+/** "ថ្ងៃសុក្រ ទី02 ខែតុលា ឆ្នាំ2026" (a post: "ទី០២ … ២០២៦") / "Friday, 02 October 2026" (device-local date). */
+export function longDate(date: Date, locale: Locale, opts?: DigitsOpt): string {
   if (locale === "zh") return format(date, "yyyy年M月d日 EEEE", { locale: zhCN })
   if (locale === "en") return format(date, "EEEE, dd MMMM yyyy")
-  const day = khmerDigits(String(date.getDate()).padStart(2, "0"))
-  return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${khmerDigits(String(date.getFullYear()))}`
+  const day = kmd(String(date.getDate()).padStart(2, "0"), opts)
+  return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${kmd(String(date.getFullYear()), opts)}`
 }
 
 /**
@@ -73,18 +77,18 @@ export function headerDate(date: Date, locale: Locale): string {
   return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ${date.getDate()} ${KM_MONTHS[date.getMonth()]} ${date.getFullYear()}`
 }
 
-/** "ទី០១ ខែកញ្ញា ឆ្នាំ២០២៦" / "01 September 2026" (no weekday). */
-export function dayDate(date: Date, locale: Locale): string {
+/** "ទី01 ខែកញ្ញា ឆ្នាំ2026" / "01 September 2026" (no weekday). */
+export function dayDate(date: Date, locale: Locale, opts?: DigitsOpt): string {
   if (locale === "zh") return format(date, "yyyy年M月d日")
   if (locale === "en") return format(date, "dd MMMM yyyy")
-  const day = khmerDigits(String(date.getDate()).padStart(2, "0"))
-  return `ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${khmerDigits(String(date.getFullYear()))}`
+  const day = kmd(String(date.getDate()).padStart(2, "0"), opts)
+  return `ទី${day} ខែ${KM_MONTHS[date.getMonth()]} ឆ្នាំ${kmd(String(date.getFullYear()), opts)}`
 }
 
-/** "ខែតុលា ២០២៦" / "October 2026". */
-export function monthLabel(key: MonthKey, locale: Locale): string {
+/** "ខែតុលា 2026" / "October 2026". */
+export function monthLabel(key: MonthKey, locale: Locale, opts?: DigitsOpt): string {
   const start = monthStart(key)
   if (locale === "zh") return format(start, "yyyy年M月")
   if (locale === "en") return format(start, "MMMM yyyy")
-  return `ខែ${KM_MONTHS[start.getMonth()]} ${khmerDigits(String(start.getFullYear()))}`
+  return `ខែ${KM_MONTHS[start.getMonth()]} ${kmd(String(start.getFullYear()), opts)}`
 }

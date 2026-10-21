@@ -14,7 +14,6 @@ import { stepUp } from "@/components/security/step-up"
 import { ASSET_EMOJI, ASSET_KINDS, DEFAULT_LIFE_YEARS, LIFE_YEARS, depreciation, hasPlot, type PersonalAssetKind, type PhysicalAsset } from "@/lib/assets"
 import { usePhysicalAssetMutations } from "@/lib/assets-data"
 import type { Currency, Debt } from "@/lib/data/types"
-import { khmerDigits } from "@/lib/dates"
 import { debtStatus, remaining } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
@@ -59,7 +58,7 @@ export function AssetFormSheet({
   const [location, setLocation] = useState(NO_LOCATION)
   const [area, setArea] = useState("")
   const locale = useLocaleStore((s) => s.locale)
-  const num = (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
+  const num = (n: number) => String(n)
   // Loans we owe that are still open (plus the one already linked).
   const loans = debts.filter((d) => d.type === "PAYABLE" && (debtStatus(d) !== "SETTLED" || d.id === asset?.debt_id))
 

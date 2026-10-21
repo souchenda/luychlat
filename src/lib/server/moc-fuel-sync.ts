@@ -15,7 +15,7 @@
 // An admin's /setfuel for the same (or a later) period is kept: the notice for
 // a period already entered is not read again.
 import { cycleText } from "@/lib/bot/fuel"
-import type { FuelPrices } from "@/lib/market-calc"
+import type { FuelCycle, FuelPrices } from "@/lib/market-calc"
 import { channelPosts, cleanNoticePrices, isFuelNotice, parseNoticePeriod, pricesAgree, type ChannelPost, type NoticePrices } from "@/lib/moc-fuel"
 
 import { logEvent } from "./events"
@@ -164,6 +164,7 @@ export async function checkMocFuel(day: string, lastSlot: boolean): Promise<stri
   // Already in: this notice, or an admin's prices for the same or a later period.
   const covered = Boolean(fuel && period && (fuel.post === notice?.id || fuel.to >= period.to))
   if (notice && period && !covered && period.to >= day) await applyNotice(day, notice, period, fuel)
+  else if (covered) await announceAppliedFuel(day)
   else if (notice && !period && (await claim(`moc-fuel-period-${notice.id}`, day))) {
     await toSuperAdmins(`⚠️ [តម្លៃប្រេង] រកឃើញសេចក្តីជូនដំណឹងថ្មីរបស់ក្រសួងពាណិជ្ជកម្ម ប៉ុន្តែអានកាលបរិច្ឆេទមិនបាន។\n• t.me/${CHANNEL}/${notice.id}\n• សូមបញ្ចូលដោយដៃ៖ /setfuel`)
     logEvent("error", "moc-fuel", `Fuel notice ${notice.id}: period not readable`)
@@ -177,6 +178,46 @@ export async function checkMocFuel(day: string, lastSlot: boolean): Promise<stri
   if (!notice) return "no fuel notice on the channel's latest pages"
   if (!period) return `notice ${notice.id}: period not readable`
   return current?.post === notice.id ? `applied: notice ${notice.id} (${period.from} → ${period.to})` : covered ? `already in: ${current?.from} → ${current?.to}` : `notice ${notice.id} (${period.from} → ${period.to}) found — not published (see the note above)`
+}
+
+/**
+ * The announcement of a notice, once per notice, preview-first: the card reaches «LCA Approval» and nothing is posted
+ * without ✅ / 🚀. A change in EA92 or diesel → the community channel and the Facebook Page, 45 minutes after the card
+ * (unless decided first); unchanged prices → the channel only (lib/server/facebook-publisher › shouldPublishToFacebook).
+ */
+async function announceFuel(day: string, fuel: FuelPrices, prev: FuelCycle | null, noticeId: number) {
+  const chat = communityChannelConfigured()
+  const link = `t.me/${CHANNEL}/${noticeId}`
+  const prevPair = prev ? { regular: prev.regular, diesel: prev.diesel } : null
+  if (shouldPublishToFacebook({ kind: "fuel", now: fuel, previous: prevPair })) {
+    const telegram = chat ? newPricesText(fuel, prev, noticeId) : null
+    const facebook = facebookFuelCaption({ now: fuel, previous: prevPair!, period: periodLine(fuel.from, fuel.to), sourceUrl: `https://${link}` })
+    await scheduleFuelPost(noticeId, telegram ?? "", facebookConfig() ? facebook : null, new Date(Date.now() + FUEL_DELAY_MIN * 60_000).toISOString())
+  } else if (chat && (await claim(`moc-fuel-post-${noticeId}`, day))) {
+    // Unchanged prices: Telegram only — held for the founder's approval like every post (founder, 18/10/2026).
+    await scheduleFuelPost(noticeId, newPricesText(fuel, prev, noticeId), null, new Date(Date.now() + 60_000).toISOString())
+  }
+}
+
+/**
+ * A notice stored outside the automatic reading — an admin's /setfuel, a migration with the founder's confirmed figures
+ * (notice #36200, 21/10/2026) — still gets its announcement card, once: when the stored prices are the Ministry's
+ * (source «moc», its post id), for the current cycle, with the cycle before kept. Idempotent: the post is one per notice
+ * (bot_post_schedule), so a later call neither repeats nor re-sends the card.
+ */
+export async function announceAppliedFuel(day: string): Promise<string> {
+  const fuel = (await currentMarket())?.fuel
+  const due = fuelAnnouncementDue(fuel, day)
+  if (!due || !fuel?.post) return "nothing to announce"
+  await announceFuel(day, fuel, fuel.previous ?? null, fuel.post)
+  return `announcement scheduled for notice ${fuel.post}`
+}
+
+/** Should the stored prices be announced now? The Ministry's own, this cycle (started within 2 days), the cycle before known. */
+export function fuelAnnouncementDue(fuel: FuelPrices | null | undefined, day: string): boolean {
+  if (!fuel || fuel.source !== "moc" || !fuel.post || !fuel.previous || fuel.previous.to > fuel.from) return false
+  const started = Date.parse(`${day}T00:00:00Z`) - Date.parse(`${fuel.from}T00:00:00Z`)
+  return fuel.to >= day && started >= 0 && started <= 2 * 86_400_000
 }
 
 async function applyNotice(day: string, notice: ChannelPost, period: { from: string; to: string }, previous: FuelPrices | null) {
@@ -224,20 +265,7 @@ async function applyNotice(day: string, notice: ChannelPost, period: { from: str
     })
     .then(({ error }) => error && logEvent("warn", "moc-fuel", `Fuel audit not written: ${error.message}`, { fold: true }))
 
-  // The community channel and the Facebook Page, once per notice. A real change in EA92 or diesel is
-  // preview-first: the founder sees it now and it publishes 45 minutes later (Telegram + the Page)
-  // unless they decide first (scheduled-posts.ts). An unchanged notice goes to Telegram right away.
-  const chat = communityChannelConfigured()
-  const prev = previous && previous.to <= period.from ? previous : null
-  const prevPair = prev ? { regular: prev.regular, diesel: prev.diesel } : null
-  if (shouldPublishToFacebook({ kind: "fuel", now: saved.fuel, previous: prevPair })) {
-    const telegram = chat ? newPricesText(saved.fuel, prev, notice.id) : null
-    const facebook = facebookFuelCaption({ now: saved.fuel, previous: prevPair!, period: periodLine(period.from, period.to), sourceUrl: `https://${link}` })
-    await scheduleFuelPost(notice.id, telegram ?? "", facebookConfig() ? facebook : null, new Date(Date.now() + FUEL_DELAY_MIN * 60_000).toISOString())
-  } else if (chat && (await claim(`moc-fuel-post-${notice.id}`, day))) {
-    // Unchanged prices: Telegram only — held for the founder's approval like every post (founder, 18/10/2026).
-    await scheduleFuelPost(notice.id, newPricesText(saved.fuel, prev, notice.id), null, new Date(Date.now() + 60_000).toISOString())
-  }
+  await announceFuel(day, saved.fuel, previous && previous.to <= period.from ? previous : null, notice.id)
   await toSuperAdmins(
     `✅ [តម្លៃប្រេង] បានធ្វើបច្ចុប្បន្នភាពដោយស្វ័យប្រវត្តិពីក្រសួងពាណិជ្ជកម្ម (${cycleText(period.from, period.to, "km")})៖ សាំង ${riel(reading.prices.regular)}៛ · ម៉ាស៊ូត ${riel(reading.prices.diesel)}៛\n• ពិនិត្យ៖ ${link}\n• បើខុស៖ /setfuel ដើម្បីកែ`,
   )

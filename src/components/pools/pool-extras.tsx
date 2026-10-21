@@ -7,7 +7,6 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { khmerDigits } from "@/lib/dates"
 import { isKhqr } from "@/lib/khqr"
 import { decodeKhqr } from "@/lib/khqr-decode"
 import { useMyKhqr } from "@/lib/profile"
@@ -18,11 +17,9 @@ import type { PoolSnapshot } from "@/lib/pool"
 import { CLOSING_BLESSING } from "@/lib/pool-blessing"
 import { usePendingPoolPayments, usePoolMutations } from "@/lib/pools"
 import { useMoney } from "@/lib/use-money"
-import { useLocaleStore } from "@/stores/locale-store"
 
 function useNum() {
-  const locale = useLocaleStore((s) => s.locale)
-  return (n: number) => (locale === "km" ? khmerDigits(String(n)) : String(n))
+  return (n: number) => String(n)
 }
 
 /** "📊 ៥/១០ គ្រួសារបានចូលរួចរាល់ ($500 / $1,000)" with a bar — for pools with set shares. */

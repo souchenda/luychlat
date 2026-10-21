@@ -28,6 +28,7 @@ prev_deployed=$(cat deploy/.deployed 2>/dev/null || echo "")
 step="database migration"
 notify_failure() {
   local code=$?
+  rm -f deploy/run/building-deploy
   [ "$code" = "0" ] || bash ./deploy/deploy-notify.sh fail "$step" "$code" || true
 }
 trap notify_failure EXIT
@@ -62,6 +63,9 @@ compose() {
 }
 
 mkdir -p deploy/run
+# The build's CPU is not an incident: the watchdog leaves CPU and RAM out while this marker exists (founder, 21/10/2026 —
+# lib/server/health-watchdog › BUILD_MARKERS). Removed when the script ends, whatever happens.
+date +%s > deploy/run/building-deploy
 echo "→ Building $next (port $(slot_port "$next")) while $active keeps serving"
 step="build (golden paths, tests, Next.js)"
 compose "$next" build
@@ -113,6 +117,8 @@ COMPOSE_PROJECT_NAME=$(slot_project "$next") CONTAINER_NAME=$(slot_project "$nex
 git rev-parse HEAD > deploy/.deployed
 # Live and healthy: what follows is bookkeeping and never counts as a failed deploy.
 trap - EXIT
+# The image prunes below are still build work: the build marker goes when the script ends.
+trap 'rm -f deploy/run/building-deploy' EXIT
 # Super Admin › Development: record the commits this deploy shipped (never fails the deploy).
 bash ./deploy/changelog-sync.sh || echo "! Changelog not recorded (the app is deployed)"
 # Security stats (blocked / rate-limited requests per minute) every 5 minutes, plus a backfill of the last day now.

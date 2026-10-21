@@ -26,7 +26,7 @@ import { useSessionStore } from "@/stores/session-store"
 const TAGLINE_KEEP = /ដៃគូហិរញ្ញវត្ថុឆ្លាតវៃ|សម្រាប់ប្រជាជនកម្ពុជា/
 
 /** Phrases of the security badge that never break (Khmer words have no spaces between them). */
-const TRUST_KEEP = /សុវត្ថិភាពកម្រិតធនាគារ|\(Cloudflare Protected\)|ស្លីបធនាគារ|រក្សាការសម្ងាត់ ១០០%|100% private|bank slips|Bank-grade security/
+const TRUST_KEEP = /សុវត្ថិភាពកម្រិតធនាគារ|\(Cloudflare Protected\)|ស្លីបធនាគារ|រក្សាការសម្ងាត់ 100%|100% private|bank slips|Bank-grade security/
 
 const FEATURES = [
   { key: "login.featureScan", icon: ScanLineIcon },

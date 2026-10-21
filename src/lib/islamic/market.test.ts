@@ -126,8 +126,8 @@ describe("Gold in the units Cambodia trades by (founder, 21/10/2026)", () => {
   })
   it("the hub card says the same: Cambodian units first, the reference, the Nisab in តម្លឹង", () => {
     const card = read("src/components/islamic/islamic-market-card.tsx")
-    assert.match(card, /<p className="font-medium tabular-nums">\{goldUnitsLine\(m\.gold\)\}<\/p>/)
-    assert.match(card, /\{goldReference\(m\.gold\.source\)\}/)
-    assert.match(card, /មាស ៨៥ ក្រាម ≈ \{khmerGoldWeight\(NISAB_GOLD_GRAMS\)\}/)
+    assert.match(card, /<p className="font-medium tabular-nums">\{latinDigits\(goldUnitsLine\(m\.gold\)\)\}<\/p>/) // 0-9 on the screen (rule 7)
+    assert.match(card, /\{latinDigits\(goldReference\(m\.gold\.source\)\)\}/)
+    assert.match(card, /មាស 85 ក្រាម ≈ \{latinDigits\(khmerGoldWeight\(NISAB_GOLD_GRAMS\)\)\}/)
   })
 })

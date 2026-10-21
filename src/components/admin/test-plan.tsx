@@ -7,8 +7,8 @@ import { toast } from "sonner"
 import { Segmented } from "@/components/common/segmented"
 import { useT } from "@/lib/i18n/use-t"
 import { useAdminTestPlan, usePlan, type Tier } from "@/lib/plan"
+import { latinDigits } from "@/lib/dates"
 
-const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 const hhmm = (iso: string) => {
   const d = new Date(iso)
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
@@ -39,7 +39,7 @@ export function TestPlanBanner() {
   return (
     <div className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-amber-500 px-3 py-1.5 pt-[max(env(safe-area-inset-top),0.375rem)] text-xs font-semibold text-amber-950 print:hidden">
       <FlaskConicalIcon className="size-3.5 shrink-0" aria-hidden />
-      <span className="truncate">{t("testPlan.banner", { tier: test.tier, time: kmDigits(hhmm(test.expires_at)) })}</span>
+      <span className="truncate">{t("testPlan.banner", { tier: test.tier, time: latinDigits(hhmm(test.expires_at)) })}</span>
       <button
         type="button"
         onClick={() => end.mutate({ tier: null }, { onSuccess: () => toast.success(t("testPlan.ended")), onError: () => toast.error(t("common.error")) })}
