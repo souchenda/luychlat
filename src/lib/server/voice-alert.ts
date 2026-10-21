@@ -4,6 +4,7 @@
 // see docs/soundbox-khmer-audio.md); Telegram's sendVoice takes MP3. No clips yet → no voice note
 // (the text message still goes), logged once.
 import { readFile } from "node:fs/promises"
+import { outgoingForm } from "@/lib/server/numerals"
 import { join } from "node:path"
 
 import { announcementText, joinMp3, khmerClipSequence, KHMER_CLIPS, type KhmerClip } from "@/lib/soundbox"
@@ -49,7 +50,7 @@ export async function sendPaymentVoice(workspaceId: string, amount: number, curr
     form.append("caption", announcementText({ amount, currency }, "km"))
     form.append("voice", new Blob([Buffer.from(note)], { type: "audio/mpeg" }), "payment.mp3")
     try {
-      const res = await fetch(`https://api.telegram.org/bot${token}/sendVoice`, { method: "POST", body: form, signal: AbortSignal.timeout(15_000) })
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendVoice`, { method: "POST", body: outgoingForm(form), signal: AbortSignal.timeout(15_000) })
       const body = (await res.json()) as { ok: boolean; description?: string }
       if (body.ok) sent += 1
       else logEvent("error", "voice-alert", `Payment voice note not sent: ${body.description ?? res.status}`, { fold: true })

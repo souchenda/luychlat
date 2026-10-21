@@ -18,6 +18,7 @@ import { posterCta, posterDateline, type IslamicPostContent } from "@/lib/islami
 import * as G from "@/lib/islamic/glossary"
 
 import { ARABIC_FAMILIES, drawIcon, FAMILIES, loadFonts, roundRect, wrap } from "./poster-kit"
+import { latinCanvas } from "@/lib/numerals"
 
 export const ISLAMIC_POSTER = { W: 1080, H: 1350 } as const
 const { W, H } = ISLAMIC_POSTER
@@ -257,7 +258,7 @@ export type PosterTypeUsed = {
 export function renderIslamicPoster(c: IslamicPostContent): { png: Buffer; truncated: boolean; type: PosterTypeUsed } {
   loadFonts()
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
   let truncated = false
   const type: PosterTypeUsed = { dateline: 0, title: 0, titleLines: 1, titleArabic: null, arabic: null, body: 0, bodyLineHeight: 0, quote: null, hookLines: [], cta: posterCta(c.kind) }
   let fitted = 0

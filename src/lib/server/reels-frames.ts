@@ -17,6 +17,7 @@ import { reelRenderable, reelSeconds, type ReelScript } from "@/lib/islamic/reel
 import { ffmpegArgs, REEL_FORMAT, reelTimeline } from "@/lib/islamic/reels-timeline"
 
 import { drawIcon, FAMILIES, loadFonts, roundRect, wrap } from "./poster-kit"
+import { latinCanvas } from "@/lib/numerals"
 
 const { width: W, height: H } = REEL_FORMAT
 const GOLD = "#e9c46a"
@@ -361,7 +362,7 @@ export async function renderReel(o: { script: ReelScript; voiceFiles: string[] |
   const adhanFrom = audioCues(o.script).find((c) => c.kind === "ambient")?.at ?? null
   const times = frameTimes(o.script)
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
   await run(ffmpeg, ["-hide_banner", "-loglevel", "error", ...ffmpegArgs({ audio: mix, seconds, out: o.out })], async (stdin) => {
     for (const [i, t] of times.entries()) {
       drawReelFrame(ctx, sceneAt(o.script, t, { approved, sfxAt, adhanFrom, cues }), art)

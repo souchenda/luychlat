@@ -33,7 +33,8 @@ import { logEvent } from "@/lib/server/events"
 import { deleteFacebookPost, facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
 import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster, portraitCredit } from "@/lib/server/national-day-poster"
-import { holidayRouteAllowed, nationalCaptionHtml, nationalCaptionText, nationalChannel, nationalDateNote, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE } from "@/lib/calendar/cambodia-holidays"
+import { holidayRouteAllowed, nationalCaptionHtml, nationalCaptionText, nationalChannel, nationalDateNote, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE, royalNumerals } from "@/lib/calendar/cambodia-holidays"
+import { withKhmerDigits } from "@/lib/server/numerals"
 import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
 import { fuelPoster } from "@/lib/server/fuel-poster"
 import { fuelPosterContent, type FuelPoster } from "@/lib/fuel-poster"
@@ -111,6 +112,11 @@ export type SchedulerDeps = {
   replace?: ReplaceDeps
   /** The founder's urgent reminders for a post still waiting at its time (founder, 20/10/2026). */
   remind?: { claim(id: number, level: number): Promise<boolean>; founderChats(): Promise<number[]> }
+  /**
+   * Everything said about one post — its card, reminders, publishing — runs through this: a royal or national
+   * commemoration keeps the Khmer numerals there, every other post is 0-9 (founder, 21/10/2026 — Task #440).
+   */
+  scope?<T>(row: PostRow, fn: () => Promise<T>): Promise<T>
 }
 
 export type Published = { telegram: number | null; facebook: string | null }
@@ -118,6 +124,8 @@ export type Published = { telegram: number | null; facebook: string | null }
 export type Callback = { id: string; data?: string; from?: { id: number; first_name?: string; last_name?: string; username?: string }; message?: { message_id: number; photo?: unknown[]; chat: { id: number; type: string } } }
 
 export function createScheduler(d: SchedulerDeps) {
+  const scoped = <T>(row: PostRow, fn: () => Promise<T>) => (d.scope ? d.scope(row, fn) : fn())
+
   async function render(row: PostRow, status: PostStatus) {
     const content = await d.content(row)
     const png = content.png
@@ -129,7 +137,8 @@ export function createScheduler(d: SchedulerDeps) {
     return { png, text: previewText({ kind: row.kind, targets, publishAt: row.publish_at, body, status, decider, now }), buttons: previewButtons(row.id, status, targets, row.kind, { publishAt: row.publish_at, now }) }
   }
 
-  async function sendPreviews(row: PostRow) {
+  const sendPreviews = (row: PostRow) => scoped(row, () => sendPreviewsNow(row))
+  async function sendPreviewsNow(row: PostRow) {
     const { png, text, buttons } = await render(row, row.status)
     const previews: Preview[] = []
     for (const chat of await d.adminChats()) {
@@ -140,12 +149,14 @@ export function createScheduler(d: SchedulerDeps) {
     d.log(previews.length ? "info" : "warn", previews.length ? `Preview of ${row.kind} ${row.post_key} sent to ${previews.length} chat(s)` : `Preview of ${row.kind} ${row.post_key}: no super admin chat — it can't be approved, so it will NOT be published`)
   }
 
-  async function refresh(row: PostRow) {
-    const { text, buttons } = await render(row, row.status)
-    for (const p of row.previews ?? []) await d.editPreview(p, text, buttons)
-  }
+  const refresh = (row: PostRow) =>
+    scoped(row, async () => {
+      const { text, buttons } = await render(row, row.status)
+      for (const p of row.previews ?? []) await d.editPreview(p, text, buttons)
+    })
 
-  async function publishTaken(row: PostRow, how: string) {
+  const publishTaken = (row: PostRow, how: string) => scoped(row, () => publishTakenNow(row, how))
+  async function publishTakenNow(row: PostRow, how: string) {
     try {
       const ids = await d.publish(row)
       await d.recordIds(row.id, ids)
@@ -202,7 +213,8 @@ export function createScheduler(d: SchedulerDeps) {
    * private chat (at its time, again an hour later), each claimed once, with [ ✅ អនុម័ត និងផ្សាយឥឡូវនេះ ]
    * [ ❌ ផ្អាកថ្ងៃនេះ ]. The card joins the post's previews, so his tap updates it and the «LCA Approval» card alike.
    */
-  async function remindFounder(row: PostRow) {
+  const remindFounder = (row: PostRow) => scoped(row, () => remindFounderNow(row))
+  async function remindFounderNow(row: PostRow) {
     const r = d.remind
     const level = reminderLevel(row.publish_at, d.now())
     if (!r || row.status !== "PENDING" || level === 0 || (row.reminders ?? 0) >= level) return
@@ -244,7 +256,7 @@ export function createScheduler(d: SchedulerDeps) {
       }
       let ids: Published = { telegram: null, facebook: null }
       try {
-        ids = await d.publish(row)
+        ids = await scoped(row, () => d.publish(row))
       } catch (e) {
         d.log("error", `${row.kind} ${row.post_key} replacement not published: ${e instanceof Error ? e.message : String(e)}`)
       }
@@ -272,9 +284,12 @@ export function createScheduler(d: SchedulerDeps) {
       compared.set(row.id, row.content_hash)
       const now = await r.contentHash(row)
       if (!now || now === row.content_hash || !(await r.replaceAsk(row.id))) continue
-      const { png, body } = await d.content(row)
-      let sent = 0
-      for (const chat of await d.adminChats()) if (await d.sendPreview(chat, png, replacePreviewText(row.kind, body), replaceButtons(row.id))) sent++
+      const sent = await scoped(row, async () => {
+        const { png, body } = await d.content(row)
+        let n = 0
+        for (const chat of await d.adminChats()) if (await d.sendPreview(chat, png, replacePreviewText(row.kind, body), replaceButtons(row.id))) n++
+        return n
+      })
       d.log(sent ? "info" : "warn", `${row.kind} ${row.post_key}: a new version — the replacement preview sent to ${sent} chat(s)`)
     }
   }
@@ -377,7 +392,15 @@ function holidayOf(row: PostRow) {
   return m && m.stage === row.payload.stage ? m : null
 }
 
+/** A royal or national commemoration (royalNumerals): its card and post keep the Khmer numerals (Task #440). */
+function royalRow(row: Pick<PostRow, "kind" | "payload">): boolean {
+  if (row.kind !== "NATIONAL_DAY") return false
+  const d = nationalDayByKey(String(row.payload.key))
+  return Boolean(d && royalNumerals(d))
+}
+
 const realDeps = (): SchedulerDeps => ({
+  scope: (row, fn) => (royalRow(row) ? withKhmerDigits(fn) : fn()),
   async schedule(kind, postKey, payload, publishAt) {
     const { data, error } = await botDb().rpc("bot_post_schedule", { p_key: botKey(), p_kind: kind, p_post_key: postKey, p_payload: payload, p_publish_at: publishAt })
     if (error) logEvent("error", "scheduled-posts", `Schedule ${kind} ${postKey} failed: ${error.message}`, { fold: true })
@@ -927,7 +950,7 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
-  const REPREVIEW_READY = ["sleep-dua-wasl", "lesson14-hadith", "fuel-poster", "fuel-poster-v2", "sunnah-spelling", "poster-website", "fuel-pill", "fuel-withdrawn"]
+  const REPREVIEW_READY = ["sleep-dua-wasl", "lesson14-hadith", "fuel-poster", "fuel-poster-v2", "sunnah-spelling", "poster-website", "fuel-pill", "fuel-withdrawn", "latin-digits"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // Every holiday — national and royal, Islamic, Chinese, global (founder, 20/10/2026): previewed from 48 hours before at
   // 08:00, published at 05:00 on the day once approved (a missed preview window is caught up until then — idempotent).

@@ -8,6 +8,7 @@
 // public/posters; "/poster pchumben" (admins) previews it with a one-tap
 // broadcast to @LuyChlatCommunity, allowed during its window and only once.
 import { readFileSync } from "node:fs"
+import { outgoingForm } from "@/lib/server/numerals"
 import path from "node:path"
 
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
@@ -18,6 +19,7 @@ import { FAMILIES, FRAME, drawFooter, drawHeader, loadFonts, roundRect, wrap } f
 import { botDb, botKey, botToken, tg } from "./telegram-bot"
 import { communityChannel, communityChannelConfigured, founderApproved, type FounderApproval } from "@/lib/server/channel"
 import { holdForApproval } from "@/lib/server/scheduled-posts"
+import { latinCanvas } from "@/lib/numerals"
 
 const { W, H, PAD } = FRAME
 const MINT = "#34d399"
@@ -186,7 +188,7 @@ export function pchumBenPoster(): Buffer {
   loadFonts()
   const c = PCHUM_BEN_2026
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
 
   // Deep emerald slate, an emerald glow behind the pagoda and a warm one below.
   const bg = ctx.createLinearGradient(0, 0, W * 0.35, H)
@@ -288,7 +290,7 @@ async function sendPhoto(chatId: number | string, png: Buffer, caption: string, 
   form.append("photo", new Blob([new Uint8Array(png)], { type: "image/png" }), "poster.png")
   form.append("caption", caption)
   if (replyMarkup) form.append("reply_markup", JSON.stringify(replyMarkup))
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: outgoingForm(form), cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
   return ((await res?.json().catch(() => null)) ?? { ok: false, description: "no answer" }) as { ok: boolean; description?: string; result?: { message_id: number } }
 }
 

@@ -4,6 +4,7 @@
 // (bot_place_review → super admin only, audited); an approval thanks the member (bell + Telegram), in their
 // community's words (lib/contributor-thanks.ts).
 import { createClient } from "@supabase/supabase-js"
+import { outgoingForm } from "@/lib/server/numerals"
 
 import { approvedThanks, communityBadge, decidedCard, fillName, placeThanks, thanksToast as thankToast, type Contribution, type ThanksStatus } from "@/lib/contributor-thanks"
 import { isPlaceReviewCallback, parsePlaceReviewCallback, placeAlertButtons, placeAlertText, placeAlertTextNoPhoto, placeDecisionLine, type PlaceCard } from "@/lib/place-alerts"
@@ -43,7 +44,7 @@ async function sendPlacePhoto(chat: number, photo: Uint8Array, caption: string, 
   form.append("caption", caption)
   form.append("parse_mode", "HTML")
   form.append("reply_markup", JSON.stringify({ inline_keyboard: buttons }))
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: outgoingForm(form), cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
   const json = (await res?.json().catch(() => null)) as { ok?: boolean; description?: string } | null
   return { ok: Boolean(json?.ok), description: json?.description ?? (res ? undefined : "no answer") }
 }

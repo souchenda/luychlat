@@ -9,6 +9,7 @@ import { khmerDigits } from "@/lib/dates"
 import { formatMoney } from "@/lib/money"
 
 import { FAMILIES, FRAME, GOLD, drawFooter, drawHeader, loadFonts, roundRect, wrap } from "./poster-kit"
+import { latinCanvas } from "@/lib/numerals"
 
 const { W, H, PAD } = FRAME
 
@@ -26,7 +27,7 @@ export function spentByCategory(p: PoolSnapshot): { name: string; amt: number }[
 export function poolCard(p: PoolSnapshot): Buffer {
   loadFonts()
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
   const money = (v: number) => formatMoney(v, p.currency)
 
   const bg = ctx.createLinearGradient(0, 0, W * 0.35, H)

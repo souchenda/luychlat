@@ -1,5 +1,6 @@
 // Server only (node:crypto and the bot token): never import from a client component.
 import { createHmac } from "crypto"
+import { outgoingPayload } from "@/lib/server/numerals"
 
 import { createClient } from "@supabase/supabase-js"
 
@@ -35,6 +36,8 @@ export async function tg<T = unknown>(method: string, payload: Record<string, un
     const thread = threadFor(payload.chat_id)
     if (thread) payload = { ...payload, message_thread_id: thread }
   }
+  // 0-9 in everything the bot says (founder, 21/10/2026 — Task #440; lib/numerals.ts), but a royal or national day's.
+  payload = outgoingPayload(payload)
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
       method: "POST",

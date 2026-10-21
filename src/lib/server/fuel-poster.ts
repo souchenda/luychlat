@@ -6,6 +6,7 @@ import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 import type { FuelPoster } from "@/lib/fuel-poster"
 
 import { FAMILIES, FRAME, GOLD, drawFooter, drawHeader, loadFonts, roundRect } from "./poster-kit"
+import { latinCanvas } from "@/lib/numerals"
 
 const { W, H, PAD } = FRAME
 
@@ -28,7 +29,7 @@ function fit(ctx: SKRSContext2D, text: string, weight: number, max: number, widt
 export function fuelPoster(p: FuelPoster): Buffer {
   loadFonts()
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
 
   // Deep navy into the brand emerald, a soft light top-right and a warm one bottom-left.
   const bg = ctx.createLinearGradient(0, 0, W * 0.55, H)

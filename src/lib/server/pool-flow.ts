@@ -13,6 +13,7 @@
 //   Closing    the summary (collected, spent by category, refund per share), the
 //              summary card image, and for family / festival pools a Khmer blessing.
 import QRCode from "qrcode"
+import { outgoingForm } from "@/lib/server/numerals"
 
 import { parseAmountText, toLatinDigits } from "@/lib/bot/parse-entry"
 import type { Slip } from "@/lib/bot/bank-slip"
@@ -320,7 +321,7 @@ async function sendWithKhqr(chatId: number, p: PoolSnapshot, text: string) {
     form.append("chat_id", String(chatId))
     form.append("photo", new Blob([new Uint8Array(png)], { type: "image/png" }), "khqr.png")
     form.append("caption", caption)
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: outgoingForm(form), cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
     if (res?.ok) return
     logEvent("warn", "pool", "Pool KHQR photo not sent — sending the text", { fold: true })
   }
@@ -366,7 +367,7 @@ export async function postClosing(chatId: number, p: PoolSnapshot) {
       form.append("chat_id", String(chatId))
       form.append("photo", new Blob([new Uint8Array(poolCard(p))], { type: "image/png" }), "pool-summary.png")
       form.append("caption", lines.join("\n").slice(0, 1000))
-      await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) })
+      await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: outgoingForm(form), cache: "no-store", signal: AbortSignal.timeout(30_000) })
     } else await tg("sendMessage", { chat_id: chatId, text: lines.join("\n") })
   } catch (e) {
     logEvent("error", "pool", `Closing card failed: ${(e as Error).message}`, { fold: true })

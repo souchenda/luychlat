@@ -23,8 +23,13 @@ use come before feature count: no half-baked features, broken links or untested 
 7. **International digits (founder, 21/10/2026 — like ABA / ACLEDA):** every number on the app's screens is 0-9
    («13», «មាស 24K», «ថ្ងៃពុធ 21 តុលា 2026»), never Khmer digits beside Latin ones — app-wide (every component and page;
    the test scans them all). The shared dates (`longDate`, `dayDate`, `monthLabel`, `formatHijri`, `formatLunar`) are 0-9
-   by default; a post or a poster asks `{ khmerDigits: true }` and keeps its Khmer digits, as do the bot's messages
-   (`bot.*`); post text shown on a screen goes through `latinDigits()` (`src/lib/latin-digits.test.ts`).
+   by default; post text shown on a screen goes through `latinDigits()` (`src/lib/latin-digits.test.ts`).
+   **Channel posts, posters and the bot too (founder, 21/10/2026 — Task #440):** «04:23», «5,050 ៛», «21 តុលា 2026»,
+   «Tirmidhi 747». Enforced where text leaves the app (`src/lib/numerals.ts`): every Telegram call (`tg`) and upload
+   (`outgoingForm`), the Facebook publisher (`outgoingText`) and every poster canvas (`latinCanvas`) — a builder may still
+   produce Khmer digits, they never reach a reader. **The single exception:** the official royal and national
+   commemorations (`royalNumerals` — royal, national, memorial days: Coronation 29 October, Independence 9 November …) keep
+   the Khmer numerals on their poster, caption and card, per palace protocol (`withKhmerDigits`, the scheduler's `scope`).
 
 ## Standards
 

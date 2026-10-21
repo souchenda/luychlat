@@ -8,6 +8,7 @@
  * log), and every message we log is scrubbed of it.
  */
 import type { FounderApproval } from "@/lib/server/channel"
+import { outgoingText } from "@/lib/server/numerals"
 import { postFooter } from "@/lib/post-footer"
 import { morningQuote } from "@/lib/morning"
 
@@ -125,7 +126,8 @@ export function publishPhotoToFacebook(_approval: FounderApproval, png: Buffer, 
     "photos",
     (form) => {
       form.set("source", new Blob([new Uint8Array(png)], { type: "image/png" }), "luychlat-morning.png")
-      form.set("caption", caption)
+      // 0-9 on the Page as in the channel, but a royal or national day's (Task #440, lib/numerals.ts).
+      form.set("caption", outgoingText(caption))
       form.set("published", "true")
     },
     deps,
@@ -135,7 +137,7 @@ export function publishPhotoToFacebook(_approval: FounderApproval, png: Buffer, 
 /** A text post (a holiday note, a fuel price change). */
 /** A text post on the Page — only with the founder's approval (lib/server/channel.ts). */
 export function publishTextToFacebook(_approval: FounderApproval, message: string, deps: Partial<Deps> = {}): Promise<FacebookResult> {
-  return postToPage("feed", (form) => form.set("message", message), deps)
+  return postToPage("feed", (form) => form.set("message", outgoingText(message)), deps)
 }
 
 /**

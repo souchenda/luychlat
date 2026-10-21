@@ -8,7 +8,8 @@ import path from "node:path"
 
 import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-rs/canvas"
 
-import { nationalDateLine, type NationalDay } from "@/lib/calendar/cambodia-holidays"
+import { nationalDateLine, royalNumerals, type NationalDay } from "@/lib/calendar/cambodia-holidays"
+import { latinCanvas } from "@/lib/numerals"
 
 import { lotus } from "./festival-poster"
 import { FAMILIES, FRAME, ISLAMIC_COMMUNITY_LINE, drawFooter, drawHeader, loadFonts, posterMascot, roundRect, wrap } from "./poster-kit"
@@ -68,12 +69,18 @@ export function nationalPosterLines(d: NationalDay, day: string) {
   return { pill: d.pill, title: d.title, subtitle: d.subtitle ?? null, date: nationalDateLine(d, day), message: d.posterMessage ?? d.message }
 }
 
+/**
+ * The royal and national commemorations keep the traditional Khmer numerals, per palace protocol (founder, 21/10/2026 —
+ * Task #440, the single exception); every other day of the engine (Islamic, Chinese, international …) draws 0-9.
+ */
+const numerals = (d: NationalDay, ctx: SKRSContext2D) => (royalNumerals(d) ? ctx : latinCanvas(ctx))
+
 export function nationalDayPoster(d: NationalDay, day: string): { png: Buffer; truncated: boolean } {
   loadFonts()
   const art = nationalAssetsFor(d)
   if (art.portrait) return portraitPoster(d, day, art)
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = numerals(d, canvas.getContext("2d"))
   const memorial = d.kind === "memorial"
   const text = nationalPosterLines(d, day)
   let truncated = false
@@ -189,7 +196,7 @@ export const TITLE_POSITION: "top" | "below" = "below"
 
 function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nationalAssetsFor>): { png: Buffer; truncated: boolean } {
   const canvas = createCanvas(PW, PH)
-  const ctx = canvas.getContext("2d")
+  const ctx = numerals(d, canvas.getContext("2d"))
   const text = nationalPosterLines(d, day)
   let truncated = false
 

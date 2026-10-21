@@ -8,6 +8,7 @@ import type { ReceiptData } from "@/lib/invoice"
 import { isKhqr, khqrInfo } from "@/lib/khqr"
 import { formatMoney } from "@/lib/money"
 import { formatPhoneNumber } from "@/lib/format"
+import { latinCanvas } from "@/lib/numerals"
 
 const W = 900
 const PAD = 56
@@ -215,9 +216,9 @@ function layout(ctx: SKRSContext2D, data: ReceiptData, locale: Locale): number {
 export function receiptPng(data: ReceiptData, locale: Locale): Buffer {
   loadFonts()
   // Measure on a scratch canvas, then draw at the right height.
-  const height = layout(createCanvas(W, 3000).getContext("2d"), data, locale)
+  const height = layout(latinCanvas(createCanvas(W, 3000).getContext("2d")), data, locale)
   const canvas = createCanvas(W, height)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the receipt (Task #440)
   ctx.fillStyle = "#ffffff"
   ctx.fillRect(0, 0, W, height)
   layout(ctx, data, locale)

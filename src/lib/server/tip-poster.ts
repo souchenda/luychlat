@@ -18,6 +18,7 @@ import { longDate } from "@/lib/dates"
 import { BULLET } from "@/lib/tips"
 
 import { FAMILIES, FRAME, drawFooter, drawHeader, drawIcon, drawRich, loadFonts, wrap } from "./poster-kit"
+import { latinCanvas } from "@/lib/numerals"
 
 const { W, H, PAD } = FRAME
 
@@ -51,7 +52,7 @@ export function splitTakeaway(body: string): { lead: string; takeaway: string | 
 export function tipPoster(tip: { title: string; body: string }, day: string, opts: { tag?: string } = {}): Buffer {
   loadFonts()
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
 
   // Deep emerald gradient, a soft light glow top-right and a warm one bottom-left.
   const bg = ctx.createLinearGradient(0, 0, W * 0.4, H)

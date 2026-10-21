@@ -12,6 +12,7 @@ import { createCanvas, loadImage, type Image, type SKRSContext2D } from "@napi-r
 import type { SilPosterContent } from "@/lib/sil-poster"
 
 import { drawIcon, FAMILIES, loadFonts, roundRect } from "./poster-kit"
+import { latinCanvas } from "@/lib/numerals"
 
 export const SIL_POSTER = { W: 1080, H: 1350, background: "public/images/buddhist_sil_day_bg.jpg" } as const
 const { W, H } = SIL_POSTER
@@ -129,7 +130,7 @@ function shadowed(ctx: SKRSContext2D, draw: () => void, blur = 14) {
 export function renderSilPoster(c: SilPosterContent): Buffer {
   loadFonts()
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
   background(ctx)
   centrepiece(ctx)
   ctx.textBaseline = "alphabetic"

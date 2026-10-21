@@ -2,6 +2,7 @@
 // (lib/nasheed.ts). ✅ copies the file from the private bucket into the public one and the track goes live;
 // ❌ rejects it and deletes the file. Who may tap is checked in the database (bot_nasheed_review → super admin).
 import { createClient } from "@supabase/supabase-js"
+import { outgoingForm } from "@/lib/server/numerals"
 
 import { contentTypeOf, demotedNotice, demotedReport, NASHEED_PUBLIC_CAP, overflowReport, parseNasheedCallback, reviewButtons, reviewCaption, submittedThanksNasheed, SUBMISSIONS_BUCKET, type ReviewState } from "@/lib/nasheed"
 import { kmClock } from "@/lib/scheduled-posts"
@@ -71,7 +72,7 @@ export async function notifySubmission(id: string): Promise<boolean> {
     form.append("caption", caption)
     form.append("parse_mode", "HTML")
     form.append("reply_markup", JSON.stringify({ inline_keyboard: reviewButtons(row.id) }))
-    const res = await fetch(`https://api.telegram.org/bot${botToken()}/sendAudio`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(60_000) })
+    const res = await fetch(`https://api.telegram.org/bot${botToken()}/sendAudio`, { method: "POST", body: outgoingForm(form), cache: "no-store", signal: AbortSignal.timeout(60_000) })
       .then((r) => r.json() as Promise<{ ok: boolean; description?: string }>)
       .catch(() => ({ ok: false, description: "network" }))
     if (res.ok) sent = true

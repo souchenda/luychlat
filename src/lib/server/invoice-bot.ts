@@ -2,6 +2,7 @@
 // The receipt is sent as a photo the merchant can forward to the customer,
 // with ✅ received / ❌ cancel buttons under it.
 import { parseInvoiceText } from "@/lib/bot/parse-invoice"
+import { outgoingForm } from "@/lib/server/numerals"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { toInvoice, type ReceiptData } from "@/lib/invoice"
 import { formatMoney } from "@/lib/money"
@@ -43,7 +44,7 @@ async function photo(chatId: number, png: Buffer, text: string, opts: { messageI
   if (opts.reply_markup) form.append("reply_markup", JSON.stringify(opts.reply_markup))
   await fetch(`https://api.telegram.org/bot${token}/${opts.messageId ? "editMessageMedia" : "sendPhoto"}`, {
     method: "POST",
-    body: form,
+    body: outgoingForm(form),
     cache: "no-store",
     signal: AbortSignal.timeout(30_000),
   }).catch(() => null)

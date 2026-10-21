@@ -9,6 +9,7 @@ import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas"
 import type { DilemmaPoster } from "@/lib/money-dilemmas"
 
 import { FAMILIES, loadFonts, posterMascot, roundRect, wrap } from "./poster-kit"
+import { latinCanvas } from "@/lib/numerals"
 
 const W = 1080
 const H = 1080
@@ -76,7 +77,7 @@ function shieldIcon(ctx: SKRSContext2D, cx: number, cy: number, color: string) {
 export function renderDilemmaPoster(p: DilemmaPoster): { png: Buffer; truncated: boolean } {
   loadFonts()
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
   let truncated = false
 
   // A premium dark emerald with a soft gold glow behind the headline.

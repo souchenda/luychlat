@@ -4,6 +4,7 @@
 // reminder, and the user gets the details with [💳 ស្កេនបង់ប្រាក់] (the KHQR printed on
 // the bill, redrawn sharp) and [✅ បានបង់រួច] (the bill reminders' own "paid").
 import { SITE_URL } from "@/lib/app-site"
+import { outgoingForm } from "@/lib/server/numerals"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { billsOverviewText, type OverviewBill } from "@/lib/bot/bills-overview"
 import QRCode from "qrcode"
@@ -89,7 +90,7 @@ export async function handleBillKhqrCallback(cb: Callback) {
   form.append("chat_id", String(chatId))
   form.append("photo", new Blob([new Uint8Array(png)], { type: "image/png" }), "khqr.png")
   form.append("caption", "📲 ស្កេន KHQR នេះពី App ធនាគារដើម្បីបង់វិក្កយបត្រ — រួចចុច «💵 កត់ថាបង់រួច»។")
-  await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form, cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
+  await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: outgoingForm(form), cache: "no-store", signal: AbortSignal.timeout(30_000) }).catch(() => null)
 }
 
 const riel = (n: number) => new Intl.NumberFormat("en-US").format(n)

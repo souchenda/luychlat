@@ -6,6 +6,7 @@ import { createCanvas } from "@napi-rs/canvas"
 import { SPOTLIGHT_PILLARS } from "@/lib/spotlight"
 
 import { FAMILIES, FRAME, GOLD, drawFooter, drawHeader, loadFonts, posterMascot, roundRect, wrap } from "./poster-kit"
+import { latinCanvas } from "@/lib/numerals"
 
 const { W, H, PAD } = FRAME
 const KM_NUM = ["១", "២", "៣"]
@@ -13,7 +14,7 @@ const KM_NUM = ["១", "២", "៣"]
 export function spotlightPoster(): Buffer {
   loadFonts()
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
 
   // Background: as the daily tip (deep emerald, a light glow top-right, a warm one bottom-left).
   const bg = ctx.createLinearGradient(0, 0, W * 0.4, H)

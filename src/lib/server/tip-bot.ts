@@ -18,6 +18,7 @@
 // Buttons carry the version they were shown with: a tap on an older preview
 // (after an edit here or in the app) refreshes it instead of approving.
 import { TIP_BODY_MAX, TIP_TITLE_MAX, defaultTip, nextTip } from "@/lib/daily-tip"
+import { outgoingForm } from "@/lib/server/numerals"
 import { SERIES_HASHTAGS, postFooter, withFooter } from "@/lib/post-footer"
 import { needsFounderApproval, tipTextIssues } from "@/lib/tip-quality"
 import { TIPS } from "@/lib/tips"
@@ -158,7 +159,7 @@ async function photo(chatId: number | string, png: Buffer, caption: string, opts
   if (opts.reply_markup) form.append("reply_markup", JSON.stringify(opts.reply_markup))
   const res = await fetch(`https://api.telegram.org/bot${token}/${opts.messageId ? "editMessageMedia" : "sendPhoto"}`, {
     method: "POST",
-    body: form,
+    body: outgoingForm(form),
     cache: "no-store",
     signal: AbortSignal.timeout(30_000),
   }).catch(() => null)

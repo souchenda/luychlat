@@ -10,6 +10,7 @@ import { khmerDigits } from "@/lib/dates"
 
 import { lotus } from "./festival-poster"
 import { FAMILIES, FRAME, drawFooter, drawHeader, drawRich, loadFonts, roundRect, wrap } from "./poster-kit"
+import { latinCanvas } from "@/lib/numerals"
 
 const { W, H, PAD } = FRAME
 
@@ -66,7 +67,7 @@ export function holidayPosterText(m: HolidayMoment): { title: string; date: stri
 export function holidayPoster(m: HolidayMoment): Buffer {
   loadFonts()
   const canvas = createCanvas(W, H)
-  const ctx = canvas.getContext("2d")
+  const ctx = latinCanvas(canvas.getContext("2d")) // 0-9 on the poster (Task #440)
   const religious = m.block.kind === "PCHUM_BEN"
 
   // Background: the daily-tip emerald with a soft light top-right and a warm gold bottom-left.

@@ -155,6 +155,13 @@ export type HolidayChannel = "islamic" | "community" | "facebook"
 export const holidayCategory = (d: NationalDay): HolidayCategory =>
   d.kind === "islamic" ? "islamic" : d.kind === "merit" ? "buddhist" : d.kind === "chinese" ? "chinese" : "civic"
 
+/**
+ * The official royal and national commemorations — Coronation Day, Independence Day, the Constitution, the day of
+ * remembrance — keep the traditional Khmer numerals on their poster, caption and card, per palace protocol (founder,
+ * 21/10/2026 — Task #440, the single exception to 0-9: lib/numerals.ts).
+ */
+export const royalNumerals = (d: Pick<NationalDay, "kind">) => d.kind === "royal" || d.kind === "national" || d.kind === "memorial"
+
 export function allowedChannels(d: NationalDay): readonly HolidayChannel[] {
   return holidayCategory(d) === "islamic" ? ["islamic"] : ["community", "facebook"]
 }
