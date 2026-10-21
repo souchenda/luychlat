@@ -42,7 +42,9 @@ describe("Every production release reaches the founder's private chat (founder, 
   })
   it("regression: fifteen releases in a day left 32 GB of build cache — every release trims it to its newest 2 GB; the APK build leaves no temporary outputs or dangling images", () => {
     const after = update.slice(update.indexOf("trap - EXIT"))
-    assert.match(after, /docker image prune -f >\/dev\/null\n/)
+    // Unused images first (21/10/2026: while they existed the old layers counted as shared and no trim freed them).
+    assert.match(after, /docker image prune -af >\/dev\/null 2>&1 \|\| echo "! Unused images not removed \(the app is deployed\)"\n/)
+    assert.ok(after.indexOf("docker image prune -af") < after.indexOf("docker builder prune -f --keep-storage 2GB"), "images before the cache trim")
     assert.match(after, /docker builder prune -f --keep-storage 2GB >\/dev\/null 2>&1 \|\| echo "! Build cache not trimmed \(the app is deployed\)"/) // never fails a live release
     const apk = read("deploy/build-apk.sh").replace(/\r\n/g, "\n")
     const end = apk.slice(apk.indexOf('echo "✓ $(du -h "$OUT/LuyChlat.apk"'))

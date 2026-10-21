@@ -128,7 +128,10 @@ if [ -d /etc/cron.d ] && [ "$(cat /etc/cron.d/luychlat-weekly-prune 2>/dev/null)
 fi
 # Lets auto-update.sh redeploy when .env changes (e.g. a new token).
 sha256sum .env 2>/dev/null | cut -d' ' -f1 > deploy/.deployed-env || true
-docker image prune -f >/dev/null
+# Every image no container runs (founder, 21/10/2026): with Docker's containerd store the old build layers stay «shared»
+# with unused images (the JDK, Node, Postgres) and no cache trim frees them — 35 GB came back only once these went. They
+# are pulled again by the migration or APK step that needs them; the running app's image always stays.
+docker image prune -af >/dev/null 2>&1 || echo "! Unused images not removed (the app is deployed)"
 # The build cache, trimmed to its newest 2 GB after every release (founder, 20/10/2026 — fifteen releases in a day left
 # 32 GB of cache; the weekly clean-up alone let it pile up). The newest layers stay. Never fails a live release.
 docker builder prune -f --keep-storage 2GB >/dev/null 2>&1 || echo "! Build cache not trimmed (the app is deployed)"
