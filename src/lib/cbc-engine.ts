@@ -49,6 +49,8 @@ export type CbcAssessment = {
   /** An installment is unpaid past its date right now. */
   overdueNow: boolean
   loans: number
+  /** Loans still being repaid (an installment left to pay). */
+  activeLoans: number
 }
 
 const LATE = ["1", "2", "3+"]
@@ -113,6 +115,7 @@ export function assessCredit(loans: LoanHistory[], monthlyIncomeUsd: number | nu
     monthsToClear,
     overdueNow,
     loans: loans.length,
+    activeLoans: loans.filter((l) => l.monthlyPaymentUsd !== null).length,
   }
 }
 

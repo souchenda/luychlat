@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { BottomSheet } from "@/components/common/bottom-sheet";
@@ -165,6 +166,14 @@ export function CbcAssessmentView({ a, unscheduled = 0 }: { a: CbcAssessment; un
           <p key={line}>{line}</p>
         ))}
       </div>
+
+      {/* The one-page statement to print or share before meeting a loan officer (founder, 21/10/2026). */}
+      <Link
+        href="/debts/statement"
+        className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/25 bg-emerald-600 px-4 py-2.5 font-semibold text-white shadow-sm transition-transform active:scale-[0.98]"
+      >
+        📄 ទាញយករបាយការណ៍បឋម (PDF / Print)
+      </Link>
 
       <p className="text-[11px] text-muted-foreground">
         ℹ️ វាយតម្លៃពីកម្ចី {a.loans} ដែលកត់ក្នុង អេប លុយឆ្លាត
