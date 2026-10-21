@@ -14,14 +14,20 @@ export function homeGreeting(islamic: boolean, name: string | null | undefined):
 
 /**
  * The home header as two lines beside the photo (founder, 21/10/2026 — Task #448, so a long name or the Islamic greeting
- * never pushes the dates): the greeting on its own small line — «អាស្សាឡាមុអាឡៃកុម» with a moon in Islamic Mode, else
- * «សួស្តី» with the waving hand — and the given name under it, bold, cut with «…» when it is very long. No name yet: the
- * greeting alone.
+ * never pushes the dates): the greeting on its own small line and the given name under it, bold, cut with «…» when it is
+ * very long. No name yet: the greeting alone. The greeting (Task #449 — no waving hand; as long as the Salam): Islamic
+ * Mode «អាស្សាឡាមុអាឡៃកុម» with a moon; otherwise by the time of day in Cambodia — «អរុណសួស្តី» 05:00–11:59,
+ * «ទិវាសួស្តី» 12:00–17:59, «សាយណ្ហសួស្តី» 18:00–04:59.
  */
-export function greetingStack(islamic: boolean, name: string | null | undefined): { greeting: MessageKey; name: string | null; icon: "moon" | "wave" } {
+export function greetingStack(islamic: boolean, name: string | null | undefined, hour: number): { greeting: MessageKey; name: string | null; moon: boolean } {
   const n = name?.trim() || null
-  return islamic ? { greeting: "islamic.greeting", name: n, icon: "moon" } : { greeting: "home.greeting", name: n, icon: "wave" }
+  if (islamic) return { greeting: "islamic.greeting", name: n, moon: true }
+  const greeting: MessageKey = hour >= 5 && hour < 12 ? "home.greetingMorning" : hour >= 12 && hour < 18 ? "home.greetingAfternoon" : "home.greetingEvening"
+  return { greeting, name: n, moon: false }
 }
+
+/** The hour in Cambodia (UTC+7) — the greeting follows the Cambodian day, wherever the phone's clock is set. */
+export const cambodiaHour = (now: number = Date.now()) => new Date(now + 7 * 3_600_000).getUTCHours()
 
 export type SavedKind = "INCOME" | "EXPENSE" | "GOAL"
 

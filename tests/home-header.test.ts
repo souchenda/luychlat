@@ -15,8 +15,12 @@ const header = home.slice(home.indexOf("<header>"), home.indexOf("</header>"))
 describe("Home header — who on the left, the dates on the right, never a collision", () => {
   it("two lines beside the photo (Task #448): the greeting small, the given name bold under it — a very long name is cut with «…»", () => {
     const who = header.slice(header.indexOf('<Link href="/settings" className="flex min-w-0 flex-col justify-center rounded-md"'), header.indexOf("</Link>", header.indexOf('className="flex min-w-0 flex-col justify-center')))
-    assert.match(who, /<span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">\s*\{t\(greeting\.greeting\)\}/)
-    assert.match(who, /greeting\.icon === "wave" \? \(\s*<HandIcon[^>]*\/>\s*\) : \(\s*<MoonIcon/) // the moon in Islamic Mode, never the hand
+    assert.match(who, /<span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400" suppressHydrationWarning>\s*\{t\(greeting\.greeting\)\}/)
+    // The moon in Islamic Mode; no waving hand anywhere (Task #449); the greeting follows the hour, so it may differ from
+    // the server's render by a minute — hydration is told so.
+    assert.match(who, /\{greeting\.moon && <MoonIcon className="size-3\.5 fill-amber-300 text-amber-500"/)
+    assert.doesNotMatch(header, /HandIcon|✋/)
+    assert.match(who, /text-slate-400" suppressHydrationWarning>/)
     assert.match(who, /\{greeting\.name && <h1 className="max-w-\[130px\] truncate text-base font-bold text-slate-900 sm:max-w-\[200px\] dark:text-white">\{greeting\.name\}<\/h1>\}/)
     assert.ok(who.indexOf("{t(greeting.greeting)}") < who.indexOf("{greeting.name}"), "the greeting above the name")
   })
@@ -29,7 +33,8 @@ describe("Home header — who on the left, the dates on the right, never a colli
     assert.ok(header.indexOf("</h1>") < header.indexOf("max-w-[55%] shrink-0 flex-col items-end"), "the greeting is in the left column, before the dates")
     assert.ok(right.indexOf("{headerDate(today, locale)}") < right.indexOf("<LunarPill onOpen="), "the date above the pill")
     assert.match(right, /badge\.kind === "hijri" \?/) // the Hijri pill in Islamic Mode, in the same place
-    assert.match(header, /<p className="text-xs whitespace-nowrap text-muted-foreground">\s*<time/)
+    // Crisp, legible date (Task #449): slate-700 / slate-200, medium — not the faint grey.
+    assert.match(header, /<p className="text-xs font-medium whitespace-nowrap text-slate-700 dark:text-slate-200">\s*<time/)
     assert.doesNotMatch(header, /mt-1 flex flex-wrap items-center justify-between/) // the date is no longer under the greeting
   })
   it("the short date: «ថ្ងៃអាទិត្យ 18 តុលា» (international digits — founder, 21/10/2026)", () => {

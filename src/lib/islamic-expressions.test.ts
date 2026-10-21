@@ -5,7 +5,7 @@ import { describe, it } from "node:test"
 
 import { dictionaries } from "@/lib/i18n/dictionaries"
 
-import { greetingStack, homeGreeting, savedMessage } from "./islamic-expressions"
+import { cambodiaHour, greetingStack, homeGreeting, savedMessage } from "./islamic-expressions"
 
 const render = (g: ReturnType<typeof homeGreeting>, locale: "km" | "en" = "km") =>
   dictionaries[locale][g.key].replace("{name}", g.params?.name ?? "")
@@ -24,17 +24,25 @@ describe("Home greeting — Islamic Mode (founder, 18/10/2026)", () => {
     assert.equal(render(g), "សួស្តី ចិន្តា")
     assert.equal(g.wave, true)
   })
-  it("the home header (Task #448): the greeting and the name on two lines — Islamic: «អាស្សាឡាមុអាឡៃកុម» with a moon, never «សួស្តី»", () => {
+  it("the home header (Task #448 / #449): the greeting and the name on two lines — Islamic: «អាស្សាឡាមុអាឡៃកុម» with a moon", () => {
     const km = dictionaries.km as Record<string, string>
-    const islamic = greetingStack(true, "មូហាំម៉ាត់")
-    assert.deepEqual(islamic, { greeting: "islamic.greeting", name: "មូហាំម៉ាត់", icon: "moon" })
+    const islamic = greetingStack(true, "មូហាំម៉ាត់", 9)
+    assert.deepEqual(islamic, { greeting: "islamic.greeting", name: "មូហាំម៉ាត់", moon: true })
     assert.equal(km[islamic.greeting], "អាស្សាឡាមុអាឡៃកុម")
-    assert.deepEqual(greetingStack(false, " ចិន្តា "), { greeting: "home.greeting", name: "ចិន្តា", icon: "wave" })
-    assert.equal(km[greetingStack(false, null).greeting], "សួស្តី")
-    assert.equal(greetingStack(true, "  ").name, null) // no name yet: the greeting alone
+    for (const h of [0, 4, 12, 18, 23]) assert.equal(greetingStack(true, "x", h).greeting, "islamic.greeting", String(h)) // never by the hour
+    assert.equal(greetingStack(true, "  ", 9).name, null) // no name yet: the greeting alone
+  })
+  it("otherwise by the time of day in Cambodia (Task #449): អរុណសួស្តី 05–11:59 · ទិវាសួស្តី 12–17:59 · សាយណ្ហសួស្តី 18–04:59; no waving hand", () => {
+    const km = dictionaries.km as Record<string, string>
+    const at = (h: number) => km[greetingStack(false, " ចិន្តា ", h).greeting]
+    assert.deepEqual([4, 5, 11, 12, 17, 18, 23, 0].map(at), ["សាយណ្ហសួស្តី", "អរុណសួស្តី", "អរុណសួស្តី", "ទិវាសួស្តី", "ទិវាសួស្តី", "សាយណ្ហសួស្តី", "សាយណ្ហសួស្តី", "សាយណ្ហសួស្តី"])
+    assert.deepEqual(greetingStack(false, " ចិន្តា ", 9), { greeting: "home.greetingMorning", name: "ចិន្តា", moon: false })
+    for (const l of ["en", "zh"] as const) for (const k of ["home.greetingMorning", "home.greetingAfternoon", "home.greetingEvening"]) assert.ok((dictionaries[l] as Record<string, string>)[k], `${l} ${k}`)
+    // Cambodia's hour, whatever the phone's zone: 23:30 UTC is 06:30 in Phnom Penh.
+    assert.equal(cambodiaHour(Date.parse("2026-10-21T23:30:00Z")), 6)
     const page = readFileSync(join(process.cwd(), "src/app/(app)/home/page.tsx"), "utf8")
-    assert.match(page, /const greeting = greetingStack\(islamic, givenName\)/)
-    assert.doesNotMatch(page, /t\("home\.greetingName"/)
+    assert.match(page, /const greeting = greetingStack\(islamic, givenName, cambodiaHour\(\)\)/)
+    assert.doesNotMatch(page, /HandIcon|animate-wave|t\("home\.greetingName"/)
   })
 })
 

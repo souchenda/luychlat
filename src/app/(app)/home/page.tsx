@@ -1,7 +1,7 @@
 "use client"
 
 import { PushInviteCard } from "@/components/notifications/push-prompt"
-import { ChevronRightIcon, EyeIcon, FileUpIcon, HandIcon, MoonIcon, ReceiptTextIcon, SparklesIcon, WalletIcon } from "lucide-react"
+import { ChevronRightIcon, EyeIcon, FileUpIcon, MoonIcon, ReceiptTextIcon, SparklesIcon, WalletIcon } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 import { useMemo, useState } from "react"
@@ -35,7 +35,7 @@ import { canWrite, useActiveWorkspace, useCategories, useDebts, useProfile, useT
 import type { CategoryType, Transaction } from "@/lib/data/types"
 import { headerDate, monthRange, recentMonths } from "@/lib/dates"
 import { headerBadge, toHijri } from "@/lib/islamic"
-import { greetingStack } from "@/lib/islamic-expressions"
+import { cambodiaHour, greetingStack } from "@/lib/islamic-expressions"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
@@ -98,7 +98,7 @@ export default function HomePage() {
   const hijriOffset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
   const hijri = islamic ? toHijri(today, hijriOffset) : null
   const badge = headerBadge({ islamic, hijri, locale })
-  const greeting = greetingStack(islamic, givenName)
+  const greeting = greetingStack(islamic, givenName, cambodiaHour())
   const [calendarOpen, setCalendarOpen] = useState(false)
 
   return (
@@ -107,8 +107,8 @@ export default function HomePage() {
       <header>
         {/* Two columns (founder, 21/10/2026 — Task #447): who on the left, when on the right (the date with its year, the
             lunar or Hijri pill under it, flush right, at most 55% wide). Who is two lines beside the 42 px photo (Task #448):
-            the greeting small — «អាស្សាឡាមុអាឡៃកុម» with a moon in Islamic Mode, «សួស្តី» with the waving hand otherwise —
-            and the given name bold under it, cut with «…» when it is very long, so nothing ever collides on a 360 px phone.
+            the greeting small — «អាស្សាឡាមុអាឡៃកុម» with a moon in Islamic Mode, else by the time of day (Task #449:
+            «អរុណសួស្តី» / «ទិវាសួស្តី» / «សាយណ្ហសួស្តី», no waving hand) — and the given name bold under it, cut with «…» when it is very long, so nothing ever collides on a 360 px phone.
             A Business workspace shows its logo and name. The photo and the name open Settings. */}
         <div className="flex w-full items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -124,13 +124,9 @@ export default function HomePage() {
                   <ProfileAvatar path={profile?.avatar_path} name={profile?.display_name?.trim() ?? ""} className="size-[42px] border-2 border-emerald-500/25 text-sm shadow-sm dark:border-emerald-400/30" />
                 </Link>
                 <Link href="/settings" className="flex min-w-0 flex-col justify-center rounded-md" aria-label={t("settings.title")}>
-                  <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <span className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400" suppressHydrationWarning>
                     {t(greeting.greeting)}
-                    {greeting.icon === "wave" ? (
-                      <HandIcon className="size-3.5 origin-[70%_80%] animate-wave text-amber-500 motion-reduce:animate-none" strokeWidth={2} aria-hidden />
-                    ) : (
-                      <MoonIcon className="size-3.5 fill-amber-300 text-amber-500" strokeWidth={2} aria-hidden />
-                    )}
+                    {greeting.moon && <MoonIcon className="size-3.5 fill-amber-300 text-amber-500" strokeWidth={2} aria-hidden />}
                   </span>
                   {greeting.name && <h1 className="max-w-[130px] truncate text-base font-bold text-slate-900 sm:max-w-[200px] dark:text-white">{greeting.name}</h1>}
                 </Link>
@@ -138,7 +134,8 @@ export default function HomePage() {
             )}
           </div>
           <div className="flex max-w-[55%] shrink-0 flex-col items-end gap-1 text-right">
-            <p className="text-xs whitespace-nowrap text-muted-foreground">
+            {/* Crisp, easy to read (Task #449) — not the faint grey. */}
+            <p className="text-xs font-medium whitespace-nowrap text-slate-700 dark:text-slate-200">
               <time dateTime={format(today, "yyyy-MM-dd")} suppressHydrationWarning>
                 {headerDate(today, locale)}
               </time>

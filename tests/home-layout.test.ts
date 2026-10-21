@@ -62,7 +62,10 @@ describe("the hero's balances flush right, the ring pinned left (founder, 21/10/
     assert.match(card, /<div className="flex w-full items-center justify-between gap-4">\s*\{!loading && <WalletRing/)
     assert.match(card, /<div className="flex items-center justify-end gap-1">\s*<p className="text-\[15px\] font-medium text-white\/85">\{t\("netWorth\.balanceTitle"\)\}<\/p>\s*<button/)
     // Each currency line ends at the right edge, the amount before its badge.
-    assert.match(card, /<p key=\{c\} className="flex w-full min-w-0 items-center justify-end gap-2"[^>]*>\s*<Amount value=\{held\}[^>]*\/>\s*<span className=\{`w-11 shrink-0 rounded-full/)
+    assert.match(card, /<p key=\{c\} className="flex w-full min-w-0 items-center justify-end gap-2"[^>]*>\s*<Amount value=\{held\}[^>]*\/>\s*\{\/\*[^*]*\*\/\}\s*<span aria-hidden className=\{`grid size-6 shrink-0 place-items-center rounded-full/)
+    // Task #449 (after ACLEDA): the symbol in a round badge — gold «៛», blue «$» — never the words «KHR» / «USD».
+    assert.match(card, /\$\{c === "KHR" \? "bg-amber-300 text-amber-950" : "bg-sky-300 text-sky-950"\}`\}>\{c === "KHR" \? "៛" : "\$"\}<\/span>/)
+    assert.doesNotMatch(card, />\{c\}<\/span>/)
     assert.match(card, /\(\["KHR", "USD"\] as const\)\.map/) // riel on top, dollars below
     assert.match(card, /className="mt-1\.5 flex w-full flex-col items-end space-y-1"/)
   })

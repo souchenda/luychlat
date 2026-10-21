@@ -67,6 +67,9 @@ const km = {
   "nav.settings": "ការកំណត់",
 
   "home.greeting": "សួស្តី",
+  "home.greetingMorning": "អរុណសួស្តី",
+  "home.greetingAfternoon": "ទិវាសួស្តី",
+  "home.greetingEvening": "សាយណ្ហសួស្តី",
   "home.greetingName": "សួស្តី {name}",
   "islamic.greeting": "អាស្សាឡាមុអាឡៃកុម",
   "islamic.greetingName": "អាស្សាឡាមុអាឡៃកុម, {name}",
@@ -4209,6 +4212,9 @@ const en: Record<MessageKey, string> = {
   "nav.settings": "Settings",
 
   "home.greeting": "Hello",
+  "home.greetingMorning": "Good morning",
+  "home.greetingAfternoon": "Good afternoon",
+  "home.greetingEvening": "Good evening",
   "home.greetingName": "Hello, {name}",
   "islamic.greeting": "Assalamu Alaikum",
   "islamic.greetingName": "Assalamu Alaikum, {name}",

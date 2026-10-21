@@ -89,7 +89,8 @@ export function NetWorthCard({
                 return (
                   <p key={c} className="flex w-full min-w-0 items-center justify-end gap-2" title={t(c === "KHR" ? "netWorth.inKhr" : "netWorth.inUsd")}>
                     <Amount value={held} currency={c} className={`truncate font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm ${balanceSize(held, c)}`} />
-                    <span className={`w-11 shrink-0 rounded-full text-center text-[11px] leading-5 font-bold ${c === "KHR" ? "bg-amber-300 text-amber-950" : "bg-white text-emerald-800"}`}>{c}</span>
+                    {/* The currency as its symbol in a round badge (Task #449, after ACLEDA): gold «៛», blue «$» — not «KHR» / «USD». */}
+                    <span aria-hidden className={`grid size-6 shrink-0 place-items-center rounded-full text-[13px] leading-none font-bold shadow-sm ${c === "KHR" ? "bg-amber-300 text-amber-950" : "bg-sky-300 text-sky-950"}`}>{c === "KHR" ? "៛" : "$"}</span>
                   </p>
                 )
               })}
