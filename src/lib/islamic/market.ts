@@ -50,6 +50,8 @@ export const goldUnitsLine = (g: { perGram: number; perChi: number; perDamlung: 
 export const GRAMS_PER_TROY_OUNCE = 31.1034768
 
 export type IslamicMarket = {
+  /** The day these figures are for (Cambodia) — a gold price from another day is dated in the bulletin. */
+  day: string
   /** The NBC rate's official day (YYYY-MM-DD), or null without one. */
   rateDate: string | null
   usdKhr: number | null
@@ -78,6 +80,7 @@ export function islamicMarket(market: MarketLive | null | undefined, today: stri
     : null
   const nisabUsd = gold ? Math.round(NISAB_GOLD_GRAMS * perGram!) : null
   return {
+    day: today,
     rateDate: market?.nbc?.date ?? null,
     usdKhr,
     rates: market?.nbc?.khr_per ? { ...market.nbc.khr_per, ...(usdKhr ? { USD: usdKhr } : {}) } : usdKhr ? { USD: usdKhr } : null,
@@ -144,7 +147,7 @@ export function islamicBulletinHtml(m: IslamicMarket, o: { hijri: string; gregor
       "🥇 <b>ហាងឆេងមាស និងកម្រិតនីស៊បហ្សាកាត់ (Zakat Nisab)</b>",
       // Cambodian units first, the gram in brackets, then the price's reference (founder, 21/10/2026).
       `• ហាងឆេងមាស ២៤K ៖ ${goldUnitsLine(m.gold)}`,
-      `  (${goldReference(m.gold.source)})`,
+      `  (${goldReference(m.gold.source)}${m.gold.date && m.gold.date !== m.day ? ` · តម្លៃថ្ងៃ ${esc(m.gold.date.slice(8, 10))}/${esc(m.gold.date.slice(5, 7))}` : ""})`,
       `• <b>កម្រិតនីស៊បហ្សាកាត់ (មាស ៨៥ ក្រាម ≈ ${khmerGoldWeight(NISAB_GOLD_GRAMS)}) = ${usd(m.nisab.usd)}${m.nisab.khr ? ` (~${riel(m.nisab.khr)})` : ""}</b>`,
       "",
       `ℹ️ បញ្ជាក់៖ ${zakatNote("channel")}`,

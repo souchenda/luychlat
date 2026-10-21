@@ -159,8 +159,9 @@ cluttered, and unreadable»):
   tip is posted only after the founder's «✅ អនុម័តផ្សាយ» (`bot_tip_auto_approve` is a no-op). Each post
   leaves PENDING / APPROVED once, so it is never posted twice; the channel message id and the Facebook post
   id are recorded (`scheduled_posts.telegram_message_id`, `facebook_post_id`).
-- **Factual feeds on time (founder, 19/10/2026):** the market bulletin (NBC rates, gold, fuel — 09:30–10:30, as soon
-  as the gold shops publish), the evening NBC rates and the 05:30 prayer times with the waking du'a are created
+- **Factual feeds on time (founder, 19/10/2026):** the market bulletin (NBC rates, gold, fuel — only with an NBC rate
+  dated today, never yesterday's: from 08:00, out the minute today's rate and gold are in; no rate by 10:00 → held, the
+  founder told on a weekday — `lib/bulletin-timing.ts`), the evening NBC rates and the 05:30 prayer times with the waking du'a are created
   APPROVED by the database (`public.post_auto_publish` = `AUTO_PUBLISH_KINDS`) and publish at their time, Telegram
   only. Nothing creative, humorous or bound for Facebook is on the list. The bulletin and the NBC rates publish
   silently; **the 05:30 prayer times keep a safety net (founder, 21/10/2026 — `SAFETY_NET_KINDS`):** still on the

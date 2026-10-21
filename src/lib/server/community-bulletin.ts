@@ -11,6 +11,8 @@ import { logEvent } from "@/lib/server/events"
 import { communityChannel, communityChannelConfigured, isCommunityChannel, islamicChannelConfigured, type FounderApproval } from "@/lib/server/channel"
 import { islamicBulletinHtml, islamicMarket } from "@/lib/islamic/market"
 import { nbcRatesBlock } from "@/lib/nbc-rates"
+import { bulletinDecision, HELD_NOTE, isWeekday, shouldPollMarket, type BulletinDecision } from "@/lib/bulletin-timing"
+import { founderChats } from "@/lib/server/admin-routes"
 import { compactFooter } from "@/lib/post-footer"
 import { SITE_URL } from "@/lib/app-site"
 import { holdForApproval } from "@/lib/server/scheduled-posts"
@@ -26,9 +28,10 @@ import { holdForApproval } from "@/lib/server/scheduled-posts"
  * the 08/10 «no fuel» rule) it also carries the MoC's current EA92 and diesel prices; a new MoC notice still gets
  * its own post when it comes out (moc-fuel-sync.ts).
  *
- * Timing: from 09:30 (Cambodia) it posts as soon as today's local gold prices
- * are in (shops publish around 09:00); at 10:30 it posts anyway, with the
- * world reference price and a note. (07:00 morning tip and 20:00 check-in:
+ * Timing (founder, 21/10/2026 — lib/bulletin-timing.ts): only with an NBC rate dated today — never yesterday's; from
+ * 08:00 the market is fetched every 5 minutes and the bulletin goes out the minute today's rate and today's Phnom Penh
+ * gold are in; at 10:00 with today's rate but not today's gold, the gold shows its own date; no rate for today by 10:00
+ * → held (the founder told on a weekday). (07:00 morning tip and 20:00 check-in:
  * community-routine.ts.) In the evening (17:00–19:30), once NBC's
  * rate for the next working day is in, a short rates post follows. Skipped
  * when no channel is set. bot_claim_daily makes each once a day, also across
@@ -37,11 +40,6 @@ import { holdForApproval } from "@/lib/server/scheduled-posts"
 
 const JOB = "community-bulletin"
 const EVENING_JOB = "community-nbc-evening"
-const FROM = { hour: 9, minute: 30 }
-/** Post without local prices from 10:30. */
-const DEADLINE = { hour: 10, minute: 30 }
-/** Never after 11:00 (e.g. the server was down all morning). */
-const LAST_HOUR = 11
 const km = dictionaries.km
 
 /** Now in Cambodia (no daylight saving): a Date whose local fields are Phnom Penh's. */
@@ -85,7 +83,9 @@ export function goldBlock(market: MarketLive, today: string): string[] {
   const g = islamicMarket(market, today).gold
   if (!g) return []
   const where = g.source === "local" ? "ផ្សារភ្នំពេញ" : "តម្លៃយោងអន្តរជាតិ"
-  return ["", `🥇 <b>ហាងឆេងមាស ២៤K (${where})</b>`, `• ១ ជី ≈ ${fmtUsd(g.perChi)} · ១ តម្លឹង ≈ ${fmtUsd(g.perDamlung)}`]
+  // Not today's (the shops had not published by 10:00): its own date, never passed off as today's (21/10/2026).
+  const dated = g.date && g.date !== today ? ` · តម្លៃថ្ងៃ ${asOf(g.date).split("/").slice(0, 2).join("/")}` : ""
+  return ["", `🥇 <b>ហាងឆេងមាស ២៤K (${where}${dated})</b>`, `• ១ ជី ≈ ${fmtUsd(g.perChi)} · ១ តម្លឹង ≈ ${fmtUsd(g.perDamlung)}`]
 }
 
 /** The MoC's current retail prices (founder, 21/10/2026): EA92 and diesel per litre; an ended cycle says so. */
@@ -209,41 +209,62 @@ export async function appUrl(): Promise<string | null> {
   }
 }
 
-/** Called every minute by the dispatcher; posts once a day (see the timing above). */
+let lastMarketPoll = 0
+
+/**
+ * Today's market for the bulletins (founder, 21/10/2026 — lib/bulletin-timing.ts): from 08:00 it is fetched again every
+ * 5 minutes while today's NBC rate or today's gold is not in, and the minute's decision is taken on it.
+ */
+async function bulletinNow(now: ReturnType<typeof phnomPenhNow>): Promise<{ market: MarketLive | null; decision: BulletinDecision }> {
+  const minutes = now.hour * 60 + now.minute
+  let market = await currentMarket()
+  if (shouldPollMarket({ minutes, today: now.day, nbcDate: market?.nbc?.date, goldDate: market?.local_gold?.date, lastPollAt: lastMarketPoll, now: Date.now() })) {
+    lastMarketPoll = Date.now()
+    market = (await syncMarket(true)) ?? market
+  }
+  const decision = bulletinDecision({ minutes, today: now.day, nbcDate: market?.nbc?.date, goldDate: market?.local_gold?.date })
+  if (decision === "hold") await tellHeld(now.day, market?.nbc?.date ?? null)
+  return { market, decision }
+}
+
+/** A weekday with no NBC rate of its own by 10:00: the founder is told once (both bulletins share the claim). */
+async function tellHeld(day: string, nbcDate: string | null) {
+  if (!isWeekday(day)) return // a weekend never has a rate of its own — nothing to report
+  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "bulletin-held", p_day: day })
+  if (claimed !== true) return
+  let sent = 0
+  for (const chat of await founderChats()) if ((await tg("sendMessage", { chat_id: chat, text: HELD_NOTE })).ok) sent++
+  logEvent("warn", "bulletin", `Bulletins held ${day}: no NBC rate for today by 10:00 (latest ${nbcDate ?? "none"}) — founder told in ${sent} chat(s)`)
+}
+
+/** Called every minute by the dispatcher; posts once a day (see the timing above and lib/bulletin-timing.ts). */
 export async function sendCommunityBulletin(): Promise<boolean> {
   if (!communityChannelConfigured()) return false
   const now = phnomPenhNow()
   await maybeSendEveningRates(now)
-  if (now.hour < FROM.hour || (now.hour === FROM.hour && now.minute < FROM.minute) || now.hour >= LAST_HOUR) return false
-  let market = await currentMarket()
-  const pastDeadline = now.hour > DEADLINE.hour || (now.hour === DEADLINE.hour && now.minute >= DEADLINE.minute)
-  if (!hasLocalToday(market) && !pastDeadline) return false
+  // Only today's NBC rate, never yesterday's (founder, 21/10/2026): out the minute today's rate and gold are in.
+  const { market, decision } = await bulletinNow(now)
+  if (decision !== "publish") return false
   const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: JOB, p_day: now.day })
   if (claimed !== true) return false
-
-  // Fresh rates if the stored ones are older than 2 hours.
-  if (!market || Date.now() - Date.parse(market.fetched_at) > 2 * 3_600_000) market = (await syncMarket(true)) ?? market
   // A factual feed: created approved, published a minute later; the founder's preview can still ❌ it (founder,
   // 19/10/2026 — scheduled-posts.ts, AUTO_PUBLISH_KINDS).
   await holdForApproval("BULLETIN", now.day, { day: now.day })
-  logEvent("info", "bulletin", `Daily bulletin ready — publishes automatically in a minute${hasLocalToday(market) ? "" : " (no local gold prices yet)"}`)
+  logEvent("info", "bulletin", `Daily bulletin ready (NBC ${market?.nbc?.date}) — publishes automatically in a minute${hasLocalToday(market) ? "" : " (today's gold not in by 10:00 — shown with its date)"}`)
   return true
 }
 
 // ─── The Islamic market bulletin for @LuyChlatIslamic (founder, 20/10/2026) ─────────────────────────────────────────
-// The same timing as the general bulletin (09:30, or once the gold shops publish, by 10:30), its own daily claim, a
-// factual feed (AUTO_PUBLISH_KINDS): created approved, published a minute later to the Islamic channel only — the
-// general channel never gets it (lib/islamic-channel.ts channelFor). Nothing without an NBC rate.
+// The same timing as the general bulletin (lib/bulletin-timing.ts: today's NBC rate only, out the minute it and today's
+// gold are in, from 08:00), its own daily claim, a factual feed (AUTO_PUBLISH_KINDS): created approved, published a
+// minute later to the Islamic channel only — the general channel never gets it (lib/islamic-channel.ts channelFor).
 const ISLAMIC_JOB = "islamic-bulletin"
 
 export async function sendIslamicBulletin(): Promise<boolean> {
   if (!islamicChannelConfigured()) return false
   const now = phnomPenhNow()
-  if (now.hour < FROM.hour || (now.hour === FROM.hour && now.minute < FROM.minute) || now.hour >= LAST_HOUR) return false
-  const market = await currentMarket()
-  const pastDeadline = now.hour > DEADLINE.hour || (now.hour === DEADLINE.hour && now.minute >= DEADLINE.minute)
-  if (!hasLocalToday(market) && !pastDeadline) return false
-  if (!market?.nbc?.usd_khr) return false
+  const { market, decision } = await bulletinNow(now)
+  if (decision !== "publish" || !market?.nbc?.usd_khr) return false
   const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: ISLAMIC_JOB, p_day: now.day })
   if (claimed !== true) return false
   await holdForApproval("ISLAMIC_BULLETIN", now.day, { day: now.day })
