@@ -1,7 +1,7 @@
 /**
  * The nine quick actions under the home hero (founder, 21/10/2026 — essential actions only, no filler: the rates, gold
  * and fuel are on the hero's ticker and in one market hub), three a row:
- *   daily cash   — scan a slip (the bot) · quick entry (expense ⇄ income) · transfer      (editors only)
+ *   daily cash   — scan a slip (in the app's own scanner) · quick entry (expense ⇄ income) · transfer      (editors only)
  *   obligations  — loans and CBC · savings goals · monthly bills
  *   control      — budgets · the market hub (NBC rates, gold, fuel) · the Islamic hub with Islamic Mode, else the
  *                  report export (Excel / PDF)
@@ -9,7 +9,10 @@
  */
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 
-/** The bot reads bank slips (exact amount, the right wallet — golden path 1); the web has no slip reader of its own. */
+/**
+ * The bot, for what the app's scanner sends on (bills, loan schedules, account screens) — the scan tile itself opens the
+ * in-app scanner (founder, 21/10/2026: it used to send people out to Telegram), never an external page.
+ */
 export const SLIP_BOT_URL = "https://t.me/luychlat_bot"
 
 export type QuickActionKey = "scan" | "entry" | "transfer" | "loans" | "goals" | "bills" | "budgets" | "market" | "islamic" | "export"
@@ -17,7 +20,7 @@ export type QuickActionKey = "scan" | "entry" | "transfer" | "loans" | "goals" |
 export type QuickAction = {
   key: QuickActionKey
   label: MessageKey
-  /** A page (or the bot, `external`), else a sheet the home page opens (`entry`, `transfer`). */
+  /** A page (or an outside link, `external`), else a sheet the home page opens (`scan`, `entry`, `transfer`). */
   href?: string
   external?: boolean
   disabled?: boolean
@@ -40,7 +43,7 @@ export function quickActions({
 }): QuickAction[] {
   const daily: QuickAction[] = editable
     ? [
-        { key: "scan", label: "quick.scan", href: SLIP_BOT_URL, external: true },
+        { key: "scan", label: "quick.scan" },
         { key: "entry", label: "quick.entry" },
         { key: "transfer", label: "quick.transfer", disabled: walletCount < 2 },
       ]

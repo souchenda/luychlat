@@ -3,7 +3,7 @@ import { describe, it } from "node:test"
 
 import { dictionaries } from "@/lib/i18n/dictionaries"
 
-import { quickActions, SLIP_BOT_URL } from "./quick-actions"
+import { quickActions } from "./quick-actions"
 
 const base = { editable: true, personal: true, islamic: false, walletCount: 3 }
 const keys = (o: Parameters<typeof quickActions>[0]) => quickActions(o).map((a) => a.key)
@@ -41,8 +41,8 @@ describe("home quick actions — nine essential actions, three a row (founder, 2
     const biz = by("loans", { ...base, personal: false })
     assert.deepEqual([biz.label, biz.href], ["quick.loans", "/debts?tab=PAYABLE"])
   })
-  it("a slip is scanned by the bot; quick entry opens the sheet (expense ⇄ income); transfer needs two wallets", () => {
-    assert.deepEqual([by("scan").href, by("scan").external], [SLIP_BOT_URL, true])
+  it("a slip is scanned in the app (no link out to Telegram); quick entry opens the sheet (expense ⇄ income); transfer needs two wallets", () => {
+    assert.deepEqual([by("scan").href, by("scan").external], [undefined, undefined])
     assert.equal(by("entry").href, undefined)
     assert.equal(by("transfer").disabled, false)
     assert.equal(by("transfer", { ...base, walletCount: 1 }).disabled, true)

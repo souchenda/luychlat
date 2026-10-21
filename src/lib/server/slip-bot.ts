@@ -78,7 +78,7 @@ const PROMPT = [
   'If it is not a bank receipt at all or the amount is unreadable, answer {"is_slip": false}.',
 ].join("\n")
 
-type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" | "loan_detail" | "term_deposit" | "kscore" | "bank_account" } | { error: "ev_charge"; kwh: number; date: string | null }
+export type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" | "loan_detail" | "term_deposit" | "kscore" | "bank_account" } | { error: "ev_charge"; kwh: number; date: string | null }
 
 export type Answer = { text: string } | { fail: string }
 
@@ -139,15 +139,23 @@ export async function askGroq(key: string, type: string, image: string, prompt: 
  * vision model. Every failure is logged (without the slip's content), so none is invisible.
  */
 export async function readSlip(fileId: string): Promise<ReadResult> {
+  if (!process.env.GEMINI_API_KEY?.trim() && !process.env.GROQ_API_KEY?.trim()) return { error: "busy" }
+  const file = await telegramFile(fileId)
+  if (!file) return { error: "unreadable" }
+  return readSlipImage(file.type, Buffer.from(file.bytes).toString("base64"))
+}
+
+/**
+ * One slip image (base64) → what it is. The bot (a Telegram photo) and the app's own scanner (/api/slip — founder,
+ * 21/10/2026) read with the same prompt and the same checks, so a slip reads the same wherever it was sent.
+ */
+export async function readSlipImage(type: string, image: string): Promise<ReadResult> {
   const gemini = process.env.GEMINI_API_KEY?.trim()
   const groq = process.env.GROQ_API_KEY?.trim()
   if (!gemini && !groq) return { error: "busy" }
-  const file = await telegramFile(fileId)
-  if (!file) return { error: "unreadable" }
-  const image = Buffer.from(file.bytes).toString("base64")
   const readers: [string, () => Promise<Answer>][] = []
-  if (gemini) readers.push(["Gemini", () => askGemini(gemini, file.type, image)])
-  if (groq) readers.push(["Groq", () => askGroq(groq, file.type, image)])
+  if (gemini) readers.push(["Gemini", () => askGemini(gemini, type, image)])
+  if (groq) readers.push(["Groq", () => askGroq(groq, type, image)])
   for (const [name, ask] of readers) {
     const got = await ask()
     if ("fail" in got) {

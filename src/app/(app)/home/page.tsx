@@ -26,6 +26,7 @@ import { BusinessTrialTag } from "@/components/billing/business-trial"
 import { GoalsHomeCard } from "@/components/goals/goals-home-card"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { EntryFormSheet } from "@/components/transactions/entry-form-sheet"
+import { ScanSlipModal } from "@/components/transactions/scan-slip-modal"
 import { TransactionEditor } from "@/components/transactions/transaction-editor"
 import { TransactionList } from "@/components/transactions/transaction-list"
 import { Button } from "@/components/ui/button"
@@ -88,6 +89,7 @@ export default function HomePage() {
 
   const [walletFormOpen, setWalletFormOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
+  const [scanOpen, setScanOpen] = useState(false)
   const [entryType, setEntryType] = useState<CategoryType | null>(null)
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [debtFormOpen, setDebtFormOpen] = useState(false)
@@ -200,6 +202,7 @@ export default function HomePage() {
       {/* Quick actions, three a row (founder, 21/10/2026 — after ACLEDA Mobile): a full-width sibling below the hero. */}
       <QuickActionGrid
         actions={quickActions({ editable, personal: workspace?.type === "PERSONAL", islamic, walletCount: active.length })}
+        onScan={() => setScanOpen(true)}
         onEntry={() => setEntryType("EXPENSE")}
         onTransfer={() => setTransferOpen(true)}
       />
@@ -336,6 +339,7 @@ export default function HomePage() {
         type={entryType ?? "EXPENSE"}
         onTypeChange={setEntryType}
       />
+      <ScanSlipModal open={scanOpen} onOpenChange={setScanOpen} workspaceId={ws} wallets={wallets} onManual={() => setEntryType("EXPENSE")} />
       <DebtFormSheet open={debtFormOpen} onOpenChange={setDebtFormOpen} workspaceId={ws} />
       <TransactionEditor workspaceId={ws} wallets={wallets} transaction={editing} onClose={() => setEditing(null)} />
     </div>

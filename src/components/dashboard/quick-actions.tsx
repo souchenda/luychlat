@@ -39,7 +39,18 @@ const TILE =
  * The quick actions (lib/quick-actions) as squircle tiles, three a row, in one framed card — each a large touch target
  * (≥ 88 px tall). A sibling below the hero card, never inside it (tests/golden/layout-guards.test.ts).
  */
-export function QuickActionGrid({ actions, onEntry, onTransfer }: { actions: QuickAction[]; onEntry: () => void; onTransfer: () => void }) {
+export function QuickActionGrid({
+  actions,
+  onScan,
+  onEntry,
+  onTransfer,
+}: {
+  actions: QuickAction[]
+  /** The in-app slip scanner (components/transactions/scan-slip-modal.tsx). */
+  onScan: () => void
+  onEntry: () => void
+  onTransfer: () => void
+}) {
   const t = useT()
   return (
     <nav aria-label={t("quick.title")} className="grid grid-cols-3 gap-1 rounded-3xl border bg-card p-2 shadow-xs">
@@ -69,7 +80,7 @@ export function QuickActionGrid({ actions, onEntry, onTransfer }: { actions: Qui
           )
         }
         return (
-          <button key={a.key} type="button" onClick={a.key === "transfer" ? onTransfer : onEntry} disabled={a.disabled} className={TILE}>
+          <button key={a.key} type="button" onClick={a.key === "scan" ? onScan : a.key === "transfer" ? onTransfer : onEntry} disabled={a.disabled} className={TILE}>
             {body}
           </button>
         )

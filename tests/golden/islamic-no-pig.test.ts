@@ -37,6 +37,7 @@ describe("GOLDEN · no pig imagery — Islamic Mode (founder, 21/10/2026)", () =
     renderToStaticMarkup(
       createElement(QuickActionGrid, {
         actions: quickActions({ editable: true, personal: true, islamic, walletCount: 3 }),
+        onScan: () => {},
         onEntry: () => {},
         onTransfer: () => {},
       }),
