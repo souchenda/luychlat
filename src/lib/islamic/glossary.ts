@@ -27,6 +27,8 @@ export const IMSAK_CARD = `${IMSAK} · Imsak`
 export const IFTAR = "ស្រាយបួស"
 export const IFTAR_LABEL = `${IFTAR} (Iftar / الإفطار)`
 export const IFTAR_CARD = `${IFTAR} · Iftar`
+/** Iftar in Khmer letters — the fasting reminder's times, «ស្រាយបួស (អ៊ីហ្វតារ)» (founder, 21/10/2026: no «/ Arabic» clutter). */
+export const IFTAR_KM = "អ៊ីហ្វតារ"
 export const NIYYAH = "នីយ៉ាត់"
 export const NIYYAH_LABEL = `${NIYYAH} (Niyyah / النِّيَّة)`
 
@@ -54,6 +56,10 @@ export const JUMUAH_MUBARAK_ARABIC = "جُمُعَة مُبَارَك"
 export const MORNING_ARABIC = "صَبَاح الخَيْر"
 /** The poster's dateline joins the two calendars: «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង ៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.» (no parentheses on a graphic). */
 export const HIJRI_CORRESPONDS = "ត្រូវនឹង"
+
+/** The fasting reminder's headline (founder, 21/10/2026 — the airy caption): «រំលឹកត្រៀមបួសស៊ុណ្ណះ ថ្ងៃព្រហស្បតិ៍ស្អែកនេះ». */
+export const fastReminderHeadline = (weekday: "monday" | "thursday") =>
+  `រំលឹកត្រៀម${SUNNAH_FAST} ${weekday === "monday" ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"}ស្អែកនេះ`
 
 /** The caption's timely first line (after «🌙»): «រំលឹកត្រៀមបួសស៊ុណ្ណះ (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖». */
 export const fastReminderLead = (weekday: "monday" | "thursday") =>

@@ -57,14 +57,13 @@ describe("The community bulletin: rates, gold in ជី / តម្លឹង, Mo
 })
 
 describe("The Islamic bulletin carries the same full table (founder, 21/10/2026)", () => {
-  it("THB and MYR beside the dollar; the riyal for Hajj and Umrah in the same list; the gold in Cambodian units", async () => {
+  it("the Islamic bulletin: the dollar and the riyal for Hajj and Umrah only (founder, 21/10/2026 — «3 clean lines»); the gold in Cambodian units", async () => {
     const { islamicBulletinHtml, islamicMarket } = await import("@/lib/islamic/market")
     const html = islamicBulletinHtml(islamicMarket(market, "2026-10-21"), { hijri: "x", gregorian: "y", appUrl: "https://app.luychlat.com" })!
-    // The same currencies as the community table, as one list with the riyal after the dollar (founder, 21/10/2026).
-    for (const i of nbcRateItems(market.nbc!)) assert.ok(html.includes(`• ${i.flag} ${i.label} = ${i.value} ៛`), i.code)
-    assert.ok(html.indexOf("• 🇺🇸 1 USD") < html.indexOf("• 🇸🇦 1 SAR") && html.indexOf("• 🇸🇦 1 SAR") < html.indexOf("• 🇹🇭 1 THB"))
-    assert.ok(html.includes("• 🇸🇦 1 SAR ≈ 1,070 ៛ (1 USD = 3.75 SAR · សម្រាប់ធ្វើរូកូន ហាជ និងអ៊ុមរ៉ោះ)"))
-    assert.match(html, /• ហាងឆេងមាស ២៤K ៖ ១ ជី ≈ \$413 · ១ តម្លឹង ≈ \$4,125/)
-    assert.match(html, /≈ ២ តម្លឹង ២ ជី ៦ ហ៊ុន ៧ លី/)
+    assert.ok(html.includes("• 🇺🇸 1 USD = ") && html.includes("• 🇸🇦 1 SAR ≈ 1,070 ៛ · សម្រាប់ហាជ និងអ៊ុមរ៉ោះ"))
+    assert.ok(html.indexOf("• 🇺🇸 1 USD") < html.indexOf("• 🇸🇦 1 SAR"))
+    // The full table stays in the community bulletin; the Islamic one keeps the two its readers use.
+    for (const i of nbcRateItems(market.nbc!).filter((x) => x.code !== "USD")) assert.ok(!html.includes(`• ${i.flag} ${i.label}`), i.code)
+    assert.match(html, /• ១ ជី ≈ \$413 · ១ តម្លឹង ≈ \$4,125/)
   })
 })

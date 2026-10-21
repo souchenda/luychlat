@@ -8,7 +8,7 @@ import type { MarketLive } from "@/lib/market-calc"
 import { HIJRI_MONTHS_KM } from "@/lib/islamic"
 import { postFooter } from "@/lib/post-footer"
 
-import { goldReference, goldUnitsLine, GRAMS_PER_HUN, GRAMS_PER_LI, islamicBulletinHtml, islamicMarket, khmerGoldWeight, nisabCheck, ZAKAT_RATE } from "./market"
+import { goldReference, goldSourceShort, goldUnitsLine, GRAMS_PER_HUN, GRAMS_PER_LI, islamicBulletinHtml, islamicMarket, khmerGoldWeight, nisabCheck, ZAKAT_RATE } from "./market"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
 const market = {
@@ -34,21 +34,15 @@ describe("Rates, gold and the Zakat Nisab for the Islamic community (founder, 20
   it("the channel bulletin in three sections (founder, 21/10/2026): 💵 rates with the riyal · ⛽ fuel · 🥇 gold and Nisab; «និង» not «&»; no italics", () => {
     const withFuel = { ...market, fuel: { regular: 4100, super: null, diesel: 4250, from: "2026-10-11", to: "2026-10-31", source: "moc", updated_at: "x" } } as unknown as MarketLive
     const html = islamicBulletinHtml(islamicMarket(withFuel, "2026-10-20"), { hijri: "៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.", gregorian: "ថ្ងៃអង្គារ ២០ តុលា ២០២៦", appUrl: "https://app.luychlat.com/" })!
-    // The header: the weekday first, then the Hijri date; everyone together.
-    assert.ok(
-      html.startsWith(
-        "🌙 <b>ព្រឹត្តិបត្រទីផ្សារ និងនីស៊បហ្សាកាត់ប្រចាំថ្ងៃ</b>\n📅 ថ្ងៃអង្គារ ៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស. (ត្រូវនឹង ២០ តុលា ២០២៦)\n\n<b>អាស្សាឡាមុអាឡៃកុម បងប្អូន!</b> នេះជាព័ត៌មានហាងឆេងរូបិយប័ណ្ណផ្លូវការ តម្លៃប្រេងឥន្ធនៈ និងហាងឆេងមាសគណនាហ្សាកាត់ប្រចាំថ្ងៃ៖",
-      ),
-    )
-    // Section 1 — one list; the riyal right after the dollar (no separate SAR block on top).
-    assert.ok(html.includes("💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ (ធនាគារជាតិនៃកម្ពុជា NBC)</b> · 20/10/2026\n• 🇺🇸 1 USD = 4,012 ៛\n• 🇸🇦 1 SAR ≈ 1,070 ៛ (1 USD = 3.75 SAR · សម្រាប់ធ្វើរូកូន ហាជ និងអ៊ុមរ៉ោះ)"))
-    assert.ok(html.indexOf("💵") < html.indexOf("🇸🇦"))
-    // Section 2 — fuel.
-    assert.ok(html.includes("⛽ <b>តម្លៃប្រេងឥន្ធនៈ (ក្រសួងពាណិជ្ជកម្ម)</b>\n• សាំងធម្មតា (EA92) ៖ 4,100 ៛/លីត្រ\n• ម៉ាស៊ូត (Diesel) ៖ 4,250 ៛/លីត្រ"))
-    // Section 3 — gold in ជី / តម្លឹង, the reference, the Nisab on its own line, the note.
-    assert.ok(html.includes("• ហាងឆេងមាស ២៤K ៖ ១ ជី ≈ $413 · ១ តម្លឹង ≈ $4,125 (១ ក្រាម ≈ $110.00)\n  (តម្លៃយោងមាសគីឡូ ២៤K ផ្សារភ្នំពេញ · ទីផ្សារជាក់ស្តែងតាមហាងអាចមានគម្លាតបន្តិចបន្តួច)"))
-    assert.ok(html.includes("• កម្រិតនីស៊បហ្សាកាត់ (មាស ៨៥ ក្រាម ≈ ២ តម្លឹង ២ ជី ៦ ហ៊ុន ៧ លី) ៖\n  👉 <b>$9,350</b> (~37,512,200 ៛)"))
-    assert.ok(html.includes("• ℹ️ បញ្ជាក់៖ បងប្អូនដែលមានទ្រព្យសន្សំសរុបដល់កម្រិតនីស៊បនេះ គម្រប់ខួប ១ ឆ្នាំ (ហូល) មានកាតព្វកិច្ចបំពេញហ្សាកាត់ ២.៥%។"))
+    // Airy (founder, 21/10/2026 — «walls of text»): a two-line header, then three short blocks, a blank line between each.
+    assert.ok(html.startsWith("📅 <b>ថ្ងៃអង្គារ ៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.</b> · ២០ តុលា ២០២៦\n🌙 អាស្សាឡាមុអាឡៃកុម បងប្អូន!\n\n💵"), html)
+    // Block 1 — the dollar and the riyal.
+    assert.ok(html.includes("💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ NBC និង SAR</b> · 20/10\n• 🇺🇸 1 USD = 4,012 ៛\n• 🇸🇦 1 SAR ≈ 1,070 ៛ · សម្រាប់ហាជ និងអ៊ុមរ៉ោះ\n\n⛽"))
+    // Block 2 — fuel, one line.
+    assert.ok(html.includes("⛽ <b>តម្លៃប្រេងឥន្ធនៈ ក្រសួងពាណិជ្ជកម្ម</b>\n• សាំង EA92 4,100 ៛ · ម៉ាស៊ូត 4,250 ៛ ក្នុង ១ លីត្រ\n\n🥇"))
+    // Block 3 — gold in ជី / តម្លឹង with its source, the Nisab, the Zakat in one sentence.
+    assert.ok(html.includes("🥇 <b>ហាងឆេងមាស ២៤K និងនីស៊បហ្សាកាត់</b>\n• ១ ជី ≈ $413 · ១ តម្លឹង ≈ $4,125 (១ ក្រាម ≈ $110.00) · មាសគីឡូ ផ្សារភ្នំពេញ\n• នីស៊ប មាស ៨៥ ក្រាម ៖ <b>$9,350</b> ~ 37,512,200 ៛\n(ទ្រព្យសល់ដល់កម្រិតនីស៊បនេះ គម្រប់ ១ ឆ្នាំ មានកាតព្វកិច្ចចេញហ្សាកាត់ ២.៥%)"))
+    assert.doesNotMatch(html, /\n\n\n/) // never two blank lines
     assert.ok(html.indexOf("💵") < html.indexOf("⛽") && html.indexOf("⛽") < html.indexOf("🥇"))
     // The app, then the standard Islamic footer; the brand hashtag with ប; never «ធ្វើកូន».
     assert.ok(html.includes("គណនាហ្សាកាត់ដោយឥតគិតថ្លៃលើ អេប លុយឆ្លាត 👉 https://app.luychlat.com/islamic\n\n" + postFooter("islamic")))
@@ -121,7 +115,9 @@ describe("Gold in the units Cambodia trades by (founder, 21/10/2026)", () => {
     assert.match(goldReference("local"), /^តម្លៃយោងមាសគីឡូ ២៤K ផ្សារភ្នំពេញ · /)
     assert.match(goldReference("spot"), /^តម្លៃយោងមាសសុទ្ធ ២៤K អន្តរជាតិ · ទីផ្សារជាក់ស្តែងតាមហាងក្នុងស្រុកអាចមានគម្លាតខុសគ្នាបន្តិចបន្តួច$/)
     const spot = islamicMarket({ ...market, local_gold: { ...market.local_gold!, date: "2026-10-10" } }, "2026-10-20")
-    assert.ok(islamicBulletinHtml(spot, { hijri: "x", gregorian: "y", appUrl: "z" })!.includes(`(${goldReference("spot")})`))
+    // The bulletin names it in short on the gold line (founder, 21/10/2026 — no long disclaimers).
+    assert.ok(islamicBulletinHtml(spot, { hijri: "x", gregorian: "y", appUrl: "z" })!.includes(` · ${goldSourceShort("spot")}`))
+    assert.equal(goldSourceShort("local"), "មាសគីឡូ ផ្សារភ្នំពេញ")
     assert.equal(goldUnitsLine({ perGram: 110, perChi: 412.5, perDamlung: 4125 }), "១ ជី ≈ $413 · ១ តម្លឹង ≈ $4,125 (១ ក្រាម ≈ $110.00)")
   })
   it("the hub card says the same: Cambodian units first, the reference, the Nisab in តម្លឹង", () => {

@@ -70,6 +70,6 @@ describe("A gold price from another day is dated, never passed off as today's (f
     } as unknown as M
     assert.match(goldBlock(market, TODAY).join("\n"), /🥇 <b>ហាងឆេងមាស ២៤K \(ផ្សារភ្នំពេញ · តម្លៃថ្ងៃ ២០\/១០\)<\/b>/)
     assert.doesNotMatch(goldBlock(market, "2026-10-20").join("\n"), /តម្លៃថ្ងៃ/) // today's: no date needed
-    assert.match(islamicBulletinHtml(islamicMarket(market, TODAY), { hijri: "x", gregorian: "y", appUrl: "z" })!, / · តម្លៃថ្ងៃ 20\/10\)/)
+    assert.match(islamicBulletinHtml(islamicMarket(market, TODAY), { hijri: "x", gregorian: "y", appUrl: "z" })!, / · តម្លៃថ្ងៃ 20\/10\n/)
   })
 })

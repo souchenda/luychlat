@@ -78,10 +78,13 @@ describe("GOLDEN · published wording", () => {
     assert.equal(posterDateline(sunday), "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ត្រូវនឹង ៧ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.")
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).date, "ថ្ងៃពុធ ២១ តុលា ២០២៦")
     assert.equal(sunday.fast?.day, "ថ្ងៃច័ន្ទ") // the boxes are tomorrow's
+    // The caption (founder, 21/10/2026 — airy, short blocks, no «/ Arabic» clutter): the headline for tomorrow's fast,
+    // the hadith, the two times as a list, one line of encouragement — a blank line between the blocks.
     const caption = islamicCaptionHtml(sunday)
-    assert.ok(caption.startsWith("🌙 <b>ថ្ងៃទី០៧ ខែជុម៉ាដាល់អូឡា ឆ្នាំ១៤៤៨"), caption) // the caption is dated the same day
-    assert.ok(caption.includes("🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណះ (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖</b>"), caption)
-    assert.ok(caption.includes("សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ០៤:២៣ និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។"))
+    assert.ok(caption.startsWith("🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណះ ថ្ងៃច័ន្ទស្អែកនេះ</b>\n\n«"), caption)
+    assert.ok(caption.includes("\n\n⏰ ម៉ោងបួស និងស្រាយបួស (ភ្នំពេញ)៖\n• សាហួរ (អ៊ឹមសាក់) ៖ ០៤:២៣ ទៀបភ្លឺ\n• ស្រាយបួស (អ៊ីហ្វតារ) ៖ "), caption)
+    assert.ok(caption.includes("\n\n💡 កុំភ្លេចតាំងចិត្តនីយ៉ាត់ពីយប់នេះ និងក្រោកពិសាសាហួរ ដើម្បីទទួលបានពរជ័យ!"), caption)
+    assert.doesNotMatch(caption, /Imsak \/|Iftar \/|\n\n\n/)
   })
 })
 

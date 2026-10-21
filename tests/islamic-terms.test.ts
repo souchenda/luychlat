@@ -53,9 +53,9 @@ describe("Islamic hub — the founder's terms", () => {
   it("the channel (founder, 18/10/2026): អ៊ឹមសាក់ / ស្រាយបួស / ហូបបាយបួស (សាហួរ) / នីយ៉ាត់ / ជូម៉ាអះ / បារ៉ាកាត់ with their Arabic; never the machine words", () => {
     const fast = islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", "2026-10-18", null))
     const jumuah = islamicCaptionHtml(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", { day: 12, month: 5, year: 1448 }))
-    assert.match(fast, /អ៊ឹមសាក់ \(Imsak \/ الإمساك\) [០-៩]{2}:[០-៩]{2} · ស្រាយបួស \(Iftar \/ الإفطار\) [០-៩]{2}:[០-៩]{2}/)
-    assert.match(fast, /ហូបបាយបួស \(សាហួរ \/ السَّحُور\)/)
-    assert.match(fast, /នីយ៉ាត់ \(Niyyah \/ النِّيَّة\)/)
+    // The fasting reminder's plain labels (founder, 21/10/2026): «សាហួរ (អ៊ឹមសាក់)», «ស្រាយបួស (អ៊ីហ្វតារ)», «នីយ៉ាត់».
+    assert.match(fast, /• សាហួរ \(អ៊ឹមសាក់\) ៖ [០-៩]{2}:[០-៩]{2} ទៀបភ្លឺ\n• ស្រាយបួស \(អ៊ីហ្វតារ\) ៖ [០-៩]{2}:[០-៩]{2} ល្ងាច/)
+    assert.match(fast, /តាំងចិត្តនីយ៉ាត់ពីយប់នេះ/)
     assert.match(fast, /ព្យាការី មូហាំម៉ាត់ ﷺ/)
     assert.match(jumuah, /ជូម៉ាអះ \(Jumu'ah \/ الجُمُعَة\)/)
     assert.match(jumuah, /បារ៉ាកាត់ \(Barakah \/ بَرَكَة\)/)

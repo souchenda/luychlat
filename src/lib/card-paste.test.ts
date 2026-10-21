@@ -16,9 +16,9 @@ describe("Yerny's fasting correction and the pasted card (founder, 21/10/2026)",
     )
     for (const day of ["2026-10-21", "2026-10-18"]) {
       const caption = islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", day, { day: 10, month: 5, year: 1448 }))
-      assert.ok(caption.includes(`ហើយមានប្រសាសន៍ថា «${FAST_HADITH}»`), day)
+      assert.ok(caption.includes(`\n\n«${FAST_HADITH}»\n— ព្យាការី មូហាំម៉ាត់ ﷺ (`), day)
       assert.doesNotMatch(caption, /អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ/)
-      assert.match(caption, /Jami' at-Tirmidhi 747/) // the source stays
+      assert.match(caption, /<a href="https:\/\/sunnah\.com\/tirmidhi:747">Tirmidhi 747<\/a>/) // the source stays, linked
     }
   })
 

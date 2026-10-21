@@ -9,10 +9,9 @@
  */
 import * as G from "@/lib/islamic/glossary"
 import { NISAB_GOLD_GRAMS } from "@/lib/islamic"
-import { khrPerSar, SAR_PER_USD } from "@/lib/islamic/sar"
+import { khrPerSar } from "@/lib/islamic/sar"
 import type { MarketLive } from "@/lib/market-calc"
 import { roundRiel } from "@/lib/money"
-import { nbcRateItems } from "@/lib/nbc-rates"
 import { postFooter } from "@/lib/post-footer"
 
 export const GRAMS_PER_DAMLUNG = 37.5
@@ -43,6 +42,9 @@ export const goldReference = (source: "local" | "spot") =>
   source === "local"
     ? "តម្លៃយោងមាសគីឡូ ២៤K ផ្សារភ្នំពេញ · ទីផ្សារជាក់ស្តែងតាមហាងអាចមានគម្លាតបន្តិចបន្តួច"
     : "តម្លៃយោងមាសសុទ្ធ ២៤K អន្តរជាតិ · ទីផ្សារជាក់ស្តែងតាមហាងក្នុងស្រុកអាចមានគម្លាតខុសគ្នាបន្តិចបន្តួច"
+
+/** The price's source in two or three words, for the bulletin's gold line — never a silent source. */
+export const goldSourceShort = (source: "local" | "spot") => (source === "local" ? "មាសគីឡូ ផ្សារភ្នំពេញ" : "តម្លៃអន្តរជាតិ")
 
 /** «១ ជី ≈ $413 · ១ តម្លឹង ≈ $4,125 (១ ក្រាម ≈ $110.00)» — Cambodian units first, the gram in brackets. */
 export const goldUnitsLine = (g: { perGram: number; perChi: number; perDamlung: number }) =>
@@ -118,8 +120,8 @@ export const riel = (n: number) => `${num(n)} ៛`
 
 /** The Zakat note under the Nisab (the founder's words) — «បងប្អូន» in the channel, «លោកអ្នក» in the app. */
 export const zakatNote = (who: "channel" | "app") => {
-  // The channel's shorter wording (founder, 21/10/2026).
-  if (who === "channel") return `${G.BROTHERS_AND_SISTERS}ដែលមានទ្រព្យសន្សំសរុបដល់កម្រិតនីស៊បនេះ គម្រប់ខួប ១ ឆ្នាំ (ហូល) មានកាតព្វកិច្ចបំពេញហ្សាកាត់ ២.៥%។`
+  // The channel's one sentence (founder, 21/10/2026 — «strip long legalistic disclaimers»).
+  if (who === "channel") return "ទ្រព្យសល់ដល់កម្រិតនីស៊បនេះ គម្រប់ ១ ឆ្នាំ មានកាតព្វកិច្ចចេញហ្សាកាត់ ២.៥%"
   return "ប្រសិនបើលោកអ្នកមានទ្រព្យសន្សំសរុបស្មើ ឬលើសពីកម្រិតនីស៊បនេះ ហើយគម្រប់ខួប ១ ឆ្នាំ (ហូល) លោកអ្នកមានកាតព្វកិច្ចបញ្ចេញហ្សាកាត់ ២.៥%។"
 }
 
@@ -131,48 +133,39 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
  *   🥇 24K gold in ជី / តម្លឹង and the 85 g Nisab — then the Zakat note, the app and the standard Islamic footer.
  * Everyone together — «អាស្សាឡាមុអាឡៃកុម បងប្អូន!». Null when there is no NBC rate (nothing factual to publish).
  */
+/**
+ * The Islamic market bulletin (founder, 21/10/2026 — «dense walls of text»): a two-line header (the date, the salam), then
+ * three short blocks with a blank line between them — the official rates (the dollar and the riyal), the fuel, the gold
+ * and the Nisab with the one-sentence Zakat note — the app's link and the standard Islamic footer.
+ */
 export function islamicBulletinHtml(m: IslamicMarket, o: { hijri: string; gregorian: string; appUrl: string }): string | null {
   if (!m.usdKhr) return null
-  // «📅 ថ្ងៃពុធ ១០ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស. (ត្រូវនឹង ២១ តុលា ២០២៦)»: the weekday first, then the Hijri date.
   const wd = /^(ថ្ងៃ\S+)\s+(.+)$/.exec(o.gregorian)
-  const dateLine = wd ? `📅 ${esc(wd[1])} ${esc(o.hijri)} (${G.HIJRI_CORRESPONDS} ${esc(wd[2])})` : `📅 ${esc(o.hijri)} (${G.HIJRI_CORRESPONDS} ${esc(o.gregorian)})`
-  // Section 1 — one list, the riyal right after the dollar.
-  const rates = nbcRateItems({ khr_per: m.rates ?? { USD: m.usdKhr } }).flatMap((i) => [
-    `• ${i.flag} ${i.label} = ${i.value} ៛`,
-    ...(i.code === "USD" && m.sarKhr ? [`• 🇸🇦 1 SAR ≈ ${riel(m.sarKhr)} (1 USD = ${SAR_PER_USD} SAR · សម្រាប់ធ្វើរូកូន ហាជ និងអ៊ុមរ៉ោះ)`] : []),
-  ])
   const lines = [
-    "🌙 <b>ព្រឹត្តិបត្រទីផ្សារ និងនីស៊បហ្សាកាត់ប្រចាំថ្ងៃ</b>",
-    dateLine,
+    wd ? `📅 <b>${esc(wd[1])} ${esc(o.hijri)}</b> · ${esc(wd[2])}` : `📅 <b>${esc(o.hijri)}</b> · ${esc(o.gregorian)}`,
+    `🌙 ${G.SALAM_ALL}`,
     "",
-    `<b>${G.SALAM_ALL}</b> នេះជាព័ត៌មានហាងឆេងរូបិយប័ណ្ណផ្លូវការ តម្លៃប្រេងឥន្ធនៈ និងហាងឆេងមាសគណនាហ្សាកាត់ប្រចាំថ្ងៃ៖`,
-    "",
-    `💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ (ធនាគារជាតិនៃកម្ពុជា NBC)</b>${m.rateDate ? ` · ${esc(m.rateDate.split("-").reverse().join("/"))}` : ""}`,
-    ...rates,
+    `💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ NBC និង SAR</b>${m.rateDate ? ` · ${esc(m.rateDate.slice(8, 10))}/${esc(m.rateDate.slice(5, 7))}` : ""}`,
+    `• 🇺🇸 1 USD = ${riel(m.usdKhr)}`,
+    ...(m.sarKhr ? [`• 🇸🇦 1 SAR ≈ ${riel(m.sarKhr)} · សម្រាប់ហាជ និងអ៊ុមរ៉ោះ`] : []),
   ]
-  // Section 2 — the MoC fuel prices.
   if (m.fuel) {
     lines.push(
       "",
-      "⛽ <b>តម្លៃប្រេងឥន្ធនៈ (ក្រសួងពាណិជ្ជកម្ម)</b>",
-      `• សាំងធម្មតា (EA92) ៖ ${num(m.fuel.regular)} ៛/លីត្រ`,
-      `• ម៉ាស៊ូត (Diesel) ៖ ${num(m.fuel.diesel)} ៛/លីត្រ`,
-      ...(m.fuel.stale ? ["ℹ️ តម្លៃវដ្តមុន — មិនទាន់មានសេចក្តីជូនដំណឹងថ្មីពីក្រសួងពាណិជ្ជកម្ម"] : []),
+      "⛽ <b>តម្លៃប្រេងឥន្ធនៈ ក្រសួងពាណិជ្ជកម្ម</b>",
+      `• សាំង EA92 ${num(m.fuel.regular)} ៛ · ម៉ាស៊ូត ${num(m.fuel.diesel)} ៛ ក្នុង ១ លីត្រ${m.fuel.stale ? " · តម្លៃវដ្តមុន" : ""}`,
     )
   }
-  // Section 3 — gold in Cambodian units and the Nisab.
   if (m.gold && m.nisab) {
+    const goldDay = m.gold.date && m.gold.date !== m.day ? ` · តម្លៃថ្ងៃ ${esc(m.gold.date.slice(8, 10))}/${esc(m.gold.date.slice(5, 7))}` : ""
     lines.push(
       "",
-      "🥇 <b>ហាងឆេងមាស និងកម្រិតនីស៊បហ្សាកាត់ (Zakat Nisab)</b>",
-      `• ហាងឆេងមាស ២៤K ៖ ${goldUnitsLine(m.gold)}`,
-      `  (${goldReference(m.gold.source)}${m.gold.date && m.gold.date !== m.day ? ` · តម្លៃថ្ងៃ ${esc(m.gold.date.slice(8, 10))}/${esc(m.gold.date.slice(5, 7))}` : ""})`,
-      `• កម្រិតនីស៊បហ្សាកាត់ (មាស ៨៥ ក្រាម ≈ ${khmerGoldWeight(NISAB_GOLD_GRAMS)}) ៖`,
-      `  👉 <b>${usd(m.nisab.usd)}</b>${m.nisab.khr ? ` (~${riel(m.nisab.khr)})` : ""}`,
-      `• ℹ️ បញ្ជាក់៖ ${zakatNote("channel")}`,
+      "🥇 <b>ហាងឆេងមាស ២៤K និងនីស៊បហ្សាកាត់</b>",
+      `• ${goldUnitsLine(m.gold)} · ${goldSourceShort(m.gold.source)}${goldDay}`,
+      `• នីស៊ប មាស ៨៥ ក្រាម ៖ <b>${usd(m.nisab.usd)}</b>${m.nisab.khr ? ` ~ ${riel(m.nisab.khr)}` : ""}`,
+      `(${zakatNote("channel")})`,
     )
   }
-  // The app, then the standard Islamic footer (the Charge+ format — lib/post-footer.ts).
   lines.push("", `គណនាហ្សាកាត់ដោយឥតគិតថ្លៃលើ អេប លុយឆ្លាត 👉 ${o.appUrl.replace(/\/+$/, "")}/islamic`, "", postFooter("islamic"))
   return lines.join("\n")
 }

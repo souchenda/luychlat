@@ -349,6 +349,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
 
 /** The caption under the poster (Telegram HTML, ≤ 1024 characters as a photo caption). */
 export function islamicCaptionHtml(c: IslamicPostContent): string {
+  if (c.kind === "ISLAMIC_FAST" && c.fast) return fastCaptionHtml(c, c.fast)
   const head = c.lead ?? (c.kind === "ISLAMIC_JUMUAH" ? `🕌 <b>${esc(c.title)}</b>` : `📗 <b>${esc(c.pill)}៖ ${esc(c.title)}</b>`)
   return [
     `🌙 <b>${c.hijri ? esc(c.hijri) : ""}</b>${c.hijri ? " · " : ""}${c.date}`,
@@ -360,6 +361,29 @@ export function islamicCaptionHtml(c: IslamicPostContent): string {
     ...(c.fast ? ["", `⏰ ម៉ោងនៅ${c.fast.place}៖ ${G.IMSAK_LABEL} ${c.fast.imsak} · ${G.IFTAR_LABEL} ${c.fast.iftar}`] : []),
     "",
     `📖 ប្រភព៖ <a href="${c.source.url}">${esc(c.source.label)}</a>`,
+    "",
+    SIGN,
+  ].join("\n")
+}
+
+/**
+ * The Monday / Thursday fasting reminder (founder, 21/10/2026 — «text fatigue»): four short blocks with a blank line
+ * between them — the headline, the hadith with who said it and its source, the two times as a list, one line of
+ * encouragement — no «(Imsak / الإمساك)» clutter: «សាហួរ (អ៊ឹមសាក់)», «ស្រាយបួស (អ៊ីហ្វតារ)».
+ */
+function fastCaptionHtml(c: IslamicPostContent, fast: NonNullable<IslamicPostContent["fast"]>): string {
+  const weekday = fast.day === "ថ្ងៃច័ន្ទ" ? "monday" : "thursday"
+  return [
+    `🌙 <b>${G.fastReminderHeadline(weekday)}</b>`,
+    "",
+    `«${FAST_HADITH}»`,
+    `— ${G.PROPHET_FULL} (<a href="${c.source.url}">${esc(c.source.label.replace(/^Jami' at-/, ""))}</a>)`,
+    "",
+    `⏰ ម៉ោងបួស និង${G.IFTAR} (${esc(fast.place)})៖`,
+    `• សាហួរ (${G.IMSAK}) ៖ ${fast.imsak} ទៀបភ្លឺ`,
+    `• ${G.IFTAR} (${G.IFTAR_KM}) ៖ ${fast.iftar} ល្ងាច`,
+    "",
+    `💡 កុំភ្លេចតាំងចិត្ត${G.NIYYAH}ពីយប់នេះ និងក្រោកពិសាសាហួរ ដើម្បីទទួលបានពរជ័យ!`,
     "",
     SIGN,
   ].join("\n")

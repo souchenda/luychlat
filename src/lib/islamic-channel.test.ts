@@ -27,7 +27,8 @@ describe("Islamic channel — kept 100 % apart from the general channel (founder
     for (const p of posts) {
       assert.doesNotMatch(p, /សីល|ពុទ្ធ|វិសាខ|Buddh|uposatha/i)
       assert.doesNotMatch(p, /<i>/)
-      assert.match(p, /📖 ប្រភព៖ <a href="https:\/\/(quran\.com|sunnah\.com)\//)
+      // Every post names its source, linked (the fasting reminder beside the hadith — founder, 21/10/2026).
+      assert.match(p, /(📖 ប្រភព៖ |ﷺ \()<a href="https:\/\/(quran\.com|sunnah\.com)\//)
     }
   })
   it("posts: the Hijri date and a lesson daily at 08:00, the sunnah fast on Sunday / Wednesday 19:00, Jumu'ah Friday 11:30", () => {
