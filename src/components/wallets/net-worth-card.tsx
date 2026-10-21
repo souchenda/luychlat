@@ -50,8 +50,8 @@ export function NetWorthCard({
   const totals = heroTotals(wallets ?? [], khrPerUsd, assetsUsd, liabilitiesUsd)
 
   return (
-    // Emerald into navy with a thread of gold along the top (founder, 21/10/2026 — the ACLEDA-style hero in the app's colours).
-    <section className="relative isolate overflow-hidden rounded-3xl bg-linear-to-br from-emerald-600 via-emerald-700 to-[#0b2545] p-5 text-white shadow-lg shadow-emerald-900/25 ring-1 ring-white/15">
+    // Emerald into navy with a thread of gold along the top, a hairline border and a soft elevation (founder, 21/10/2026).
+    <section className="relative isolate overflow-hidden rounded-3xl bg-linear-to-br from-emerald-600 via-emerald-700 to-[#0b2545] p-5 text-white border border-emerald-400/25 shadow-md shadow-emerald-950/10 dark:border-emerald-500/30 dark:shadow-none">
       {/* Glass sheen: soft light blooms and a top highlight, purely decorative. */}
       <span aria-hidden className="pointer-events-none absolute -top-20 -right-12 -z-10 size-56 rounded-full bg-white/20 blur-3xl" />
       <span aria-hidden className="pointer-events-none absolute -bottom-24 -left-10 -z-10 size-56 rounded-full bg-teal-300/25 blur-3xl" />

@@ -33,7 +33,7 @@ const ICONS: Record<QuickActionKey, LucideIcon> = {
 }
 
 const TILE =
-  "flex min-h-[5.5rem] flex-col items-center justify-start gap-1.5 rounded-2xl px-1 py-2.5 text-center transition-all hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45"
+  "group flex min-h-[5.5rem] flex-col items-center justify-start gap-1.5 rounded-2xl px-1 py-2.5 text-center transition-all hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45"
 
 /**
  * The quick actions (lib/quick-actions) as squircle tiles, three a row, in one framed card — each a large touch target
@@ -47,7 +47,8 @@ export function QuickActionGrid({ actions, onEntry, onTransfer }: { actions: Qui
         const Icon = ICONS[a.key]
         const body = (
           <>
-            <span className="grid size-12 place-items-center rounded-[1.1rem] bg-emerald-500/12 text-emerald-700 ring-1 ring-emerald-600/10 dark:bg-emerald-400/12 dark:text-emerald-300 dark:ring-emerald-300/15">
+            {/* A crisp hairline and a soft shadow on each squircle (founder, 21/10/2026); it lifts on hover and presses in. */}
+            <span className="grid size-12 place-items-center rounded-[1.1rem] border border-emerald-600/15 bg-emerald-500/12 text-emerald-700 shadow-sm transition-transform duration-150 group-hover:-translate-y-0.5 group-active:translate-y-0 group-active:scale-95 dark:border-emerald-500/20 dark:bg-emerald-400/12 dark:text-emerald-300">
               <Icon className="size-[22px]" strokeWidth={2} aria-hidden />
             </span>
             <span className="line-clamp-2 text-[13px] leading-tight font-medium">{t(a.label)}</span>

@@ -48,4 +48,11 @@ describe("home — the hero card's layout", () => {
     assert.doesNotMatch(card, /grid-cols-3/)
     assert.ok(card.indexOf("netWorth.assetsShort") < row && row < card.indexOf("netWorth.loans") && card.indexOf("netWorth.loans") < card.indexOf("netWorth.netShort"))
   })
+  it("hairline borders (founder, 21/10/2026): the hero card and each of the nine squircles, in light and dark", () => {
+    assert.match(card, /border border-emerald-400\/25 shadow-md shadow-emerald-950\/10 dark:border-emerald-500\/30 dark:shadow-none/)
+    assert.doesNotMatch(card.slice(card.indexOf("<section"), card.indexOf(">", card.indexOf("<section"))), /ring-1/) // one border, not a ring too
+    const grid = readFileSync(join(process.cwd(), "src", "components", "dashboard", "quick-actions.tsx"), "utf8")
+    assert.match(grid, /border border-emerald-600\/15[^"]*shadow-sm[^"]*group-active:scale-95[^"]*dark:border-emerald-500\/20/)
+    assert.match(grid, /"group flex min-h-\[5\.5rem\]/)
+  })
 })
