@@ -1,25 +1,25 @@
-// Server only: the one button row under every community channel post (market
-// bulletin, evening NBC rates, morning / evening routine, daily tip, festival
-// posters, fuel prices) — same wording, same order, everywhere:
+// Server only: the buttons under every community channel post (market bulletin, evening NBC rates, morning / evening
+// routine, daily tip, festival posters, fuel prices) — same wording, same order, everywhere. One button per row, full
+// width (founder, 21/10/2026 — side by side they were cut to «… ↗» on a phone):
 //
-//   [ 🤖 កត់ត្រាតាម Telegram ↗ ]  [ 📱 បើកក្នុងអេប លុយឆ្លាត ↗ ]
+//   [ 📱 បើកប្រើ អេប លុយឆ្លាត ↗ ]
+//   [ 🤖 កត់ត្រាតាម Telegram Bot ↗ ]
 import { appUrl } from "./community-bulletin"
 import { tg } from "./telegram-bot"
 
-export const CHANNEL_BOT_BUTTON = "🤖 កត់ត្រាតាម Telegram ↗"
-export const CHANNEL_APP_BUTTON = "📱 បើកក្នុងអេប លុយឆ្លាត ↗"
+export const CHANNEL_APP_BUTTON = "📱 បើកប្រើ អេប លុយឆ្លាត ↗"
+export const CHANNEL_BOT_BUTTON = "🤖 កត់ត្រាតាម Telegram Bot ↗"
 
-/** The standard row as Telegram's inline_keyboard (empty when neither link is known). */
-export async function channelButtonRow(): Promise<{ text: string; url: string }[]> {
-  const [url, me] = await Promise.all([appUrl(), tg<{ username?: string }>("getMe", {})])
-  return [
-    ...(me.result?.username ? [{ text: CHANNEL_BOT_BUTTON, url: `https://t.me/${me.result.username}` }] : []),
-    ...(url ? [{ text: CHANNEL_APP_BUTTON, url }] : []),
-  ]
+type Button = { text: string; url: string }
+
+/** The keyboard: the app on the first row, the bot on the second — each alone on its row; a link not known is left out. */
+export function channelKeyboard(app: string | null, botUsername: string | null | undefined): Button[][] {
+  return [...(app ? [[{ text: CHANNEL_APP_BUTTON, url: app }]] : []), ...(botUsername ? [[{ text: CHANNEL_BOT_BUTTON, url: `https://t.me/${botUsername}` }]] : [])]
 }
 
 /** `extra` for sendMessage / sendPhoto / editMessageText: the standard buttons. */
-export async function getChannelPostButtons(): Promise<{ reply_markup?: { inline_keyboard: { text: string; url: string }[][] } }> {
-  const row = await channelButtonRow()
-  return row.length ? { reply_markup: { inline_keyboard: [row] } } : {}
+export async function getChannelPostButtons(): Promise<{ reply_markup?: { inline_keyboard: Button[][] } }> {
+  const [url, me] = await Promise.all([appUrl(), tg<{ username?: string }>("getMe", {})])
+  const rows = channelKeyboard(url, me.result?.username)
+  return rows.length ? { reply_markup: { inline_keyboard: rows } } : {}
 }

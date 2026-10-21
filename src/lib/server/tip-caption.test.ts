@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { CHANNEL_APP_BUTTON, CHANNEL_BOT_BUTTON } from "./channel-buttons"
+import { CHANNEL_APP_BUTTON, CHANNEL_BOT_BUTTON, channelKeyboard } from "./channel-buttons"
 import { postFooter } from "@/lib/post-footer"
 
 import { tipCaption } from "./tip-bot"
@@ -16,9 +16,18 @@ describe("daily tip caption & the channel's buttons (poster branding)", () => {
     assert.match(caption, /សន្សំ &lt;៣០%&gt; &amp; ចំណាយ/)
     assert.ok(caption.length < 1024)
   })
-  it("the buttons", () => {
-    assert.equal(CHANNEL_BOT_BUTTON, "🤖 កត់ត្រាតាម Telegram ↗")
-    assert.equal(CHANNEL_APP_BUTTON, "📱 បើកក្នុងអេប លុយឆ្លាត ↗")
+  it("the buttons: one per row, full width — never cut to «… ↗» on a phone (founder, 21/10/2026)", () => {
+    assert.equal(CHANNEL_APP_BUTTON, "📱 បើកប្រើ អេប លុយឆ្លាត ↗")
+    assert.equal(CHANNEL_BOT_BUTTON, "🤖 កត់ត្រាតាម Telegram Bot ↗")
+    assert.deepEqual(channelKeyboard("https://app.luychlat.com", "luychlat_bot"), [
+      [{ text: "📱 បើកប្រើ អេប លុយឆ្លាត ↗", url: "https://app.luychlat.com" }],
+      [{ text: "🤖 កត់ត្រាតាម Telegram Bot ↗", url: "https://t.me/luychlat_bot" }],
+    ])
+    // A link not known is left out; the other keeps its own row.
+    assert.deepEqual(channelKeyboard(null, "luychlat_bot"), [[{ text: CHANNEL_BOT_BUTTON, url: "https://t.me/luychlat_bot" }]])
+    assert.deepEqual(channelKeyboard(null, null), [])
+    // Short enough for the narrowest phone (iPhone SE): one line each.
+    for (const b of [CHANNEL_APP_BUTTON, CHANNEL_BOT_BUTTON]) assert.ok([...b].length <= 30, b)
   })
 })
 
