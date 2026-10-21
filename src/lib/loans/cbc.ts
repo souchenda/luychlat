@@ -70,3 +70,55 @@ export function cbcHealth(cells: StripCell[]): { tier: CbcTier | "unknown"; km: 
 
 /** Under every strip: what it is and is not. */
 export const CBC_ESTIMATE_NOTE = "ការប៉ាន់ស្មានពីការបង់ដែលបានកត់ត្រាក្នុង អេប លុយឆ្លាត — មិនមែនរបាយការណ៍ផ្លូវការរបស់ CBC ទេ។"
+
+// ─── The 24-month calendar strip (founder, 21/10/2026) ───────────────────────────────────────────────────────────────
+
+const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
+const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
+
+/** «តុលា ២៦» for "2026-10". */
+export const kmMonthLabel = (ym: string) => `${KM_MONTHS[Number(ym.slice(5, 7)) - 1]} ${kmDigits(ym.slice(2, 4))}`
+
+/** The month's cell: a CBC code from the loan's own record, or X (before the loan), Q (nothing due), C (paid off), «…» (due later this month). */
+export type MonthCell = { month: string; label: string; code: string; tier: CbcTier | "unknown"; due: string | null }
+
+const SEVERITY = ["…", "0", "✓", "1", "2", "3+"]
+const worse = (a: MonthCell, b: MonthCell) => (SEVERITY.indexOf(b.code) > SEVERITY.indexOf(a.code) ? b : a)
+const addMonths = (ym: string, k: number) => {
+  const d = new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1 + k, 1))
+  return d.toISOString().slice(0, 7)
+}
+
+/**
+ * The last 24 calendar months up to this one, oldest first (CBC reports the last 24 cycles): each month's installment
+ * coded as in `cbcStrip` (the worst one when a month has two); X before the loan's start, Q when nothing fell due (CBC's
+ * own «no transaction this cycle»), C from the month it was paid off, «…» for an installment due later this month.
+ */
+export function cbcMonthStrip(rows: { n: number; date: string; paid: boolean }[], paidOn: Map<number, string>, today: string, start: string, closedOn: string | null): MonthCell[] {
+  const now = today.slice(0, 7)
+  const startMonth = start.slice(0, 7)
+  const closedMonth = closedOn?.slice(0, 7) ?? null
+  return Array.from({ length: 24 }, (_, i) => addMonths(now, i - 23)).map((month) => {
+    const base = { month, label: kmMonthLabel(month) }
+    if (month < startMonth) return { ...base, code: "X", tier: "unknown" as const, due: null }
+    if (closedMonth && month > closedMonth) return { ...base, code: "C", tier: "good" as const, due: null }
+    const dues = rows.filter((r) => r.date.slice(0, 7) === month)
+    if (!dues.length) return closedMonth && month === closedMonth ? { ...base, code: "C", tier: "good" as const, due: null } : { ...base, code: "Q", tier: "good" as const, due: null }
+    return dues
+      .map((r): MonthCell => {
+        if (r.date > today && !paidOn.get(r.n) && !r.paid) return { ...base, code: "…", tier: "unknown", due: r.date }
+        const at = paidOn.get(r.n)
+        if (at) return { ...base, due: r.date, ...cbcCodeForDaysLate(days(at, r.date)) }
+        if (r.paid) return { ...base, due: r.date, code: "✓", tier: "unknown" }
+        return { ...base, due: r.date, ...cbcCodeForDaysLate(days(today, r.date)) }
+      })
+      .reduce(worse)
+  })
+}
+
+/** When the loan was paid off: every installment paid — the last recorded payment date, else the last due date. */
+export function cbcClosedOn(rows: { n: number; date: string; paid: boolean }[], paidOn: Map<number, string>): string | null {
+  if (!rows.length || !rows.every((r) => r.paid)) return null
+  const dates = rows.map((r) => paidOn.get(r.n)).filter((d): d is string => Boolean(d)).sort()
+  return (dates.at(-1) ?? rows.at(-1)!.date).slice(0, 10)
+}
