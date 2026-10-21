@@ -23,6 +23,8 @@ export type NightlyFacts = {
   highlights?: string[]
   patches?: number
   actions?: string[]
+  /** Approved cards waiting for their time (Task #452): told, never asked. */
+  scheduled?: string[]
   others?: { verify: number; external: number; engineering: number }
   /** Why the scorecard could not be read (the report still goes out and says so). */
   note?: string
@@ -40,6 +42,7 @@ export function nightlyReportText(f: NightlyFacts): string {
     health: healthLine({ healthy: f.healthy && f.dockerOk, issues: [...f.issues, ...(f.dockerOk ? [] : ["docker"])], diskFreeGb: f.diskFreeGb, ramPct: f.ramPct, webhookOk: f.webhookOk }),
     facts: [`👥 New members: ${f.newUsers} · Approvals: ${f.approvals}${staff}`, ...(f.note ? [f.note] : [])],
     actions: f.actions ?? [],
+    scheduled: f.scheduled,
     others: f.others,
   })
 }

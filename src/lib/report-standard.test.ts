@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { curate, executiveSummary, FLAG, headline, healthLine, ownerTag, paginate, TRUNCATION } from "./report-standard"
+import { cardNumbers, checkActions, curate, executiveSummary, FLAG, headline, healthLine, ownerTag, paginate, SCHEDULED_TITLE, TRUNCATION, type WaitingCard } from "./report-standard"
 import { eodText, type Report } from "./server/dev-eod"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
@@ -141,5 +141,48 @@ describe("The Reporting Standard — an executive summary (founder, 21/10/2026)"
     const claude = read("CLAUDE.md")
     assert.match(claude, /## Reporting Standards/)
     assert.match(claude, /\(\+ X technical patches & fixes under the hood\)/)
+  })
+})
+
+describe("🎯 Action Required never asks for a card already decided (founder, 22/10/2026 — Task #452)", () => {
+  // Tonight's report asked for #860 (the bedtime du'a, published on 20/10) and #833 (the Coronation poster, approved on
+  // 20/10 for 29/10 05:00).
+  const founder = [
+    { title: "Bedtime du'a reading joins the kaf to the lam", action: "ចុច ✅ លើកាត #860 ក្នុង «LCA Approval»" },
+    { title: "29/10 Coronation — preview card in «LCA Approval»", action: "ចុច ✅ លើកាត #833" },
+    { title: "Fuel card", action: "ចុច ✅ លើកាត #901" },
+    { title: "Choose the du'a text", action: "ជ្រើសអត្ថបទឌុអា" },
+  ]
+  const cards: WaitingCard[] = [
+    { msg: 833, status: "APPROVED", publishAt: "2026-10-28T22:00:00.000Z" }, // 29/10 05:00 in Phnom Penh
+    { msg: 901, status: "PENDING", publishAt: "2026-10-22T11:17:00.000Z" },
+  ]
+  it("a published card is left out, an approved one is told under ⏳, a pending one and a step without a card are asked", () => {
+    const r = checkActions(founder, cards)
+    assert.deepEqual(r.actions, ["ចុច ✅ លើកាត #901", "ជ្រើសអត្ថបទឌុអា"])
+    assert.deepEqual(r.scheduled, ["29/10 Coronation — preview card in «LCA Approval» — កាត #833 · ផ្សាយ 29/10 05:00"])
+    for (const n of [833, 860]) assert.ok(!r.actions.some((a) => cardNumbers(a).includes(n)), `#${n} is never asked`)
+    assert.deepEqual(cardNumbers("ចុច ✅ លើកាត #833 ក្នុង «LCA Approval»"), [833])
+  })
+  it("the cards unreadable: every step is asked — nothing hidden by a failed lookup", () => {
+    assert.deepEqual(checkActions(founder, null), { actions: founder.map((f) => f.action), scheduled: [] })
+  })
+  it("the report: the ⏳ block after 🎯, informational; no flags", () => {
+    const r = checkActions(founder, cards)
+    const text = executiveSummary({ title: "App Luy Chlat · 22/10/2026", highlights: [], patches: 0, health: "🟢 System Health: 100% Healthy", actions: r.actions, scheduled: r.scheduled })
+    assert.ok(text.includes(`🎯 Action Required (2)
+1. ចុច ✅ លើកាត #901
+2. ជ្រើសអត្ថបទឌុអា
+
+${SCHEDULED_TITLE}
+• 29/10 Coronation`), text)
+    assert.equal(SCHEDULED_TITLE, "⏳ កាលវិភាគរង់ចាំផ្សាយស្វ័យប្រវត្តិ (បានអនុម័តរួចរាល់)")
+    assert.doesNotMatch(text, FLAG)
+    assert.doesNotMatch(text, /#860|កាត #833 ក្នុង|1\. ចុច ✅ លើកាត #833/)
+  })
+  it("wired: the 23:30 report and the 23:59 report both check the cards", () => {
+    for (const f of ["src/lib/server/nightly-report.ts", "src/lib/server/dev-eod.ts"])
+      assert.match(readFileSync(join(process.cwd(), f), "utf8"), /const \{ actions, scheduled \} = checkActions\(parts\.founder, await waitingCards\("(nightly-report|dev-eod)"\)\)/, f)
+    assert.match(readFileSync(join(process.cwd(), "src/lib/nightly-report.ts"), "utf8"), /scheduled: f\.scheduled,/)
   })
 })

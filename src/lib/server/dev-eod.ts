@@ -6,7 +6,8 @@ import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 
 import { dailyScorecard, parseRoadmap, summaryParts } from "@/lib/roadmap-scorecard"
-import { curate, executiveSummary, healthLine, paginate, type Health, type Shipped } from "@/lib/report-standard"
+import { checkActions, curate, executiveSummary, healthLine, paginate, type Health, type Shipped } from "@/lib/report-standard"
+import { waitingCards } from "./waiting-cards"
 
 import { logEvent } from "./events"
 import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
@@ -30,6 +31,8 @@ export type Report = {
 export type EodExtras = {
   done: Shipped[]
   actions: string[]
+  /** Approved cards waiting for their time (Task #452). */
+  scheduled?: string[]
   others?: { verify: number; external: number; engineering: number }
   now: Omit<Health, "okPct">
 }
@@ -51,20 +54,23 @@ export function eodText(r: Report, x: EodExtras): string {
     patches,
     health,
     actions: x.actions,
+    scheduled: x.scheduled,
     others: x.others,
     footer: "Full log: Admin › Super › Development",
   })
 }
 
 /** ROADMAP.md's items finished on `day` and the founder's actions; empty when the file is not in the image. */
-function roadmapExtras(commits: string[]): Pick<EodExtras, "done" | "actions" | "others"> {
+async function roadmapExtras(commits: string[]): Promise<Pick<EodExtras, "done" | "actions" | "scheduled" | "others">> {
   const file = path.join(process.cwd(), "ROADMAP.md")
   if (!existsSync(file)) {
     logEvent("warn", "dev-eod", "ROADMAP.md is not in the image: highlights come from feature commits only", { fold: true })
     return { done: [], actions: [] }
   }
   const parts = summaryParts(dailyScorecard(parseRoadmap(readFileSync(file, "utf8")), commits))
-  return { done: parts.done, actions: parts.actions, others: parts.others }
+  // Never a card already decided (Task #452 — report-standard › checkActions).
+  const { actions, scheduled } = checkActions(parts.founder, await waitingCards("dev-eod"))
+  return { done: parts.done, actions, scheduled, others: parts.others }
 }
 
 /** Called every minute by the dispatcher. */
@@ -88,7 +94,7 @@ export async function devEodTick() {
   const sample = await takeSample()
   const issues = findIssues([sample])
   const text = eodText(report, {
-    ...roadmapExtras(report.commits.map((c) => c.hash)),
+    ...(await roadmapExtras(report.commits.map((c) => c.hash))),
     now: { healthy: issues.length === 0, issues, diskFreeGb: diskFreeGb(), ramPct: sample.ram_pct, webhookOk: !sample.webhook_error },
   })
   // The DevOps chat, else the founder's chat (founder, 19/10/2026 — with no DevOps chat set it went nowhere while the

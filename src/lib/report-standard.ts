@@ -98,11 +98,55 @@ export type Summary = {
   health: string
   /** Extra one-liners under the health line (new members, approvals). */
   facts?: string[]
-  /** The founder's actions only (🟡), as short imperatives. */
+  /** The founder's actions only (🟡), as short imperatives — never a card already decided (checkActions). */
   actions: string[]
+  /** Approved and waiting for their time (Task #452): told, never asked again. */
+  scheduled?: string[]
   /** How many other open items wait on a test, someone outside, or engineering — one line, no list. */
   others?: { verify: number; external: number; engineering: number }
   footer?: string
+}
+
+/** A card in «LCA Approval» still waiting (bot_posts_waiting), by its message number — the «កាត #833» a roadmap step names. */
+export type WaitingCard = { msg: number; status: "PENDING" | "APPROVED"; publishAt: string }
+
+export const SCHEDULED_TITLE = "⏳ កាលវិភាគរង់ចាំផ្សាយស្វ័យប្រវត្តិ (បានអនុម័តរួចរាល់)"
+
+/** «ចុច ✅ លើកាត #833 ក្នុង «LCA Approval»» → [833]. */
+export const cardNumbers = (action: string) => [...action.matchAll(/កាត\s*#(\d+)/g)].map((m) => Number(m[1]))
+
+const when = (iso: string) => {
+  const t = new Date(Date.parse(iso) + 7 * 3_600_000)
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${p(t.getUTCDate())}/${p(t.getUTCMonth() + 1)} ${p(t.getUTCHours())}:${p(t.getUTCMinutes())}`
+}
+
+/**
+ * The founder's roadmap steps, checked against the approval cards (founder, 22/10/2026 — Task #452: the report asked to
+ * «ចុច ✅ លើកាត #860» on a du'a published the day before, and #833 approved on 20/10 for 29/10). A step naming a card:
+ * still PENDING → asked; APPROVED and waiting for its time → the ⏳ scheduled list, told once, never asked; no longer
+ * waiting (published, paused, expired) → nothing to do, left out. A step with no card is asked as written. The cards
+ * unreadable (`null`) → every step is asked — nothing is ever hidden by a failed lookup.
+ */
+export function checkActions(founder: { title: string; action: string }[], cards: WaitingCard[] | null): { actions: string[]; scheduled: string[] } {
+  if (!cards) return { actions: founder.map((f) => f.action), scheduled: [] }
+  const byMsg = new Map(cards.map((c) => [c.msg, c]))
+  const actions: string[] = []
+  const scheduled: string[] = []
+  for (const f of founder) {
+    const refs = cardNumbers(f.action)
+    if (!refs.length) {
+      actions.push(f.action)
+      continue
+    }
+    const waiting = refs.map((n) => byMsg.get(n)).filter((c): c is WaitingCard => Boolean(c))
+    if (waiting.some((c) => c.status === "PENDING")) actions.push(f.action)
+    else if (waiting.length) {
+      const title = f.title.length > 70 ? `${f.title.slice(0, 69)}…` : f.title
+      scheduled.push(`${title} — កាត #${waiting[0].msg} · ផ្សាយ ${when(waiting[0].publishAt)}`)
+    }
+  }
+  return { actions, scheduled }
 }
 
 /** The executive summary as plain text, airy for a phone: blocks separated by a blank line. */
@@ -116,6 +160,7 @@ export function executiveSummary(s: Summary): string {
   blocks.push([s.health, ...(s.facts ?? [])])
   const actions = [...new Set(s.actions.map((a) => a.trim()).filter(Boolean))]
   blocks.push(actions.length ? [`🎯 Action Required (${actions.length})`, ...actions.map((a, i) => `${i + 1}. ${a}`)] : ["🎯 Action Required: nothing — all clear"])
+  if (s.scheduled?.length) blocks.push([SCHEDULED_TITLE, ...s.scheduled.map((x) => `• ${x}`)])
   const o = s.others
   if (o && o.verify + o.external + o.engineering > 0)
     blocks.push([`Also open: ${o.verify} ready to test · ${o.external} with outside reviewers · ${o.engineering} with engineering`])

@@ -70,11 +70,18 @@ export function dailyScorecard(items: RoadmapItem[], deployedToday: string[]): S
 }
 
 /** The scorecard for the executive summary: today's finished items (highlight candidates), the founder's actions, counts. */
-export function summaryParts(s: Scorecard): { done: Shipped[]; actions: string[]; others: { verify: number; external: number; engineering: number } } {
+export function summaryParts(s: Scorecard): {
+  done: Shipped[]
+  actions: string[]
+  /** The founder's items with their titles — checked against the approval cards (report-standard › checkActions). */
+  founder: { title: string; action: string }[]
+  others: { verify: number; external: number; engineering: number }
+} {
   const count = (o: Owner) => s.pending.filter((p) => p.owner === o).length
   return {
     done: s.completed.map((i) => ({ title: i.title, hashes: i.hashes })),
     actions: s.pending.filter((p) => p.owner === "founder").map((p) => p.action),
+    founder: s.pending.filter((p) => p.owner === "founder").map((p) => ({ title: p.item.title, action: p.action })),
     others: { verify: count("verify"), external: count("external"), engineering: count("engineering") },
   }
 }

@@ -6,7 +6,8 @@ import path from "node:path"
 
 import { MORNING_BRIEFING, morningBriefingText, nightlyReportDay, nightlyReportText } from "@/lib/nightly-report"
 import { dailyScorecard, parseRoadmap, summaryParts } from "@/lib/roadmap-scorecard"
-import { curate, paginate } from "@/lib/report-standard"
+import { checkActions, curate, paginate } from "@/lib/report-standard"
+import { waitingCards } from "./waiting-cards"
 import { founderChats } from "./admin-routes"
 import { logEvent } from "./events"
 import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
@@ -81,7 +82,7 @@ export async function sendNightlyReport(day: string): Promise<number> {
   return sent
 }
 
-type Card = { highlights?: string[]; patches?: number; actions?: string[]; others?: { verify: number; external: number; engineering: number }; note?: string }
+type Card = { highlights?: string[]; patches?: number; actions?: string[]; scheduled?: string[]; others?: { verify: number; external: number; engineering: number }; note?: string }
 
 /** Today's highlights, other commits and the founder's actions; when they cannot be read, the report says so. */
 async function taskScorecard(day: string): Promise<Card> {
@@ -97,5 +98,7 @@ async function taskScorecard(day: string): Promise<Card> {
   }
   const commits = (data as string[] | null) ?? []
   const parts = summaryParts(dailyScorecard(parseRoadmap(readFileSync(file, "utf8")), commits))
-  return { ...curate(parts.done, [], commits), actions: parts.actions, others: parts.others }
+  // Never a card already decided (Task #452): a step on an approved card is the ⏳ list; on a published one, nothing.
+  const { actions, scheduled } = checkActions(parts.founder, await waitingCards("nightly-report"))
+  return { ...curate(parts.done, [], commits), actions, scheduled, others: parts.others }
 }
