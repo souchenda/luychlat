@@ -10,7 +10,18 @@ import { islamicTipOfTheDay, type IslamicTip } from "@/lib/islamic-tips"
 
 export type TipTopic = "saving" | "debt" | "credit" | "business" | "islamic"
 type Text = { km: string; en: string }
-export type Tip = { id: string; topic: TipTopic; title: Text; body: Text }
+export type Tip = { id: string; topic: TipTopic; title: Text; body: Text; series?: TipSeries }
+
+/** A run of tips published under its own hashtag (the 12:00 caption adds it — lib/post-footer › SERIES_HASHTAGS). */
+export type TipSeries = "smart-spending"
+
+/** The bullet every series point starts with: the caption shows the points, the poster the hook and the last point. */
+export const BULLET = "• "
+
+/** A series tip's body: the hook, then each point on its own line (the last point is the takeaway). */
+export function bulleted(hook: string, points: string[]): string {
+  return [hook, ...points.map((p) => `${BULLET}${p}`)].join("\n")
+}
 
 /*
  * Khmer copy standard for tips (founder, 2026-10-07) — every tip here can be
@@ -25,23 +36,78 @@ export type Tip = { id: string; topic: TipTopic; title: Text; body: Text }
  *   - Facts must be right (rates, rules, Islamic terms checked); no promises of returns.
  */
 export const TIPS: Tip[] = [
-  // Saving & budgeting
-  {
-    id: "rule-50-30-20",
-    topic: "saving",
-    title: { km: "ច្បាប់ ៥០/៣០/២០", en: "The 50/30/20 rule" },
-    body: {
-      km: "ចែកប្រាក់ចំណូល៖ ៥០% សម្រាប់អ្វីដែលចាំបាច់ ដូចជាផ្ទះ អាហារ និងការធ្វើដំណើរ ៣០% សម្រាប់អ្វីដែលចង់បាន និង ២០% សម្រាប់សន្សំ ឬសងបំណុល។ ចាប់ផ្តើមពីខែនេះ — កំណត់ថវិកាតាមប្រភេទក្នុងអេប លុយឆ្លាត ហើយមើលថាបងនៅក្នុងចន្លោះនេះឬទេ។",
-      en: "Split your income: 50% for needs (rent, food, transport), 30% for wants, and 20% for saving or paying off debt.",
-    },
-  },
+  // Saving & budgeting — the «Smart Spending» series first (founder, 21/10/2026): a hook, three short points, the last the
+  // takeaway (the poster's gold line). It replaced the older one-paragraph versions of the same four rules.
   {
     id: "pay-yourself-first",
     topic: "saving",
-    title: { km: "សន្សំមុន ចាយក្រោយ", en: "Pay yourself first" },
+    series: "smart-spending",
+    title: { km: "ក្បួនសន្សំមុនចាយ", en: "Pay yourself first" },
     body: {
-      km: "នៅថ្ងៃបើកប្រាក់ខែ ផ្ទេរប្រាក់សន្សំចេញភ្លាម មុននឹងចាយអ្វីផ្សេង។ អ្វីដែលនៅសល់ ទើបជាថវិកាសម្រាប់ចាយ។",
-      en: "On payday, move your savings out first, before spending anything. What's left is your spending budget.",
+      km: bulleted("ចាំចាយសល់ ទើបសន្សំ? ខែណាក៏មិនដែលសល់ដែរ។", [
+        "ថ្ងៃបើកប្រាក់ខែ ផ្ទេរ ១០% ចូលកាបូបសន្សំភ្លាម មុនចាយអ្វីទាំងអស់។",
+        "លុយដែលនៅសល់ ទើបជាថវិកាសម្រាប់ចាយប្រចាំខែ។",
+        "សន្សំមុន ចាយក្រោយ ប្រាក់សន្សំទើបកើនរាល់ខែ មិនមែនចាំសំណាង។",
+      ]),
+      en: bulleted("Waiting to save what's left? There's never anything left.", [
+        "On payday, move 10% into savings before spending anything.",
+        "What remains is your budget for the month.",
+        "Save first, spend second: that's how savings grow every month, not by luck.",
+      ]),
+    },
+  },
+  {
+    id: "rule-48-hours",
+    topic: "saving",
+    series: "smart-spending",
+    title: { km: "ក្បួនទប់ចិត្ត ៤៨ ម៉ោង", en: "The 48-hour rule" },
+    body: {
+      km: bulleted("ឃើញគេផ្សាយលក់តាមអនឡាញ ចិត្តចង់ចុចទិញភ្លាម?", [
+        "កុំទាន់ចុចទិញ — ថតអេក្រង់ទុក ឬដាក់ក្នុងកន្ត្រកសិន។",
+        "រង់ចាំ ៤៨ ម៉ោង ហើយសួរខ្លួនឯងថា៖ ចាំបាច់ពិត ឬគ្រាន់តែចង់បាន?",
+        "បើនៅតែចាំបាច់ ហើយមានថវិកា ចាំទិញ — ភាគច្រើន ចិត្តចង់បាននោះរលាយបាត់ដោយខ្លួនឯង។",
+      ]),
+      en: bulleted("Saw it online and want to tap “buy” right now?", [
+        "Don't buy yet: screenshot it or leave it in the cart.",
+        "Wait 48 hours and ask yourself: do I need it, or just want it?",
+        "If you still need it and it fits the budget, buy it; most of the time the urge simply passes.",
+      ]),
+    },
+  },
+  {
+    id: "track-small-spending",
+    topic: "saving",
+    series: "smart-spending",
+    title: { km: "ក្បួនកាហ្វេ និងចំណាយតូចតាច", en: "The latte factor" },
+    body: {
+      km: bulleted("កាហ្វេមួយកែវ $២,៥០ មើលទៅតិចតួចណាស់ មែនទេ?", [
+        "មួយថ្ងៃមួយកែវ មួយខែអស់ $៧៥។",
+        "មួយឆ្នាំអស់ $៩០០ — ប្រហែល ៣,៦ លានរៀល បើគិត ៤ ០០០ ៛ ក្នុងមួយដុល្លារ។",
+        "មិនមែនហាមផឹកទេ — គ្រាន់តែកត់ត្រាការចាយតូចៗ ឱ្យដឹងខ្លួនថាលុយទៅណា។",
+      ]),
+      en: bulleted("A $2.50 coffee looks like nothing, right?", [
+        "One a day is $75 a month.",
+        "That's $900 a year (about 3.6 million riel at 4,000 ៛ to the dollar).",
+        "Nobody says stop: just record the small spending so you know where the money goes.",
+      ]),
+    },
+  },
+  {
+    id: "rule-50-30-20",
+    topic: "saving",
+    series: "smart-spending",
+    title: { km: "ក្បួនស្រោមសំបុត្រ ៣ ថង់", en: "Three envelopes: 50/30/20" },
+    body: {
+      km: bulleted("ប្រាក់ខែចូល ចាយលាយគ្នាទាំងអស់ ចុងខែមិនដឹងលុយទៅណា?", [
+        "ថង់ទី ១ — ៥០% ចំណាយចាំបាច់៖ ថ្លៃផ្ទះ ម្ហូប និងទឹកភ្លើង។",
+        "ថង់ទី ២ — ៣០% ចំណាយតាមចិត្ត៖ ញ៉ាំក្រៅ ទិញអីវ៉ាន់ ដើរលេង។",
+        "ថង់ទី ៣ — ២០% ប្រាក់បម្រុងអាសន្ន — ថង់នេះ កុំប៉ះ។",
+      ]),
+      en: bulleted("Salary in, everything spent from one pile, and by month end nobody knows where it went?", [
+        "Envelope 1: 50% for needs (rent, food, water and electricity).",
+        "Envelope 2: 30% for wants (eating out, shopping, outings).",
+        "Envelope 3: 20% for the emergency fund, and that one stays untouched.",
+      ]),
     },
   },
   {
@@ -54,21 +120,57 @@ export const TIPS: Tip[] = [
     },
   },
   {
-    id: "rule-72-hours",
-    topic: "saving",
-    title: { km: "ច្បាប់រង់ចាំ ៧២ ម៉ោង", en: "The 72-hour rule" },
+    id: "borrow-to-earn",
+    topic: "debt",
+    series: "smart-spending",
+    title: { km: "កុំខ្ចីលុយទិញរបស់ដែលមិនបង្កើតចំណូល", en: "Don't borrow for things that earn nothing" },
     body: {
-      km: "មុនទិញរបស់ដែលមិនចាំបាច់ សូមរង់ចាំ ៧២ ម៉ោង។ បើនៅតែចង់បាន ហើយមានថវិកា ទើបទិញ — ភាគច្រើនយើងនឹងភ្លេចវាទៅវិញ។",
-      en: "Before buying something you don't need, wait 72 hours. If you still want it and it fits the budget, buy it — often the urge simply passes.",
+      km: bulleted("ខ្ចីលុយទិញទូរស័ព្ទថ្មី ឬឡាន ព្រោះគេមានដែរ?", [
+        "របស់ប្រើផ្ទាល់ខ្លួន មិនរកលុយចូលវិញទេ — វាបន្ថែមតែការប្រាក់ និងបំណុល។",
+        "ខ្ចីពង្រីកអាជីវកម្ម អាចជាបំណុលល្អ លុះត្រាតែចំណូលបន្ថែម លើសប្រាក់ត្រូវបង់ប្រចាំខែ។",
+        "មុនខ្ចី សួរខ្លួនឯងថា៖ របស់នេះ រកលុយសងខ្លួនវាវិញបានទេ?",
+      ]),
+      en: bulleted("Borrowing for a new phone or a car because everyone has one?", [
+        "Things for your own use earn nothing back: they only add interest and debt.",
+        "Borrowing to grow a business can be good debt, but only when the extra income is more than the monthly instalment.",
+        "Before you borrow, ask: will this pay for itself?",
+      ]),
     },
   },
   {
-    id: "track-small-spending",
+    id: "market-list",
     topic: "saving",
-    title: { km: "កត់ការចាយតូចៗ", en: "Track the small spending" },
+    series: "smart-spending",
+    title: { km: "ក្បួនដើរផ្សារកុំឱ្យធ្លាយហោប៉ៅ", en: "Shop without leaking money" },
     body: {
-      km: "កាហ្វេ $២ រាល់ថ្ងៃ = ប្រហែល $៧៣០ ក្នុងមួយឆ្នាំ។ កត់រាល់ការចាយ — គ្រាន់តែផ្ញើ «កាហ្វេ 2$» ទៅ bot ក៏បាន — ដើម្បីដឹងថាលុយទៅណា។",
-      en: "A $2 coffee every day is about $730 a year. Log every expense (even “coffee 2$” to the bot) to see where your money goes.",
+      km: bulleted("ចូលផ្សារទៅទិញតែស្ករ ចេញមកវិញដៃពេញថង់?", [
+        "សរសេរបញ្ជីមុខទំនិញមុនចេញពីផ្ទះ ហើយទិញតែអ្វីដែលមានក្នុងបញ្ជី។",
+        "យកលុយសុទ្ធតាមចំនួនដែលគ្រោងទុក កុំយកលើស។",
+        "កុំដើរផ្សារពេលឃ្លានបាយ — ពោះឃ្លាន ធ្វើឱ្យភ្នែកចង់ទិញគ្រប់យ៉ាង។",
+      ]),
+      en: bulleted("Went to the market for sugar and came back with full bags?", [
+        "Write the list before leaving home, and buy only what's on it.",
+        "Bring just the cash you planned to spend.",
+        "Never shop hungry: an empty stomach wants everything.",
+      ]),
+    },
+  },
+  {
+    id: "slip-5-seconds",
+    topic: "saving",
+    series: "smart-spending",
+    title: { km: "ក្បួនកត់ត្រាវិក្កយបត្រ ៥ វិនាទី", en: "Record a slip in 5 seconds" },
+    body: {
+      km: bulleted("ចាយហើយភ្លេចកត់ ចុងខែមិនដឹងលុយទៅណា?", [
+        "ចាយរួច ថតរូប Slip ឬវិក្កយបត្រភ្លាម។",
+        "ផ្ញើចូល Telegram Bot @luychlat_bot — Bot អានចំនួនទឹកប្រាក់ ហើយកត់ទុកឱ្យ។",
+        "បើកអេប លុយឆ្លាត ដឹងភ្លាមថាខែនេះចាយអស់ប៉ុន្មាន។",
+      ]),
+      en: bulleted("Spent it, forgot to note it, and lost track by month end?", [
+        "Right after paying, take a photo of the slip or receipt.",
+        "Send it to the Telegram Bot @luychlat_bot: it reads the amount and records it for you.",
+        "Open App Luy Chlat and see at once how much this month has cost.",
+      ]),
     },
   },
   {

@@ -15,13 +15,24 @@
 import { createCanvas } from "@napi-rs/canvas"
 
 import { longDate } from "@/lib/dates"
+import { BULLET } from "@/lib/tips"
 
 import { FAMILIES, FRAME, drawFooter, drawHeader, drawIcon, drawRich, loadFonts, wrap } from "./poster-kit"
 
 const { W, H, PAD } = FRAME
 
-/** The body's lead (all but the last sentence) and its takeaway (the last sentence). */
+/**
+ * The body's lead (all but the last sentence) and its takeaway (the last sentence). A series tip («• » points under a
+ * hook — lib/tips › bulleted) keeps the v3 hierarchy: the hook is the lead and the last point the takeaway; all three
+ * points are in the caption.
+ */
 export function splitTakeaway(body: string): { lead: string; takeaway: string | null } {
+  const lines = body.trim().split("\n").map((l) => l.trim())
+  const points = lines.filter((l) => l.startsWith(BULLET.trim()))
+  if (points.length > 0) {
+    const hook = lines.filter((l) => !l.startsWith(BULLET.trim())).join(" ").trim()
+    return { lead: hook || points[0].slice(1).trim(), takeaway: points[points.length - 1].slice(1).trim() }
+  }
   const sentences =
     body
       .trim()

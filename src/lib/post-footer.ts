@@ -28,20 +28,25 @@ export const HASHTAGS: Record<FooterChannel, string> = {
   islamic: "#LuyChlat #LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់", // #LuyChlat too (founder, 21/10/2026)
 }
 
+/** A tip series' own hashtag, after the brand's (founder, 21/10/2026 — the «Smart Spending» series). */
+export const SERIES_HASHTAGS: Record<string, string> = {
+  "smart-spending": "#របៀបចាយលុយឆ្លាត",
+}
+
 /** «Android (APK) || iOS / Web || Telegram Bot» — inline links on Telegram (HTML), names with short addresses on Facebook. */
 export function appLinksLine(platform: FooterPlatform = "telegram"): string {
   return APP_LINKS.map((l) => (platform === "telegram" ? `<a href="${l.url}">${l.label}</a>` : `${l.label}: ${l.url.replace(/^https:\/\//, "")}`)).join(" || ")
 }
 
 /** The footer — Telegram's is HTML: send it with parse_mode HTML and escape only the post's own words. */
-export function postFooter(channel: FooterChannel, platform: FooterPlatform = "telegram"): string {
+export function postFooter(channel: FooterChannel, platform: FooterPlatform = "telegram", extraTags: string[] = []): string {
   const tg = (handle: string) => (platform === "telegram" ? `@${handle}` : `t.me/${handle}`)
   return [
     "📲 ប្រើប្រាស់ អេប លុយឆ្លាត ដោយឥតគិតថ្លៃ៖",
     appLinksLine(platform),
     "",
     channel === "islamic" ? `👉 ឆាណែលឥស្លាម ៖ ${tg("LuyChlatIslamic")}` : `👉 ចូលរួមសហគមន៍ ៖ ${tg("LuyChlatCommunity")}`,
-    ...hashtagLines(HASHTAGS[channel].split(" ")),
+    ...hashtagLines([...HASHTAGS[channel].split(" "), ...extraTags]),
   ].join("\n")
 }
 

@@ -50,7 +50,7 @@ export default function LearnPage() {
                   {tips.map((tip) => (
                     <li key={tip.id} className="px-4 py-3">
                       <p className="text-sm font-semibold">{pick(tip.title, locale)}</p>
-                      <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">{pick(tip.body, locale)}</p>
+                      <p className="mt-0.5 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{pick(tip.body, locale)}</p>
                     </li>
                   ))}
                 </ul>

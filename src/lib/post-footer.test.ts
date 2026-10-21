@@ -69,7 +69,8 @@ describe("The standard post footer (founder, 20–21/10/2026 — the Charge+ for
     assert.match(sp, /withFooter\(esc\(dilemmaPostText\(d\)\), postFooter\("community"\), 4096\)/)
     const national = sp.slice(sp.indexOf('if (row.kind === "NATIONAL_DAY") {\n      // The commemoration poster'), sp.indexOf('if (row.kind === "ISLAMIC_BULLETIN")'))
     assert.doesNotMatch(national, /postFooter/)
-    assert.match(read("src/lib/server/tip-bot.ts"), /postFooter\("community"\)/)
+    // The 12:00 tip: the community footer, plus its series' hashtag when it has one («Smart Spending», 21/10/2026).
+    assert.match(read("src/lib/server/tip-bot.ts"), /postFooter\("community", "telegram", tipSeriesTags\(t\.tip_id\)\)/)
     assert.match(read("src/lib/server/facebook-publisher.ts"), /postFooter\("community", "facebook"\)/)
   })
 })

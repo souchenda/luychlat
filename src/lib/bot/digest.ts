@@ -118,7 +118,7 @@ const tipById = (id: string) => TIPS.find((t) => t.id === id)
 
 /**
  * A tip that fits the week: spent more than earned → budgeting; spending up a
- * lot → the 72-hour rule; saving well → an emergency fund / goals; a business
+ * lot → the 48-hour rule; saving well → an emergency fund / goals; a business
  * → daily cash flow; otherwise the tip of the week.
  */
 export function pickTip(stats: DigestStats, row: DigestRow, weekStart: string): Tip {
@@ -126,7 +126,7 @@ export function pickTip(stats: DigestStats, row: DigestRow, weekStart: string): 
   const pickOf = (ids: string[]) => tipById(ids[week % ids.length])
   const choice =
     (stats.income > 0 && stats.net < 0 && pickOf(["rule-50-30-20", "track-small-spending"])) ||
-    (stats.spendingChange !== null && stats.spendingChange >= 20 && pickOf(["rule-72-hours", "track-small-spending"])) ||
+    (stats.spendingChange !== null && stats.spendingChange >= 20 && pickOf(["rule-48-hours", "track-small-spending"])) ||
     (stats.savingsRate !== null && stats.savingsRate >= 20 && pickOf(["emergency-fund", "separate-goals", "pay-yourself-first"])) ||
     (row.workspace_type === "BUSINESS" && pickOf(["cash-flow-daily", "separate-money", "business-buffer"])) ||
     null
