@@ -7,7 +7,7 @@
  *                  report export (Excel / PDF)
  * A Business workspace (founder, 21/10/2026 — Task #438, merchant operations, not personal savings):
  *   daily cash   — scan a slip · sales / income · general expense                        (editors only)
- *   money owed   — transfer (editors only) · customers owe (AR) · we owe (AP)
+ *   money owed   — transfer (editors only) · customers owe (AR, /business/ar) · we owe (AP, /business/ap)
  *   operations   — monthly bills · the market hub (NBC and fuel) · the report export
  * Pure — the tiles are components/dashboard/quick-actions.tsx.
  */
@@ -73,8 +73,8 @@ export function quickActions({
           ] satisfies QuickAction[])
         : []),
       ...transfer,
-      { key: "receivable", label: "quick.receivable", href: "/debts?tab=RECEIVABLE" },
-      { key: "payable", label: "quick.payable", href: "/debts?tab=PAYABLE" },
+      { key: "receivable", label: "quick.receivable", href: "/business/ar" },
+      { key: "payable", label: "quick.payable", href: "/business/ap" },
       { key: "bills", label: "quick.bills", href: "/bills" },
       { key: "market", label: "quick.marketBiz", href: "/market" },
       { key: "export", label: "quick.export", href: "/reports#export" },

@@ -65,7 +65,7 @@ describe("the Business grid — merchant operations (founder, 21/10/2026 — Tas
       quickActions(biz).map((a) => dictionaries.km[a.label]),
       ["ស្កេនវិក្កយបត្រ", "លក់ដាច់/ចំណូល", "ចំណាយទូទៅ", "ផ្ទេរប្រាក់", "អតិថិជនជំពាក់ (AR)", "ជំពាក់គេ (AP)", "វិក្កយបត្រប្រចាំខែ", "ទីផ្សារ NBC/សាំង", "នាំចេញរបាយការណ៍"],
     )
-    assert.deepEqual([by("receivable", biz).href, by("payable", biz).href, by("market", biz).href, by("export", biz).href], ["/debts?tab=RECEIVABLE", "/debts?tab=PAYABLE", "/market", "/reports#export"])
+    assert.deepEqual([by("receivable", biz).href, by("payable", biz).href, by("market", biz).href, by("export", biz).href], ["/business/ar", "/business/ap", "/market", "/reports#export"])
     // No savings goals or budgets in the merchant grid; no Islamic tile (the menu keeps it); the sheets have no href.
     for (const k of ["goals", "budgets", "islamic", "loans"]) assert.ok(!keys({ ...biz, islamic: true }).includes(k as never), k)
     for (const k of ["scan", "income", "expense", "transfer"]) assert.equal(by(k, biz).href, undefined, k)
