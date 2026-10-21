@@ -140,7 +140,8 @@ export function kmClock(iso: string): string {
   const t = new Date(Date.parse(iso) + 7 * 3_600_000)
   const h = t.getUTCHours()
   const m = t.getUTCMinutes()
-  const part = h < 12 ? "ព្រឹក" : h < 17 ? "រសៀល" : "ល្ងាច"
+  // 19:00 onwards is night, «យប់» (20:00 = «២០:០០ យប់», never «ល្ងាច» — founder, 21/10/2026, Task #439).
+  const part = h < 12 ? "ព្រឹក" : h < 17 ? "រសៀល" : h < 19 ? "ល្ងាច" : "យប់"
   return `${khmerDigits(String(h).padStart(2, "0"))}:${khmerDigits(String(m).padStart(2, "0"))} ${part}`
 }
 
@@ -166,7 +167,8 @@ const KIND_LABEL: Record<PostKind, string> = {
   MORNING: "ផុសព្រឹក (Poster)",
   HOLIDAY: "សារថ្ងៃឈប់សម្រាក",
   FUEL: "តម្លៃប្រេងថ្មី",
-  EVENING: "សាររំលឹកម៉ោង ៨ យប់",
+  // The hour in words and on the clock, so 20:00 can never be misread (founder, 21/10/2026 — Task #439).
+  EVENING: "សាររំលឹកម៉ោង ៨ យប់ (២០:០០)",
   SPOTLIGHT: "តម្លៃស្នូលប្រចាំសប្តាហ៍ (Poster)",
   BULLETIN: "ព្រឹត្តិបត្រទីផ្សារ (NBC · មាស · ប្រេង)",
   RATES: "អត្រាប្តូរប្រាក់ NBC ពេលល្ងាច",
