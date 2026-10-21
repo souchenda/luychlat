@@ -14,6 +14,7 @@ import { DILEMMA_MINUTE, DILEMMA_WEEKDAYS } from "@/lib/money-dilemmas"
 import * as G from "@/lib/islamic/glossary"
 import { toHijri, type HijriDate } from "@/lib/islamic"
 import { dateOf, islamicPlannedPosts, type IslamicKind } from "@/lib/islamic-channel"
+import { SUNNAH_FAST } from "@/lib/islamic/glossary"
 
 /**
  * Every public post (founder, 18/10/2026 — none without approval): the 07:00 poster, holiday notes, fuel
@@ -175,7 +176,7 @@ const KIND_LABEL: Record<PostKind, string> = {
   HOLYDAY: "សារថ្ងៃសីល",
   DILEMMA: "សំណួរហិរញ្ញវត្ថុពិភាក្សា (Money Dilemma)",
   ISLAMIC_DAILY: "ហ៊ីជរី និងមេរៀនហិរញ្ញវត្ថុហាឡាល់",
-  ISLAMIC_FAST: "រំលឹកបួសស៊ុណ្ណះ (ច័ន្ទ / ព្រហស្បតិ៍)",
+  ISLAMIC_FAST: `រំលឹក${SUNNAH_FAST} (ច័ន្ទ / ព្រហស្បតិ៍)`,
   ISLAMIC_JUMUAH: `${G.JUMUAH} (ថ្ងៃសុក្រ)`,
   ISLAMIC_MORNING: "ឌុអាពេលព្រឹក និងម៉ោងថ្វាយបង្គំ",
   ISLAMIC_IFTAR: `ឌុអា${G.IFTAR}`,

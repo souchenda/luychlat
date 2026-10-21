@@ -30,7 +30,7 @@ describe("The du'a library in natural Khmer (founder, 19/10/2026)", () => {
 
   it("the fasting intention: the founder's meaning, and honest about its source (a Shafi'i formula, the intention in the heart)", () => {
     const n = by("fast-niyyah")
-    assert.equal(posterMeaning(n), "« ខ្ញុំតាំងចិត្តបួសនៅថ្ងៃស្អែក ដើម្បីបំពេញកាតព្វកិច្ចខែរ៉ាម៉ាឌន ឬបួសស៊ុណ្ណា ដើម្បីអល់ឡោះជាម្ចាស់ ﷻ។ »")
+    assert.equal(posterMeaning(n), "« ខ្ញុំតាំងចិត្តបួសនៅថ្ងៃស្អែក ដើម្បីបំពេញកាតព្វកិច្ចខែរ៉ាម៉ាឌន ឬបួសស៊ុណ្ណះ ដើម្បីអល់ឡោះជាម្ចាស់ ﷻ។ »")
     assert.match(n.source, /Shafi'i formula; the intention is in the heart/)
     // The hub's du'a of the hour and the channel still find theirs.
     for (const id of ["wake", "iftar", "sleep", "halal-provision"]) assert.ok(by(id), id)

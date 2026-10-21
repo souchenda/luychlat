@@ -140,8 +140,8 @@ export const DUAS: Dua[] = [
     arabic: "نَوَيْتُ صَوْمَ غَدٍ عَنْ أَدَاءِ فَرْضِ شَهْرِ رَمَضَانَ هَذِهِ السَّنَةِ لِلَّهِ تَعَالَى",
     phonetic: "ណា-វ៉ៃ-តុ សោវ-ម៉ា ហ្កា-ឌិន អាន់ អា-ដា-អ៊ិ ហ្វាដ-ឌិ ស្យាហ្រ-រិ រ៉ា-ម៉ា-ដន ហា-ហ្ស៊ិ-ហិស-សា-ណា-ទិ លិល-ឡា-ហិ តា-អា-ឡា",
     latin: "Nawaitu ṣawma ghadin ‘an adā’i farḍi shahri Ramaḍāna hādhihis-sanati lillāhi ta‘ālā",
-    km: "ខ្ញុំតាំងចិត្តបួសនៅថ្ងៃស្អែក ដើម្បីបំពេញកាតព្វកិច្ច (ខែរ៉ាម៉ាឌន / ស៊ុណ្ណា) ដើម្បីអល់ឡោះជាម្ចាស់ ﷻ។",
-    // No parentheses on a graphic: «ខែរ៉ាម៉ាឌន ឬបួសស៊ុណ្ណា».
+    km: `ខ្ញុំតាំងចិត្តបួសនៅថ្ងៃស្អែក ដើម្បីបំពេញកាតព្វកិច្ច (ខែរ៉ាម៉ាឌន / ${G.SUNNAH}) ដើម្បីអល់ឡោះជាម្ចាស់ ﷻ។`,
+    // No parentheses on a graphic: «ខែរ៉ាម៉ាឌន ឬបួសស៊ុណ្ណះ».
     poster: `« ខ្ញុំតាំងចិត្តបួសនៅថ្ងៃស្អែក ដើម្បីបំពេញកាតព្វកិច្ចខែរ៉ាម៉ាឌន ឬ${G.SUNNAH_FAST} ដើម្បីអល់ឡោះជាម្ចាស់ ﷻ។ »`,
     note: `ការតាំងចិត្ត (${G.NIYYAH}) គឺនៅក្នុងចិត្ត — ការសូត្រជាពាក្យ គឺជាការអនុវត្តតាមមាសហាប់សាហ្វីអ៊ី។ សម្រាប់${G.SUNNAH_FAST} សូមតាំងចិត្តសម្រាប់ការបួសនោះ។`,
     en: "I intend to fast tomorrow to fulfil the obligation of this year's Ramadan, for Allah the Exalted. (For a sunnah fast, intend that fast instead.)",

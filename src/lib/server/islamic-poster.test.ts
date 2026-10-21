@@ -73,8 +73,8 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
   it("the hero is one line, at full size, for the morning, the fast reminders and Jumu'ah; the Arabic stays whole", () => {
     const hero = [
       ["ISLAMIC_MORNING", "2026-10-19", "អរុណសួស្តីថ្ងៃថ្មី"],
-      ["ISLAMIC_FAST", "2026-10-18", "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ"],
-      ["ISLAMIC_FAST", "2026-10-21", "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍"],
+      ["ISLAMIC_FAST", "2026-10-18", "បួសស៊ុណ្ណះ ថ្ងៃច័ន្ទ"],
+      ["ISLAMIC_FAST", "2026-10-21", "បួសស៊ុណ្ណះ ថ្ងៃព្រហស្បតិ៍"],
       ["ISLAMIC_JUMUAH", "2026-10-23", "ជូម៉ាអះ មូបារ៉ក់"],
     ] as const
     for (const [kind, d, title] of hero) {
@@ -141,7 +141,7 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     // The founder's hooks, word for word.
     assert.deepEqual(islamicPostContent("ISLAMIC_MORNING", "2026-10-19", h(8)).posterLines, ["អរគុណអល់ឡោះ ដែលបានផ្ដល់ដង្ហើមជីវិតឱ្យយើងជាថ្មី"])
     assert.deepEqual(islamicPostContent("ISLAMIC_JUMUAH", "2026-10-23", h(12)).posterLines, ["ផ្អាកការលក់ដូរមួយភ្លែត ដើម្បីទៅថ្វាយបង្គំជូម៉ាអះ", "ប្រាក់ចំណេញក្រោយពេលនោះ ទើបប្រកបដោយបារ៉ាកាត់ពិតប្រាកដ"])
-    assert.deepEqual(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7)).posterLines, ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណា · ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ", "កុំភ្លេចហូបបាយបួស និងតាំងចិត្តនីយ៉ាត់យប់នេះ"])
+    assert.deepEqual(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7)).posterLines, ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណះ · ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ", "កុំភ្លេចហូបបាយបួស និងតាំងចិត្តនីយ៉ាត់យប់នេះ"])
     assert.deepEqual(POSTER_HOOKS.morning, ["អរគុណអល់ឡោះ ដែលបានផ្ដល់ដង្ហើមជីវិតឱ្យយើងជាថ្មី"])
     // The morning, the fasts and Jumu'ah: each hook on one line.
     for (const [k, d] of [["ISLAMIC_MORNING", "2026-10-19"], ["ISLAMIC_FAST", "2026-10-18"], ["ISLAMIC_FAST", "2026-10-21"], ["ISLAMIC_JUMUAH", "2026-10-23"]] as const)
@@ -164,7 +164,7 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     loadFonts()
     const ctx = createCanvas(1080, 200).getContext("2d")
     ctx.font = `500 44px ${FAMILIES}`
-    assert.deepEqual(balancedSplit(ctx, "ស្អែកជាថ្ងៃបួសស៊ុណ្ណា · ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ", 864), ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណា", "ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ"])
+    assert.deepEqual(balancedSplit(ctx, "ស្អែកជាថ្ងៃបួសស៊ុណ្ណះ · ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ", 864), ["ស្អែកជាថ្ងៃបួសស៊ុណ្ណះ", "ថ្ងៃដែលអំពើរបស់មនុស្សត្រូវបានបង្ហាញ"])
     const [a, b] = balancedSplit(ctx, "អ្នកមានគុណធម៌ គឺអ្នកដែលចាយមិនហួសហេតុ ហើយក៏មិនកំណាញ់ដែរ គឺនៅចំកណ្ដាល។", 864)
     assert.ok(Math.abs(ctx.measureText(a).width - ctx.measureText(b).width) < 300, `${a} | ${b}`)
   })
@@ -185,7 +185,7 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     assert.match(sp, /if \(chat\) ids\.telegram = \(await sendPosterPhoto\(chat, islamicPoster\(c\), caption, \{ reply_markup: buttons\.reply_markup \}\)\) \?\? \(await sentText\(caption, true\)\)/)
     assert.match(sp, /return \{ png: poster\(\(\) => islamicPoster\(c\)\), body: stripHtml\(islamicCaptionHtml\(c\)\) \}/) // the preview is the poster too
   })
-  it("lines never break a time («០៤:២៣») or an Islamic term («អ៊ឹមសាក់», «ស៊ុណ្ណា»…) — the server font is wider than Windows'", async () => {
+  it("lines never break a time («០៤:២៣») or an Islamic term («អ៊ឹមសាក់», «ស៊ុណ្ណះ»…) — the server font is wider than Windows'", async () => {
     const { createCanvas } = await import("@napi-rs/canvas")
     const { FAMILIES, loadFonts, wrap } = await import("./poster-kit")
     loadFonts()

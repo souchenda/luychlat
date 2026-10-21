@@ -69,10 +69,10 @@ describe("GOLDEN · published wording", () => {
     const sunday = islamicPostContent("ISLAMIC_FAST", "2026-10-18", today)
     // The poster's hero is short and one line; «tomorrow» is in the pill and the caption; the Arabic on its own line
     // (founder, 18/10/2026 typography hotfix — the long title wrapped and split the Arabic).
-    assert.equal(sunday.title, "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ")
+    assert.equal(sunday.title, "បួសស៊ុណ្ណះ ថ្ងៃច័ន្ទ")
     assert.equal(sunday.pill, "រំលឹកត្រៀមបួសស្អែក")
     assert.equal(sunday.titleArabic, "صِيَام يَوْم الإِثْنَيْن")
-    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).title, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍")
+    assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).title, "បួសស៊ុណ្ណះ ថ្ងៃព្រហស្បតិ៍")
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).titleArabic, "صِيَام يَوْم الخَمِيس")
     // The publish day; «Gregorian · ត្រូវនឹង Hijri» (founder, 18/10/2026; no parentheses on a graphic, 19/10/2026).
     assert.equal(posterDateline(sunday), "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ត្រូវនឹង ៧ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.")
@@ -80,7 +80,7 @@ describe("GOLDEN · published wording", () => {
     assert.equal(sunday.fast?.day, "ថ្ងៃច័ន្ទ") // the boxes are tomorrow's
     const caption = islamicCaptionHtml(sunday)
     assert.ok(caption.startsWith("🌙 <b>ថ្ងៃទី០៧ ខែជុម៉ាដាល់អូឡា ឆ្នាំ១៤៤៨"), caption) // the caption is dated the same day
-    assert.ok(caption.includes("🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖</b>"), caption)
+    assert.ok(caption.includes("🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណះ (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖</b>"), caption)
     assert.ok(caption.includes("សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ០៤:២៣ និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។"))
   })
 })

@@ -296,7 +296,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       lead: `🌙 <b>${G.fastReminderLead(monday ? "monday" : "thursday")}</b>`,
       paragraphs: [
         G.sahurReminder(times.imsak),
-        `ការបួសនេះជាស៊ុណ្ណា — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
+        `ការបួសនេះជា${G.SUNNAH} — តាមលទ្ធភាពសុខភាពរបស់អ្នក។ ${G.PROPHET_FULL} តែងបួសរៀងរាល់ថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍ ហើយមានប្រសាសន៍ថា អំពើរបស់មនុស្សត្រូវបានបង្ហាញនៅថ្ងៃទាំងពីរនេះ ហើយលោកចង់ឱ្យអំពើរបស់លោកត្រូវបានបង្ហាញ ខណៈលោកកំពុងបួស។`,
       ],
       posterLines: [...POSTER_HOOKS.fast],
       source: { label: "Jami' at-Tirmidhi 747", url: "https://sunnah.com/tirmidhi:747" },

@@ -12,7 +12,12 @@ export const PROPHET = "ព្យាការី មូហាំម៉ាត់"
 export const PROPHET_FULL = `${PROPHET} ${PBUH}`
 
 // ─── Fasting ──────────────────────────────────────────────────────────────────────────────────────
-export const SUNNAH_FAST = "បួសស៊ុណ្ណា"
+/**
+ * Sunnah (سُنَّة) — «ស៊ុណ្ណះ» with the visarga, as the Arabic is transliterated (founder, 21/10/2026); never «ស៊ុណ្ណា» (a long
+ * «aa») or «ស៊ុណ្ណៈ» (the yuukaleakpintu) — both banned below.
+ */
+export const SUNNAH = "ស៊ុណ្ណះ"
+export const SUNNAH_FAST = `បួស${SUNNAH}`
 export const SAHUR = "ហូបបាយបួស"
 export const SAHUR_MEAL = `${SAHUR} (សាហួរ / السَّحُور)`
 export const IMSAK = "អ៊ឹមសាក់"
@@ -50,7 +55,7 @@ export const MORNING_ARABIC = "صَبَاح الخَيْر"
 /** The poster's dateline joins the two calendars: «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង ៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.» (no parentheses on a graphic). */
 export const HIJRI_CORRESPONDS = "ត្រូវនឹង"
 
-/** The caption's timely first line (after «🌙»): «រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖». */
+/** The caption's timely first line (after «🌙»): «រំលឹកត្រៀមបួសស៊ុណ្ណះ (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖». */
 export const fastReminderLead = (weekday: "monday" | "thursday") =>
   `រំលឹកត្រៀម${SUNNAH_FAST} (សម្រាប់${weekday === "monday" ? "ថ្ងៃច័ន្ទ" : "ថ្ងៃព្រហស្បតិ៍"} ស្អែកនេះ)៖`
 
@@ -114,13 +119,15 @@ export const BARAKALLAH = "បារ៉ាកាល់ឡាហូ ហ្វី�
 export const BARAKALLAH_LABEL = `${BARAKALLAH} (Barakallahu Feek / بَارَكَ اللَّهُ فِيكَ)`
 
 /** Loanwords the Khmer word breaker splits («អ៊ឹម|សាក់»): posters keep them whole on a line. */
-export const UNBREAKABLE_TERMS = [IMSAK, IFTAR, SAHUR, NIYYAH, SUNNAH_FAST, "ស៊ុណ្ណា", "សាហួរ", JUMUAH, BARAKAH, "មូហាំម៉ាត់", "ហ៊ីចរ៉ោះ"]
+export const UNBREAKABLE_TERMS = [IMSAK, IFTAR, SAHUR, NIYYAH, SUNNAH_FAST, SUNNAH, "សាហួរ", JUMUAH, BARAKAH, "មូហាំម៉ាត់", "ហ៊ីចរ៉ោះ"]
 
 /** For the AI advisor's prompt: the terms to use when the conversation touches Islamic practice. */
 export const GLOSSARY_FOR_AI = [PROPHET_FULL, SAHUR_MEAL, IMSAK_LABEL, IFTAR_LABEL, NIYYAH_LABEL, `Hijri era ${HIJRI_ERA}`, JUMUAH_LABEL, BARAKAH_LABEL].join("; ")
 
 // ─── Banned (machine-translated or wrong) — the golden guard fails the build on any of them ──────────
 export const BANNED_TERMS: { term: string; use: string }[] = [
+  { term: "ស៊ុណ្ណា", use: SUNNAH },
+  { term: "ស៊ុណ្ណៈ", use: SUNNAH },
   { term: "ឈប់ញ៉ាំ", use: IMSAK_LABEL },
   { term: "បើកបួស", use: IFTAR_LABEL },
   { term: "ស្ទូហួរ", use: SAHUR_MEAL },

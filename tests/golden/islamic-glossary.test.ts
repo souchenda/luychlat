@@ -57,6 +57,13 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     const hits = files.flatMap(({ f, src }) => terms.filter((t) => src.includes(t)).map((t) => `${f}: «${t}» → import it from lib/islamic/glossary`))
     assert.deepEqual(hits, [])
   })
+  it("Sunnah is «ស៊ុណ្ណះ» (سُنَّة, with the visarga — founder, 21/10/2026): «ស៊ុណ្ណា» and «ស៊ុណ្ណៈ» are banned everywhere", () => {
+    assert.equal(G.SUNNAH, "ស៊ុណ្ណះ")
+    assert.equal(G.SUNNAH_FAST, "បួសស៊ុណ្ណះ")
+    for (const wrong of ["ស៊ុណ្ណា", "ស៊ុណ្ណៈ"]) assert.ok(G.BANNED_TERMS.some((b) => b.term === wrong && b.use === G.SUNNAH), wrong)
+    assert.equal(G.fastReminderLead("thursday"), "រំលឹកត្រៀមបួសស៊ុណ្ណះ (សម្រាប់ថ្ងៃព្រហស្បតិ៍ ស្អែកនេះ)៖")
+    assert.equal(G.FAST_HERO_TITLES.thursday, "បួសស៊ុណ្ណះ ថ្ងៃព្រហស្បតិ៍")
+  })
   it("the glossary itself: the founder's terms (18/10/2026)", () => {
     assert.equal(G.PROPHET_FULL, "ព្យាការី មូហាំម៉ាត់ ﷺ")
     assert.equal(G.PBUH.codePointAt(0), 0xfdfa)
@@ -69,10 +76,10 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     assert.equal(G.HIJRI_ERA, "ហ.ស.")
     assert.equal(G.JUMUAH_LABEL, "ជូម៉ាអះ (Jumu'ah / الجُمُعَة)")
     assert.equal(G.BARAKAH_LABEL, "បារ៉ាកាត់ (Barakah / بَرَكَة)")
-    assert.equal(G.REMINDER_TITLES.monday, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃច័ន្ទស្អែក (صِيَام الإِثْنَيْن)")
-    assert.equal(G.REMINDER_TITLES.thursday, "រំលឹកត្រៀមបួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍ស្អែក (صِيَام الخَمِيس)")
-    assert.equal(G.FAST_HERO_TITLES.monday, "បួសស៊ុណ្ណា ថ្ងៃច័ន្ទ") // the poster's hero (typography hotfix, 18/10/2026)
-    assert.equal(G.FAST_HERO_TITLES.thursday, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍")
+    assert.equal(G.REMINDER_TITLES.monday, "រំលឹកត្រៀមបួសស៊ុណ្ណះ ថ្ងៃច័ន្ទស្អែក (صِيَام الإِثْنَيْن)")
+    assert.equal(G.REMINDER_TITLES.thursday, "រំលឹកត្រៀមបួសស៊ុណ្ណះ ថ្ងៃព្រហស្បតិ៍ស្អែក (صِيَام الخَمِيس)")
+    assert.equal(G.FAST_HERO_TITLES.monday, "បួសស៊ុណ្ណះ ថ្ងៃច័ន្ទ") // the poster's hero (typography hotfix, 18/10/2026)
+    assert.equal(G.FAST_HERO_TITLES.thursday, "បួសស៊ុណ្ណះ ថ្ងៃព្រហស្បតិ៍")
     assert.equal(G.FAST_ARABIC.monday, "صِيَام يَوْم الإِثْنَيْن")
     assert.equal(G.FAST_ARABIC.thursday, "صِيَام يَوْم الخَمِيس")
     assert.equal(G.JUMUAH_MUBARAK_ARABIC, "جُمُعَة مُبَارَك")
@@ -81,7 +88,7 @@ describe("GOLDEN · the Islamic glossary is the single source of truth", () => {
     assert.equal(G.SEMBAHYANG, "សំប៉ាយ៉ាង")
     assert.equal(G.WUDU, "យកទឹកសំយាំង")
     assert.equal(G.ADHAN, "អាហ្សាន")
-    assert.equal(G.fastReminderLead("monday"), "រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖")
+    assert.equal(G.fastReminderLead("monday"), "រំលឹកត្រៀមបួសស៊ុណ្ណះ (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖")
     assert.equal(
       G.sahurReminder("០៤:២៣"),
       "សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ០៤:២៣ និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។",
