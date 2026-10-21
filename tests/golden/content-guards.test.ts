@@ -75,11 +75,11 @@ describe("GOLDEN · published wording", () => {
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).title, "បួសស៊ុណ្ណា ថ្ងៃព្រហស្បតិ៍")
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).titleArabic, "صِيَام يَوْم الخَمِيس")
     // The publish day; «Gregorian · ត្រូវនឹង Hijri» (founder, 18/10/2026; no parentheses on a graphic, 19/10/2026).
-    assert.equal(posterDateline(sunday), "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ត្រូវនឹង ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.")
+    assert.equal(posterDateline(sunday), "ថ្ងៃអាទិត្យ ១៨ តុលា ២០២៦ · ត្រូវនឹង ៧ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.")
     assert.equal(islamicPostContent("ISLAMIC_FAST", "2026-10-21", today).date, "ថ្ងៃពុធ ២១ តុលា ២០២៦")
     assert.equal(sunday.fast?.day, "ថ្ងៃច័ន្ទ") // the boxes are tomorrow's
     const caption = islamicCaptionHtml(sunday)
-    assert.ok(caption.startsWith("🌙 <b>ថ្ងៃទី០៧ ខែជូម៉ាដាល់អ៊ូឡា ឆ្នាំ១៤៤៨"), caption) // the caption is dated the same day
+    assert.ok(caption.startsWith("🌙 <b>ថ្ងៃទី០៧ ខែជុម៉ាដាល់អូឡា ឆ្នាំ១៤៤៨"), caption) // the caption is dated the same day
     assert.ok(caption.includes("🌙 <b>រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖</b>"), caption)
     assert.ok(caption.includes("សូមកុំភ្លេចក្រោកហូបបាយបួស (សាហួរ / السَّحُور) នៅទៀបភ្លឺ មុនម៉ោងអ៊ឹមសាក់ ០៤:២៣ និងតាំងចិត្តនីយ៉ាត់ (Niyyah / النِّيَّة) តាំងពីយប់នេះ។"))
   })

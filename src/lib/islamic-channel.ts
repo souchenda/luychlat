@@ -132,7 +132,7 @@ export type IslamicPostContent = {
   pill: string
   /** The Hijri date in full for the caption (the day of the post; for the fast reminder, tomorrow). */
   hijri: string | null
-  /** The same, short («៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ + the Hijri era») — one line on the poster. */
+  /** The same, short («៨ ជុម៉ាដាល់អូឡា ១៤៤៨ + the Hijri era») — one line on the poster. */
   hijriShort: string | null
   /** The Gregorian day, «ថ្ងៃសុក្រ ២៣ តុលា ២០២៦». */
   date: string
@@ -164,7 +164,7 @@ export type IslamicPostContent = {
 
 /**
  * The poster's dateline: the Gregorian day, then the Hijri day it corresponds to (founder, 18/10/2026):
- * «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.».
+ * «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង ៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.».
  */
 export const posterDateline = (c: Pick<IslamicPostContent, "date" | "hijriShort">) =>
   // No parentheses on a graphic (founder, 19/10/2026): «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង …».

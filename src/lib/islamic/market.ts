@@ -12,6 +12,7 @@ import { NISAB_GOLD_GRAMS } from "@/lib/islamic"
 import { khrPerSar, SAR_PER_USD } from "@/lib/islamic/sar"
 import type { MarketLive } from "@/lib/market-calc"
 import { roundRiel } from "@/lib/money"
+import { compactFooter } from "@/lib/post-footer"
 
 export const GRAMS_PER_DAMLUNG = 37.5
 export const GRAMS_PER_CHI = 3.75
@@ -52,6 +53,25 @@ export function islamicMarket(market: MarketLive | null | undefined, today: stri
   }
 }
 
+/** Zakat on wealth that reaches the Nisab: 2.5% (one fortieth). */
+export const ZAKAT_RATE = 0.025
+
+/**
+ * The quick check on /islamic (founder, 21/10/2026): a member types their net savings in $ or ៛ — does it reach today's
+ * Nisab, and the 2.5% due. Entered in riel, the riel due is computed from the riel (100 ៛ rounding — it is computed);
+ * the dollar side converts at the NBC rate. Null without today's Nisab (no gold price) or, for riel, without the rate.
+ */
+export function nisabCheck(m: IslamicMarket, amount: number, currency: "USD" | "KHR"): { usd: number; meets: boolean; zakatUsd: number; zakatKhr: number | null } | null {
+  if (!m.nisab || !Number.isFinite(amount) || amount < 0) return null
+  if (currency === "KHR" && !m.usdKhr) return null
+  const asUsd = currency === "USD" ? amount : amount / m.usdKhr!
+  const meets = asUsd >= m.nisab.usd
+  if (!meets) return { usd: cents(asUsd), meets, zakatUsd: 0, zakatKhr: 0 }
+  const zakatUsd = cents(asUsd * ZAKAT_RATE)
+  const zakatKhr = currency === "KHR" ? roundRiel(amount * ZAKAT_RATE) : m.usdKhr ? roundRiel(zakatUsd * m.usdKhr) : null
+  return { usd: cents(asUsd), meets, zakatUsd, zakatKhr }
+}
+
 const num = (n: number, digits = 0) => new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n)
 export const usd = (n: number, digits = 0) => `$${num(n, digits)}`
 export const riel = (n: number) => `${num(n)} ៛`
@@ -87,12 +107,13 @@ export function islamicBulletinHtml(m: IslamicMarket, o: { hijri: string; gregor
     lines.push(
       "",
       "🥇 <b>ហាងឆេងមាស និងកម្រិតនីស៊បហ្សាកាត់ (Zakat Nisab)</b>",
-      `• តម្លៃមាស ១ ក្រាម ≈ ${usd(m.gold.perGram, 2)} (${m.gold.source === "local" ? "មាសគីឡូ ភ្នំពេញ" : "តម្លៃអន្តរជាតិ"})`,
+      `• តម្លៃមាស ១ ក្រាម ≈ ${usd(m.gold.perGram, 2)} · ១ ជី ≈ ${usd(m.gold.perChi)} · ១ តម្លឹង ≈ ${usd(m.gold.perDamlung)} (${m.gold.source === "local" ? "មាសគីឡូ ភ្នំពេញ" : "តម្លៃអន្តរជាតិ"})`,
       `• <b>កម្រិតនីស៊បហ្សាកាត់ (មាស ៨៥ ក្រាម) = ${usd(m.nisab.usd)}${m.nisab.khr ? ` (~${riel(m.nisab.khr)})` : ""}</b>`,
       "",
       `ℹ️ បញ្ជាក់៖ ${zakatNote("channel")}`,
     )
   }
-  lines.push("", "គណនាហ្សាកាត់ និងផែនការសន្សំធ្វើរូកូនដោយឥតគិតថ្លៃ៖", `🌐 ${o.appUrl.replace(/\/+$/, "")}/islamic`, "— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម")
+  // The compact one-line footer (founder, 21/10/2026): the channel and its hashtags under the signature.
+  lines.push("", "គណនាហ្សាកាត់ និងផែនការសន្សំធ្វើរូកូនដោយឥតគិតថ្លៃ៖", `🌐 ${o.appUrl.replace(/\/+$/, "")}/islamic`, "— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម", compactFooter("islamic"))
   return lines.join("\n")
 }

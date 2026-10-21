@@ -1,11 +1,15 @@
 "use client"
 
 import { CalculatorIcon } from "lucide-react"
+import { useState } from "react"
 
+import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { islamicMarket, riel, usd, zakatNote } from "@/lib/islamic/market"
+import { Input } from "@/components/ui/input"
+import { islamicMarket, nisabCheck, riel, usd, zakatNote, type IslamicMarket } from "@/lib/islamic/market"
 import { useMarket } from "@/lib/market"
+import { parseAmount } from "@/lib/money"
 
 const cambodiaToday = () => new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)
 const ddmm = (iso: string) => iso.split("-").reverse().join("/")
@@ -58,6 +62,7 @@ export function IslamicMarketCard({ onUseGoldPrice, busy }: { onUseGoldPrice: (p
               {m.nisab.khr ? <span className="text-sm font-normal text-muted-foreground"> (~{riel(m.nisab.khr)})</span> : null}
             </p>
           </div>
+          <NisabQuickCheck m={m} />
           <p className="text-xs text-muted-foreground">ℹ️ {zakatNote("app")}</p>
           <Button type="button" variant="outline" className="h-11 w-full" disabled={busy} onClick={() => onUseGoldPrice(m.gold!.perGram)}>
             <CalculatorIcon />
@@ -68,5 +73,55 @@ export function IslamicMarketCard({ onUseGoldPrice, busy }: { onUseGoldPrice: (p
         <p className="text-sm text-muted-foreground">កំពុងទាញតម្លៃមាស…</p>
       )}
     </Card>
+  )
+}
+
+/**
+ * The quick check (founder, 21/10/2026): type your net savings in $ or ៛ — does it reach today's Nisab, and the 2.5%
+ * Zakat due (lib/islamic/market.ts nisabCheck). Nothing is saved; the full calculator below uses your wallets.
+ */
+function NisabQuickCheck({ m }: { m: IslamicMarket }) {
+  const [text, setText] = useState("")
+  const [currency, setCurrency] = useState<"USD" | "KHR">("USD")
+  const amount = parseAmount(text)
+  const r = text.trim() && amount > 0 ? nisabCheck(m, amount, currency) : null
+  return (
+    <div className="space-y-2 rounded-xl border px-3 py-3" data-testid="nisab-quick-check">
+      <p className="text-sm font-medium">🧮 ពិនិត្យរហ័ស៖ ទ្រព្យសន្សំសុទ្ធរបស់លោកអ្នក</p>
+      <div className="flex gap-2">
+        <Input
+          inputMode="decimal"
+          className="h-11 flex-1 tabular-nums"
+          placeholder={currency === "USD" ? "ឧ. 12,000" : "ឧ. 48,000,000"}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          aria-label="ទ្រព្យសន្សំសុទ្ធ"
+        />
+        <Segmented
+          value={currency}
+          onChange={setCurrency}
+          options={[
+            { value: "USD", label: "$" },
+            { value: "KHR", label: "៛" },
+          ]}
+          aria-label="រូបិយប័ណ្ណ"
+        />
+      </div>
+      {r ? (
+        r.meets ? (
+          <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm" data-testid="nisab-result">
+            ✅ ដល់កម្រិតនីស៊ប — ហ្សាកាត់ ២.៥% ≈{" "}
+            <b className="tabular-nums">
+              {currency === "KHR" && r.zakatKhr !== null ? riel(r.zakatKhr) : usd(r.zakatUsd, 2)}
+            </b>
+            {currency === "KHR" ? <span className="text-muted-foreground"> (~{usd(r.zakatUsd, 2)})</span> : r.zakatKhr ? <span className="text-muted-foreground"> (~{riel(r.zakatKhr)})</span> : null}
+          </p>
+        ) : (
+          <p className="rounded-lg bg-muted/60 px-3 py-2 text-sm" data-testid="nisab-result">
+            មិនទាន់ដល់កម្រិតនីស៊បទេ — ខ្វះប្រហែល <b className="tabular-nums">{usd(Math.max(0, m.nisab!.usd - r.usd))}</b>
+          </p>
+        )
+      ) : null}
+    </div>
   )
 }

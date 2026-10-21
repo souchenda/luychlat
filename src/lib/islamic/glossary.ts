@@ -47,7 +47,7 @@ export const FAST_ARABIC = { monday: "صِيَام يَوْم الإِثْنَي
 /** The Arabic under the Jumu'ah and morning heroes (founder, 18/10/2026). */
 export const JUMUAH_MUBARAK_ARABIC = "جُمُعَة مُبَارَك"
 export const MORNING_ARABIC = "صَبَاح الخَيْر"
-/** The poster's dateline joins the two calendars: «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង ៨ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.» (no parentheses on a graphic). */
+/** The poster's dateline joins the two calendars: «ថ្ងៃច័ន្ទ ១៩ តុលា ២០២៦ · ត្រូវនឹង ៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.» (no parentheses on a graphic). */
 export const HIJRI_CORRESPONDS = "ត្រូវនឹង"
 
 /** The caption's timely first line (after «🌙»): «រំលឹកត្រៀមបួសស៊ុណ្ណា (សម្រាប់ថ្ងៃច័ន្ទ ស្អែកនេះ)៖». */

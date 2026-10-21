@@ -70,8 +70,8 @@ export const HIJRI_MONTHS_KM = [
   "សាហ្វារ",
   "រ៉ាប៊ីអ៊ុលអាវ៉ាល់",
   "រ៉ាប៊ីអ៊ុលអាឃីរ",
-  "ជូម៉ាដាល់អ៊ូឡា",
-  "ជូម៉ាដាល់អាឃីរ",
+  "ជុម៉ាដាល់អូឡា",
+  "ជុម៉ាដាល់អាឃីរ",
   "រ៉ាជាប់",
   "សាអ្បាន",
   "រ៉ាម៉ាឌន",
@@ -176,7 +176,7 @@ export function purificationBalance(interestReceived: number, purified: number):
 
 /**
  * The home header's right badge (founder, 18/10/2026). Islamic Mode never shows the Buddhist lunar day or
- * «ថ្ងៃសីល»: its season greeting (Ramadan, the two Eids), else today's Hijri date («🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨
+ * «ថ្ងៃសីល»: its season greeting (Ramadan, the two Eids), else today's Hijri date («🌙 ៧ ជុម៉ាដាល់អូឡា ១៤៤៨
  * ${G.HIJRI_ERA}»), else nothing — a browser without the Islamic calendar shows no badge rather than the lunar one.
  * Islamic Mode off: the traditional lunar pill.
  */

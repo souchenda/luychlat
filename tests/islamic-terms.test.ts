@@ -65,7 +65,7 @@ describe("Islamic hub — the founder's terms", () => {
       for (const bad of ["ឈប់ញ៉ាំ", "បើកបួស", "ស្ទូហួរ", "ស៊ូហួរ", "អាហារសាហួរ", "ជុមអះ", "ម.ស.", "មហាម៉ាត់សករាជ"]) assert.ok(!all(f).includes(bad), `${f}: ${bad}`)
   })
   it("the Hijri era is «ហ.ស.» (ហ៊ីចរ៉ោះសករាជ) — «ម.ស.» is the Buddhist Maha Sakaraj", () => {
-    assert.equal(formatHijri({ day: 7, month: 5, year: 1448 }, "km", { short: true }), "៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨ ហ.ស.")
+    assert.equal(formatHijri({ day: 7, month: 5, year: 1448 }, "km", { short: true }), "៧ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស.")
     assert.match(formatHijri({ day: 7, month: 5, year: 1448 }, "km"), /ហ៊ីចរ៉ោះសករាជ \(ហ\.ស\.\)$/)
   })
 })

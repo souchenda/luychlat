@@ -28,7 +28,7 @@ describe("Home header — greeting on its own line, never «…»", () => {
     assert.equal(headerDate(new Date(2026, 9, 18, 12), "km"), "ថ្ងៃអាទិត្យ ទី១៨ តុលា")
     assert.equal(headerDate(new Date(2026, 9, 18, 12), "en"), "Sunday, 18 October")
   })
-  it("the Hijri badge without «ហ.ស.»: «🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨»", () => {
-    assert.deepEqual(headerBadge({ islamic: true, hijri: { day: 7, month: 5, year: 1448 }, locale: "km" }), { kind: "hijri", text: "🌙 ៧ ជូម៉ាដាល់អ៊ូឡា ១៤៤៨" })
+  it("the Hijri badge without «ហ.ស.»: «🌙 ៧ ជុម៉ាដាល់អូឡា ១៤៤៨»", () => {
+    assert.deepEqual(headerBadge({ islamic: true, hijri: { day: 7, month: 5, year: 1448 }, locale: "km" }), { kind: "hijri", text: "🌙 ៧ ជុម៉ាដាល់អូឡា ១៤៤៨" })
   })
 })

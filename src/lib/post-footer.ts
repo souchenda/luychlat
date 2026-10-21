@@ -45,6 +45,14 @@ export function postFooter(channel: FooterChannel, platform: FooterPlatform = "t
   ].join("\n")
 }
 
+/**
+ * The compact one-line footer (founder, 21/10/2026 — the Islamic market bulletin): the channel and the hashtags only,
+ * «@LuyChlatIslamic #LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់» — for a factual feed that already links the app.
+ */
+export function compactFooter(channel: FooterChannel): string {
+  return `${channel === "islamic" ? "@LuyChlatIslamic" : "@LuyChlatCommunity"} ${HASHTAGS[channel]}`
+}
+
 /** Telegram's photo caption limit (a text message allows 4096). */
 export const PHOTO_CAPTION_LIMIT = 1024
 
