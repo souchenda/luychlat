@@ -8,6 +8,7 @@ import { guardRequest } from "@/lib/server/guard"
 import { botKey, botToken, tg, webhookSecret } from "@/lib/server/telegram-bot"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
 import { cleanFetch } from "@/lib/supabase/clean-fetch"
+import { ALLOWED_UPDATES } from "@/lib/bot/channel-guard"
 
 /**
  * /admin › "Activate bot": checks TELEGRAM_BOT_TOKEN with Telegram, stores the
@@ -41,8 +42,9 @@ export async function POST(request: Request) {
   const hook = await tg("setWebhook", {
     url,
     secret_token: webhookSecret(),
-    // my_chat_member: added to / removed from groups (unlinked groups are left after 10 minutes).
-    allowed_updates: ["message", "callback_query", "my_chat_member"],
+    // my_chat_member: added to / removed from groups (unlinked groups are left after 10 minutes); edited_message and
+    // message_reaction: the channels' discussion-group guard (lib/bot/channel-guard.ts ALLOWED_UPDATES).
+    allowed_updates: [...ALLOWED_UPDATES],
     drop_pending_updates: true,
   })
   await tg("setMyCommands", { commands: BOT_COMMANDS })

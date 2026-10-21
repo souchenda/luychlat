@@ -37,22 +37,36 @@ export async function noteGroupLeft(chatId: number) {
   await botDb().rpc("bot_group_forget", { p_key: botKey(), p_group: chatId })
 }
 
-let community: { ids: number[]; at: number } | null = null
-/** The community channels' numeric ids — the general and the Islamic one (an id or an @username), cached for an hour. */
-async function communityIds(): Promise<number[]> {
-  if (community && Date.now() - community.at < 3_600_000) return community.ids
-  const ids: number[] = []
+/** A public channel as Telegram reports it: its id, its name, its linked discussion group and its allowed reactions. */
+export type PublicChannel = { id: number; name: string; linkedChatId: number | null; reactions: { type: string; emoji?: string }[] | undefined }
+
+let community: { channels: PublicChannel[]; at: number } | null = null
+/**
+ * The public channels — the general and the Islamic one (an id or an @username) — read with getChat (cached five
+ * minutes, `fresh` for the morning reaction check). Each one's linked discussion group comes with it (founder,
+ * 21/10/2026): the bot never leaves it, and the channel guard moderates only there (lib/server/channel-guard.ts).
+ */
+export async function publicChannels(fresh = false): Promise<PublicChannel[]> {
+  if (!fresh && community && Date.now() - community.at < 5 * 60_000) return community.channels
+  const channels: PublicChannel[] = []
   for (const raw of [communityChannelRef(), islamicChannelRef()]) {
-    if (raw && /^-?\d+$/.test(raw)) ids.push(Number(raw))
-    else if (raw) {
-      const id = (await tg<{ id?: number }>("getChat", { chat_id: raw })).result?.id
-      if (id) ids.push(id)
-    }
+    if (!raw) continue
+    const r = await tg<{ id?: number; username?: string; title?: string; linked_chat_id?: number; available_reactions?: { type: string; emoji?: string }[] }>("getChat", { chat_id: raw }).catch(() => null)
+    const id = r?.result?.id ?? (/^-?\d+$/.test(raw) ? Number(raw) : null)
+    if (id === null) continue
+    const name = r?.result?.username ? `@${r.result.username}` : (r?.result?.title ?? raw)
+    channels.push({ id, name, linkedChatId: r?.result?.linked_chat_id ?? null, reactions: r?.ok ? r.result?.available_reactions : undefined })
   }
-  community = { ids, at: Date.now() }
-  return ids
+  community = { channels, at: Date.now() }
+  return channels
 }
+async function communityIds(): Promise<number[]> {
+  return (await publicChannels()).flatMap((c) => [c.id, ...(c.linkedChatId ? [c.linkedChatId] : [])])
+}
+/** The channels and their discussion groups — never left, never told to link a pool. */
 const isCommunityChat = async (chatId: number) => (await communityIds()).includes(chatId)
+/** Is this chat a channel's linked discussion group (the comments). */
+export const isDiscussionGroup = async (chatId: number) => (await publicChannels()).some((c) => c.linkedChatId === chatId)
 
 /** Is this chat one of the public channels (the general or the Islamic one) — never a place for a preview. */
 export const isPublicChannel = (chatId: number) => isCommunityChat(chatId)

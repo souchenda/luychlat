@@ -28,6 +28,7 @@ import { birthdayTick, dormancyTick, flushSignupAlerts } from "@/lib/server/memb
 import { flushPlaceSubmissions, flushPlaceThanks } from "@/lib/server/place-alerts"
 import { syncEnvApprovers } from "@/lib/server/co-approvers"
 import { nightlyReportTick } from "@/lib/server/nightly-report"
+import { reactionAuditTick } from "@/lib/server/channel-guard"
 
 type Due = { notification_id: string; user_id: string; chat_id: number; language: Locale; title: string; message: string; bill_id: string | null; due: string | null }
 type Subscriber = { user_id: string; chat_id: number; language: Locale; province: string; adhan_audio?: boolean }
@@ -160,6 +161,7 @@ export async function dispatchOnce() {
     await atmSyncTick()
     await islamicPlacesSyncTick()
     await watchdogTick()
+    await reactionAuditTick()
   } catch (error) {
     console.error("[bot] dispatch failed:", (error as Error).message)
     logEvent("error", "dispatcher", `Scheduler pass failed: ${(error as Error).message}`, { fold: true })

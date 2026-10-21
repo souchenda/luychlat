@@ -52,6 +52,8 @@ import { handleApproverCommand, isApproverCommand } from "@/lib/server/co-approv
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
 import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink } from "@/lib/bot/gate"
+import { guardDiscussionMessage, guardReaction, type ReactionUpdate } from "@/lib/server/channel-guard"
+import type { Entity } from "@/lib/bot/channel-guard"
 
 /**
  * Updates from Telegram for the official bot. Telegram sends the secret we
@@ -92,8 +94,18 @@ type Update = {
     /** Shared with the "📍 my location" button (/atm). */
     location?: { latitude: number; longitude: number }
     chat: { id: number; type: string; title?: string }
-    from?: { id?: number; username?: string; first_name?: string; last_name?: string; language_code?: string }
+    from?: { id?: number; is_bot?: boolean; username?: string; first_name?: string; last_name?: string; language_code?: string }
+    /** Links and formatting (the channel guard reads hidden text links). */
+    entities?: Entity[]
+    caption_entities?: Entity[]
+    /** A channel post Telegram copied into its discussion group. */
+    is_automatic_forward?: boolean
+    sender_chat?: { id: number }
   }
+  /** An edited message — only the discussion-group guard reads it (a link added after posting). */
+  edited_message?: Update["message"]
+  /** A reaction changed in a group (the discussion-group guard). */
+  message_reaction?: ReactionUpdate
 }
 
 /** "📖 User manual: https://…/guide" under the help texts (nothing when the address is unknown). */
@@ -367,6 +379,17 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ ok: true })
   }
+  // The channels' discussion groups (founder, 21/10/2026 — lib/server/channel-guard.ts): an edited message or a reaction
+  // is read only there; every other group and chat ignores them.
+  if (update.message_reaction) {
+    await guardReaction(update.message_reaction)
+    return NextResponse.json({ ok: true })
+  }
+  if (update.edited_message) {
+    const e = update.edited_message
+    if (e && (e.chat.type === "group" || e.chat.type === "supergroup")) await guardDiscussionMessage(e)
+    return NextResponse.json({ ok: true })
+  }
   if (update.callback_query) {
     // Members only in a private chat (groups — LCA Approval, pools — are never gated).
     const cb = update.callback_query
@@ -418,6 +441,8 @@ export async function POST(request: Request) {
   }
   const message = update.message
   if (message && (message.chat.type === "group" || message.chat.type === "supergroup")) {
+    // A channel's discussion group: moderated, nothing else (no pool, no approval handling there).
+    if (await guardDiscussionMessage(message)) return NextResponse.json({ ok: true })
     // A super admin's reply /addapprover [login] or /removeapprover: a co-approver for «LCA Approval» (founder, 19/10/2026).
     if (message.text && isApproverCommand(message.text)) {
       await handleApproverCommand(message.chat.id, message.from?.id, message.text, message.reply_to_message?.from)
