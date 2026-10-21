@@ -7,7 +7,8 @@ import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { islamicMarket, nisabCheck, riel, usd, zakatNote, type IslamicMarket } from "@/lib/islamic/market"
+import { goldReference, goldUnitsLine, islamicMarket, khmerGoldWeight, nisabCheck, riel, usd, zakatNote, type IslamicMarket } from "@/lib/islamic/market"
+import { NISAB_GOLD_GRAMS } from "@/lib/islamic"
 import { useMarket } from "@/lib/market"
 import { parseAmount } from "@/lib/money"
 
@@ -48,15 +49,16 @@ export function IslamicMarketCard({ onUseGoldPrice, busy }: { onUseGoldPrice: (p
         <>
           <div className="space-y-1 rounded-xl bg-amber-500/10 px-3 py-2.5 text-sm">
             <p className="text-[11px] text-muted-foreground">
-              🥇 {m.gold.source === "local" ? "មាសគីឡូ ភ្នំពេញ" : "តម្លៃមាសអន្តរជាតិ"}
-              {m.gold.date ? ` · ${ddmm(m.gold.date)}` : ""}
+              🥇 ហាងឆេងមាស ២៤K{m.gold.date ? ` · ${ddmm(m.gold.date)}` : ""}
             </p>
-            <p className="tabular-nums">
-              ១ ក្រាម ≈ <b>{usd(m.gold.perGram, 2)}</b> · ១ ជី ≈ {usd(m.gold.perChi)} · ១ តម្លឹង ≈ {usd(m.gold.perDamlung)}
-            </p>
+            {/* Cambodian units first, the gram in brackets (founder, 21/10/2026). */}
+            <p className="font-medium tabular-nums">{goldUnitsLine(m.gold)}</p>
+            <p className="text-[11px] text-muted-foreground">{goldReference(m.gold.source)}</p>
           </div>
           <div className="rounded-xl bg-emerald-500/10 px-3 py-3 text-center">
-            <p className="text-[11px] text-muted-foreground">កម្រិតនីស៊បហ្សាកាត់ (Zakat Nisab · មាស ៨៥ ក្រាម)</p>
+            <p className="text-[11px] text-muted-foreground">
+              កម្រិតនីស៊បហ្សាកាត់ (Zakat Nisab · មាស ៨៥ ក្រាម ≈ {khmerGoldWeight(NISAB_GOLD_GRAMS)})
+            </p>
             <p className="text-lg font-semibold tabular-nums" data-testid="islamic-nisab">
               {usd(m.nisab.usd)}
               {m.nisab.khr ? <span className="text-sm font-normal text-muted-foreground"> (~{riel(m.nisab.khr)})</span> : null}

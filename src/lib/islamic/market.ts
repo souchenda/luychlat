@@ -16,6 +16,36 @@ import { compactFooter } from "@/lib/post-footer"
 
 export const GRAMS_PER_DAMLUNG = 37.5
 export const GRAMS_PER_CHI = 3.75
+export const GRAMS_PER_HUN = 0.375
+export const GRAMS_PER_LI = 0.0375
+
+const kmNum = (n: number) => String(n).replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
+
+/**
+ * A weight in the units Cambodia trades gold by (founder, 21/10/2026): តម្លឹង 37.5 g · ជី 3.75 g · ហ៊ុន 0.375 g · លី 0.0375 g,
+ * to the nearest លី, zero units left out — 85 g is «២ តម្លឹង ២ ជី ៦ ហ៊ុន ៧ លី» (2 × 37.5 + 2 × 3.75 + 6 × 0.375 + 7 × 0.0375
+ * = 85.01 g; «… ៦ ហ៊ុន» alone would be 84.75 g, under the Nisab).
+ */
+export function khmerGoldWeight(grams: number): string {
+  let li = Math.round(grams / GRAMS_PER_LI)
+  const parts: [number, string][] = []
+  for (const [size, name] of [[1000, "តម្លឹង"], [100, "ជី"], [10, "ហ៊ុន"], [1, "លី"]] as const) {
+    const n = Math.floor(li / size)
+    li -= n * size
+    if (n) parts.push([n, name])
+  }
+  return parts.map(([n, name]) => `${kmNum(n)} ${name}`).join(" ")
+}
+
+/** Where today's gold price comes from, and that a shop's own price may differ a little (never a silent source). */
+export const goldReference = (source: "local" | "spot") =>
+  source === "local"
+    ? "តម្លៃយោងមាសគីឡូ ២៤K ផ្សារភ្នំពេញ · ទីផ្សារជាក់ស្តែងតាមហាងនីមួយៗអាចមានគម្លាតខុសគ្នាបន្តិចបន្តួច"
+    : "តម្លៃយោងមាសសុទ្ធ ២៤K អន្តរជាតិ · ទីផ្សារជាក់ស្តែងតាមហាងក្នុងស្រុកអាចមានគម្លាតខុសគ្នាបន្តិចបន្តួច"
+
+/** «១ ជី ≈ $413 · ១ តម្លឹង ≈ $4,125 (១ ក្រាម ≈ $110.00)» — Cambodian units first, the gram in brackets. */
+export const goldUnitsLine = (g: { perGram: number; perChi: number; perDamlung: number }) =>
+  `១ ជី ≈ ${usd(g.perChi)} · ១ តម្លឹង ≈ ${usd(g.perDamlung)} (១ ក្រាម ≈ ${usd(g.perGram, 2)})`
 export const GRAMS_PER_TROY_OUNCE = 31.1034768
 
 export type IslamicMarket = {
@@ -107,8 +137,10 @@ export function islamicBulletinHtml(m: IslamicMarket, o: { hijri: string; gregor
     lines.push(
       "",
       "🥇 <b>ហាងឆេងមាស និងកម្រិតនីស៊បហ្សាកាត់ (Zakat Nisab)</b>",
-      `• តម្លៃមាស ១ ក្រាម ≈ ${usd(m.gold.perGram, 2)} · ១ ជី ≈ ${usd(m.gold.perChi)} · ១ តម្លឹង ≈ ${usd(m.gold.perDamlung)} (${m.gold.source === "local" ? "មាសគីឡូ ភ្នំពេញ" : "តម្លៃអន្តរជាតិ"})`,
-      `• <b>កម្រិតនីស៊បហ្សាកាត់ (មាស ៨៥ ក្រាម) = ${usd(m.nisab.usd)}${m.nisab.khr ? ` (~${riel(m.nisab.khr)})` : ""}</b>`,
+      // Cambodian units first, the gram in brackets, then the price's reference (founder, 21/10/2026).
+      `• ហាងឆេងមាស ២៤K ៖ ${goldUnitsLine(m.gold)}`,
+      `  (${goldReference(m.gold.source)})`,
+      `• <b>កម្រិតនីស៊បហ្សាកាត់ (មាស ៨៥ ក្រាម ≈ ${khmerGoldWeight(NISAB_GOLD_GRAMS)}) = ${usd(m.nisab.usd)}${m.nisab.khr ? ` (~${riel(m.nisab.khr)})` : ""}</b>`,
       "",
       `ℹ️ បញ្ជាក់៖ ${zakatNote("channel")}`,
     )

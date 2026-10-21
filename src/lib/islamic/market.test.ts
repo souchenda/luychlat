@@ -7,7 +7,7 @@ import type { MarketLive } from "@/lib/market-calc"
 
 import { HIJRI_MONTHS_KM } from "@/lib/islamic"
 
-import { islamicBulletinHtml, islamicMarket, nisabCheck, ZAKAT_RATE } from "./market"
+import { goldReference, goldUnitsLine, GRAMS_PER_HUN, GRAMS_PER_LI, islamicBulletinHtml, islamicMarket, khmerGoldWeight, nisabCheck, ZAKAT_RATE } from "./market"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
 const market = {
@@ -35,10 +35,13 @@ describe("Rates, gold and the Zakat Nisab for the Islamic community (founder, 20
     assert.match(html, /^🌙 <b>ព្រឹត្តិបត្រហាងឆេងរូបិយប័ណ្ណ និងនីស៊បមាសហ្សាកាត់<\/b>\n📅 ៨ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ\.ស\. \(ត្រូវនឹង ថ្ងៃអង្គារ ២០ តុលា ២០២៦\)\n\n<b>អាស្សាឡាមុអាឡៃកុម បងប្អូន!<\/b>/)
     assert.match(html, /• 1 SAR ≈ 1,070 ៛\n• 1 USD = 3\.75 SAR \(\$100 ≈ 375 SAR\)/)
     assert.match(html, /• 1 USD = 4,012 ៛ \(អត្រាផ្លូវការ 20\/10\/2026\)/)
-    assert.match(html, /• <b>កម្រិតនីស៊បហ្សាកាត់ \(មាស ៨៥ ក្រាម\) = \$9,350 \(~37,512,200 ៛\)<\/b>/)
+    // The Nisab in Cambodian units too (founder, 21/10/2026): 85 g ≈ ២ តម្លឹង ២ ជី ៦ ហ៊ុន ៧ លី.
+    assert.match(html, /• <b>កម្រិតនីស៊បហ្សាកាត់ \(មាស ៨៥ ក្រាម ≈ ២ តម្លឹង ២ ជី ៦ ហ៊ុន ៧ លី\) = \$9,350 \(~37,512,200 ៛\)<\/b>/)
     assert.match(html, /ℹ️ បញ្ជាក់៖ ប្រសិនបើបងប្អូនមានទ្រព្យសន្សំសរុបស្មើ ឬលើសពីកម្រិតនីស៊បនេះ/)
     // Gold per gram, chi and damlung; the compact one-line Islamic footer last (founder, 21/10/2026).
-    assert.match(html, /• តម្លៃមាស ១ ក្រាម ≈ \$110\.00 · ១ ជី ≈ \$413 · ១ តម្លឹង ≈ \$4,125 \(មាសគីឡូ ភ្នំពេញ\)/)
+    // Cambodian units first, the gram in brackets, then where the price comes from (founder, 21/10/2026).
+    assert.match(html, /• ហាងឆេងមាស ២៤K ៖ ១ ជី ≈ \$413 · ១ តម្លឹង ≈ \$4,125 \(១ ក្រាម ≈ \$110\.00\)\n {2}\(តម្លៃយោងមាសគីឡូ ២៤K ផ្សារភ្នំពេញ · ទីផ្សារជាក់ស្តែងតាមហាងនីមួយៗអាចមានគម្លាតខុសគ្នាបន្តិចបន្តួច\)/)
+    assert.ok(html.indexOf("១ ជី ≈") < html.indexOf("១ ក្រាម ≈")) // never by the gram first
     assert.match(html, /🌐 https:\/\/app\.luychlat\.com\/islamic\n— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម\n@LuyChlatIslamic #LuyChlatIslamic\n#អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់$/) // two short lines: no hashtag broken on a phone
     assert.doesNotMatch(html, /<i>|ជំរាបសួរ| & /)
     assert.equal(islamicBulletinHtml(islamicMarket({ fetched_at: "x" } as MarketLive, "2026-10-20"), { hijri: "", gregorian: "", appUrl: "x" }), null) // no NBC rate → nothing
@@ -91,5 +94,30 @@ describe("The Nisab quick check and the month's spelling (founder, 21/10/2026)",
     assert.match(card, /<NisabQuickCheck m=\{m\} \/>/)
     assert.match(card, /nisabCheck\(m, amount, currency\)/)
     assert.match(card, /\{ value: "USD", label: "\$" \},\n\s+\{ value: "KHR", label: "៛" \}/)
+  })
+})
+
+describe("Gold in the units Cambodia trades by (founder, 21/10/2026)", () => {
+  it("grams → តម្លឹង / ជី / ហ៊ុន / លី to the nearest លី; 85 g is «២ តម្លឹង ២ ជី ៦ ហ៊ុន ៧ លី» (… ៦ ហ៊ុន alone = 84.75 g)", () => {
+    assert.equal(GRAMS_PER_HUN, 0.375)
+    assert.equal(GRAMS_PER_LI, 0.0375)
+    assert.equal(khmerGoldWeight(85), "២ តម្លឹង ២ ជី ៦ ហ៊ុន ៧ លី")
+    assert.equal(2 * 37.5 + 2 * 3.75 + 6 * 0.375 + 7 * 0.0375, 85.0125) // within half a លី of 85 g
+    assert.equal(khmerGoldWeight(37.5), "១ តម្លឹង")
+    assert.equal(khmerGoldWeight(3.75), "១ ជី")
+    assert.equal(khmerGoldWeight(75), "២ តម្លឹង") // zero units left out
+  })
+  it("the price's reference names its real source — Phnom Penh kilo gold or the international spot — never mislabelled", () => {
+    assert.match(goldReference("local"), /^តម្លៃយោងមាសគីឡូ ២៤K ផ្សារភ្នំពេញ · /)
+    assert.match(goldReference("spot"), /^តម្លៃយោងមាសសុទ្ធ ២៤K អន្តរជាតិ · ទីផ្សារជាក់ស្តែងតាមហាងក្នុងស្រុកអាចមានគម្លាតខុសគ្នាបន្តិចបន្តួច$/)
+    const spot = islamicMarket({ ...market, local_gold: { ...market.local_gold!, date: "2026-10-10" } }, "2026-10-20")
+    assert.ok(islamicBulletinHtml(spot, { hijri: "x", gregorian: "y", appUrl: "z" })!.includes(`(${goldReference("spot")})`))
+    assert.equal(goldUnitsLine({ perGram: 110, perChi: 412.5, perDamlung: 4125 }), "១ ជី ≈ $413 · ១ តម្លឹង ≈ $4,125 (១ ក្រាម ≈ $110.00)")
+  })
+  it("the hub card says the same: Cambodian units first, the reference, the Nisab in តម្លឹង", () => {
+    const card = read("src/components/islamic/islamic-market-card.tsx")
+    assert.match(card, /<p className="font-medium tabular-nums">\{goldUnitsLine\(m\.gold\)\}<\/p>/)
+    assert.match(card, /\{goldReference\(m\.gold\.source\)\}/)
+    assert.match(card, /មាស ៨៥ ក្រាម ≈ \{khmerGoldWeight\(NISAB_GOLD_GRAMS\)\}/)
   })
 })
