@@ -213,9 +213,13 @@ export function previewText(o: { kind: PostKind; targets: Targets; publishAt: st
     `👀 មើលជាមុន · ${KIND_LABEL[o.kind]}`,
     "",
     o.body,
-    "",
-    (o.decider && deciderLine(o.status, where, o.publishAt, o.decider, o.now)) ??
-      (o.status === "APPROVED" && isSafetyNet(o.kind) ? safetyNetLine(where, o.publishAt, o.now) : statusLine(o.status, where, o.publishAt, o.now)),
+    // The card's state — none while it waits (founder, 21/10/2026: the team knows silence = HOLD; the ✅ names the time).
+    ...[
+      (o.decider && deciderLine(o.status, where, o.publishAt, o.decider, o.now)) ??
+        (o.status === "APPROVED" && isSafetyNet(o.kind) ? safetyNetLine(where, o.publishAt, o.now) : statusLine(o.status, where, o.publishAt, o.now)),
+    ]
+      .filter(Boolean)
+      .flatMap((l) => ["", l]),
   ].join("\n")
 }
 
@@ -245,18 +249,16 @@ export function deciderLine(status: PostStatus, where: string, publishAt: string
   return null
 }
 
-/** The safety-net card's status: it publishes by itself; ❌ pauses it, a reply edits it. */
+/** The safety-net card's status: it publishes by itself (❌ pauses it, ✏️ edits it — the buttons say so). */
 export function safetyNetLine(where: string, publishAt: string, now?: string): string {
-  return [
-    `🤖 ព័ត៌មានស្វ័យប្រវត្តិ — នឹងផ្សាយទៅ [ ${where} ] នៅ${kmWhen(publishAt, now)} ដោយមិនចាំបាច់ចុច។`,
-    "❌ ចុចផ្អាក ប្រសិនបើមានកំហុស · ✏️ Reply លើកាតនេះ ដើម្បីកែអត្ថបទ។",
-  ].join("\n")
+  return `🤖 ព័ត៌មានស្វ័យប្រវត្តិ — នឹងផ្សាយទៅ [ ${where} ] នៅ${kmWhen(publishAt, now)} ដោយមិនចាំបាច់ចុច។`
 }
 
 export function statusLine(status: PostStatus, where: string, publishAt: string, now?: string): string {
   switch (status) {
     case "PENDING":
-      return `🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម — ចុច «✅ យល់ព្រម» ដើម្បីផ្សាយទៅ [ ${where} ] នៅ${kmWhen(publishAt, now)}។`
+      // No line while it waits (founder, 21/10/2026 — «🔒 មិនផ្សាយទេ …» removed): the ✅ names the time.
+      return ""
     case "APPROVED":
       return `✅ បានយល់ព្រម — នឹងផ្សាយទៅ [ ${where} ] នៅ${kmWhen(publishAt, now)}។`
     case "PUBLISHED":
@@ -274,27 +276,36 @@ export function statusLine(status: PostStatus, where: string, publishAt: string,
  */
 export const COMEDY_KINDS: readonly string[] = ["DILEMMA"]
 
+/** The feeds whose text is the source's own — never edited by hand (bot_post_edit_caption refuses them too). */
+export const NOT_EDITABLE_KINDS: readonly string[] = ["BULLETIN", "RATES", "ISLAMIC_BULLETIN", "FUEL", "POSTER"]
+
+/** «✅ អនុម័ត (ផ្សាយម៉ោង ០៧:០០ ព្រឹក)» — a later day named (founder, 20/10/2026), «… ឥឡូវនេះ» once its time has passed. */
+export function approveLabel(when?: { publishAt: string; now: string }): string {
+  if (!when) return "✅ អនុម័ត (ផ្សាយតាមម៉ោង)"
+  if (Date.parse(when.now) >= Date.parse(when.publishAt)) return "✅ អនុម័ត និងផ្សាយឥឡូវនេះ"
+  if (kmWhen(when.publishAt, when.now).startsWith("ថ្ងៃទី")) return `✅ អនុម័ត (ផ្សាយថ្ងៃ ${kmDayMonth(when.publishAt)} ម៉ោង ${kmClock(when.publishAt)})`
+  return `✅ អនុម័ត (ផ្សាយម៉ោង ${kmClock(when.publishAt)})`
+}
+
 /**
- * Pending: [ ✅ យល់ព្រម ] (published at its time), [ 🚀 ផុសភ្លាមៗ ] (now) and [ ❌ ផ្អាក ]. Approved: publish now
- * or pause. Nothing once it has been published, paused or expired.
+ * The thumb-friendly keyboard (founder, 21/10/2026 — the iPhone in «LCA Approval»): one primary row, two columns, one
+ * danger row — [ ✅ អនុម័ត (ផ្សាយម៉ោង …) ] · [ 🚀 ផុសភ្លាមៗ ] [ ✏️ កែអត្ថបទ ] · [ ❌ ផ្អាកថ្ងៃនេះ ]. Approved: the last two
+ * rows. The safety net (05:30): ✏️ and ❌ only (no 🚀 at night). No ✏️ on the factual feeds. Nothing once decided.
  */
 export function previewButtons(id: number, status: PostStatus, targets: Targets, kind?: string, when?: { publishAt: string; now: string }): { text: string; callback_data: string }[][] {
+  void targets // the destination is the card's first line
   if (status !== "PENDING" && status !== "APPROVED") return []
-  // The safety net (05:30): only ❌ — it publishes by itself, and a 🚀 at 21:30 would post it in the night.
-  if (status === "APPROVED" && kind && isSafetyNet(kind)) return [[{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }]]
-  const short = targets.telegram && targets.facebook ? "Telegram + Facebook" : targets.facebook ? "Facebook" : "Telegram"
+  const pause = { text: kind && COMEDY_KINDS.includes(kind) ? "❌ ផ្អាក / បដិសេធ" : "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }
+  const edit = kind && !NOT_EDITABLE_KINDS.includes(kind) ? [{ text: "✏️ កែអត្ថបទ", callback_data: `sp:${id}:e` }] : []
+  if (status === "APPROVED" && kind && isSafetyNet(kind)) return [...(edit.length ? [edit] : []), [pause]]
   return [
-    // A later day is named on the button itself (founder, 20/10/2026): «✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)».
-    // Its time already passed (a held post): ✅ publishes at once (lib/server/scheduled-posts.ts onCallback, 21/10/2026).
-    ...(status === "PENDING"
-      ? [[{ text: when && Date.parse(when.now) >= Date.parse(when.publishAt) ? "✅ យល់ព្រម និងផ្សាយឥឡូវនេះ" : when && kmWhen(when.publishAt, when.now).startsWith("ថ្ងៃទី") ? `✅ យល់ព្រម (ផ្សាយថ្ងៃ ${kmDayMonth(when.publishAt)} ម៉ោង ${kmClock(when.publishAt)})` : "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)", callback_data: `sp:${id}:a` }]]
-      : []),
-    [{ text: `🚀 ផុសភ្លាមៗ (${short})`, callback_data: `sp:${id}:p` }],
-    [{ text: kind && COMEDY_KINDS.includes(kind) ? "❌ ផ្អាក / បដិសេធ" : "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }],
+    ...(status === "PENDING" ? [[{ text: approveLabel(when), callback_data: `sp:${id}:a` }]] : []),
+    [{ text: "🚀 ផុសភ្លាមៗ", callback_data: `sp:${id}:p` }, ...edit],
+    [pause],
   ]
 }
 
-export const isScheduledPostCallback = (data: string | undefined) => Boolean(data && (/^sp:\d+:[pxa]$/.test(data) || isReplaceCallback(data)))
+export const isScheduledPostCallback = (data: string | undefined) => Boolean(data && (/^sp:\d+:[pxae]$/.test(data) || isReplaceCallback(data)))
 
 // ─── REPLACE OLD WITH NEW (founder, 20/10/2026) ───────────────────────────────────────────────────────────────────
 // A post published today whose content has since been improved: the new version is previewed in «LCA Approval»; on
@@ -331,9 +342,9 @@ export function replacedNote(kind: PostKind, postKey: string, ok: { removed: boo
     ? `🔄 បានជំនួសរួចរាល់ · ${KIND_LABEL[kind]} (${postKey})\nកំណែថ្មីបានផ្សាយ ហើយសារចាស់ត្រូវបានលុបចេញពីឆានែល។`
     : `🔄 កំណែថ្មីបានផ្សាយ · ${KIND_LABEL[kind]} (${postKey})\n⚠️ មិនអាចលុបសារចាស់បានទេ — សូមលុបដោយដៃនៅក្នុងឆានែល។`
 }
-export function parseScheduledPostCallback(data: string | undefined): { id: number; action: "publish" | "pause" | "approve" } | null {
-  const m = /^sp:(\d+):([pxa])$/.exec(data ?? "")
-  return m ? { id: Number(m[1]), action: m[2] === "p" ? "publish" : m[2] === "a" ? "approve" : "pause" } : null
+export function parseScheduledPostCallback(data: string | undefined): { id: number; action: "publish" | "pause" | "approve" | "edit" } | null {
+  const m = /^sp:(\d+):([pxae])$/.exec(data ?? "")
+  return m ? { id: Number(m[1]), action: m[2] === "p" ? "publish" : m[2] === "a" ? "approve" : m[2] === "e" ? "edit" : "pause" } : null
 }
 
 /**

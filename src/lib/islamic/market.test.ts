@@ -39,7 +39,7 @@ describe("Rates, gold and the Zakat Nisab for the Islamic community (founder, 20
     assert.match(html, /ℹ️ បញ្ជាក់៖ ប្រសិនបើបងប្អូនមានទ្រព្យសន្សំសរុបស្មើ ឬលើសពីកម្រិតនីស៊បនេះ/)
     // Gold per gram, chi and damlung; the compact one-line Islamic footer last (founder, 21/10/2026).
     assert.match(html, /• តម្លៃមាស ១ ក្រាម ≈ \$110\.00 · ១ ជី ≈ \$413 · ១ តម្លឹង ≈ \$4,125 \(មាសគីឡូ ភ្នំពេញ\)/)
-    assert.match(html, /🌐 https:\/\/app\.luychlat\.com\/islamic\n— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម\n@LuyChlatIslamic #LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់$/)
+    assert.match(html, /🌐 https:\/\/app\.luychlat\.com\/islamic\n— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម\n@LuyChlatIslamic #LuyChlatIslamic\n#អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់$/) // two short lines: no hashtag broken on a phone
     assert.doesNotMatch(html, /<i>|ជំរាបសួរ| & /)
     assert.equal(islamicBulletinHtml(islamicMarket({ fetched_at: "x" } as MarketLive, "2026-10-20"), { hijri: "", gregorian: "", appUrl: "x" }), null) // no NBC rate → nothing
   })

@@ -279,13 +279,12 @@ describe("National days at 05:00, the day named on the card (founder, 20/10/2026
     const { kmWhen, previewButtons, statusLine } = await import("@/lib/scheduled-posts")
     const at = "2026-10-28T22:00:00Z" // 29 October 05:00, Cambodia
     const now = "2026-10-20T08:30:00Z"
-    const where = "✈️ Telegram Channel + 🔵 Facebook Page"
     assert.equal(kmWhen(at, now), "ថ្ងៃទី ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក")
-    assert.equal(statusLine("PENDING", where, at, now), `🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម — ចុច «✅ យល់ព្រម» ដើម្បីផ្សាយទៅ [ ${where} ] នៅថ្ងៃទី ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក។`)
-    assert.equal(previewButtons(7, "PENDING", { telegram: true, facebook: true }, "NATIONAL_DAY", { publishAt: at, now })[0][0].text, "✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)")
-    // The same day keeps the short wording (the golden publisher test).
+    assert.equal(statusLine("PENDING", "x", at, now), "") // no instruction line while waiting (founder, 21/10/2026) — the ✅ names the day
+    assert.equal(previewButtons(7, "PENDING", { telegram: true, facebook: true }, "NATIONAL_DAY", { publishAt: at, now })[0][0].text, "✅ អនុម័ត (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)")
+    // The same day: the time alone.
     assert.equal(kmWhen(at, "2026-10-28T21:00:00Z"), "ម៉ោង ០៥:០០ ព្រឹក")
-    assert.equal(previewButtons(7, "PENDING", { telegram: true, facebook: true }, "MORNING", { publishAt: at, now: "2026-10-28T21:00:00Z" })[0][0].text, "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)")
+    assert.equal(previewButtons(7, "PENDING", { telegram: true, facebook: true }, "MORNING", { publishAt: at, now: "2026-10-28T21:00:00Z" })[0][0].text, "✅ អនុម័ត (ផ្សាយម៉ោង ០៥:០០ ព្រឹក)")
   })
 })
 

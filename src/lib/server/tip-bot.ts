@@ -74,39 +74,35 @@ export function statusLine(t: Pick<DailyTip, "status" | "day" | "auto_approved" 
   if (t.status === "SKIPPED") return "❌ បានផ្អាកថ្ងៃនេះ — មិនផ្សាយទេ។"
   const when = t.day === today ? "នៅម៉ោង ១២:០០ ថ្ងៃត្រង់" : `ថ្ងៃ ${kmDigits(t.day.split("-").reverse().join("/"))} ម៉ោង ១២:០០`
   if (t.status === "APPROVED") return t.auto_approved ? `✅ អនុម័តដោយស្វ័យប្រវត្តិ — កំពុងចេញផ្សាយ។` : `✅ បានអនុម័ត! នឹងចេញផ្សាយ${when}។`
-  // Founder, 18/10/2026: never published without the founder's ✅ — no system approval at 12:00.
-  if (needsFounderApproval(t, TIPS)) return `⚠️ អត្ថបទត្រូវបានកែ ឬមិនទាន់ពេញលេញ — ពិនិត្យឱ្យបានល្អ។ 🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់ចុច «✅ អនុម័តផ្សាយ»${when}។`
-  if (locked) return "🔒 ផុតម៉ោង ១២:០០ ហើយមិនទាន់អនុម័ត — មិនផ្សាយទេ (អាចចុច «✅ អនុម័តផ្សាយ» បានរហូតដល់ម៉ោង ១៣:០០)។"
-  return `🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់ចុច «✅ អនុម័តផ្សាយ» — បើអនុម័ត នឹងចេញផ្សាយ${when}។`
+  // Founder, 18/10/2026: never published without the founder's ✅ — no system approval at 12:00. No instruction lines
+  // while it waits (founder, 21/10/2026 — the team knows silence = HOLD; the ✅ names the time); a warning stays.
+  if (needsFounderApproval(t, TIPS)) return "⚠️ អត្ថបទត្រូវបានកែ ឬមិនទាន់ពេញលេញ — ពិនិត្យឱ្យបានល្អ។"
+  if (locked) return "⏰ ផុតម៉ោង ១២:០០ — អាចអនុម័តបានរហូតដល់ម៉ោង ១៣:០០។"
+  return ""
 }
 
-/** The preview's caption: what will be posted, its status, and how to edit. */
+/** The preview's caption: what will be posted, and its status when there is one. */
 export function previewCaption(t: DailyTip, today: string, locked: boolean): string {
   const head = `👀 <b>ពិនិត្យមុនផ្សាយ</b> · ${kmDigits(t.day.split("-").reverse().join("/"))} · v${t.version}`
-  const editable = t.status !== "POSTED" && !locked
-  return [
-    head,
-    "",
-    tipCaption(t),
-    "",
-    statusLine(t, today, locked),
-    ...(editable ? ["✏️ ចុច «កែអត្ថបទ» ដើម្បីកែ (ជួរទី ១ = ចំណងជើង)។"] : []),
-  ].join("\n")
+  // No «✏️ ចុច «កែអត្ថបទ» …» line (founder, 21/10/2026): the ✏️ button says it.
+  const status = statusLine(t, today, locked)
+  return [head, "", tipCaption(t), ...(status ? ["", status] : [])].join("\n")
 }
 
 type Button = { text: string; callback_data: string }
 /** Buttons for the preview: tq:<yyyymmdd>:<version>:<a|n|s|d>. */
 export function previewKeyboard(t: DailyTip, locked: boolean): Button[][] {
   const data = (action: string) => `tq:${t.day.replace(/-/g, "")}:${t.version}:${action}`
+  // The thumb-friendly keyboard (founder, 21/10/2026): ✅ full width · ✏️ | 🔄 · ❌ full width.
   // Held for the founder (edited / flagged — never auto-published): ✅ stays until 13:00.
-  if (locked && heldForFounder(t)) return [[{ text: "✅ អនុម័តផ្សាយ", callback_data: data("a") }], [{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: data("s") }]]
+  if (locked && heldForFounder(t)) return [[{ text: "✅ អនុម័ត និងផ្សាយឥឡូវនេះ", callback_data: data("a") }], [{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: data("s") }]]
   if (t.status === "POSTED" || locked) return []
   const edit = { text: "✏️ កែអត្ថបទ", callback_data: data("e") }
   const fresh = { text: "🔄 ប្តូរគន្លឹះថ្មី", callback_data: data("n") }
   const skip = { text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: data("s") }
   if (t.status === "APPROVED") return [[edit, fresh], [skip]]
   if (t.status === "SKIPPED") return [[{ text: "↩️ បើកវិញ (ពិនិត្យម្ដងទៀត)", callback_data: data("d") }]]
-  return [[{ text: "✅ អនុម័តផ្សាយ", callback_data: data("a") }], [edit, fresh], [skip]]
+  return [[{ text: `✅ អនុម័ត (ផ្សាយម៉ោង ១២:០០ ថ្ងៃត្រង់)`, callback_data: data("a") }], [edit, fresh], [skip]]
 }
 
 /** An edited or flagged tip still waiting today, before the 13:00 end of the post step. */

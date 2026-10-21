@@ -72,12 +72,16 @@ describe("GOLDEN · video and humour: the founder's private preview first, never
     const server = readFileSync(join(ROOT, "lib/server/scheduled-posts.ts"), "utf8")
     assert.match(server, /taken = await d\.take\(parsed\.id, parsed\.action === "publish" \? "PUBLISHED" : parsed\.action === "approve" \? "APPROVED" : "PAUSED", actor\)/)
   })
-  it("a humour post's preview: [ ✅ យល់ព្រម ] [ 🚀 ផុសភ្លាមៗ ] [ ❌ ផ្អាក / បដិសេធ ]", () => {
+  it("a humour post's preview: [ ✅ អនុម័ត ] · [ 🚀 ផុសភ្លាមៗ ] [ ✏️ កែអត្ថបទ ] · [ ❌ ផ្អាក / បដិសេធ ]", () => {
     assert.ok(COMEDY_KINDS.includes("DILEMMA"))
-    assert.deepEqual(previewButtons(9, "PENDING", { telegram: true, facebook: true }, "DILEMMA").map((r) => r[0].text), [
-      "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)",
-      "🚀 ផុសភ្លាមៗ (Telegram + Facebook)",
-      "❌ ផ្អាក / បដិសេធ",
+    // The thumb-friendly layout (founder, 21/10/2026): still only ✅ or 🚀 publishes it; its ❌ still reads «ផ្អាក / បដិសេធ».
+    assert.deepEqual(previewButtons(9, "PENDING", { telegram: true, facebook: true }, "DILEMMA"), [
+      [{ text: "✅ អនុម័ត (ផ្សាយតាមម៉ោង)", callback_data: "sp:9:a" }],
+      [
+        { text: "🚀 ផុសភ្លាមៗ", callback_data: "sp:9:p" },
+        { text: "✏️ កែអត្ថបទ", callback_data: "sp:9:e" },
+      ],
+      [{ text: "❌ ផ្អាក / បដិសេធ", callback_data: "sp:9:x" }],
     ])
     assert.equal(previewButtons(9, "PENDING", { telegram: true, facebook: true }, "MORNING")[2][0].text, "❌ ផ្អាកថ្ងៃនេះ")
     // Previewed like every post (Tuesday 18:30 → the preview from 17:45), and its text is sent only by the publisher.

@@ -97,7 +97,7 @@ describe("facebook publisher — caption and checks", () => {
     assert.match(c, /«.+»/)
     assert.ok(c.endsWith(postFooter("community", "facebook")))
     assert.ok(c.includes("Android (APK): app.luychlat.com/LuyChlat.apk || iOS / Web: app.luychlat.com || Telegram Bot: t.me/luychlat_bot")) // Facebook: no inline links
-    assert.match(c, /#LuyChlat #អេបលុយឆ្លាត #គ្រប់គ្រងហិរញ្ញវត្ថុ/)
+    assert.match(c, /#LuyChlat #អេបលុយឆ្លាត\n#គ្រប់គ្រងហិរញ្ញវត្ថុ/)
     assert.doesNotMatch(c, /<[a-z]|អែប|កម្មវិធី|&/)
   })
   it("the read-only check sends the token as a header, never in the URL", async () => {

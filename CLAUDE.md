@@ -112,8 +112,8 @@ cluttered, and unreadable»):
 - **HOLIDAY TIMING & SCOPE — locked (founder, 20/10/2026):** the holiday engine (`NATIONAL_DAYS` in
   `src/lib/calendar/cambodia-holidays.ts`) covers **national and royal, Islamic, Chinese and global** holidays in
   Cambodia. ALL holiday posters MUST be scheduled and published strictly at **05:00** Cambodia time once pre-approved
-  (`PUBLISH_MINUTE`) — a holiday poster lives one day. Previewed in «LCA Approval» 48 h before (08:00), the card and its ✅
-  naming the day: «✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)». Silence = HOLD + the urgent founder reminder
+  (`PUBLISH_MINUTE`) — a holiday poster lives one day. Previewed in «LCA Approval» 48 h before (08:00), its ✅
+  naming the day: «✅ អនុម័ត (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)». Silence = HOLD + the urgent founder reminder
   (`remindFounder`). Islamic holidays go to @LuyChlatIslamic only (never the general channel or the Page); their Hijri
   dates — and a solar term such as Qingming — are flagged on the card for the approver to confirm.
 - **The Master Brand & Visual Design System — inviolable (founder, 20/10/2026):** every poster engine (royal and
@@ -134,8 +134,8 @@ cluttered, and unreadable»):
   - Holiday notes (the eve and the day back, both at 05:00 — founder, 20/10/2026; previewed the evening before from
     21:30) and the Saturday 17:00 core-value spotlight → both.
   - National days and royal ceremonies (founder, 20/10/2026 — `lib/calendar/cambodia-holidays.ts`): a commemoration
-    poster previewed 48 h before at 08:00, published at 05:00 on the day once approved → both (the card and its ✅
-    name the day: «ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក»). Royal portraits only
+    poster previewed 48 h before at 08:00, published at 05:00 on the day once approved → both (its ✅
+    names the day: «ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក»). Royal portraits only
     the official ones the founder provides (never a web photo); every preview asks the approver to check the royal
     wording (រាជស័ព្ទ).
   - Tuesday / Friday 18:30 money dilemma (`lib/money-dilemmas.ts`, an open question + the app CTA) → both.
@@ -144,7 +144,7 @@ cluttered, and unreadable»):
 - **Zero public posts without the founder's approval (founder, 18/10/2026 — replaces the 12/10 auto-publish
   fallback).** Preview-first (`src/lib/server/scheduled-posts.ts`): the 07:00 poster, holiday notes and fuel
   changes reach the founder's private chat 45 min before (06:15 for 07:00) with the destination badge
-  «📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel + 🔵 Facebook Page ]» and [ ✅ យល់ព្រម ] (published at its time),
+  «📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel + 🔵 Facebook Page ]» and [ ✅ អនុម័ត (ផ្សាយម៉ោង …) ] (published at its time),
   [ 🚀 ផុសភ្លាមៗ ] (now), [ ❌ ផ្អាកថ្ងៃនេះ ]. **ZERO UNAPPROVED PUBLIC POSTS — locked (founder, 20/10/2026, after
   the on-schedule fallback of the same morning was reverted): no post, poster or reel may ever be published
   automatically without an explicit human tap (✅ or 🚀).** Only the factual feeds from agreed official sources
@@ -167,6 +167,12 @@ cluttered, and unreadable»):
   whitelist (nobody wakes at 05:00 to tap), their card reaches «LCA Approval» the evening before, from 21:30, with
   [ ❌ ផ្អាកថ្ងៃនេះ ] only (no 🚀 at night) and caption editing by reply; silence = it publishes on time. Every du'a's
   Khmer reading connects each Arabic wasl join with a hyphen, never a space (`WASL` in `src/lib/duas.test.ts`).
+- **The approval card — clean and thumb-friendly (founder, 21/10/2026):** a waiting card is the destination line, the
+  kind and the post — no instruction lines («🔒 មិនផ្សាយទេ …», «✏️ ចុច «កែអត្ថបទ» …» are gone: the team knows silence =
+  HOLD). Its keyboard: [ ✅ អនុម័ត (ផ្សាយម៉ោង …) ] full width (a later day named, «… ឥឡូវនេះ» once its time has passed) ·
+  [ 🚀 ផុសភ្លាមៗ ] [ ✏️ កែអត្ថបទ ] · [ ❌ ផ្អាកថ្ងៃនេះ ] full width; never more than two buttons in a row; no ✏️ on the
+  factual feeds; ✏️ edits (a «reply here» prompt), never decides. Hashtags are packed in short lines (`hashtagLines`) so
+  none breaks on a phone. After every deploy the waiting cards are redrawn in place (`refreshWaitingCards`).
 - **The approval room «LCA Approval» (founder, 19/10/2026):** every preview goes to the approval group (set from
   inside it by a super admin with `/setapprovalgroup`, or `TELEGRAM_APPROVAL_CHAT_ID`), else `MARKETING_CHAT_ID`, else
   the super admins' private chats — never a public channel (`reviewChats`). The bot never leaves it; only a super
@@ -176,7 +182,7 @@ cluttered, and unreadable»):
   Facebook publish functions need a `FounderApproval` (`src/lib/server/channel.ts`), made only by the
   scheduler, the approved tip and the founder's 📢 (`tests/golden/publish-approval.test.ts`).
 - **Video, reels and humour (founder, 18/10/2026 — hard rule):** never auto-published. Every rendered MP4, script
-  and humour post goes to the founder's private chat first with [ ✅ យល់ព្រម ] [ 🚀 ផុសភ្លាមៗ ] [ ❌ ផ្អាក / បដិសេធ ];
+  and humour post goes to the founder's private chat first with [ ✅ អនុម័ត ] [ 🚀 ផុសភ្លាមៗ ] [ ❌ ផ្អាក / បដិសេធ ];
   silence = HOLD; only a super admin's tap lets it out. A script the founder has not approved (`reelRenderable`)
   renders only as a draft preview with «DRAFT · មិនទាន់អនុម័ត» on every frame; every render is a DRAFT artifact
   (`<out>.json`), published by nothing in the renderer. Guard: `tests/golden/publisher.test.ts` (video sends and Facebook calls only via the approved

@@ -51,12 +51,12 @@ describe("Islamic channel — kept 100 % apart from the general channel (founder
     assert.ok(!plannedIslamicPosts("2026-10-18", 18 * 60 + 15, ramadan).some((p) => p.kind === "ISLAMIC_FAST"))
     assert.ok(!plannedIslamicPosts("2026-10-18", 21 * 60 + 30, plain).some((p) => p.kind === "ISLAMIC_FAST")) // more than 90 min late: never
   })
-  it("the founder's preview names the Islamic channel as the only destination, with the approval buttons' gate", () => {
+  it("the founder's preview names the Islamic channel as the only destination — no instruction lines (founder, 21/10/2026)", () => {
     const where = targetLabel({ telegram: true, facebook: false, channel: "islamic" })
     assert.equal(where, "✈️ Telegram Channel ឥស្លាម (@LuyChlatIslamic) តែប៉ុណ្ណោះ")
     const text = previewText({ kind: "ISLAMIC_JUMUAH", targets: { telegram: true, facebook: false, channel: "islamic" }, publishAt: "2026-10-23T02:00:00Z", body: "…", status: "PENDING" })
     assert.match(text, /📢 គោលដៅផ្សាយ៖ \[ ✈️ Telegram Channel ឥស្លាម \(@LuyChlatIslamic\) តែប៉ុណ្ណោះ \]/)
-    assert.match(text, /🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម/)
+    assert.doesNotMatch(text, /🔒|មិនផ្សាយទេ ប្រសិនបើ/)
   })
 })
 

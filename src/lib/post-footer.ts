@@ -41,16 +41,32 @@ export function postFooter(channel: FooterChannel, platform: FooterPlatform = "t
     appLinksLine(platform),
     "",
     channel === "islamic" ? `👉 ឆាណែលឥស្លាម ៖ ${tg("LuyChlatIslamic")}` : `👉 ចូលរួមសហគមន៍ ៖ ${tg("LuyChlatCommunity")}`,
-    HASHTAGS[channel],
+    ...hashtagLines(HASHTAGS[channel].split(" ")),
   ].join("\n")
 }
 
 /**
- * The compact one-line footer (founder, 21/10/2026 — the Islamic market bulletin): the channel and the hashtags only,
- * «@LuyChlatIslamic #LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់» — for a factual feed that already links the app.
+ * Hashtags packed into short lines (founder, 21/10/2026 — on an iPhone «#គ្រប់គ្រងហិរញ្ញវត្ថុ» broke in two: Khmer wraps
+ * between words, even inside a hashtag). A line holds at most `max` characters, so each tag starts a line it fits on
+ * whole; tags keep their order and their own text (no invisible characters, which would end the hashtag link).
+ */
+export function hashtagLines(tokens: string[], max = 34): string[] {
+  const lines: string[] = []
+  for (const t of tokens.filter(Boolean)) {
+    const last = lines.at(-1)
+    if (last !== undefined && last.length + 1 + t.length <= max) lines[lines.length - 1] = `${last} ${t}`
+    else lines.push(t)
+  }
+  return lines
+}
+
+/**
+ * The compact footer (founder, 21/10/2026 — the Islamic market bulletin): the channel and the hashtags only,
+ * «@LuyChlatIslamic #LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់» — for a factual feed that already links the app;
+ * packed in short lines so no hashtag breaks on a phone.
  */
 export function compactFooter(channel: FooterChannel): string {
-  return `${channel === "islamic" ? "@LuyChlatIslamic" : "@LuyChlatCommunity"} ${HASHTAGS[channel]}`
+  return hashtagLines([channel === "islamic" ? "@LuyChlatIslamic" : "@LuyChlatCommunity", ...HASHTAGS[channel].split(" ")]).join("\n")
 }
 
 /** Telegram's photo caption limit (a text message allows 4096). */

@@ -60,14 +60,15 @@ describe("scheduled posts — the preview names its destination", () => {
     assert.equal(targetLabel({ telegram: true, facebook: false }), "✈️ Telegram Channel តែប៉ុណ្ណោះ")
     assert.equal(targetLabel({ telegram: false, facebook: true }), "🔵 Facebook Page តែប៉ុណ្ណោះ")
   })
-  it("the badge on top, the post, then the auto-publish notice with the same destination and «០៧:០០ ព្រឹក»", () => {
+  it("regression: instruction lines cluttered the iPhone card — a waiting card is the destination and the post, nothing else", () => {
+    // Founder, 21/10/2026: no «🔒 មិនផ្សាយទេ …» — the team knows silence = HOLD; the ✅ names the time.
     const text = previewText({ kind: "MORNING", targets: { telegram: true, facebook: true }, publishAt: at, body: "☀️ …", status: "PENDING" })
-    const lines = text.split("\n")
-    assert.equal(lines[0], "📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel + 🔵 Facebook Page ]")
-    assert.equal(lines.at(-1), "🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម — ចុច «✅ យល់ព្រម» ដើម្បីផ្សាយទៅ [ ✈️ Telegram Channel + 🔵 Facebook Page ] នៅម៉ោង ០៧:០០ ព្រឹក។")
+    assert.equal(text, ["📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel + 🔵 Facebook Page ]", "👀 មើលជាមុន · ផុសព្រឹក (Poster)", "", "☀️ …"].join("\n"))
+    assert.doesNotMatch(text, /🔒|មិនផ្សាយទេ ប្រសិនបើ|ចុច «/)
     const tgOnly = previewText({ kind: "HOLIDAY", targets: { telegram: true, facebook: false }, publishAt: atMinute("2026-11-20", 1080), body: "x", status: "PENDING" })
     assert.equal(tgOnly.split("\n")[0], "📢 គោលដៅផ្សាយ៖ [ ✈️ Telegram Channel តែប៉ុណ្ណោះ ]")
-    assert.match(tgOnly, /ផ្សាយទៅ \[ ✈️ Telegram Channel តែប៉ុណ្ណោះ \] នៅម៉ោង ១៨:០០ ល្ងាច/)
+    // Approved keeps its one state line (when it goes out).
+    assert.match(previewText({ kind: "HOLIDAY", targets: { telegram: true, facebook: false }, publishAt: atMinute("2026-11-20", 1080), body: "x", status: "APPROVED" }), /\n\n✅ បានយល់ព្រម — នឹងផ្សាយទៅ \[ ✈️ Telegram Channel តែប៉ុណ្ណោះ \] នៅម៉ោង ១៨:០០ ល្ងាច/)
     assert.equal(kmClock(atMinute("2026-10-16", 13 * 60 + 45)), "១៣:៤៥ រសៀល")
   })
   it("after a decision the notice becomes the outcome, and the buttons go", () => {
@@ -75,15 +76,23 @@ describe("scheduled posts — the preview names its destination", () => {
     assert.match(previewText({ kind: "MORNING", targets: { telegram: true, facebook: true }, publishAt: at, body: "x", status: "PAUSED" }), /❌ បានផ្អាកការផ្សាយថ្ងៃនេះ$/)
     assert.deepEqual(previewButtons(5, "PUBLISHED", { telegram: true, facebook: true }), [])
   })
-  it("the buttons: ✅ approves for its time; 🚀 names the destination; ❌ pauses today", () => {
-    assert.deepEqual(previewButtons(5, "PENDING", { telegram: true, facebook: true }), [
-      [{ text: "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)", callback_data: "sp:5:a" }],
-      [{ text: "🚀 ផុសភ្លាមៗ (Telegram + Facebook)", callback_data: "sp:5:p" }],
+  it("the thumb-friendly keyboard: ✅ full width with its time · 🚀 | ✏️ · ❌ full width (founder, 21/10/2026)", () => {
+    const when = { publishAt: at, now: atMinute("2026-10-16", 375) } // 06:15, the 07:00 post
+    assert.deepEqual(previewButtons(5, "PENDING", { telegram: true, facebook: true }, "MORNING", when), [
+      [{ text: "✅ អនុម័ត (ផ្សាយម៉ោង ០៧:០០ ព្រឹក)", callback_data: "sp:5:a" }],
+      [
+        { text: "🚀 ផុសភ្លាមៗ", callback_data: "sp:5:p" },
+        { text: "✏️ កែអត្ថបទ", callback_data: "sp:5:e" },
+      ],
       [{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: "sp:5:x" }],
     ])
-    // Approved: publish now or pause; no second approval.
-    assert.deepEqual(previewButtons(5, "APPROVED", { telegram: true, facebook: true }).map((r) => r[0].callback_data), ["sp:5:p", "sp:5:x"])
-    assert.equal(previewButtons(5, "PENDING", { telegram: true, facebook: false })[1][0].text, "🚀 ផុសភ្លាមៗ (Telegram)")
+    // Approved: the last two rows (no second approval).
+    assert.deepEqual(previewButtons(5, "APPROVED", { telegram: true, facebook: true }, "MORNING").map((r) => r.map((b) => b.callback_data)), [["sp:5:p", "sp:5:e"], ["sp:5:x"]])
+    // The factual feeds keep their source's words: no ✏️.
+    for (const k of ["BULLETIN", "RATES", "ISLAMIC_BULLETIN", "FUEL", "POSTER"]) assert.deepEqual(previewButtons(5, "PENDING", { telegram: true, facebook: false }, k)[1], [{ text: "🚀 ផុសភ្លាមៗ", callback_data: "sp:5:p" }], k)
+    // Never more than two buttons in a row — each one wide enough for a thumb.
+    for (const row of previewButtons(5, "PENDING", { telegram: true, facebook: true }, "DILEMMA")) assert.ok(row.length <= 2)
+    assert.deepEqual(parseScheduledPostCallback("sp:5:e"), { id: 5, action: "edit" })
     assert.deepEqual(parseScheduledPostCallback("sp:5:a"), { id: 5, action: "approve" })
     assert.deepEqual(parseScheduledPostCallback("sp:5:p"), { id: 5, action: "publish" })
     assert.deepEqual(parseScheduledPostCallback("sp:5:x"), { id: 5, action: "pause" })

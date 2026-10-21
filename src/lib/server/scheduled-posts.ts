@@ -125,6 +125,8 @@ export type SchedulerDeps = {
   sendPreview(chat: number, png: Buffer | null, text: string, buttons: ReturnType<typeof previewButtons>): Promise<number | null>
   editPreview(p: Preview, text: string, buttons: ReturnType<typeof previewButtons>): Promise<void>
   answer(callbackId: string, text: string, alert?: boolean): Promise<void>
+  /** [ ✏️ កែអត្ថបទ ]: a «reply here» prompt under the card (its reply edits the caption — editCardByReply). */
+  promptEdit?(chat: number, cardMsg: number): Promise<void>
   now(): number
   log(level: "info" | "warn" | "error", message: string): void
   replace?: ReplaceDeps
@@ -335,6 +337,11 @@ export function createScheduler(d: SchedulerDeps) {
     const chat = cb.message?.chat
     const actor = chat?.type === "private" ? chat.id : cb.from?.id
     if (!parsed || !chat || !actor) return d.answer(cb.id, "")
+    // ✏️ edits, never decides (founder, 21/10/2026): a prompt under the card; the approver's reply becomes the caption.
+    if (parsed.action === "edit") {
+      if (cb.message) await d.promptEdit?.(chat.id, cb.message.message_id)
+      return d.answer(cb.id, "✏️ សូម Reply ជាមួយអត្ថបទថ្មី")
+    }
     // ✅ on a post whose time has passed (held, waiting for a tap — founder, 21/10/2026): published at once. Approved
     // only, the timer would expire it once 90 minutes late and the approval would be lost.
     if (parsed.action === "approve") {
@@ -693,6 +700,15 @@ const realDeps = (): SchedulerDeps => ({
     const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, text, disable_web_page_preview: true, reply_markup })
     return res.ok && res.result ? res.result.message_id : null
   },
+  async promptEdit(chat, cardMsg) {
+    const res = await tg<{ message_id: number }>("sendMessage", {
+      chat_id: chat,
+      text: "✏️ សូម Reply លើសារនេះ ជាមួយអត្ថបទថ្មីទាំងស្រុង — កាតនឹងប្តូរភ្លាមៗ។",
+      reply_to_message_id: cardMsg,
+      reply_markup: { force_reply: true, selective: true, input_field_placeholder: "អត្ថបទថ្មី…" },
+    })
+    if (res.ok && res.result) rememberEditPrompt(chat, res.result.message_id, cardMsg)
+  },
   async editPreview(p, text, buttons) {
     const reply_markup = { inline_keyboard: buttons }
     if (p.photo) await tg("editMessageCaption", { chat_id: p.chat, message_id: p.msg, caption: text.slice(0, 1024), reply_markup })
@@ -806,9 +822,25 @@ function editedLine(row: PostRow): string {
  * caption (bot_post_edit_caption — the same check as a ✅ tap), the card is redrawn in place and the edit is logged.
  * False when the replied-to message is not a card (the reply is handled as usual).
  */
+/** ✏️ prompts → their card (an hour; a restart forgets them, and a reply to the card itself still works). */
+const EDIT_PROMPTS = new Map<string, { card: number; at: number }>()
+function rememberEditPrompt(chat: number, prompt: number, card: number) {
+  const now = Date.now()
+  for (const [k, v] of EDIT_PROMPTS) if (now - v.at > 3_600_000) EDIT_PROMPTS.delete(k)
+  EDIT_PROMPTS.set(`${chat}:${prompt}`, { card, at: now })
+}
+
 export async function editCardByReply(chatId: number, replyTo: number, actor: number | undefined, editor: string, text: string): Promise<boolean> {
   if (!actor || !text.trim()) return false
+  // A reply to a ✏️ prompt edits the card it was asked under; a reply to the card itself works as before.
+  const prompt = EDIT_PROMPTS.get(`${chatId}:${replyTo}`)
+  const promptMsg = prompt ? replyTo : null
+  if (prompt) replyTo = prompt.card
   const { data, error } = await botDb().rpc("bot_post_edit_caption", { p_key: botKey(), p_chat_id: chatId, p_message_id: replyTo, p_actor: actor, p_text: text, p_editor: editor })
+  if (!error && data && promptMsg) {
+    EDIT_PROMPTS.delete(`${chatId}:${promptMsg}`)
+    await tg("deleteMessage", { chat_id: chatId, message_id: promptMsg }).catch(() => null) // the prompt is done — a clean chat
+  }
   if (!error && !data) return false
   const reply = (t: string) => tg("sendMessage", { chat_id: chatId, text: t, reply_to_message_id: replyTo }).catch(() => null)
   if (error) {
@@ -830,7 +862,34 @@ export async function editCardByReply(chatId: number, replyTo: number, actor: nu
 }
 
 /** Called every minute by the dispatcher. */
+/** Whether this container already redrew the waiting cards (once per start — i.e. once per deploy). */
+let cardsRedrawn = false
+
+/**
+ * The waiting cards redrawn in place (founder, 21/10/2026 — «Live In-Place Refresh»): after a deploy, every card still
+ * waiting in «LCA Approval» (and the founder's chat) gets the current layout and wording at once, not with the next
+ * post. Same message, edited; the count is logged.
+ */
+export async function refreshWaitingCards(): Promise<number> {
+  const { data, error } = await botDb().rpc("bot_posts_waiting", { p_key: botKey() })
+  if (error) {
+    logEvent("warn", "scheduled-posts", `Waiting cards not redrawn: ${error.message}`, { fold: true })
+    return 0
+  }
+  let n = 0
+  for (const row of (data as PostRow[] | null) ?? []) {
+    await real().refresh(row)
+    n++
+  }
+  logEvent("info", "scheduled-posts", `Waiting approval cards redrawn in place: ${n}`, { fold: true })
+  return n
+}
+
 export async function scheduledPostsTick() {
+  if (!cardsRedrawn) {
+    cardsRedrawn = true
+    await refreshWaitingCards()
+  }
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.

@@ -115,14 +115,14 @@ describe("the approval rule (= bot_post_take)", () => {
 })
 
 describe("preview-first — the preview at 06:15", () => {
-  it("nothing before 06:15; one preview at 06:15 with the destination; it says nothing goes out without approval", async () => {
+  it("nothing before 06:15; one preview at 06:15 with the destination — no instruction lines (founder, 21/10/2026)", async () => {
     const f = fake(clock(6, 0))
     await f.at(6, 14)
     assert.equal(f.previewsSent.length, 0)
     await f.at(6, 15)
     assert.equal(f.previewsSent.length, 1)
     assert.match(f.previewsSent[0].text, /^📢 គោលដៅផ្សាយ៖ \[ ✈️ Telegram Channel \+ 🔵 Facebook Page \]/)
-    assert.match(f.previewsSent[0].text, /🔒 មិនផ្សាយទេ ប្រសិនបើមិនទាន់យល់ព្រម/)
+    assert.doesNotMatch(f.previewsSent[0].text, /🔒|មិនផ្សាយទេ ប្រសិនបើ/) // silence = HOLD is known; the ✅ names the time
     assert.doesNotMatch(f.previewsSent[0].text, /ស្វ័យប្រវត្តិ/)
     assert.equal(f.previewsSent[0].png, true) // the poster, never text-only
     await f.at(6, 16)
@@ -284,15 +284,15 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(23, 30)).toISOString())
     assert.equal(f.rows[0].status, "APPROVED")
     assert.equal(f.previewsSent.length, 1, "one card to the approval room")
-    assert.match(f.previewsSent[0].text, /🤖 ព័ត៌មានស្វ័យប្រវត្តិ — នឹងផ្សាយទៅ \[ [^\]]+ \] នៅ[^\n]+ដោយមិនចាំបាច់ចុច។\n❌ ចុចផ្អាក ប្រសិនបើមានកំហុស · ✏️ Reply លើកាតនេះ ដើម្បីកែអត្ថបទ។$/)
+    assert.match(f.previewsSent[0].text, /🤖 ព័ត៌មានស្វ័យប្រវត្តិ — នឹងផ្សាយទៅ \[ [^\]]+ \] នៅ[^\n]+ដោយមិនចាំបាច់ចុច។$/) // no instruction line (founder, 21/10/2026): ❌ and ✏️ are the buttons
     // Silence = it publishes on time, once.
     await f.at(23, 30)
     assert.deepEqual(f.published, [1])
   })
-  it("the safety net's card has ❌ only (no 🚀 at night) — and ❌ stops the 05:30 post", async () => {
+  it("the safety net's card has ✏️ and ❌ only (no 🚀 at night) — and ❌ stops the 05:30 post", async () => {
     const targets = { telegram: true, facebook: false }
-    assert.deepEqual(previewButtons(7, "APPROVED", targets, "ISLAMIC_MORNING"), [[{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: "sp:7:x" }]])
-    assert.equal(previewButtons(7, "APPROVED", targets, "MORNING").length, 2) // an approved poster keeps 🚀 and ❌
+    assert.deepEqual(previewButtons(7, "APPROVED", targets, "ISLAMIC_MORNING"), [[{ text: "✏️ កែអត្ថបទ", callback_data: "sp:7:e" }], [{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: "sp:7:x" }]])
+    assert.equal(previewButtons(7, "APPROVED", targets, "MORNING").length, 2) // an approved poster keeps 🚀 | ✏️ and ❌
     assert.doesNotMatch(previewText({ kind: "MORNING", targets, publishAt: new Date(clock(7, 0)).toISOString(), body: "x", status: "APPROVED" }), /🤖/)
     const f = fake(clock(21, 30))
     await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(23, 30)).toISOString())
@@ -320,11 +320,11 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     assert.equal(g.rows[0].status, "APPROVED")
     assert.deepEqual(g.published, [])
   })
-  it("the ✅ button says so once the time has passed: «✅ យល់ព្រម និងផ្សាយឥឡូវនេះ»", () => {
+  it("the ✅ button says so once the time has passed: «✅ អនុម័ត និងផ្សាយឥឡូវនេះ»", () => {
     const targets = { telegram: true, facebook: false }
     const at = new Date(clock(8, 0)).toISOString()
-    assert.equal(previewButtons(3, "PENDING", targets, "ISLAMIC_DAILY", { publishAt: at, now: new Date(clock(9, 0)).toISOString() })[0][0].text, "✅ យល់ព្រម និងផ្សាយឥឡូវនេះ")
-    assert.equal(previewButtons(3, "PENDING", targets, "ISLAMIC_DAILY", { publishAt: at, now: new Date(clock(7, 30)).toISOString() })[0][0].text, "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)")
+    assert.equal(previewButtons(3, "PENDING", targets, "ISLAMIC_DAILY", { publishAt: at, now: new Date(clock(9, 0)).toISOString() })[0][0].text, "✅ អនុម័ត និងផ្សាយឥឡូវនេះ")
+    assert.equal(previewButtons(3, "PENDING", targets, "ISLAMIC_DAILY", { publishAt: at, now: new Date(clock(7, 30)).toISOString() })[0][0].text, "✅ អនុម័ត (ផ្សាយម៉ោង ០៨:០០ ព្រឹក)")
   })
   it("a re-preview after the post's time still sends a fresh card until midnight (lesson 14 corrected after 08:00); a first schedule does not", async () => {
     const f = fake(clock(9, 0))
@@ -336,6 +336,26 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     assert.match(sp, /await real\(\)\.schedulePost\(kind, key, payload, at, \{ late: true \}\)/)
     assert.match(sp, /const REPREVIEW_READY = \[[^\]]*"lesson14-hadith"/)
     assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270238000000_repreview_lesson14.sql"), "utf8"), /'repreview', 'lesson14-hadith'\)\n where kind = 'ISLAMIC_DAILY' and post_key = '2026-10-21' and status = 'PENDING'/)
+  })
+  it("regression guard: ✏️ edits, never decides — a tap leaves the post waiting (the old code paused anything not ✅ / 🚀)", async () => {
+    const f = fake(clock(6, 15))
+    await f.s.schedulePost("MORNING", DAY, {}, new Date(clock(7, 0)).toISOString())
+    await f.press("sp:1:e")
+    assert.equal(f.rows[0].status, "PENDING")
+    assert.equal(f.answers.at(-1)!.text, "✏️ សូម Reply ជាមួយអត្ថបទថ្មី")
+    const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    assert.ok(sp.indexOf('if (parsed.action === "edit") {') < sp.indexOf("taken = await d.take(parsed.id"), "handled before any decision")
+    // The prompt's reply edits the card it was asked under; the prompt is then removed.
+    assert.match(sp, /const prompt = EDIT_PROMPTS\.get\(`\$\{chatId\}:\$\{replyTo\}`\)/)
+    assert.match(sp, /reply_markup: \{ force_reply: true, selective: true, input_field_placeholder: "អត្ថបទថ្មី…" \}/)
+  })
+  it("live in-place refresh: after a deploy every waiting card is redrawn once with the current layout, the count logged", () => {
+    const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    assert.match(sp, /if \(!cardsRedrawn\) \{\n\s+cardsRedrawn = true\n\s+await refreshWaitingCards\(\)/)
+    assert.match(sp, /for \(const row of \(data as PostRow\[\] \| null\) \?\? \[\]\) \{\n\s+await real\(\)\.refresh\(row\)/)
+    assert.match(sp, /Waiting approval cards redrawn in place: \$\{n\}/)
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270240000000_posts_waiting_cards.sql"), "utf8")
+    assert.match(sql, /where status in \('PENDING', 'APPROVED'\)\n\s+and jsonb_array_length\(coalesce\(previews, '\[\]'::jsonb\)\) > 0/)
   })
   it("a post that needs the founder's decision is still previewed (the 07:00 poster)", async () => {
     const f = fake(clock(6, 15))
