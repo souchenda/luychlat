@@ -4,6 +4,19 @@
 
 export type PulsePeriod = "day" | "week" | "month"
 export type PulsePoint = { key: string; label: string; khr: number }
+/** What the pulse sums (founder, 21/10/2026 — Task #446, one tap): the spending, or the income. */
+export type PulseKind = "EXPENSE" | "INCOME"
+
+/**
+ * Each kind's look and words: the validated chart tokens (globals.css — the warm coral of spending, the emerald of
+ * income, each stepped for light and dark), its title and «… 7 ថ្ងៃចុងក្រោយ» line, and whether a rise is good news
+ * (more income is; more spending is not) — so the change pill is coloured by meaning, never by direction alone.
+ */
+export function pulseTheme(kind: PulseKind) {
+  return kind === "INCOME"
+    ? { color: "var(--viz-income)", fill: "pulse-fill-income", title: "home.pulseIncomeTitle", total: "home.pulseIncomeTotal", tooltip: "tx.INCOME", riseIsGood: true }
+    : { color: "var(--viz-expense)", fill: "pulse-fill", title: "home.pulseTitle", total: "home.pulseTotal", tooltip: "tx.EXPENSE", riseIsGood: false }
+}
 type Tx = { type: string; amount: number; currency: string; transaction_date: string; category_id?: string | null }
 
 const ICT = 7 * 3_600_000
@@ -61,20 +74,21 @@ function labelOf(period: PulsePeriod, key: string, locale: string): string {
 }
 
 /**
- * Expenses (not transfers, not the excluded categories — balance adjustments) summed per bucket, in riel
+ * Expenses — or, with `kind: "INCOME"`, income (Task #446) — (not transfers, not the excluded categories — balance
+ * adjustments) summed per bucket, in riel
  * (USD × the rate): the points shown, their total, and the change from the same span just before
  * (null when that span had nothing — never «+∞%»).
  */
 export function spendingPulse(
   transactions: Tx[],
   period: PulsePeriod,
-  o: { now?: number; khrPerUsd: number; exclude?: Set<string>; locale?: string },
+  o: { now?: number; khrPerUsd: number; exclude?: Set<string>; locale?: string; kind?: PulseKind },
 ): { points: PulsePoint[]; total: number; previous: number; pct: number | null } {
   const now = o.now ?? Date.now()
   const { shown, before } = spans(period, now)
   const sums = new Map<string, number>()
   for (const tx of transactions) {
-    if (tx.type !== "EXPENSE" || (tx.category_id && o.exclude?.has(tx.category_id))) continue
+    if (tx.type !== (o.kind ?? "EXPENSE") || (tx.category_id && o.exclude?.has(tx.category_id))) continue
     const key = bucketOf(period, ictDay(Date.parse(tx.transaction_date)))
     const khr = tx.currency === "KHR" ? tx.amount : tx.amount * o.khrPerUsd
     sums.set(key, (sums.get(key) ?? 0) + khr)

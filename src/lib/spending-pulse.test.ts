@@ -1,7 +1,12 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { rielTick, spendingPulse } from "./spending-pulse"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+
+import { dictionaries } from "@/lib/i18n/dictionaries"
+
+import { pulseTheme, rielTick, spendingPulse } from "./spending-pulse"
 
 // Friday 17 October 2026, 21:00 in Cambodia.
 const NOW = Date.parse("2026-10-17T14:00:00Z")
@@ -53,5 +58,42 @@ describe("riel guide labels", () => {
     assert.equal(rielTick(1_500_000, "km"), "1.5 លាន")
     assert.equal(rielTick(200_000, "en"), "200K")
     assert.equal(rielTick(0, "km"), "0")
+  })
+})
+
+describe("one tap between spending and income (founder, 21/10/2026 — Task #446)", () => {
+  const mix = [
+    tx("2026-10-17T09:00:00", 50_000),
+    tx("2026-10-17T10:00:00", 120_000, "KHR", "INCOME"),
+    tx("2026-10-16T10:00:00", 25, "USD", "INCOME"),
+    tx("2026-10-16T11:00:00", 9_000, "KHR", "TRANSFER"),
+    tx("2026-10-15T10:00:00", 40_000, "KHR", "INCOME", "adj"),
+  ]
+  it("income: only the income, the same buckets, dollars at the rate, adjustments left out — for day, week and month", () => {
+    const inc = spendingPulse(mix, "day", { now: NOW, khrPerUsd: 4000, exclude: new Set(["adj"]), kind: "INCOME" })
+    assert.equal(inc.total, 220_000) // 120,000 ៛ + $25 × 4,000
+    assert.equal(inc.points.at(-1)!.khr, 120_000)
+    assert.equal(spendingPulse(mix, "day", { now: NOW, khrPerUsd: 4000, exclude: new Set(["adj"]) }).total, 50_000) // spending is the default
+    for (const p of ["week", "month"] as const) assert.equal(spendingPulse(mix, p, { now: NOW, khrPerUsd: 4000, exclude: new Set(["adj"]), kind: "INCOME" }).total, 220_000, p)
+  })
+  it("each kind's look and words: coral for spending, emerald for income; a rise is good news only for income", () => {
+    const e = pulseTheme("EXPENSE")
+    const i = pulseTheme("INCOME")
+    assert.deepEqual([e.color, i.color], ["var(--viz-expense)", "var(--viz-income)"])
+    assert.notEqual(e.fill, i.fill) // two gradients, never one id for both colours
+    assert.deepEqual([e.riseIsGood, i.riseIsGood], [false, true])
+    const km = dictionaries.km as Record<string, string>
+    assert.deepEqual([km[e.title], km[i.title]], ["ចំណាយ", "ចំណូល"])
+    assert.deepEqual([km[`${e.total}.day`], km[`${i.total}.day`], km[`${i.total}.week`], km[`${i.total}.month`]], ["ចំណាយ 7 ថ្ងៃចុងក្រោយ", "ចំណូល 7 ថ្ងៃចុងក្រោយ", "ចំណូល 8 សប្តាហ៍ចុងក្រោយ", "ចំណូល 6 ខែចុងក្រោយ"])
+    for (const l of ["en", "zh"] as const) assert.ok((dictionaries[l] as Record<string, string>)[`${i.total}.month`], l)
+  })
+  it("wired: the switch beside the title, the series, total, tooltip and change pill follow it; the period tabs stay", () => {
+    const card = readFileSync(join(process.cwd(), "src/components/dashboard/spending-trend-card.tsx"), "utf8")
+    assert.match(card, /<Segmented\s+aria-label=\{t\("home\.pulseKind"\)\}\s+value=\{kind\}\s+onChange=\{setKind\}/)
+    assert.match(card, /\{ value: "EXPENSE", label: t\("tx\.EXPENSE"\) \},\s+\{ value: "INCOME", label: t\("tx\.INCOME"\) \}/)
+    assert.match(card, /spendingPulse\(transactions, period, \{ khrPerUsd, exclude: adjustmentCategoryIds\(categories\), locale, kind \}\)/)
+    assert.match(card, /stroke=\{theme\.color\} strokeWidth=\{2\} fill=\{`url\(#\$\{theme\.fill\}\)`\}/)
+    assert.match(card, /const good = up === theme\.riseIsGood/)
+    assert.match(card, /\{ value: "day", label: t\("home\.pulseDay"\) \}/)
   })
 })
