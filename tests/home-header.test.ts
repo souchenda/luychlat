@@ -69,10 +69,13 @@ describe("the person's photo beside the greeting (founder, 21/10/2026 — Task #
 
 describe("the wallet ring: the icon and the count inside, a tap to the wallets (Task #444)", () => {
   const ring = readFileSync(join(process.cwd(), "src/components/wallets/wallet-ring.tsx"), "utf8")
-  it("a wallet icon with the count under it, inside the ring — no «កាបូប» label hanging below", () => {
-    assert.match(ring, /<Link href="\/wallets" aria-label=\{label\}/)
-    assert.match(ring, /<WalletIcon className="size-\[18px\] text-white\/85" strokeWidth=\{2\} \/>\s*<span className="mt-0\.5 text-base font-bold tabular-nums">\{digits\(mix\.total\)\}<\/span>/)
-    assert.doesNotMatch(ring, /netWorth\.walletCount", \{ n: "" \}/) // the old label under the ring
-    assert.ok(ring.indexOf("</svg>") < ring.indexOf("<WalletIcon")) // drawn over the ring, centred in it
+  it("76 px — as tall as the balance stack — with one large wallet icon centred inside; no count drawn (Task #450)", () => {
+    assert.match(ring, /<Link href="\/wallets" aria-label=\{label\} title=\{label\} className="relative grid size-\[76px\] shrink-0 place-items-center rounded-full/)
+    assert.match(ring, /<WalletIcon className="size-9 text-white drop-shadow-sm" strokeWidth=\{1\.75\} aria-hidden \/>\s*<\/Link>/)
+    assert.doesNotMatch(ring, /\{digits\(mix\.total\)\}<\/span>/) // the count is no longer drawn…
+    assert.match(ring, /const label = `\$\{t\("netWorth\.walletCount", \{ n: digits\(mix\.total\) \}\)\}/) // …it is the ring's label
+    assert.doesNotMatch(ring, /netWorth\.walletCount", \{ n: "" \}/) // no label hanging below
+    assert.ok(ring.indexOf("</svg>") < ring.indexOf("<WalletIcon")) // drawn over the segmented ring, centred in it
+    assert.match(ring, /walletArcs\(wallets, khrPerUsd, C, \{ byBalance: !hidden \}\)/) // the segments stay
   })
 })

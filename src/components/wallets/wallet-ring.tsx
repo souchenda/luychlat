@@ -12,8 +12,8 @@ const R = 15.5
 const C = 2 * Math.PI * R
 
 /**
- * The hero's wallet ring (founder, 21/10/2026 — after ACLEDA Mobile; Task #444): a wallet icon and how many wallets the
- * total counts, both INSIDE the ring (no label hanging under it); each wallet is a segment (Task #438), its length its
+ * The hero's wallet ring (founder, 21/10/2026 — after ACLEDA Mobile; Tasks #444 / #450): 76 px, as tall as the balance
+ * stack beside it, with one large wallet icon centred inside (the count of wallets is its accessible label, not drawn); each wallet is a segment (Task #438), its length its
  * share of the money, its colour its kind (cash · bank · savings · card), the shades alternating within a kind. With the
  * balances hidden the segments are equal — no share of the money shows (lib/wallet-overview.ts › walletArcs). A tap opens
  * the wallets. A count, never a balance: it shows with the balances hidden too.
@@ -29,7 +29,7 @@ export function WalletRing({ wallets }: { wallets: Wallet[] }) {
   const label = `${t("netWorth.walletCount", { n: digits(mix.total) })}${parts.length ? ` · ${parts.join(", ")}` : ""}`
 
   return (
-    <Link href="/wallets" aria-label={label} title={label} className="relative grid size-[4.5rem] shrink-0 place-items-center rounded-full transition-transform active:scale-95">
+    <Link href="/wallets" aria-label={label} title={label} className="relative grid size-[76px] shrink-0 place-items-center rounded-full transition-transform active:scale-95">
       <svg viewBox="0 0 36 36" className="absolute inset-0 size-full -rotate-90" aria-hidden>
         <circle cx="18" cy="18" r={R} fill="none" stroke="currentColor" strokeWidth="3" className="text-white/20" />
         {walletArcs(wallets, khrPerUsd, C, { byBalance: !hidden }).map((arc) => (
@@ -46,11 +46,8 @@ export function WalletRing({ wallets }: { wallets: Wallet[] }) {
           />
         ))}
       </svg>
-      {/* Inside the ring: the wallet, the count right under it. */}
-      <span className="flex flex-col items-center leading-none" aria-hidden>
-        <WalletIcon className="size-[18px] text-white/85" strokeWidth={2} />
-        <span className="mt-0.5 text-base font-bold tabular-nums">{digits(mix.total)}</span>
-      </span>
+      {/* Inside the ring: one large wallet, centred (Task #450 — the count is in the label, read aloud, not drawn). */}
+      <WalletIcon className="size-9 text-white drop-shadow-sm" strokeWidth={1.75} aria-hidden />
     </Link>
   )
 }
