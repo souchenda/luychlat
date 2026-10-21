@@ -58,13 +58,13 @@ export function NetWorthCard({
       <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 bg-linear-to-b from-white/12 to-transparent" />
       <span aria-hidden className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-amber-300/80 to-transparent" />
 
-      {/* Top (founder, 21/10/2026 — the ACLEDA layout, compact): the wallet ring and, level with it, the title with the eye,
-          then what is held in each currency — riel on top, dollars below — each with its currency badge. No converted
-          headline, no repeated pills. */}
-      <div className="flex items-center gap-4">
+      {/* Top (founder, 21/10/2026 — the ACLEDA layout, compact): the wallet ring pinned left and, level with it, every
+          figure flush RIGHT (Task #443 — no dead space on the right): the title with the eye, then what is held in each
+          currency — riel on top, dollars below — each with its currency badge at the right end. No converted headline. */}
+      <div className="flex w-full items-center justify-between gap-4">
         {!loading && <WalletRing wallets={wallets ?? []} />}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
+        <div className="flex min-w-0 flex-1 flex-col items-end text-right">
+          <div className="flex items-center justify-end gap-1">
             <p className="text-[15px] font-medium text-white/85">{t("netWorth.balanceTitle")}</p>
             <button
               type="button"
@@ -78,23 +78,23 @@ export function NetWorthCard({
           </div>
 
           {loading ? (
-            <div className="mt-2 space-y-2">
+            <div className="mt-2 flex flex-col items-end space-y-2">
               <Skeleton className="h-7 w-40 bg-white/20" />
               <Skeleton className="h-7 w-32 bg-white/20" />
             </div>
           ) : (
-            <div className="mt-1.5 space-y-1">
+            <div className="mt-1.5 flex w-full flex-col items-end space-y-1">
               {(["KHR", "USD"] as const).map((c) => {
                 const held = c === "KHR" ? totals.khrWallets : totals.usdWallets
                 return (
-                  <p key={c} className="flex min-w-0 items-center gap-2" title={t(c === "KHR" ? "netWorth.inKhr" : "netWorth.inUsd")}>
-                    <span className={`w-11 shrink-0 rounded-full text-center text-[11px] leading-5 font-bold ${c === "KHR" ? "bg-amber-300 text-amber-950" : "bg-white text-emerald-800"}`}>{c}</span>
+                  <p key={c} className="flex w-full min-w-0 items-center justify-end gap-2" title={t(c === "KHR" ? "netWorth.inKhr" : "netWorth.inUsd")}>
                     <Amount value={held} currency={c} className={`truncate font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm ${balanceSize(held, c)}`} />
+                    <span className={`w-11 shrink-0 rounded-full text-center text-[11px] leading-5 font-bold ${c === "KHR" ? "bg-amber-300 text-amber-950" : "bg-white text-emerald-800"}`}>{c}</span>
                   </p>
                 )
               })}
               {totals.assets > 0 && (
-                <Link href="/assets" className="flex items-center gap-1 pt-0.5 text-[13px] text-white/80 hover:text-white" title={t("assets.pageTitle")}>
+                <Link href="/assets" className="flex items-center justify-end gap-1 pt-0.5 text-[13px] text-white/80 hover:text-white" title={t("assets.pageTitle")}>
                   <GemIcon className="size-3.5 shrink-0" aria-hidden />
                   <span className="truncate">{t("netWorth.assetsShort")}</span>
                   <Amount value={totals.assets} currency="USD" className="font-semibold whitespace-nowrap tabular-nums" /> ›
@@ -106,7 +106,7 @@ export function NetWorthCard({
             <button
               type="button"
               onClick={onRetryGaps}
-              className="mt-2 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-amber-400/25 px-2.5 py-1 text-left text-[13px] font-medium text-white ring-1 ring-amber-200/40"
+              className="mt-2 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-amber-400/25 px-2.5 py-1 text-right text-[13px] font-medium text-white ring-1 ring-amber-200/40"
             >
               <span>{t("netWorth.notCounted", { items: gaps.map((g) => t(`assetGap.${g}`)).join(", ") })}</span>
               {onRetryGaps && <RotateCwIcon className="size-3.5 shrink-0" aria-label={t("widget.retry")} />}

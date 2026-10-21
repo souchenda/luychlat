@@ -18,7 +18,7 @@ describe("home — the hero card's layout", () => {
     assert.doesNotMatch(home.slice(home.indexOf("<QuickActionGrid"), home.indexOf("/>", home.indexOf("<QuickActionGrid"))), /MarketRatesCard/)
   })
   it("the wallet ring sits left of the totals with nothing stacked on the right; the ticker is one line that never wraps", () => {
-    assert.match(card, /\{!loading && <WalletRing wallets=\{wallets \?\? \[\]\} \/>\}\s*<div className="min-w-0 flex-1">/)
+    assert.match(card, /\{!loading && <WalletRing wallets=\{wallets \?\? \[\]\} \/>\}\s*<div className="flex min-w-0 flex-1 flex-col items-end text-right">/)
     assert.doesNotMatch(card, /flex-col justify-center gap-2/)
     assert.match(ticker, /flex w-full flex-row items-center/)
     assert.match(ticker, /whitespace-nowrap/)
@@ -31,13 +31,13 @@ describe("home — the hero card's layout", () => {
   })
   it("compact, like ACLEDA (founder, 21/10/2026): the ring, then title + eye, riel on top and dollars below — no converted headline", () => {
     // Top: the ring beside the stack.
-    assert.match(card, /<div className="flex items-center gap-4">\s*\{!loading && <WalletRing/)
+    assert.match(card, /<div className="flex w-full items-center justify-between gap-4">\s*\{!loading && <WalletRing/)
     // What is held in each currency, riel first, each with its badge — the held sums, not a converted total.
     assert.match(card, /\(\["KHR", "USD"\] as const\)\.map/)
     assert.match(card, /c === "KHR" \? totals\.khrWallets : totals\.usdWallets/)
     // Gone: the big converted «$…» line and its «≈ …៛» twin.
     assert.doesNotMatch(card, /totals\.totalUsd|totals\.totalKhr|≈ <Amount/)
-    const top = card.indexOf('<div className="flex items-center gap-4">')
+    const top = card.indexOf('<div className="flex w-full items-center justify-between gap-4">')
     const row = card.indexOf("divide-x divide-white/15")
     const ticker = card.indexOf("{footer &&")
     assert.ok(top > 0 && row > top && ticker > row, "ring + stack, then the loans / assets / net row, then the ticker")
@@ -54,5 +54,16 @@ describe("home — the hero card's layout", () => {
     const grid = readFileSync(join(process.cwd(), "src", "components", "dashboard", "quick-actions.tsx"), "utf8")
     assert.match(grid, /border border-emerald-600\/15[^"]*shadow-sm[^"]*group-active:scale-95[^"]*dark:border-emerald-500\/20/)
     assert.match(grid, /"group flex min-h-\[5\.5rem\]/)
+  })
+})
+
+describe("the hero's balances flush right, the ring pinned left (founder, 21/10/2026 — Task #443, the ACLEDA balance)", () => {
+  it("two columns: the ring left, every figure right — the title with the eye, riel, then dollars, each badge at the right end", () => {
+    assert.match(card, /<div className="flex w-full items-center justify-between gap-4">\s*\{!loading && <WalletRing/)
+    assert.match(card, /<div className="flex items-center justify-end gap-1">\s*<p className="text-\[15px\] font-medium text-white\/85">\{t\("netWorth\.balanceTitle"\)\}<\/p>\s*<button/)
+    // Each currency line ends at the right edge, the amount before its badge.
+    assert.match(card, /<p key=\{c\} className="flex w-full min-w-0 items-center justify-end gap-2"[^>]*>\s*<Amount value=\{held\}[^>]*\/>\s*<span className=\{`w-11 shrink-0 rounded-full/)
+    assert.match(card, /\(\["KHR", "USD"\] as const\)\.map/) // riel on top, dollars below
+    assert.match(card, /className="mt-1\.5 flex w-full flex-col items-end space-y-1"/)
   })
 })
