@@ -50,6 +50,16 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.match(end, /docker image prune -f >\/dev\/null 2>&1 \|\| true\ndocker builder prune -f --keep-storage 2GB >\/dev\/null 2>&1 \|\| true/)
     assert.doesNotMatch(end, /rm -rf[^\n]*(\$GRADLE_HOME|\$SDK|\$KEYS|\$OUT)/) // the caches, the release key and the APK stay
   })
+  it("regression: Docker's build history pinned ~30 GB the cache trim never reached — every release removes records older than a day", () => {
+    const after = update.slice(update.indexOf("trap - EXIT"))
+    assert.match(after, /bash \.\/deploy\/prune-build-history\.sh 24 \|\| echo "! Build history not pruned \(the app is deployed\)"/) // never fails a release
+    const script = read("deploy/prune-build-history.sh").replace(/\r\n/g, "\n")
+    assert.match(script, /ctr -n moby_history leases ls/)
+    assert.match(script, /\[ "\$t" -lt "\$cutoff" \] && ids\+=\("\$id"\)/) // only records older than the cutoff
+    assert.match(script, /ctr -n moby_history leases delete --sync "\$\{batch\[@\]\}"/)
+    assert.doesNotMatch(script, /systemctl|service docker|dockerd|daemon\.json|volume|-n moby leases/) // zero downtime; never volumes or the live namespace
+    assert.match(script, /disk free \$\{before\} GB → \$\(free_gb\) GB/)
+  })
   it("regression: two sites share the upstream (app.luychlat.com, luy.ibmserp.com) — «found 2» made every deploy restart in place since 11/10", () => {
     const nginx = read("deploy/nginx-setup.sh")
     assert.ok(nginx.indexOf('if [ "${#sites[@]}" -gt 1 ] && [ -f "$SNIPPET" ]; then') < nginx.indexOf('echo "✗ Expected one Nginx site using luysmart_app'))

@@ -132,5 +132,8 @@ docker image prune -f >/dev/null
 # The build cache, trimmed to its newest 2 GB after every release (founder, 20/10/2026 — fifteen releases in a day left
 # 32 GB of cache; the weekly clean-up alone let it pile up). The newest layers stay. Never fails a live release.
 docker builder prune -f --keep-storage 2GB >/dev/null 2>&1 || echo "! Build cache not trimmed (the app is deployed)"
+# Docker's build history older than a day (founder, 21/10/2026 — it pinned ~30 GB of old layers the cache trim never
+# reached): deploy/prune-build-history.sh, zero downtime. Never fails a live release.
+bash ./deploy/prune-build-history.sh 24 || echo "! Build history not pruned (the app is deployed)"
 echo "✓ Deployed $(git rev-parse --short HEAD) on $next"
 bash ./deploy/deploy-notify.sh ok "$prev_deployed" || echo "! Deploy notice not sent (the app is deployed)"
