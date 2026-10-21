@@ -7,11 +7,11 @@ import {
   FileDownIcon,
   type LucideIcon,
   MoonStarIcon,
-  PiggyBankIcon,
   PlusIcon,
   ScaleIcon,
   ScanLineIcon,
   ShieldCheckIcon,
+  TargetIcon,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -23,7 +23,8 @@ const ICONS: Record<QuickActionKey, LucideIcon> = {
   entry: PlusIcon,
   transfer: ArrowLeftRightIcon,
   loans: ShieldCheckIcon,
-  goals: PiggyBankIcon,
+  // A target for the goals: no pig imagery anywhere — Islamic Mode users see this grid (founder, 21/10/2026).
+  goals: TargetIcon,
   bills: CalendarClockIcon,
   budgets: ScaleIcon,
   market: ChartCandlestickIcon,

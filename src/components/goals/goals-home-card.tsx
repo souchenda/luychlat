@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRightIcon, PiggyBankIcon } from "lucide-react"
+import { ChevronRightIcon, TargetIcon } from "lucide-react"
 import Link from "next/link"
 
 import type { Wallet } from "@/lib/data/types"
@@ -20,7 +20,7 @@ export function GoalsHomeCard({ wallets }: { wallets: Wallet[] | undefined }) {
     <section className="space-y-2">
       <div className="flex items-center justify-between px-1">
         <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-          <PiggyBankIcon className="size-4" aria-hidden />
+          <TargetIcon className="size-4" aria-hidden />
           {t("goals.pageTitle")}
         </h2>
         <Link href="/goals" className="flex items-center text-sm text-primary">

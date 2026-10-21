@@ -54,7 +54,7 @@ const ICON_EMOJI: Record<string, string> = {
   smartphone: "📱", "shopping-bag": "🛍️", "shopping-cart": "🛒", shirt: "👕", "heart-pulse": "💊", dumbbell: "🏋️",
   "graduation-cap": "🎓", "book-open": "📚", baby: "👶", "paw-print": "🐾", gift: "🎁", film: "🎬", sparkles: "✨",
   banknote: "💵", award: "🏅", "trending-up": "📈", "hand-heart": "🤲", "hand-coins": "🤝", coins: "🪙",
-  "piggy-bank": "🐷", package: "📦", store: "🏪", users: "👥", truck: "🚚", megaphone: "📣", wrench: "🔧",
+  "piggy-bank": "💰", package: "📦", store: "🏪", users: "👥", truck: "🚚", megaphone: "📣", wrench: "🔧",
   landmark: "🏛️", briefcase: "💼", receipt: "🧾", scale: "⚖️",
 }
 

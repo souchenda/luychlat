@@ -67,7 +67,8 @@ use come before feature count: no half-baked features, broken links or untested 
    3. SoundBox alerts — sales only, the Khmer amount, stays on, the locked-screen push.
    4. Privacy by default — balances hidden on launch, ***** never a digit, the bot masks numbers.
    5. Wallet accounting — exact money, 100 ៛ rounding only where computed, repayments ≤ what is left.
-   Plus the religious channel separation guard (`holiday-channels.test.ts`), the SoundBox isolation guard (`6-soundbox-isolation.test.ts`), the home hero layout guard
+   Plus the religious channel separation guard (`holiday-channels.test.ts`), the no-pig-imagery guard (founder, 21/10/2026 —
+   `islamic-no-pig.test.ts`: no piggy bank or pig emoji anywhere in the app; goals draw a target, saving a vault), the SoundBox isolation guard (`6-soundbox-isolation.test.ts`), the home hero layout guard
    (`layout-guards.test.ts`) and the published-wording guard (`content-guards.test.ts`).
 4. **Pre-deploy smoke gate:** the Dockerfile runs `npm run test:golden` before `npm test` and the build —
    one failure aborts the deploy and the running version stays live. Locally, `.githooks/pre-push`

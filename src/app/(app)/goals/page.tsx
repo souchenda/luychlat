@@ -1,7 +1,7 @@
 "use client"
 
 import { PlanningTabs } from "@/components/layout/planning-tabs"
-import { PiggyBankIcon, PlusIcon } from "lucide-react"
+import { PlusIcon, TargetIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { GoalCard } from "@/components/goals/goal-card"
@@ -49,7 +49,7 @@ export default function GoalsPage() {
       <PlanningTabs active="goals" />
       <div className="flex items-center justify-between gap-2">
         <h1 className="flex items-center gap-2 text-xl font-bold">
-          <PiggyBankIcon className="size-5 text-primary" aria-hidden />
+          <TargetIcon className="size-5 text-primary" aria-hidden />
           {t("goals.pageTitle")}
         </h1>
         {editable && (
@@ -73,7 +73,7 @@ export default function GoalsPage() {
       ) : goals.length === 0 ? (
         <Card className="items-center gap-3 px-6 py-10 text-center">
           <span className="text-4xl" aria-hidden>
-            🐷
+            🎯
           </span>
           <p className="font-medium">{t("goals.empty")}</p>
           <p className="text-sm text-muted-foreground">{t("goals.howItWorks")}</p>
