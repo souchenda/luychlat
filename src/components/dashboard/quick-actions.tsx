@@ -2,16 +2,16 @@
 
 import {
   ArrowLeftRightIcon,
-  BarChart3Icon,
   CalendarClockIcon,
-  CoinsIcon,
-  FuelIcon,
+  ChartCandlestickIcon,
+  FileDownIcon,
   type LucideIcon,
   MoonStarIcon,
+  PiggyBankIcon,
   PlusIcon,
+  ScaleIcon,
   ScanLineIcon,
   ShieldCheckIcon,
-  TrendingUpIcon,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -23,16 +23,16 @@ const ICONS: Record<QuickActionKey, LucideIcon> = {
   entry: PlusIcon,
   transfer: ArrowLeftRightIcon,
   loans: ShieldCheckIcon,
-  reports: BarChart3Icon,
-  islamic: MoonStarIcon,
+  goals: PiggyBankIcon,
   bills: CalendarClockIcon,
-  rates: TrendingUpIcon,
-  fuel: FuelIcon,
-  gold: CoinsIcon,
+  budgets: ScaleIcon,
+  market: ChartCandlestickIcon,
+  islamic: MoonStarIcon,
+  export: FileDownIcon,
 }
 
 const TILE =
-  "flex min-h-[5.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-2.5 text-center transition-all hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45"
+  "flex min-h-[5.5rem] flex-col items-center justify-start gap-1.5 rounded-2xl px-1 py-2.5 text-center transition-all hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45"
 
 /**
  * The quick actions (lib/quick-actions) as squircle tiles, three a row, in one framed card — each a large touch target

@@ -1,8 +1,10 @@
 /**
- * The nine quick actions under the home hero (founder, 21/10/2026 — after ACLEDA Mobile), three a row:
- *   recording   — scan a slip (the bot) · add an entry · transfer        (editors only)
- *   money tools — loans and CBC · reports · the Islamic hub (Islamic Mode only; else bills)
- *   market      — NBC rates · fuel · gold                                 (/market and its sections)
+ * The nine quick actions under the home hero (founder, 21/10/2026 — essential actions only, no filler: the rates, gold
+ * and fuel are on the hero's ticker and in one market hub), three a row:
+ *   daily cash   — scan a slip (the bot) · quick entry (expense ⇄ income) · transfer      (editors only)
+ *   obligations  — loans and CBC · savings goals · monthly bills
+ *   control      — budgets · the market hub (NBC rates, gold, fuel) · the Islamic hub with Islamic Mode, else the
+ *                  report export (Excel / PDF)
  * Pure — the tiles are components/dashboard/quick-actions.tsx.
  */
 import type { MessageKey } from "@/lib/i18n/dictionaries"
@@ -10,7 +12,7 @@ import type { MessageKey } from "@/lib/i18n/dictionaries"
 /** The bot reads bank slips (exact amount, the right wallet — golden path 1); the web has no slip reader of its own. */
 export const SLIP_BOT_URL = "https://t.me/luychlat_bot"
 
-export type QuickActionKey = "scan" | "entry" | "transfer" | "loans" | "reports" | "islamic" | "bills" | "rates" | "fuel" | "gold"
+export type QuickActionKey = "scan" | "entry" | "transfer" | "loans" | "goals" | "bills" | "budgets" | "market" | "islamic" | "export"
 
 export type QuickAction = {
   key: QuickActionKey
@@ -36,7 +38,7 @@ export function quickActions({
   /** A transfer needs two wallets. */
   walletCount: number
 }): QuickAction[] {
-  const recording: QuickAction[] = editable
+  const daily: QuickAction[] = editable
     ? [
         { key: "scan", label: "quick.scan", href: SLIP_BOT_URL, external: true },
         { key: "entry", label: "quick.entry" },
@@ -44,14 +46,14 @@ export function quickActions({
       ]
     : []
   return [
-    ...recording,
+    ...daily,
     personal
       ? { key: "loans", label: "quick.loansCbc", href: "/debts?tab=PAYABLE#credit-health" }
       : { key: "loans", label: "quick.loans", href: "/debts?tab=PAYABLE" },
-    { key: "reports", label: "quick.reports", href: "/reports" },
-    islamic ? { key: "islamic", label: "quick.islamic", href: "/islamic" } : { key: "bills", label: "quick.bills", href: "/bills" },
-    { key: "rates", label: "quick.rates", href: "/market" },
-    { key: "fuel", label: "quick.fuel", href: "/market#fuel" },
-    { key: "gold", label: "quick.gold", href: "/market#gold" },
+    { key: "goals", label: "quick.goals", href: "/goals" },
+    { key: "bills", label: "quick.bills", href: "/bills" },
+    { key: "budgets", label: "quick.budgets", href: "/budgets" },
+    { key: "market", label: "quick.market", href: "/market" },
+    islamic ? { key: "islamic", label: "quick.islamic", href: "/islamic" } : { key: "export", label: "quick.export", href: "/reports#export" },
   ]
 }
