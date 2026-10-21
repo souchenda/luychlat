@@ -322,7 +322,8 @@ export const REPLACEABLE = (kind: string) => Object.hasOwn(KIND_LABEL, kind) && 
 export function replacePreviewText(kind: PostKind, body: string): string {
   return [
     `🔄 កំណែថ្មីនៃការផ្សាយថ្ងៃនេះ · ${KIND_LABEL[kind]}`,
-    "ការផ្សាយនេះបានចេញរួចហើយ ប៉ុន្តែខ្លឹមសារត្រូវបានកែលម្អ។ ចុច «🔄 ជំនួស» ដើម្បីផ្សាយកំណែថ្មីខាងក្រោម ហើយលុបសារចាស់ចេញ។",
+    // Task #441: the update goes INTO the published message (silent) — never a delete and a new post.
+    "ការផ្សាយនេះបានចេញរួចហើយ ប៉ុន្តែខ្លឹមសារត្រូវបានកែលម្អ។ ចុច «🔄 ជំនួស» ដើម្បីកែសារដដែលក្នុងឆានែល ឱ្យទៅជាកំណែថ្មីខាងក្រោម — ស្ងាត់ៗ គ្មានសារថ្មី គ្មានការជូនដំណឹងដល់សមាជិកទេ។",
     "",
     body,
   ].join("\n")
@@ -340,10 +341,10 @@ export function parseReplaceCallback(data: string | undefined): { id: number; re
 }
 
 /** The founder's note once replaced — the old message is gone, the new one is live. */
-export function replacedNote(kind: PostKind, postKey: string, ok: { removed: boolean; telegram: number | null }): string {
-  return ok.removed
-    ? `🔄 បានជំនួសរួចរាល់ · ${KIND_LABEL[kind]} (${postKey})\nកំណែថ្មីបានផ្សាយ ហើយសារចាស់ត្រូវបានលុបចេញពីឆានែល។`
-    : `🔄 កំណែថ្មីបានផ្សាយ · ${KIND_LABEL[kind]} (${postKey})\n⚠️ មិនអាចលុបសារចាស់បានទេ — សូមលុបដោយដៃនៅក្នុងឆានែល។`
+export function replacedNote(kind: PostKind, postKey: string, ok: { edited: boolean; telegram: number | null }): string {
+  return ok.edited
+    ? `🔄 បានកែរួចរាល់ · ${KIND_LABEL[kind]} (${postKey})\nសារដដែលក្នុងឆានែលត្រូវបានកែជាកំណែថ្មី — ស្ងាត់ៗ គ្មានសារថ្មីទេ។`
+    : `⚠️ មិនអាចកែសារបានទេ · ${KIND_LABEL[kind]} (${postKey})\nកំណែដែលបានផ្សាយនៅដដែល — គ្មានសារថ្មី និងគ្មានការលុបទេ។`
 }
 export function parseScheduledPostCallback(data: string | undefined): { id: number; action: "publish" | "pause" | "approve" | "edit" } | null {
   const m = /^sp:(\d+):([pxae])$/.exec(data ?? "")

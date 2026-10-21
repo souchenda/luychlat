@@ -18,6 +18,7 @@
 // Buttons carry the version they were shown with: a tap on an older preview
 // (after an edit here or in the app) refreshes it instead of approving.
 import { TIP_BODY_MAX, TIP_TITLE_MAX, defaultTip, nextTip } from "@/lib/daily-tip"
+import { editsChat, editTarget } from "@/lib/server/edit-in-place"
 import { outgoingForm } from "@/lib/server/numerals"
 import { SERIES_HASHTAGS, postFooter, withFooter } from "@/lib/post-footer"
 import { needsFounderApproval, tipTextIssues } from "@/lib/tip-quality"
@@ -143,6 +144,9 @@ export async function sendPosterPhoto(chatId: number | string, png: Buffer, capt
 async function photo(chatId: number | string, png: Buffer, caption: string, opts: { messageId?: number; reply_markup?: unknown } = {}) {
   const token = botToken()
   if (!token) return null
+  // An update to a published post: its poster replaces the one in the existing message (Task #441 — edit-in-place.ts).
+  const editing = editsChat(chatId) && !opts.messageId
+  if (editing) opts = { ...opts, messageId: editTarget()!.messageId }
   const form = new FormData()
   form.append("chat_id", String(chatId))
   const thread = opts.messageId ? null : threadFor(chatId)
@@ -164,6 +168,7 @@ async function photo(chatId: number | string, png: Buffer, caption: string, opts
     signal: AbortSignal.timeout(30_000),
   }).catch(() => null)
   const json = (await res?.json().catch(() => null)) as { ok?: boolean; result?: { message_id?: number; reply_markup?: unknown }; description?: string } | null
+  if (editing && (json?.ok || /message is not modified/.test(json?.description ?? ""))) editTarget()!.edited.telegram = true
   if (!json?.ok) {
     logEvent("error", "daily-tip", `Telegram ${opts.messageId ? "editMessageMedia" : "sendPhoto"} failed: ${json?.description ?? "no answer"}`, { fold: true })
     return null

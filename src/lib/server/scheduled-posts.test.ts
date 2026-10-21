@@ -281,12 +281,12 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     assert.deepEqual(SAFETY_NET_KINDS, ["ISLAMIC_MORNING"])
     assert.ok(isAutoPublish("ISLAMIC_MORNING")) // stays on the whitelist: nobody wakes at 05:00 to tap
     const f = fake(clock(21, 30))
-    await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(23, 30)).toISOString())
+    await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(29, 30)).toISOString())
     assert.equal(f.rows[0].status, "APPROVED")
     assert.equal(f.previewsSent.length, 1, "one card to the approval room")
     assert.match(f.previewsSent[0].text, /🤖 ព័ត៌មានស្វ័យប្រវត្តិ — នឹងផ្សាយទៅ \[ [^\]]+ \] នៅ[^\n]+ដោយមិនចាំបាច់ចុច។$/) // no instruction line (founder, 21/10/2026): ❌ and ✏️ are the buttons
     // Silence = it publishes on time, once.
-    await f.at(23, 30)
+    await f.at(29, 30) // 05:30 the next morning
     assert.deepEqual(f.published, [1])
   })
   it("the safety net's card has ✏️ and ❌ only (no 🚀 at night) — and ❌ stops the 05:30 post", async () => {
@@ -295,10 +295,10 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     assert.equal(previewButtons(7, "APPROVED", targets, "MORNING").length, 2) // an approved poster keeps 🚀 | ✏️ and ❌
     assert.doesNotMatch(previewText({ kind: "MORNING", targets, publishAt: new Date(clock(7, 0)).toISOString(), body: "x", status: "APPROVED" }), /🤖/)
     const f = fake(clock(21, 30))
-    await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(23, 30)).toISOString())
+    await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(29, 30)).toISOString())
     await f.press("sp:1:x")
     assert.equal(f.rows[0].status, "PAUSED")
-    await f.at(23, 30)
+    await f.at(29, 30) // 05:30 the next morning
     assert.deepEqual(f.published, [])
   })
   it("regression: ✅ on a held post after its time only approved it — the timer then expired it 90 minutes late; now it publishes at once", async () => {
@@ -357,9 +357,9 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270240000000_posts_waiting_cards.sql"), "utf8")
     assert.match(sql, /where status in \('PENDING', 'APPROVED'\)\n\s+and jsonb_array_length\(coalesce\(previews, '\[\]'::jsonb\)\) > 0/)
   })
-  it("regression: replacing the Islamic bulletin looked for the old copy in the community channel — unpublish routes as publish does", () => {
+  it("regression: replacing the Islamic bulletin looked for the old copy in the community channel — the in-place edit routes as publish does", () => {
     const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
-    const unpublish = sp.slice(sp.indexOf("async unpublish(row) {"), sp.indexOf("async replaceDone("))
+    const unpublish = sp.slice(sp.indexOf("async editInPlace(row, publish) {"), sp.indexOf("async replaceDone("))
     assert.match(unpublish, /const islamic = channelFor\(row\.kind\) === "islamic" \|\| islamicNationalDay\(row\)/)
     assert.doesNotMatch(unpublish, /isIslamicKind/)
     assert.match(sp, /const islamic = channelFor\(row\.kind\) === "islamic" \|\| islamicNationalDay\(row\)\n\s+const chat = islamic \? islamicChannel\(approval\) : communityChannel\(approval\)\n\s+const buttons/) // publish
@@ -424,7 +424,7 @@ describe("The card names who decided and when (founder, 20/10/2026)", () => {
 describe("REPLACE OLD WITH NEW — today's published post, improved, replaces the old one (founder, 20/10/2026)", () => {
   function harness(version: { v: string }) {
     const row: PostRow = { id: 7, kind: "ISLAMIC_DAILY", post_key: DAY, payload: { day: DAY }, publish_at: atMinute(DAY, 480), status: "PUBLISHED", previews: [], telegram_message_id: 11, content_hash: "v1", replace_status: null }
-    const log = { published: 0, deleted: [] as number[], previews: [] as string[], notes: [] as string[], asked: 0, edits: [] as string[], answers: [] as string[] }
+    const log = { published: 0, deleted: [] as number[], editedIn: [] as number[], previews: [] as string[], notes: [] as string[], asked: 0, edits: [] as string[], answers: [] as string[] }
     let failPublish = false
     const deps = {
       schedule: async () => null,
@@ -467,7 +467,8 @@ describe("REPLACE OLD WITH NEW — today's published post, improved, replaces th
           row.replace_status = "REPLACING"
           return [{ ...row }]
         },
-        unpublish: async (r: PostRow) => (log.deleted.push(r.telegram_message_id!), true),
+        // The update goes into the published message (Task #441): the post's publisher runs, nothing is deleted.
+        editInPlace: async (r: PostRow, publish: () => Promise<{ telegram: number | null }>) => (log.editedIn.push(r.telegram_message_id!), (await publish()).telegram != null),
         replaceDone: async (_id: number, ok: boolean, ids: { telegram: number | null }, hash: string | null) => {
           if (!ok) return void (row.replace_status = "APPROVED")
           Object.assign(row, { replace_status: "DONE", telegram_message_id: ids.telegram, content_hash: hash })
@@ -496,29 +497,34 @@ describe("REPLACE OLD WITH NEW — today's published post, improved, replaces th
     await h.press("spr:7:y", STRANGER) // not an approver
     assert.equal(h.row.replace_status, "PENDING")
   })
-  it("🔄: the new version is published first, then the old message deleted; the founder is told", async () => {
+  it("🔄 (Task #441): the new version is edited INTO the published message — same message, nothing deleted, nothing new; the founder is told", async () => {
     const h = harness({ v: "v2" })
     await h.s.checkVersions()
     await h.press("spr:7:y")
     assert.equal(h.log.published, 1)
-    assert.deepEqual(h.log.deleted, [11])
-    assert.equal(h.row.telegram_message_id, 12)
+    assert.deepEqual(h.log.editedIn, [11])
+    assert.deepEqual(h.log.deleted, [])
+    assert.equal(h.row.telegram_message_id, 11) // the same message
     assert.equal(h.row.replace_status, "DONE")
+    assert.equal(h.row.content_hash, "v2")
     assert.match(h.log.edits[0], /^🔄 បានយល់ព្រមឱ្យជំនួសដោយ៖ 👤 Sok · ⏰ /)
-    assert.match(h.log.notes[0], /^🔄 បានជំនួសរួចរាល់/)
+    assert.match(h.log.notes[0], /^🔄 បានកែរួចរាល់ .*\nសារដដែលក្នុងឆានែលត្រូវបានកែជាកំណែថ្មី — ស្ងាត់ៗ គ្មានសារថ្មីទេ។/)
     await h.s.replaceDue()
     assert.equal(h.log.published, 1) // once
   })
-  it("the new version could not be sent: the old post stays (never deleted first), retried next pass", async () => {
+  it("the edit could not be made: the published version stays exactly as it was — never deleted, never re-posted, not retried every minute", async () => {
     const h = harness({ v: "v2" })
     h.row.replace_status = "APPROVED"
     h.failPublish(true)
     await h.s.replaceDue()
     assert.deepEqual(h.log.deleted, [])
-    assert.equal(h.row.replace_status, "APPROVED")
+    assert.equal(h.row.telegram_message_id, 11)
+    assert.equal(h.row.replace_status, "DONE")
+    assert.notEqual(h.row.content_hash, "v2")
+    assert.match(h.log.notes[0], /^⚠️ មិនអាចកែសារបានទេ/)
     h.failPublish(false)
     await h.s.replaceDue()
-    assert.deepEqual(h.log.deleted, [11])
+    assert.equal(h.log.published, 0)
   })
   it("❌ keeps the old one and is not asked again for that version", async () => {
     const h = harness({ v: "v2" })

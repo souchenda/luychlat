@@ -74,7 +74,7 @@ use come before feature count: no half-baked features, broken links or untested 
    4. Privacy by default — balances hidden on launch, ***** never a digit, the bot masks numbers.
    5. Wallet accounting — exact money, 100 ៛ rounding only where computed, repayments ≤ what is left.
    Plus the religious channel separation guard (`holiday-channels.test.ts`), the no-pig-imagery guard (founder, 21/10/2026 —
-   `islamic-no-pig.test.ts`: no piggy bank or pig emoji anywhere in the app; goals draw a target, saving a vault), the SoundBox isolation guard (`6-soundbox-isolation.test.ts`), the home hero layout guard
+   `islamic-no-pig.test.ts`: no piggy bank or pig emoji anywhere in the app; goals draw a target, saving a vault), the SoundBox isolation guard (`6-soundbox-isolation.test.ts`), the channel integrity guard (Task #441 — `channel-integrity.test.ts`: updates edit in place, morning posts never after 11:00, bedtime posts 19:00–23:00, 30 minutes between broadcasts), the home hero layout guard
    (`layout-guards.test.ts`) and the published-wording guard (`content-guards.test.ts`).
 4. **Pre-deploy smoke gate:** the Dockerfile runs `npm run test:golden` before `npm test` and the build —
    one failure aborts the deploy and the running version stays live. Locally, `.githooks/pre-push`
@@ -204,8 +204,9 @@ cluttered, and unreadable»):
   published on the same day, the system must delete/replace the old post with the newly approved version — never leave
   outdated or unpolished versions live. Each published post records what it published (`scheduled_posts.content_hash`);
   after a deploy, today's posts whose content changed are previewed in «LCA Approval» with [ 🔄 ជំនួសដោយកំណែថ្មី ]
-  [ ❌ រក្សាកំណែចាស់ ]; on 🔄 the new version is published first, then the old message deleted from the channel (and the
-  Page), and the founder is told (`replaceDue` / `checkVersions` in `src/lib/server/scheduled-posts.ts`, migration
+  [ ❌ រក្សាកំណែចាស់ ]; on 🔄 the new version is EDITED INTO the published message (`editMessageMedia` / `editMessageText`,
+  silent; the Page post's text edited) — never a delete and a new post (founder, 21/10/2026 — Task #441,
+  `lib/server/edit-in-place.ts`) — and the founder is told (`replaceDue` / `checkVersions` in `src/lib/server/scheduled-posts.ts`, migration
   `20270200000000`). Still preview-first: nothing is replaced without an approver's tap or the founder's own instruction.
 - **Wording guards:** never italicise Khmer in a caption (no `<i>`); banned phrases in quotes, tips and the
   spotlight fail the build (`tests/golden/content-guards.test.ts`).

@@ -30,11 +30,13 @@ import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-post
 import { spotlightPoster } from "@/lib/server/spotlight-poster"
 import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
 import { logEvent } from "@/lib/server/events"
-import { deleteFacebookPost, facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
+import { facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
 import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster, portraitCredit } from "@/lib/server/national-day-poster"
 import { holidayRouteAllowed, nationalCaptionHtml, nationalCaptionText, nationalChannel, nationalDateNote, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE, royalNumerals } from "@/lib/calendar/cambodia-holidays"
 import { withKhmerDigits } from "@/lib/server/numerals"
+import { editingMessage } from "@/lib/server/edit-in-place"
+import { publishWindow, spacingWait, windowRefusal } from "@/lib/publish-window"
 import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
 import { fuelPoster } from "@/lib/server/fuel-poster"
 import { fuelPosterContent, type FuelPoster } from "@/lib/fuel-poster"
@@ -79,8 +81,12 @@ export type ReplaceDeps = {
   replaceDecide(id: number, replace: boolean, chatId: number): Promise<string>
   /** The approved replacements, each claimed once. */
   replaceTake(): Promise<PostRow[]>
-  /** Deletes the old message (and Page post); true when the old one is gone. */
-  unpublish(row: PostRow): Promise<boolean>
+  /**
+   * The new version INTO the published message (founder, 21/10/2026 — Task #441): `publish` runs with its channel send
+   * turned into an edit of that message and its Page post into an edit of that post — silent, nothing new is posted and
+   * nothing is deleted. True when the channel message was edited.
+   */
+  editInPlace(row: PostRow, publish: () => Promise<Published>): Promise<boolean>
   replaceDone(id: number, ok: boolean, ids: Published, hash: string | null, removed: boolean): Promise<void>
   /** The founder's private chat: the replacement's outcome. */
   notify(text: string): Promise<void>
@@ -117,6 +123,13 @@ export type SchedulerDeps = {
    * commemoration keeps the Khmer numerals there, every other post is 0-9 (founder, 21/10/2026 — Task #440).
    */
   scope?<T>(row: PostRow, fn: () => Promise<T>): Promise<T>
+  /**
+   * Anti-flood (Task #441): the public channel a post goes to, and when that channel last got a broadcast — at most one
+   * per CHANNEL_SPACING_MIN; posts ready together are spaced out (the founder's 🚀 goes at once).
+   */
+  channelOf?(row: PostRow): string
+  lastBroadcast?(channel: string): Promise<number | null>
+  noteBroadcast?(channel: string, at: number): void
 }
 
 export type Published = { telegram: number | null; facebook: string | null }
@@ -157,8 +170,15 @@ export function createScheduler(d: SchedulerDeps) {
 
   const publishTaken = (row: PostRow, how: string) => scoped(row, () => publishTakenNow(row, how))
   async function publishTakenNow(row: PostRow, how: string) {
+    // The post's hours, checked again at the very send (Task #441): a morning post never goes out after 11:00.
+    const window = publishWindow(row.kind, d.now())
+    if (!window.ok) {
+      d.log("error", `${row.kind} ${row.post_key} NOT published (${how}) — outside its hours (${window.reason})`)
+      return refresh(row)
+    }
     try {
       const ids = await d.publish(row)
+      if (ids.telegram && d.channelOf) d.noteBroadcast?.(d.channelOf(row), d.now())
       await d.recordIds(row.id, ids)
       d.log("info", `${row.kind} ${row.post_key} published (${how}) · Telegram ${ids.telegram ?? "—"} · Facebook ${ids.facebook ?? "—"}`)
       // What was published, so a later, better version of today's post is noticed (REPLACE OLD WITH NEW).
@@ -198,11 +218,18 @@ export function createScheduler(d: SchedulerDeps) {
       const action = dueAction(row.publish_at, d.now(), row.status)
       if (action === "hold") await remindFounder(row)
       if (action === "wait" || action === "hold") continue
-      const taken = await d.take(row.id, action === "publish" ? "PUBLISHED" : "EXPIRED")
+      let late = false
+      if (action === "publish") {
+        // Outside its hours (a morning post after 11:00, a bedtime one outside 19:00–23:00): expired, never published.
+        late = !publishWindow(row.kind, d.now()).ok
+        // Anti-flood: the channel had a broadcast in the last 30 minutes — this one waits its turn (next minute's tick).
+        if (!late && d.channelOf && d.lastBroadcast && spacingWait(await d.lastBroadcast(d.channelOf(row)), d.now()) > 0) continue
+      }
+      const taken = await d.take(row.id, action === "publish" && !late ? "PUBLISHED" : "EXPIRED")
       if (!taken) continue // a button got there first
-      if (action === "publish") await publishTaken(taken, "approved")
+      if (action === "publish" && !late) await publishTaken(taken, "approved")
       else {
-        d.log("warn", `${row.kind} ${row.post_key} not published — ${row.status === "APPROVED" ? "approved but more than 90 min late" : "never approved"}`)
+        d.log("warn", `${row.kind} ${row.post_key} not published — ${late ? "outside its hours (Task #441)" : row.status === "APPROVED" ? "approved but more than 90 min late" : "never approved"}`)
         await refresh(taken)
       }
     }
@@ -218,6 +245,8 @@ export function createScheduler(d: SchedulerDeps) {
     const r = d.remind
     const level = reminderLevel(row.publish_at, d.now())
     if (!r || row.status !== "PENDING" || level === 0 || (row.reminders ?? 0) >= level) return
+    // Its hours are over (a morning post after 11:00): nothing to remind — it can no longer be published.
+    if (!publishWindow(row.kind, d.now()).ok) return
     if (!(await r.claim(row.id, level))) return
     const { body } = await d.content(row)
     const title = body.split("\n").map((l) => l.trim()).find(Boolean)?.slice(0, 90) ?? ""
@@ -254,21 +283,18 @@ export function createScheduler(d: SchedulerDeps) {
         d.log("warn", `${row.kind} ${row.post_key}: not replaceable — the 🔄 is ignored, nothing is published`)
         continue
       }
-      let ids: Published = { telegram: null, facebook: null }
+      // Into the published message, silently (Task #441) — never a delete and a new post at the bottom of the feed.
+      let edited = false
       try {
-        ids = await scoped(row, () => d.publish(row))
+        edited = await scoped(row, () => r.editInPlace(row, () => d.publish(row)))
       } catch (e) {
-        d.log("error", `${row.kind} ${row.post_key} replacement not published: ${e instanceof Error ? e.message : String(e)}`)
+        d.log("error", `${row.kind} ${row.post_key}: the update could not be edited in: ${e instanceof Error ? e.message : String(e)}`)
       }
-      if (!ids.telegram && !ids.facebook) {
-        await r.replaceDone(row.id, false, ids, null, false)
-        d.log("warn", `${row.kind} ${row.post_key}: the new version was not sent — the old post stays, retried next minute`)
-        continue
-      }
-      const removed = await r.unpublish(row)
-      await r.replaceDone(row.id, true, ids, await r.contentHash(row), removed)
-      d.log(removed ? "info" : "warn", `${row.kind} ${row.post_key} replaced · new Telegram ${ids.telegram ?? "—"} · old ${row.telegram_message_id ?? "—"} ${removed ? "deleted" : "NOT deleted"}`)
-      await r.notify(replacedNote(row.kind, row.post_key, { removed, telegram: ids.telegram }))
+      const ids: Published = { telegram: row.telegram_message_id ?? null, facebook: row.facebook_post_id ?? null }
+      // Done either way (no retry every minute): edited, or the published version stays exactly as it was.
+      await r.replaceDone(row.id, true, ids, edited ? await r.contentHash(row) : (row.content_hash ?? null), false)
+      d.log(edited ? "info" : "warn", `${row.kind} ${row.post_key} ${edited ? "updated in place" : "NOT updated — the published version stays; nothing new was posted"} · Telegram ${ids.telegram ?? "—"}`)
+      await r.notify(replacedNote(row.kind, row.post_key, { edited, telegram: ids.telegram }))
     }
   }
 
@@ -341,6 +367,13 @@ export function createScheduler(d: SchedulerDeps) {
     if (parsed.action === "approve") {
       const current = await d.get(parsed.id)
       if (current && d.now() >= Date.parse(current.publish_at)) parsed.action = "publish"
+    }
+    // Outside the post's hours, a ✅ / 🚀 publishes nothing (Task #441): the morning posts until 11:00, the bedtime
+    // ones 19:00–23:00 — the card stays as it is and the approver is told why.
+    if (parsed.action === "publish") {
+      const current = await d.get(parsed.id)
+      const window = current ? publishWindow(current.kind, d.now()) : ({ ok: true } as const)
+      if (!window.ok) return d.answer(cb.id, windowRefusal(window.reason), true)
     }
     let taken: PostRow | null
     try {
@@ -772,17 +805,15 @@ function withReplace(base: SchedulerDeps): SchedulerDeps {
       const { data } = await botDb().rpc("bot_post_replace_take", { p_key: botKey() })
       return rows(data)
     },
-    async unpublish(row) {
-      // The replacement was approved (bot_post_replace_decide, or the founder's own instruction — audited).
-      const approval = founderApproved(`replace ${row.kind} ${row.post_key}`)
-      // The very rule publish uses (21/10/2026 — the old copy of the Islamic bulletin was looked for in the community
-      // channel: the narrower Islamic-post list leaves out ISLAMIC_BULLETIN and Islamic national days — a wrong message).
+    async editInPlace(row, publish) {
+      // The update was approved (bot_post_replace_decide, or the founder's own instruction — audited). The very routing
+      // publish uses (the Islamic bulletin and Islamic national days are on the Islamic channel — 21/10/2026).
+      const approval = founderApproved(`update ${row.kind} ${row.post_key} in place`)
       const islamic = channelFor(row.kind) === "islamic" || islamicNationalDay(row)
       const chat = islamic ? islamicChannel(approval) : communityChannel(approval)
-      let ok = true
-      if (row.telegram_message_id) ok = Boolean(chat) && (await tg("deleteMessage", { chat_id: chat, message_id: row.telegram_message_id })).ok
-      if (row.facebook_post_id && facebookConfig()) ok = (await deleteFacebookPost(approval, row.facebook_post_id)) && ok
-      return ok
+      if (!chat || !row.telegram_message_id) return false
+      const { edited } = await editingMessage({ chat, messageId: row.telegram_message_id, facebookPostId: row.facebook_post_id ?? null }, publish)
+      return edited.telegram
     },
     async replaceDone(id, ok, ids, hash, removed) {
       await botDb().rpc("bot_post_replace_done", { p_key: botKey(), p_id: id, p_ok: ok, p_telegram: ids.telegram, p_facebook: ids.facebook, p_hash: hash, p_old_removed: removed })
@@ -801,8 +832,24 @@ function withReplace(base: SchedulerDeps): SchedulerDeps {
     // The founder's private chat only — never «LCA Approval» (the group already has the card).
     founderChats: () => founderChats(),
   }
-  return { ...base, replace, remind }
+  // Anti-flood (Task #441): the channel's last broadcast — this process's own sends, and today's published posts (their
+  // time, or the 🚀 tap's) so a restart does not forget the last one.
+  const channelOf = (row: PostRow) => (channelFor(row.kind) === "islamic" || islamicNationalDay(row) ? "islamic" : "community")
+  const lastBroadcast = async (channel: string) => {
+    const now = Date.now()
+    const times = (await replace.publishedToday())
+      .filter((r) => channelOf(r) === channel && r.telegram_message_id)
+      .map((r) => Math.max(Date.parse(r.publish_at), r.decided_how === "publish" && r.decided_at ? Date.parse(r.decided_at) : 0))
+      .filter((t) => Number.isFinite(t) && t <= now)
+    const mine = sentAt.get(channel)
+    return times.length || mine ? Math.max(...times, mine ?? 0) : null
+  }
+  const noteBroadcast = (channel: string, at: number) => void sentAt.set(channel, at)
+  return { ...base, replace, remind, channelOf, lastBroadcast, noteBroadcast }
 }
+
+/** When each public channel last got a broadcast from this process (anti-flood, Task #441). */
+const sentAt = new Map<string, number>()
 
 // ─── The Islamic channel's posts ──────────────────────────────────────────────────────────────────
 

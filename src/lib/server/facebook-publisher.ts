@@ -8,6 +8,7 @@
  * log), and every message we log is scrubbed of it.
  */
 import type { FounderApproval } from "@/lib/server/channel"
+import { editTarget } from "@/lib/server/edit-in-place"
 import { outgoingText } from "@/lib/server/numerals"
 import { postFooter } from "@/lib/post-footer"
 import { morningQuote } from "@/lib/morning"
@@ -176,6 +177,29 @@ async function postToPage(edge: "photos" | "feed", fill: (form: FormData) => voi
   const d = { ...defaultDeps(), ...deps }
   const cfg = facebookConfig(d.env)
   if (!cfg) return { ok: false, skipped: true, reason: "FB_PAGE_ID / FB_PAGE_ACCESS_TOKEN not set" }
+  // An update to a published post (Task #441 — edit-in-place.ts): the existing Page post's text is edited; a new post is
+  // never made. Its photo stays (the Graph API cannot swap a published photo).
+  const edit = editTarget()
+  if (edit) {
+    if (!edit.facebookPostId || !/^[0-9_]+$/.test(edit.facebookPostId)) return { ok: false, skipped: true, reason: "edit in place: no Page post to edit — none made" }
+    const form = new FormData()
+    fill(form)
+    const message = form.get("caption") ?? form.get("message")
+    const body = new FormData()
+    body.set("message", typeof message === "string" ? message : "")
+    body.set("access_token", cfg.token)
+    try {
+      const res = await d.fetch(`${GRAPH}/${edit.facebookPostId}`, { method: "POST", body, signal: AbortSignal.timeout(30_000) })
+      const json = (await res.json().catch(() => ({}))) as { success?: boolean; error?: GraphError }
+      if (res.ok && json.success !== false) {
+        edit.edited.facebook = true
+        return { ok: true, postId: edit.facebookPostId, attempts: 1 }
+      }
+      return { ok: false, error: redact(`edit HTTP ${res.status}: ${json.error?.message ?? "not edited"}`, cfg.token), retryable: false, attempts: 1 }
+    } catch (e) {
+      return { ok: false, error: redact(`edit network: ${e instanceof Error ? e.message : String(e)}`, cfg.token), retryable: false, attempts: 1 }
+    }
+  }
 
   let last: { error: string; retryable: boolean } = { error: "not sent", retryable: false }
   for (let attempt = 1; attempt <= BACKOFF_MS.length + 1; attempt++) {

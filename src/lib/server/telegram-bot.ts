@@ -1,5 +1,6 @@
 // Server only (node:crypto and the bot token): never import from a client component.
 import { createHmac } from "crypto"
+import { asEdit, editTarget } from "@/lib/server/edit-in-place"
 import { outgoingPayload } from "@/lib/server/numerals"
 
 import { createClient } from "@supabase/supabase-js"
@@ -38,6 +39,11 @@ export async function tg<T = unknown>(method: string, payload: Record<string, un
   }
   // 0-9 in everything the bot says (founder, 21/10/2026 — Task #440; lib/numerals.ts), but a royal or national day's.
   payload = outgoingPayload(payload)
+  // An update to a published post edits its message — never a new one in the channel (Task #441, edit-in-place.ts).
+  const edit = asEdit(method, payload)
+  if (!edit) return { ok: false, description: "edit in place: a new message to the channel was refused" }
+  const editing = edit.method !== method
+  ;({ method, payload } = edit)
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
       method: "POST",
@@ -46,6 +52,11 @@ export async function tg<T = unknown>(method: string, payload: Record<string, un
       cache: "no-store",
     })
     const body = (await res.json()) as { ok: boolean; result?: T; description?: string }
+    // «message is not modified»: the channel already shows this version — the edit is done.
+    if (editing && (body.ok || /message is not modified/.test(body.description ?? ""))) {
+      editTarget()!.edited.telegram = true
+      return { ok: true, result: (body.result ?? { message_id: editTarget()!.messageId }) as T }
+    }
     if (!body.ok) reportFailure(method, body.description)
     return body
   } catch {
