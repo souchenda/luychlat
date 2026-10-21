@@ -6,6 +6,7 @@
 import type { Wallet } from "@/lib/data/types"
 import { isCard } from "@/lib/credit-card"
 import { isGoal } from "@/lib/goals"
+import { convert, roundMoney, roundRiel } from "@/lib/money"
 import { personalWallets } from "@/lib/pool-ledger"
 import { walletInstitution } from "@/lib/wallets/providers"
 
@@ -77,4 +78,33 @@ export function primaryWalletId(wallets: Wallet[], userId: string | undefined): 
     (w) => !w.archived_at && !isGoal(w) && (w.visibility !== "PERSONAL" || !w.owner_id || w.owner_id === userId),
   )
   return first?.id ?? null
+}
+
+/**
+ * The hero card's figures (founder, 21/10/2026 — one clean stack, no repeated pills): the total in dollars, the same total
+ * in riel, and with loans what is owed and the net after them. Wallets and savings goals of the person's own money (a
+ * shared pool's wallet is the group's), plus assets in USD. The riel line converts the dollars at the configured rate, so
+ * it is rounded to 100 ៛ (founder guardrail 2); held only in riel, it is the exact sum.
+ */
+export function heroTotals(wallets: Wallet[], khrPerUsd: number, assetsUsd = 0, liabilitiesUsd = 0) {
+  const active = personalWallets(wallets).filter((w) => !w.archived_at)
+  const sum = (currency: "USD" | "KHR") =>
+    roundMoney(
+      active.filter((w) => w.currency === currency).reduce((acc, w) => acc + w.balance, 0),
+      currency,
+    )
+  const usdWallets = sum("USD")
+  const khrWallets = sum("KHR")
+  const dollars = usdWallets + assetsUsd
+  const totalUsd = roundMoney(dollars + convert(khrWallets, "KHR", "USD", khrPerUsd), "USD")
+  const totalKhr = dollars === 0 ? khrWallets : roundRiel(khrWallets + convert(dollars, "USD", "KHR", khrPerUsd))
+  return {
+    usdWallets,
+    khrWallets,
+    assets: assetsUsd,
+    totalUsd,
+    totalKhr,
+    liabilities: liabilitiesUsd,
+    net: roundMoney(totalUsd - liabilitiesUsd, "USD"),
+  }
 }

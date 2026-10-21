@@ -1,6 +1,6 @@
 "use client"
 
-import { EyeIcon, EyeOffIcon, HomeIcon, RotateCwIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, RotateCwIcon, ShieldCheckIcon, TrendingDownIcon } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 
@@ -9,33 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 import type { AssetGap } from "@/lib/asset-gaps"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
-import { convert, roundMoney } from "@/lib/money"
-import { personalWallets } from "@/lib/pool-ledger"
+import { heroTotals } from "@/lib/wallet-overview"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 import { WalletRing } from "./wallet-ring"
-
-/**
- * Wallet totals, plus assets (gold at market rate + land, house, vehicles…) in USD when given.
- * Shared pool wallets hold the group's money in custody: not the owner's net worth.
- */
-export function computeTotals(wallets: Wallet[], khrPerUsd: number, assetsUsd = 0) {
-  const active = personalWallets(wallets).filter((w) => !w.archived_at)
-  const sum = (currency: "USD" | "KHR") =>
-    roundMoney(
-      active.filter((w) => w.currency === currency).reduce((acc, w) => acc + w.balance, 0),
-      currency,
-    )
-  const usd = sum("USD")
-  const khr = sum("KHR")
-  return {
-    usdWallets: usd,
-    khrWallets: khr,
-    assets: assetsUsd,
-    totalUsd: roundMoney(usd + assetsUsd + convert(khr, "KHR", "USD", khrPerUsd), "USD"),
-    totalKhr: roundMoney(khr + convert(usd + assetsUsd, "USD", "KHR", khrPerUsd), "KHR"),
-  }
-}
 
 const usd2 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 })
 
@@ -72,7 +49,7 @@ export function NetWorthCard({
 }) {
   const t = useT()
   const { hideBalances, toggleHideBalances, khrPerUsd } = usePrefsStore()
-  const totals = computeTotals(wallets ?? [], khrPerUsd, assetsUsd)
+  const totals = heroTotals(wallets ?? [], khrPerUsd, assetsUsd, liabilitiesUsd)
 
   return (
     // Emerald into navy with a thread of gold along the top (founder, 21/10/2026 — the ACLEDA-style hero in the app's colours).
@@ -83,8 +60,9 @@ export function NetWorthCard({
       <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 bg-linear-to-b from-white/12 to-transparent" />
       <span aria-hidden className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-amber-300/80 to-transparent" />
 
-      <div className="flex gap-3">
-        {/* The wallet ring on the left: how many wallets the total counts. */}
+      {/* Top: the wallet ring and, beside it, ONE three-line stack (founder, 21/10/2026 — no repeated USD / KHR pills):
+          the title with the eye, the total in dollars, the same total in riel. */}
+      <div className="flex items-center gap-4">
         {!loading && <WalletRing wallets={wallets ?? []} />}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
@@ -111,31 +89,14 @@ export function NetWorthCard({
               <Amount
                 value={totals.totalUsd}
                 currency="USD"
-                className={`mt-1 block font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm ${totalSize(totals.totalUsd)}`}
+                className={`mt-0.5 block font-bold tracking-tight whitespace-nowrap tabular-nums drop-shadow-sm ${totalSize(totals.totalUsd)}`}
               />
-              <p className="text-[15px] whitespace-nowrap text-white/90 tabular-nums">
+              {/* The same total in riel — «≈»: converted at the rate, not the riel held. */}
+              <p className="text-[15px] whitespace-nowrap text-white/85 tabular-nums">
                 ≈ <Amount value={totals.totalKhr} currency="KHR" />
               </p>
             </>
           )}
-
-          <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[13px] tabular-nums">
-            {/* The two currencies apart, each with its own badge: what is held in dollars and in riel (never mixed by a rate). */}
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 py-1 pr-2.5 pl-1 whitespace-nowrap ring-1 ring-white/20 backdrop-blur-sm" title={t("netWorth.inUsd")}>
-              <span className="rounded-full bg-white px-1.5 text-[11px] leading-[18px] font-bold text-emerald-800">USD</span>
-              <Amount value={totals.usdWallets} currency="USD" />
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 py-1 pr-2.5 pl-1 whitespace-nowrap ring-1 ring-white/20 backdrop-blur-sm" title={t("netWorth.inKhr")}>
-              <span className="rounded-full bg-amber-300 px-1.5 text-[11px] leading-[18px] font-bold text-amber-950">KHR</span>
-              <Amount value={totals.khrWallets} currency="KHR" />
-            </span>
-            {totals.assets > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/30 px-2.5 py-1 whitespace-nowrap ring-1 ring-amber-200/40 backdrop-blur-sm" title={t("assets.pageTitle")}>
-                <HomeIcon className="size-3" aria-hidden />
-                <Amount value={totals.assets} currency="USD" />
-              </span>
-            )}
-          </div>
           {!loading && gaps.length > 0 && (
             <button
               type="button"
@@ -146,24 +107,31 @@ export function NetWorthCard({
               {onRetryGaps && <RotateCwIcon className="size-3.5 shrink-0" aria-label={t("widget.retry")} />}
             </button>
           )}
-          {/* Loans: their own line — what is owed, and what is left after it (the headline stays the total held). */}
-          {!loading && liabilitiesUsd > 0 && (
-            <div className="mt-2.5 space-y-0.5 text-[13px] tabular-nums text-white/90">
-              {/* Opens the loans owed with the CBC K-Score at the top. */}
-              <Link href="/debts?tab=PAYABLE#credit-health" className="flex justify-between gap-2 rounded-md underline-offset-4 hover:underline">
-                <span>{t("netWorth.loans")} ›</span>
-                <span className="font-semibold whitespace-nowrap">
-                  −<Amount value={liabilitiesUsd} currency="USD" />
-                </span>
-              </Link>
-              <p className="flex justify-between gap-2">
-                <span>{t("netWorth.net")}</span>
-                <Amount value={roundMoney(totals.totalUsd - liabilitiesUsd, "USD")} currency="USD" className="font-semibold whitespace-nowrap" />
-              </p>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Loans: a full-width row of two halves under the top (founder, 21/10/2026) — what is owed (opens the loans with the
+          CBC K-Score) and the net after it; the headline stays the total held. */}
+      {!loading && totals.liabilities > 0 && (
+        <div className="mt-4 grid grid-cols-2 divide-x divide-white/15 rounded-2xl bg-white/10 py-2.5 ring-1 ring-white/15 backdrop-blur-sm tabular-nums">
+          <Link href="/debts?tab=PAYABLE#credit-health" className="min-w-0 px-3 transition-opacity hover:opacity-90">
+            <span className="flex items-center gap-1 text-[12px] text-white/75">
+              <TrendingDownIcon className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{t("netWorth.loans")} ›</span>
+            </span>
+            <span className="block truncate text-[15px] font-semibold">
+              −<Amount value={totals.liabilities} currency="USD" />
+            </span>
+          </Link>
+          <div className="min-w-0 px-3" title={t("netWorth.net")}>
+            <span className="flex items-center gap-1 text-[12px] text-white/75">
+              <ShieldCheckIcon className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{t("netWorth.netShort")}</span>
+            </span>
+            <Amount value={totals.net} currency="USD" className="block truncate text-[15px] font-semibold" />
+          </div>
+        </div>
+      )}
 
       {footer && <div className="mt-3 border-t border-white/15 pt-2 -mb-1 empty:hidden">{footer}</div>}
     </section>

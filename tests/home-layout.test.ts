@@ -29,4 +29,18 @@ describe("home — the hero card's layout", () => {
     const hub = readFileSync(join(process.cwd(), "src", "components", "dashboard", "smart-hub.tsx"), "utf8")
     assert.match(hub, /const score = personal \? kscore : null/)
   })
+  it("one clean stack, no repeated pills (founder, 21/10/2026): title + eye, the dollars, ≈ the riel — then loans and net in a full-width row", () => {
+    // The [USD …] [KHR …] pill row repeated the headline — gone.
+    assert.doesNotMatch(card, /netWorth\.inUsd|netWorth\.inKhr|>USD<\/span>|>KHR<\/span>/)
+    // Top: the ring beside the three-line stack.
+    assert.match(card, /<div className="flex items-center gap-4">\s*\{!loading && <WalletRing/)
+    const top = card.indexOf('<div className="flex items-center gap-4">')
+    const row = card.indexOf('grid grid-cols-2 divide-x')
+    const ticker = card.indexOf("{footer &&")
+    assert.ok(top > 0 && row > top && ticker > row, "ring + stack, then the loans row, then the ticker")
+    // The loans row spans the card (a sibling of the top, not inside the stack): owed on the left, the net on the right.
+    const between = card.slice(top, card.lastIndexOf("<div", row))
+    assert.equal(between.match(/<div\b/g)?.length, between.match(/<\/div>/g)?.length, "the top block is closed before the loans row")
+    assert.ok(card.indexOf("netWorth.loans") < card.indexOf("netWorth.netShort"))
+  })
 })

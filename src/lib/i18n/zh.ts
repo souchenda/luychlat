@@ -3687,6 +3687,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "vdoc.nextInstallment": "下次还款 {date}",
   "netWorth.loans": "待还贷款",
   "netWorth.net": "净资产（扣除贷款后）",
+  "netWorth.netShort": "净资产",
   "home.spendTitle": "近 6 个月支出",
   "home.spendThisMonth": "本月支出",
   "home.spendVsLast": "较上月 {pct}%",

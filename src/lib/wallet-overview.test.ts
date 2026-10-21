@@ -4,7 +4,7 @@ import { describe, it } from "node:test"
 import type { Wallet } from "@/lib/data/types"
 import { restorePrefs, usePrefsStore } from "@/stores/prefs-store"
 
-import { filterByTab, primaryWalletId, ringArcs, walletKind, walletMix } from "./wallet-overview"
+import { filterByTab, heroTotals, primaryWalletId, ringArcs, walletKind, walletMix } from "./wallet-overview"
 
 const w = (id: string, over: Partial<Wallet> = {}): Wallet => ({
   id,
@@ -78,5 +78,20 @@ describe("wallet overview — the hero ring, the accent bars and the tabs (found
     store.getState().toggleHideBalances()
     assert.equal(store.getState().hideBalances, true)
     assert.equal(restorePrefs({ hideBalances: false }, store.getInitialState()).hideBalances, true)
+  })
+
+  it("the hero's figures: the total in dollars, the same total in riel (100 ៛ rounding when converted), the net after loans", () => {
+    const usd = w("u", { balance: 1000.25 })
+    const riel = w("r", { icon: "cash", currency: "KHR", balance: 401_250 })
+    const t = heroTotals([usd, riel, pool, archived], 4010, 0, 300)
+    assert.equal(t.totalUsd, 1100.31) // 1000.25 + 401,250 ៛ ÷ 4,010
+    assert.equal(t.totalKhr, 4_412_300) // 401,250 + 1000.25 × 4,010 = 4,412,252.5 → 4,412,300 (roundRiel)
+    assert.equal(t.totalKhr % 100, 0)
+    assert.equal(t.net, 800.31)
+    assert.equal(t.liabilities, 300)
+    // Held only in riel: the exact sum, never rounded (an amount the person typed).
+    assert.equal(heroTotals([riel], 4010).totalKhr, 401_250)
+    // Assets count in dollars, so the riel line converts them too.
+    assert.equal(heroTotals([riel], 4000, 50).totalKhr, 601_300)
   })
 })
