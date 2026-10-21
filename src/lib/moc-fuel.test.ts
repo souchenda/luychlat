@@ -54,3 +54,41 @@ describe("MoC fuel notice", () => {
     assert.equal(pricesAgree({ ...p, dieselUsd: null }, 4062), false)
   })
 })
+
+describe("The notice's period in every wording (founder, 21/10/2026)", () => {
+  it("regression: notice #36200 said «ដល់», not «រហូតដល់» — the period went unread and the fuel was missing", () => {
+    const n36200 = "សេចក្តីជូនដំណឹង៖ ស្តីពីថ្លៃលក់រាយប្រេងឥន្ធនៈនៅតាមស្ថានីយសម្រាប់ការអនុវត្តចាប់ពីវេលាម៉ោង ១ រសៀលថ្ងៃទី២១ ខែតុលា ដល់ថ្ងៃទី១ ខែវិច្ឆិកា ឆ្នាំ២០២៦"
+    assert.ok(isFuelNotice(n36200))
+    assert.deepEqual(parseNoticePeriod(n36200), { from: "2026-10-21", to: "2026-11-01" })
+  })
+  it("«ដល់» with the last day bare, and the old «រហូតដល់» still read", () => {
+    assert.deepEqual(parseNoticePeriod("ថ្ងៃទី២១ ដល់ ៣១ ខែតុលា ឆ្នាំ២០២៦"), { from: "2026-10-21", to: "2026-10-31" })
+    assert.deepEqual(parseNoticePeriod("ថ្ងៃទី១១ ខែតុលា រហូតដល់ថ្ងៃទី២១ ខែតុលា ឆ្នាំ២០២៦"), { from: "2026-10-11", to: "2026-10-21" })
+    assert.equal(parseNoticePeriod("ថ្ងៃទី២១ ខែតុលា ឆ្នាំ២០២៦"), null) // no end: never guessed
+  })
+})
+
+describe("An admin sends the MoC notice to the bot (founder, 21/10/2026)", () => {
+  it("read as the notice when forwarded from @mocnewsfeed or captioned «/setfuel» / «ក្រសួងពាណិជ្ជកម្ម» — a fuel receipt («ប្រេង») stays a slip", async () => {
+    const { isFuelNoticePhoto } = await import("@/lib/server/moc-fuel-sync")
+    assert.equal(isFuelNoticePhoto({ forwardedFrom: "mocnewsfeed" }), true)
+    assert.equal(isFuelNoticePhoto({ forwardedFrom: "MocNewsFeed" }), true)
+    assert.equal(isFuelNoticePhoto({ caption: "/setfuel" }), true)
+    assert.equal(isFuelNoticePhoto({ caption: "សេចក្តីជូនដំណឹង ក្រសួងពាណិជ្ជកម្ម" }), true)
+    for (const c of ["ចាក់ប្រេង 20000", "ប្រេង", "fuel 5$", ""]) assert.equal(isFuelNoticePhoto({ caption: c }), false, c)
+    assert.equal(isFuelNoticePhoto({ forwardedFrom: "someotherchannel" }), false)
+  })
+  it("admins only, before the slip reader; the reply proposes /setfuel and never applies the prices itself", async () => {
+    const { readFileSync } = await import("node:fs")
+    const { join } = await import("node:path")
+    const hook = readFileSync(join(process.cwd(), "src/app/api/telegram/webhook/route.ts"), "utf8").replace(/\r\n/g, "\n")
+    const at = hook.indexOf("isFuelNoticePhoto({ caption: message.caption")
+    assert.ok(at > 0 && at < hook.indexOf("handlePrivatePhoto(chatId, slipPhoto"), "before the slip reader")
+    assert.match(hook, /&& \(await isAdminChat\(message\.chat\.id\)\)\) \{\n\s+const chatId = message\.chat\.id\n\s+after\(\(\) => handleFuelNoticePhoto\(chatId, slipPhoto, message\.caption\)\)/)
+    const sync = readFileSync(join(process.cwd(), "src/lib/server/moc-fuel-sync.ts"), "utf8")
+    const fn = sync.slice(sync.indexOf("export async function handleFuelNoticePhoto"), sync.indexOf("export function isFuelNoticePhoto"))
+    assert.doesNotMatch(fn, /setFuelPrices\(|scheduleFuelPost\(/) // a proposal only — the admin's /setfuel applies it
+    assert.match(fn, /បើត្រឹមត្រូវ៖ \/setfuel/)
+    assert.match(fn, /pricesAgree\(p, usdKhr\)/)
+  })
+})

@@ -26,7 +26,9 @@ export const isFuelNotice = (text: string) => /ថ្លៃលក់រាយប
  */
 export function parseNoticePeriod(raw: string): { from: string; to: string } | null {
   const text = latinDigits(raw).replace(/\s+/g, " ")
-  const m = /ថ្ងៃទី\s*(\d{1,2})(?:\s*ខែ\s*([^\s\d]+))?(?:\s*ឆ្នាំ\s*(\d{4}))?\s*រហូតដល់\s*ថ្ងៃទី\s*(\d{1,2})\s*ខែ\s*([^\s\d]+)\s*ឆ្នាំ\s*(\d{4})/.exec(text)
+  // «រហូតដល់» or plain «ដល់» (notice #36200, 21/10/2026: «… ថ្ងៃទី២១ ខែតុលា ដល់ថ្ងៃទី១ ខែវិច្ឆិកា ឆ្នាំ២០២៦» went unread),
+  // with or without «ថ្ងៃទី» before the last day («ថ្ងៃទី២១ ដល់ ៣១ ខែតុលា ឆ្នាំ២០២៦»).
+  const m = /ថ្ងៃទី\s*(\d{1,2})(?:\s*ខែ\s*([^\s\d]+))?(?:\s*ឆ្នាំ\s*(\d{4}))?\s*(?:រហូត\s*)?ដល់\s*(?:ថ្ងៃទី\s*)?(\d{1,2})\s*ខែ\s*([^\s\d]+)\s*ឆ្នាំ\s*(\d{4})/.exec(text)
   if (!m) return null
   const [fd, td, ty] = [Number(m[1]), Number(m[4]), Number(m[6])]
   const tm = monthOf(m[5])

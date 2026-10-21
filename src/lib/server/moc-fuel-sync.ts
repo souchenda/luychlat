@@ -24,7 +24,7 @@ import { facebookConfig, facebookFuelCaption, shouldPublishToFacebook } from "./
 import { scheduleFuelPost } from "./scheduled-posts"
 import { currentMarket, setFuelPrices } from "./market-sync"
 import { askGemini, askGroq, type Answer } from "./slip-bot"
-import { botDb, botKey, tg } from "./telegram-bot"
+import { botDb, botKey, botToken, tg } from "./telegram-bot"
 import { founderChats } from "@/lib/server/admin-routes"
 import { communityChannelConfigured } from "@/lib/server/channel"
 
@@ -241,4 +241,51 @@ async function applyNotice(day: string, notice: ChannelPost, period: { from: str
   await toSuperAdmins(
     `✅ [តម្លៃប្រេង] បានធ្វើបច្ចុប្បន្នភាពដោយស្វ័យប្រវត្តិពីក្រសួងពាណិជ្ជកម្ម (${cycleText(period.from, period.to, "km")})៖ សាំង ${riel(reading.prices.regular)}៛ · ម៉ាស៊ូត ${riel(reading.prices.diesel)}៛\n• ពិនិត្យ៖ ${link}\n• បើខុស៖ /setfuel ដើម្បីកែ`,
   )
+}
+
+/**
+ * An admin sends the bot the MoC notice image (founder, 21/10/2026 — forwarded from @mocnewsfeed, or captioned «/setfuel»
+ * / «ក្រសួងពាណិជ្ជកម្ម»): read like the channel's notice (Gemini, else Groq), the riel checked against the dollar row,
+ * the period from the caption or the image — and the prefilled /setfuel to confirm. Never applied by itself.
+ */
+export async function handleFuelNoticePhoto(chatId: number, fileId: string, caption: string | undefined): Promise<void> {
+  const say = (text: string) => tg("sendMessage", { chat_id: chatId, text, disable_web_page_preview: true }).catch(() => null)
+  const file = await tg<{ file_path?: string }>("getFile", { file_id: fileId }).catch(() => null)
+  const token = botToken()
+  if (!file?.ok || !file.result?.file_path || !token) {
+    await say("⚠️ មិនអាចទាញយករូបបានទេ។ សូមផ្ញើម្ដងទៀត។")
+    return
+  }
+  const reading = await readNotice(`https://api.telegram.org/file/bot${token}/${file.result.file_path}`)
+  if (!reading) {
+    await say("⚠️ អានតម្លៃប្រេងពីរូបនេះមិនបានទេ (Gemini / Groq)។ សូមបញ្ចូលដោយដៃ៖ /setfuel <សាំង> <ស៊ុបពែរ> <ម៉ាស៊ូត> <ពី dd-mm-yyyy> <ដល់ dd-mm-yyyy>")
+    logEvent("warn", "moc-fuel", "Fuel notice sent to the bot: unreadable")
+    return
+  }
+  const p = reading.prices
+  const period = (caption ? parseNoticePeriod(caption) : null) ?? (p.from && p.to ? { from: p.from, to: p.to } : null)
+  const usdKhr = (await currentMarket())?.nbc?.usd_khr
+  const agree = pricesAgree(p, usdKhr)
+  const ddmm = (iso: string) => iso.split("-").reverse().join("-")
+  const previous = (await currentMarket())?.fuel
+  await say(
+    [
+      `⛽ សេចក្តីជូនដំណឹងតម្លៃប្រេង (ក្រសួងពាណិជ្ជកម្ម) — អានដោយ ${reading.reader}`,
+      `• សាំងធម្មតា (EA92) ៖ ${riel(p.regular)} ៛/លីត្រ`,
+      ...(p.super ? [`• សាំងស៊ុបពែរ ៖ ${riel(p.super)} ៛/លីត្រ`] : []),
+      `• ម៉ាស៊ូត (Diesel) ៖ ${riel(p.diesel)} ៛/លីត្រ`,
+      `• វដ្ត៖ ${period ? cycleText(period.from, period.to, "km") : "មិនស្គាល់ — សូមបញ្ចូលកាលបរិច្ឆេទ"}`,
+      `• រៀល/ដុល្លារ៖ ${agree ? "✅ ត្រូវគ្នា" : "⚠️ មិនត្រូវគ្នា — ពិនិត្យរូបម្ដងទៀត"}`,
+      "",
+      period
+        ? `បើត្រឹមត្រូវ៖ /setfuel ${p.regular} ${p.super ?? previous?.super ?? p.regular} ${p.diesel} ${ddmm(period.from)} ${ddmm(period.to)}`
+        : `បើត្រឹមត្រូវ៖ /setfuel ${p.regular} ${p.super ?? previous?.super ?? p.regular} ${p.diesel} <ពី dd-mm-yyyy> <ដល់ dd-mm-yyyy>`,
+    ].join("\n"),
+  )
+  logEvent("info", "moc-fuel", `Fuel notice sent to the bot read by ${reading.reader}: EA92 ${p.regular}, diesel ${p.diesel}${agree ? "" : " (riel/USD disagree)"}`)
+}
+
+/** A photo that is the MoC notice: forwarded from @mocnewsfeed, or captioned «/setfuel» / «ក្រសួងពាណិជ្ជកម្ម» (never «ប្រេង» alone — a fuel receipt). */
+export function isFuelNoticePhoto(o: { caption?: string | null; forwardedFrom?: string | null }): boolean {
+  return (o.forwardedFrom ?? "").toLowerCase() === CHANNEL.toLowerCase() || /^\s*\/setfuel\b|ក្រសួងពាណិជ្ជកម្ម/.test(o.caption ?? "")
 }

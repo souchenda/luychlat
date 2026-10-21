@@ -52,6 +52,7 @@ import { handleApproverCommand, isApproverCommand } from "@/lib/server/co-approv
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
 import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink } from "@/lib/bot/gate"
+import { handleFuelNoticePhoto, isFuelNoticePhoto } from "@/lib/server/moc-fuel-sync"
 import { guardDiscussionMessage, guardReaction, type ReactionUpdate } from "@/lib/server/channel-guard"
 import type { Entity } from "@/lib/bot/channel-guard"
 
@@ -101,6 +102,9 @@ type Update = {
     /** A channel post Telegram copied into its discussion group. */
     is_automatic_forward?: boolean
     sender_chat?: { id: number }
+    /** Where a forwarded message came from (an MoC notice forwarded from @mocnewsfeed). */
+    forward_origin?: { type?: string; chat?: { username?: string } }
+    forward_from_chat?: { username?: string }
   }
   /** An edited message — only the discussion-group guard reads it (a link added after posting). */
   edited_message?: Update["message"]
@@ -505,6 +509,13 @@ export async function POST(request: Request) {
   }
   // A photo: a bank slip to read (Gemini Vision) and save with one tap on a category.
   const slipPhoto = bestPhoto(message.photo)
+  // An admin's MoC fuel notice (forwarded from @mocnewsfeed, or captioned «/setfuel»): read as the notice, not a slip
+  // (founder, 21/10/2026 — lib/server/moc-fuel-sync.ts handleFuelNoticePhoto; never applied without the admin's /setfuel).
+  if (slipPhoto && isFuelNoticePhoto({ caption: message.caption, forwardedFrom: message.forward_origin?.chat?.username ?? message.forward_from_chat?.username }) && (await isAdminChat(message.chat.id))) {
+    const chatId = message.chat.id
+    after(() => handleFuelNoticePhoto(chatId, slipPhoto, message.caption))
+    return NextResponse.json({ ok: true })
+  }
   if (slipPhoto) {
     const chatId = message.chat.id
     // Reading takes several seconds: answer Telegram now so it doesn't resend the update.
