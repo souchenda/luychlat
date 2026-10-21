@@ -12,8 +12,8 @@ import { NISAB_GOLD_GRAMS } from "@/lib/islamic"
 import { khrPerSar, SAR_PER_USD } from "@/lib/islamic/sar"
 import type { MarketLive } from "@/lib/market-calc"
 import { roundRiel } from "@/lib/money"
-import { nbcRatesBlock } from "@/lib/nbc-rates"
-import { compactFooter } from "@/lib/post-footer"
+import { nbcRateItems } from "@/lib/nbc-rates"
+import { postFooter } from "@/lib/post-footer"
 
 export const GRAMS_PER_DAMLUNG = 37.5
 export const GRAMS_PER_CHI = 3.75
@@ -41,7 +41,7 @@ export function khmerGoldWeight(grams: number): string {
 /** Where today's gold price comes from, and that a shop's own price may differ a little (never a silent source). */
 export const goldReference = (source: "local" | "spot") =>
   source === "local"
-    ? "តម្លៃយោងមាសគីឡូ ២៤K ផ្សារភ្នំពេញ · ទីផ្សារជាក់ស្តែងតាមហាងនីមួយៗអាចមានគម្លាតខុសគ្នាបន្តិចបន្តួច"
+    ? "តម្លៃយោងមាសគីឡូ ២៤K ផ្សារភ្នំពេញ · ទីផ្សារជាក់ស្តែងតាមហាងអាចមានគម្លាតបន្តិចបន្តួច"
     : "តម្លៃយោងមាសសុទ្ធ ២៤K អន្តរជាតិ · ទីផ្សារជាក់ស្តែងតាមហាងក្នុងស្រុកអាចមានគម្លាតខុសគ្នាបន្តិចបន្តួច"
 
 /** «១ ជី ≈ $413 · ១ តម្លឹង ≈ $4,125 (១ ក្រាម ≈ $110.00)» — Cambodian units first, the gram in brackets. */
@@ -58,6 +58,8 @@ export type IslamicMarket = {
   /** NBC's riel per unit of each currency (the full table — lib/nbc-rates.ts). */
   rates: Record<string, number> | null
   sarKhr: number | null
+  /** The MoC's current retail prices (riel per litre) — `stale` once their cycle has ended. */
+  fuel: { regular: number; diesel: number; stale: boolean } | null
   gold: { perGram: number; perChi: number; perDamlung: number; source: "local" | "spot"; date: string } | null
   nisab: { usd: number; khr: number | null } | null
 }
@@ -87,6 +89,7 @@ export function islamicMarket(market: MarketLive | null | undefined, today: stri
     sarKhr: usdKhr ? Math.round(khrPerSar(usdKhr)) : null,
     gold,
     nisab: nisabUsd !== null ? { usd: nisabUsd, khr: usdKhr ? roundRiel(nisabUsd * usdKhr) : null } : null,
+    fuel: market?.fuel?.regular && market.fuel.diesel ? { regular: market.fuel.regular, diesel: market.fuel.diesel, stale: market.fuel.to < today } : null,
   }
 }
 
@@ -115,45 +118,61 @@ export const riel = (n: number) => `${num(n)} ៛`
 
 /** The Zakat note under the Nisab (the founder's words) — «បងប្អូន» in the channel, «លោកអ្នក» in the app. */
 export const zakatNote = (who: "channel" | "app") => {
-  const you = who === "channel" ? G.BROTHERS_AND_SISTERS : "លោកអ្នក"
-  return `ប្រសិនបើ${you}មានទ្រព្យសន្សំសរុបស្មើ ឬលើសពីកម្រិតនីស៊បនេះ ហើយគម្រប់ខួប ១ ឆ្នាំ (ហូល) ${you}មានកាតព្វកិច្ចបញ្ចេញហ្សាកាត់ ២.៥%។`
+  // The channel's shorter wording (founder, 21/10/2026).
+  if (who === "channel") return `${G.BROTHERS_AND_SISTERS}ដែលមានទ្រព្យសន្សំសរុបដល់កម្រិតនីស៊បនេះ គម្រប់ខួប ១ ឆ្នាំ (ហូល) មានកាតព្វកិច្ចបំពេញហ្សាកាត់ ២.៥%។`
+  return "ប្រសិនបើលោកអ្នកមានទ្រព្យសន្សំសរុបស្មើ ឬលើសពីកម្រិតនីស៊បនេះ ហើយគម្រប់ខួប ១ ឆ្នាំ (ហូល) លោកអ្នកមានកាតព្វកិច្ចបញ្ចេញហ្សាកាត់ ២.៥%។"
 }
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 /**
- * The daily Islamic market bulletin for @LuyChlatIslamic (HTML): everyone together — «អាស្សាឡាមុអាឡៃកុម បងប្អូន!».
- * Null when there is no NBC rate (nothing factual to publish).
+ * The daily Islamic market bulletin for @LuyChlatIslamic (HTML) — the founder's three sections (21/10/2026):
+ *   💵 the NBC rates in one list, the Saudi riyal beside the dollar (Hajj and Umrah) · ⛽ the MoC fuel prices ·
+ *   🥇 24K gold in ជី / តម្លឹង and the 85 g Nisab — then the Zakat note, the app and the standard Islamic footer.
+ * Everyone together — «អាស្សាឡាមុអាឡៃកុម បងប្អូន!». Null when there is no NBC rate (nothing factual to publish).
  */
 export function islamicBulletinHtml(m: IslamicMarket, o: { hijri: string; gregorian: string; appUrl: string }): string | null {
   if (!m.usdKhr) return null
+  // «📅 ថ្ងៃពុធ ១០ ជុម៉ាដាល់អូឡា ១៤៤៨ ហ.ស. (ត្រូវនឹង ២១ តុលា ២០២៦)»: the weekday first, then the Hijri date.
+  const wd = /^(ថ្ងៃ\S+)\s+(.+)$/.exec(o.gregorian)
+  const dateLine = wd ? `📅 ${esc(wd[1])} ${esc(o.hijri)} (${G.HIJRI_CORRESPONDS} ${esc(wd[2])})` : `📅 ${esc(o.hijri)} (${G.HIJRI_CORRESPONDS} ${esc(o.gregorian)})`
+  // Section 1 — one list, the riyal right after the dollar.
+  const rates = nbcRateItems({ khr_per: m.rates ?? { USD: m.usdKhr } }).flatMap((i) => [
+    `• ${i.flag} ${i.label} = ${i.value} ៛`,
+    ...(i.code === "USD" && m.sarKhr ? [`• 🇸🇦 1 SAR ≈ ${riel(m.sarKhr)} (1 USD = ${SAR_PER_USD} SAR · សម្រាប់ធ្វើរូកូន ហាជ និងអ៊ុមរ៉ោះ)`] : []),
+  ])
   const lines = [
-    "🌙 <b>ព្រឹត្តិបត្រហាងឆេងរូបិយប័ណ្ណ និងនីស៊បមាសហ្សាកាត់</b>",
-    `📅 ${esc(o.hijri)} (${G.HIJRI_CORRESPONDS} ${esc(o.gregorian)})`,
+    "🌙 <b>ព្រឹត្តិបត្រទីផ្សារ និងនីស៊បហ្សាកាត់ប្រចាំថ្ងៃ</b>",
+    dateLine,
     "",
-    `<b>${G.SALAM_ALL}</b> នេះជាព័ត៌មានហាងឆេងរូបិយប័ណ្ណផ្លូវការ (ធនាគារជាតិ NBC) និងតម្លៃមាសគណនាហ្សាកាត់សម្រាប់ថ្ងៃនេះ៖`,
+    `<b>${G.SALAM_ALL}</b> នេះជាព័ត៌មានហាងឆេងរូបិយប័ណ្ណផ្លូវការ តម្លៃប្រេងឥន្ធនៈ និងហាងឆេងមាសគណនាហ្សាកាត់ប្រចាំថ្ងៃ៖`,
     "",
-    "🇸🇦 <b>ប្រាក់អារ៉ាប់ (SAR - Saudi Riyal សម្រាប់ធ្វើរូកូន ហាជ និងអ៊ុមរ៉ោះ)</b>",
-    `• 1 SAR ≈ ${riel(m.sarKhr!)}`,
-    `• 1 USD = ${SAR_PER_USD} SAR ($100 ≈ ${num(100 * SAR_PER_USD)} SAR)`,
-    "",
-    // The full NBC table, as in the community bulletin (founder, 21/10/2026): USD, THB, MYR, CNY, EUR, VND.
-    `💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ ធនាគារជាតិនៃកម្ពុជា (NBC)</b>${m.rateDate ? ` · ${esc(m.rateDate.split("-").reverse().join("/"))}` : ""}`,
-    nbcRatesBlock({ khr_per: m.rates ?? { USD: m.usdKhr } }),
+    `💵 <b>អត្រាប្តូរប្រាក់ផ្លូវការ (ធនាគារជាតិនៃកម្ពុជា NBC)</b>${m.rateDate ? ` · ${esc(m.rateDate.split("-").reverse().join("/"))}` : ""}`,
+    ...rates,
   ]
+  // Section 2 — the MoC fuel prices.
+  if (m.fuel) {
+    lines.push(
+      "",
+      "⛽ <b>តម្លៃប្រេងឥន្ធនៈ (ក្រសួងពាណិជ្ជកម្ម)</b>",
+      `• សាំងធម្មតា (EA92) ៖ ${num(m.fuel.regular)} ៛/លីត្រ`,
+      `• ម៉ាស៊ូត (Diesel) ៖ ${num(m.fuel.diesel)} ៛/លីត្រ`,
+      ...(m.fuel.stale ? ["ℹ️ តម្លៃវដ្តមុន — មិនទាន់មានសេចក្តីជូនដំណឹងថ្មីពីក្រសួងពាណិជ្ជកម្ម"] : []),
+    )
+  }
+  // Section 3 — gold in Cambodian units and the Nisab.
   if (m.gold && m.nisab) {
     lines.push(
       "",
       "🥇 <b>ហាងឆេងមាស និងកម្រិតនីស៊បហ្សាកាត់ (Zakat Nisab)</b>",
-      // Cambodian units first, the gram in brackets, then the price's reference (founder, 21/10/2026).
       `• ហាងឆេងមាស ២៤K ៖ ${goldUnitsLine(m.gold)}`,
       `  (${goldReference(m.gold.source)}${m.gold.date && m.gold.date !== m.day ? ` · តម្លៃថ្ងៃ ${esc(m.gold.date.slice(8, 10))}/${esc(m.gold.date.slice(5, 7))}` : ""})`,
-      `• <b>កម្រិតនីស៊បហ្សាកាត់ (មាស ៨៥ ក្រាម ≈ ${khmerGoldWeight(NISAB_GOLD_GRAMS)}) = ${usd(m.nisab.usd)}${m.nisab.khr ? ` (~${riel(m.nisab.khr)})` : ""}</b>`,
-      "",
-      `ℹ️ បញ្ជាក់៖ ${zakatNote("channel")}`,
+      `• កម្រិតនីស៊បហ្សាកាត់ (មាស ៨៥ ក្រាម ≈ ${khmerGoldWeight(NISAB_GOLD_GRAMS)}) ៖`,
+      `  👉 <b>${usd(m.nisab.usd)}</b>${m.nisab.khr ? ` (~${riel(m.nisab.khr)})` : ""}`,
+      `• ℹ️ បញ្ជាក់៖ ${zakatNote("channel")}`,
     )
   }
-  // The compact one-line footer (founder, 21/10/2026): the channel and its hashtags under the signature.
-  lines.push("", "គណនាហ្សាកាត់ និងផែនការសន្សំធ្វើរូកូនដោយឥតគិតថ្លៃ៖", `🌐 ${o.appUrl.replace(/\/+$/, "")}/islamic`, "— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម", compactFooter("islamic"))
+  // The app, then the standard Islamic footer (the Charge+ format — lib/post-footer.ts).
+  lines.push("", `គណនាហ្សាកាត់ដោយឥតគិតថ្លៃលើ អេប លុយឆ្លាត 👉 ${o.appUrl.replace(/\/+$/, "")}/islamic`, "", postFooter("islamic"))
   return lines.join("\n")
 }

@@ -17,19 +17,21 @@ const FLAGS: Record<string, string> = { USD: "🇺🇸", THB: "🇹🇭", MYR: "
 
 const fmt = (n: number, digits = 0) => new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n)
 
-/** The rows, aligned (a small unit is quoted per 100 or 1,000, as NBC does). */
-export function nbcRateRows(nbc: Pick<NonNullable<MarketLive["nbc"]>, "khr_per">): string[] {
-  const rows: string[] = []
+/** Each published currency: its flag, «1 USD» / «1,000 VND» (a small unit per 100 or 1,000, as NBC quotes it), riel. */
+export function nbcRateItems(nbc: Pick<NonNullable<MarketLive["nbc"]>, "khr_per">): { code: string; flag: string; label: string; value: string }[] {
+  const items: { code: string; flag: string; label: string; value: string }[] = []
   for (const code of RATE_ORDER) {
     const v = nbc.khr_per[code]
     if (!v) continue
     const unit = v < 1 ? 1000 : v < 10 ? 100 : 1
-    const label = `${fmt(unit)} ${code}`.padEnd(11)
-    const value = fmt(v * unit, v * unit >= 100 ? 0 : 2).padStart(6)
-    rows.push(`${FLAGS[code] ?? "💱"} ${label} = ${value} ៛`)
+    items.push({ code, flag: FLAGS[code] ?? "💱", label: `${fmt(unit)} ${code}`, value: fmt(v * unit, v * unit >= 100 ? 0 : 2) })
   }
-  return rows
+  return items
 }
+
+/** The rows, aligned for a monospaced block. */
+export const nbcRateRows = (nbc: Pick<NonNullable<MarketLive["nbc"]>, "khr_per">): string[] =>
+  nbcRateItems(nbc).map((i) => `${i.flag} ${i.label.padEnd(11)} = ${i.value.padStart(6)} ៛`)
 
 /** The table as Telegram HTML (a <pre> block). */
 export const nbcRatesBlock = (nbc: Pick<NonNullable<MarketLive["nbc"]>, "khr_per">) => `<pre>${nbcRateRows(nbc).join("\n")}</pre>`

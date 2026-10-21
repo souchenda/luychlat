@@ -25,7 +25,7 @@ export const APP_LINKS = [
 /** The brand's hashtags — the Khmer one is «#អេបលុយឆ្លាត» (with ប), never «#អេរលុយឆ្លាត». */
 export const HASHTAGS: Record<FooterChannel, string> = {
   community: "#LuyChlat #អេបលុយឆ្លាត #គ្រប់គ្រងហិរញ្ញវត្ថុ",
-  islamic: "#LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់",
+  islamic: "#LuyChlat #LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់", // #LuyChlat too (founder, 21/10/2026)
 }
 
 /** «Android (APK) || iOS / Web || Telegram Bot» — inline links on Telegram (HTML), names with short addresses on Facebook. */

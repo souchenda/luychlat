@@ -33,7 +33,7 @@ describe("The standard post footer (founder, 20–21/10/2026 — the Charge+ for
   it("the Islamic footer: the Islamic channel and Islamic hashtags — never the general community", () => {
     const f = postFooter("islamic")
     assert.match(f, /👉 ឆាណែលឥស្លាម ៖ @LuyChlatIslamic/)
-    assert.match(f, /#LuyChlatIslamic #អេបលុយឆ្លាត\n#ហិរញ្ញវត្ថុហាឡាល់$/)
+    assert.match(f, /\n#LuyChlat #LuyChlatIslamic\n#អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់$/) // #LuyChlat too (founder, 21/10/2026)
     assert.doesNotMatch(f, /LuyChlatCommunity|សហគមន៍|#គ្រប់គ្រងហិរញ្ញវត្ថុ/)
   })
   it("regression: «#អេរលុយឆ្លាត» (រ for ប) was reported — the brand hashtag is «#អេបលុយឆ្លាត» in every footer and every source", () => {
