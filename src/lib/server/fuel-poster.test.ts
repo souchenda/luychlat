@@ -74,7 +74,7 @@ describe("fuel price poster (founder, 21/10/2026 — Task #428)", () => {
     const sp = read("src/lib/server/scheduled-posts.ts")
     assert.match(sp, /case "FUEL": \{[\s\S]*?png: f \? poster\(\(\) => fuelPoster\(f\)\) : null/)
     assert.match(sp, /if \(row\.kind === "FUEL"\) \{[\s\S]*?sendPosterPhoto\(chat, png, caption[\s\S]*?publishPhotoToFacebook\(approval, png, fbText\)/)
-    assert.match(sp, /REPREVIEW_READY = \[[^\]]*"fuel-poster", "fuel-poster-v2"/)
+    assert.match(sp, /REPREVIEW_READY = \[[^\]]*"fuel-poster", "fuel-poster-v2"[^\]]*"poster-website"/)
     // The words come from the stored prices, so a waiting card shows the current caption.
     assert.match(sp, /const words = \(await fuelTextOf\(row\)\) \?\? String\(row\.payload\.telegram \?\? ""\)/)
     assert.match(read("supabase/migrations/20270244000000_repreview_fuel_poster_v2.sql"), /'repreview', 'fuel-poster-v2'[\s\S]*post_key = 'notice-36200' and status = 'PENDING'/)

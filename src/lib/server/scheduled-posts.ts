@@ -938,7 +938,7 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
-  const REPREVIEW_READY = ["sleep-dua-wasl", "lesson14-hadith", "fuel-poster", "fuel-poster-v2", "sunnah-spelling"]
+  const REPREVIEW_READY = ["sleep-dua-wasl", "lesson14-hadith", "fuel-poster", "fuel-poster-v2", "sunnah-spelling", "poster-website"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // Every holiday — national and royal, Islamic, Chinese, global (founder, 20/10/2026): previewed from 48 hours before at
   // 08:00, published at 05:00 on the day once approved (a missed preview window is caught up until then — idempotent).

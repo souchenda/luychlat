@@ -4,7 +4,7 @@
 //   HEADER  left:  the mascot logo tile + "អេប លុយឆ្លាត" over "App Luy Chlat" (spread to the same width)
 //           right: the poster's category pill ("គន្លឹះហិរញ្ញវត្ថុប្រចាំថ្ងៃ", "ពិធីបុណ្យប្រពៃណីជាតិខ្មែរ"…)
 //   FOOTER  📱 គ្រប់គ្រងបំណុល ចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត
-//           ✈️ សហគមន៍ អេប លុយឆ្លាត (t.me/LuyChlatCommunity)   •   🌐 luychlat.com (founder, 15/10/2026)
+//           ✈️ សហគមន៍ អេប លុយឆ្លាត · t.me/LuyChlatCommunity   •   🌐 app.luychlat.com (founder, 15/10 and 21/10/2026)
 //           app-first (no bot username), left-aligned, never a button or pill on the right
 //
 // Every poster generator (daily tip, festivals, future market posters) draws
@@ -326,6 +326,9 @@ export function drawHeader(ctx: SKRSContext2D, pill: { text: string; icon?: Icon
 /** The footer's community line; an Islamic poster names @LuyChlatIslamic (founder, 20/10/2026 — the holiday engine). */
 export const ISLAMIC_COMMUNITY_LINE = "សហគមន៍ឥស្លាម អេប លុយឆ្លាត · t.me/LuyChlatIslamic"
 
+/** The address every poster shows: the web app itself. */
+export const POSTER_WEBSITE = "app.luychlat.com"
+
 export function drawFooter(ctx: SKRSContext2D, o: { community?: string } = {}) {
   const { W, PAD, footerTop } = FRAME
   ctx.fillStyle = "rgba(52,211,153,0.28)"
@@ -338,10 +341,18 @@ export function drawFooter(ctx: SKRSContext2D, o: { community?: string } = {}) {
   ctx.fillStyle = "#ffffff"
   ctx.fillText("គ្រប់គ្រងបំណុល ចំណូល-ចំណាយ ជាមួយអេប លុយឆ្លាត", PAD + 44, line1)
   const line2 = footerTop + 106
-  ctx.font = `500 26px ${FAMILIES}`
+  const community = o.community ?? "សហគមន៍ អេប លុយឆ្លាត · t.me/LuyChlatCommunity" // no parentheses on a graphic (founder, 19/10/2026)
+  // The web app's own address (founder, 21/10/2026 — «app.luychlat.com», never the bare «luychlat.com»). The line steps
+  // down a size when the community name and the address would run past the right margin — never cut.
+  let size = 26
+  const lineWidth = () => {
+    ctx.font = `500 ${size}px ${FAMILIES}`
+    return 44 + ctx.measureText(community).width + 26 + ctx.measureText("•").width + 26 + 44 + ctx.measureText(POSTER_WEBSITE).width
+  }
+  while (size > 20 && lineWidth() > W - 2 * PAD) size -= 1
+  ctx.font = `500 ${size}px ${FAMILIES}`
   drawIcon(ctx, "plane", PAD + 14, line2 - 10)
   ctx.fillStyle = "#d1fae5"
-  const community = o.community ?? "សហគមន៍ អេប លុយឆ្លាត · t.me/LuyChlatCommunity" // no parentheses on a graphic (founder, 19/10/2026)
   ctx.fillText(community, PAD + 44, line2)
   let x = PAD + 44 + ctx.measureText(community).width + 26
   ctx.fillStyle = "rgba(209,250,229,0.55)"
@@ -349,5 +360,5 @@ export function drawFooter(ctx: SKRSContext2D, o: { community?: string } = {}) {
   x += ctx.measureText("•").width + 26
   drawIcon(ctx, "globe", x + 14, line2 - 10)
   ctx.fillStyle = "#d1fae5"
-  ctx.fillText("luychlat.com", x + 44, line2)
+  ctx.fillText(POSTER_WEBSITE, x + 44, line2)
 }
