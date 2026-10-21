@@ -9,25 +9,6 @@ import { FAMILIES, FRAME, GOLD, drawFooter, drawHeader, loadFonts, roundRect } f
 
 const { W, H, PAD } = FRAME
 
-/** A small gold fuel pump for the header pill (drawn, never an emoji). */
-function pumpIcon(ctx: SKRSContext2D, cx: number, cy: number) {
-  ctx.save()
-  ctx.strokeStyle = GOLD
-  ctx.fillStyle = GOLD
-  ctx.lineWidth = 2.2
-  roundRect(ctx, cx - 9, cy - 10, 12, 20, 2)
-  ctx.stroke()
-  ctx.fillRect(cx - 6.5, cy - 7, 7, 5)
-  ctx.beginPath()
-  ctx.moveTo(cx + 3, cy - 4)
-  ctx.lineTo(cx + 8, cy - 1)
-  ctx.lineTo(cx + 8, cy + 6)
-  ctx.quadraticCurveTo(cx + 8, cy + 9, cx + 10.5, cy + 8)
-  ctx.lineTo(cx + 10.5, cy - 5)
-  ctx.stroke()
-  ctx.restore()
-}
-
 const BADGE = {
   down: { fill: "rgba(16,185,129,0.92)", text: "#ffffff" },
   up: { fill: "rgba(244,63,94,0.9)", text: "#ffffff" },
@@ -78,7 +59,8 @@ export function fuelPoster(p: FuelPoster): Buffer {
   }
   ctx.restore()
 
-  drawHeader(ctx, { text: p.pill, icon: (cx, cy) => pumpIcon(ctx, cx, cy) })
+  // The pill is its words alone: the small drawn pump read as a «▯» box (founder, 21/10/2026 — Task #432).
+  drawHeader(ctx, { text: p.pill, icon: null })
 
   // Title, cycle and source, centred.
   ctx.textAlign = "center"

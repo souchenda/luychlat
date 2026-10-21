@@ -47,7 +47,7 @@ export function fuelPosterContent(fuel: Pick<FuelPrices, "regular" | "super" | "
     change: fuelChange(price, before),
   })
   return {
-    pill: "តម្លៃប្រេង",
+    pill: "តម្លៃប្រេងសាំង",
     title: FUEL_POSTER_TITLE,
     cycle: cycleLine(fuel.from, fuel.to),
     source: "សេចក្តីជូនដំណឹង ក្រសួងពាណិជ្ជកម្ម",

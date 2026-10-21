@@ -26,6 +26,7 @@ describe("fuel price poster (founder, 21/10/2026 — Task #428)", () => {
 
   it("notice #36200 on the poster: the title, the cycle, EA92 ៥,០៥០ ▼ ៣០០ and diesel ៥,៥៥០ unchanged", () => {
     const p = fuelPosterContent(notice36200, before)
+    assert.equal(p.pill, "តម្លៃប្រេងសាំង") // Task #432
     assert.equal(p.title, FUEL_POSTER_TITLE)
     assert.equal(p.cycle, "ចាប់ពីថ្ងៃទី ២១ តុលា ដល់ ០១ វិច្ឆិកា ២០២៦")
     assert.deepEqual(
@@ -78,6 +79,11 @@ describe("fuel price poster (founder, 21/10/2026 — Task #428)", () => {
     // The words come from the stored prices, so a waiting card shows the current caption.
     assert.match(sp, /const words = \(await fuelTextOf\(row\)\) \?\? String\(row\.payload\.telegram \?\? ""\)/)
     assert.match(read("supabase/migrations/20270244000000_repreview_fuel_poster_v2.sql"), /'repreview', 'fuel-poster-v2'[\s\S]*post_key = 'notice-36200' and status = 'PENDING'/)
+    // The pill is its words alone (Task #432: the small drawn pump read as a «▯» box), the footer «app.luychlat.com».
+    assert.match(read("src/lib/server/fuel-poster.ts"), /drawHeader\(ctx, \{ text: p\.pill, icon: null \}\)/)
+    assert.match(read("src/lib/server/poster-kit.ts"), /export const POSTER_WEBSITE = "app\.luychlat\.com"/)
+    assert.match(sp, /REPREVIEW_READY = \[[^\]]*"fuel-pill"/)
+    assert.match(read("supabase/migrations/20270247000000_repreview_fuel_pill.sql"), /'repreview', 'fuel-pill'[\s\S]*post_key = 'notice-36200' and status = 'PENDING'/)
     // The badge's arrow is a drawn shape, never a glyph.
     const drawn = read("src/lib/server/fuel-poster.ts")
     assert.match(drawn, /ctx\.moveTo\(x0, ay - 8\)/)

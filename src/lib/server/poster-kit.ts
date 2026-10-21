@@ -263,7 +263,8 @@ export function drawIcon(ctx: SKRSContext2D, icon: Icon, cx: number, cy: number)
  * category pill (gold), with a drawn icon (a light bulb by default, or the
  * poster's own, e.g. a lotus).
  */
-export function drawHeader(ctx: SKRSContext2D, pill: { text: string; icon?: Icon | ((cx: number, cy: number) => void) }) {
+/** `icon: null` → the pill is its words alone (founder, 21/10/2026 — a small drawn icon read as a «▯» box on the fuel poster). */
+export function drawHeader(ctx: SKRSContext2D, pill: { text: string; icon?: Icon | ((cx: number, cy: number) => void) | null }) {
   const { W, PAD } = FRAME
   const mark = 64
   const top = 60
@@ -305,7 +306,8 @@ export function drawHeader(ctx: SKRSContext2D, pill: { text: string; icon?: Icon
   // The pill, right-aligned on the logo's row.
   ctx.font = `600 26px ${FAMILIES}`
   const pillH = 52
-  const pillW = ctx.measureText(pill.text).width + 76
+  const iconless = pill.icon === null
+  const pillW = ctx.measureText(pill.text).width + (iconless ? 52 : 76)
   const px = W - PAD - pillW
   const py = top + (mark - pillH) / 2
   roundRect(ctx, px, py, pillW, pillH, pillH / 2)
@@ -317,9 +319,9 @@ export function drawHeader(ctx: SKRSContext2D, pill: { text: string; icon?: Icon
   const iconX = px + 28
   const iconY = py + pillH / 2
   if (typeof pill.icon === "function") pill.icon(iconX, iconY)
-  else drawIcon(ctx, pill.icon ?? "bulb", iconX, iconY)
+  else if (!iconless) drawIcon(ctx, pill.icon ?? "bulb", iconX, iconY)
   ctx.fillStyle = "#fde68a"
-  ctx.fillText(pill.text, px + 52, py + 35)
+  ctx.fillText(pill.text, px + (iconless ? 26 : 52), py + 35)
 }
 
 /** FOOTER — the app-first two lines with drawn gold icons; nothing on the right. */
