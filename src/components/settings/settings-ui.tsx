@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils"
  * and on the right a value, badge, switch or chevron.
  */
 
-export function SettingsGroup({ title, children, className }: { title?: string; children: React.ReactNode; className?: string }) {
+export function SettingsGroup({ title, children, className, id }: { title?: string; children: React.ReactNode; className?: string; id?: string }) {
   return (
-    <section className={cn("space-y-2", className)}>
+    <section id={id} className={cn("space-y-2", id && "scroll-mt-20", className)}>
       {title && <h2 className="px-4 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{title}</h2>}
       <div className="divide-y overflow-hidden rounded-2xl border bg-card shadow-xs">{children}</div>
     </section>

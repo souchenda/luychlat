@@ -13,7 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { NetWorthCard } from "@/components/wallets/net-worth-card"
 import { TransferSheet } from "@/components/wallets/transfer-sheet"
 import { WalletFormSheet } from "@/components/wallets/wallet-form-sheet"
-import { CARDS, WalletFilterChips, WalletGroups, filterWallets, groupByBank, useWalletGroups, type WalletFilter } from "@/components/wallets/wallet-groups"
+import { Segmented } from "@/components/common/segmented"
+import { WalletGroups, groupByBank } from "@/components/wallets/wallet-groups"
 import { WalletList } from "@/components/wallets/wallet-list"
 import {
   canWrite,
@@ -21,6 +22,7 @@ import {
   useCategories,
   useTransactions,
   useWalletHasHistory,
+  useProfile,
   useWalletMutations,
   useWallets,
 } from "@/lib/data/hooks"
@@ -29,7 +31,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { useFeatures } from "@/lib/features"
-import { isCard } from "@/lib/credit-card"
+import { filterByTab, primaryWalletId, type WalletTab } from "@/lib/wallet-overview"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -62,17 +64,17 @@ export default function WalletsPage() {
   const archived = useMemo(() => all?.filter((w) => w.archived_at && !isGoal(w)) ?? [], [all])
   const transfers = useMemo(() => transfersQuery.data ?? [], [transfersQuery.data])
 
-  // Filter by bank (All · ABA · ACLEDA · Cash · Credit cards) and list wallets under their bank.
+  // The tabs [ ទាំងអស់ | ធនាគារ | សាច់ប្រាក់ ] (founder, 21/10/2026), and under them the wallets by bank (or one list).
   const locale = useLocaleStore((s) => s.locale)
   const grouped = usePrefsStore((s) => s.walletsGrouped)
   const setGrouped = usePrefsStore((s) => s.setWalletsGrouped)
-  const [rawFilter, setFilter] = useState<WalletFilter>("all")
-  const banks = useMemo(() => groupByBank(active, locale), [active, locale])
-  const hasCards = active.some(isCard)
-  // A filter whose bank is gone (another workspace, last wallet archived) falls back to All.
-  const filter = rawFilter === "all" || (rawFilter === CARDS ? hasCards : banks.some((b) => b.key === rawFilter)) ? rawFilter : "all"
-  const groups = useWalletGroups(active, filter, t("wallets.cards"))
-  const showGroups = !reorderMode && (filter !== "all" || (grouped && banks.length > 1))
+  const [tab, setTab] = useState<WalletTab>("all")
+  const shown = useMemo(() => filterByTab(active, tab), [active, tab])
+  const groups = useMemo(() => groupByBank(shown, locale), [shown, locale])
+  const showGroups = !reorderMode && grouped && groups.length > 1
+  // «ចម្បង»: the wallet a new entry starts with — the first in the person's own order.
+  const me = useProfile().data?.id
+  const primaryId = useMemo(() => primaryWalletId(active, me), [active, me])
 
   const openCreate = () => {
     setEditing(null)
@@ -80,6 +82,11 @@ export default function WalletsPage() {
   }
   // A tap opens the wallet's statement (balance, in / out, history); editing is the ✏️ there.
   const openStatement = (wallet: Wallet) => router.push(`/wallets/${wallet.id}`)
+  // ••• › «កែកាបូប»: the same form as the statement page's ✏️.
+  const openEdit = (wallet: Wallet) => {
+    setEditing(wallet)
+    setFormOpen(true)
+  }
   const move = (index: number, direction: -1 | 1) => {
     const ids = active.map((w) => w.id)
     const target = index + direction
@@ -118,7 +125,7 @@ export default function WalletsPage() {
         <div className="flex items-center justify-between px-1">
           <h2 className="text-sm font-medium text-muted-foreground">{t("nav.wallets")}</h2>
           <span className="flex items-center">
-            {!reorderMode && filter === "all" && banks.length > 1 && (
+            {!reorderMode && groups.length > 1 && (
               <Button
                 size="icon"
                 variant="ghost"
@@ -136,7 +143,7 @@ export default function WalletsPage() {
                 variant="ghost"
                 onClick={() => {
                   // Reordering works on the whole list, so it shows everything, ungrouped.
-                  setFilter("all")
+                  setTab("all")
                   setReorderMode((v) => !v)
                 }}
               >
@@ -172,20 +179,35 @@ export default function WalletsPage() {
           </div>
         ) : (
           <>
-            {!reorderMode && <WalletFilterChips groups={banks} hasCards={hasCards} value={filter} onChange={setFilter} />}
+            {!reorderMode && active.length > 1 && (
+              <Segmented
+                aria-label={t("wallets.tabsLabel")}
+                value={tab}
+                onChange={setTab}
+                options={[
+                  { value: "all", label: t("common.all") },
+                  { value: "bank", label: t("walletKind.bank") },
+                  { value: "cash", label: t("walletKind.cash") },
+                ]}
+              />
+            )}
             {showGroups ? (
-              <WalletGroups groups={groups} onSelect={openStatement} collapsible={filter === "all"} />
+              <WalletGroups groups={groups} onSelect={openStatement} onEdit={editable ? openEdit : undefined} primaryId={primaryId} />
+            ) : reorderMode ? (
+              <WalletList wallets={active} onSelect={openStatement} reorderMode onMove={move} primaryId={primaryId} />
+            ) : shown.length === 0 ? (
+              <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">{t("wallets.empty")}</p>
             ) : (
-              <WalletList wallets={active} onSelect={openStatement} reorderMode={reorderMode} onMove={move} />
+              <WalletList wallets={shown} onSelect={openStatement} onEdit={editable ? openEdit : undefined} primaryId={primaryId} />
             )}
           </>
         )}
       </section>
 
-      {filterWallets(archived, filter).length > 0 && (
+      {filterByTab(archived, tab).length > 0 && (
         <section className="space-y-2">
           <h2 className="px-1 text-sm font-medium text-muted-foreground">{t("wallets.archived")}</h2>
-          <WalletList wallets={filterWallets(archived, filter)} onSelect={openStatement} muted />
+          <WalletList wallets={filterByTab(archived, tab)} onSelect={openStatement} muted />
         </section>
       )}
 

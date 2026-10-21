@@ -2,7 +2,7 @@
 
 import { format } from "date-fns"
 import { ChevronDownIcon, Loader2Icon, RefreshCwIcon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { CurrencyConverter } from "@/components/market/currency-converter"
@@ -37,6 +37,14 @@ export default function MarketPage() {
   const [kind, setKind] = useState<Kind>("GOLD_24K")
   const [weight, setWeight] = useState({ damlung: "1", chi: "", hun: "" })
   const [allCurrencies, setAllCurrencies] = useState(false)
+
+  // The home quick actions open /market#fuel and /market#gold: the sections exist only once the prices are in.
+  const loaded = Boolean(market)
+  useEffect(() => {
+    if (!loaded) return
+    const id = window.location.hash.slice(1)
+    if (id === "fuel" || id === "gold") document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [loaded])
 
   const usdKhr = market?.nbc?.usd_khr ?? 0
   const reference = market?.gold?.reference ?? {}
@@ -74,7 +82,7 @@ export default function MarketPage() {
       {market?.nbc && <CurrencyConverter khrPer={market.nbc.khr_per} locale={locale} asOf={nbcShortDate(market.nbc, locale)} />}
 
       {market?.local_gold && (
-        <SettingsGroup title={t("market.localTitle")}>
+        <SettingsGroup id="gold" title={t("market.localTitle")}>
           <div className="flex items-center px-4 pt-2 pb-1 text-xs text-muted-foreground">
             <span className="flex-1">{t("market.perDamlungHeader")}</span>
             <span className="w-24 text-right">{t("market.sell")}</span>
@@ -109,7 +117,7 @@ export default function MarketPage() {
 
       {/* Fuel and gas (Ministry of Commerce, 10-day cycle), entered by an admin. */}
       {market?.fuel && (
-        <SettingsGroup title={t("fuel.section")}>
+        <SettingsGroup id="fuel" title={t("fuel.section")}>
           <div className="space-y-0.5 px-4 py-2.5 text-sm">
             {fuelLines(market.fuel, t, new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10), locale).map((line, i) => (
               <p key={i} className={i === 0 ? "text-xs text-muted-foreground" : "tabular-nums"}>

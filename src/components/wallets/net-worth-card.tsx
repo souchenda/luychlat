@@ -13,6 +13,8 @@ import { convert, roundMoney } from "@/lib/money"
 import { personalWallets } from "@/lib/pool-ledger"
 import { usePrefsStore } from "@/stores/prefs-store"
 
+import { WalletRing } from "./wallet-ring"
+
 /**
  * Wallet totals, plus assets (gold at market rate + land, house, vehicles…) in USD when given.
  * Shared pool wallets hold the group's money in custody: not the owner's net worth.
@@ -75,16 +77,22 @@ export function NetWorthCard({
   const totals = computeTotals(wallets ?? [], khrPerUsd, assetsUsd)
 
   return (
-    <section className="relative isolate overflow-hidden rounded-3xl bg-linear-to-br from-emerald-600 via-emerald-500 to-teal-700 p-5 text-white shadow-lg shadow-emerald-900/25 ring-1 ring-white/15">
+    // Emerald into navy with a thread of gold along the top (founder, 21/10/2026 — the ACLEDA-style hero in the app's colours).
+    <section className="relative isolate overflow-hidden rounded-3xl bg-linear-to-br from-emerald-600 via-emerald-700 to-[#0b2545] p-5 text-white shadow-lg shadow-emerald-900/25 ring-1 ring-white/15">
       {/* Glass sheen: soft light blooms and a top highlight, purely decorative. */}
       <span aria-hidden className="pointer-events-none absolute -top-20 -right-12 -z-10 size-56 rounded-full bg-white/20 blur-3xl" />
       <span aria-hidden className="pointer-events-none absolute -bottom-24 -left-10 -z-10 size-56 rounded-full bg-teal-300/25 blur-3xl" />
       <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-1/2 bg-linear-to-b from-white/12 to-transparent" />
+      <span aria-hidden className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-amber-300/80 to-transparent" />
 
       <div className="flex gap-3">
+        {/* The wallet ring on the left (/wallets); beside the action column on home it shrinks into the title row. */}
+        {!actions && !loading && <WalletRing wallets={wallets ?? []} />}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
-            <p className="text-[15px] font-medium text-white/85">{t("netWorth.title")}</p>
+            {actions && !loading && <span className="mr-1"><WalletRing wallets={wallets ?? []} size="sm" /></span>}
+            {/* «សមតុល្យសរុប» while the total is the wallets; «ទ្រព្យសកម្មសរុប» once gold, land or a vehicle is counted in it. */}
+            <p className="text-[15px] font-medium text-white/85">{t(totals.assets > 0 ? "netWorth.title" : "netWorth.balanceTitle")}</p>
             <button
               type="button"
               onClick={toggleHideBalances}
@@ -115,10 +123,13 @@ export function NetWorthCard({
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[13px] tabular-nums">
-            <span className="rounded-full bg-white/15 px-2.5 py-1 whitespace-nowrap ring-1 ring-white/20 backdrop-blur-sm">
+            {/* The two currencies apart, each with its own badge: what is held in dollars and in riel (never mixed by a rate). */}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 py-1 pr-2.5 pl-1 whitespace-nowrap ring-1 ring-white/20 backdrop-blur-sm" title={t("netWorth.inUsd")}>
+              <span className="rounded-full bg-white px-1.5 text-[11px] leading-[18px] font-bold text-emerald-800">USD</span>
               <Amount value={totals.usdWallets} currency="USD" />
             </span>
-            <span className="rounded-full bg-white/15 px-2.5 py-1 whitespace-nowrap ring-1 ring-white/20 backdrop-blur-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 py-1 pr-2.5 pl-1 whitespace-nowrap ring-1 ring-white/20 backdrop-blur-sm" title={t("netWorth.inKhr")}>
+              <span className="rounded-full bg-amber-300 px-1.5 text-[11px] leading-[18px] font-bold text-amber-950">KHR</span>
               <Amount value={totals.khrWallets} currency="KHR" />
             </span>
             {totals.assets > 0 && (

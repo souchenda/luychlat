@@ -1,10 +1,10 @@
 "use client"
 
-import { ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, UserIcon, UsersIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronUpIcon, EllipsisIcon, PencilIcon, ReceiptTextIcon, UserIcon, UsersIcon } from "lucide-react"
 import { walletDisplayName } from "@/lib/wallet-name"
 
 import { Amount } from "@/components/money/amount"
-import { Card } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useActiveWorkspace, useMembers } from "@/lib/data/hooks"
 import type { Wallet } from "@/lib/data/types"
 import { useT } from "@/lib/i18n/use-t"
@@ -13,6 +13,7 @@ import { convert } from "@/lib/money"
 import { maskAccount } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { getProvider } from "@/lib/wallets/providers"
+import { KIND_ACCENT, walletKind } from "@/lib/wallet-overview"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -29,9 +30,18 @@ type WalletListProps = {
   muted?: boolean
   /** Inside a bank group: the bank is in the header, so rows show only currency and account. */
   hideProvider?: boolean
+  /** The primary wallet (lib/wallet-overview › primaryWalletId): its «ចម្បង» badge. */
+  primaryId?: string | null
+  /** The ••• menu's «កែកាបូប» (editors only; without it the menu offers only the statement). */
+  onEdit?: (wallet: Wallet) => void
 }
 
-export function WalletList({ wallets, onSelect, reorderMode, onMove, muted, hideProvider }: WalletListProps) {
+/**
+ * The wallets as cards (founder, 21/10/2026 — after ACLEDA Mobile): a colour bar on the left for the kind (emerald cash,
+ * blue bank, gold savings, violet card), the name and its bank · currency · masked account, «ចម្បង» on the primary one,
+ * the balance (masked with the eye) and ••• for the statement or editing. A tap on the card opens its statement.
+ */
+export function WalletList({ wallets, onSelect, reorderMode, onMove, muted, hideProvider, primaryId, onEdit }: WalletListProps) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
@@ -41,14 +51,24 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted, hide
   const ownerName = (w: Wallet) => members.find((m) => m.user_id === w.owner_id)?.display_name
 
   return (
-    <Card className={cn("gap-0 divide-y py-0", muted && "opacity-70")}>
+    <div className={cn("space-y-2", muted && "opacity-70")}>
       {wallets.map((wallet, index) => {
         const other = wallet.currency === "USD" ? "KHR" : "USD"
         const content = (
           <>
             <WalletAvatar icon={wallet.icon} color={wallet.color} name={wallet.name} />
             <span className="min-w-0 flex-1 text-left">
-              <span className="block truncate text-sm font-medium" title={wallet.name}>{walletDisplayName(wallet)}</span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate text-sm font-medium" title={wallet.name}>{walletDisplayName(wallet)}</span>
+                {wallet.id === primaryId && (
+                  <span
+                    className="shrink-0 rounded-full bg-amber-400/15 px-1.5 py-px text-[11px] leading-4 font-semibold text-amber-700 ring-1 ring-amber-500/25 dark:text-amber-300"
+                    title={t("wallets.primaryHint")}
+                  >
+                    {t("wallets.primary")}
+                  </span>
+                )}
+              </span>
               <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                 {family && (
                   <span
@@ -70,8 +90,8 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted, hide
                 </span>
               </span>
             </span>
-            <span className="text-right">
-              <Amount value={wallet.balance} currency={wallet.currency} className="block text-sm font-semibold" />
+            <span className="shrink-0 text-right">
+              <Amount value={wallet.balance} currency={wallet.currency} className="block text-sm font-semibold whitespace-nowrap tabular-nums" />
               {wallet.od_limit ? (
                 // Overdraft line: what can still be spent (balance + OD), like the bank's "available".
                 <span className="block text-xs text-muted-foreground">
@@ -88,9 +108,13 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted, hide
           </>
         )
 
+        const bar = <span aria-hidden className={cn("absolute inset-y-0 left-0 w-1.5", KIND_ACCENT[walletKind(wallet)].bar)} />
+        const frame = "relative overflow-hidden rounded-2xl border bg-card shadow-xs"
+
         if (reorderMode) {
           return (
-            <div key={wallet.id} className="flex items-center gap-3 px-4 py-3">
+            <div key={wallet.id} className={cn(frame, "flex items-center gap-3 py-3 pr-2 pl-5")}>
+              {bar}
               {content}
               <span className="flex flex-col">
                 <button
@@ -117,25 +141,47 @@ export function WalletList({ wallets, onSelect, reorderMode, onMove, muted, hide
         }
 
         return (
-          <button
-            key={wallet.id}
-            type="button"
-            onClick={() => onSelect?.(wallet)}
-            className="block w-full px-4 py-3 text-left transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-muted/60"
-          >
-            <span className="flex items-center gap-3">
-              {content}
-              {onSelect && <ChevronRightIcon className="size-4 text-muted-foreground" />}
-            </span>
+          <div key={wallet.id} className={cn(frame, "transition-colors hover:bg-muted/40")}>
+            {bar}
+            <div className="flex items-center">
+              <button type="button" onClick={() => onSelect?.(wallet)} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-5 text-left">
+                {content}
+              </button>
+              {onSelect && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="mr-1 grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label={`${t("wallets.menu")}: ${wallet.name}`}
+                    >
+                      <EllipsisIcon className="size-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => onSelect(wallet)}>
+                      <ReceiptTextIcon />
+                      {t("wallets.viewStatement")}
+                    </DropdownMenuItem>
+                    {onEdit && (
+                      <DropdownMenuItem onSelect={() => onEdit(wallet)}>
+                        <PencilIcon />
+                        {t("wallets.edit")}
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
             {/* Credit card: available credit, usage and the next due date. */}
             {isCard(wallet) && (
-              <span className="mt-2 block pl-[52px]">
+              <span className="block pr-4 pb-3 pl-[68px]">
                 <CardMeter wallet={wallet} compact />
               </span>
             )}
-          </button>
+          </div>
         )
       })}
-    </Card>
+    </div>
   )
 }

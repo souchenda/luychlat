@@ -13,6 +13,7 @@ import { ExperienceSelector } from "@/components/islamic/islamic-mode"
 import { NextPrayerChip } from "@/components/islamic/next-prayer-chip"
 import { SourceSelector } from "@/components/onboarding/source-selector"
 import { CashFlowCard } from "@/components/dashboard/cash-flow-card"
+import { QuickActionGrid } from "@/components/dashboard/quick-actions"
 import { SmartHub } from "@/components/dashboard/smart-hub"
 import { SpendingTrendCard } from "@/components/dashboard/spending-trend-card"
 import { TopCategoriesCard } from "@/components/dashboard/top-categories-card"
@@ -51,6 +52,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useFeatures } from "@/lib/features"
+import { quickActions } from "@/lib/quick-actions"
 import { BirthdayCard } from "@/components/dashboard/birthday-card"
 import { BirthdayCelebrationModal } from "@/components/birthday/birthday-celebration-modal"
 import { LunarPill } from "@/components/dashboard/lunar-pill"
@@ -208,6 +210,13 @@ export default function HomePage() {
             </>
           )
         }
+      />
+
+      {/* Quick actions, three a row (founder, 21/10/2026 — after ACLEDA Mobile): a full-width sibling below the hero. */}
+      <QuickActionGrid
+        actions={quickActions({ editable, personal: workspace?.type === "PERSONAL", islamic, walletCount: active.length })}
+        onEntry={() => setEntryType("EXPENSE")}
+        onTransfer={() => setTransferOpen(true)}
       />
 
       {/* The signature dashboard (founder, 17/10/2026): the spending pulse, then the smart hub — the K-Score
