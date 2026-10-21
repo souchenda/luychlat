@@ -28,6 +28,8 @@ type PrefsState = {
   collapsedBanks: string[]
   /** 🪷 One soft temple bell with Home's holy-day reminder (Personal only, never with Islamic Mode). On by default. */
   holyDayChime: boolean
+  /** 💰 «ទីង-ទីង» on this phone when a KHQR payment arrives (lib/payment-chime.ts — founder, 21/10/2026). On by default. */
+  paymentChime: boolean
   /** `id` picks a specific Family or Business workspace. */
   setActiveWorkspace: (type: WorkspaceType, id?: string | null) => void
   toggleHideBalances: () => void
@@ -36,6 +38,7 @@ type PrefsState = {
   setWalletsGrouped: (grouped: boolean) => void
   toggleBankCollapsed: (key: string) => void
   setHolyDayChime: (on: boolean) => void
+  setPaymentChime: (on: boolean) => void
 }
 
 /** Restoring saved preferences: all as saved, except balances — every launch starts hidden. */
@@ -52,6 +55,7 @@ export const usePrefsStore = create<PrefsState>()(
       walletsGrouped: true,
       collapsedBanks: [],
       holyDayChime: true,
+      paymentChime: true,
       setActiveWorkspace: (activeWorkspace, id) =>
         set((s) => ({
           activeWorkspace,
@@ -63,6 +67,7 @@ export const usePrefsStore = create<PrefsState>()(
       setKhrPerUsd: (khrPerUsd) => set({ khrPerUsd }),
       setWalletsGrouped: (walletsGrouped) => set({ walletsGrouped }),
       setHolyDayChime: (holyDayChime) => set({ holyDayChime }),
+      setPaymentChime: (paymentChime) => set({ paymentChime }),
       toggleBankCollapsed: (key) =>
         set((s) => ({
           collapsedBanks: s.collapsedBanks.includes(key) ? s.collapsedBanks.filter((k) => k !== key) : [...s.collapsedBanks, key],

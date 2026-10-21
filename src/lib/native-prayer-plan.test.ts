@@ -36,7 +36,7 @@ describe("The native Adhan's plan (founder, 20/10/2026)", () => {
     assert.deepEqual(NATIVE_CHANNELS.adhan, { id: "prayer_adhan_v1", name: "Prayer Times Adhan", sound: "adhan.mp3", importance: 5 })
     assert.match(read("android/app/src/main/AndroidManifest.xml"), /<uses-permission android:name="android\.permission\.USE_EXACT_ALARM" \/>/)
     assert.match(read("android/app/capacitor.build.gradle"), /implementation project\(':capacitor-local-notifications'\)/)
-    assert.match(read("android/app/build.gradle"), /versionCode 4\n\s+versionName "1\.3"/)
+    assert.match(read("android/app/build.gradle"), /versionCode 5\n\s+versionName "1\.4"/) // 1.4: the payment chime's sound (21/10/2026)
     // One brand name on the home screen: the APK and the PWA both «អេប លុយឆ្លាត» (founder, 20/10/2026 — two names confused).
     assert.match(read("android/app/src/main/res/values/strings.xml"), /<string name="app_name">អេប លុយឆ្លាត<\/string>/)
     assert.match(read("capacitor.config.ts"), /appName: "អេប លុយឆ្លាត"/)

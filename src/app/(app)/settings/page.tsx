@@ -13,6 +13,7 @@ import { GuestImportRow } from "@/components/settings/guest-import"
 import { useOfficialBot, useTelegramLink } from "@/components/settings/official-bot"
 import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
 import { PushSettingsRow } from "@/components/notifications/push-prompt"
+import { playPaymentChimeSound, requestPaymentChimePermission } from "@/components/payments/payment-chime-listener"
 import { useHolyDayChimeSetting } from "@/components/dashboard/holy-day-reminder"
 import { playTempleBell } from "@/lib/temple-bell-player"
 import { Button } from "@/components/ui/button"
@@ -20,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { APP_VERSION } from "@/lib/app-info"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
-import { useActiveWorkspace, useProfile } from "@/lib/data/hooks"
+import { useActiveWorkspace, useProfile, useWorkspaces } from "@/lib/data/hooks"
 import { useSaveExchangeRate } from "@/lib/exchange-rate"
 import { useT } from "@/lib/i18n/use-t"
 import { canManageIslamicMode } from "@/lib/islamic-access"
@@ -158,6 +159,35 @@ function ExchangeRateRow() {
   )
 }
 
+/**
+ * 💰 «សំឡេងពេលទទួលបានប្រាក់»: the payment chime on this phone (founder, 21/10/2026 — components/payments/payment-chime-
+ * listener.tsx). Only for someone in a Business workspace (KHQR sales ring there). Turning it on asks the Android app's
+ * notification permission and plays the chime once.
+ */
+function PaymentChimeRow() {
+  const t = useT()
+  const business = (useWorkspaces().data ?? []).some((w) => w.type === "BUSINESS")
+  const on = usePrefsStore((s) => s.paymentChime)
+  const set = usePrefsStore((s) => s.setPaymentChime)
+  if (!business) return null
+  return (
+    <SettingsRow icon={<CoinsIcon />} tile="emerald" title={t("settings.paymentChime")} hint={t("settings.paymentChimeHint")}>
+      <Switch
+        checked={on}
+        aria-label={t("settings.paymentChime")}
+        onCheckedChange={(v) => {
+          set(v)
+          if (!v) return
+          playPaymentChimeSound()
+          void requestPaymentChimePermission().then((ok) => {
+            if (!ok) toast.error(t("settings.paymentChimeDenied"))
+          })
+        }}
+      />
+    </SettingsRow>
+  )
+}
+
 /** 🪷 «សំឡេងរំលឹកថ្ងៃសីល»: the bell with Home's holy-day reminder (turning it on plays it once). Not with Islamic Mode. */
 function HolyDayChimeRow() {
   const t = useT()
@@ -253,6 +283,7 @@ export default function SettingsPage() {
         </SettingsRow>
         <IslamicToolsRow />
         <PushSettingsRow />
+        <PaymentChimeRow />
         <HolyDayChimeRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
           {bot.data && telegram.data ? (
