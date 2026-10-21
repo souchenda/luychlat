@@ -20,6 +20,7 @@ import { channelPosts, cleanNoticePrices, isFuelNotice, parseNoticePeriod, price
 
 import { logEvent } from "./events"
 import { FUEL_DELAY_MIN } from "@/lib/scheduled-posts"
+import { newPricesText, periodLine } from "@/lib/fuel-post"
 import { facebookConfig, facebookFuelCaption, shouldPublishToFacebook } from "./facebook-publisher"
 import { scheduleFuelPost } from "./scheduled-posts"
 import { currentMarket, setFuelPrices } from "./market-sync"
@@ -115,38 +116,7 @@ async function readNotice(imageUrl: string): Promise<Reading | null> {
   return null
 }
 
-/** ▲ / ▼ against the previous period's price (none when unchanged or unknown). */
-function change(now: number, before: number | null | undefined) {
-  if (!before || before === now) return ""
-  return ` (${now > before ? "▲" : "▼"} ${riel(Math.abs(now - before))})`
-}
-
-const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
-
-/** «សម្រាប់ថ្ងៃទី ១១ ដល់ ២១ ខែតុលា ឆ្នាំ ២០២៦» — the period exactly as the notice states it. */
-export function periodLine(from: string, to: string): string {
-  const [fy, fm, fd] = from.split("-").map(Number)
-  const [ty, tm, td] = to.split("-").map(Number)
-  const day = (n: number) => kmDigits(String(n).padStart(2, "0"))
-  const start = fm === tm && fy === ty ? `${day(fd)}` : `${day(fd)} ខែ${KM_MONTHS[fm - 1]}${fy === ty ? "" : ` ឆ្នាំ ${kmDigits(String(fy))}`}`
-  return `សម្រាប់ថ្ងៃទី ${start} ដល់ ${day(td)} ខែ${KM_MONTHS[tm - 1]} ឆ្នាំ ${kmDigits(String(ty))}`
-}
-
-/** The community channel post for a new notice. */
-export function newPricesText(fuel: Pick<FuelPrices, "regular" | "diesel" | "from" | "to"> & { super?: number | null }, previous: Pick<FuelPrices, "regular" | "diesel"> & { super?: number | null } | null, postId: number): string {
-  return [
-    "⛽ តម្លៃលក់រាយប្រេងឥន្ធនៈផ្លូវការ (ក្រសួងពាណិជ្ជកម្ម)",
-    `📅 ${periodLine(fuel.from, fuel.to)} (អនុវត្តចាប់ពីម៉ោង ១ រសៀល)`,
-    "",
-    `• សាំងធម្មតា (EA92) ៖ ${riel(fuel.regular)} ៛/លីត្រ${change(fuel.regular, previous?.regular)}`,
-    // EA95 only when the notice lists it — never a placeholder.
-    ...(fuel.super ? [`• សាំងស៊ុបពែរ (EA95) ៖ ${riel(fuel.super)} ៛/លីត្រ${change(fuel.super, previous?.super)}`] : []),
-    `• ប្រេងម៉ាស៊ូត (Diesel) ៖ ${riel(fuel.diesel)} ៛/លីត្រ${change(fuel.diesel, previous?.diesel)}`,
-    "",
-    `ℹ️ ប្រភព៖ សេចក្តីជូនដំណឹងក្រសួងពាណិជ្ជកម្ម · t.me/${CHANNEL}/${postId}`,
-    "✨ ចុះឈ្មោះប្រើអេប លុយឆ្លាត ដោយឥតគិតថ្លៃ ដើម្បីទទួលបានមុខងារឆ្លាតៗជាច្រើនទៀត! 👇👇",
-  ].join("\n")
-}
+export { newPricesText, periodLine } from "@/lib/fuel-post"
 
 /**
  * One check of the channel (a scheduled slot). `lastSlot`: the day's last noon-window

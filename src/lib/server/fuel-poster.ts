@@ -138,18 +138,39 @@ export function fuelPoster(p: FuelPoster): Buffer {
     ctx.fillStyle = "rgba(209,250,229,0.85)"
     ctx.fillText(c.unit, cx, top + 336)
 
-    // The change badge.
+    // The change badge: a drawn ▼ / ▲ (never a glyph — it is not in the brand fonts) and the words.
     if (c.change) {
       const tone = BADGE[c.change.tone]
-      ctx.font = `700 ${fit(ctx, c.change.text, 700, 32, cardW - 80)}px ${FAMILIES}`
-      const bw = ctx.measureText(c.change.text).width + 56
+      const arrow = c.change.tone === "same" ? 0 : 22
+      const space = arrow ? 14 : 0
+      ctx.font = `700 ${fit(ctx, c.change.text, 700, 32, cardW - 80 - arrow - space)}px ${FAMILIES}`
+      const tw = ctx.measureText(c.change.text).width
+      const bw = tw + arrow + space + 56
       const bh = 60
       const by = top + cardH - 104
       roundRect(ctx, cx - bw / 2, by, bw, bh, bh / 2)
       ctx.fillStyle = tone.fill
       ctx.fill()
       ctx.fillStyle = tone.text
-      ctx.fillText(c.change.text, cx, by + 41)
+      const x0 = cx - (tw + arrow + space) / 2
+      if (arrow) {
+        const ay = by + bh / 2
+        ctx.beginPath()
+        if (c.change.tone === "down") {
+          ctx.moveTo(x0, ay - 8)
+          ctx.lineTo(x0 + arrow, ay - 8)
+          ctx.lineTo(x0 + arrow / 2, ay + 10)
+        } else {
+          ctx.moveTo(x0, ay + 9)
+          ctx.lineTo(x0 + arrow, ay + 9)
+          ctx.lineTo(x0 + arrow / 2, ay - 9)
+        }
+        ctx.closePath()
+        ctx.fill()
+      }
+      ctx.textAlign = "left"
+      ctx.fillText(c.change.text, x0 + arrow + space, by + 41)
+      ctx.textAlign = "center"
     }
   })
 

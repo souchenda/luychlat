@@ -15,11 +15,15 @@ export const kmRiel = (n: number) => km(new Intl.NumberFormat("en-US").format(n)
 export type ChangeTone = "down" | "up" | "same"
 export type FuelChange = { tone: ChangeTone; text: string }
 
-/** The badge: «▼ ចុះ ៣០០ ៛», «▲ ឡើង ១០០ ៛», «មិនប្រែប្រួល» — or nothing when the cycle before is unknown. */
+/**
+ * The badge: «ចុះ ៣០០ ៛» (drawn after a ▼), «ឡើង ១០០ ៛» (after a ▲), «មិនប្រែប្រួល» — or nothing when the cycle before is
+ * unknown. The arrow is drawn by the poster as a shape: «▼» is not in the brand fonts and came out as an empty box on the
+ * server (founder, 21/10/2026).
+ */
 export function fuelChange(now: number, before: number | null | undefined): FuelChange | null {
   if (before == null) return null
   if (now === before) return { tone: "same", text: "មិនប្រែប្រួល" }
-  return now < before ? { tone: "down", text: `▼ ចុះ ${kmRiel(before - now)} ៛` } : { tone: "up", text: `▲ ឡើង ${kmRiel(now - before)} ៛` }
+  return now < before ? { tone: "down", text: `ចុះ ${kmRiel(before - now)} ៛` } : { tone: "up", text: `ឡើង ${kmRiel(now - before)} ៛` }
 }
 
 /** «ចាប់ពីថ្ងៃទី ២១ តុលា ដល់ ០១ វិច្ឆិកា ២០២៦» (the year once when both ends share it). */
