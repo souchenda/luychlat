@@ -285,7 +285,10 @@ export function previewButtons(id: number, status: PostStatus, targets: Targets,
   const short = targets.telegram && targets.facebook ? "Telegram + Facebook" : targets.facebook ? "Facebook" : "Telegram"
   return [
     // A later day is named on the button itself (founder, 20/10/2026): «✅ យល់ព្រម (ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក)».
-    ...(status === "PENDING" ? [[{ text: when && kmWhen(when.publishAt, when.now).startsWith("ថ្ងៃទី") ? `✅ យល់ព្រម (ផ្សាយថ្ងៃ ${kmDayMonth(when.publishAt)} ម៉ោង ${kmClock(when.publishAt)})` : "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)", callback_data: `sp:${id}:a` }]] : []),
+    // Its time already passed (a held post): ✅ publishes at once (lib/server/scheduled-posts.ts onCallback, 21/10/2026).
+    ...(status === "PENDING"
+      ? [[{ text: when && Date.parse(when.now) >= Date.parse(when.publishAt) ? "✅ យល់ព្រម និងផ្សាយឥឡូវនេះ" : when && kmWhen(when.publishAt, when.now).startsWith("ថ្ងៃទី") ? `✅ យល់ព្រម (ផ្សាយថ្ងៃ ${kmDayMonth(when.publishAt)} ម៉ោង ${kmClock(when.publishAt)})` : "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)", callback_data: `sp:${id}:a` }]]
+      : []),
     [{ text: `🚀 ផុសភ្លាមៗ (${short})`, callback_data: `sp:${id}:p` }],
     [{ text: kind && COMEDY_KINDS.includes(kind) ? "❌ ផ្អាក / បដិសេធ" : "❌ ផ្អាកថ្ងៃនេះ", callback_data: `sp:${id}:x` }],
   ]

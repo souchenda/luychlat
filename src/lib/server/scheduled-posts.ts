@@ -14,6 +14,7 @@ import { postFooter, withFooter } from "@/lib/post-footer"
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import {
   dueAction,
+  endOfCambodiaDay,
   isPreviewed,
   isReplaceCallback,
   kmClock,
@@ -181,13 +182,16 @@ export function createScheduler(d: SchedulerDeps) {
    * Schedule a post (idempotent). A pending post with no preview yet gets one while its time is still
    * ahead — a new one, or one re-armed for a fresh preview (status back to PENDING, previews emptied).
    */
-  async function schedulePost(kind: PostKind, postKey: string, payload: Record<string, string | null>, publishAt: string) {
+  async function schedulePost(kind: PostKind, postKey: string, payload: Record<string, string | null>, publishAt: string, opts: { late?: boolean } = {}) {
     const row = await d.schedule(kind, postKey, payload, publishAt)
     // A post that waits for the founder's decision is previewed; of the factual feeds (AUTO_PUBLISH_KINDS, created
     // APPROVED, published at their time) only the safety net is — the 05:30 prayer times, the evening before with ❌
     // and reply-editing (founder, 21/10/2026). The bulletin and the NBC rates publish silently (19/10/2026).
     const previewable = Boolean(row && isPreviewed(row.kind, row.status))
-    if (row && previewable && !row.previews?.length && d.now() < Date.parse(row.publish_at) && (row.created || (await d.adminChats()).length))
+    // A fresh card while the post's time is still ahead — or, for a re-preview (`late`), until its day ends: a held post
+    // can still be approved until midnight (founder, 21/10/2026 — lesson 14 corrected after its 08:00).
+    const open = opts.late ? d.now() < endOfCambodiaDay(Date.parse(row?.publish_at ?? "")) : d.now() < Date.parse(row?.publish_at ?? "")
+    if (row && previewable && !row.previews?.length && open && (row.created || (await d.adminChats()).length))
       await sendPreviews(row)
     return row
   }
@@ -331,6 +335,12 @@ export function createScheduler(d: SchedulerDeps) {
     const chat = cb.message?.chat
     const actor = chat?.type === "private" ? chat.id : cb.from?.id
     if (!parsed || !chat || !actor) return d.answer(cb.id, "")
+    // ✅ on a post whose time has passed (held, waiting for a tap — founder, 21/10/2026): published at once. Approved
+    // only, the timer would expire it once 90 minutes late and the approval would be lost.
+    if (parsed.action === "approve") {
+      const current = await d.get(parsed.id)
+      if (current && d.now() >= Date.parse(current.publish_at)) parsed.action = "publish"
+    }
     let taken: PostRow | null
     try {
       taken = await d.take(parsed.id, parsed.action === "publish" ? "PUBLISHED" : parsed.action === "approve" ? "APPROVED" : "PAUSED", actor)
@@ -824,7 +834,7 @@ export async function scheduledPostsTick() {
   const now = phnomPenhToday()
   const offset = await hijriOffset()
   // The «repreview» flags this build may act on — add a migration's new flag here in the same commit.
-  const REPREVIEW_READY = ["sleep-dua-wasl"]
+  const REPREVIEW_READY = ["sleep-dua-wasl", "lesson14-hadith"]
   await real().tick(now.day, now.hour * 60 + now.minute, (d) => toHijri(dateOf(d), offset))
   // Every holiday — national and royal, Islamic, Chinese, global (founder, 20/10/2026): previewed from 48 hours before at
   // 08:00, published at 05:00 on the day once approved (a missed preview window is caught up until then — idempotent).
@@ -838,7 +848,7 @@ export async function scheduledPostsTick() {
     let removed = 0
     for (const p of row.previews ?? []) if ((await tg("deleteMessage", { chat_id: p.chat, message_id: p.msg })).ok) removed++
     await botDb().rpc("bot_post_repreview_done", { p_key: botKey(), p_id: row.id })
-    await real().schedulePost(kind, key, payload, at)
+    await real().schedulePost(kind, key, payload, at, { late: true })
     logEvent("info", "scheduled-posts", `${row.post_key}: the old preview withdrawn (${removed} message(s)) and sent again`)
   }
   for (const { day, date } of nationalDaysToPreview(now.day, now.hour * 60 + now.minute, offset))

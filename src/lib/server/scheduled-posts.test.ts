@@ -1,5 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 
 import { atMinute, isAutoPublish, previewButtons, previewText, SAFETY_NET_KINDS, takeAllowed, type PostKind } from "../scheduled-posts"
 
@@ -298,6 +300,42 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     assert.equal(f.rows[0].status, "PAUSED")
     await f.at(23, 30)
     assert.deepEqual(f.published, [])
+  })
+  it("regression: ✅ on a held post after its time only approved it — the timer then expired it 90 minutes late; now it publishes at once", async () => {
+    const f = fake(clock(7, 15))
+    await f.s.schedulePost("MORNING", DAY, {}, new Date(clock(8, 0)).toISOString())
+    await f.at(8, 0) // nobody tapped: held
+    await f.at(10, 0)
+    assert.deepEqual(f.published, [])
+    f.setNow(10, 5)
+    await f.press("sp:1:a") // ✅ two hours late
+    assert.equal(f.rows[0].status, "PUBLISHED")
+    assert.deepEqual(f.published, [1])
+    await f.at(10, 6)
+    assert.deepEqual(f.published, [1]) // once
+    // Before its time ✅ still waits for the time.
+    const g = fake(clock(7, 15))
+    await g.s.schedulePost("MORNING", DAY, {}, new Date(clock(8, 0)).toISOString())
+    await g.press("sp:1:a")
+    assert.equal(g.rows[0].status, "APPROVED")
+    assert.deepEqual(g.published, [])
+  })
+  it("the ✅ button says so once the time has passed: «✅ យល់ព្រម និងផ្សាយឥឡូវនេះ»", () => {
+    const targets = { telegram: true, facebook: false }
+    const at = new Date(clock(8, 0)).toISOString()
+    assert.equal(previewButtons(3, "PENDING", targets, "ISLAMIC_DAILY", { publishAt: at, now: new Date(clock(9, 0)).toISOString() })[0][0].text, "✅ យល់ព្រម និងផ្សាយឥឡូវនេះ")
+    assert.equal(previewButtons(3, "PENDING", targets, "ISLAMIC_DAILY", { publishAt: at, now: new Date(clock(7, 30)).toISOString() })[0][0].text, "✅ យល់ព្រម (ផ្សាយតាមម៉ោង)")
+  })
+  it("a re-preview after the post's time still sends a fresh card until midnight (lesson 14 corrected after 08:00); a first schedule does not", async () => {
+    const f = fake(clock(9, 0))
+    await f.s.schedulePost("ISLAMIC_DAILY", DAY, { day: DAY }, new Date(clock(8, 0)).toISOString())
+    assert.equal(f.previewsSent.length, 0) // the time has passed: no first preview (as before)
+    await f.s.schedulePost("ISLAMIC_DAILY", DAY, { day: DAY }, new Date(clock(8, 0)).toISOString(), { late: true })
+    assert.equal(f.previewsSent.length, 1) // the re-preview: a held post can be approved until midnight
+    const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    assert.match(sp, /await real\(\)\.schedulePost\(kind, key, payload, at, \{ late: true \}\)/)
+    assert.match(sp, /const REPREVIEW_READY = \[[^\]]*"lesson14-hadith"/)
+    assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270238000000_repreview_lesson14.sql"), "utf8"), /'repreview', 'lesson14-hadith'\)\n where kind = 'ISLAMIC_DAILY' and post_key = '2026-10-21' and status = 'PENDING'/)
   })
   it("a post that needs the founder's decision is still previewed (the 07:00 poster)", async () => {
     const f = fake(clock(6, 15))

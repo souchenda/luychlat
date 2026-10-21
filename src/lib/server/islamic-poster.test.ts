@@ -27,8 +27,17 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
   })
   it("nothing is ever cut («…»): all 14 lessons, the fast reminder (Sunday and Wednesday) and Jumu'ah", () => {
     for (let i = 0; i < ISLAMIC_TIPS.length; i++) {
-      const r = renderIslamicPoster(islamicPostContent("ISLAMIC_DAILY", day(i), h(7)))
+      const c = islamicPostContent("ISLAMIC_DAILY", day(i), h(7))
+      const r = renderIslamicPoster(c)
       assert.equal(r.truncated, false, `lesson ${i}`)
+      // A lesson in the Prophet's own words (lesson 14 — founder, 21/10/2026): the intro on one line, his words and the
+      // du'a in up to three lines each.
+      if (c.posterHookLines === 3) {
+        assert.equal(r.type.hookLines.length, 3, `lesson ${i}`)
+        assert.equal(r.type.hookLines[0].length, 1, `lesson ${i}: the intro on one line`)
+        assert.ok(r.type.hookLines.every((l) => l.length <= 3), `lesson ${i}: ${JSON.stringify(r.type.hookLines)}`)
+        continue
+      }
       assert.ok(r.type.hookLines.every((l) => l.length <= 2), `lesson ${i}: ${JSON.stringify(r.type.hookLines)}`)
       // The principle and its takeaway, at most three lines in all (founder, 20/10/2026).
       assert.equal(r.type.hookLines.length, 2, `lesson ${i}`)
@@ -119,7 +128,8 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
       for (const d of ["2026-10-18", "2026-10-19", "2026-10-21", "2026-10-23"]) {
         const c = islamicPostContent(kind, d, h(8))
         if (!c.posterLines) continue // the kind is not posted that day (the content still exists)
-        assert.ok(c.posterLines.length >= 1 && c.posterLines.length <= 2, `${kind} ${d}`)
+        // One or two hooks; three only for a lesson in the Prophet's own words (the intro, his words, the du'a).
+        assert.ok(c.posterLines.length >= 1 && c.posterLines.length <= (c.posterHookLines === 3 && kind === "ISLAMIC_DAILY" ? 3 : 2), `${kind} ${d}`)
         for (const l of c.posterLines) assert.doesNotMatch(l, /អានថា|អត្ថន័យ៖/, `${kind}: a reading on the poster`)
         const { truncated, type } = renderIslamicPoster(c)
         assert.equal(truncated, false, `${kind} ${d}`)
@@ -210,5 +220,24 @@ describe("The Iftar du'a in natural Khmer (founder, 19/10/2026)", () => {
     assert.equal(r.truncated, false)
     assert.equal(r.type.hookLines?.[0].length, 3)
     assert.ok(r.type.quote! >= POSTER_TYPE.quote[POSTER_TYPE.quote.length - 1], `quote ${r.type.quote}px`)
+  })
+})
+
+describe("Lesson 14's poster and caption (founder, 21/10/2026 — Sahih al-Bukhari 2397)", () => {
+  it("the poster quotes him: the intro, his words, the du'a — nothing cut; the caption is the reviewer's translation, under 1,024", async () => {
+    const { islamicPostContent, islamicCaptionHtml } = await import("../islamic-channel")
+    const { ISLAMIC_TIPS } = await import("../islamic-tips")
+    const t = ISLAMIC_TIPS.find((x) => x.id === "isl-avoid-debt")!
+    const c = islamicPostContent("ISLAMIC_DAILY", "2026-10-21", h(10))
+    assert.equal(c.title, "គ្រោះថ្នាក់នៃការជំពាក់បំណុល")
+    assert.deepEqual(c.posterLines, [t.hadith!.intro, t.hadith!.quote, t.hadith!.dua])
+    assert.equal(c.posterHookLines, 3)
+    assert.deepEqual(c.paragraphs, t.hadith!.caption)
+    const r = renderIslamicPoster(c)
+    assert.equal(r.truncated, false)
+    assert.ok(r.type.hookLines!.flat().join(" ").includes("តាមពាក្យសន្យានៅពេលដែលគាត់បានសន្យា។»"))
+    const caption = islamicCaptionHtml(c)
+    assert.ok(caption.length <= 1024, `${caption.length}`)
+    assert.match(caption, /📖 ប្រភព៖ <a href="https:\/\/sunnah\.com\/bukhari:2397">Sahih al-Bukhari 2397<\/a>/)
   })
 })

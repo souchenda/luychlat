@@ -331,10 +331,13 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
     hijriShort: hijri ? formatHijri(hijri, "km", { short: true }) : null,
     date: kmDay(day),
     title: tip.title.km,
-    paragraphs: [tip.body.km],
+    // A lesson in the Prophet's own words carries the reviewer's full translation (founder, 21/10/2026); else its text.
+    paragraphs: tip.hadith ? tip.hadith.caption : [tip.body.km],
     // The poster: the principle and its money takeaway (founder, 20/10/2026 — the first sentence alone repeated the
     // title and lost the advice); the whole lesson is in the caption. At most three lines in all (islamic-tips.test.ts).
-    posterLines: [tip.poster.principle, tip.poster.takeaway],
+    // A hadith lesson quotes him instead: the intro, his words and the du'a, each up to three lines.
+    posterLines: tip.hadith ? [tip.hadith.intro, tip.hadith.quote, tip.hadith.dua] : [tip.poster.principle, tip.poster.takeaway],
+    ...(tip.hadith ? { posterHookLines: 3 } : {}),
     source: tip.ref,
   }
 }

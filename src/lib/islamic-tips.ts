@@ -13,7 +13,16 @@ import type { Tip } from "@/lib/tips"
  * religious principle (white), then the practical money takeaway (gold) — saving, debts, budgets, honest trade —
  * each one sentence, together at most three lines, no parentheses. The whole lesson stays in the caption.
  */
-export type IslamicTip = Tip & { ref: { label: string; url: string }; poster: { principle: string; takeaway: string } }
+export type IslamicTip = Tip & {
+  ref: { label: string; url: string }
+  poster: { principle: string; takeaway: string }
+  /**
+   * A lesson told in the Prophet's own words (founder, 21/10/2026 — Yerny's review of lesson 14: a generic money line
+   * had replaced what he ﷺ said). The poster quotes him — the intro (white), his words, the du'a (gold) — and the
+   * caption carries the reviewer's full translation, verbatim ("" = a blank line).
+   */
+  hadith?: { intro: string; quote: string; dua: string; caption: string[] }
+}
 
 const quran = (surah: string, s: number, a: number) => ({ label: `${surah} ${s}:${a}`, url: `https://quran.com/${s}/${a}` })
 const bukhari = (n: number) => ({ label: `Sahih al-Bukhari ${n}`, url: `https://sunnah.com/bukhari:${n}` })
@@ -164,13 +173,32 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
     ref: bukhari(1429),
   },
   {
+    // Lesson 14 in the Prophet's own words — the translation verified by Yerny (Islamic reviewer, 21/10/2026) from
+    // sunnah.com; the generic line «ខ្ចីតែពេលចាំបាច់ …» is gone (it was never his words).
     id: "isl-avoid-debt",
     topic: "islamic",
-    poster: { principle: `${G.PROPHET_FULL} តែងសុំការការពារពីបំណុល។`, takeaway: "ខ្ចីតែពេលចាំបាច់ ហើយមានផែនការសងច្បាស់លាស់ មុនពេលខ្ចី។" },
-    title: { km: "កុំជំពាក់បំណុលដោយមិនចាំបាច់", en: "Avoid unnecessary debt" },
+    poster: { principle: `${G.PROPHET_FULL} តែងសុំការការពារពីបំណុល។`, takeaway: "បំណុលអាចបំផ្លាញទាំងកិត្តិយស ភាពស្មោះត្រង់ និងសច្ចភាពរបស់មនុស្ស។" },
+    hadith: {
+      intro: `${G.PROPHET_FULL} មានប្រសាសន៍ថា៖`,
+      quote: "«នៅពេលដែលមនុស្សម្នាក់ជំពាក់បំណុលគេ គាត់តែងតែនិយាយកុហកនៅពេលនិយាយ ហើយតែងតែមិនគោរពតាមពាក្យសន្យានៅពេលដែលគាត់បានសន្យា។»",
+      dua: "«ឱ អល់ឡោះ! ទូលបង្គំសូមជ្រកកោននឹងទ្រង់ ឱ្យរួចផុតពីអំពើបាប និងការជំពាក់បំណុលគេ»",
+      caption: [
+        "",
+        "លោកស្រី Aisha (សូមអល់ឡោះពេញចិត្តនឹងលោកស្រី) បានរាយការណ៍ថា៖ ព្យាការីរបស់អល់ឡោះ ﷺ ធ្លាប់អង្វរអំពាវនាវនៅក្នុងការថ្វាយបង្គំថា៖",
+        "« ឱ អល់ឡោះ! ខ្ញុំសូមជ្រកកោននឹងទ្រង់ ឱ្យរួចផុតពីអំពើបាបទាំងឡាយ និងពីការជំពាក់បំណុលគេ។ »",
+        "",
+        "មានបុរសម្នាក់បានសួរថា៖ « ឱ ព្យាការីរបស់អល់ឡោះ! ខ្ញុំសង្កេតឃើញថាលោកតែងតែសុំការការពារពីអល់ឡោះ ឱ្យរួចផុតពីការជំពាក់បំណុលគេ ជាញឹកញាប់ណាស់? »",
+        "",
+        "លោក ﷺ បានឆ្លើយតបថា៖",
+        "« នៅពេលដែលមនុស្សម្នាក់ជំពាក់បំណុលគេ គាត់តែងតែនិយាយកុហកនៅពេលនិយាយ ហើយតែងតែមិនគោរពតាមពាក្យសន្យា នៅពេលដែលគាត់បានសន្យាអ្វីមួយ។ »",
+        "",
+        "💡 មេរៀនហិរញ្ញវត្ថុ៖ បំណុលមិនត្រឹមតែជាបន្ទុកលុយកាក់ប៉ុណ្ណោះទេ តែវាអាចបំផ្លាញទាំងកិត្តិយស ភាពស្មោះត្រង់ និងសច្ចភាពរបស់មនុស្សទៀតផង។",
+      ],
+    },
+    title: { km: "គ្រោះថ្នាក់នៃការជំពាក់បំណុល", en: "The danger of debt" },
     body: {
-      km: `${G.PROPHET_FULL} តែងសុំការការពារពីអល់ឡោះ ពីបាបកម្ម និងពីបំណុល ព្រោះអ្នកជំពាក់បំណុល ងាយនិយាយកុហក និងមិនរក្សាការសន្យា។ ខ្ចីតែពេលចាំបាច់ ហើយមានផែនការសងច្បាស់លាស់។`,
-      en: "The Prophet ﷺ often sought Allah's protection from sin and from debt, for a person in debt is drawn to lie and to break promises. Borrow only when needed, with a clear plan to repay.",
+      km: `${G.PROPHET_FULL} មានប្រសាសន៍ថា៖ «នៅពេលដែលមនុស្សម្នាក់ជំពាក់បំណុលគេ គាត់តែងតែនិយាយកុហកនៅពេលនិយាយ ហើយតែងតែមិនគោរពតាមពាក្យសន្យានៅពេលដែលគាត់បានសន្យា។» បំណុលមិនត្រឹមតែជាបន្ទុកលុយកាក់ប៉ុណ្ណោះទេ តែវាអាចបំផ្លាញទាំងកិត្តិយស ភាពស្មោះត្រង់ និងសច្ចភាពរបស់មនុស្សទៀតផង។`,
+      en: "The Prophet ﷺ said: «When a person is in debt, he lies when he speaks and breaks his promises when he promises.» Debt is not only a burden on money — it can ruin a person's honour, honesty and truthfulness.",
     },
     ref: bukhari(2397),
   },

@@ -53,3 +53,26 @@ describe("A lesson's poster: the principle and its money takeaway (founder, 20/1
     }
   })
 })
+
+describe("Lesson 14 in the Prophet's own words (founder, 21/10/2026 — Yerny's review, Sahih al-Bukhari 2397)", () => {
+  const t = ISLAMIC_TIPS.find((x) => x.id === "isl-avoid-debt")!
+  it("regression: a generic money line was given as the lesson — the hadith itself, verbatim from the reviewer", () => {
+    assert.equal(ISLAMIC_TIPS.indexOf(t) + 1, 14)
+    assert.equal(t.title.km, "គ្រោះថ្នាក់នៃការជំពាក់បំណុល")
+    assert.equal(t.ref.label, "Sahih al-Bukhari 2397")
+    assert.deepEqual(
+      { intro: t.hadith!.intro, quote: t.hadith!.quote, dua: t.hadith!.dua },
+      {
+        intro: "ព្យាការី មូហាំម៉ាត់ ﷺ មានប្រសាសន៍ថា៖",
+        quote: "«នៅពេលដែលមនុស្សម្នាក់ជំពាក់បំណុលគេ គាត់តែងតែនិយាយកុហកនៅពេលនិយាយ ហើយតែងតែមិនគោរពតាមពាក្យសន្យានៅពេលដែលគាត់បានសន្យា។»",
+        dua: "«ឱ អល់ឡោះ! ទូលបង្គំសូមជ្រកកោននឹងទ្រង់ ឱ្យរួចផុតពីអំពើបាប និងការជំពាក់បំណុលគេ»",
+      },
+    )
+    const caption = t.hadith!.caption.join("\n")
+    assert.ok(caption.includes("លោកស្រី Aisha (សូមអល់ឡោះពេញចិត្តនឹងលោកស្រី) បានរាយការណ៍ថា៖"))
+    assert.ok(caption.includes("« នៅពេលដែលមនុស្សម្នាក់ជំពាក់បំណុលគេ គាត់តែងតែនិយាយកុហកនៅពេលនិយាយ ហើយតែងតែមិនគោរពតាមពាក្យសន្យា នៅពេលដែលគាត់បានសន្យាអ្វីមួយ។ »"))
+    assert.ok(caption.endsWith("💡 មេរៀនហិរញ្ញវត្ថុ៖ បំណុលមិនត្រឹមតែជាបន្ទុកលុយកាក់ប៉ុណ្ណោះទេ តែវាអាចបំផ្លាញទាំងកិត្តិយស ភាពស្មោះត្រង់ និងសច្ចភាពរបស់មនុស្សទៀតផង។"))
+    // The generic line is gone everywhere — the poster, the caption, the in-app tip.
+    for (const s of [t.poster.principle, t.poster.takeaway, t.body.km, caption]) assert.ok(!s.includes("ខ្ចីតែពេលចាំបាច់"), s)
+  })
+})
