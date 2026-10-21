@@ -1,6 +1,6 @@
 "use client"
 
-import { BellIcon, BookOpenIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
+import { BellIcon, BookOpenIcon, StoreIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -188,6 +188,33 @@ function PaymentChimeRow() {
   )
 }
 
+/**
+ * 🏪 «មុខងារ Soundbox លើតុគិតលុយ» (Task #442): this phone as the shop's counter soundbox — the screen kept on in the app,
+ * the chime and the spoken amount on (components/payments/counter-mode.tsx). Business workspaces only.
+ */
+function CounterModeRow() {
+  const t = useT()
+  const business = (useWorkspaces().data ?? []).some((w) => w.type === "BUSINESS")
+  const on = usePrefsStore((s) => s.counterMode)
+  const set = usePrefsStore((s) => s.setCounterMode)
+  if (!business) return null
+  return (
+    <SettingsRow icon={<StoreIcon />} tile="emerald" title={t("settings.counterMode")} hint={t("settings.counterModeHint")}>
+      <Switch
+        checked={on}
+        aria-label={t("settings.counterMode")}
+        onCheckedChange={(v) => {
+          set(v)
+          if (!v) return
+          // A tap: the browser now allows sound — the chime once, so the cashier hears it is ready.
+          playPaymentChimeSound()
+          void requestPaymentChimePermission()
+        }}
+      />
+    </SettingsRow>
+  )
+}
+
 /** 🪷 «សំឡេងរំលឹកថ្ងៃសីល»: the bell with Home's holy-day reminder (turning it on plays it once). Not with Islamic Mode. */
 function HolyDayChimeRow() {
   const t = useT()
@@ -284,6 +311,7 @@ export default function SettingsPage() {
         <IslamicToolsRow />
         <PushSettingsRow />
         <PaymentChimeRow />
+        <CounterModeRow />
         <HolyDayChimeRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
           {bot.data && telegram.data ? (

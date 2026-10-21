@@ -30,6 +30,11 @@ type PrefsState = {
   holyDayChime: boolean
   /** 💰 «ទីង-ទីង» on this phone when a KHQR payment arrives (lib/payment-chime.ts — founder, 21/10/2026). On by default. */
   paymentChime: boolean
+  /**
+   * 🏪 Counter Soundbox Mode on this phone (Task #442): the screen kept on everywhere in the app, with the chime and the
+   * spoken amount — a dedicated counter device. Off by default; Business workspaces only (lib/payment-chime.ts).
+   */
+  counterMode: boolean
   /** `id` picks a specific Family or Business workspace. */
   setActiveWorkspace: (type: WorkspaceType, id?: string | null) => void
   toggleHideBalances: () => void
@@ -39,6 +44,8 @@ type PrefsState = {
   toggleBankCollapsed: (key: string) => void
   setHolyDayChime: (on: boolean) => void
   setPaymentChime: (on: boolean) => void
+  /** Turning the counter mode on also turns the chime on (a counter phone that stays silent is no soundbox). */
+  setCounterMode: (on: boolean) => void
 }
 
 /** Restoring saved preferences: all as saved, except balances — every launch starts hidden. */
@@ -56,6 +63,7 @@ export const usePrefsStore = create<PrefsState>()(
       collapsedBanks: [],
       holyDayChime: true,
       paymentChime: true,
+      counterMode: false,
       setActiveWorkspace: (activeWorkspace, id) =>
         set((s) => ({
           activeWorkspace,
@@ -68,6 +76,7 @@ export const usePrefsStore = create<PrefsState>()(
       setWalletsGrouped: (walletsGrouped) => set({ walletsGrouped }),
       setHolyDayChime: (holyDayChime) => set({ holyDayChime }),
       setPaymentChime: (paymentChime) => set({ paymentChime }),
+      setCounterMode: (counterMode) => set(counterMode ? { counterMode, paymentChime: true } : { counterMode }),
       toggleBankCollapsed: (key) =>
         set((s) => ({
           collapsedBanks: s.collapsedBanks.includes(key) ? s.collapsedBanks.filter((k) => k !== key) : [...s.collapsedBanks, key],

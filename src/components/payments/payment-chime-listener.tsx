@@ -6,12 +6,15 @@
  * +50,000 ៛» — once per transaction. In the Android app it is a notification
  * on the «Payment Alerts» channel (its own sound, vibration, the lock screen) while the app is open or running; in a
  * browser the chime plays while the page is on screen. On /soundbox the SoundBox announces it itself.
+ * Then the amount is SPOKEN (Task #442 — «ទទួលបានប្រាក់ ប្រាំម៉ឺនរៀល», hands-free like a bank soundbox): the device's own
+ * voice (Web Speech), Khmer when it has one, else English; while the app is on screen (no web page can speak with the
+ * screen locked — the counter mode keeps it on).
  */
 import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
 
 import { isNativeApp } from "@/lib/native-bridge"
-import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
+import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentSpeech, SPEECH_AFTER_CHIME_MS, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
@@ -48,15 +51,37 @@ export async function requestPaymentChimePermission(): Promise<boolean> {
   return perm?.display === "granted"
 }
 
-/** The chime alone (the settings switch plays it once when turned on; the browser's ring). */
-export function playPaymentChimeSound(): void {
+/** The chime alone (the settings switch plays it once when turned on; the browser's ring). `then` runs when it ends. */
+export function playPaymentChimeSound(then?: () => void): void {
+  let done = false
+  const next = () => {
+    if (done) return
+    done = true
+    then?.()
+  }
   try {
     const a = new Audio(PAYMENT_CHIME_URL)
     a.volume = 1
-    void a.play().catch(() => {}) // a browser may refuse sound before the first tap — the notification still shows
+    a.addEventListener("ended", next, { once: true })
+    void a.play().catch(next) // a browser may refuse sound before the first tap — the notification still shows
   } catch {
     // no audio here
   }
+  if (then) window.setTimeout(next, SPEECH_AFTER_CHIME_MS + 600) // its end not reported: the voice still follows
+}
+
+/** «ទទួលបានប្រាក់ ប្រាំម៉ឺនរៀល» in the device's voice — on screen only; nothing when the device has no voice. */
+export function speakPayment(e: Pick<PaymentEvent, "amount" | "currency">): void {
+  const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined
+  if (!synth || typeof SpeechSynthesisUtterance === "undefined" || document.visibilityState !== "visible") return
+  const voices = synth.getVoices()
+  const say = paymentSpeech(e, voices)
+  if (!say) return
+  const u = new SpeechSynthesisUtterance(say.text)
+  u.lang = say.tag
+  u.voice = voices.find((v) => v.name === say.voice) ?? null
+  u.rate = 0.95
+  synth.speak(u)
 }
 
 async function ring(e: PaymentEvent): Promise<void> {
@@ -66,9 +91,11 @@ async function ring(e: PaymentEvent): Promise<void> {
     const n = await plugin()
     // No schedule: shown at once, on the channel whose sound is the chime (vibration, the lock screen).
     await n.schedule({ notifications: [{ id: paymentNotificationId(ringKey(e)), title, body, channelId: PAYMENT_CHANNEL.id, sound: PAYMENT_CHANNEL.sound, extra: { url: "/soundbox" } }] })
+    // The notification's own sound is the chime; the amount follows it, spoken, while the app is on screen.
+    window.setTimeout(() => speakPayment(e), SPEECH_AFTER_CHIME_MS)
     return
   }
-  if (typeof document !== "undefined" && document.visibilityState === "visible") playPaymentChimeSound()
+  if (typeof document !== "undefined" && document.visibilityState === "visible") playPaymentChimeSound(() => speakPayment(e))
 }
 
 export function PaymentChimeListener() {
@@ -85,6 +112,8 @@ export function PaymentChimeListener() {
     const supabase = getSupabaseBrowserClient()
     if (!supabase || !userId) return
     if (isNativeApp()) void ensurePaymentChannel()
+    // The device lists its voices only after the first ask (Chrome): asked now, so the first payment is spoken.
+    if (typeof window !== "undefined") window.speechSynthesis?.getVoices()
     let stopped = false
     let retry: number | undefined
     let attempt = 0

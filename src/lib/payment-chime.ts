@@ -16,7 +16,7 @@
  * background. With the app closed nothing can wake it yet (no Firebase in the APK — see CLAUDE.md). In a browser:
  * the chime plays while the page is on screen. On /soundbox the SoundBox announces it itself (no double ring).
  */
-import { isLatePush, soundboxPush } from "@/lib/soundbox"
+import { announcementText, isLatePush, soundboxPush, VOICE_TAGS, type VoiceLang } from "@/lib/soundbox"
 
 /** The Android channel (a channel's sound can never change: a new sound is a new id). */
 export const PAYMENT_CHANNEL = {
@@ -90,3 +90,32 @@ export function paymentFromRow(row: Record<string, unknown>, source: PaymentSour
   const str = (v: unknown) => (typeof v === "string" ? v : null)
   return { id, source, transaction_id: str(row.transaction_id), bank: str(row.bank), amount, currency, account_name: str(row.account_name), payer: str(row.payer), transaction_time: str(row.transaction_time), created_at: str(row.created_at) }
 }
+
+/** A device voice, as the browser lists it (speechSynthesis.getVoices). */
+export type DeviceVoice = { lang: string; name?: string }
+
+const speaks = (voices: readonly DeviceVoice[], lang: VoiceLang) => voices.find((v) => v.lang.replace("_", "-").toLowerCase().startsWith(lang))
+
+/**
+ * What the phone SAYS after the chime (founder, 21/10/2026 — Task #442, like an ABA / Bakong soundbox, hands-free): the
+ * SoundBox's own words (lib/soundbox.ts › announcementText) — «ទទួលបានប្រាក់ ប្រាំម៉ឺនរៀល», «ទទួលបានប្រាក់
+ * ម្ភៃប្រាំដុល្លារ» — in Khmer words, so every Khmer voice reads the amount the same way (digits are read differently
+ * by each engine). A device with no Khmer voice says it in English («Received 50,000 riel»), as the SoundBox does;
+ * none at all → null (the chime and the notification stay).
+ */
+export function paymentSpeech(e: Pick<PaymentEvent, "amount" | "currency">, voices: readonly DeviceVoice[]): { lang: VoiceLang; tag: string; voice: string | null; text: string } | null {
+  for (const lang of ["km", "en"] as const) {
+    const v = speaks(voices, lang)
+    if (v) return { lang, tag: VOICE_TAGS[lang], voice: v.name ?? null, text: announcementText(e, lang) }
+  }
+  return null
+}
+
+/** The chime first, then the voice: how long to wait for the chime when its end isn't reported (ms). */
+export const SPEECH_AFTER_CHIME_MS = 1_400
+
+/**
+ * Counter Soundbox Mode (Task #442): a shop's counter phone — Business workspaces only, this device only. The screen is
+ * kept on everywhere in the app (the wake lock), and the chime and the voice stay on.
+ */
+export const counterModeActive = (o: { on: boolean; business: boolean }) => o.on && o.business

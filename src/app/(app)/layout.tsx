@@ -18,6 +18,7 @@ import { AudioMiniPlayer } from "@/components/islamic/audio-player"
 import { FestiveBadge, FestiveSplash } from "@/components/culture/festive-greeting"
 import { HashScroller } from "@/components/layout/hash-scroller"
 import { PrayerAlertScheduler } from "@/components/islamic/prayer-alerts"
+import { CounterModeKeeper } from "@/components/payments/counter-mode"
 import { PaymentChimeListener } from "@/components/payments/payment-chime-listener"
 import { AppLock } from "@/components/lock/app-lock"
 import { MfaGate } from "@/components/security/mfa-gate"
@@ -74,6 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <StepUpDialog />
       <PrayerAlertScheduler />
       <PaymentChimeListener />
+      <CounterModeKeeper />
       <RealtimeSync />
       <PendingInviteRedirect />
       <GuestImportPrompt />

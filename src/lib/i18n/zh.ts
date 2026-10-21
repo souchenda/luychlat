@@ -3617,6 +3617,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "settings.paymentChime": "💰 收款提示音",
   "settings.paymentChimeHint": "客户通过 KHQR 付款时响起「叮叮」并通知 — 应用打开或在后台运行时",
   "settings.paymentChimeDenied": "请在手机设置中允许 App Luy Chlat 的通知",
+  "settings.counterMode": "🏪 收银台语音播报模式",
+  "settings.counterModeHint": "收银台手机：打开应用时屏幕常亮，每笔收款响起「叮叮」并播报「收款…」——请保持充电并让应用停留在屏幕上",
   "settings.holyDayChimeHint": "首页佛日提醒时轻响一声钟声（仅个人空间）",
   "login.trustUnified": "银行级安全（Cloudflare 防护）· 数据与银行回单 100% 保密",
   "login.orPhoneEmail": "或使用手机号 / 邮箱",
