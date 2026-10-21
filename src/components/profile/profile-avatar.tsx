@@ -1,6 +1,6 @@
 "use client"
 
-import { Building2Icon } from "lucide-react"
+import { Building2Icon, UserIcon } from "lucide-react"
 
 import { useImageUrl } from "@/lib/profile"
 import { cn } from "@/lib/utils"
@@ -45,6 +45,9 @@ export function ProfileAvatar({
         <img src={src} alt="" className="size-full object-cover" />
       ) : business && !name.trim() ? (
         <Building2Icon className="size-1/2" />
+      ) : !name.trim() ? (
+        // No name yet: a person, never a «?».
+        <UserIcon className="size-1/2" />
       ) : (
         initials(name)
       )}

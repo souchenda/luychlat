@@ -35,3 +35,31 @@ describe("Home header — greeting on its own line, never «…»", () => {
     assert.deepEqual(headerBadge({ islamic: true, hijri: { day: 7, month: 5, year: 1448 }, locale: "km" }), { kind: "hijri", text: "🌙 7 ជុម៉ាដាល់អូឡា 1448" })
   })
 })
+
+describe("the person's photo beside the greeting (founder, 21/10/2026 — Task #444, after ACLEDA)", () => {
+  it("a round 48 px avatar with the emerald hairline and a soft shadow, left of the greeting; both open Settings", () => {
+    assert.match(header, /<div className="flex items-start gap-3">\s*\{workspace\?\.type !== "BUSINESS" && \(\s*<Link href="\/settings" tabIndex=\{-1\} aria-hidden[^>]*>\s*<ProfileAvatar path=\{profile\?\.avatar_path\} name=\{profile\?\.display_name\?\.trim\(\) \?\? ""\} className="size-12 border-2 border-emerald-500\/25 text-sm shadow-sm dark:border-emerald-400\/30" \/>/)
+    assert.match(header, /<Link href="\/settings" className="block rounded-md" aria-label=\{t\("settings\.title"\)\}>\s*<h1 className="block w-full break-words/)
+    // The avatar comes before the greeting; the date and the pill stay on their row under it.
+    assert.ok(header.indexOf("avatar_path") < header.indexOf("{t(greeting.key, greeting.params)}"))
+    assert.ok(header.indexOf("</h1>") < header.indexOf("{headerDate(today, locale)}"))
+    assert.match(header, /<LunarPill onOpen=/)
+  })
+  it("no photo: the initials («ចិ» for ចិន្តា, «SC» for Sou Chenda); no name: a person icon, never a «?»", async () => {
+    const { initials } = await import("../src/components/profile/profile-avatar")
+    assert.equal(initials("ចិន្តា"), "ចិ")
+    assert.equal(initials("Sou Chenda"), "SC")
+    const avatar = readFileSync(join(process.cwd(), "src/components/profile/profile-avatar.tsx"), "utf8")
+    assert.match(avatar, /\) : !name\.trim\(\) \? \(\s*\/\/[^\n]*\n\s*<UserIcon className="size-1\/2" \/>/)
+  })
+})
+
+describe("the wallet ring: the icon and the count inside, a tap to the wallets (Task #444)", () => {
+  const ring = readFileSync(join(process.cwd(), "src/components/wallets/wallet-ring.tsx"), "utf8")
+  it("a wallet icon with the count under it, inside the ring — no «កាបូប» label hanging below", () => {
+    assert.match(ring, /<Link href="\/wallets" aria-label=\{label\}/)
+    assert.match(ring, /<WalletIcon className="size-\[18px\] text-white\/85" strokeWidth=\{2\} \/>\s*<span className="mt-0\.5 text-base font-bold tabular-nums">\{digits\(mix\.total\)\}<\/span>/)
+    assert.doesNotMatch(ring, /netWorth\.walletCount", \{ n: "" \}/) // the old label under the ring
+    assert.ok(ring.indexOf("</svg>") < ring.indexOf("<WalletIcon")) // drawn over the ring, centred in it
+  })
+})
