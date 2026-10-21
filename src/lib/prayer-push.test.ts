@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { groupByMember, prayerPushPayload, type PrayerPushTarget } from "./prayer-push"
+import { PROVINCES } from "./prayer"
+import { groupByMemberProvince, nearestProvince, prayerPushPayload, pushProvince, type PrayerPushTarget } from "./prayer-push"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 
@@ -24,11 +25,12 @@ describe("The prayer-time Web Push — the phone rings with the app closed (foun
     // The service worker keeps it on screen.
     assert.match(read("public/sw.js"), /requireInteraction: Boolean\(data\.requireInteraction\)/)
   })
-  it("one claim per member, day and prayer; all their phones rung in that pass", () => {
-    const row = (user_id: string, endpoint: string): PrayerPushTarget => ({ user_id, endpoint, p256dh: "k", auth: "a", province: "phnom_penh", language: "km" })
-    const g = groupByMember([row("u1", "e1"), row("u2", "e2"), row("u1", "e3")])
-    assert.deepEqual([...g.keys()], ["u1", "u2"])
-    assert.deepEqual(g.get("u1")!.map((r) => r.endpoint), ["e1", "e3"])
+  it("one claim per member, day, prayer and province; a member's phones in one province rung in one pass", () => {
+    const row = (user_id: string, endpoint: string, province = "phnom_penh"): PrayerPushTarget => ({ user_id, endpoint, p256dh: "k", auth: "a", province, language: "km" })
+    const g = groupByMemberProvince([row("u1", "e1"), row("u2", "e2"), row("u1", "e3"), row("u1", "e4", "kampot")])
+    assert.deepEqual([...g.keys()], ["u1|phnom_penh", "u2|phnom_penh", "u1|kampot"])
+    assert.deepEqual(g.get("u1|phnom_penh")!.map((r) => r.endpoint), ["e1", "e3"])
+    assert.deepEqual(g.get("u1|kampot")!.map((r) => r.endpoint), ["e4"])
   })
   it("the dispatcher: Islamic Mode members' phones with prayer alerts on, every minute, logged with the real counts", () => {
     const d = read("src/lib/server/bot-dispatch.ts")
@@ -72,3 +74,42 @@ describe("Holiday notifications at 05:00; the festival wish keeps the religious 
     for (const f of ["src/lib/calendar/cambodia-holidays.ts", "src/lib/i18n/dictionaries.ts"]) assert.doesNotMatch(read(f), /សែនព្រះខែ|នំព្រះខែ/, f)
   })
 })
+
+describe("The prayer push at the phone's own province (founder, 21/10/2026 — Task #433)", () => {
+  it("regression: Yerny's app said Kampot, the lock screen rang at Phnom Penh's time — the phone's province is the app's", () => {
+    assert.equal(pushProvince("kampot", null, PROVINCES), "kampot")
+    assert.equal(pushProvince("unknown_place", null, PROVINCES), "phnom_penh")
+    // «My location»: the nearest province — the GPS itself never leaves the phone.
+    assert.equal(pushProvince("gps", { lat: 10.61, lng: 104.18 }, PROVINCES), "kampot")
+    assert.equal(nearestProvince(11.55, 104.92, PROVINCES), "phnom_penh")
+    assert.equal(nearestProvince(13.36, 103.86, PROVINCES), "siem_reap")
+  })
+  it("Kampot and Phnom Penh ring at their own minutes, each with its own name", async () => {
+    const { prayerTimes } = await import("./prayer")
+    const date = { year: 2026, month: 10, day: 21 }
+    const at = (key: string) => {
+      const p = PROVINCES.find((x) => x.key === key)!
+      return prayerTimes(date, p.lat, p.lng).isha
+    }
+    assert.notEqual(at("kampot"), at("phnom_penh")) // Kampot is west of Phnom Penh: Isha a few minutes later
+    assert.ok(at("kampot") > at("phnom_penh"))
+  })
+  it("the app saves the province on this phone's subscription; the server uses it first and claims per province", () => {
+    const push = read("src/lib/push.ts")
+    assert.match(push, /supabase\.rpc\("set_prayer_province", \{ p_endpoint: sub\.endpoint, p_province: province \}\)/)
+    assert.match(push, /await setPrayerProvince\(pushProvince\(place, gps, PROVINCES\)\)/) // right after subscribing
+    const picker = read("src/components/islamic/location-picker.tsx")
+    assert.match(picker, /export function usePrayerProvinceSync\(\) \{[\s\S]*?setPrayerProvince\(province\)[\s\S]*?\[province\]\)/)
+    assert.match(read("src/app/(app)/islamic/layout.tsx"), /usePrayerProvinceSync\(\)/)
+    assert.match(read("src/components/islamic/next-prayer-chip.tsx"), /usePrayerProvinceSync\(\)/)
+    const d = read("src/lib/server/bot-dispatch.ts")
+    assert.match(d, /for \(const rows of groupByMemberProvince\(data as PrayerPushTarget\[\]\)\.values\(\)\)/)
+    assert.match(d, /p_province: place\.key/)
+    assert.match(d, /prayerAlert\.body", \{ time: formatMinutes\(times\[prayer\]\), place: pick\(place, language\) \}/)
+    const sql = read("supabase/migrations/20270248000000_prayer_push_province.sql")
+    assert.match(sql, /coalesce\(\s*p\.prayer_province,/)
+    assert.match(sql, /add primary key \(user_id, day, prayer, province\)/)
+    assert.match(sql, /create or replace function public\.set_prayer_province\(p_endpoint text, p_province text\)/)
+  })
+})
+

@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2Icon, LocateFixedIcon, MapPinIcon, MapPinOffIcon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useT } from "@/lib/i18n/use-t"
 import { PROVINCES } from "@/lib/prayer"
+import { pushProvince } from "@/lib/prayer-push"
+import { setPrayerProvince } from "@/lib/push"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
@@ -21,6 +23,19 @@ export function useIslamicLocation(): { lat: number; lng: number; label: string;
   if (place === "gps" && gps) return { ...gps, label: t("prayer.myLocation"), gps: true }
   const p = PROVINCES.find((x) => x.key === place) ?? PROVINCES[0]
   return { lat: p.lat, lng: p.lng, label: pick(p, locale), gps: false }
+}
+
+/**
+ * Keeps the server's prayer push on this phone's place (founder, 21/10/2026): the province picked here — or, with «my
+ * location», the nearest province (the GPS stays on the phone) — is saved on this phone's push subscription whenever it
+ * changes, so the lock screen rings at the same minute, with the same place, as the app.
+ */
+export function usePrayerProvinceSync() {
+  const { place, gps } = useIslamicLocalStore()
+  const province = pushProvince(place, gps, PROVINCES)
+  useEffect(() => {
+    void setPrayerProvince(province).catch(() => false)
+  }, [province])
 }
 
 export type LocateResult = { ok: true; lat: number; lng: number } | { ok: false; reason: "denied" | "unavailable" | "insecure" | "unsupported" }

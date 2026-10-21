@@ -4,7 +4,7 @@ import { ChevronRightIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 
-import { useIslamicLocation } from "@/components/islamic/location-picker"
+import { useIslamicLocation, usePrayerProvinceSync } from "@/components/islamic/location-picker"
 import { PRAYER_NAMES } from "@/lib/islamic/glossary"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { cambodiaNow, formatMinutes, nextPrayer, prayerTimes } from "@/lib/prayer"
@@ -22,6 +22,8 @@ const left = (seconds: number) => {
 export function NextPrayerChip() {
   const islamic = useIslamicEnabled()
   const location = useIslamicLocation()
+  // Home keeps the server's prayer push on this phone's province too (founder, 21/10/2026).
+  usePrayerProvinceSync()
   const [now, setNow] = useState(() => cambodiaNow())
   useEffect(() => {
     const id = window.setInterval(() => setNow(cambodiaNow()), 30_000)

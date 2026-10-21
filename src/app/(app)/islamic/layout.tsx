@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation"
 import { BrandMark } from "@/components/brand-mark"
 import { Button } from "@/components/ui/button"
 import { IslamicModeOff } from "@/components/islamic/islamic-mode"
+import { usePrayerProvinceSync } from "@/components/islamic/location-picker"
 import { type MessageKey, contentLocale } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { formatHijri, ISLAMIC_ARABIC, toHijri } from "@/lib/islamic"
@@ -34,6 +35,8 @@ export default function IslamicLayout({ children }: { children: React.ReactNode 
   const { settings, loading } = useIslamicSettings()
   const offset = Number(useIslamicDefaults().hijri_offset ?? 0) || 0
   const hijri = toHijri(new Date(), offset)
+  // The lock screen's prayer push follows the province picked here (founder, 21/10/2026).
+  usePrayerProvinceSync()
 
   return (
     <div className="space-y-4">

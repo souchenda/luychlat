@@ -1,6 +1,9 @@
 "use client"
 
+import { PROVINCES } from "@/lib/prayer"
+import { pushProvince } from "@/lib/prayer-push"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 
 /**
  * Phone push notifications (the 07:00 morning message). Needs the service worker,
@@ -54,6 +57,10 @@ export async function enablePush(): Promise<PushState> {
   if (!supabase || !json.endpoint || !json.keys?.p256dh || !json.keys.auth) throw new Error("push_subscribe_failed")
   const { error } = await supabase.rpc("push_subscribe", { p_endpoint: json.endpoint, p_p256dh: json.keys.p256dh, p_auth: json.keys.auth, p_user_agent: navigator.userAgent.slice(0, 200) })
   if (error) throw error
+  // The new subscription learns this phone's prayer province at once (founder, 21/10/2026).
+  const { place, gps } = useIslamicLocalStore.getState()
+  syncedProvince = null
+  await setPrayerProvince(pushProvince(place, gps, PROVINCES)).catch(() => false)
   return "on"
 }
 
@@ -80,4 +87,21 @@ export async function setPrayerPush(on: boolean): Promise<boolean> {
   if (!sub || !supabase) return false
   const { data, error } = await supabase.rpc("set_prayer_push", { p_endpoint: sub.endpoint, p_on: on })
   return !error && data === true
+}
+
+/**
+ * This phone's prayer province for the server's push (founder, 21/10/2026 — Yerny's lock screen rang at Phnom Penh's
+ * 18:52, her app set to Kampot said Isha at 18:56): saved on this phone's subscription, so the server rings it at its
+ * province's own time with its name. Sent once per value per session; false without a push subscription.
+ */
+let syncedProvince: string | null = null
+export async function setPrayerProvince(province: string): Promise<boolean> {
+  if (!supported() || syncedProvince === province) return false
+  const sub = await (await navigator.serviceWorker.getRegistration())?.pushManager.getSubscription()
+  const supabase = getSupabaseBrowserClient()
+  if (!sub || !supabase) return false
+  const { data, error } = await supabase.rpc("set_prayer_province", { p_endpoint: sub.endpoint, p_province: province })
+  const ok = !error && data === true
+  if (ok) syncedProvince = province
+  return ok
 }

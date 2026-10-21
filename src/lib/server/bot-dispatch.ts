@@ -2,7 +2,7 @@
 import { pick, type Locale, type MessageKey } from "@/lib/i18n/dictionaries"
 import { cambodiaNow, formatMinutes, prayerTimes, PROVINCES } from "@/lib/prayer"
 import { duePrayer } from "@/lib/prayer-alerts"
-import { groupByMember, prayerPushPayload, type PrayerPushTarget } from "@/lib/prayer-push"
+import { groupByMemberProvince, prayerPushPayload, type PrayerPushTarget } from "@/lib/prayer-push"
 import { pushToPhones } from "@/lib/server/web-push"
 import { sendAdhanAudio } from "@/lib/server/adhan-audio"
 
@@ -92,7 +92,9 @@ async function sendPrayerTimes() {
 
 /**
  * The prayer-time Web Push (founder, 20/10/2026): Islamic Mode members' phones ring at each prayer even with the app
- * closed — once per member, day and prayer, on all their phones; logged with the real counts.
+ * closed — logged with the real counts. Each phone at its own province's time and with its name (founder, 21/10/2026 —
+ * the province picked in the app, saved on the subscription; else the bot's; else Phnom Penh): the phones are grouped by
+ * member and province, once per member, day, prayer and province.
  */
 async function sendPrayerPush() {
   const db = botDb()
@@ -103,14 +105,15 @@ async function sendPrayerPush() {
   let members = 0
   let phones = 0
   let failed = 0
-  for (const [userId, rows] of groupByMember(data as PrayerPushTarget[])) {
+  for (const rows of groupByMemberProvince(data as PrayerPushTarget[]).values()) {
     const first = rows[0]
+    const userId = first.user_id
     const language = (["km", "en", "zh"].includes(first.language) ? first.language : "km") as Locale
     const place = PROVINCES.find((p) => p.key === first.province) ?? PROVINCES[0]
     const times = prayerTimes(clock.date, place.lat, place.lng)
     const prayer = duePrayer(times, clock.minutes)
     if (!prayer) continue
-    const { data: claimed } = await db.rpc("bot_claim_prayer_push", { p_key: botKey(), p_user_id: userId, p_day: day, p_prayer: prayer })
+    const { data: claimed } = await db.rpc("bot_claim_prayer_push", { p_key: botKey(), p_user_id: userId, p_day: day, p_prayer: prayer, p_province: place.key })
     if (!claimed) continue
     const name = tr(language, `prayer.${prayer}` as MessageKey)
     const payload = prayerPushPayload({ prayer, title: tr(language, "prayerAlert.title", { name }), body: tr(language, "prayerAlert.body", { time: formatMinutes(times[prayer]), place: pick(place, language) }) })
