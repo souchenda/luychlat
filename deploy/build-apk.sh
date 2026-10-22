@@ -103,11 +103,18 @@ docker run --rm --memory=2500m --cpus=1.5 --cpu-shares=256 \
 
 apk="$SRC/android/app/build/outputs/apk/release/LuyChlat-release.apk"
 [ -f "$apk" ] || { echo "✗ APK not found: $apk" >&2; exit 1; }
+# Versioned (Task #468): /downloads/LuyChlat-v<versionName>.apk for the in-app update (lib/apk-version.ts), and the same
+# file as /LuyChlat.apk so the old links keep working. Each lands whole (a .new then a rename), never half-written.
+version=$(sed -n 's/^[[:space:]]*versionName "\([0-9.]*\)".*/\1/p' "$SRC/android/app/build.gradle" | head -1)
+[ -n "$version" ] || { echo "✗ versionName not found in android/app/build.gradle" >&2; exit 1; }
+named="LuyChlat-v$version.apk"
+install -m 0644 "$apk" "$OUT/$named.new"
+mv -f "$OUT/$named.new" "$OUT/$named"
 install -m 0644 "$apk" "$OUT/LuyChlat.apk.new"
 mv -f "$OUT/LuyChlat.apk.new" "$OUT/LuyChlat.apk"
-(cd "$OUT" && sha256sum LuyChlat.apk > LuyChlat.apk.sha256 && chmod 644 LuyChlat.apk.sha256)
+(cd "$OUT" && sha256sum LuyChlat.apk > LuyChlat.apk.sha256 && sha256sum "$named" > "$named.sha256" && chmod 644 LuyChlat.apk.sha256 "$named.sha256")
 rm -f "$SRC/android/keystore.properties"
-echo "✓ $(du -h "$OUT/LuyChlat.apk" | cut -f1) → $OUT/LuyChlat.apk ($(cut -c1-16 "$OUT/LuyChlat.apk.sha256")…)"
+echo "✓ v$version $(du -h "$OUT/$named" | cut -f1) → $OUT/$named and $OUT/LuyChlat.apk ($(cut -c1-16 "$OUT/LuyChlat.apk.sha256")…)"
 # Nothing left behind (founder, 20/10/2026): the APK is published, so the build's temporary Android outputs go (the
 # source folder is recreated by the next build), then dangling images and the build cache beyond its newest 2 GB.
 # The Gradle cache and the SDK stay, so the next build is still fast.

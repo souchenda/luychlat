@@ -92,7 +92,7 @@ fi
 
 # 4. Patch the site once: upstream → include, maintenance page for 502 / 503 / 504,
 #    and /LuyChlat.apk (the Android app, from /var/www/luysmart-downloads).
-if grep -q "luysmart-upstream.conf" "$site" && grep -q "luysmart-maintenance" "$site" && grep -q "proxy_buffer_size" "$site" && grep -q "luysmart-downloads" "$site"; then
+if grep -q "luysmart-upstream.conf" "$site" && grep -q "luysmart-maintenance" "$site" && grep -q "proxy_buffer_size" "$site" && grep -q "luysmart-downloads" "$site" && grep -q "luychlat-versioned-apk" "$site"; then
   nginx -t >/dev/null 2>&1 && nginx -s reload
   echo "✓ Nginx already set up ($site)"
   exit 0
@@ -144,6 +144,23 @@ if "luysmart-downloads" not in s:
         types { }
         default_type application/vnd.android.package-archive;
         add_header Content-Disposition 'attachment; filename="LuyChlat.apk"' always;
+        add_header Cache-Control "no-cache" always;
+    }
+
+"""
+    m = re.search(r"^[ \t]*(# Fingerprinted build assets[^\n]*\n[ \t]*)?location /_next/static/", s, re.M)
+    if not m:
+        sys.exit("app locations not found")
+    s = s[: m.start()] + block + s[m.start():]
+if "luychlat-versioned-apk" not in s:
+    # The versioned APK for the in-app update (Task #468, lib/apk-version.ts): /downloads/LuyChlat-v1.5.apk.
+    block = """    # The versioned Android app (luychlat-versioned-apk, Task #468): /downloads/LuyChlat-v<version>.apk, same folder.
+    location ~ ^/downloads/(LuyChlat-v[0-9]+(\\.[0-9]+)*\\.apk)$ {
+        root /var/www/luysmart-downloads;
+        try_files /$1 =404;
+        types { }
+        default_type application/vnd.android.package-archive;
+        add_header Content-Disposition 'attachment; filename="$1"' always;
         add_header Cache-Control "no-cache" always;
     }
 

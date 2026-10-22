@@ -24,6 +24,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { APP_VERSION } from "@/lib/app-info"
+import { apkVersion, installedApkCode } from "@/lib/apk-version"
+import { isNativeApp } from "@/lib/native-bridge"
 import { signOutEverywhere } from "@/lib/auth/sign-out"
 import { useActiveWorkspace, useProfile, useWorkspaces } from "@/lib/data/hooks"
 import { useSaveExchangeRate } from "@/lib/exchange-rate"
@@ -321,6 +323,13 @@ export default function SettingsPage() {
   const bot = useOfficialBot()
   const telegram = useTelegramLink()
   const [aboutOpen, setAboutOpen] = useState(false)
+  // The Android app's own version (Task #468): «ជំនាន់ v1.5 (Build 6)»; nothing in a browser.
+  const [apkLabel, setApkLabel] = useState<string | null>(null)
+  useEffect(() => {
+    const v = apkVersion(installedApkCode(navigator.userAgent, isNativeApp()))
+    if (v.kind === "old") setApkLabel(t("settings.apkOld"))
+    if (v.kind === "known") setApkLabel(v.version ? t("settings.apkVersion", { version: v.version, code: v.code }) : t("settings.apkBuild", { code: v.code }))
+  }, [t])
   const [deleteOpen, setDeleteOpen] = useState(false)
   // next-themes only knows the theme after mounting.
   const [mounted, setMounted] = useState(false)
@@ -427,7 +436,7 @@ export default function SettingsPage() {
         <SettingsRow onClick={() => useOnboardingStore.getState().show()} icon={<CompassIcon />} tile="emerald" title={t("onboarding.replay")} hint={t("onboarding.replayHint")} />
         <SettingsRow href="/guide" icon={<BookOpenIcon />} tile="teal" title={t("guide.title")} hint={t("guide.settingsHint")} />
         <SettingsRow href="/support" icon={<LifeBuoyIcon />} tile="sky" title={t("support.title")} hint={t("support.settingsHint")} />
-        <SettingsRow onClick={() => setAboutOpen(true)} icon={<InfoIcon />} tile="emerald" title={t("about.title")}>
+        <SettingsRow onClick={() => setAboutOpen(true)} icon={<InfoIcon />} tile="emerald" title={t("about.title")} hint={apkLabel ?? undefined}>
           <StatusBadge>v{APP_VERSION}</StatusBadge>
         </SettingsRow>
       </SettingsGroup>

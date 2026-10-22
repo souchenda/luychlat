@@ -47,7 +47,9 @@ describe("Every production release reaches the founder's private chat (founder, 
     assert.ok(after.indexOf("docker image prune -af") < after.indexOf("docker builder prune -f --keep-storage 2GB"), "images before the cache trim")
     assert.match(after, /docker builder prune -f --keep-storage 2GB >\/dev\/null 2>&1 \|\| echo "! Build cache not trimmed \(the app is deployed\)"/) // never fails a live release
     const apk = read("deploy/build-apk.sh").replace(/\r\n/g, "\n")
-    const end = apk.slice(apk.indexOf('echo "✓ $(du -h "$OUT/LuyChlat.apk"'))
+    const at = apk.indexOf('echo "✓ v$version $(du -h "$OUT/$named"') // the published line (versioned since Task #468)
+    assert.ok(at > 0, "the published line")
+    const end = apk.slice(at)
     assert.match(end, /rm -rf "\$SRC\/android\/app\/build" "\$SRC\/android\/build" "\$SRC\/android\/\.gradle"/) // after the APK is published
     assert.match(end, /docker image prune -f >\/dev\/null 2>&1 \|\| true\ndocker builder prune -f --keep-storage 2GB >\/dev\/null 2>&1 \|\| true/)
     assert.doesNotMatch(end, /rm -rf[^\n]*(\$GRADLE_HOME|\$SDK|\$KEYS|\$OUT)/) // the caches, the release key and the APK stay
