@@ -4,7 +4,7 @@
  *
  * Reactions — the Bot API (10.3) has NO method to choose a channel's reactions (`setChatAvailableReactions` is the
  * Telegram client protocol, a signed-in user, not a bot). The founder sets them once in Telegram (the channel › Edit ›
- * Reactions › Some reactions: 👍 ❤️ 🔥 👏 🙏); the bot reads them (getChat › available_reactions) every morning and tells
+ * Reactions › Some reactions: 🥰 😁 🤔 🎉 👌 🥱 💯 🏆 🤝); the bot reads them (getChat › available_reactions) every morning and tells
  * the founder only when they differ (`reactionDrift`). In a discussion group the bot removes a reaction outside the list
  * (deleteMessageReaction — groups only, never channels).
  *
@@ -13,8 +13,12 @@
  * 24 hours. The channel's own forwards, the group's admins and the bot are never touched.
  */
 
-/** The positive reactions (the founder's list, in order). */
-export const POSITIVE_REACTIONS = ["👍", "❤️", "🔥", "👏", "🙏"] as const
+/**
+ * The reactions the founder set on both channels (in order — founder, 22/10/2026, Task #458). Never 🔥: in Islam fire
+ * stands for Hellfire (Jahannam), and the founder removed it from @LuyChlatCommunity and @LuyChlatIslamic on purpose —
+ * the morning check must never ask for it again (channel-guard.test.ts).
+ */
+export const POSITIVE_REACTIONS = ["🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝"] as const
 
 /** Telegram writes ❤ without the variation selector; compare without it. */
 const bare = (e: string) => e.replace(/️/g, "")

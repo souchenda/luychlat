@@ -22,23 +22,27 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace
 const emoji = (...e: string[]) => e.map((x) => ({ type: "emoji", emoji: x }))
 
 describe("Channel reactions — the positive list (founder, 21/10/2026)", () => {
-  it("the list is the founder's five, ❤ with or without its variation selector", () => {
-    assert.deepEqual([...POSITIVE_REACTIONS], ["👍", "❤️", "🔥", "👏", "🙏"])
-    assert.ok(isPositiveReaction("❤") && isPositiveReaction("❤️") && isPositiveReaction("🙏"))
-    for (const bad of ["💩", "🤮", "👎", "🤡", "🖕"]) assert.equal(isPositiveReaction(bad), false, bad)
+  it("the list is what the founder set on both channels (Task #458) — never 🔥 (Hellfire, Jahannam)", () => {
+    assert.deepEqual([...POSITIVE_REACTIONS], ["🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝"])
+    assert.ok(!POSITIVE_REACTIONS.some((r) => r.includes("🔥")))
+    assert.equal(isPositiveReaction("🔥"), false)
+    assert.ok(isPositiveReaction("🤝") && isPositiveReaction("💯"))
+    for (const bad of ["💩", "🤮", "👎", "🤡", "🖕", "🔥"]) assert.equal(isPositiveReaction(bad), false, bad)
   })
-  it("the check: exactly the list is ok; every emoji allowed, reactions off, extra or missing ones are not", () => {
-    assert.deepEqual(reactionDrift(emoji("👍", "❤", "🔥", "👏", "🙏")), { ok: true, state: "list", extra: [], missing: [] })
+  it("the check: the founder's channels as they are now are ok — no «missing 🔥»; every emoji allowed, reactions off, extra or missing ones are not", () => {
+    const configured = emoji("🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝")
+    assert.deepEqual(reactionDrift(configured), { ok: true, state: "list", extra: [], missing: [] })
     assert.equal(reactionDrift(undefined).state, "all") // omitted = every emoji, 💩 included
     assert.deepEqual(reactionDrift([]), { ok: false, state: "off", extra: [], missing: [...POSITIVE_REACTIONS] })
-    assert.deepEqual(reactionDrift(emoji("👍", "❤", "🔥", "👏", "🙏", "💩")).extra, ["💩"])
-    assert.deepEqual(reactionDrift(emoji("👍", "🔥")).missing, ["❤️", "👏", "🙏"])
+    assert.deepEqual(reactionDrift([...configured, ...emoji("🔥")]).extra, ["🔥"]) // 🔥 back on a channel is flagged as extra
+    assert.deepEqual(reactionDrift(emoji("🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯")).missing, ["🏆", "🤝"])
   })
   it("the founder's note says what is wrong and how to fix it in Telegram — the bot cannot (no Bot API method)", () => {
     const t = reactionFixText("@LuyChlatCommunity", reactionDrift(undefined))
     assert.match(t, /^🛡️ ប្រតិកម្មក្នុង @LuyChlatCommunity មិនត្រូវតាមបញ្ជី\nបច្ចុប្បន្ន៖ អនុញ្ញាតគ្រប់ប្រតិកម្ម/)
     assert.match(t, /Reactions › Some reactions/)
-    assert.match(t, /៣\. ជ្រើសតែ 👍 ❤️ 🔥 👏 🙏 › Save/)
+    assert.match(t, /៣\. ជ្រើសតែ 🥰 😁 🤔 🎉 👌 🥱 💯 🏆 🤝 › Save/)
+    assert.doesNotMatch(t, /🔥/)
     const guard = read("src/lib/server/channel-guard.ts")
     assert.doesNotMatch(guard, /setChatAvailableReactions/) // not in the Bot API (10.3) — never called
   })
