@@ -85,9 +85,10 @@ describe("SoundBox — audio triggers", () => {
   })
   it("no Khmer voice on the device: English instead (once); nothing to speak: a melody", () => {
     const noKm = { km: false, en: true, zh: true }
-    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "km", voices: noKm }), ["chime", "speech:en"])
+    // Never English instead of Khmer (founder, 22/10/2026 — Task #463): no Khmer voice → the melody; English only when chosen.
+    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "km", voices: noKm }), ["chime", "melody"])
     assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "km+en", voices: noKm }), ["chime", "speech:en"])
-    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "km+zh", voices: noKm }), ["chime", "speech:en", "speech:zh"])
+    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "km+zh", voices: noKm }), ["chime", "speech:zh"])
     assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "km", voices: {} }), ["chime", "melody"])
   })
 })
@@ -246,7 +247,7 @@ describe("SoundBox on/off survives reloads (founder, 12/10/2026)", () => {
     assert.equal(readSoundboxEnabled(memory(), null), false)
   })
   it("a dropped live connection retries 1 s, 2 s, 4 s … capped at 30 s", () => {
-    assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 10].map(reconnectDelay), [1_000, 2_000, 4_000, 8_000, 16_000, 30_000, 30_000, 30_000])
+    assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 10].map(reconnectDelay), [2_000, 4_000, 8_000, 16_000, 30_000, 30_000, 30_000, 30_000])
   })
 })
 
@@ -272,7 +273,7 @@ describe("SoundBox speaks even when the phone lists no voices (founder, 14/10/20
   it("a real list decides: no Khmer voice → English; the clips make Khmer available", () => {
     const listed = ["en-US", "zh-CN"]
     assert.deepEqual(voiceAvailability({ speech: true, listed, khmerClips: false }), { km: false, en: true, zh: true })
-    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "km", voices: voiceAvailability({ speech: true, listed, khmerClips: false }) }), ["chime", "speech:en"])
+    assert.deepEqual(audioPlan({ soundOn: true, unlocked: true, mode: "km", voices: voiceAvailability({ speech: true, listed, khmerClips: false }) }), ["chime", "melody"]) // never English for Khmer (Task #463)
     assert.equal(voiceAvailability({ speech: true, listed, khmerClips: true }).km, true)
   })
   it("no speech at all (an old browser) → the melody, never silence", () => {

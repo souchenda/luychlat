@@ -16,7 +16,7 @@
  * background. With the app closed nothing can wake it yet (no Firebase in the APK — see CLAUDE.md). In a browser:
  * the chime plays while the page is on screen. On /soundbox the SoundBox announces it itself (no double ring).
  */
-import { announcementText, isLatePush, soundboxPush, VOICE_TAGS, type VoiceLang } from "@/lib/soundbox"
+import { announcementText, isLatePush, khmerClipSequence, khmerClipUrl, soundboxPush, VOICE_TAGS, type VoiceLang } from "@/lib/soundbox"
 
 /** The Android channel (a channel's sound can never change: a new sound is a new id). */
 export const PAYMENT_CHANNEL = {
@@ -100,16 +100,23 @@ const speaks = (voices: readonly DeviceVoice[], lang: VoiceLang) => voices.find(
  * What the phone SAYS after the chime (founder, 21/10/2026 — Task #442, like an ABA / Bakong soundbox, hands-free): the
  * SoundBox's own words (lib/soundbox.ts › announcementText) — «ទទួលបានប្រាក់ ប្រាំម៉ឺនរៀល», «ទទួលបានប្រាក់
  * ម្ភៃប្រាំដុល្លារ» — in Khmer words, so every Khmer voice reads the amount the same way (digits are read differently
- * by each engine). A device with no Khmer voice says it in English («Received 50,000 riel»), as the SoundBox does;
- * none at all → null (the chime and the notification stay).
+ * by each engine). KHMER ONLY (founder, 22/10/2026 — Task #463: a Windows PC said it in «Microsoft David»): a device
+ * with no Khmer voice gets the recorded Khmer clips when they are on the server (`paymentClips`), else the chime and the
+ * notification alone — never English.
  */
 export function paymentSpeech(e: Pick<PaymentEvent, "amount" | "currency">, voices: readonly DeviceVoice[]): { lang: VoiceLang; tag: string; voice: string | null; text: string } | null {
-  for (const lang of ["km", "en"] as const) {
-    const v = speaks(voices, lang)
-    if (v) return { lang, tag: VOICE_TAGS[lang], voice: v.name ?? null, text: announcementText(e, lang) }
-  }
-  return null
+  const v = speaks(voices, "km")
+  return v ? { lang: "km", tag: VOICE_TAGS.km, voice: v.name ?? null, text: announcementText(e, "km") } : null
 }
+
+/** The recorded Khmer clips for an amount, in order («ទទួលបានប្រាក់ · ប្រាំ · ម៉ឺន · រៀល») — played when no Khmer voice. */
+export const paymentClips = (e: Pick<PaymentEvent, "amount" | "currency">) => khmerClipSequence(e.amount, e.currency).map(khmerClipUrl)
+
+/** The test amounts of the Settings buttons (Task #463). */
+export const SOUND_TESTS: Pick<PaymentEvent, "amount" | "currency">[] = [
+  { amount: 50_000, currency: "KHR" },
+  { amount: 10, currency: "USD" },
+]
 
 /** The chime first, then the voice: how long to wait for the chime when its end isn't reported (ms). */
 export const SPEECH_AFTER_CHIME_MS = 1_400

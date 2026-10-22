@@ -5,7 +5,7 @@ import { describe, it } from "node:test"
 
 import { usePrefsStore } from "@/stores/prefs-store"
 
-import { counterModeActive, paymentSpeech } from "./payment-chime"
+import { counterModeActive, paymentClips, paymentSpeech, SOUND_TESTS } from "./payment-chime"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
 const KM = [{ lang: "km-KH", name: "Khmer" }, { lang: "en-US", name: "Sam" }]
@@ -19,17 +19,18 @@ describe("The spoken payment, like a bank soundbox (founder, 21/10/2026 — Task
     // A voice listed as «km_KH» (Android) counts as Khmer.
     assert.equal(paymentSpeech({ amount: 100, currency: "KHR" }, [{ lang: "km_KH" }])?.lang, "km")
   })
-  it("no Khmer voice on the device (an iPhone): English, as the SoundBox does; no voice at all: nothing (the chime stays)", () => {
-    assert.deepEqual(paymentSpeech({ amount: 50_000, currency: "KHR" }, [{ lang: "en-GB", name: "Daniel" }]), { lang: "en", tag: "en-US", voice: "Daniel", text: "Received 50,000 riel" })
-    assert.equal(paymentSpeech({ amount: 25, currency: "USD" }, [{ lang: "en-US" }])?.text, "Received 25 dollars")
+  it("KHMER ONLY (Task #463): no Khmer voice — a Windows PC, an iPhone — never an English voice; the recorded Khmer clips instead", () => {
+    assert.equal(paymentSpeech({ amount: 50_000, currency: "KHR" }, [{ lang: "en-US", name: "Microsoft David" }]), null)
+    assert.equal(paymentSpeech({ amount: 25, currency: "USD" }, [{ lang: "en-GB", name: "Daniel" }]), null)
     assert.equal(paymentSpeech({ amount: 25, currency: "USD" }, []), null)
-    assert.equal(paymentSpeech({ amount: 25, currency: "USD" }, [{ lang: "fr-FR" }]), null)
+    assert.deepEqual(paymentClips({ amount: 50_000, currency: "KHR" }), ["/audio/soundbox/khmer/received.mp3", "/audio/soundbox/khmer/5.mp3", "/audio/soundbox/khmer/meun.mp3", "/audio/soundbox/khmer/riel.mp3"])
+    assert.ok(paymentClips({ amount: 10, currency: "USD" }).at(-1)?.endsWith("/dollar.mp3"))
   })
   it("wired: the chime first, then the voice — in the browser and after the Android notification's own chime", () => {
     const l = read("src/components/payments/payment-chime-listener.tsx")
     assert.match(l, /playPaymentChimeSound\(\(\) => speakPayment\(e\)\)/)
     assert.match(l, /window\.setTimeout\(\(\) => speakPayment\(e\), SPEECH_AFTER_CHIME_MS\)/)
-    assert.match(l, /const say = paymentSpeech\(e, voices\)\n\s+if \(!say\) return\n\s+const u = new SpeechSynthesisUtterance\(say\.text\)\n\s+u\.lang = say\.tag/)
+    assert.match(l, /const say = typeof SpeechSynthesisUtterance === "undefined" \? null : paymentSpeech\(e, voices\)[\s\S]*?const u = new SpeechSynthesisUtterance\(say\.text\)\n\s+u\.lang = say\.tag/)
     // Spoken only on screen; the SoundBox audio module stays the SoundBox page's alone (golden 6).
     assert.match(l, /document\.visibilityState !== "visible"\) return/)
     assert.doesNotMatch(l, /soundbox-audio/)
@@ -57,5 +58,26 @@ describe("Counter Soundbox Mode (Task #442)", () => {
     assert.match(settings, /<PaymentChimeRow \/>\s+<CounterModeRow \/>/)
     const km = read("src/lib/i18n/dictionaries.ts")
     assert.match(km, /"settings\.counterMode": "🏪 មុខងារ Soundbox លើតុគិតលុយ \(Counter Soundbox Mode\)"/)
+  })
+})
+
+describe("The SoundBox engine stays connected and Khmer (founder, 22/10/2026 — Task #463)", () => {
+  it("reconnects 2 s, 4 s, 8 s … up to 30 s; the counter phone shows whether it is listening", async () => {
+    const { reconnectDelay } = await import("./soundbox")
+    assert.deepEqual([0, 1, 2, 3, 9].map(reconnectDelay), [2000, 4000, 8000, 16000, 30000])
+    const l = read("src/components/payments/payment-chime-listener.tsx")
+    assert.match(l, /useLiveStatus\.getState\(\)\.setLive\(false\)\s*retry = window\.setTimeout\(connect, reconnectDelay\(attempt\+\+\)\)/)
+    assert.match(l, /if \(attempt > 0\) new Audio\(PAYMENT_CHIME_URL\)\.load\(\)/) // the chime ready again after a drop
+    assert.match(read("src/components/payments/counter-mode.tsx"), /t\(live \? "soundbox\.liveOn" : "soundbox\.reconnecting"\)/)
+    const km = read("src/lib/i18n/dictionaries.ts")
+    assert.match(km, /"soundbox\.liveOn": "SoundBox កំពុងដំណើរការ"/)
+    assert.match(km, /"soundbox\.reconnecting": "កំពុងភ្ជាប់ឡើងវិញ\.\.\."/)
+  })
+  it("no Khmer voice → the clips when the server has them, else nothing after the chime; the Settings test: 50,000៛ and $10.00", () => {
+    const l = read("src/components/payments/payment-chime-listener.tsx")
+    assert.match(l, /if \(!say \|\| !synth\) \{\s*void khmerClipsAvailable\(\)\.then\(\(ok\) => \(ok \? playClips\(paymentClips\(e\)\) : undefined\)\)/)
+    assert.doesNotMatch(read("src/lib/payment-chime.ts"), /for \(const lang of \["km", "en"\]/)
+    assert.deepEqual(SOUND_TESTS, [{ amount: 50_000, currency: "KHR" }, { amount: 10, currency: "USD" }])
+    assert.match(read("src/app/(app)/settings/page.tsx"), /onClick=\{\(\) => playPaymentChimeSound\(\(\) => speakPayment\(s\)\)\}/)
   })
 })

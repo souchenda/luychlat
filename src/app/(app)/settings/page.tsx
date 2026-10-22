@@ -1,6 +1,6 @@
 "use client"
 
-import { BellIcon, BookOpenIcon, SmartphoneIcon, StoreIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
+import { BellIcon, BookOpenIcon, SmartphoneIcon, StoreIcon, Volume2Icon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -13,7 +13,9 @@ import { GuestImportRow } from "@/components/settings/guest-import"
 import { useOfficialBot, useTelegramLink } from "@/components/settings/official-bot"
 import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
 import { PushSettingsRow } from "@/components/notifications/push-prompt"
-import { playPaymentChimeSound, requestPaymentChimePermission } from "@/components/payments/payment-chime-listener"
+import { playPaymentChimeSound, requestPaymentChimePermission, speakPayment } from "@/components/payments/payment-chime-listener"
+import { SOUND_TESTS } from "@/lib/payment-chime"
+import { formatMoney } from "@/lib/money"
 import { askMotionOnce } from "@/components/privacy/flip-to-hide"
 import { useHolyDayChimeSetting } from "@/components/dashboard/holy-day-reminder"
 import { playTempleBell } from "@/lib/temple-bell-player"
@@ -216,6 +218,28 @@ function CounterModeRow() {
   )
 }
 
+/**
+ * 🔊 Sound test (Task #463): the chime and the Khmer amount, one tap — the counter staff hear the volume and the voice.
+ * Business owners only, with the counter mode.
+ */
+function SoundTestRow() {
+  const t = useT()
+  const business = (useWorkspaces().data ?? []).some((w) => w.type === "BUSINESS")
+  if (!business) return null
+  return (
+    <SettingsRow icon={<Volume2Icon />} tile="emerald" title={t("settings.soundTest")} hint={t("settings.soundTestHint")}>
+      <div className="flex flex-col gap-1.5">
+        {SOUND_TESTS.map((s) => (
+          <Button key={s.currency} type="button" size="sm" variant="outline" className="h-9 gap-1.5 rounded-xl" onClick={() => playPaymentChimeSound(() => speakPayment(s))}>
+            <Volume2Icon className="size-4" aria-hidden />
+            {formatMoney(s.amount, s.currency)}
+          </Button>
+        ))}
+      </div>
+    </SettingsRow>
+  )
+}
+
 /** 📱 «ផ្កាប់ទូរសព្ទដើម្បីលាក់សមតុល្យ» (Task #461): face down → the balances masked. On by default; turning it on asks iOS. */
 function FlipToHideRow() {
   const t = useT()
@@ -333,6 +357,7 @@ export default function SettingsPage() {
         <PushSettingsRow />
         <PaymentChimeRow />
         <CounterModeRow />
+        <SoundTestRow />
         <HolyDayChimeRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
           {bot.data && telegram.data ? (

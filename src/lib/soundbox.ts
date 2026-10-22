@@ -198,15 +198,16 @@ export type AudioStep = "chime" | "melody" | `speech:${VoiceLang}`
 /**
  * What plays for a payment: nothing while the sound is off or not yet unlocked by a tap (browsers
  * block audio until then). Otherwise the payment chime, then each language of the mode the device
- * has a voice for, in order. A missing Khmer voice is replaced by English (once); when nothing can
- * be spoken, a short melody instead of silence.
+ * has a voice for, in order. A missing Khmer voice is NEVER replaced by English (founder, 22/10/2026 — Task #463: a
+ * Windows PC announced in «Microsoft David»): Khmer is the device's Khmer voice or the recorded clips, else nothing is
+ * said; English is spoken only when the mode itself asks for it. Nothing can be spoken → a short melody, not silence.
  */
 export function audioPlan(o: { soundOn: boolean; unlocked: boolean; mode: SoundboxMode; voices: Partial<Record<VoiceLang, boolean>> }): AudioStep[] {
   if (!o.soundOn || !o.unlocked) return []
   const wanted = o.mode.split("+") as VoiceLang[]
   const spoken: VoiceLang[] = []
   for (const lang of wanted) {
-    const use = o.voices[lang] ? lang : lang === "km" && o.voices.en ? "en" : null
+    const use = o.voices[lang] ? lang : null
     if (use && !spoken.includes(use)) spoken.push(use)
   }
   return ["chime", ...(spoken.length ? spoken.map((l) => `speech:${l}` as AudioStep) : (["melody"] as AudioStep[]))]
@@ -366,8 +367,11 @@ export function writeSoundboxEnabled(store: KeyValueStore | null, workspaceId: s
   }
 }
 
-/** The live connection's retry delay: 1 s, 2 s, 4 s … up to 30 s — silent, never turning the SoundBox off. */
-export const reconnectDelay = (attempt: number) => Math.min(30_000, 1_000 * 2 ** Math.max(0, attempt))
+/** The live connection's retry delay: 2 s, 4 s, 8 s … up to 30 s (founder, 22/10/2026 — Task #463) — never turning it off. */
+export const reconnectDelay = (attempt: number) => Math.min(30_000, 2_000 * 2 ** Math.max(0, attempt))
+
+/** A recorded Khmer clip's address (public/audio/soundbox/khmer — KHMER_CLIPS). */
+export const khmerClipUrl = (clip: KhmerClip) => `/audio/soundbox/khmer/${clip}.mp3`
 
 /**
  * The phone push for a payment (the SoundBox with the screen locked — founder, 14/10/2026): the amount

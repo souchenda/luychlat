@@ -9,10 +9,14 @@
  */
 import { useEffect } from "react"
 
+import { useT } from "@/lib/i18n/use-t"
+
 import { useWorkspaces } from "@/lib/data/hooks"
 import { counterModeActive } from "@/lib/payment-chime"
 import { keepScreenAwake } from "@/lib/soundbox"
 import { usePrefsStore } from "@/stores/prefs-store"
+
+import { useLiveStatus } from "./live-status"
 
 export function CounterModeKeeper() {
   const on = usePrefsStore((s) => s.counterMode)
@@ -22,5 +26,18 @@ export function CounterModeKeeper() {
     if (!active) return
     return keepScreenAwake(navigator as Parameters<typeof keepScreenAwake>[0], document)
   }, [active])
-  return null
+  const live = useLiveStatus((s) => s.live)
+  const t = useT()
+  if (!active) return null
+  // The counter phone says whether it is listening (Task #463): green «SoundBox កំពុងដំណើរការ», red while it reconnects.
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed top-[calc(env(safe-area-inset-top)+6px)] left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-full border bg-background/95 px-3 py-1 text-xs font-medium shadow-sm backdrop-blur"
+    >
+      <span aria-hidden className={`size-2 rounded-full ${live ? "bg-emerald-500" : "animate-pulse bg-rose-500"}`} />
+      {t(live ? "soundbox.liveOn" : "soundbox.reconnecting")}
+    </div>
+  )
 }
