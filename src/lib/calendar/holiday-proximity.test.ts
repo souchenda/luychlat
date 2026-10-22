@@ -64,3 +64,19 @@ describe("23 October — the 35th anniversary of the Paris Peace Agreements (Tas
     assert.equal(truncated, false)
   })
 })
+
+describe("23 October — the poster's title in the founder's two lines (Task #457)", () => {
+  const d = nationalDayByKey("paris-peace")!
+  it("«ទិវារំលឹកខួប» / «នៃកិច្ចព្រមព្រៀងសន្តិភាពទីក្រុងប៉ារីស» — never «ទីក្រុងប៉ារីស» alone on a line", async () => {
+    assert.deepEqual(d.posterTitle?.split("\n"), ["ទិវារំលឹកខួប", "នៃកិច្ចព្រមព្រៀងសន្តិភាពទីក្រុងប៉ារីស"])
+    assert.equal(d.title, "ទិវារំលឹកខួប នៃកិច្ចព្រមព្រៀងសន្តិភាពទីក្រុងប៉ារីស") // the caption keeps the one-line title
+    const { nationalPosterLines } = await import("@/lib/server/national-day-poster")
+    assert.equal(nationalPosterLines(d, "2026-10-23").title, d.posterTitle)
+    const src = read("src/lib/server/national-day-poster.ts")
+    assert.match(src, /if \(d\.posterTitle\)\s*while \(titleSize > 40 && d\.posterTitle\.split\("\\n"\)\.some\(\(l\) => ctx\.measureText\(l\)\.width > width\)\)/) // each line whole, sized to fit
+  })
+  it("the waiting card is sent again with the new poster (a migration flag this build knows)", () => {
+    assert.match(read("supabase/migrations/20270251000000_repreview_paris_title.sql"), /jsonb_build_object\('repreview', 'paris-title'\)[\s\S]*post_key = 'paris-peace-2026-10-23' and status = 'PENDING'/)
+    assert.match(read("src/lib/server/scheduled-posts.ts"), /const REPREVIEW_READY = \[[^\]]*"paris-title"\]/)
+  })
+})

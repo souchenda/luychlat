@@ -66,7 +66,7 @@ const { W, H, PAD } = FRAME
 
 /** Every line the poster draws (tested: no parentheses, nothing cut). */
 export function nationalPosterLines(d: NationalDay, day: string) {
-  return { pill: d.pill, title: d.title, subtitle: d.subtitle ?? null, date: nationalDateLine(d, day), message: d.posterMessage ?? d.message }
+  return { pill: d.pill, title: d.posterTitle ?? d.title, subtitle: d.subtitle ?? null, date: nationalDateLine(d, day), message: d.posterMessage ?? d.message }
 }
 
 /**
@@ -109,8 +109,11 @@ export function nationalDayPoster(d: NationalDay, day: string): { png: Buffer; t
     y += 90
   }
 
-  // The title (gold, large), up to three lines.
-  ctx.font = `700 60px ${FAMILIES}`
+  // The title (gold, large), up to three lines — the founder's own lines when given, each kept whole (Task #457).
+  let titleSize = 60
+  ctx.font = `700 ${titleSize}px ${FAMILIES}`
+  if (d.posterTitle)
+    while (titleSize > 40 && d.posterTitle.split("\n").some((l) => ctx.measureText(l).width > width)) ctx.font = `700 ${--titleSize}px ${FAMILIES}`
   const titleLines = wrap(ctx, text.title, width, 3)
   if (titleLines.at(-1)?.endsWith("…")) truncated = true
   ctx.fillStyle = gold

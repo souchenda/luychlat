@@ -39,6 +39,12 @@ export type NationalDay = {
   subtitle?: string
   /** A shorter name for the home header's pill, when the title is long («ទិវាសន្តិភាពទីក្រុងប៉ារីស»). */
   short?: string
+  /**
+   * The poster's title in the founder's own lines («
+» between them), when the automatic wrap would break it badly
+   * (Task #457: «ទីក្រុងប៉ារីស» was left alone on line 2). Each line is drawn whole, the size stepped down to fit.
+   */
+  posterTitle?: string
   /** The year it began — for «ខួបលើកទី N» with the dates. */
   since?: number
   /** The blessing or the words of remembrance. */
@@ -101,6 +107,7 @@ export const NATIONAL_DAYS: NationalDay[] = [
     pill: "ទិវារំលឹក",
     title: "ទិវារំលឹកខួប នៃកិច្ចព្រមព្រៀងសន្តិភាពទីក្រុងប៉ារីស",
     short: "ទិវាសន្តិភាពទីក្រុងប៉ារីស",
+    posterTitle: "ទិវារំលឹកខួប\nនៃកិច្ចព្រមព្រៀងសន្តិភាពទីក្រុងប៉ារីស",
     since: 1991,
     message: "សូមរំលឹកដល់ថ្ងៃចុះហត្ថលេខាលើកិច្ចព្រមព្រៀងសន្តិភាពទីក្រុងប៉ារីស ដែលបានបើកផ្លូវឆ្ពោះទៅរកសន្តិភាព ការផ្សះផ្សាជាតិ និងការកសាងប្រទេសកម្ពុជាឡើងវិញ។",
   },
