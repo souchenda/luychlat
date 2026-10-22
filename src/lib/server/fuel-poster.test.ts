@@ -64,7 +64,7 @@ describe("fuel price poster (founder, 21/10/2026 — Task #428)", () => {
     assert.ok(caption.endsWith(footer), "the footer is not dropped")
     assert.ok(caption.length <= 1024, `${caption.length}`)
     assert.match(caption, /៥,០៥០ ៛\/លីត្រ \(▼ ៣០០\)/)
-    assert.match(footer, /📲 ប្រើប្រាស់ អេប លុយឆ្លាត ដោយឥតគិតថ្លៃ៖\n<a href="https:\/\/app\.luychlat\.com\/LuyChlat\.apk">Android \(APK\)<\/a> \|\| <a href="https:\/\/app\.luychlat\.com">iOS \/ Web<\/a> \|\| <a href="https:\/\/t\.me\/luychlat_bot">Telegram Bot<\/a>\n\n👉 ចូលរួមសហគមន៍ ៖ @LuyChlatCommunity\n/)
+    assert.match(footer, /📲 ប្រើប្រាស់ អេប លុយឆ្លាត ដោយឥតគិតថ្លៃ៖\n<a href="https:\/\/app\.luychlat\.com\/LuyChlat\.apk">Android \(APK\)<\/a> · <a href="https:\/\/app\.luychlat\.com">iOS \/ Web<\/a> · <a href="https:\/\/t\.me\/luychlat_bot">Telegram Bot<\/a>\n\n👉 ចូលរួមសហគមន៍ ៖ @LuyChlatCommunity\n/)
     // Packed in short lines so no hashtag breaks on a phone (hashtagLines).
     assert.match(footer, /#LuyChlat #អេបលុយឆ្លាត\n#គ្រប់គ្រងហិរញ្ញវត្ថុ #តម្លៃប្រេង$/)
     // The Page: plain text, the handles as t.me links.
