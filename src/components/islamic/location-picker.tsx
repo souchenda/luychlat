@@ -67,6 +67,20 @@ export async function locateDevice(): Promise<LocateResult> {
   return { ok: false, reason: "unavailable" }
 }
 
+/**
+ * No GPS (permission refused, the APK without the location permission, no fix): the nearest province from the
+ * network (GET /api/geo — lib/network-place.ts), or null — the last province chosen then stays (founder, 22/10/2026).
+ */
+export async function networkProvince(): Promise<string | null> {
+  try {
+    const res = await fetch("/api/geo", { cache: "no-store" })
+    const body = (await res.json()) as { province?: string | null }
+    return res.ok && body.province && PROVINCES.some((p) => p.key === body.province) ? body.province : null
+  } catch {
+    return null
+  }
+}
+
 /** Province dropdown + "use my location" (GPS stays on this device, rounded to ~1 km). */
 export function LocationPicker() {
   const t = useT()
@@ -81,10 +95,21 @@ export function LocationPicker() {
     setLocating(false)
     if (result.ok) {
       setGps(result.lat, result.lng)
-      toast.success(t("prayer.gpsSet"))
-    } else if (result.reason === "denied") setHelp(true)
-    else if (result.reason === "unavailable") toast.error(t("prayer.gpsTimeout"))
-    else toast.error(t(result.reason === "insecure" ? "prayer.gpsInsecure" : "prayer.gpsUnavailable"))
+      return void toast.success(t("prayer.gpsSet"))
+    }
+    // No GPS: the network's province instead of a blocking dialog — said to be approximate; the help one tap away.
+    setLocating(true)
+    const province = await networkProvince()
+    setLocating(false)
+    const help = result.reason === "denied" ? { action: { label: t("prayer.gpsHelpTitle"), onClick: () => setHelp(true) } } : {}
+    if (province) {
+      setProvince(province)
+      const p = PROVINCES.find((x) => x.key === province)!
+      return void toast.success(t("prayer.networkSet", { place: pick(p, locale) }), { duration: 8_000, ...help })
+    }
+    // Nothing from the network either: the last province stays, and the person is told which.
+    const kept = PROVINCES.find((x) => x.key === place) ?? PROVINCES[0]
+    toast.error(t("prayer.networkNone", { place: pick(kept, locale) }), { duration: 8_000, ...help })
   }
 
   return (

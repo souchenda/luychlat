@@ -46,6 +46,11 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Picking existing photos and PDFs on Android 12 and older (13+ uses the system picker, no permission). -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- Prayer times and the Qibla from the phone's place (founder, 22/10/2026): without these Android hides the location
+         permission and the WebView's geolocation fails. The place stays on the phone (lib/prayer-push.ts). -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <!-- Installable on devices without a camera too. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
