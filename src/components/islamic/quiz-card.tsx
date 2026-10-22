@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckCircle2Icon, ExternalLinkIcon, FlameIcon, XCircleIcon } from "lucide-react"
+import { CheckCircle2Icon, ExternalLinkIcon, StarIcon, XCircleIcon } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -87,7 +87,8 @@ export function IslamicQuizCard() {
             <p className="text-xs text-muted-foreground">{t("quiz.subtitle")}</p>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300" aria-label={t("quiz.streak", { n: num(progress.streak) })}>
-            <FlameIcon className="size-3.5" aria-hidden />
+            {/* A gold star, never a flame (founder, 22/10/2026 — Task #459: fire stands for Hellfire). */}
+            <StarIcon className="size-3.5 fill-amber-400 text-amber-500" aria-hidden />
             {num(progress.streak)}
           </span>
         </div>

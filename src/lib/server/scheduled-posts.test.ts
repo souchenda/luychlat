@@ -602,3 +602,22 @@ describe("regression: the 23/10 card never reached «LCA Approval» (founder, 22
     assert.match(sp, /`Preview of \$\{row\.kind\} \$\{row\.post_key\}: not delivered to the \$\{chats\} approval chat\(s\) — tried again next minute`/)
   })
 })
+
+describe("one ✏️ prompt per card (founder, 22/10/2026 — Task #459: four identical prompts after quick taps)", () => {
+  const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+  it("a repeat tap within 5 s does nothing; a later tap replaces the open prompt; none open → one is sent", async () => {
+    const { promptStep, PROMPT_DEBOUNCE_MS } = await import("../scheduled-posts")
+    assert.equal(PROMPT_DEBOUNCE_MS, 5000)
+    const t = 1_000_000
+    assert.equal(promptStep(undefined, t), "send")
+    assert.equal(promptStep({ msg: 1020, at: t }, t + 400), "skip")
+    assert.equal(promptStep({ msg: -1, at: t }, t + 100), "skip") // claimed while the first is being sent
+    assert.equal(promptStep({ msg: 1020, at: t }, t + 6000), "replace")
+  })
+  it("wired: the tap is answered first; the prompt is claimed before the send; the old one deleted on replace, on the edit and on a decision", () => {
+    assert.match(sp, /if \(parsed\.action === "edit"\) \{[\s\S]*?await d\.answer\(cb\.id, "✏️ សូម Reply ជាមួយអត្ថបទថ្មី"\)\s*if \(cb\.message\) await d\.promptEdit\?\.\(chat\.id, cb\.message\.message_id\)/)
+    assert.match(sp, /if \(step === "skip"\) return\s*PROMPT_OF_CARD\.set\(key, \{ msg: -1, at: Date\.now\(\) \}\)[^\n]*\n\s*if \(step === "replace" && open && open\.msg > 0\) await dropPrompt\(chat, open\.msg\)/)
+    assert.match(sp, /PROMPT_OF_CARD\.delete\(`\$\{chatId\}:\$\{replyTo\}`\)/) // the edit done: forgotten (the prompt is deleted just above)
+    assert.match(sp, /for \(const p of taken\.previews \?\? \[\]\) await d\.promptDone\?\.\(p\.chat, p\.msg\)/)
+  })
+})

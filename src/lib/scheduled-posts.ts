@@ -380,3 +380,14 @@ export function pastedCardBody(text: string): string | null {
     .trim()
   return body || null
 }
+
+/**
+ * One ✏️ prompt per card (founder, 22/10/2026 — Task #459: a few quick taps on [ ✏️ កែអត្ថបទ ] stacked four identical
+ * «✏️ សូម Reply …» messages in «LCA Approval»). A tap within 5 seconds of the last one does nothing (`skip`); a later
+ * tap replaces the prompt still open (`replace`: the old one is deleted, a fresh one sent); none open → `send`.
+ */
+export const PROMPT_DEBOUNCE_MS = 5000
+export function promptStep(open: { msg: number; at: number } | undefined, now: number): "send" | "skip" | "replace" {
+  if (!open) return "send"
+  return now - open.at < PROMPT_DEBOUNCE_MS ? "skip" : "replace"
+}

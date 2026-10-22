@@ -3,20 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import {
-  ALLOWED_UPDATES,
-  blockedPhrase,
-  floodTracker,
-  FLOOD_WINDOW_MS,
-  guardVerdict,
-  isAllowedLink,
-  isPositiveReaction,
-  linksIn,
-  MUTE_MS,
-  POSITIVE_REACTIONS,
-  reactionDrift,
-  reactionFixText,
-} from "./channel-guard"
+import { ALLOWED_UPDATES, blockedPhrase, COMMENT_REACTIONS, FLOOD_WINDOW_MS, floodTracker, guardVerdict, isAllowedLink, isCommentReaction, isPositiveReaction, linksIn, MUTE_MS, POSITIVE_REACTIONS, reactionDrift, reactionFixText } from "./channel-guard"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 const emoji = (...e: string[]) => e.map((x) => ({ type: "emoji", emoji: x }))
@@ -125,5 +112,24 @@ describe("Wiring: only the channels' discussion groups, nothing else (founder, 2
     assert.match(guard, /for \(const chat of await founderChats\(\)\)/)
     assert.match(guard, /sent to \$\{sent\} chat\(s\)/)
     assert.match(read("src/lib/server/bot-dispatch.ts"), /await reactionAuditTick\(\)/)
+  })
+})
+
+describe("Comment groups: the channels' reactions plus 👍 ❤️ 🙏 — never 🔥 (founder, 22/10/2026 — Task #459)", () => {
+  it("the polite everyday ones are kept in the comments; 🔥 and the rude ones are removed", () => {
+    assert.deepEqual([...COMMENT_REACTIONS], ["🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝", "👍", "❤️", "🙏"])
+    for (const ok of ["👍", "❤", "❤️", "🙏", "🤝", "🥰"]) assert.ok(isCommentReaction(ok), ok)
+    for (const bad of ["🔥", "💩", "🤮", "👎", "🖕"]) assert.equal(isCommentReaction(bad), false, bad)
+    // The channels themselves keep the founder's nine: 👍 ❤️ 🙏 on a channel would still be «extra».
+    assert.deepEqual(reactionDrift(emoji("🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝", "👍")).extra, ["👍"])
+    assert.match(read("src/lib/server/channel-guard.ts"), /!isCommentReaction\(r\.emoji\)\)/)
+  })
+  it("no flame for a streak or praise anywhere: the quiz streak is a gold star", () => {
+    const quiz = read("src/components/islamic/quiz-card.tsx")
+    assert.doesNotMatch(quiz, /FlameIcon|🔥/)
+    assert.match(quiz, /<StarIcon className="size-3\.5 fill-amber-400 text-amber-500" aria-hidden \/>/)
+    const dict = read("src/lib/i18n/dictionaries.ts") + read("src/lib/i18n/zh.ts")
+    assert.doesNotMatch(dict, /🔥/)
+    assert.match(dict, /· ⭐ \{streak\} ថ្ងៃជាប់ៗគ្នា/)
   })
 })

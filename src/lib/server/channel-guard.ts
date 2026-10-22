@@ -1,7 +1,7 @@
 // Server only: the channels' protection (founder, 21/10/2026 — lib/bot/channel-guard.ts). The discussion-group guard
 // (delete outside links and abuse, mute a repeat sender for 24 h, remove a reaction outside the positive list) and the
 // morning check of the channels' reactions, to the founder's private chat only when they differ.
-import { floodTracker, guardVerdict, isPositiveReaction, MUTE_MS, reactionDrift, reactionFixText, type GuardMessage, type ReactionType } from "@/lib/bot/channel-guard"
+import { floodTracker, guardVerdict, isCommentReaction, MUTE_MS, reactionDrift, reactionFixText, type GuardMessage, type ReactionType } from "@/lib/bot/channel-guard"
 
 import { founderChats } from "./admin-routes"
 import { logEvent } from "./events"
@@ -54,7 +54,7 @@ export type ReactionUpdate = { chat: { id: number }; message_id: number; user?: 
 /** A reaction in a discussion group outside the positive list: removed (deleteMessageReaction — groups only). */
 export async function guardReaction(u: ReactionUpdate): Promise<void> {
   if (!(await isDiscussionGroup(u.chat.id))) return
-  const bad = u.new_reaction.some((r) => r.type !== "emoji" || !r.emoji || !isPositiveReaction(r.emoji))
+  const bad = u.new_reaction.some((r) => r.type !== "emoji" || !r.emoji || !isCommentReaction(r.emoji))
   if (!bad) return
   const r = await tg("deleteMessageReaction", { chat_id: u.chat.id, message_id: u.message_id, ...(u.user ? { user_id: u.user.id } : u.actor_chat ? { actor_chat_id: u.actor_chat.id } : {}) }).catch(() => null)
   logEvent(r?.ok ? "info" : "warn", "channel-guard", `Discussion group ${u.chat.id}: a reaction outside the list ${r?.ok ? "removed" : `NOT removed (${r?.description ?? "no reply"})`}`, { fold: true })

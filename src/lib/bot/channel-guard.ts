@@ -25,6 +25,13 @@ const bare = (e: string) => e.replace(/️/g, "")
 
 export const isPositiveReaction = (emoji: string) => POSITIVE_REACTIONS.some((p) => bare(p) === bare(emoji))
 
+/**
+ * In a channel's comment group (founder, 22/10/2026 — Task #459): the channels' reactions and the everyday polite ones,
+ * 👍 ❤️ 🙏. Never 🔥 — in the comments as on the channels.
+ */
+export const COMMENT_REACTIONS = [...POSITIVE_REACTIONS, "👍", "❤️", "🙏"] as const
+export const isCommentReaction = (emoji: string) => COMMENT_REACTIONS.some((p) => bare(p) === bare(emoji))
+
 export type ReactionType = { type: string; emoji?: string; custom_emoji_id?: string }
 
 /**

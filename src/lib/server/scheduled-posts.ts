@@ -12,7 +12,7 @@ import { createHash } from "node:crypto"
 import { postFooter, withFooter } from "@/lib/post-footer"
 
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
-import { dueAction, endOfCambodiaDay, isPreviewed, isReplaceCallback, kmClock, parseReplaceCallback, parseScheduledPostCallback, REPLACEABLE, replaceButtons, replacedNote, replacePreviewText, reminderLevel, urgentReminderButtons, urgentReminderText, plannedIslamicPosts, plannedPosts, previewButtons, previewText, atMinute, EVENT_LEAD_MIN, type PostKind, type PostStatus, type Targets, pastedCardBody } from "@/lib/scheduled-posts"
+import { dueAction, endOfCambodiaDay, isPreviewed, isReplaceCallback, kmClock, parseReplaceCallback, parseScheduledPostCallback, REPLACEABLE, replaceButtons, replacedNote, replacePreviewText, reminderLevel, urgentReminderButtons, urgentReminderText, plannedIslamicPosts, plannedPosts, previewButtons, previewText, atMinute, EVENT_LEAD_MIN, type PostKind, type PostStatus, type Targets, pastedCardBody, promptStep } from "@/lib/scheduled-posts"
 import { eveningButtons } from "@/lib/evening-reminder"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
@@ -113,6 +113,8 @@ export type SchedulerDeps = {
   answer(callbackId: string, text: string, alert?: boolean): Promise<void>
   /** [ ✏️ កែអត្ថបទ ]: a «reply here» prompt under the card (its reply edits the caption — editCardByReply). */
   promptEdit?(chat: number, cardMsg: number): Promise<void>
+  /** The card was decided: its open ✏️ prompt, if any, is deleted (Task #459). */
+  promptDone?(chat: number, cardMsg: number): Promise<void>
   now(): number
   log(level: "info" | "warn" | "error", message: string): void
   replace?: ReplaceDeps
@@ -368,8 +370,10 @@ export function createScheduler(d: SchedulerDeps) {
     if (!parsed || !chat || !actor) return d.answer(cb.id, "")
     // ✏️ edits, never decides (founder, 21/10/2026): a prompt under the card; the approver's reply becomes the caption.
     if (parsed.action === "edit") {
+      // Answered first (Task #459): the button stops spinning at once, so it is not tapped again; one prompt per card.
+      await d.answer(cb.id, "✏️ សូម Reply ជាមួយអត្ថបទថ្មី")
       if (cb.message) await d.promptEdit?.(chat.id, cb.message.message_id)
-      return d.answer(cb.id, "✏️ សូម Reply ជាមួយអត្ថបទថ្មី")
+      return
     }
     // ✅ on a post whose time has passed (held, waiting for a tap — founder, 21/10/2026): published at once. Approved
     // only, the timer would expire it once 90 minutes late and the approval would be lost.
@@ -413,6 +417,8 @@ export function createScheduler(d: SchedulerDeps) {
       await d.answer(cb.id, "❌ បានផ្អាក")
       await refresh(taken)
     }
+    // Decided: any ✏️ prompt still open under its cards is deleted (Task #459) — nothing left to reply to.
+    for (const p of taken.previews ?? []) await d.promptDone?.(p.chat, p.msg)
   }
 
   return { tick, processDue, schedulePost, onCallback, replaceDue, checkVersions, refresh }
@@ -773,13 +779,29 @@ ${text}`
     return res.ok && res.result ? res.result.message_id : null
   },
   async promptEdit(chat, cardMsg) {
+    // One prompt per card (Task #459 — promptStep): a repeat tap within 5 s does nothing; a later one replaces the prompt.
+    const key = `${chat}:${cardMsg}`
+    const open = PROMPT_OF_CARD.get(key)
+    const step = promptStep(open, Date.now())
+    if (step === "skip") return
+    PROMPT_OF_CARD.set(key, { msg: -1, at: Date.now() }) // claimed before the send: a tap during it is a repeat
+    if (step === "replace" && open && open.msg > 0) await dropPrompt(chat, open.msg)
     const res = await tg<{ message_id: number }>("sendMessage", {
       chat_id: chat,
       text: "✏️ សូម Reply លើសារនេះ ជាមួយអត្ថបទថ្មីទាំងស្រុង — កាតនឹងប្តូរភ្លាមៗ។",
       reply_to_message_id: cardMsg,
       reply_markup: { force_reply: true, selective: true, input_field_placeholder: "អត្ថបទថ្មី…" },
     })
-    if (res.ok && res.result) rememberEditPrompt(chat, res.result.message_id, cardMsg)
+    if (res.ok && res.result) {
+      rememberEditPrompt(chat, res.result.message_id, cardMsg)
+      PROMPT_OF_CARD.set(key, { msg: res.result.message_id, at: Date.now() })
+    } else PROMPT_OF_CARD.delete(key)
+  },
+  // A card decided (✅ / 🚀 / ❌): its open prompt is deleted — nothing left to reply to.
+  async promptDone(chat, cardMsg) {
+    const open = PROMPT_OF_CARD.get(`${chat}:${cardMsg}`)
+    PROMPT_OF_CARD.delete(`${chat}:${cardMsg}`)
+    if (open && open.msg > 0) await dropPrompt(chat, open.msg)
   },
   async editPreview(p, text, buttons) {
     const reply_markup = { inline_keyboard: buttons }
@@ -932,6 +954,13 @@ function editedLine(row: PostRow): string {
  */
 /** ✏️ prompts → their card (an hour; a restart forgets them, and a reply to the card itself still works). */
 const EDIT_PROMPTS = new Map<string, { card: number; at: number }>()
+/** card → its one open ✏️ prompt (Task #459). */
+const PROMPT_OF_CARD = new Map<string, { msg: number; at: number }>()
+/** A prompt that is done or replaced: deleted from the chat and forgotten. */
+async function dropPrompt(chat: number, msg: number) {
+  EDIT_PROMPTS.delete(`${chat}:${msg}`)
+  await tg("deleteMessage", { chat_id: chat, message_id: msg }).catch(() => null)
+}
 function rememberEditPrompt(chat: number, prompt: number, card: number) {
   const now = Date.now()
   for (const [k, v] of EDIT_PROMPTS) if (now - v.at > 3_600_000) EDIT_PROMPTS.delete(k)
@@ -947,6 +976,7 @@ export async function editCardByReply(chatId: number, replyTo: number, actor: nu
   const { data, error } = await botDb().rpc("bot_post_edit_caption", { p_key: botKey(), p_chat_id: chatId, p_message_id: replyTo, p_actor: actor, p_text: text, p_editor: editor })
   if (!error && data && promptMsg) {
     EDIT_PROMPTS.delete(`${chatId}:${promptMsg}`)
+    PROMPT_OF_CARD.delete(`${chatId}:${replyTo}`)
     await tg("deleteMessage", { chat_id: chatId, message_id: promptMsg }).catch(() => null) // the prompt is done — a clean chat
   }
   if (!error && !data) return false
