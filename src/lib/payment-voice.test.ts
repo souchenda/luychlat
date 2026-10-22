@@ -68,7 +68,7 @@ describe("The SoundBox engine stays connected and Khmer (founder, 22/10/2026 —
     const l = read("src/components/payments/payment-chime-listener.tsx")
     assert.match(l, /useLiveStatus\.getState\(\)\.setLive\(false\)\s*retry = window\.setTimeout\(connect, reconnectDelay\(attempt\+\+\)\)/)
     assert.match(l, /if \(attempt > 0\) new Audio\(PAYMENT_CHIME_URL\)\.load\(\)/) // the chime ready again after a drop
-    assert.match(read("src/components/payments/counter-mode.tsx"), /t\(live \? "soundbox\.liveOn" : "soundbox\.reconnecting"\)/)
+    assert.match(read("src/components/soundbox/live-pill.tsx"), /t\(live \? "soundbox\.liveOn" : "soundbox\.reconnecting"\)/)
     const km = read("src/lib/i18n/dictionaries.ts")
     assert.match(km, /"soundbox\.liveOn": "SoundBox កំពុងដំណើរការ"/)
     assert.match(km, /"soundbox\.reconnecting": "កំពុងភ្ជាប់ឡើងវិញ\.\.\."/)
@@ -79,5 +79,18 @@ describe("The SoundBox engine stays connected and Khmer (founder, 22/10/2026 —
     assert.doesNotMatch(read("src/lib/payment-chime.ts"), /for \(const lang of \["km", "en"\]/)
     assert.deepEqual(SOUND_TESTS, [{ amount: 50_000, currency: "KHR" }, { amount: 10, currency: "USD" }])
     assert.match(read("src/app/(app)/settings/page.tsx"), /onClick=\{\(\) => playPaymentChimeSound\(\(\) => speakPayment\(s\)\)\}/)
+  })
+})
+
+describe("The SoundBox status pill on /soundbox only (founder, 22/10/2026)", () => {
+  it("never floats over the home header (avatar, workspace, language, bell): the app layout shows no pill; the SoundBox page does", () => {
+    const keeper = read("src/components/payments/counter-mode.tsx")
+    assert.doesNotMatch(keeper, /soundbox\.liveOn|role="status"|fixed top-/)
+    assert.match(keeper, /keepScreenAwake\(navigator/) // counter mode still keeps the screen on
+    const pill = read("src/components/soundbox/live-pill.tsx")
+    assert.doesNotMatch(pill, /fixed/) // in the page's flow, never over the header
+    assert.match(read("src/app/(app)/soundbox/page.tsx"), /<SettingsSubHeader title=\{t\("soundbox\.title"\)\} back="\/home" \/>\s+<SoundboxLivePill \/>/)
+    const layout = read("src/app/(app)/layout.tsx")
+    assert.doesNotMatch(layout, /SoundboxLivePill|live-pill/)
   })
 })

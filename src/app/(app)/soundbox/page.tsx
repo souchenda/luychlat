@@ -6,6 +6,7 @@ import QRCode from "qrcode"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { SettingsSubHeader } from "@/components/settings/settings-ui"
+import { SoundboxLivePill } from "@/components/soundbox/live-pill"
 import { SoundboxStatus } from "@/components/soundbox/soundbox-status"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -366,6 +367,7 @@ export default function SoundboxPage() {
   return (
     <div className="space-y-4">
       <SettingsSubHeader title={t("soundbox.title")} back="/home" />
+      <SoundboxLivePill />
       {/* This phone's own state (never «not connected» about itself while it is the SoundBox), then the business's other phones. */}
       <SoundboxStatus
         workspaceId={counterId}
