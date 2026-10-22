@@ -31,6 +31,13 @@ use come before feature count: no half-baked features, broken links or untested 
    commemorations (`royalNumerals` — royal, national, memorial days: Coronation 29 October, Independence 9 November …) keep
    the Khmer numerals on their poster, caption and card, per palace protocol (`withKhmerDigits`, the scheduler's `scope`).
 
+## Tone & Communication Rules (founder, 22/10/2026 — Task #469)
+
+- **CRITICAL TONE RULE:** Always address the founder (Chenda Sou) as «បង» (Bong) in all Khmer responses, deploy
+  reports, and chat messages. STRICT BAN on using «លោក» (Lork) — it is too formal and distant. Never use «លោក» in any
+  situation; always «បង». This covers every message to the founder, written by the engineer or by the app (the deploy
+  card, the nightly and end-of-day reports, the bot's private messages to him).
+
 ## Standards
 
 - **Brand:** Khmer «អេប លុយឆ្លាត», English «App Luy Chlat». Never «កម្មវិធី», «អែប» or a bare «LuyChlat»
