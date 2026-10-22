@@ -34,8 +34,9 @@ describe("the home pill: the nearest event wins (founder, 22/10/2026 — Task #4
   })
   it("wired: the pill weighs the national day against the cultural and holy days, a tie to the national day; 0-9 on screen", () => {
     const pill = read("src/components/dashboard/lunar-pill.tsx")
-    assert.match(pill, /const nat = locale === "km" \? nextNationalDay\(today\) : null/)
-    assert.match(pill, /if \(nat && nat\.daysAway <= otherDays\) \{\s*national = true\s*text = nationalPillText\(nat\)/)
+    // Task #456: every event on the nearest date (lib/pill-events.ts — the nearest wins, ties take turns).
+    assert.match(pill, /for \(const n of upcomingNationalDays\(today\)\) events\.push\(\{ id: `national:\$\{n\.day\.key\}`, daysAway: n\.daysAway, kind: "national"/)
+    assert.match(pill, /return nearestEvents\(events\) as Item\[\]/)
     assert.doesNotMatch(nationalPillText(nextNationalDay("2026-10-22")!), /[០-៩]/)
   })
 })

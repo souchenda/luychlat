@@ -252,18 +252,22 @@ export const nationalCaptionText = (d: NationalDay, day: string) => nationalCapt
  * live in the Hijri pill, the merit and Chinese festivals in their own calendars.
  */
 const PILL_KINDS: readonly NationalKind[] = ["royal", "national", "memorial", "international", "tradition"]
-export function nextNationalDay(today: string, withinDays = 14): { day: NationalDay; date: string; daysAway: number } | null {
+
+/** Every national, royal or civic day within `withinDays`, the nearest first (Task #456: two on one date both show). */
+export function upcomingNationalDays(today: string, withinDays = 14): { day: NationalDay; date: string; daysAway: number }[] {
   const year = Number(today.slice(0, 4))
-  let best: { day: NationalDay; date: string; daysAway: number } | null = null
+  const out: { day: NationalDay; date: string; daysAway: number }[] = []
   for (const d of NATIONAL_DAYS.filter((x) => PILL_KINDS.includes(x.kind)))
     for (const y of [year, year + 1]) {
       const date = nationalDayDate(d, y)
       if (!date || date < today) continue
       const daysAway = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000)
-      if (daysAway <= withinDays && (!best || daysAway < best.daysAway)) best = { day: d, date, daysAway }
+      if (daysAway <= withinDays) out.push({ day: d, date, daysAway })
     }
-  return best
+  return out.sort((a, b) => a.daysAway - b.daysAway)
 }
+
+export const nextNationalDay = (today: string, withinDays = 14) => upcomingNationalDays(today, withinDays)[0] ?? null
 
 const KM_MONTH_NAMES = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
 
