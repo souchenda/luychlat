@@ -161,16 +161,30 @@ async function photo(chatId: number | string, png: Buffer, caption: string, opts
     form.append("parse_mode", "HTML")
   }
   if (opts.reply_markup) form.append("reply_markup", JSON.stringify(opts.reply_markup))
+  // Why it failed is always said (founder, 22/10/2026 — the 23/10 card failed as a bare «no answer»): the network
+  // error, or the HTTP status and what came back.
+  let why = ""
+  const started = Date.now()
   const res = await fetch(`https://api.telegram.org/bot${token}/${opts.messageId ? "editMessageMedia" : "sendPhoto"}`, {
     method: "POST",
     body: outgoingForm(form),
     cache: "no-store",
     signal: AbortSignal.timeout(30_000),
-  }).catch(() => null)
-  const json = (await res?.json().catch(() => null)) as { ok?: boolean; result?: { message_id?: number; reply_markup?: unknown }; description?: string } | null
+  }).catch((e: unknown) => {
+    const err = e as { name?: string; message?: string; cause?: { code?: string; message?: string } }
+    why = `${err.name ?? "Error"} ${err.cause?.code ?? err.cause?.message ?? err.message ?? ""} after ${Math.round((Date.now() - started) / 1000)} s`.trim()
+    return null
+  })
+  const raw = res ? await res.text().catch(() => "") : ""
+  let json: { ok?: boolean; result?: { message_id?: number; reply_markup?: unknown }; description?: string } | null = null
+  try {
+    json = raw ? JSON.parse(raw) : null
+  } catch {
+    why = `HTTP ${res?.status}: ${raw.replace(/\s+/g, " ").slice(0, 120)}`
+  }
   if (editing && (json?.ok || /message is not modified/.test(json?.description ?? ""))) editTarget()!.edited.telegram = true
   if (!json?.ok) {
-    logEvent("error", "daily-tip", `Telegram ${opts.messageId ? "editMessageMedia" : "sendPhoto"} failed: ${json?.description ?? "no answer"}`, { fold: true })
+    logEvent("error", "daily-tip", `Telegram ${opts.messageId ? "editMessageMedia" : "sendPhoto"} failed: ${json?.description ?? (why || `HTTP ${res?.status ?? "—"}, empty answer`)} (photo ${Math.round(png.length / 1024)} KB, caption ${caption.length} chars)`, { fold: true })
     return null
   }
   const id = json.result?.message_id ?? opts.messageId ?? null

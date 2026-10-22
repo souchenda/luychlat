@@ -588,3 +588,17 @@ describe("still waiting at its time: never published — an URGENT reminder to t
     assert.equal(f.previewsSent.length, 1)
   })
 })
+
+describe("regression: the 23/10 card never reached «LCA Approval» (founder, 22/10/2026 — Task #455)", () => {
+  const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+  const tip = readFileSync(join(process.cwd(), "src/lib/server/tip-bot.ts"), "utf8")
+  it("a poster that can't be attached: the card still goes, as text with a note — an approval is never left missing", () => {
+    assert.match(sp, /const id = await sendPosterPhoto\(chat, png, text\.slice\(0, 1024\), \{ reply_markup \}\)\s*if \(id\) return id[\s\S]*?text = `⚠️ មិនអាចភ្ជាប់រូប Poster បានទេ/)
+  })
+  it("why a photo failed is always said (never a bare «no answer»), and the log never blames «no super admin chat» when chats exist", () => {
+    assert.doesNotMatch(tip, /\?\? "no answer"/)
+    assert.match(tip, /why = `\$\{err\.name \?\? "Error"\} /)
+    assert.match(tip, /\(photo \$\{Math\.round\(png\.length \/ 1024\)\} KB, caption \$\{caption\.length\} chars\)/)
+    assert.match(sp, /`Preview of \$\{row\.kind\} \$\{row\.post_key\}: not delivered to the \$\{chats\} approval chat\(s\) — tried again next minute`/)
+  })
+})

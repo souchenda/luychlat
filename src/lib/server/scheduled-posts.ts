@@ -159,7 +159,16 @@ export function createScheduler(d: SchedulerDeps) {
       if (msg) previews.push({ chat, msg, photo: Boolean(png) })
     }
     await d.setPreviews(row.id, previews)
-    d.log(previews.length ? "info" : "warn", previews.length ? `Preview of ${row.kind} ${row.post_key} sent to ${previews.length} chat(s)` : `Preview of ${row.kind} ${row.post_key}: no super admin chat — it can't be approved, so it will NOT be published`)
+    // Never a misleading reason (22/10/2026): no approval chat at all, or chats that did not receive the card.
+    const chats = (await d.adminChats()).length
+    d.log(
+      previews.length ? "info" : "warn",
+      previews.length
+        ? `Preview of ${row.kind} ${row.post_key} sent to ${previews.length} chat(s)`
+        : chats
+          ? `Preview of ${row.kind} ${row.post_key}: not delivered to the ${chats} approval chat(s) — tried again next minute`
+          : `Preview of ${row.kind} ${row.post_key}: no super admin chat — it can't be approved, so it will NOT be published`,
+    )
   }
 
   const refresh = (row: PostRow) =>
@@ -751,8 +760,16 @@ const realDeps = (): SchedulerDeps => ({
   },
   async sendPreview(chat, png, text, buttons) {
     const reply_markup = { inline_keyboard: buttons }
-    if (png) return await sendPosterPhoto(chat, png, text.slice(0, 1024), { reply_markup })
-    const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, text, disable_web_page_preview: true, reply_markup })
+    if (png) {
+      const id = await sendPosterPhoto(chat, png, text.slice(0, 1024), { reply_markup })
+      if (id) return id
+      // The poster could not be attached (the reason is logged): the card still goes, as text with a note — an approval
+      // is never left missing (founder, 22/10/2026 — the 23/10 card).
+      text = `⚠️ មិនអាចភ្ជាប់រូប Poster បានទេ — កាតនេះជាអត្ថបទ (Poster នឹងផ្សាយដូចមុន)។
+
+${text}`
+    }
+    const res = await tg<{ message_id: number }>("sendMessage", { chat_id: chat, text: text.slice(0, 4096), disable_web_page_preview: true, reply_markup })
     return res.ok && res.result ? res.result.message_id : null
   },
   async promptEdit(chat, cardMsg) {
