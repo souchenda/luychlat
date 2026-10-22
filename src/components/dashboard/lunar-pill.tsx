@@ -1,10 +1,11 @@
 "use client"
 
-import { ChevronRightIcon, MoonIcon } from "lucide-react"
+import { ChevronRightIcon, LandmarkIcon, MoonIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
 import { CULTURAL_ICON } from "@/components/culture/cultural-look"
+import { nationalPillText, nextNationalDay } from "@/lib/calendar/cambodia-holidays"
 import { CHINESE_KEYS, culturalDayOn, daysUntil, upcomingCulturalDays, type CulturalKey } from "@/lib/cultural-calendar"
 import { todayDate } from "@/lib/debts"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
@@ -43,6 +44,7 @@ export function LunarPill({ onOpen }: { onOpen?: () => void } = {}) {
 
   let text: string
   let key: CulturalKey | null = null
+  let national = false
   if (ben === 0) {
     text = t("holyDay.pchumBenToday")
   } else if (ben !== null) {
@@ -50,7 +52,15 @@ export function LunarPill({ onOpen }: { onOpen?: () => void } = {}) {
   } else {
     const on = culturalDayOn(today)
     const soon = on ? null : upcomingCulturalDays(today, SOON_DAYS)[0]
-    if (on) {
+    // The nearest event wins (founder, 22/10/2026 — Task #455): a national or royal day tomorrow is shown before a
+    // festival four days off — «ស្អែកនេះ ៖ ទិវាសន្តិភាពទីក្រុងប៉ារីស (23 តុលា)», «ថ្ងៃនេះ ៖ …» on the day. A tie goes to
+    // the national day. Khmer only (the national days' names are Khmer).
+    const nat = locale === "km" ? nextNationalDay(today) : null
+    const otherDays = on ? 0 : soon ? daysUntil(today, soon.start) : (nextHolyDay(today)?.daysAway ?? Number.POSITIVE_INFINITY)
+    if (nat && nat.daysAway <= otherDays) {
+      national = true
+      text = nationalPillText(nat)
+    } else if (on) {
       key = on.key
       text = PILL_WISH.has(on.key) ? t(`cultural.${on.key}.pill` as MessageKey) : name(on.key)
     } else if (soon) {
@@ -67,12 +77,12 @@ export function LunarPill({ onOpen }: { onOpen?: () => void } = {}) {
   }
 
   const red = key !== null && CHINESE_KEYS.has(key)
-  const Icon = key ? CULTURAL_ICON[key] : MoonIcon
+  const Icon = national ? LandmarkIcon : key ? CULTURAL_ICON[key] : MoonIcon
 
   const className = `group inline-flex max-w-full items-center gap-1.5 rounded-full border py-1 pr-1.5 pl-2 text-xs font-medium shadow-xs transition-all active:scale-[0.97] ${red ? RED : AMBER}`
   const inner = (
     <>
-      <Icon className={`size-3.5 shrink-0 ${red ? "text-red-600 dark:text-red-300" : key ? "text-amber-600" : "fill-amber-300 text-amber-500"}`} aria-hidden />
+      <Icon className={`size-3.5 shrink-0 ${red ? "text-red-600 dark:text-red-300" : key || national ? "text-amber-600" : "fill-amber-300 text-amber-500"}`} aria-hidden />
       <span className="truncate">{text}</span>
       <ChevronRightIcon className="size-3.5 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5" aria-hidden />
     </>

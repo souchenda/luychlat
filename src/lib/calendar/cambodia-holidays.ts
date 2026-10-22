@@ -37,6 +37,8 @@ export type NationalDay = {
   title: string
   /** The royal name or the occasion, under the title. */
   subtitle?: string
+  /** A shorter name for the home header's pill, when the title is long («ទិវាសន្តិភាពទីក្រុងប៉ារីស»). */
+  short?: string
   /** The year it began — for «ខួបលើកទី N» with the dates. */
   since?: number
   /** The blessing or the words of remembrance. */
@@ -90,7 +92,19 @@ export const NATIONAL_DAYS: NationalDay[] = [
     message: "ក្រុមការងារ អេប លុយឆ្លាត សូមក្រាបបង្គំគោរពព្រះវិញ្ញាណក្ខន្ធ និងរំលឹកដល់ព្រះគុណូបការៈដ៏ធំធេងរបស់ព្រះអង្គ ចំពោះជាតិមាតុភូមិ។",
     assets: { portrait: "king_father_sihanouk", crest: true },
   },
-  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true, backdrop: true } },
+  // The Paris Peace Agreements, signed on 23 October 1991 (founder, 22/10/2026 — Task #455): a day of remembrance (no
+  // longer a public holiday since 2020) — the community channel and the Page, never @LuyChlatIslamic (civic).
+  {
+    key: "paris-peace",
+    date: { fixed: "10-23" },
+    kind: "national",
+    pill: "ទិវារំលឹក",
+    title: "ទិវារំលឹកខួប នៃកិច្ចព្រមព្រៀងសន្តិភាពទីក្រុងប៉ារីស",
+    short: "ទិវាសន្តិភាពទីក្រុងប៉ារីស",
+    since: 1991,
+    message: "សូមរំលឹកដល់ថ្ងៃចុះហត្ថលេខាលើកិច្ចព្រមព្រៀងសន្តិភាពទីក្រុងប៉ារីស ដែលបានបើកផ្លូវឆ្ពោះទៅរកសន្តិភាព ការផ្សះផ្សាជាតិ និងការកសាងប្រទេសកម្ពុជាឡើងវិញ។",
+  },
+  { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", short: "ព្រះរាជពិធីគ្រងរាជ្យ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true, backdrop: true } },
   { key: "independence", date: { fixed: "11-09" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាបុណ្យឯករាជ្យជាតិ", since: 1953, assets: { portrait: "king_father_sihanouk", crest: true, monument: true }, message: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត ដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។" },
   { key: "water-festival", date: { festival: "holiday.water_festival" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីបុណ្យអុំទូក បណ្តែតប្រទីប អកអំបុក និងសំពះព្រះខែ", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ធ្វើដំណើរ និងចូលរួមកម្សាន្តដោយសុវត្ថិភាព ព្រមទាំងជួបតែសេចក្តីសុខ។" },
   // Group D (global and cultural): Pchum Ben, the day of Pchum Thom (the day after the holiday's first day).
@@ -230,5 +244,38 @@ export function nationalCaptionHtml(d: NationalDay, day: string): string {
 
 /** The same as plain text (the Page). */
 export const nationalCaptionText = (d: NationalDay, day: string) => nationalCaptionHtml(d, day).replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
+
+/**
+ * The home header's nearest event (founder, 22/10/2026 — Task #455: the pill kept counting down to a festival four days
+ * away while a national day was tomorrow): the next national, royal or civic day within `withinDays` — today, tomorrow,
+ * or later — for the pill to weigh against the next holy day and Khmer-Chinese day (the nearest wins). The Islamic days
+ * live in the Hijri pill, the merit and Chinese festivals in their own calendars.
+ */
+const PILL_KINDS: readonly NationalKind[] = ["royal", "national", "memorial", "international", "tradition"]
+export function nextNationalDay(today: string, withinDays = 14): { day: NationalDay; date: string; daysAway: number } | null {
+  const year = Number(today.slice(0, 4))
+  let best: { day: NationalDay; date: string; daysAway: number } | null = null
+  for (const d of NATIONAL_DAYS.filter((x) => PILL_KINDS.includes(x.kind)))
+    for (const y of [year, year + 1]) {
+      const date = nationalDayDate(d, y)
+      if (!date || date < today) continue
+      const daysAway = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000)
+      if (daysAway <= withinDays && (!best || daysAway < best.daysAway)) best = { day: d, date, daysAway }
+    }
+  return best
+}
+
+const KM_MONTH_NAMES = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
+
+/**
+ * The pill's words for a national day, 0-9 on the screen (rule 7): «ថ្ងៃនេះ ៖ ទិវាសន្តិភាពទីក្រុងប៉ារីស» on the day,
+ * «ស្អែកនេះ ៖ ទិវាសន្តិភាពទីក្រុងប៉ារីស (23 តុលា)» the day before, «ព្រះរាជពិធីគ្រងរាជ្យ (6ថ្ងៃ)» further off.
+ */
+export function nationalPillText(n: { day: NationalDay; date: string; daysAway: number }): string {
+  const name = n.day.short ?? n.day.title
+  if (n.daysAway === 0) return `ថ្ងៃនេះ ៖ ${name}`
+  if (n.daysAway === 1) return `ស្អែកនេះ ៖ ${name} (${Number(n.date.slice(8, 10))} ${KM_MONTH_NAMES[Number(n.date.slice(5, 7)) - 1]})`
+  return `${name} (${n.daysAway}ថ្ងៃ)`
+}
 
 export const nationalDayByKey = (key: string) => NATIONAL_DAYS.find((d) => d.key === key) ?? null
