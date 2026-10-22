@@ -158,6 +158,11 @@ export type IslamicPostContent = {
   /** The poster's source when it quotes less than the caption (Al-Jumu'ah 62:9 of 62:9–10). */
   posterSource?: string
   source: { label: string; url: string }
+  /**
+   * The cited verse in the official Khmer translation, unmodified (QuranEnc — Task #460, filled on the server by
+   * lib/server/quran-verses.ts), with «(ស៊ូរ៉ាត់ … : អាយ៉ាត់ …)»; absent when it could not be read or would not fit.
+   */
+  verse?: { khmer: string; citation: string }
   /** Tomorrow's Imsak / Iftar (`day`: the fast day's name, «ថ្ងៃច័ន្ទ»). */
   fast?: { imsak: string; iftar: string; place: string; day?: string }
   /** A du'a in Arabic, drawn large on the poster. */
@@ -359,6 +364,7 @@ export function islamicCaptionHtml(c: IslamicPostContent): string {
     ...c.paragraphs.map(esc),
     ...(c.prayers ? ["", `🕌 ម៉ោងថ្វាយបង្គំថ្ងៃនេះ (${FAST_PLACE.km})៖`, c.prayers.map((p) => `${p.label} ${p.time}`).join(" · ")] : []),
     ...(c.fast ? ["", `⏰ ម៉ោងនៅ${c.fast.place}៖ ${G.IMSAK_LABEL} ${c.fast.imsak} · ${G.IFTAR_LABEL} ${c.fast.iftar}`] : []),
+    ...(c.verse ? ["", `«${esc(c.verse.khmer)}»`, esc(c.verse.citation)] : []),
     "",
     `📖 ប្រភព៖ <a href="${c.source.url}">${esc(c.source.label)}</a>`,
     "",

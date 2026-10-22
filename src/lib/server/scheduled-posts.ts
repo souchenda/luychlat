@@ -9,7 +9,9 @@
 // button pressed at 06:59:59 and the 07:00 timer can never both publish. The orchestration takes its
 // I/O as `deps` so it is tested with an in-memory fake (scheduled-posts.test.ts).
 import { createHash } from "node:crypto"
-import { postFooter, withFooter } from "@/lib/post-footer"
+import { PHOTO_CAPTION_LIMIT, postFooter, withFooter } from "@/lib/post-footer"
+import { quranRefOf, verseCitation } from "@/lib/quran-verse"
+import { getQuranVerses } from "@/lib/server/quran-verses"
 
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
 import { dueAction, endOfCambodiaDay, isPreviewed, isReplaceCallback, kmClock, parseReplaceCallback, parseScheduledPostCallback, REPLACEABLE, replaceButtons, replacedNote, replacePreviewText, reminderLevel, urgentReminderButtons, urgentReminderText, plannedIslamicPosts, plannedPosts, previewButtons, previewText, atMinute, EVENT_LEAD_MIN, type PostKind, type PostStatus, type Targets, pastedCardBody, promptStep } from "@/lib/scheduled-posts"
@@ -19,7 +21,7 @@ import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLo
 import { bulletinPreview, islamicBulletinText, publishBulletin } from "@/lib/server/community-bulletin"
 import { communityChannel, communityChannelConfigured, founderApproved, islamicChannel, islamicChannelConfigured } from "@/lib/server/channel"
 import { formatHijri, toHijri, type HijriDate } from "@/lib/islamic"
-import { channelFor, dateOf, islamicCaptionHtml, kmDay, islamicPlannedPosts, islamicPostContent, type IslamicKind } from "@/lib/islamic-channel"
+import { channelFor, dateOf, islamicCaptionHtml, kmDay, islamicPlannedPosts, islamicPostContent, type IslamicKind, type IslamicPostContent } from "@/lib/islamic-channel"
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { silPosterContent } from "@/lib/sil-poster"
 import { renderSilPoster, silPosterReady } from "@/lib/server/sil-poster"
@@ -906,7 +908,24 @@ async function hijriOffset(): Promise<number> {
 async function islamicContent(kind: IslamicKind, day: string) {
   const offset = await hijriOffset()
   const tomorrow = new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
-  return islamicPostContent(kind, day, toHijri(dateOf(day), offset), toHijri(dateOf(tomorrow), offset))
+  return withVerse(islamicPostContent(kind, day, toHijri(dateOf(day), offset), toHijri(dateOf(tomorrow), offset)))
+}
+
+/**
+ * The lesson's / Jumu'ah's cited verse in the official Khmer translation, unmodified (founder, 22/10/2026 — Task #460):
+ * one to three verses from QuranEnc, with «(ស៊ូរ៉ាត់ … : អាយ៉ាត់ …)» — only when the whole caption, footer included, still
+ * fits a photo caption (1,024). Unreadable or too long: the post as before, with its link to the verse.
+ */
+async function withVerse(c: IslamicPostContent): Promise<IslamicPostContent> {
+  if (c.kind !== "ISLAMIC_DAILY" && c.kind !== "ISLAMIC_JUMUAH") return c
+  const ref = quranRefOf(c.source.url)
+  if (!ref || ref.to - ref.from > 2) return c
+  const verses = await getQuranVerses(ref.sura, ref.from, ref.to)
+  if (!verses) return c
+  const withV = { ...c, verse: { khmer: verses.map((v) => v.khmer).join(" "), citation: verseCitation(ref.sura, ref.from, ref.to) } }
+  const footer = postFooter("islamic")
+  const caption = withFooter(islamicCaptionHtml(withV), footer)
+  return caption.endsWith(footer) && caption.length <= PHOTO_CAPTION_LIMIT ? withV : c
 }
 
 let scheduler: ReturnType<typeof createScheduler> | null = null
