@@ -50,7 +50,7 @@ describe("The Android app's version and in-app update (founder, 22/10/2026 — T
     assert.match(p, /fetch\(latest\.downloadUrl, \{ method: "HEAD"/)
     assert.match(p, /if \(\(installed \?\? 0\) >= IN_APP_DOWNLOAD_FROM\) \{\s*window\.location\.href = url/)
     assert.match(read("src/app/(app)/layout.tsx"), /<AppUpdatePrompt \/>/)
-    assert.match(read("src/app/(app)/settings/page.tsx"), /hint=\{apkLabel \?\? undefined\}/)
+    assert.match(read("src/app/(app)/settings/page.tsx"), /<StatusBadge>\{apkLabel \?\? `v\$\{APP_VERSION\}`\}<\/StatusBadge>/)
     const km = read("src/lib/i18n/dictionaries.ts")
     assert.ok(km.includes('"appUpdate.title": "🚀 មានកំណែថ្មី v{version}!"'))
     assert.ok(km.includes('"appUpdate.update": "អាប់ដេតឥឡូវនេះ (Update)"'))
@@ -76,5 +76,20 @@ describe("The Android app's version and in-app update (founder, 22/10/2026 — T
     const main = read("android/app/src/main/java/com/luychlat/app/MainActivity.java")
     assert.match(main, /getBridge\(\)\.getWebView\(\)\.setDownloadListener\(/)
     assert.match(main, /new Intent\(Intent\.ACTION_VIEW, Uri\.parse\(url\)\)/)
+  })
+})
+
+describe("No hard-coded «1.0.0» in Settings › About (founder, 22/10/2026 — Task #470)", () => {
+  it("APP_VERSION is the newest APK's version; package.json follows it; the badge shows «ជំនាន់ v1.5 (Build 6)» in the app", () => {
+    assert.match(read("src/lib/app-info.ts"), /export const APP_VERSION: string = LATEST_APK\.version/)
+    assert.doesNotMatch(read("src/lib/app-info.ts"), /"1\.0\.0"/)
+    assert.equal(JSON.parse(read("package.json")).version, `${LATEST_APK.version}.0`)
+    assert.equal(apkVersion(LATEST_APK.code).kind, "known")
+    const km = read("src/lib/i18n/dictionaries.ts")
+    assert.ok(km.includes('"settings.apkVersion": "ជំនាន់ v{version} (Build {code})"'))
+    // The label fills the badge itself (it sat in the hint under «1.0.0» before).
+    const settings = read("src/app/(app)/settings/page.tsx")
+    assert.match(settings, /if \(v\.kind === "known"\) setApkLabel\(v\.version \? t\("settings\.apkVersion", \{ version: v\.version, code: v\.code \}\)/)
+    assert.doesNotMatch(settings, /hint=\{apkLabel/)
   })
 })

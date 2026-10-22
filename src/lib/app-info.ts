@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query"
 
+import { LATEST_APK } from "@/lib/apk-version"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 /**
@@ -9,7 +10,8 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
  * live here; an admin can override the text and links in /admin › About
  * (stored in app_settings "about_info"), without a new release.
  */
-export const APP_VERSION = "1.0.0"
+/** The app's version everywhere (founder, 22/10/2026 — Task #470: Settings showed a hard-coded «1.0.0»): the newest APK's. */
+export const APP_VERSION: string = LATEST_APK.version
 /** First year of the copyright notice ("© 2026", later "© 2026–2027"). */
 export const COPYRIGHT_SINCE = 2026
 

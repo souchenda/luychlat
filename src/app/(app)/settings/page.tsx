@@ -436,8 +436,9 @@ export default function SettingsPage() {
         <SettingsRow onClick={() => useOnboardingStore.getState().show()} icon={<CompassIcon />} tile="emerald" title={t("onboarding.replay")} hint={t("onboarding.replayHint")} />
         <SettingsRow href="/guide" icon={<BookOpenIcon />} tile="teal" title={t("guide.title")} hint={t("guide.settingsHint")} />
         <SettingsRow href="/support" icon={<LifeBuoyIcon />} tile="sky" title={t("support.title")} hint={t("support.settingsHint")} />
-        <SettingsRow onClick={() => setAboutOpen(true)} icon={<InfoIcon />} tile="emerald" title={t("about.title")} hint={apkLabel ?? undefined}>
-          <StatusBadge>v{APP_VERSION}</StatusBadge>
+        <SettingsRow onClick={() => setAboutOpen(true)} icon={<InfoIcon />} tile="emerald" title={t("about.title")}>
+          {/* The installed APK's own version in the app («ជំនាន់ v1.5 (Build 6)»), the app's version in a browser (Task #470). */}
+          <StatusBadge>{apkLabel ?? `v${APP_VERSION}`}</StatusBadge>
         </SettingsRow>
       </SettingsGroup>
 
