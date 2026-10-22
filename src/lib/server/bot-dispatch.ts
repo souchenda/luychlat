@@ -64,7 +64,9 @@ async function sendDueNotifications() {
 async function sendPrayerTimes() {
   const db = botDb()
   const { data, error } = await db.rpc("bot_prayer_subscribers", { p_key: botKey() })
-  if (error || !data?.length) return
+  // Never a silent failure (CLAUDE.md): a broken query is logged; no subscriber is simply nobody to tell.
+  if (error) return logEvent("error", "prayer", `Telegram prayer alerts: subscribers not read — ${error.message}`, { fold: true })
+  if (!data?.length) return
   const clock = cambodiaNow()
   const day = `${clock.date.year}-${String(clock.date.month).padStart(2, "0")}-${String(clock.date.day).padStart(2, "0")}`
   let audio = 0
@@ -99,7 +101,8 @@ async function sendPrayerTimes() {
 async function sendPrayerPush() {
   const db = botDb()
   const { data, error } = await db.rpc("bot_prayer_push_targets", { p_key: botKey() })
-  if (error || !data?.length) return
+  if (error) return logEvent("error", "prayer", `Prayer push: phones not read — ${error.message}`, { fold: true })
+  if (!data?.length) return
   const clock = cambodiaNow()
   const day = `${clock.date.year}-${String(clock.date.month).padStart(2, "0")}-${String(clock.date.day).padStart(2, "0")}`
   let members = 0

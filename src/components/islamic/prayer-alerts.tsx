@@ -1,6 +1,6 @@
 "use client"
 
-import { BellIcon, BellOffIcon, FileAudioIcon, Loader2Icon, PauseIcon, PlayIcon, Trash2Icon } from "lucide-react"
+import { BellIcon, BellOffIcon, FileAudioIcon, Loader2Icon, PauseIcon, PlayIcon, Trash2Icon, Volume2Icon } from "lucide-react"
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { toast } from "sonner"
 
@@ -32,6 +32,8 @@ import {
   playAdhan,
   playChime,
   playPreset,
+  primeAdhanAudio,
+  primeOnFirstTap,
   saveAdhan,
   listenForStopAdhan,
   loadAdhan,
@@ -62,6 +64,8 @@ export function PrayerAlertScheduler() {
 
   // The notification's «🔇 បិទសំឡេង» reaches the app through the service worker.
   useEffect(() => listenForStopAdhan(), [])
+  // The first tap after a launch unlocks the sound, so the Adhan may play at the prayer minute (Task #466).
+  useEffect(() => (alertsOn ? primeOnFirstTap() : undefined), [alertsOn])
 
   // In the Android app (founder, 20/10/2026): the week's prayers as native alarms with the Adhan channel — they ring
   // with the screen locked and the app closed. Re-planned at every launch and whenever the place, sound or language
@@ -101,8 +105,20 @@ export function PrayerAlertScheduler() {
       const body = t("prayerAlert.body", { time: formatMinutes(times[key]), place: location.label })
       const adhan = alertSound === "adhan"
       void showPrayerNotification(title, body, `prayer-${key}`, adhan ? t("prayerAlert.stopAdhan") : undefined)
-      if (alertSound === "chime") playChime()
-      if (adhan) void playAdhan({ ...adhanForPrayer(key, adhanPreset, fajrAdhan, !!adhanName, FAJR_ADHAN, global, defaults), title })
+      const choice = { ...adhanForPrayer(key, adhanPreset, fajrAdhan, !!adhanName, FAJR_ADHAN, global, defaults), title }
+      // The browser refused sound (no tap since the app opened): never silence — a banner whose ▶ plays it (a tap).
+      const blocked = () =>
+        toast(title, {
+          description: body,
+          duration: 300_000,
+          action: { label: t("prayerAlert.tapToPlay"), onClick: () => (adhan ? void playAdhan(choice) : playChime()) },
+        })
+      if (alertSound === "chime" && !playChime()) return void blocked()
+      if (adhan) {
+        void playAdhan(choice).then((r) => {
+          if (r === "blocked") blocked()
+        })
+      }
       if (document.visibilityState === "visible") {
         toast(title, {
           description: body,
@@ -115,9 +131,11 @@ export function PrayerAlertScheduler() {
     tick()
     const id = window.setInterval(tick, 15_000)
     document.addEventListener("visibilitychange", tick)
+    window.addEventListener("pageshow", tick)
     return () => {
       window.clearInterval(id)
       document.removeEventListener("visibilitychange", tick)
+      window.removeEventListener("pageshow", tick)
     }
   }, [alertsOn, nativeOn])
 
@@ -223,6 +241,23 @@ export function PrayerAlertSettings() {
     setAlerts({ adhanName: null, adhanPreset: presets[0]?.id ?? CUSTOM_ADHAN, alertSound: alertSound === "adhan" && !presets.length ? "chime" : alertSound })
   }
 
+  const playingNow = usePlaying()
+  const [testOn, setTestOn] = useState(false)
+  const testing = testOn && playingNow !== null
+  const testAdhan = () => {
+    if (testing) {
+      setTestOn(false)
+      return stopSound()
+    }
+    primeAdhanAudio() // this tap also unlocks the sound for the prayer alerts
+    const choice = adhanForPrayer("dhuhr", adhanPreset, fajrAdhan, !!adhanName, FAJR_ADHAN, global, defaults)
+    setTestOn(true)
+    void playAdhan({ ...choice, title: t("prayerAlert.testAdhan") }).then((r) => {
+      if (r === "chime") toast(t("prayerAlert.testChimeOnly"))
+      if (r === "blocked") toast.error(t("prayerAlert.testBlocked"))
+    })
+  }
+
   const row = (active: boolean) => cn("flex items-center gap-3 rounded-xl border px-3 py-2", active && "border-primary bg-primary/5 ring-1 ring-primary")
 
   return (
@@ -237,6 +272,12 @@ export function PrayerAlertSettings() {
         </span>
         <Switch checked={alertsOn} onCheckedChange={(v) => void toggle(v)} aria-label={t("prayerAlert.toggle")} />
       </label>
+
+      {/* 🔊 Test the Adhan now (Task #466): the very recording the next prayer plays, through the same player. */}
+      <Button type="button" variant="outline" className="h-11 w-full gap-2 rounded-xl" onClick={testAdhan} aria-pressed={testing}>
+        {testing ? <PauseIcon className="size-4" aria-hidden /> : <Volume2Icon className="size-4" aria-hidden />}
+        {t(testing ? "prayerAlert.stopTest" : "prayerAlert.testAdhan")}
+      </Button>
 
       {alertsOn && (
         <div className="space-y-3 border-t pt-3">

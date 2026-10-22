@@ -143,25 +143,106 @@ export function listenForStopAdhan() {
   return () => navigator.serviceWorker.removeEventListener("message", onMessage)
 }
 
+// ---------------------------------------------------------------- Autoplay unlock (founder, 22/10/2026 — Task #466)
+
+/**
+ * Why Dhuhr was silent on 22/10: a prayer time arrives from a timer, not a tap, and browsers refuse `play()` without
+ * one — iPhones always, Chrome until the page was touched once. The chime fallback opened a new AudioContext, as
+ * blocked. So the first tap anywhere in the app unlocks ONE audio element and ONE audio context (a few ms of
+ * silence), and every Adhan and chime after it plays through them — at the prayer minute, no tap needed.
+ */
+let primedAudio: HTMLAudioElement | null = null
+let chimeCtx: AudioContext | null = null
+
+/** 50 ms of silence as a WAV (8 kHz, 8-bit mono): what the unlocking tap plays. */
+export function silentWav(ms = 50): Uint8Array {
+  const samples = Math.max(1, Math.round((8_000 * ms) / 1_000))
+  const b = new Uint8Array(44 + samples)
+  const v = new DataView(b.buffer)
+  const text = (at: number, s: string) => [...s].forEach((c, i) => (b[at + i] = c.charCodeAt(0)))
+  text(0, "RIFF")
+  v.setUint32(4, 36 + samples, true)
+  text(8, "WAVEfmt ")
+  v.setUint32(16, 16, true)
+  v.setUint16(20, 1, true) // PCM
+  v.setUint16(22, 1, true) // mono
+  v.setUint32(24, 8_000, true)
+  v.setUint32(28, 8_000, true)
+  v.setUint16(32, 1, true)
+  v.setUint16(34, 8, true)
+  text(36, "data")
+  v.setUint32(40, samples, true)
+  b.fill(128, 44) // 8-bit silence is the midpoint
+  return b
+}
+
+/** Inside a tap: the shared audio element and context unlocked for later, timer-driven playback. */
+export function primeAdhanAudio(): void {
+  if (typeof window === "undefined") return
+  try {
+    if (!primedAudio) {
+      const audio = new Audio()
+      audio.src = URL.createObjectURL(new Blob([silentWav() as BlobPart], { type: "audio/wav" }))
+      primedAudio = audio
+      void audio.play().catch(() => {
+        if (primedAudio === audio) primedAudio = null // not unlocked: the next tap tries again
+      })
+    }
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (Ctx) {
+      chimeCtx ??= new Ctx()
+      if (chimeCtx.state === "suspended") void chimeCtx.resume().catch(() => {})
+    }
+  } catch {
+    // no audio here
+  }
+}
+
+/** Unlocks on the first taps after a launch (until it worked); returns the unsubscribe. */
+export function primeOnFirstTap(): () => void {
+  if (typeof window === "undefined") return () => {}
+  const events = ["pointerdown", "keydown", "touchend"] as const
+  const off = () => events.forEach((e) => window.removeEventListener(e, onTap, true))
+  function onTap() {
+    primeAdhanAudio()
+    if (primedAudio && chimeCtx?.state === "running") off()
+  }
+  events.forEach((e) => window.addEventListener(e, onTap, true))
+  return off
+}
+
 async function play(src: string, source: string, title = "Adhan · الأذان") {
   stopSound()
-  const audio = new Audio()
+  // The unlocked element when a tap primed it (it may play from a timer), else a new one.
+  const audio = primedAudio ?? new Audio()
   // Read with CORS, so the service worker can keep an Adhan the admin published (Supabase Storage) for offline alerts.
-  if (!src.startsWith("blob:")) audio.crossOrigin = "anonymous"
+  audio.crossOrigin = src.startsWith("blob:") ? null : "anonymous"
   audio.src = src
   playing = audio
   playingSource = source
   audio.onended = stopSound
   notify()
-  await audio.play()
+  try {
+    await audio.play()
+  } catch (e) {
+    if (playing === audio) {
+      playing = null
+      playingSource = null
+      notify()
+    }
+    throw e
+  }
   if (playing === audio) claimMediaSession(title)
 }
 
 /** A soft three-note bell, synthesised (no audio file needed). */
-export function playChime() {
+export function playChime(): boolean {
   const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-  if (!Ctx) return
-  const ctx = new Ctx()
+  if (!Ctx) return false
+  // The context a tap unlocked (a new one from a timer starts suspended — silent).
+  const shared = chimeCtx
+  const ctx = shared ?? new Ctx()
+  if (ctx.state === "suspended") void ctx.resume().catch(() => {})
   const notes = [659.25, 783.99, 1046.5] // E5, G5, C6
   notes.forEach((freq, i) => {
     const start = ctx.currentTime + i * 0.45
@@ -176,7 +257,8 @@ export function playChime() {
     osc.start(start)
     osc.stop(start + 1.7)
   })
-  window.setTimeout(() => void ctx.close(), 3_500)
+  if (!shared) window.setTimeout(() => void ctx.close(), 3_500)
+  return ctx.state === "running"
 }
 
 /** Plays a built-in Adhan by its /public path (preview or alert). */
@@ -186,10 +268,10 @@ export async function playPreset(file: string, id: string) {
 
 /**
  * Plays the chosen Adhan: a built-in preset (`presetFile`) or the file picked
- * from the phone. Falls back to the chime when there is none or the browser
- * blocks playback.
+ * from the phone. Falls back to the chime when there is none; "blocked" when the
+ * browser refused sound (no tap yet) — the caller offers a «▶» tap instead of silence.
  */
-export async function playAdhan(choice: { presetFile?: string | null; presetId?: string; title?: string } = {}): Promise<"adhan" | "chime"> {
+export async function playAdhan(choice: { presetFile?: string | null; presetId?: string; title?: string } = {}): Promise<"adhan" | "chime" | "blocked"> {
   try {
     if (choice.presetFile) {
       await play(choice.presetFile, choice.presetId ?? "preset", choice.title)
@@ -200,11 +282,11 @@ export async function playAdhan(choice: { presetFile?: string | null; presetId?:
       await play(URL.createObjectURL(blob), "custom", choice.title)
       return "adhan"
     }
-  } catch {
+  } catch (e) {
     stopSound()
+    if (e instanceof DOMException && e.name === "NotAllowedError") return "blocked"
   }
-  playChime()
-  return "chime"
+  return playChime() ? "chime" : "blocked"
 }
 
 // ---------------------------------------------------------------- Notifications
