@@ -19,6 +19,7 @@ import { FestiveBadge, FestiveSplash } from "@/components/culture/festive-greeti
 import { HashScroller } from "@/components/layout/hash-scroller"
 import { PrayerAlertScheduler } from "@/components/islamic/prayer-alerts"
 import { CounterModeKeeper } from "@/components/payments/counter-mode"
+import { FlipToHideListener } from "@/components/privacy/flip-to-hide"
 import { PaymentChimeListener } from "@/components/payments/payment-chime-listener"
 import { AppLock } from "@/components/lock/app-lock"
 import { MfaGate } from "@/components/security/mfa-gate"
@@ -76,6 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <PrayerAlertScheduler />
       <PaymentChimeListener />
       <CounterModeKeeper />
+      <FlipToHideListener />
       <RealtimeSync />
       <PendingInviteRedirect />
       <GuestImportPrompt />

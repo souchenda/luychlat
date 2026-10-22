@@ -12,6 +12,8 @@ import { useT } from "@/lib/i18n/use-t"
 import { heroTotals } from "@/lib/wallet-overview"
 import { usePrefsStore } from "@/stores/prefs-store"
 
+import { askMotionOnce } from "@/components/privacy/flip-to-hide"
+
 import { WalletRing } from "./wallet-ring"
 
 /** A balance line steps down a size as it grows, so it never truncates beside the ring (riel runs longer than dollars). */
@@ -46,7 +48,7 @@ export function NetWorthCard({
   onRetryGaps?: () => void
 }) {
   const t = useT()
-  const { hideBalances, toggleHideBalances, khrPerUsd } = usePrefsStore()
+  const { hideBalances, toggleHideBalances, khrPerUsd, flipToHide } = usePrefsStore()
   const totals = heroTotals(wallets ?? [], khrPerUsd, assetsUsd, liabilitiesUsd)
 
   return (
@@ -68,7 +70,11 @@ export function NetWorthCard({
             <p className="text-[15px] font-medium text-white/85">{t("netWorth.balanceTitle")}</p>
             <button
               type="button"
-              onClick={toggleHideBalances}
+              onClick={() => {
+                // Showing the balances on an iPhone: the tap that lets «flip to hide» read the tilt (Task #461).
+                if (hideBalances && flipToHide) askMotionOnce()
+                toggleHideBalances()
+              }}
               className="-my-1.5 rounded-full p-1.5 text-white/75 transition-colors hover:bg-white/15 hover:text-white"
               aria-label={t("netWorth.toggle")}
               aria-pressed={hideBalances}

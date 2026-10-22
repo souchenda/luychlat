@@ -35,6 +35,8 @@ type PrefsState = {
    * spoken amount — a dedicated counter device. Off by default; Business workspaces only (lib/payment-chime.ts).
    */
   counterMode: boolean
+  /** Flip to hide (Task #461): laid face down, the balances are masked (components/privacy/flip-to-hide.tsx). On by default. */
+  flipToHide: boolean
   /** `id` picks a specific Family or Business workspace. */
   setActiveWorkspace: (type: WorkspaceType, id?: string | null) => void
   toggleHideBalances: () => void
@@ -46,6 +48,7 @@ type PrefsState = {
   setPaymentChime: (on: boolean) => void
   /** Turning the counter mode on also turns the chime on (a counter phone that stays silent is no soundbox). */
   setCounterMode: (on: boolean) => void
+  setFlipToHide: (on: boolean) => void
 }
 
 /** Restoring saved preferences: all as saved, except balances — every launch starts hidden. */
@@ -64,6 +67,7 @@ export const usePrefsStore = create<PrefsState>()(
       holyDayChime: true,
       paymentChime: true,
       counterMode: false,
+      flipToHide: true,
       setActiveWorkspace: (activeWorkspace, id) =>
         set((s) => ({
           activeWorkspace,
@@ -76,6 +80,7 @@ export const usePrefsStore = create<PrefsState>()(
       setWalletsGrouped: (walletsGrouped) => set({ walletsGrouped }),
       setHolyDayChime: (holyDayChime) => set({ holyDayChime }),
       setPaymentChime: (paymentChime) => set({ paymentChime }),
+      setFlipToHide: (flipToHide) => set({ flipToHide }),
       setCounterMode: (counterMode) => set(counterMode ? { counterMode, paymentChime: true } : { counterMode }),
       toggleBankCollapsed: (key) =>
         set((s) => ({

@@ -1,6 +1,6 @@
 "use client"
 
-import { BellIcon, BookOpenIcon, StoreIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
+import { BellIcon, BookOpenIcon, SmartphoneIcon, StoreIcon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -14,6 +14,7 @@ import { useOfficialBot, useTelegramLink } from "@/components/settings/official-
 import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
 import { PushSettingsRow } from "@/components/notifications/push-prompt"
 import { playPaymentChimeSound, requestPaymentChimePermission } from "@/components/payments/payment-chime-listener"
+import { askMotionOnce } from "@/components/privacy/flip-to-hide"
 import { useHolyDayChimeSetting } from "@/components/dashboard/holy-day-reminder"
 import { playTempleBell } from "@/lib/temple-bell-player"
 import { Button } from "@/components/ui/button"
@@ -215,6 +216,25 @@ function CounterModeRow() {
   )
 }
 
+/** 📱 «ផ្កាប់ទូរសព្ទដើម្បីលាក់សមតុល្យ» (Task #461): face down → the balances masked. On by default; turning it on asks iOS. */
+function FlipToHideRow() {
+  const t = useT()
+  const on = usePrefsStore((s) => s.flipToHide)
+  const set = usePrefsStore((s) => s.setFlipToHide)
+  return (
+    <SettingsRow icon={<SmartphoneIcon />} tile="slate" title={t("settings.flipToHide")} hint={t("settings.flipToHideHint")}>
+      <Switch
+        checked={on}
+        aria-label={t("settings.flipToHide")}
+        onCheckedChange={(v) => {
+          set(v)
+          if (v) askMotionOnce()
+        }}
+      />
+    </SettingsRow>
+  )
+}
+
 /** 🪷 «សំឡេងរំលឹកថ្ងៃសីល»: the bell with Home's holy-day reminder (turning it on plays it once). Not with Islamic Mode. */
 function HolyDayChimeRow() {
   const t = useT()
@@ -294,6 +314,7 @@ export default function SettingsPage() {
         <SettingsRow icon={<EyeOffIcon />} tile="slate" title={t("settings.hideBalances")} hint={t("settings.hideBalancesHint")}>
           <Switch checked={hideBalances} onCheckedChange={toggleHideBalances} aria-label={t("settings.hideBalances")} />
         </SettingsRow>
+        <FlipToHideRow />
         <SettingsRow icon={<LanguagesIcon />} tile="violet" title={t("settings.language")}>
           <div className="w-52 shrink-0">
             <Segmented

@@ -1878,6 +1878,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "settings.darkMode": "深色模式",
   "settings.hideBalances": "隐藏余额",
   "settings.hideBalancesHint": "以 ***** 代替金额显示",
+  "settings.flipToHide": "翻转隐藏余额",
+  "settings.flipToHideHint": "将手机屏幕朝下即刻隐藏余额，并轻微振动提示——点击眼睛图标重新显示",
   "settings.securityHint": "PIN、Face ID、密码、2FA 和设备",
   "settings.appLock": "应用锁",
   "settings.signInSecurity": "登录",
