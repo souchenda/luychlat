@@ -1217,6 +1217,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "prayer.gpsSet": "正在使用您的当前位置",
   "prayer.networkSet": "根据网络的大致位置：{place}——不对可在上方更换省份",
   "prayer.networkNone": "无法确定位置——仍使用 {place}；可在上方选择省份",
+  "prayer.abroadNote": "🌍 在国外：按 GPS 位置和手机时区计算礼拜时间。应用内宣礼按此时间响起；服务器通知暂停，直到回到柬埔寨。请与当地清真寺核对。",
   "prayer.gpsDenied": "无法获取位置。请允许位置权限或选择省份。",
   "prayer.gpsUnavailable": "此设备不支持定位",
   "prayer.method": "在您的手机上计算：晨礼 20°、宵礼 18°、沙斐仪派晡礼，另加 2 分钟安全余量。您的位置不会发送到任何地方。请以当地穆夫提历为准核对。",

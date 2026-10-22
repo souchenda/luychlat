@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { toast } from "sonner"
 
 import { Segmented } from "@/components/common/segmented"
-import { useIslamicLocation } from "@/components/islamic/location-picker"
+import { useGpsRefresh, useIslamicLocation } from "@/components/islamic/location-picker"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
@@ -19,7 +19,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { enablePush, setPrayerPush } from "@/lib/push"
 import { isNativeApp } from "@/lib/native-bridge"
 import { cancelNativePrayers, requestNativePrayerPermissions, scheduleNativePrayers } from "@/lib/native-prayer"
-import { cambodiaNow, formatMinutes, prayerTimes } from "@/lib/prayer"
+import { formatMinutes, placeNow, prayerTimes } from "@/lib/prayer"
 import {
   ADHAN_MAX_BYTES,
   alertId,
@@ -62,6 +62,8 @@ export function PrayerAlertScheduler() {
   const latest = useRef({ t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults })
   latest.current = { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults }
 
+  // «My location» refreshed quietly while the app is open (never a prompt).
+  useGpsRefresh()
   // The notification's «🔇 បិទសំឡេង» reaches the app through the service worker.
   useEffect(() => listenForStopAdhan(), [])
   // The first tap after a launch unlocks the sound, so the Adhan may play at the prayer minute (Task #466).
@@ -96,8 +98,9 @@ export function PrayerAlertScheduler() {
     if (!alertsOn || nativeOn) return
     const tick = () => {
       const { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults } = latest.current
-      const clock = cambodiaNow()
-      const times = prayerTimes(clock.date, location.lat, location.lng)
+      // The place's own clock (Cambodia time, or the phone's zone abroad — Hajj, Umrah): the Adhan at the minute its times say.
+      const clock = placeNow(location.utcOffset)
+      const times = prayerTimes(clock.date, location.lat, location.lng, location.utcOffset)
       const key = duePrayer(times, clock.minutes)
       if (!key || !claimAlert(alertId(clock.date, key))) return
       const name = t(`prayer.${key}` as MessageKey)

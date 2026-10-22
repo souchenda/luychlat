@@ -16,7 +16,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { toHijri } from "@/lib/islamic"
 import { contextualDua, countdown, hubHero } from "@/lib/islamic-hub"
 import { useIslamicDefaults } from "@/lib/islamic-settings"
-import { cambodiaNow, formatMinutes, prayerTimes } from "@/lib/prayer"
+import { formatMinutes, placeNow, prayerTimes } from "@/lib/prayer"
 import { useLocaleStore } from "@/stores/locale-store"
 
 /** Today's and tomorrow's prayer times for the chosen place, and the Cambodian clock — ticking every second. */
@@ -28,13 +28,13 @@ function useHubClock() {
     const id = window.setInterval(() => setNow(new Date()), 1000)
     return () => window.clearInterval(id)
   }, [])
-  const clock = cambodiaNow(now)
+  const clock = placeNow(location.utcOffset, now)
   const { year, month, day } = clock.date
-  const today = useMemo(() => prayerTimes({ year, month, day }, location.lat, location.lng), [year, month, day, location.lat, location.lng])
+  const today = useMemo(() => prayerTimes({ year, month, day }, location.lat, location.lng, location.utcOffset), [year, month, day, location.lat, location.lng, location.utcOffset])
   const tomorrow = useMemo(() => {
     const d = new Date(Date.UTC(year, month - 1, day + 1))
-    return prayerTimes({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }, location.lat, location.lng)
-  }, [year, month, day, location.lat, location.lng])
+    return prayerTimes({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }, location.lat, location.lng, location.utcOffset)
+  }, [year, month, day, location.lat, location.lng, location.utcOffset])
   const dayKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
   const hijri = useMemo(() => toHijri(new Date(year, month - 1, day, 12), hijriOffset), [year, month, day, hijriOffset])
   return { clock, today, tomorrow, dayKey, hijri, location }

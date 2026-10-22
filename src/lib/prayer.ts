@@ -121,7 +121,27 @@ export function formatMinutes(minutes: number): string {
 
 /** Today's date and the current minute in Cambodia, whatever the device's time zone. */
 export function cambodiaNow(now = new Date()): { date: { year: number; month: number; day: number }; minutes: number; seconds: number } {
-  const shifted = new Date(now.getTime() + CAMBODIA_UTC_OFFSET * 3600_000)
+  return placeNow(CAMBODIA_UTC_OFFSET, now)
+}
+
+/** Inside Cambodia (its extent, with a margin) — a GPS fix or a network place. */
+export const inCambodia = (lat: number, lng: number) => lat >= 9.8 && lat <= 14.8 && lng >= 102.2 && lng <= 107.8
+
+/**
+ * The clock the prayer times are kept in (founder, 22/10/2026 — Hajj, Umrah, travel): Cambodia time at home; abroad, a
+ * GPS fix outside Cambodia, the phone's own time zone (phones set it from the network), so Makkah's Dhuhr reads 12:1x,
+ * not 16:1x Cambodia time. The Adhan rings at the same instant either way.
+ */
+export function prayerUtcOffset(gps: { lat: number; lng: number } | null, deviceUtcOffset: number): number {
+  return gps && !inCambodia(gps.lat, gps.lng) && Number.isFinite(deviceUtcOffset) ? deviceUtcOffset : CAMBODIA_UTC_OFFSET
+}
+
+/** The phone's own UTC offset in hours (5.5 for India, 3 for Makkah). */
+export const deviceUtcOffset = (now = new Date()) => -now.getTimezoneOffset() / 60
+
+/** Today's date and the current minute at a UTC offset (hours). */
+export function placeNow(utcOffset: number, now = new Date()): { date: { year: number; month: number; day: number }; minutes: number; seconds: number } {
+  const shifted = new Date(now.getTime() + utcOffset * 3600_000)
   return {
     date: { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth() + 1, day: shifted.getUTCDate() },
     minutes: shifted.getUTCHours() * 60 + shifted.getUTCMinutes(),

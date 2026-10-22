@@ -8,21 +8,55 @@ import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useT } from "@/lib/i18n/use-t"
-import { PROVINCES } from "@/lib/prayer"
+import { deviceUtcOffset, inCambodia, prayerUtcOffset, PROVINCES } from "@/lib/prayer"
 import { pushProvince } from "@/lib/prayer-push"
-import { setPrayerProvince } from "@/lib/push"
+import { setPrayerProvince, setPrayerPush } from "@/lib/push"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
 
-/** The place used for prayer times and the Qibla: a saved GPS fix or a province (default Phnom Penh). */
-export function useIslamicLocation(): { lat: number; lng: number; label: string; gps: boolean } {
+/**
+ * The place used for prayer times and the Qibla: the last GPS fix (kept on this phone) or a province (default Phnom
+ * Penh), with the clock its times are kept in — Cambodia time, or the phone's own zone abroad (lib/prayer prayerUtcOffset).
+ */
+export function useIslamicLocation(): { lat: number; lng: number; label: string; gps: boolean; utcOffset: number; abroad: boolean } {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const { place, gps } = useIslamicLocalStore()
-  if (place === "gps" && gps) return { ...gps, label: t("prayer.myLocation"), gps: true }
+  if (place === "gps" && gps) {
+    const utcOffset = prayerUtcOffset(gps, deviceUtcOffset())
+    return { ...gps, label: t("prayer.myLocation"), gps: true, utcOffset, abroad: !inCambodia(gps.lat, gps.lng) }
+  }
   const p = PROVINCES.find((x) => x.key === place) ?? PROVINCES[0]
-  return { lat: p.lat, lng: p.lng, label: pick(p, locale), gps: false }
+  return { lat: p.lat, lng: p.lng, label: pick(p, locale), gps: false, utcOffset: 7, abroad: false }
+}
+
+const REFRESH_MS = 30 * 60_000
+let lastRefresh = 0
+
+/**
+ * «My location» follows the phone (founder, 22/10/2026): with the location already allowed, the fix is refreshed quietly
+ * at most every 30 minutes while the app is open — never a permission prompt (the Permissions API says «granted» first).
+ */
+export function useGpsRefresh() {
+  const { place, setGps } = useIslamicLocalStore()
+  useEffect(() => {
+    if (place !== "gps" || typeof navigator === "undefined" || !navigator.permissions?.query) return
+    const refresh = async () => {
+      if (Date.now() - lastRefresh < REFRESH_MS) return
+      const state = await navigator.permissions.query({ name: "geolocation" as PermissionName }).then(
+        (s) => s.state,
+        () => "prompt",
+      )
+      if (state !== "granted") return
+      lastRefresh = Date.now()
+      const result = await locateDevice()
+      if (result.ok) setGps(result.lat, result.lng)
+    }
+    void refresh()
+    const id = window.setInterval(() => void refresh(), REFRESH_MS)
+    return () => window.clearInterval(id)
+  }, [place, setGps])
 }
 
 /**
@@ -31,11 +65,19 @@ export function useIslamicLocation(): { lat: number; lng: number; label: string;
  * changes, so the lock screen rings at the same minute, with the same place, as the app.
  */
 export function usePrayerProvinceSync() {
-  const { place, gps } = useIslamicLocalStore()
+  const { place, gps, pushPausedAbroad, setPushPausedAbroad } = useIslamicLocalStore()
   const province = pushProvince(place, gps, PROVINCES)
+  // Abroad (a GPS fix outside Cambodia) the server would ring at a Cambodian province's time: this phone's push is
+  // paused — the in-app Adhan follows the place itself — and turned back on once the fix is home again.
+  const abroad = place === "gps" && !!gps && !inCambodia(gps.lat, gps.lng)
   useEffect(() => {
+    if (abroad) {
+      if (!pushPausedAbroad) void setPrayerPush(false).then((ok) => ok && setPushPausedAbroad(true)).catch(() => false)
+      return
+    }
+    if (pushPausedAbroad) void setPrayerPush(true).then((ok) => ok && setPushPausedAbroad(false)).catch(() => false)
     void setPrayerProvince(province).catch(() => false)
-  }, [province])
+  }, [abroad, province, pushPausedAbroad, setPushPausedAbroad])
 }
 
 export type LocateResult = { ok: true; lat: number; lng: number } | { ok: false; reason: "denied" | "unavailable" | "insecure" | "unsupported" }

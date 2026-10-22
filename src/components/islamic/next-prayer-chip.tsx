@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useIslamicLocation, usePrayerProvinceSync } from "@/components/islamic/location-picker"
 import { PRAYER_NAMES } from "@/lib/islamic/glossary"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
-import { cambodiaNow, formatMinutes, nextPrayer, prayerTimes } from "@/lib/prayer"
+import { formatMinutes, nextPrayer, placeNow, prayerTimes } from "@/lib/prayer"
 
 /** «2:05» hours:minutes left (or «45 នាទី») — international digits (founder, 21/10/2026). */
 const left = (seconds: number) => {
@@ -24,19 +24,21 @@ export function NextPrayerChip() {
   const location = useIslamicLocation()
   // Home keeps the server's prayer push on this phone's province too (founder, 21/10/2026).
   usePrayerProvinceSync()
-  const [now, setNow] = useState(() => cambodiaNow())
+  const offset = location.utcOffset
+  const [now, setNow] = useState(() => placeNow(offset))
   useEffect(() => {
-    const id = window.setInterval(() => setNow(cambodiaNow()), 30_000)
+    setNow(placeNow(offset))
+    const id = window.setInterval(() => setNow(placeNow(offset)), 30_000)
     return () => window.clearInterval(id)
-  }, [])
+  }, [offset])
   const { year, month, day } = now.date
   const next = useMemo(() => {
-    const today = prayerTimes({ year, month, day }, location.lat, location.lng)
+    const today = prayerTimes({ year, month, day }, location.lat, location.lng, offset)
     const d = new Date(Date.UTC(year, month - 1, day + 1))
-    const tomorrow = prayerTimes({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }, location.lat, location.lng)
+    const tomorrow = prayerTimes({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }, location.lat, location.lng, offset)
     const n = nextPrayer(today, tomorrow, now.minutes, now.seconds)
     return { ...n, at: n.key === "fajr" && n.inSeconds > (24 * 60 - now.minutes) * 60 ? tomorrow.fajr : today[n.key] }
-  }, [year, month, day, now.minutes, now.seconds, location.lat, location.lng])
+  }, [year, month, day, now.minutes, now.seconds, location.lat, location.lng, offset])
   if (!islamic) return null
   return (
     <Link

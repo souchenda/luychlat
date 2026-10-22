@@ -27,6 +27,9 @@ type IslamicLocalState = {
   quranReciter: string
   /** Play the Fajr Adhan ("As-salatu khayrun minan-nawm") at Fajr when it is available. */
   fajrAdhan: boolean
+  /** This phone's server prayer push paused because the GPS put it abroad (it rings by Cambodian province); resumed back home. */
+  pushPausedAbroad: boolean
+  setPushPausedAbroad: (on: boolean) => void
   setProvince: (key: string) => void
   setGps: (lat: number, lng: number) => void
   setTasbih: (patch: Partial<Pick<IslamicLocalState, "tasbihCount" | "tasbihTarget" | "tasbihPhrase">>) => void
@@ -49,6 +52,8 @@ export const useIslamicLocalStore = create<IslamicLocalState>()(
       adhanName: null,
       adhanPreset: "makkah",
       fajrAdhan: true,
+      pushPausedAbroad: false,
+      setPushPausedAbroad: (on) => set({ pushPausedAbroad: on }),
       quranLast: null,
       quranFontSize: 28,
       quranShowKm: true,

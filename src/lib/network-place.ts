@@ -7,15 +7,13 @@
  * Never a silent guess (CLAUDE.md): only a place inside Cambodia picks a province, and the app says it is approximate
  * («from your network»); abroad, or with no place, it answers null and the last province chosen stays.
  */
+import { inCambodia } from "@/lib/prayer"
 import { nearestProvince } from "@/lib/prayer-push"
 
 type Headers = { get(name: string): string | null }
 type Province = { key: string; lat: number; lng: number }
 
 export type NetworkPlace = { province: string | null; country: string | null; source: "network" | "none"; reason?: "abroad" | "unknown" }
-
-/** Cambodia's extent (with a margin): a network fix outside it is never mapped to a province. */
-const inCambodia = (lat: number, lng: number) => lat >= 9.8 && lat <= 14.8 && lng >= 102.2 && lng <= 107.8
 
 export function networkPlace(headers: Headers, provinces: Province[]): NetworkPlace {
   const country = headers.get("cf-ipcountry")?.trim().toUpperCase() || null

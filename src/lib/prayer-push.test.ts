@@ -99,7 +99,7 @@ describe("The prayer push at the phone's own province (founder, 21/10/2026 — T
     assert.match(push, /supabase\.rpc\("set_prayer_province", \{ p_endpoint: sub\.endpoint, p_province: province \}\)/)
     assert.match(push, /await setPrayerProvince\(pushProvince\(place, gps, PROVINCES\)\)/) // right after subscribing
     const picker = read("src/components/islamic/location-picker.tsx")
-    assert.match(picker, /export function usePrayerProvinceSync\(\) \{[\s\S]*?setPrayerProvince\(province\)[\s\S]*?\[province\]\)/)
+    assert.match(picker, /export function usePrayerProvinceSync\(\) \{[\s\S]*?setPrayerProvince\(province\)[\s\S]*?\[abroad, province, pushPausedAbroad, setPushPausedAbroad\]\)/) // abroad: paused (prayer-place.test.ts)
     assert.match(read("src/app/(app)/islamic/layout.tsx"), /usePrayerProvinceSync\(\)/)
     assert.match(read("src/components/islamic/next-prayer-chip.tsx"), /usePrayerProvinceSync\(\)/)
     const d = read("src/lib/server/bot-dispatch.ts")

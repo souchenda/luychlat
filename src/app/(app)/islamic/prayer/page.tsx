@@ -10,7 +10,7 @@ import { ScriptureRefs } from "@/components/islamic/scripture-refs"
 import { Card } from "@/components/ui/card"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
-import { cambodiaNow, formatMinutes, imsakTime, nextFastingEvent, nextPrayer, PRAYER_ORDER, prayerTimes } from "@/lib/prayer"
+import { formatMinutes, placeNow, imsakTime, nextFastingEvent, nextPrayer, PRAYER_ORDER, prayerTimes } from "@/lib/prayer"
 import { fastingRuling, ISLAMIC_ARABIC, toHijri } from "@/lib/islamic"
 import { useIslamicDefaults } from "@/lib/islamic-settings"
 import { FastingWisdomSheet } from "@/components/islamic/fasting-wisdom-sheet"
@@ -38,13 +38,13 @@ export default function PrayerTimesPage() {
     return () => window.clearInterval(id)
   }, [])
 
-  const clock = cambodiaNow(now)
+  const clock = placeNow(location.utcOffset, now)
   const { year, month, day } = clock.date
-  const today = useMemo(() => prayerTimes({ year, month, day }, location.lat, location.lng), [year, month, day, location.lat, location.lng])
+  const today = useMemo(() => prayerTimes({ year, month, day }, location.lat, location.lng, location.utcOffset), [year, month, day, location.lat, location.lng, location.utcOffset])
   const tomorrow = useMemo(() => {
     const d = new Date(Date.UTC(year, month - 1, day + 1))
-    return prayerTimes({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }, location.lat, location.lng)
-  }, [year, month, day, location.lat, location.lng])
+    return prayerTimes({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }, location.lat, location.lng, location.utcOffset)
+  }, [year, month, day, location.lat, location.lng, location.utcOffset])
   const next = nextPrayer(today, tomorrow, clock.minutes, clock.seconds)
   // After Isha the next prayer is tomorrow's Fajr.
   const afterIsha = clock.minutes * 60 + clock.seconds >= today.isha * 60
@@ -56,6 +56,8 @@ export default function PrayerTimesPage() {
   return (
     <div className="space-y-3">
       <LocationPicker />
+      {/* Abroad (Hajj, Umrah, travel): said plainly — the phone's own time zone, the server push paused (never a silent guess). */}
+      {location.abroad && <p className="rounded-xl bg-sky-500/10 px-3 py-2 text-xs text-sky-900 dark:text-sky-200">{t("prayer.abroadNote")}</p>}
 
       <Card className="items-center gap-0.5 border-emerald-500/30 bg-linear-to-br from-emerald-600 to-teal-700 px-4 py-4 text-center text-white">
         <p className="flex items-center gap-1.5 text-xs text-white/85">
