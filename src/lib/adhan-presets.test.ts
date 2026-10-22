@@ -89,7 +89,7 @@ describe("Adhans the admin publishes for everyone — no code change, no deploy 
     assert.equal(resolvePreset(g.id, false, [])?.id, "commons-cc0-natural")
     assert.ok(isCacheableAudio(g.file!))
     assert.match(read("public/sw.js"), /url\.pathname\.startsWith\("\/storage\/v1\/object\/public\/adhan-audio\/"\)/)
-    assert.match(read("src/lib/prayer-alerts.ts"), /if \(!src\.startsWith\("blob:"\)\) audio\.crossOrigin = "anonymous"/)
+    assert.match(read("src/lib/prayer-alerts.ts"), /audio\.crossOrigin = src\.startsWith\("blob:"\) \? null : "anonymous"/)
   })
 
   it("only content managers (super admin, «admin» staff) may publish; a regular member's file stays on the phone (IndexedDB)", async () => {
