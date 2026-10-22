@@ -350,3 +350,23 @@ describe("SoundBox — offline alert during business hours (07:00–21:00)", () 
     assert.equal(offlineAlertDue({ lastReadyAt: iso("2026-10-14T06:50:00"), alertedAt: null, readyNow: false, now: at("2026-10-14T07:20:00") }), false)
   })
 })
+
+describe("the 27 Khmer clips are on the server (founder, 22/10/2026 — Task #464)", () => {
+  it("every clip the app plays exists, is an MP3, and 50,000 ៛ joins into one playable file: received · 5 · meun · riel", async () => {
+    const { existsSync, readFileSync } = await import("node:fs")
+    const { join } = await import("node:path")
+    const dir = join(process.cwd(), "public", "audio", "soundbox", "khmer")
+    const isMp3 = (b: Uint8Array) => b.length > 1000 && ((b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) || (b[0] === 0xff && (b[1] & 0xe0) === 0xe0))
+    assert.equal(KHMER_CLIPS.length, 27)
+    for (const clip of KHMER_CLIPS) {
+      const p = join(dir, `${clip}.mp3`)
+      assert.ok(existsSync(p), clip)
+      assert.ok(isMp3(readFileSync(p)), `${clip} is not an MP3`)
+    }
+    const seq = khmerClipSequence(50_000, "KHR")
+    assert.deepEqual(seq, ["received", "5", "meun", "riel"])
+    const joined = joinMp3(seq.map((c) => new Uint8Array(readFileSync(join(dir, `${c}.mp3`)))))
+    assert.ok(joined.length > 10_000)
+    assert.equal(joined[0], 0xff) // starts on an MPEG frame, the ID3 headers stripped
+  })
+})

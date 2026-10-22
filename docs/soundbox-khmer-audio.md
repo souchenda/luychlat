@@ -34,3 +34,11 @@ Two ways to make them:
 Then commit `public/audio/soundbox/khmer/` and deploy; the «សាកស្ដាប់» button on /soundbox plays
 «ទទួលបានប្រាក់ ប្រាំម៉ឺនរៀល» from the clips. Don't use unofficial TTS endpoints or downloaded voice
 packs without a licence that allows it.
+
+## Current clips (22/10/2026 — Task #464, owner override)
+
+The 27 files in `public/audio/soundbox/khmer/` were generated from Google Translate's free speech endpoint
+(`translate.google.com/translate_tts`, `tl=km`) on the founder's explicit authorisation, after Azure sign-up was
+blocked. That endpoint is not a licensed API: replace the files with Azure AI Speech, Google Cloud TTS
+(`scripts/soundbox-khmer-tts.mjs`) or a Khmer speaker's recordings when possible — the same 27 file names, nothing else
+to change.
