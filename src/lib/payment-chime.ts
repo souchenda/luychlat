@@ -16,7 +16,7 @@
  * background. With the app closed nothing can wake it yet (no Firebase in the APK — see CLAUDE.md). In a browser:
  * the chime plays while the page is on screen. On /soundbox the SoundBox announces it itself (no double ring).
  */
-import { announcementText, isLatePush, khmerClipSequence, khmerClipUrl, soundboxPush, VOICE_TAGS, type VoiceLang } from "@/lib/soundbox"
+import { announcementText, isLatePush, khmerClipSequence, khmerClipUrl, soundboxPush, VOICE_TAGS, type VoiceLang, type VoiceSpeed } from "@/lib/soundbox"
 
 /** The Android channel (a channel's sound can never change: a new sound is a new id). */
 export const PAYMENT_CHANNEL = {
@@ -110,7 +110,7 @@ export function paymentSpeech(e: Pick<PaymentEvent, "amount" | "currency">, voic
 }
 
 /** The recorded Khmer clips for an amount, in order («ទទួលបានប្រាក់ · ប្រាំ · ម៉ឺន · រៀល») — played when no Khmer voice. */
-export const paymentClips = (e: Pick<PaymentEvent, "amount" | "currency">) => khmerClipSequence(e.amount, e.currency).map(khmerClipUrl)
+export const paymentClips = (e: Pick<PaymentEvent, "amount" | "currency">, speed: VoiceSpeed = 1) => khmerClipSequence(e.amount, e.currency).map((clip) => khmerClipUrl(clip, speed))
 
 /** The test amounts of the Settings buttons (Task #463). */
 export const SOUND_TESTS: Pick<PaymentEvent, "amount" | "currency">[] = [

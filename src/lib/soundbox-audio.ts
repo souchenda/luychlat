@@ -1,6 +1,6 @@
 "use client"
 
-import { announcementText, audioPlan, KHMER_CLIPS, khmerClipSequence, voiceAvailability, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceLang } from "@/lib/soundbox"
+import { announcementText, audioPlan, DEFAULT_VOICE_SPEED, KHMER_CLIPS, khmerClipSequence, khmerClipUrl, voiceAvailability, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceLang, type VoiceSpeed } from "@/lib/soundbox"
 
 /**
  * The SoundBox's sound: one AudioContext created on the cashier's tap (browsers block audio until a
@@ -24,35 +24,43 @@ const release = () => {
   if (ctx && ctx.state === "running") void ctx.suspend().catch(() => null)
 }
 
-const CLIP_BASE = "/audio/soundbox/khmer"
-const clips = new Map<KhmerClip, AudioBuffer>()
-let clipsLoading: Promise<boolean> | null = null
+/** One decoded set of the 27 clips per voice speed (Task #465 — the faster sets are rendered ahead, pitch kept). */
+const clipSets = new Map<VoiceSpeed, Map<KhmerClip, AudioBuffer>>()
+const clipsLoading = new Map<VoiceSpeed, Promise<boolean>>()
 
-/** All 27 Khmer clips decoded once (a few KB each); false — and Khmer falls back — when any is missing. */
-function loadKhmerClips(): Promise<boolean> {
+/** All 27 Khmer clips of a speed decoded once (a few KB each); false — and Khmer falls back — when any is missing. */
+function loadKhmerClips(speed: VoiceSpeed): Promise<boolean> {
   if (!ctx) return Promise.resolve(false)
   const audio = ctx
-  clipsLoading ??= Promise.all(
+  const pending = clipsLoading.get(speed)
+  if (pending) return pending
+  const set = new Map<KhmerClip, AudioBuffer>()
+  const loading = Promise.all(
     KHMER_CLIPS.map(async (name) => {
-      const res = await fetch(`${CLIP_BASE}/${name}.mp3`, { cache: "force-cache" })
+      const res = await fetch(khmerClipUrl(name, speed), { cache: "force-cache" })
       if (!res.ok) throw new Error(name)
-      clips.set(name, await audio.decodeAudioData(await res.arrayBuffer()))
+      set.set(name, await audio.decodeAudioData(await res.arrayBuffer()))
     }),
   ).then(
-    () => true,
     () => {
-      clips.clear()
-      return false
+      clipSets.set(speed, set)
+      return true
     },
+    () => false,
   )
-  return clipsLoading
+  clipsLoading.set(speed, loading)
+  return loading
 }
 
-export const khmerClipsReady = () => clips.size === KHMER_CLIPS.length
+export const khmerClipsReady = (speed: VoiceSpeed = DEFAULT_VOICE_SPEED) => clipSets.get(speed)?.size === KHMER_CLIPS.length
 
-/** The clips back to back, sample-accurate on the audio clock (no gaps from starting files one by one). */
-function playKhmerClips(sequence: KhmerClip[], volume: number): Promise<void> {
-  if (!ctx || !khmerClipsReady()) return Promise.resolve()
+/**
+ * The clips back to back, sample-accurate on the audio clock (no gaps from starting files one by one); the
+ * clips are trimmed of their silence (Task #465), so the words run on like a bank soundbox's.
+ */
+function playKhmerClips(sequence: KhmerClip[], volume: number, speed: VoiceSpeed): Promise<void> {
+  const clips = clipSets.get(speed)
+  if (!ctx || !clips || clips.size !== KHMER_CLIPS.length) return Promise.resolve()
   const gain = ctx.createGain()
   gain.gain.value = Math.min(1, Math.max(0, volume))
   gain.connect(ctx.destination)
@@ -87,7 +95,7 @@ function voicesReady(timeoutMs = 1_500): Promise<void> {
 }
 
 /** On the «🔊 បើកសំឡេង SoundBox» tap (or the first tap after a reload): the audio context, the Khmer clips, and an empty utterance (iOS needs speech started by a tap too) — then the audio is released until a payment. */
-export async function unlockAudio(): Promise<boolean> {
+export async function unlockAudio(speed: VoiceSpeed = DEFAULT_VOICE_SPEED): Promise<boolean> {
   const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
   if (!Ctx) return false
   ctx ??= new Ctx()
@@ -97,7 +105,7 @@ export async function unlockAudio(): Promise<boolean> {
   warmSpeech()
   if (ctx.state !== "running") await ctx.resume().catch(() => null)
   if (ctx.state === "running") unlocked = true
-  void loadKhmerClips()
+  void loadKhmerClips(speed)
   void voicesReady()
   const ok = ctx.state === "running"
   // Nothing plays until a payment: give the audio back to the phone (Telegram, calls, music…).
@@ -155,7 +163,7 @@ export const availableVoices = (): Record<VoiceLang, boolean> =>
   voiceAvailability({
     speech: typeof window !== "undefined" && "speechSynthesis" in window,
     listed: typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis.getVoices().map((v) => v.lang) : [],
-    khmerClips: khmerClipsReady(),
+    khmerClips: [...clipSets.values()].some((set) => set.size === KHMER_CLIPS.length),
   })
 
 export type SpeechOutcome = "spoken" | "timeout" | "silent-end" | `error:${string}`
@@ -168,7 +176,7 @@ export type SpeechOutcome = "spoken" | "timeout" | "silent-end" | `error:${strin
  */
 const speaking = new Set<SpeechSynthesisUtterance>()
 
-function speakOnce(text: string, lang: VoiceLang, volume: number): Promise<SpeechOutcome> {
+function speakOnce(text: string, lang: VoiceLang, volume: number, speed: VoiceSpeed): Promise<SpeechOutcome> {
   return new Promise((resolve) => {
     const synth = window.speechSynthesis
     let started = false
@@ -191,7 +199,7 @@ function speakOnce(text: string, lang: VoiceLang, volume: number): Promise<Speec
     const voice = voiceFor(lang)
     if (voice) u.voice = voice
     u.lang = voice?.lang ?? VOICE_TAGS[lang]
-    u.rate = 0.95
+    u.rate = speed
     u.volume = Math.min(1, Math.max(0, volume))
     u.onstart = () => {
       started = true
@@ -221,8 +229,8 @@ let speechUnproven = true
 export const speechNeedsTap = () => speechUnproven
 
 /** Speaks, with one retry after a stuck engine or an interruption; each attempt is written to `log`. */
-async function speak(text: string, lang: VoiceLang, volume: number, log: string[]): Promise<boolean> {
-  let r = await speakOnce(text, lang, volume)
+async function speak(text: string, lang: VoiceLang, volume: number, speed: VoiceSpeed, log: string[]): Promise<boolean> {
+  let r = await speakOnce(text, lang, volume, speed)
   log.push(`${lang}:${r}`)
   if (r === "spoken") {
     speechUnproven = false
@@ -231,7 +239,7 @@ async function speak(text: string, lang: VoiceLang, volume: number, log: string[
   speechUnproven = true
   if (r === "error:not-allowed") return false
   await new Promise((resolve) => window.setTimeout(resolve, 250))
-  r = await speakOnce(text, lang, volume)
+  r = await speakOnce(text, lang, volume, speed)
   log.push(`${lang}:retry:${r}`)
   if (r === "spoken") speechUnproven = false
   return r === "spoken"
@@ -272,7 +280,8 @@ export type AnnounceResult = "played" | "muted" | "locked" | "error"
  */
 let queue: Promise<unknown> = Promise.resolve()
 export type Announced = { result: AnnounceResult; log: string[] }
-export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: SoundboxMode, soundOn: boolean, volume = 1): Promise<Announced> {
+/** The chime at 1.0x, then the amount at the chosen voice speed (Task #465 — 1.2x by default). */
+export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: SoundboxMode, soundOn: boolean, volume = 1, speed: VoiceSpeed = DEFAULT_VOICE_SPEED): Promise<Announced> {
   const run = queue.then(async (): Promise<Announced> => {
     // What happened, step by step — reported with the payment, so a silent announcement is never a guess.
     const log: string[] = [document.visibilityState]
@@ -287,7 +296,7 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
     }
     try {
       // The clips load on the unlock tap; a payment right after it waits for them (a second at most).
-      if (mode.startsWith("km") && !khmerClipsReady()) await Promise.race([loadKhmerClips(), new Promise((r) => window.setTimeout(r, 1_500))])
+      if (mode.startsWith("km") && !khmerClipsReady(speed)) await Promise.race([loadKhmerClips(speed), new Promise((r) => window.setTimeout(r, 1_500))])
       await voicesReady()
       for (const step of audioPlan({ soundOn, unlocked: true, mode, voices: availableVoices() })) {
         if (step === "chime" || step === "melody") log.push(step)
@@ -302,15 +311,15 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
         } else {
           const lang = step.slice("speech:".length) as VoiceLang
           // Khmer: the recorded clips first (they sound the same on every phone).
-          if (lang === "km" && khmerClipsReady()) {
+          if (lang === "km" && khmerClipsReady(speed)) {
             await audible()
-            await playKhmerClips(khmerClipSequence(e.amount, e.currency), volume)
+            await playKhmerClips(khmerClipSequence(e.amount, e.currency), volume, speed)
             log.push("km:clips")
             continue
           }
           // Spoken; a language the phone can't say → English (for Khmer), else the melody — never silence.
-          if (await speak(announcementText(e, lang), lang, volume, log)) continue
-          if (lang !== "en" && (await speak(announcementText(e, "en"), "en", volume, log))) continue
+          if (await speak(announcementText(e, lang), lang, volume, speed, log)) continue
+          if (lang !== "en" && (await speak(announcementText(e, "en"), "en", volume, speed, log))) continue
           log.push("melody")
           await audible()
           await playMelody(volume)

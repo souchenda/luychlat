@@ -16,7 +16,7 @@ import { useEffect, useRef } from "react"
 import { isNativeApp } from "@/lib/native-bridge"
 import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentClips, paymentSpeech, SPEECH_AFTER_CHIME_MS, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { reconnectDelay } from "@/lib/soundbox"
+import { readVoiceSpeed, reconnectDelay, type VoiceSpeed } from "@/lib/soundbox"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -81,11 +81,22 @@ function khmerClipsAvailable(): Promise<boolean> {
     .catch(() => false))
 }
 
-/** The recorded Khmer clips, one after another (the device has no Khmer voice). */
+/** The voice speed chosen in Settings (Task #465 — 1.2x unless changed); read at each payment, so a change counts at once. */
+const voiceSpeed = (): VoiceSpeed => readVoiceSpeed(typeof localStorage === "undefined" ? null : localStorage)
+
+/**
+ * The recorded Khmer clips, one after another (the device has no Khmer voice) — gapless (Task #465): every clip is
+ * loaded before the first plays, so each word starts the moment the one before ends (the clips carry no silence).
+ */
 async function playClips(urls: string[]): Promise<void> {
-  for (const url of urls) {
+  const clips = urls.map((url) => {
+    const a = new Audio(url)
+    a.preload = "auto"
+    a.load()
+    return a
+  })
+  for (const a of clips) {
     await new Promise<void>((done) => {
-      const a = new Audio(url)
       a.addEventListener("ended", () => done(), { once: true })
       a.addEventListener("error", () => done(), { once: true })
       void a.play().catch(() => done())
@@ -103,13 +114,13 @@ export function speakPayment(e: Pick<PaymentEvent, "amount" | "currency">): void
   const voices = synth?.getVoices() ?? []
   const say = typeof SpeechSynthesisUtterance === "undefined" ? null : paymentSpeech(e, voices)
   if (!say || !synth) {
-    void khmerClipsAvailable().then((ok) => (ok ? playClips(paymentClips(e)) : undefined))
+    void khmerClipsAvailable().then((ok) => (ok ? playClips(paymentClips(e, voiceSpeed())) : undefined))
     return
   }
   const u = new SpeechSynthesisUtterance(say.text)
   u.lang = say.tag
   u.voice = voices.find((v) => v.name === say.voice) ?? null
-  u.rate = 0.95
+  u.rate = voiceSpeed()
   synth.speak(u)
 }
 

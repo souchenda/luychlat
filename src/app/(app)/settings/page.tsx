@@ -1,6 +1,6 @@
 "use client"
 
-import { BellIcon, BookOpenIcon, SmartphoneIcon, StoreIcon, Volume2Icon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
+import { BellIcon, BookOpenIcon, GaugeIcon, SmartphoneIcon, StoreIcon, Volume2Icon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -15,6 +15,7 @@ import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/s
 import { PushSettingsRow } from "@/components/notifications/push-prompt"
 import { playPaymentChimeSound, requestPaymentChimePermission, speakPayment } from "@/components/payments/payment-chime-listener"
 import { SOUND_TESTS } from "@/lib/payment-chime"
+import { DEFAULT_VOICE_SPEED, readVoiceSpeed, VOICE_SPEEDS, writeVoiceSpeed, type VoiceSpeed } from "@/lib/soundbox"
 import { formatMoney } from "@/lib/money"
 import { askMotionOnce } from "@/components/privacy/flip-to-hide"
 import { useHolyDayChimeSetting } from "@/components/dashboard/holy-day-reminder"
@@ -222,6 +223,35 @@ function CounterModeRow() {
  * 🔊 Sound test (Task #463): the chime and the Khmer amount, one tap — the counter staff hear the volume and the voice.
  * Business owners only, with the counter mode.
  */
+/** «ល្បឿនសំឡេង» (Task #465): ធម្មតា 1.0x · ស្វាហាប់ 1.2x (the default) · លឿន 1.3x — the test buttons below use it at once. */
+function VoiceSpeedRow() {
+  const t = useT()
+  const business = (useWorkspaces().data ?? []).some((w) => w.type === "BUSINESS")
+  const [speed, setSpeed] = useState<VoiceSpeed>(DEFAULT_VOICE_SPEED)
+  useEffect(() => setSpeed(readVoiceSpeed(localStorage)), [])
+  if (!business) return null
+  return (
+    <SettingsRow icon={<GaugeIcon />} tile="emerald" title={t("settings.voiceSpeed")}>
+      <div className="w-60 shrink-0">
+        <Segmented
+          aria-label={t("settings.voiceSpeed")}
+          value={String(speed)}
+          onChange={(v) => {
+            const next = VOICE_SPEEDS.find((s) => String(s) === v) ?? DEFAULT_VOICE_SPEED
+            setSpeed(next)
+            writeVoiceSpeed(localStorage, next)
+          }}
+          options={[
+            { value: "1", label: t("settings.voiceSpeedNormal") },
+            { value: "1.2", label: t("settings.voiceSpeedLively") },
+            { value: "1.3", label: t("settings.voiceSpeedFast") },
+          ]}
+        />
+      </div>
+    </SettingsRow>
+  )
+}
+
 function SoundTestRow() {
   const t = useT()
   const business = (useWorkspaces().data ?? []).some((w) => w.type === "BUSINESS")
@@ -357,6 +387,7 @@ export default function SettingsPage() {
         <PushSettingsRow />
         <PaymentChimeRow />
         <CounterModeRow />
+        <VoiceSpeedRow />
         <SoundTestRow />
         <HolyDayChimeRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>

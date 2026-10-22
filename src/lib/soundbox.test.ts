@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { announceLate, audioIssueOf, deviceReady, devicePlatform, isLatePush, offlineAlertDue, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, soundboxPush, soundboxStorageKey, voiceAvailability, writeSoundboxEnabled } from "./soundbox"
+import { announceLate, audioIssueOf, deviceReady, devicePlatform, isLatePush, offlineAlertDue, announcementText, joinMp3, mp3Frames, audioPlan, chineseNumber, pollSince, soundboxWorkspace, KHMER_CLIPS, khmerClipSequence, keepScreenAwake, khmerNumber, receiveEvent, shouldEmit, shownAmount, spokenAmount, todayTotals, readSoundboxEnabled, reconnectDelay, soundboxPush, soundboxStorageKey, voiceAvailability, writeSoundboxEnabled, DEFAULT_VOICE_SPEED, khmerClipUrl, readVoiceSpeed, VOICE_SPEEDS, writeVoiceSpeed } from "./soundbox"
 
 describe("SoundBox — which payments are announced", () => {
   it("a recorded customer payment only", () => {
@@ -368,5 +368,66 @@ describe("the 27 Khmer clips are on the server (founder, 22/10/2026 — Task #46
     const joined = joinMp3(seq.map((c) => new Uint8Array(readFileSync(join(dir, `${c}.mp3`)))))
     assert.ok(joined.length > 10_000)
     assert.equal(joined[0], 0xff) // starts on an MPEG frame, the ID3 headers stripped
+  })
+})
+
+describe("SoundBox voice cadence: 1.2x and gapless (founder, 22/10/2026 — Task #465)", () => {
+  it("the speed is 1.0x · 1.2x · 1.3x, 1.2x by default, remembered on the phone; anything else reads as 1.2x", () => {
+    assert.deepEqual([...VOICE_SPEEDS], [1, 1.2, 1.3])
+    assert.equal(DEFAULT_VOICE_SPEED, 1.2)
+    const m = new Map<string, string>()
+    const store = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) }
+    assert.equal(readVoiceSpeed(store), 1.2) // never chosen
+    assert.equal(readVoiceSpeed(null), 1.2)
+    writeVoiceSpeed(store, 1)
+    assert.equal(readVoiceSpeed(store), 1)
+    writeVoiceSpeed(store, 1.3)
+    assert.equal(readVoiceSpeed(store), 1.3)
+    m.set("soundbox_voice_speed", "2")
+    assert.equal(readVoiceSpeed(store), 1.2)
+    const broken = { getItem: () => { throw new Error("private") }, setItem: () => { throw new Error("private") } }
+    assert.equal(readVoiceSpeed(broken), 1.2)
+    writeVoiceSpeed(broken, 1.3) // never throws
+  })
+  it("each speed has its own 27 clips (rendered ahead, pitch kept), shorter as it speeds up; the clips carry no dead air", async () => {
+    const { existsSync, readFileSync, statSync } = await import("node:fs")
+    const { join } = await import("node:path")
+    assert.equal(khmerClipUrl("5"), "/audio/soundbox/khmer/5.mp3")
+    assert.equal(khmerClipUrl("5", 1.2), "/audio/soundbox/khmer/x1.2/5.mp3")
+    assert.equal(khmerClipUrl("riel", 1.3), "/audio/soundbox/khmer/x1.3/riel.mp3")
+    const size = (speed: (typeof VOICE_SPEEDS)[number]) =>
+      KHMER_CLIPS.reduce((n, clip) => {
+        const p = join(process.cwd(), "public", khmerClipUrl(clip, speed))
+        assert.ok(existsSync(p), p)
+        const b = readFileSync(p)
+        assert.ok((b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) || b[0] === 0xff, `${p} is an MP3`)
+        return n + statSync(p).size
+      }, 0)
+    const [x1, x12, x13] = VOICE_SPEEDS.map(size)
+    assert.ok(x12 < x1 * 0.9 && x13 < x12, `${x1} > ${x12} > ${x13}`)
+    // The silence trimmed (64 kb/s ≈ 8 KB a second): «ប្រាំ» was 0.89 s (7.1 KB), now under 0.65 s.
+    assert.ok(statSync(join(process.cwd(), "public", khmerClipUrl("5"))).size < 5_200)
+  })
+  it("wired: the SoundBox page, the app-wide voice and the Settings test buttons all use the chosen speed; the chime stays 1.0x", async () => {
+    const { readFileSync } = await import("node:fs")
+    const read = (p: string) => readFileSync(p, "utf8")
+    const audio = read("src/lib/soundbox-audio.ts")
+    assert.match(audio, /fetch\(khmerClipUrl\(name, speed\)/)
+    assert.match(audio, /u\.rate = speed/)
+    assert.doesNotMatch(audio, /playbackRate/) // no pitch shift: the faster clips are rendered ahead
+    assert.match(audio, /playKhmerClips\(khmerClipSequence\(e\.amount, e\.currency\), volume, speed\)/)
+    const page = read("src/app/(app)/soundbox/page.tsx")
+    assert.match(page, /settings\.current\.volume \/ 100, readVoiceSpeed\(store\(\)\)\)/)
+    assert.match(page, /announce\(\{ amount: 50_000, currency: "KHR" \}, mode, true, volume \/ 100, readVoiceSpeed\(store\(\)\)\)/)
+    const l = read("src/components/payments/payment-chime-listener.tsx")
+    assert.match(l, /playClips\(paymentClips\(e, voiceSpeed\(\)\)\)/)
+    assert.match(l, /u\.rate = voiceSpeed\(\)/)
+    assert.match(l, /const clips = urls\.map\(\(url\) => \{\s*const a = new Audio\(url\)\s*a\.preload = "auto"\s*a\.load\(\)/) // all loaded before the first plays
+    assert.doesNotMatch(l.slice(l.indexOf("export function playPaymentChimeSound"), l.indexOf("let clipsHere")), /playbackRate|rate =/) // the chime 1.0x
+    const settings = read("src/app/(app)/settings/page.tsx")
+    assert.match(settings, /<CounterModeRow \/>\s+<VoiceSpeedRow \/>\s+<SoundTestRow \/>/)
+    assert.match(settings, /writeVoiceSpeed\(localStorage, next\)/)
+    const km = read("src/lib/i18n/dictionaries.ts")
+    for (const line of ['"settings.voiceSpeed": "ល្បឿនសំឡេង"', '"settings.voiceSpeedNormal": "ធម្មតា (1.0x)"', '"settings.voiceSpeedLively": "ស្វាហាប់ (1.2x)"', '"settings.voiceSpeedFast": "លឿន (1.3x)"']) assert.ok(km.includes(line), line)
   })
 })

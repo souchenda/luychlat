@@ -23,6 +23,7 @@ import {
   keepScreenAwake,
   pollSince,
   readSoundboxEnabled,
+  readVoiceSpeed,
   receiveEvent,
   reconnectDelay,
   shownAmount,
@@ -229,7 +230,7 @@ export default function SoundboxPage() {
         }
         return
       }
-      void unlockAudio().then((ok) => ok && setAudioIssue(null))
+      void unlockAudio(readVoiceSpeed(store())).then((ok) => ok && setAudioIssue(null))
     }
     document.addEventListener("pointerdown", wake, true)
     document.addEventListener("keydown", wake, true)
@@ -268,7 +269,7 @@ export default function SoundboxPage() {
     setFlash(added)
     window.clearTimeout(flashTimer.current)
     flashTimer.current = window.setTimeout(() => setFlash(null), FLASH_MS)
-    void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100).then((r) => {
+    void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100, readVoiceSpeed(store())).then((r) => {
       setAudioIssue(audioIssueOf(r))
       // What the phone did (chime, each voice attempt, the melody) is kept with the payment — a silent
       // announcement is diagnosed from facts, never guessed.
@@ -357,7 +358,7 @@ export default function SoundboxPage() {
   const totals = useMemo(() => todayTotals(events, ppDay()), [events])
 
   const start = async () => {
-    const ok = await unlockAudio()
+    const ok = await unlockAudio(readVoiceSpeed(store()))
     setEnabled(true)
     setAudioIssue(ok ? null : "locked")
   }
@@ -460,8 +461,8 @@ export default function SoundboxPage() {
             size="sm"
             variant="outline"
             onClick={async () => {
-              await unlockAudio()
-              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100).then((r) => {
+              await unlockAudio(readVoiceSpeed(store()))
+              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100, readVoiceSpeed(store())).then((r) => {
                 setAudioIssue(audioIssueOf(r))
                 // What the phone did, on screen: «visible chime km:timeout … en:spoken».
                 setTestLog(r.log.join(" "))

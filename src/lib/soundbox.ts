@@ -370,8 +370,36 @@ export function writeSoundboxEnabled(store: KeyValueStore | null, workspaceId: s
 /** The live connection's retry delay: 2 s, 4 s, 8 s … up to 30 s (founder, 22/10/2026 — Task #463) — never turning it off. */
 export const reconnectDelay = (attempt: number) => Math.min(30_000, 2_000 * 2 ** Math.max(0, attempt))
 
-/** A recorded Khmer clip's address (public/audio/soundbox/khmer — KHMER_CLIPS). */
-export const khmerClipUrl = (clip: KhmerClip) => `/audio/soundbox/khmer/${clip}.mp3`
+/**
+ * The voice's tempo (founder, 22/10/2026 — Task #465): ធម្មតា 1.0x · ស្វាហាប់ 1.2x (the default) · លឿន 1.3x.
+ * The chime always plays at 1.0x. The faster clips are rendered ahead (ffmpeg atempo, public/audio/soundbox/khmer/x1.2
+ * and x1.3), so the voice keeps its natural pitch — no chipmunk from a raised playback rate.
+ */
+export const VOICE_SPEEDS = [1, 1.2, 1.3] as const
+export type VoiceSpeed = (typeof VOICE_SPEEDS)[number]
+export const DEFAULT_VOICE_SPEED: VoiceSpeed = 1.2
+export const VOICE_SPEED_KEY = "soundbox_voice_speed"
+
+/** The chosen speed on this phone; anything unknown (never set, private mode, an old value) → 1.2x. */
+export function readVoiceSpeed(store: KeyValueStore | null): VoiceSpeed {
+  try {
+    const v = Number(store?.getItem(VOICE_SPEED_KEY))
+    return VOICE_SPEEDS.find((s) => s === v) ?? DEFAULT_VOICE_SPEED
+  } catch {
+    return DEFAULT_VOICE_SPEED
+  }
+}
+
+export function writeVoiceSpeed(store: KeyValueStore | null, speed: VoiceSpeed) {
+  try {
+    store?.setItem(VOICE_SPEED_KEY, String(speed))
+  } catch {
+    // private mode: not remembered
+  }
+}
+
+/** A recorded Khmer clip's address (public/audio/soundbox/khmer — KHMER_CLIPS), in the chosen tempo. */
+export const khmerClipUrl = (clip: KhmerClip, speed: VoiceSpeed = 1) => `/audio/soundbox/khmer/${speed === 1 ? "" : `x${speed}/`}${clip}.mp3`
 
 /**
  * The phone push for a payment (the SoundBox with the screen locked — founder, 14/10/2026): the amount
