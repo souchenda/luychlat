@@ -149,3 +149,18 @@ describe("The Adhan plays at the prayer minute — never silence (founder, 22/10
     assert.match(bot, /if \(error\) return logEvent\("error", "prayer", `Prayer push: phones not read/)
   })
 })
+
+describe("«ជូនដំណឹងម៉ោងសឡាត» flips at once — never frozen (founder, 22/10/2026 — Task #467)", () => {
+  it("on Android the switch waited for the exact-alarm settings screen: now ON first, the in-app Adhan on, the rest in the background", () => {
+    const ui = readFileSync(join(process.cwd(), "src/components/islamic/prayer-alerts.tsx"), "utf8")
+    const toggle = ui.slice(ui.indexOf("  const toggle = (on: boolean) => {"), ui.indexOf("  /** What rings with the app closed"))
+    assert.ok(toggle.length > 0, "toggle found")
+    assert.doesNotMatch(toggle, /await/) // nothing to wait for before the switch moves
+    assert.match(toggle, /setAlerts\(\{ alertsOn: true \}\)\s+primeAdhanAudio\(\)[^\n]*\n\s+void extrasInBackground\(\)/)
+    assert.match(ui, /onCheckedChange=\{toggle\}/)
+    const extras = ui.slice(ui.indexOf("  const extrasInBackground = async () => {"), ui.indexOf("  const choose = (id: string) => {"))
+    assert.match(extras, /withTimeout\(requestNativePrayerPermissions\(\), 20_000\)/) // Android's settings screen can't hang it
+    assert.match(extras, /\} catch \{[\s\S]*toast\.success\(t\("prayerAlert\.onInApp"\)\)/) // a failed push never reverts it
+    assert.doesNotMatch(extras, /alertsOn: false/)
+  })
+})

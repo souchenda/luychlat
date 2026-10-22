@@ -45,6 +45,9 @@ import { useIslamicLocalStore, type AlertSound } from "@/stores/islamic-local-st
 import { useLocaleStore } from "@/stores/locale-store"
 
 
+/** A promise that gives up after `ms` (Android's settings screens answer only when the person comes back). */
+const withTimeout = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error("timeout")), ms))])
+
 const usePlaying = () => useSyncExternalStore(onPlaybackChange, currentSource, () => null)
 
 /**
@@ -184,28 +187,44 @@ export function PrayerAlertSettings() {
   }
   const removeGlobal = useRemoveGlobalAdhan()
 
-  const toggle = async (on: boolean) => {
+  /**
+   * The switch flips AT ONCE (founder, 22/10/2026 — Task #467: frozen in the Android app, where it waited for Android's
+   * exact-alarm settings screen, which never answers until the person comes back). The in-app Adhan depends on nothing
+   * else: this phone's choice is saved (luychlat-islamic-local › alertsOn) and the timer plays it at the prayer minute.
+   * The notification permission, the native alarms and the server push follow in the background — a failure there
+   * never turns the switch, or the in-app sound, back off.
+   */
+  const toggle = (on: boolean) => {
     if (!on) {
       // The server's prayer push for this phone goes off with the switch (lib/prayer-push.ts).
       void setPrayerPush(false).catch(() => false)
       return setAlerts({ alertsOn: false })
     }
-    // In the Android app: Android's own notification and exact-alarm permissions (the native Adhan).
-    if (isNativeApp()) {
-      const granted = await requestNativePrayerPermissions().catch(() => false)
-      setAlerts({ alertsOn: true })
-      return void toast.success(t(granted ? "prayerAlert.on" : "prayerAlert.onInApp"))
-    }
-    let result = permission
-    if (result === "default") {
-      result = await Notification.requestPermission()
-      setPermission(result)
-    }
-    // Without notification permission the in-app sound and banner still work.
     setAlerts({ alertsOn: true })
-    // With permission, this phone also gets the server's prayer push — it rings with the app closed (founder, 20/10/2026).
-    if (result === "granted") void enablePush().then((state) => (state === "on" ? setPrayerPush(true) : false)).catch(() => false)
-    toast.success(t(result === "granted" ? "prayerAlert.on" : "prayerAlert.onInApp"))
+    primeAdhanAudio() // this tap also unlocks the sound for the prayer minute
+    void extrasInBackground()
+  }
+
+  /** What rings with the app closed — best effort, after the switch is already on. */
+  const extrasInBackground = async () => {
+    try {
+      // In the Android app: Android's own notification and exact-alarm permissions (the native Adhan).
+      if (isNativeApp()) {
+        const granted = await withTimeout(requestNativePrayerPermissions(), 20_000).catch(() => false)
+        return void toast.success(t(granted ? "prayerAlert.on" : "prayerAlert.onInApp"))
+      }
+      let result = permission
+      if (result === "default") {
+        result = await Notification.requestPermission()
+        setPermission(result)
+      }
+      // With permission, this phone also gets the server's prayer push — it rings with the app closed (founder, 20/10/2026).
+      if (result === "granted") void enablePush().then((state) => (state === "on" ? setPrayerPush(true) : false)).catch(() => false)
+      toast.success(t(result === "granted" ? "prayerAlert.on" : "prayerAlert.onInApp"))
+    } catch {
+      // No notifications here (an Android WebView, an old browser): the in-app Adhan is on all the same.
+      toast.success(t("prayerAlert.onInApp"))
+    }
   }
 
   const choose = (id: string) => {
@@ -273,7 +292,7 @@ export function PrayerAlertSettings() {
           <span className="block text-sm font-medium">{t("prayerAlert.toggle")}</span>
           <span className="block text-xs text-muted-foreground">{t("prayerAlert.hint")}</span>
         </span>
-        <Switch checked={alertsOn} onCheckedChange={(v) => void toggle(v)} aria-label={t("prayerAlert.toggle")} />
+        <Switch checked={alertsOn} onCheckedChange={toggle} aria-label={t("prayerAlert.toggle")} />
       </label>
 
       {/* 🔊 Test the Adhan now (Task #466): the very recording the next prayer plays, through the same player. */}
