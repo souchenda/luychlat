@@ -163,10 +163,10 @@ export const ISLAMIC_QUIZZES: IslamicQuiz[] = [
   {
     id: "ramadan-verse",
     topic: "fasting",
-    question: "ការបួសខែរ៉ាម៉ាឌន ត្រូវបានបង្គាប់នៅក្នុងស៊ូរ៉ោះណា នៃគម្ពីរគួរអាន?",
+    question: "ការបួសខែរ៉ាម៉ាឌន ត្រូវបានបង្គាប់នៅក្នុងស៊ូរ៉ាត់ណា នៃគម្ពីរគួរអាន?",
     options: ["Al-Fatihah", "Al-Baqarah", "Al-Kahf", "Al-Mulk"],
     correct: 1,
-    explanation: "«ការបួសត្រូវបានកំណត់លើពួកអ្នក ដូចដែលបានកំណត់លើអ្នកមុនៗ» — ស៊ូរ៉ោះ Al-Baqarah។ ប្រភព៖ Al-Baqarah 2:183",
+    explanation: "«ការបួសត្រូវបានកំណត់លើពួកអ្នក ដូចដែលបានកំណត់លើអ្នកមុនៗ» — ស៊ូរ៉ាត់ Al-Baqarah។ ប្រភព៖ Al-Baqarah 2:183",
     source: quran("Al-Baqarah", 2, 183),
   },
   {

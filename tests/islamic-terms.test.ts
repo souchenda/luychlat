@@ -71,3 +71,14 @@ describe("Islamic hub — the founder's terms", () => {
     assert.match(formatHijri({ day: 7, month: 5, year: 1448 }, "km"), /ហ៊ីចរ៉ោះសករាជ \(ហ\.ស\.\)$/)
   })
 })
+
+describe("one spelling for «surah» (founder, 22/10/2026 — Task #461)", () => {
+  it("«ស៊ូរ៉ាត់» everywhere — the lessons, the quiz, the Quran reader and the posts' citations; never «ស៊ូរ៉ោះ»", async () => {
+    for (const f of ["lib/i18n/dictionaries.ts", "lib/islamic/lessons-data.ts", "lib/islamic-quiz.ts", "lib/islamic-tips.ts", "lib/islamic-channel.ts", "lib/quran-verse.ts"]) assert.ok(!all(f).includes("ស៊ូរ៉ោះ"), f)
+    assert.match(all("lib/islamic/lessons-data.ts"), /ស៊ូរ៉ាត់ Al-Ma'idah/)
+    const { verseCitation, SURAH_WORD } = await import("../src/lib/quran-verse")
+    assert.equal(SURAH_WORD, "ស៊ូរ៉ាត់")
+    assert.equal(verseCitation(2, 280), "(ស៊ូរ៉ាត់ Al-Baqarah : អាយ៉ាត់ 280)") // Latin names, 0-9 (Task #440)
+    assert.equal(km["quran.allSurahs"], "ស៊ូរ៉ាត់ទាំងអស់")
+  })
+})
