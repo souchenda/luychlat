@@ -1,7 +1,10 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { CHANNEL_APP_BUTTON, CHANNEL_BOT_BUTTON, channelKeyboard } from "./channel-buttons"
+import { readdirSync, readFileSync } from "node:fs"
+import { join } from "node:path"
+
+import { getChannelPostButtons } from "./channel-buttons"
 import { postFooter } from "@/lib/post-footer"
 
 import { tipCaption } from "./tip-bot"
@@ -16,18 +19,17 @@ describe("daily tip caption & the channel's buttons (poster branding)", () => {
     assert.match(caption, /សន្សំ &lt;៣០%&gt; &amp; ចំណាយ/)
     assert.ok(caption.length < 1024)
   })
-  it("the buttons: one per row, full width — never cut to «… ↗» on a phone (founder, 21/10/2026)", () => {
-    assert.equal(CHANNEL_APP_BUTTON, "📱 បើកប្រើ អេប លុយឆ្លាត ↗")
-    assert.equal(CHANNEL_BOT_BUTTON, "🤖 កត់ត្រាតាម Telegram Bot ↗")
-    assert.deepEqual(channelKeyboard("https://app.luychlat.com", "luychlat_bot"), [
-      [{ text: "📱 បើកប្រើ អេប លុយឆ្លាត ↗", url: "https://app.luychlat.com" }],
-      [{ text: "🤖 កត់ត្រាតាម Telegram Bot ↗", url: "https://t.me/luychlat_bot" }],
-    ])
-    // A link not known is left out; the other keeps its own row.
-    assert.deepEqual(channelKeyboard(null, "luychlat_bot"), [[{ text: CHANNEL_BOT_BUTTON, url: "https://t.me/luychlat_bot" }]])
-    assert.deepEqual(channelKeyboard(null, null), [])
-    // Short enough for the narrowest phone (iPhone SE): one line each.
-    for (const b of [CHANNEL_APP_BUTTON, CHANNEL_BOT_BUTTON]) assert.ok([...b].length <= 30, b)
+  it("no URL buttons under a channel post (founder, 22/10/2026 — Task #454): the caption's footer already links the app and the bot", async () => {
+    assert.deepEqual(await getChannelPostButtons(), {})
+    // The links are in the text: «Android (APK) || iOS / Web || Telegram Bot».
+    assert.ok(caption.includes('<a href="https://app.luychlat.com">iOS / Web</a>') && caption.includes('<a href="https://t.me/luychlat_bot">Telegram Bot</a>'))
+    // No publisher builds its own channel keyboard with those two buttons.
+    const dir = join(process.cwd(), "src/lib/server")
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(".ts") && !x.endsWith(".test.ts"))) {
+      // The code only (a comment may name the old buttons to explain why they are gone).
+      const src = readFileSync(join(dir, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "")
+      assert.doesNotMatch(src, /បើកប្រើ អេប លុយឆ្លាត ↗|កត់ត្រាតាម Telegram Bot ↗/, f)
+    }
   })
 })
 

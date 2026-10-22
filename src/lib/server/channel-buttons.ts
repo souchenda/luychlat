@@ -1,25 +1,16 @@
-// Server only: the buttons under every community channel post (market bulletin, evening NBC rates, morning / evening
-// routine, daily tip, festival posters, fuel prices) — same wording, same order, everywhere. One button per row, full
-// width (founder, 21/10/2026 — side by side they were cut to «… ↗» on a phone):
+// Server only: what goes under a public channel post (@LuyChlatCommunity, @LuyChlatIslamic — the market bulletin, the
+// evening NBC rates, the morning / evening routine, the daily tip, festival posters, fuel prices, the Islamic posts).
 //
-//   [ 📱 បើកប្រើ អេប លុយឆ្លាត ↗ ]
-//   [ 🤖 កត់ត្រាតាម Telegram Bot ↗ ]
-import { appUrl } from "./community-bulletin"
-import { tg } from "./telegram-bot"
-
-export const CHANNEL_APP_BUTTON = "📱 បើកប្រើ អេប លុយឆ្លាត ↗"
-export const CHANNEL_BOT_BUTTON = "🤖 កត់ត្រាតាម Telegram Bot ↗"
+// NOTHING (founder, 22/10/2026 — Task #454): the two URL buttons [ 📱 បើកប្រើ អេប លុយឆ្លាត ↗ ] [ 🤖 កត់ត្រាតាម Telegram
+// Bot ↗ ] repeated the caption's own footer line («Android (APK) || iOS / Web || Telegram Bot», lib/post-footer.ts) —
+// the feed stays clean, the links are in the text. Every channel publisher still asks here, so a post never grows its
+// own keyboard again; the approval cards in «LCA Approval» keep their [ ✅ ] [ ✏️ ] [ ❌ ] (previewButtons) — another
+// keyboard, untouched. The 20:00 reminder keeps its one «🤖 ចុចទីនេះដើម្បីបិទបញ្ជី» (eveningButtons — the founder's
+// 18/10/2026 call to action, not a repeat of the footer).
 
 type Button = { text: string; url: string }
 
-/** The keyboard: the app on the first row, the bot on the second — each alone on its row; a link not known is left out. */
-export function channelKeyboard(app: string | null, botUsername: string | null | undefined): Button[][] {
-  return [...(app ? [[{ text: CHANNEL_APP_BUTTON, url: app }]] : []), ...(botUsername ? [[{ text: CHANNEL_BOT_BUTTON, url: `https://t.me/${botUsername}` }]] : [])]
-}
-
-/** `extra` for sendMessage / sendPhoto / editMessageText: the standard buttons. */
+/** `extra` for sendMessage / sendPhoto / editMessageText / editMessageMedia on a channel post: no keyboard. */
 export async function getChannelPostButtons(): Promise<{ reply_markup?: { inline_keyboard: Button[][] } }> {
-  const [url, me] = await Promise.all([appUrl(), tg<{ username?: string }>("getMe", {})])
-  const rows = channelKeyboard(url, me.result?.username)
-  return rows.length ? { reply_markup: { inline_keyboard: rows } } : {}
+  return {}
 }
