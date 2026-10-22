@@ -14,7 +14,7 @@ import { quranRefOf, verseCitation } from "@/lib/quran-verse"
 import { getQuranVerses } from "@/lib/server/quran-verses"
 
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
-import { dueAction, endOfCambodiaDay, isPreviewed, isReplaceCallback, kmClock, parseReplaceCallback, parseScheduledPostCallback, REPLACEABLE, replaceButtons, replacedNote, replacePreviewText, reminderLevel, urgentReminderButtons, urgentReminderText, plannedIslamicPosts, plannedPosts, previewButtons, previewText, atMinute, EVENT_LEAD_MIN, type PostKind, type PostStatus, type Targets, pastedCardBody, promptStep } from "@/lib/scheduled-posts"
+import { dueAction, endOfCambodiaDay, isPreviewed, isReplaceCallback, kmClock, parseReplaceCallback, parseScheduledPostCallback, REPLACEABLE, replaceButtons, replacedNote, replacePreviewText, reminderLevel, urgentReminderButtons, urgentReminderText, plannedIslamicPosts, plannedPosts, previewButtons, previewText, atMinute, EVENT_LEAD_MIN, type PostKind, type PostStatus, type Targets, pastedCardBody, promptStep, changeSummary, type PostSnapshot } from "@/lib/scheduled-posts"
 import { eveningButtons } from "@/lib/evening-reminder"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
@@ -66,6 +66,9 @@ export type PostRow = {
   telegram_message_id?: number | null
   facebook_post_id?: string | null
   content_hash?: string | null
+  /** What went out (Task #462): the caption and the poster's fingerprint — for the 🔄 card's «what changed». */
+  published_body?: string | null
+  published_poster?: string | null
   replace_status?: "PENDING" | "APPROVED" | "REPLACING" | "DONE" | "KEPT" | null
   /** Urgent reminders sent while it waited past its time (bot_post_remind_claim). */
   reminders?: number
@@ -76,7 +79,9 @@ export type ReplaceDeps = {
   publishedToday(): Promise<PostRow[]>
   /** What the post would publish now (poster and caption), or null for a kind that is never replaced. */
   contentHash(row: PostRow): Promise<string | null>
-  setHash(id: number, hash: string): Promise<void>
+  setHash(id: number, hash: string, snapshot?: PostSnapshot): Promise<void>
+  /** The caption and the poster's fingerprint as the post would go out now (Task #462). */
+  snapshot?(row: PostRow): Promise<PostSnapshot>
   /** Asks once (PENDING); false when it was already asked or is being replaced. */
   replaceAsk(id: number): Promise<boolean>
   /** An approver's 🔄 / ❌; throws «super admin only» for anyone else. */
@@ -196,7 +201,7 @@ export function createScheduler(d: SchedulerDeps) {
       d.log("info", `${row.kind} ${row.post_key} published (${how}) · Telegram ${ids.telegram ?? "—"} · Facebook ${ids.facebook ?? "—"}`)
       // What was published, so a later, better version of today's post is noticed (REPLACE OLD WITH NEW).
       const hash = d.replace ? await d.replace.contentHash(row) : null
-      if (hash) await d.replace!.setHash(row.id, hash)
+      if (hash) await d.replace!.setHash(row.id, hash, await d.replace!.snapshot?.(row))
     } catch (e) {
       d.log("error", `${row.kind} ${row.post_key} publish failed (${how}): ${e instanceof Error ? e.message : String(e)}`)
     }
@@ -306,6 +311,8 @@ export function createScheduler(d: SchedulerDeps) {
       const ids: Published = { telegram: row.telegram_message_id ?? null, facebook: row.facebook_post_id ?? null }
       // Done either way (no retry every minute): edited, or the published version stays exactly as it was.
       await r.replaceDone(row.id, true, ids, edited ? await r.contentHash(row) : (row.content_hash ?? null), false)
+      // What is in the channel now, kept for the next «what changed» (Task #462).
+      if (edited) await r.setHash(row.id, (await r.contentHash(row)) ?? "", await r.snapshot?.(row))
       d.log(edited ? "info" : "warn", `${row.kind} ${row.post_key} ${edited ? "updated in place" : "NOT updated — the published version stays; nothing new was posted"} · Telegram ${ids.telegram ?? "—"}`)
       await r.notify(replacedNote(row.kind, row.post_key, { edited, telegram: ids.telegram }))
     }
@@ -325,8 +332,11 @@ export function createScheduler(d: SchedulerDeps) {
       if (!now || now === row.content_hash || !(await r.replaceAsk(row.id))) continue
       const sent = await scoped(row, async () => {
         const { png, body } = await d.content(row)
+        // «✍️ ចំណុចកែប្រែ ៖ …» — against what went out (Task #462).
+        const after = (await r.snapshot?.(row)) ?? { body, poster: null }
+        const summary = changeSummary({ body: row.published_body ?? null, poster: row.published_poster ?? null }, { body: after.body ?? body, poster: after.poster })
         let n = 0
-        for (const chat of await d.adminChats()) if (await d.sendPreview(chat, png, replacePreviewText(row.kind, body), replaceButtons(row.id))) n++
+        for (const chat of await d.adminChats()) if (await d.sendPreview(chat, png, replacePreviewText(row.kind, body, summary), replaceButtons(row.id))) n++
         return n
       })
       d.log(sent ? "info" : "warn", `${row.kind} ${row.post_key}: a new version — the replacement preview sent to ${sent} chat(s)`)
@@ -830,8 +840,12 @@ function withReplace(base: SchedulerDeps): SchedulerDeps {
       const { png, body } = await base.content(row)
       return createHash("sha256").update(png ?? Buffer.alloc(0)).update(body).digest("hex")
     },
-    async setHash(id, hash) {
-      await botDb().rpc("bot_post_set_hash", { p_key: botKey(), p_id: id, p_hash: hash })
+    async setHash(id, hash, snapshot) {
+      await botDb().rpc("bot_post_set_hash", { p_key: botKey(), p_id: id, p_hash: hash, p_body: snapshot?.body ?? null, p_poster: snapshot?.poster ?? null })
+    },
+    async snapshot(row) {
+      const { png, body } = await base.content(row)
+      return { body, poster: png ? createHash("sha256").update(png).digest("hex").slice(0, 16) : null }
     },
     async replaceAsk(id) {
       const { data } = await botDb().rpc("bot_post_replace_ask", { p_key: botKey(), p_id: id })

@@ -21,7 +21,7 @@ describe("daily tip caption & the channel's buttons (poster branding)", () => {
   })
   it("no URL buttons under a channel post (founder, 22/10/2026 — Task #454): the caption's footer already links the app and the bot", async () => {
     assert.deepEqual(await getChannelPostButtons(), {})
-    // The links are in the text: «Android (APK) || iOS / Web || Telegram Bot».
+    // The links are in the text: «Android (APK) · iOS / Web · Telegram Bot».
     assert.ok(caption.includes('<a href="https://app.luychlat.com">iOS / Web</a>') && caption.includes('<a href="https://t.me/luychlat_bot">Telegram Bot</a>'))
     // No publisher builds its own channel keyboard with those two buttons.
     const dir = join(process.cwd(), "src/lib/server")

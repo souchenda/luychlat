@@ -319,8 +319,10 @@ export const isScheduledPostCallback = (data: string | undefined) => Boolean(dat
  *  retired kind (no longer in KIND_LABEL, e.g. the channel quiz, 20/10/2026): its content is gone, not improved. */
 export const REPLACEABLE = (kind: string) => Object.hasOwn(KIND_LABEL, kind) && kind !== "BULLETIN" && kind !== "RATES" && kind !== "FUEL"
 
-export function replacePreviewText(kind: PostKind, body: string): string {
+export function replacePreviewText(kind: PostKind, body: string, summary?: string): string {
   return [
+    // What changed, first (founder, 22/10/2026 — Task #462): no word-by-word comparing on a phone.
+    ...(summary ? [summary, ""] : []),
     `🔄 កំណែថ្មីនៃការផ្សាយថ្ងៃនេះ · ${KIND_LABEL[kind]}`,
     // Task #441: the update goes INTO the published message (silent) — never a delete and a new post.
     "ការផ្សាយនេះបានចេញរួចហើយ ប៉ុន្តែខ្លឹមសារត្រូវបានកែលម្អ។ ចុច «🔄 ជំនួស» ដើម្បីកែសារដដែលក្នុងឆានែល ឱ្យទៅជាកំណែថ្មីខាងក្រោម — ស្ងាត់ៗ គ្មានសារថ្មី គ្មានការជូនដំណឹងដល់សមាជិកទេ។",
@@ -390,4 +392,51 @@ export const PROMPT_DEBOUNCE_MS = 5000
 export function promptStep(open: { msg: number; at: number } | undefined, now: number): "send" | "skip" | "replace" {
   if (!open) return "send"
   return now - open.at < PROMPT_DEBOUNCE_MS ? "skip" : "replace"
+}
+
+/** What a published post was (Task #462): its caption and its poster's fingerprint, kept when it went out. */
+export type PostSnapshot = { body: string | null; poster: string | null }
+
+const plain = (s: string) =>
+  s
+    .replace(/<[^>]+>/g, "")
+    .replace(/[០-៩]/g, (d) => String("០១២៣៤៥៦៧៨៩".indexOf(d)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+const NUMBER = /[$]?\d[\d,.:]*\s?[៛%]?/g
+const short = (s: string, n = 40) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
+
+/**
+ * The 🔄 card's first line (founder, 22/10/2026 — Task #462): «✍️ ចំណុចកែប្រែ ៖ …» — a new poster, the figures that changed
+ * («តួលេខ៖ 4,072៛ → 4,077៛»), or the first line that changed; for a post published before its text was kept, it says so.
+ */
+export function changeSummary(before: PostSnapshot, after: { body: string; poster: string | null }): string {
+  const parts: string[] = []
+  if (before.poster && after.poster && before.poster !== after.poster) parts.push("Poster ថ្មី")
+  if (before.body == null) parts.push("ខ្លឹមសារត្រូវបានកែលម្អ (មិនមានកំណែចាស់ទុកសម្រាប់ប្រៀបធៀបទេ)")
+  else {
+    const oldText = plain(before.body)
+    const newText = plain(after.body)
+    if (oldText !== newText) {
+      const oldNums = oldText.match(NUMBER)?.map((x) => x.trim()) ?? []
+      const newNums = newText.match(NUMBER)?.map((x) => x.trim()) ?? []
+      const gone = oldNums.filter((x) => !newNums.includes(x))
+      const came = newNums.filter((x) => !oldNums.includes(x))
+      if (came.length && came.length <= 3) parts.push(`តួលេខ៖ ${gone.slice(0, 3).join(", ") || "—"} → ${came.join(", ")}`)
+      const lines = (t: string) => t.split("\n").map((l) => l.trim()).filter(Boolean)
+      const oldLines = lines(oldText)
+      const newLines = lines(newText)
+      const added = newLines.filter((l) => !oldLines.includes(l))
+      const removed = oldLines.filter((l) => !newLines.includes(l))
+      if (!parts.some((p) => p.startsWith("តួលេខ")) || added.length > came.length) {
+        if (added.length && removed.length) parts.push(`«${short(removed[0])}» → «${short(added[0])}»${added.length > 1 ? ` (+${added.length - 1} បន្ទាត់ទៀត)` : ""}`)
+        else if (added.length) parts.push(`បន្ថែម «${short(added[0])}»${added.length > 1 ? ` (+${added.length - 1})` : ""}`)
+        else if (removed.length) parts.push(`ដកចេញ «${short(removed[0])}»${removed.length > 1 ? ` (+${removed.length - 1})` : ""}`)
+        else parts.push("កែសម្រួលទម្រង់ និងចន្លោះបន្ទាត់")
+      }
+    }
+  }
+  if (!parts.length) parts.push("កែសម្រួលទម្រង់ (layout)")
+  return `✍️ ចំណុចកែប្រែ ៖ ${parts.join(" · ")}`
 }

@@ -491,7 +491,7 @@ describe("REPLACE OLD WITH NEW — today's published post, improved, replaces th
     await h.s.checkVersions()
     await h.s.checkVersions()
     assert.equal(h.log.asked, 1)
-    assert.match(h.log.previews[0], /^🔄 កំណែថ្មីនៃការផ្សាយថ្ងៃនេះ/)
+    assert.match(h.log.previews[0], /^✍️ ចំណុចកែប្រែ ៖ [^\n]+\n\n🔄 កំណែថ្មីនៃការផ្សាយថ្ងៃនេះ/) // what changed, first (Task #462)
     await h.s.replaceDue()
     assert.equal(h.log.published, 0)
     await h.press("spr:7:y", STRANGER) // not an approver

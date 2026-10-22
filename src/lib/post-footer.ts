@@ -7,7 +7,7 @@
  *               religious separation, CLAUDE.md)
  *
  * Compact (founder, 21/10/2026 — «too many lines, long raw URLs»): the three ways to use the app on ONE line of inline
- * links «Android (APK) || iOS / Web || Telegram Bot». On Telegram the posts are HTML, so the links are <a href> (the
+ * links «Android (APK) · iOS / Web · Telegram Bot». On Telegram the posts are HTML, so the links are <a href> (the
  * founder's [text](url) as Telegram renders it) and the handles are tappable «@…»; Facebook shows no inline links, so
  * there each name carries its short address and the handles are t.me links (a «@» is not a link there).
  * Not on royal or national commemorations, Sil days or the automatic market feeds (their dignity / their brevity).
@@ -33,9 +33,9 @@ export const SERIES_HASHTAGS: Record<string, string> = {
   "smart-spending": "#របៀបចាយលុយឆ្លាត",
 }
 
-/** «Android (APK) || iOS / Web || Telegram Bot» — inline links on Telegram (HTML), names with short addresses on Facebook. */
+/** «Android (APK) · iOS / Web · Telegram Bot» — inline links on Telegram (HTML), names with short addresses on Facebook. */
 export function appLinksLine(platform: FooterPlatform = "telegram"): string {
-  return APP_LINKS.map((l) => (platform === "telegram" ? `<a href="${l.url}">${l.label}</a>` : `${l.label}: ${l.url.replace(/^https:\/\//, "")}`)).join(" || ")
+  return APP_LINKS.map((l) => (platform === "telegram" ? `<a href="${l.url}">${l.label}</a>` : `${l.label}: ${l.url.replace(/^https:\/\//, "")}`)).join(" · ") // one dot — «||» showed as «| |» on phones (founder, 22/10/2026 — Task #462)
 }
 
 /** The footer — Telegram's is HTML: send it with parse_mode HTML and escape only the post's own words. */

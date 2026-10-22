@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { atMinute, dueAction, kmClock, parseScheduledPostCallback, plannedPosts, previewButtons, previewText, targetLabel } from "./scheduled-posts"
@@ -115,5 +117,32 @@ describe("Who decided, on the card (founder, 20/10/2026)", () => {
     assert.equal(deciderLine("APPROVED", where, at, { ...d, name: null, username: null }), null)
     assert.equal(deciderLine("EXPIRED", where, at, d), null)
     assert.match(previewText({ kind: "MORNING", targets: { telegram: true, facebook: true }, publishAt: at, body: "x", status: "EXPIRED", decider: d }), /⌛ មិនបានផ្សាយ/)
+  })
+})
+
+describe("the 🔄 card says what changed (founder, 22/10/2026 — Task #462)", () => {
+  it("«✍️ ចំណុចកែប្រែ ៖ …» at the very top: new figures, a new poster, a changed line — or that no earlier text was kept", async () => {
+    const { changeSummary, replacePreviewText } = await import("./scheduled-posts")
+    const before = { body: "<b>💱 អត្រា NBC</b>\n🇺🇸 1 USD = 4,072 ៛\n🥇 មាស $4,125", poster: "aaaa" }
+    assert.equal(changeSummary(before, { body: "<b>💱 អត្រា NBC</b>\n🇺🇸 1 USD = 4,077 ៛\n🥇 មាស $4,125", poster: "aaaa" }), "✍️ ចំណុចកែប្រែ ៖ តួលេខ៖ 4,072 ៛ → 4,077 ៛")
+    assert.equal(changeSummary(before, { body: before.body, poster: "bbbb" }), "✍️ ចំណុចកែប្រែ ៖ Poster ថ្មី")
+    assert.match(changeSummary(before, { body: "<b>💱 អត្រា NBC</b>\n🇺🇸 1 USD = 4,072 ៛\n🥇 មាសសុទ្ធ $4,125", poster: "aaaa" }), /^✍️ ចំណុចកែប្រែ ៖ «🥇 មាស \$4,125» → «🥇 មាសសុទ្ធ \$4,125»$/)
+    assert.equal(changeSummary({ body: null, poster: null }, { body: "x", poster: null }), "✍️ ចំណុចកែប្រែ ៖ ខ្លឹមសារត្រូវបានកែលម្អ (មិនមានកំណែចាស់ទុកសម្រាប់ប្រៀបធៀបទេ)")
+    // Khmer digits and HTML tags are not «changes»; only the spacing moved → said so.
+    assert.equal(changeSummary({ body: "<b>ក</b>\n១២", poster: null }, { body: "ក\n\n12", poster: null }), "✍️ ចំណុចកែប្រែ ៖ កែសម្រួលទម្រង់ និងចន្លោះបន្ទាត់")
+    const card = replacePreviewText("BULLETIN", "body", "✍️ ចំណុចកែប្រែ ៖ Poster ថ្មី")
+    assert.ok(card.startsWith("✍️ ចំណុចកែប្រែ ៖ Poster ថ្មី\n\n🔄 កំណែថ្មីនៃការផ្សាយថ្ងៃនេះ"))
+  })
+  it("wired: what went out is kept when published and when updated; the footer's links joined by « · », never «||»", async () => {
+    const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    assert.match(sp, /if \(hash\) await d\.replace!\.setHash\(row\.id, hash, await d\.replace!\.snapshot\?\.\(row\)\)/)
+    assert.match(sp, /const summary = changeSummary\(\{ body: row\.published_body \?\? null, poster: row\.published_poster \?\? null \}/)
+    assert.match(sp, /replacePreviewText\(row\.kind, body, summary\)/)
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270252000000_post_snapshot.sql"), "utf8")
+    assert.match(sql, /published_body = coalesce\(left\(p_body, 8000\), published_body\)/)
+    assert.match(sql, /set content_hash = null\s+where status = 'PUBLISHED'/) // the footer change alone never floods «LCA Approval»
+    const { appLinksLine } = await import("./post-footer")
+    assert.doesNotMatch(appLinksLine("telegram") + appLinksLine("facebook"), /\|\|/)
+    assert.match(appLinksLine("telegram"), /Android \(APK\)<\/a> · <a/)
   })
 })
