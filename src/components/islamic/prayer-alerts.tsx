@@ -18,7 +18,7 @@ import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { enablePush, setPrayerPush } from "@/lib/push"
 import { isNativeApp } from "@/lib/native-bridge"
-import { cancelNativePrayers, requestNativePrayerPermissions, scheduleNativePrayers } from "@/lib/native-prayer"
+import { cancelNativePrayers, requestNativePrayerPermissions, scheduleNativePrayers, scheduleNativeTestAdhan, useNativePrayerStatus } from "@/lib/native-prayer"
 import { formatMinutes, placeNow, prayerTimes } from "@/lib/prayer"
 import {
   ADHAN_MAX_BYTES,
@@ -76,6 +76,22 @@ export function PrayerAlertScheduler() {
   // with the screen locked and the app closed. Re-planned at every launch and whenever the place, sound or language
   // changes; the in-page timer below then stands down (never two Adhans). Off → the alarms are cancelled.
   const [nativeOn, setNativeOn] = useState(false)
+  // Planned again on request (Task #472): the switch's permission arrives AFTER it flips on (#467), so the first plan
+  // found no permission and planned nothing — the phone then rang only from the in-page timer, frozen with the screen
+  // off, the Adhan bursting out at unlock. Also re-planned when the app comes back on screen (a permission given in
+  // Android's settings, a new day), at most every 10 minutes.
+  const tick = useNativePrayerStatus((s) => s.tick)
+  useEffect(() => {
+    if (!isNativeApp()) return
+    let last = Date.now()
+    const onShow = () => {
+      if (document.visibilityState !== "visible" || Date.now() - last < 10 * 60_000) return
+      last = Date.now()
+      useNativePrayerStatus.getState().replan()
+    }
+    document.addEventListener("visibilitychange", onShow)
+    return () => document.removeEventListener("visibilitychange", onShow)
+  }, [])
   useEffect(() => {
     if (!isNativeApp()) return
     if (!alertsOn) {
@@ -93,9 +109,12 @@ export function PrayerAlertScheduler() {
         return { title: `🕌 ${t("prayerAlert.title", { name })}`, body: t("prayerAlert.body", { time, place: location.label }) }
       },
     })
-      .then((count) => setNativeOn(count > 0))
+      .then((count) => {
+        setNativeOn(count > 0)
+        useNativePrayerStatus.getState().set({ planned: count, permission: count > 0 ? "granted" : "missing" })
+      })
       .catch(() => setNativeOn(false))
-  }, [alertsOn, alertSound, location.lat, location.lng, location.label, t])
+  }, [alertsOn, alertSound, location.lat, location.lng, location.label, t, tick])
 
   useEffect(() => {
     if (!alertsOn || nativeOn) return
@@ -146,6 +165,36 @@ export function PrayerAlertScheduler() {
   }, [alertsOn, nativeOn])
 
   return null
+}
+
+/**
+ * «🔔 អាហ្សានពេលបិទអេក្រង់» (Task #472): the Android alarms' state — how many prayers are set, or that the notification
+ * permission is missing (with the tap that asks) — and [ ⏰ សាកល្បងពេលបិទអេក្រង់ (1 នាទី) ]: one real alarm a minute
+ * from now, to lock the phone and listen.
+ */
+function NativeAlarmStatus({ sound }: { sound: AlertSound }) {
+  const t = useT()
+  const { planned, permission } = useNativePrayerStatus()
+  const [waiting, setWaiting] = useState(false)
+  const test = async () => {
+    const r = await scheduleNativeTestAdhan({ sound, title: `🕌 ${t("prayerAlert.nativeTestTitle")}`, body: t("prayerAlert.nativeTestBody") }).catch(() => "no-permission" as const)
+    if (r === "scheduled") {
+      setWaiting(true)
+      toast.success(t("prayerAlert.nativeTestSet"), { duration: 10_000 })
+      useNativePrayerStatus.getState().replan()
+    } else toast.error(t("prayerAlert.nativeMissing"))
+  }
+  return (
+    <div className="space-y-2 rounded-xl bg-muted/50 px-3 py-2">
+      <p className={cn("text-xs", permission === "missing" ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground")}>
+        {permission === "missing" ? t("prayerAlert.nativeMissing") : planned ? t("prayerAlert.nativePlanned", { count: planned }) : t("prayerAlert.nativeChecking")}
+      </p>
+      <Button type="button" variant="outline" className="h-10 w-full gap-2 rounded-xl" onClick={() => void test()} disabled={waiting}>
+        <BellIcon className="size-4" aria-hidden />
+        {t(waiting ? "prayerAlert.nativeTestWaiting" : "prayerAlert.nativeTest")}
+      </Button>
+    </div>
+  )
 }
 
 /** ▶ / ⏸ for one recording. */
@@ -211,6 +260,8 @@ export function PrayerAlertSettings() {
       // In the Android app: Android's own notification and exact-alarm permissions (the native Adhan).
       if (isNativeApp()) {
         const granted = await withTimeout(requestNativePrayerPermissions(), 20_000).catch(() => false)
+        // The alarms planned now that the permission is known (never waiting for the next launch — Task #472).
+        useNativePrayerStatus.getState().replan()
         return void toast.success(t(granted ? "prayerAlert.on" : "prayerAlert.onInApp"))
       }
       let result = permission
@@ -263,6 +314,7 @@ export function PrayerAlertSettings() {
     setAlerts({ adhanName: null, adhanPreset: presets[0]?.id ?? CUSTOM_ADHAN, alertSound: alertSound === "adhan" && !presets.length ? "chime" : alertSound })
   }
 
+  const native = isNativeApp()
   const playingNow = usePlaying()
   const [testOn, setTestOn] = useState(false)
   const testing = testOn && playingNow !== null
@@ -294,6 +346,9 @@ export function PrayerAlertSettings() {
         </span>
         <Switch checked={alertsOn} onCheckedChange={toggle} aria-label={t("prayerAlert.toggle")} />
       </label>
+
+      {/* In the Android app: whether the alarms that ring with the screen off are really set (Task #472). */}
+      {alertsOn && native && <NativeAlarmStatus sound={alertSound} />}
 
       {/* 🔊 Test the Adhan now (Task #466): the very recording the next prayer plays, through the same player. */}
       <Button type="button" variant="outline" className="h-11 w-full gap-2 rounded-xl" onClick={testAdhan} aria-pressed={testing}>

@@ -46,12 +46,35 @@ describe("The native Adhan's plan (founder, 20/10/2026)", () => {
   it("in the app: native alarms replace the in-page timer (never two Adhans); in a browser nothing changes", () => {
     const c = read("src/components/islamic/prayer-alerts.tsx")
     assert.match(c, /if \(!isNativeApp\(\)\) return/)
-    assert.match(c, /\.then\(\(count\) => setNativeOn\(count > 0\)\)/)
+    assert.match(c, /\.then\(\(count\) => \{\s*setNativeOn\(count > 0\)/) // and the status shown (Task #472)
     assert.match(c, /if \(!alertsOn \|\| nativeOn\) return/)
     assert.match(c, /const granted = await withTimeout\(requestNativePrayerPermissions\(\), 20_000\)/) // after the switch is on (Task #467)
     const n = read("src/lib/native-prayer.ts")
     assert.match(n, /if \(!isNativeApp\(\)\) return 0/)
     assert.match(n, /schedule: \{ at: p\.at, allowWhileIdle: true \}/)
     assert.match(n, /channelId: channel\.id/)
+  })
+})
+
+describe("The Adhan with the screen off — Android alarms really set (founder, 22/10/2026 — Tasks #471 / #472)", () => {
+  it("the switch's permission arrives after it flips on: the alarms are planned again then, and when the app comes back", () => {
+    const c = read("src/components/islamic/prayer-alerts.tsx")
+    // The bug: the first plan ran before the permission, found none, planned nothing — the in-page timer, frozen with
+    // the screen off, rang only at unlock.
+    assert.match(c, /const granted = await withTimeout\(requestNativePrayerPermissions\(\), 20_000\)[^\n]*\n[^\n]*\n\s+useNativePrayerStatus\.getState\(\)\.replan\(\)/)
+    assert.match(c, /\}, \[alertsOn, alertSound, location\.lat, location\.lng, location\.label, t, tick\]\)/)
+    assert.match(c, /document\.addEventListener\("visibilitychange", onShow\)/)
+    assert.match(c, /useNativePrayerStatus\.getState\(\)\.set\(\{ planned: count, permission: count > 0 \? "granted" : "missing" \}\)/)
+    // Never silently «on»: the card says how many prayers are set, or that the permission is missing.
+    assert.match(c, /\{alertsOn && native && <NativeAlarmStatus sound=\{alertSound\} \/>\}/)
+    assert.match(c, /t\("prayerAlert\.nativeMissing"\) : planned \? t\("prayerAlert\.nativePlanned", \{ count: planned \}\)/)
+  })
+  it("⏰ the one-minute test is a real exact alarm on the Adhan channel, with an id a re-plan never cancels", () => {
+    const n = read("src/lib/native-prayer.ts")
+    assert.match(n, /export const NATIVE_TEST_ID = 199_999_999/)
+    assert.equal(isNativePrayerId(199_999_999), false)
+    assert.match(n, /id: NATIVE_TEST_ID,[\s\S]*?channelId: channel\.id,[\s\S]*?schedule: \{ at: new Date\(Date\.now\(\) \+ \(o\.inMs \?\? 60_000\)\), allowWhileIdle: true \}/)
+    assert.match(n, /if \(\(await n\.checkPermissions\(\)\)\.display !== "granted"\) return 0/)
+    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.nativeTest": "⏰ សាកល្បងពេលបិទអេក្រង់ (1 នាទី)"'))
   })
 })

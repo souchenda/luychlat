@@ -6,11 +6,29 @@
  * it rings at the exact minute with the screen locked and the app closed, and survives a reboot (the plugin's boot
  * receiver). In a browser this module does nothing: the Web Push and Telegram alerts carry on.
  */
+import { create } from "zustand"
+
 import { isNativeApp } from "@/lib/native-bridge"
 import { NATIVE_CHANNELS, isNativePrayerId, nativePrayerPlan, type NativeSound } from "@/lib/native-prayer-plan"
 import type { PrayerKey } from "@/lib/prayer"
 
 const plugin = () => import("@capacitor/local-notifications").then((m) => m.LocalNotifications)
+
+/**
+ * What the Android alarms are doing (founder, 22/10/2026 — Task #472): how many prayers are planned, or why none are
+ * (no notification permission), shown on the prayer card — never silently «on». `replan()` asks the scheduler in the
+ * app layout to plan again (after the permission is given, or when the app comes back on screen).
+ */
+export const useNativePrayerStatus = create<{ planned: number | null; permission: "granted" | "missing" | null; tick: number; set: (s: { planned: number; permission: "granted" | "missing" }) => void; replan: () => void }>((set) => ({
+  planned: null,
+  permission: null,
+  tick: 0,
+  set: (s) => set(s),
+  replan: () => set((s) => ({ tick: s.tick + 1 })),
+}))
+
+/** The one-minute test alarm's id: outside the prayers' range (isNativePrayerId), so a re-plan never cancels it. */
+export const NATIVE_TEST_ID = 199_999_999
 
 let channelsReady: Promise<void> | null = null
 /** The three channels (Adhan, chime, silent), once per launch — creating an existing channel changes nothing. */
@@ -61,6 +79,7 @@ export async function cancelNativePrayers(): Promise<void> {
 export async function scheduleNativePrayers(o: { lat: number; lng: number; sound: NativeSound; text: (prayer: PrayerKey, time: string) => { title: string; body: string } }): Promise<number> {
   if (!isNativeApp()) return 0
   const n = await plugin()
+  // No notification permission: nothing can ring — 0, so the in-app timer stays on and the card says why.
   if ((await n.checkPermissions()).display !== "granted") return 0
   await ensureChannels()
   await cancelNativePrayers()
@@ -84,4 +103,35 @@ export async function scheduleNativePrayers(o: { lat: number; lng: number; sound
     }),
   })
   return plan.length
+}
+
+/**
+ * ⏰ The test with the screen off (Task #472): one Android alarm a minute from now on the chosen channel — the same
+ * exact alarm and Adhan sound as a prayer, so «lock the phone and wait» proves the real thing. Asks for the
+ * notification permission first when it is missing.
+ */
+export async function scheduleNativeTestAdhan(o: { sound: NativeSound; title: string; body: string; inMs?: number }): Promise<"scheduled" | "no-permission"> {
+  if (!isNativeApp()) return "no-permission"
+  const n = await plugin()
+  let perm = (await n.checkPermissions()).display
+  if (perm !== "granted") perm = (await n.requestPermissions()).display
+  if (perm !== "granted") return "no-permission"
+  await ensureChannels()
+  const channel = NATIVE_CHANNELS[o.sound]
+  await n.cancel({ notifications: [{ id: NATIVE_TEST_ID }] }).catch(() => null)
+  await n.schedule({
+    notifications: [
+      {
+        id: NATIVE_TEST_ID,
+        title: o.title,
+        body: o.body,
+        channelId: channel.id,
+        ...(channel.sound ? { sound: channel.sound } : {}),
+        schedule: { at: new Date(Date.now() + (o.inMs ?? 60_000)), allowWhileIdle: true },
+        autoCancel: true,
+        extra: { url: "/islamic/prayer" },
+      },
+    ],
+  })
+  return "scheduled"
 }
