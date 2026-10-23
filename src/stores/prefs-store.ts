@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware"
 
 import type { WorkspaceType } from "@/lib/data/types"
 import { DEFAULT_KHR_PER_USD, LEGACY_DEFAULT_KHR_PER_USD } from "@/lib/money"
+import { eyeAction } from "@/lib/security/balance-reveal"
+import { useLockStore } from "@/stores/lock-store"
 
 type PrefsState = {
   /** Active workspace, by type: Personal/Business are unique per user, so it works for guest and cloud alike. */
@@ -37,10 +39,19 @@ type PrefsState = {
   counterMode: boolean
   /** Flip to hide (Task #461): laid face down, the balances are masked (components/privacy/flip-to-hide.tsx). On by default. */
   flipToHide: boolean
+  /**
+   * «ចាក់សោរសមតុល្យដោយលេខកូដ 6 ខ្ទង់» (Task #477): revealing the balances asks for the App Lock PIN
+   * (lib/security/balance-reveal.ts). Off by default; this phone only.
+   */
+  balancePinLock: boolean
+  /** A reveal waiting for the PIN: raised by the eye, answered by BalanceRevealGate (never saved). */
+  revealRequest: number
   /** `id` picks a specific Family or Business workspace. */
   setActiveWorkspace: (type: WorkspaceType, id?: string | null) => void
+  /** The eye: masks at once; reveals at once — or asks for the PIN first when the balance lock is on (Task #477). */
   toggleHideBalances: () => void
   setHideBalances: (hidden: boolean) => void
+  setBalancePinLock: (on: boolean) => void
   setKhrPerUsd: (rate: number) => void
   setWalletsGrouped: (grouped: boolean) => void
   toggleBankCollapsed: (key: string) => void
@@ -68,13 +79,20 @@ export const usePrefsStore = create<PrefsState>()(
       paymentChime: true,
       counterMode: false,
       flipToHide: true,
+      balancePinLock: false,
+      revealRequest: 0,
       setActiveWorkspace: (activeWorkspace, id) =>
         set((s) => ({
           activeWorkspace,
           activeFamilyId: activeWorkspace === "FAMILY" && id !== undefined ? id : s.activeFamilyId,
           activeBusinessId: activeWorkspace === "BUSINESS" && id !== undefined ? id : s.activeBusinessId,
         })),
-      toggleHideBalances: () => set((s) => ({ hideBalances: !s.hideBalances })),
+      toggleHideBalances: () =>
+        set((s) => {
+          const action = eyeAction({ hidden: s.hideBalances, lockOn: s.balancePinLock, hasPin: Boolean(useLockStore.getState().pinHash) })
+          return action === "ask-pin" ? { revealRequest: s.revealRequest + 1 } : { hideBalances: action === "hide" }
+        }),
+      setBalancePinLock: (balancePinLock) => set({ balancePinLock }),
       setHideBalances: (hideBalances) => set({ hideBalances }),
       setKhrPerUsd: (khrPerUsd) => set({ khrPerUsd }),
       setWalletsGrouped: (walletsGrouped) => set({ walletsGrouped }),

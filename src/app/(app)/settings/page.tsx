@@ -1,6 +1,6 @@
 "use client"
 
-import { BellIcon, BookOpenIcon, GaugeIcon, SmartphoneIcon, StoreIcon, Volume2Icon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
+import { BellIcon, BookOpenIcon, GaugeIcon, LockKeyholeIcon, SmartphoneIcon, StoreIcon, Volume2Icon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -46,6 +46,8 @@ import { useSessionStore } from "@/stores/session-store"
 import { loginLabel } from "@/lib/auth-identifier"
 import { DeleteAccountSheet } from "@/components/settings/delete-account"
 import { useOnboardingStore } from "@/lib/onboarding"
+import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
+import { useLockStore } from "@/stores/lock-store"
 
 /** Today in each calendar — what the Islamic Mode switch changes in the home header (founder, 18/10/2026). */
 function calendarExamples(locale: string): { lunar: string; hijri: string } {
@@ -285,6 +287,51 @@ function SoundTestRow() {
   )
 }
 
+/**
+ * 🔐 «ចាក់សោរសមតុល្យដោយលេខកូដ 6 ខ្ទង់» (Task #477): revealing the balances asks for the App Lock PIN. Turning it on
+ * without a PIN first sets one (enter 6 digits → confirm); «ប្តូរលេខកូដ» changes it. One PIN for the app and the balances.
+ */
+function BalancePinRow() {
+  const t = useT()
+  const on = usePrefsStore((s) => s.balancePinLock)
+  const set = usePrefsStore((s) => s.setBalancePinLock)
+  const hasPin = useLockStore((s) => Boolean(s.pinHash))
+  const [setup, setSetup] = useState<"enable" | "change" | null>(null)
+  return (
+    <>
+      <SettingsRow icon={<LockKeyholeIcon />} tile="emerald" title={t("balancePin.toggle")} hint={t("balancePin.hint")}>
+        <Switch
+          checked={on && hasPin}
+          aria-label={t("balancePin.toggle")}
+          onCheckedChange={(v) => {
+            if (v && !hasPin) return setSetup("enable")
+            set(v)
+            if (v) usePrefsStore.getState().setHideBalances(true)
+          }}
+        />
+      </SettingsRow>
+      {on && hasPin && (
+        <div className="flex justify-end px-4 pb-2">
+          <Button type="button" size="sm" variant="outline" className="h-9 rounded-xl" onClick={() => setSetup("change")}>
+            {t(hasPin ? "balancePin.change" : "balancePin.set")}
+          </Button>
+        </div>
+      )}
+      <PinSetupDialog
+        open={setup !== null}
+        onOpenChange={(open) => !open && setSetup(null)}
+        onSaved={() => {
+          if (setup === "enable") {
+            set(true)
+            usePrefsStore.getState().setHideBalances(true)
+          }
+          setSetup(null)
+        }}
+      />
+    </>
+  )
+}
+
 /** 📱 «ផ្កាប់ទូរសព្ទដើម្បីលាក់សមតុល្យ» (Task #461): face down → the balances masked. On by default; turning it on asks iOS. */
 function FlipToHideRow() {
   const t = useT()
@@ -391,6 +438,7 @@ export default function SettingsPage() {
           <Switch checked={hideBalances} onCheckedChange={toggleHideBalances} aria-label={t("settings.hideBalances")} />
         </SettingsRow>
         <FlipToHideRow />
+        <BalancePinRow />
         <SettingsRow icon={<LanguagesIcon />} tile="violet" title={t("settings.language")}>
           <div className="w-52 shrink-0">
             <Segmented

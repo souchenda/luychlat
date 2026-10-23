@@ -1,6 +1,7 @@
 "use client"
 
 import { BalancePrivacyGuard } from "@/components/security/balance-privacy-guard"
+import { BalanceRevealGate } from "@/components/security/balance-reveal-gate"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { ThemeProvider, useTheme } from "next-themes"
 import { useEffect, useState } from "react"
@@ -114,6 +115,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <NativeBridge />
         <SessionGuard />
         <BalancePrivacyGuard />
+        <BalanceRevealGate />
         {children}
         <Toaster position="top-center" richColors />
       </ThemeProvider>
