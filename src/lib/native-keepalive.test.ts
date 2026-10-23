@@ -64,3 +64,20 @@ describe("The SoundBox with the screen locked — kept awake in the Android app 
     assert.ok(existsSync(join(root, "android/app/src/main/res/drawable/ic_stat_soundbox.xml")))
   })
 })
+
+describe("SoundBox silent on phones, fine on the PC (founder, 23/10/2026 — Task #482)", () => {
+  it("the phone's quiet mode never holds a payment up: no answer in 200 ms → unknown, spoken as before", () => {
+    const k = read("src/lib/native-keepalive.ts")
+    assert.match(k, /return Promise\.race\(\[\s+KeepAlive\.ringerMode\(\)\.then\(/)
+    assert.match(k, /new Promise<null>\(\(resolve\) => setTimeout\(\(\) => resolve\(null\), QUIET_ANSWER_MS\)\)/)
+    assert.match(k, /export const QUIET_ANSWER_MS = 200/)
+  })
+  it("the APK's ring no longer waits on a hung plugin promise (the cause — Task #481), and every announcement is logged", () => {
+    const l = read("src/components/payments/payment-chime-listener.tsx")
+    assert.doesNotMatch(l, /import\("@capacitor\/local-notifications"\)\.then/)
+    assert.match(l, /return \(channelReady \?\?= n\s+\.createChannel\(/)
+    assert.match(l, /announceLog\(e, \{ quietStatus: String\(mode\), result: isQuiet\(mode\) \? "skipped \(phone quiet\)" : "speaking" \}\)/)
+    assert.match(l, /console\.error\(`\[SoundBox\] clip refused: \$\{a\.src\} — /)
+    assert.match(read("src/app/(app)/soundbox/page.tsx"), /console\.info\(`\[SoundBox\] Announce: amount=\$\{added\.amount\} \$\{added\.currency\}, quietStatus=\$\{quiet\}/)
+  })
+})

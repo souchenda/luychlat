@@ -153,7 +153,7 @@ describe("The phone's Silent / Vibrate / Do Not Disturb, always respected (found
     assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.respectsPhone": "🔕 អេបគោរពតាមស្ថានភាព Silent/រំញ័រ របស់ទូរស័ព្ទជានិច្ច"'))
   })
   it("the SoundBox: never spoken with the phone on Silent / Vibrate / DND (the app-wide voice and the SoundBox page)", () => {
-    assert.match(read("src/components/payments/payment-chime-listener.tsx"), /void phoneQuiet\(\)\.then\(\(mode\) => \{\s+if \(!isQuiet\(mode\)\) speakNow\(e\)/)
+    assert.match(read("src/components/payments/payment-chime-listener.tsx"), /void phoneQuiet\(\)\.then\(\(mode\) => \{\s+announceLog\([^\n]*\n\s+if \(!isQuiet\(mode\)\) speakNow\(e\)/)
     assert.match(read("src/app/(app)/soundbox/page.tsx"), /if \(isQuiet\(quiet\)\) return report\(\[document\.visibilityState, `phone:\$\{quiet\}`\]\)/)
     assert.match(read("src/lib/native-keepalive.ts"), /export const isQuiet = \(mode: "normal" \| "vibrate" \| "silent" \| null\) => mode === "silent" \|\| mode === "vibrate"/)
   })

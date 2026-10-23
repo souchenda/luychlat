@@ -92,6 +92,11 @@ const voiceSpeed = (): VoiceSpeed => readVoiceSpeed(typeof localStorage === "und
  * The recorded Khmer clips, one after another (the device has no Khmer voice) — gapless (Task #465): every clip is
  * loaded before the first plays, so each word starts the moment the one before ends (the clips carry no silence).
  */
+/** «[SoundBox] Announce: …» (Task #482): what each announcement did, in the console — a silent phone diagnosed from facts. */
+function announceLog(e: Pick<PaymentEvent, "amount" | "currency">, fields: Record<string, string>) {
+  console.info(`[SoundBox] Announce: amount=${e.amount} ${e.currency}, ${Object.entries(fields).map(([k, v]) => `${k}=${v}`).join(", ")}`)
+}
+
 async function playClips(urls: string[]): Promise<void> {
   const clips = urls.map((url) => {
     const a = new Audio(url)
@@ -102,8 +107,18 @@ async function playClips(urls: string[]): Promise<void> {
   for (const a of clips) {
     await new Promise<void>((done) => {
       a.addEventListener("ended", () => done(), { once: true })
-      a.addEventListener("error", () => done(), { once: true })
-      void a.play().catch(() => done())
+      a.addEventListener(
+        "error",
+        () => {
+          console.error(`[SoundBox] clip failed to load: ${a.src}`)
+          done()
+        },
+        { once: true },
+      )
+      void a.play().catch((err: unknown) => {
+        console.error(`[SoundBox] clip refused: ${a.src} — ${(err as Error)?.name ?? err}`)
+        done()
+      })
     })
   }
 }
@@ -116,6 +131,7 @@ export function speakPayment(e: Pick<PaymentEvent, "amount" | "currency">): void
   // The phone on Silent / Vibrate / Do Not Disturb: never spoken (Task #476 — the chime is a notification sound, the
   // phone mutes it itself; the voice plays on the media stream, which it does not).
   void phoneQuiet().then((mode) => {
+    announceLog(e, { quietStatus: String(mode), result: isQuiet(mode) ? "skipped (phone quiet)" : "speaking" })
     if (!isQuiet(mode)) speakNow(e)
   })
 }

@@ -279,6 +279,7 @@ export default function SoundboxPage() {
     flashTimer.current = window.setTimeout(() => setFlash(null), FLASH_MS)
     // The phone on Silent / Vibrate / Do Not Disturb: shown, never sounded (Task #476) — and said so in the log.
     void phoneQuiet().then((quiet) => {
+      console.info(`[SoundBox] Announce: amount=${added.amount} ${added.currency}, quietStatus=${quiet}, result=${isQuiet(quiet) ? "skipped (phone quiet)" : "announcing"}`)
       if (isQuiet(quiet)) return report([document.visibilityState, `phone:${quiet}`])
       void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100, readVoiceSpeed(store())).then((r) => {
         setAudioIssue(audioIssueOf(r))

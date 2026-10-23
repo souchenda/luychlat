@@ -64,11 +64,18 @@ export const soundboxAwake = () => running
  */
 export async function phoneQuiet(): Promise<"normal" | "vibrate" | "silent" | null> {
   if (!isNativeApp()) return null
-  return KeepAlive.ringerMode().then(
-    (r) => r.mode,
-    () => null,
-  )
+  // Never holds a payment up (founder, 23/10/2026 — Task #482): no answer in 200 ms → unknown, spoken as before.
+  return Promise.race([
+    KeepAlive.ringerMode().then(
+      (r) => r.mode,
+      () => null,
+    ),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), QUIET_ANSWER_MS)),
+  ])
 }
+
+/** How long the SoundBox waits for the phone's quiet mode before speaking anyway. */
+export const QUIET_ANSWER_MS = 200
 
 /** A known quiet phone (silent / vibrate): no sound. */
 export const isQuiet = (mode: "normal" | "vibrate" | "silent" | null) => mode === "silent" || mode === "vibrate"
