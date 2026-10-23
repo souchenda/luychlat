@@ -3657,6 +3657,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "settings.counterModeHint": "收银台手机：打开应用时屏幕常亮，每笔收款响起「叮叮」并播报「收款…」——请保持充电并让应用停留在屏幕上",
   "soundbox.liveOn": "语音播报运行中",
   "soundbox.reconnecting": "正在重新连接...",
+  "soundbox.connected": "🟢 已连接",
+  "soundbox.disconnected": "🔴 未连接",
   "soundbox.batteryTitle": "🔋 请允许应用不受限制地使用电池",
   "soundbox.batteryHint": "锁屏时 Android 可能为省电暂停应用，收款提醒会延迟。点击下方并选择「允许」，让 SoundBox 在锁屏时也能立即播报。",
   "soundbox.batteryAllow": "立即允许",

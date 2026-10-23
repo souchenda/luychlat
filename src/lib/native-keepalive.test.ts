@@ -76,8 +76,31 @@ describe("SoundBox silent on phones, fine on the PC (founder, 23/10/2026 — Tas
     const l = read("src/components/payments/payment-chime-listener.tsx")
     assert.doesNotMatch(l, /import\("@capacitor\/local-notifications"\)\.then/)
     assert.match(l, /return \(channelReady \?\?= n\s+\.createChannel\(/)
-    assert.match(l, /announceLog\(e, \{ quietStatus: String\(mode\), result: isQuiet\(mode\) \? "skipped \(phone quiet\)" : "speaking" \}\)/)
+    assert.match(l, /announceLog\(e, \{ quietStatus: String\(mode\), audioUnlocked: String\(paymentAudioUnlocked\(\)\), result: isQuiet\(mode\) \? "skipped \(phone quiet\)" : "speaking" \}\)/)
     assert.match(l, /console\.error\(`\[SoundBox\] clip refused: \$\{a\.src\} — /)
     assert.match(read("src/app/(app)/soundbox/page.tsx"), /console\.info\(`\[SoundBox\] Announce: amount=\$\{added\.amount\} \$\{added\.currency\}, quietStatus=\$\{quiet\}/)
+  })
+})
+
+describe("SoundBox on an iPhone, screen on (founder, 23/10/2026 — Task #483)", () => {
+  it("the first tap anywhere unlocks one audio context (a 1-sample silent buffer); the chime and the clips play through it", () => {
+    const a = read("src/lib/payment-audio.ts")
+    assert.match(a, /const silent = ctx\.createBuffer\(1, 1, 22_050\)/)
+    assert.match(a, /const events = \["touchend", "pointerdown", "keydown"\] as const/)
+    assert.match(a, /if \(decoded\.some\(\(b\) => !b\)\) return false/) // a missing file: HTML audio as before
+    const l = read("src/components/payments/payment-chime-listener.tsx")
+    assert.match(l, /useEffect\(\(\) => unlockOnFirstTap\(\), \[\]\)/)
+    assert.match(l, /void playThroughWebAudio\(\[PAYMENT_CHIME_URL\]\)\.then\(\(ok\) => \(ok \? next\(\) : html\(\)\)\)/)
+    assert.match(l, /async function playClips\(urls: string\[\]\): Promise<void> \{\s+\/\/[^\n]*\n\s+if \(await playThroughWebAudio\(urls\)\) return/)
+    assert.match(l, /a\.setAttribute\("playsinline", ""\)\s+a\.setAttribute\("webkit-playsinline", ""\)/)
+    // The SoundBox page's own player stays its own (golden 6): the listener never imports it.
+    assert.doesNotMatch(l, /soundbox-audio/)
+  })
+  it("the SoundBox page says plainly whether it is connected", () => {
+    const pill = read("src/components/soundbox/live-pill.tsx")
+    assert.match(pill, /t\(live \? "soundbox\.connected" : "soundbox\.disconnected"\)/)
+    const km = read("src/lib/i18n/dictionaries.ts")
+    assert.ok(km.includes('"soundbox.connected": "🟢 បានភ្ជាប់ (Connected)"'))
+    assert.ok(km.includes('"soundbox.disconnected": "🔴 មិនទាន់ភ្ជាប់ (Disconnected)"'))
   })
 })

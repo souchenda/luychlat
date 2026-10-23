@@ -15,6 +15,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
 
 import { isNativeApp } from "@/lib/native-bridge"
+import { paymentAudioUnlocked, playThroughWebAudio, unlockOnFirstTap } from "@/lib/payment-audio"
 import { isQuiet, phoneQuiet, soundboxAwake } from "@/lib/native-keepalive"
 import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentClips, paymentSpeech, SPEECH_AFTER_CHIME_MS, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -66,14 +67,20 @@ export function playPaymentChimeSound(then?: () => void): void {
     done = true
     then?.()
   }
-  try {
-    const a = new Audio(PAYMENT_CHIME_URL)
-    a.volume = 1
-    a.addEventListener("ended", next, { once: true })
-    void a.play().catch(next) // a browser may refuse sound before the first tap — the notification still shows
-  } catch {
-    // no audio here
+  const html = () => {
+    try {
+      const a = new Audio(PAYMENT_CHIME_URL)
+      a.setAttribute("playsinline", "")
+      a.setAttribute("webkit-playsinline", "")
+      a.volume = 1
+      a.addEventListener("ended", next, { once: true })
+      void a.play().catch(next) // a browser may refuse sound before the first tap — the notification still shows
+    } catch {
+      // no audio here
+    }
   }
+  // The audio a tap unlocked (iOS refuses a new audio element started by a payment — Task #483), else HTML audio.
+  void playThroughWebAudio([PAYMENT_CHIME_URL]).then((ok) => (ok ? next() : html()))
   if (then) window.setTimeout(next, SPEECH_AFTER_CHIME_MS + 600) // its end not reported: the voice still follows
 }
 
@@ -98,10 +105,14 @@ function announceLog(e: Pick<PaymentEvent, "amount" | "currency">, fields: Recor
 }
 
 async function playClips(urls: string[]): Promise<void> {
+  // The audio a tap unlocked, back to back (iOS — Task #483); else every clip loaded before the first plays.
+  if (await playThroughWebAudio(urls)) return
   const clips = urls.map((url) => {
     const a = new Audio(url)
     a.preload = "auto"
     a.load()
+    a.setAttribute("playsinline", "")
+    a.setAttribute("webkit-playsinline", "")
     return a
   })
   for (const a of clips) {
@@ -131,7 +142,7 @@ export function speakPayment(e: Pick<PaymentEvent, "amount" | "currency">): void
   // The phone on Silent / Vibrate / Do Not Disturb: never spoken (Task #476 — the chime is a notification sound, the
   // phone mutes it itself; the voice plays on the media stream, which it does not).
   void phoneQuiet().then((mode) => {
-    announceLog(e, { quietStatus: String(mode), result: isQuiet(mode) ? "skipped (phone quiet)" : "speaking" })
+    announceLog(e, { quietStatus: String(mode), audioUnlocked: String(paymentAudioUnlocked()), result: isQuiet(mode) ? "skipped (phone quiet)" : "speaking" })
     if (!isQuiet(mode)) speakNow(e)
   })
 }
@@ -167,6 +178,8 @@ async function ring(e: PaymentEvent): Promise<void> {
 }
 
 export function PaymentChimeListener() {
+  // The first tap anywhere in the app unlocks the payment sounds (iOS Safari — Task #483).
+  useEffect(() => unlockOnFirstTap(), [])
   const userId = useSessionStore((s) => s.user?.id ?? null)
   const enabled = usePrefsStore((s) => s.paymentChime)
   const pathname = usePathname()
