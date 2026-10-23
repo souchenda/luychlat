@@ -1621,6 +1621,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "prayerAlert.testAdhan": "🔊 测试宣礼声音",
   "prayerAlert.nativePlanned": "🔔 锁屏宣礼：已设置 {count} 次礼拜（未来 7 天）",
   "prayerAlert.nativeMissing": "⚠️ 未允许通知——锁屏时宣礼无法响起。点击下方按钮，然后选择「允许」",
+  "prayerAlert.exactMissing": "⚠️ Android 尚未允许本应用的「闹钟和提醒」——宣礼可能延迟，或锁屏时不响。",
+  "prayerAlert.exactAllow": "开启「闹钟和提醒」",
   "prayerAlert.nativeChecking": "🔔 正在设置锁屏宣礼…",
   "prayerAlert.nativeTest": "⏰ 锁屏闹钟测试（10 秒）",
   "prayerAlert.nativeTestWaiting": "⏰ 等待 10 秒——现在锁屏",

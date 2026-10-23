@@ -45,6 +45,15 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Payment announcer (SoundBox): stays connected to speak incoming payments with the screen locked" />
         </service>
+
+        <!-- The Adhan as an alarm clock (Task #474 — AdhanAlarmPlugin): fired, then set again after a reboot. -->
+        <receiver android:name=".AdhanAlarmReceiver" android:exported="false" />
+        <receiver android:name=".AdhanBootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->

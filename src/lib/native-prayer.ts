@@ -6,6 +6,7 @@
  * it rings at the exact minute with the screen locked and the app closed, and survives a reboot (the plugin's boot
  * receiver). In a browser this module does nothing: the Web Push and Telegram alerts carry on.
  */
+import { registerPlugin } from "@capacitor/core"
 import { create } from "zustand"
 
 import { isNativeApp } from "@/lib/native-bridge"
@@ -13,6 +14,44 @@ import { NATIVE_CHANNELS, isNativePrayerId, nativePrayerPlan, type NativeSound }
 import type { PrayerKey } from "@/lib/prayer"
 
 const plugin = () => import("@capacitor/local-notifications").then((m) => m.LocalNotifications)
+
+/**
+ * The Adhan as a real alarm clock, from APK 1.6 (founder, 23/10/2026 — Task #474: on 1.5 the 10 s lock-screen test never
+ * rang): AlarmManager.setAlarmClock (android/…/AdhanAlarmPlugin.java) — never deferred by Doze, the least likely to be
+ * held by a phone maker's battery manager. An APK before 1.6 has no such plugin: its calls reject and the
+ * local-notifications plugin is used instead (its exact alarm falls back to an inexact one when Android refuses).
+ */
+type NativeAlarm = { id: number; at: number; title: string; body: string; channelId: string }
+const AdhanAlarm = registerPlugin<{
+  schedule(o: { alarms: NativeAlarm[] }): Promise<{ scheduled: number; exact: boolean }>
+  add(o: NativeAlarm): Promise<{ exact: boolean }>
+  cancelAll(): Promise<void>
+  status(): Promise<{ exact: boolean; notifications: boolean }>
+  openExactAlarmSettings(): Promise<void>
+}>("AdhanAlarm")
+
+/**
+ * The phone's alarm health for the prayer card: notifications allowed, exact alarms allowed (Android 12+ «Alarms &
+ * reminders»), and whether the alarm clock of 1.6 is there. Null fields: unknown (a browser).
+ */
+export async function nativeAlarmHealth(): Promise<{ notifications: boolean | null; exact: boolean | null; alarmClock: boolean }> {
+  if (!isNativeApp()) return { notifications: null, exact: null, alarmClock: false }
+  const own = await AdhanAlarm.status().catch(() => null)
+  if (own) return { notifications: own.notifications, exact: own.exact, alarmClock: true }
+  const n = await plugin()
+  const display = await n.checkPermissions().then((p) => p.display === "granted", () => null)
+  const exact = await n.checkExactNotificationSetting().then((e) => e.exact_alarm === "granted", () => null)
+  return { notifications: display, exact, alarmClock: false }
+}
+
+/** Android's «Alarms & reminders» switch for the app, so the Adhan rings at the minute (Android 12+). */
+export async function openExactAlarmSettings(): Promise<void> {
+  if (!isNativeApp()) return
+  const own = await AdhanAlarm.openExactAlarmSettings().then(() => true, () => false)
+  if (own) return
+  const n = await plugin()
+  await n.changeExactNotificationSetting().catch(() => null)
+}
 
 /**
  * What the Android alarms are doing (founder, 22/10/2026 — Task #472): how many prayers are planned, or why none are
@@ -66,6 +105,7 @@ export async function requestNativePrayerPermissions(): Promise<boolean> {
 /** Our scheduled prayer alarms are cancelled (switch off, or before a re-plan). */
 export async function cancelNativePrayers(): Promise<void> {
   if (!isNativeApp()) return
+  await AdhanAlarm.cancelAll().catch(() => null) // the alarm clock (1.6+)
   const n = await plugin()
   const pending = await n.getPending()
   const ours = pending.notifications.filter((p) => isNativePrayerId(p.id))
@@ -85,6 +125,14 @@ export async function scheduleNativePrayers(o: { lat: number; lng: number; sound
   await cancelNativePrayers()
   const channel = NATIVE_CHANNELS[o.sound]
   const plan = nativePrayerPlan(new Date(), o.lat, o.lng)
+  const words = (minutes: number, prayer: PrayerKey) => {
+    const hh = String(Math.floor(Math.round(minutes) / 60)).padStart(2, "0")
+    const mm = String(Math.round(minutes) % 60).padStart(2, "0")
+    return o.text(prayer, `${hh}:${mm}`)
+  }
+  // 1.6+: the alarm clock (one place for every prayer — never also the plugin's, so never two Adhans).
+  const clock = await AdhanAlarm.schedule({ alarms: plan.map((p) => ({ id: p.id, at: p.at.getTime(), channelId: channel.id, ...words(p.minutes, p.prayer) })) }).catch(() => null)
+  if (clock) return clock.scheduled
   await n.schedule({
     notifications: plan.map((p) => {
       const hh = String(Math.floor(Math.round(p.minutes) / 60)).padStart(2, "0")
@@ -121,6 +169,9 @@ export async function scheduleNativeTestAdhan(o: { sound: NativeSound; title: st
   if (perm !== "granted") return "no-permission"
   await ensureChannels()
   const channel = NATIVE_CHANNELS[o.sound]
+  const at = Date.now() + (o.inMs ?? NATIVE_TEST_DELAY_MS)
+  // 1.6+: the same alarm clock as the prayers.
+  if (await AdhanAlarm.add({ id: NATIVE_TEST_ID, at, title: o.title, body: o.body, channelId: channel.id }).then(() => true, () => false)) return "scheduled"
   await n.cancel({ notifications: [{ id: NATIVE_TEST_ID }] }).catch(() => null)
   await n.schedule({
     notifications: [
@@ -130,7 +181,7 @@ export async function scheduleNativeTestAdhan(o: { sound: NativeSound; title: st
         body: o.body,
         channelId: channel.id,
         ...(channel.sound ? { sound: channel.sound } : {}),
-        schedule: { at: new Date(Date.now() + (o.inMs ?? NATIVE_TEST_DELAY_MS)), allowWhileIdle: true },
+        schedule: { at: new Date(at), allowWhileIdle: true },
         autoCancel: true,
         extra: { url: "/islamic/prayer" },
       },

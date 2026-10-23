@@ -73,7 +73,8 @@ describe("The Adhan with the screen off — Android alarms really set (founder, 
     const n = read("src/lib/native-prayer.ts")
     assert.match(n, /export const NATIVE_TEST_ID = 199_999_999/)
     assert.equal(isNativePrayerId(199_999_999), false)
-    assert.match(n, /id: NATIVE_TEST_ID,[\s\S]*?channelId: channel\.id,[\s\S]*?schedule: \{ at: new Date\(Date\.now\(\) \+ \(o\.inMs \?\? NATIVE_TEST_DELAY_MS\)\), allowWhileIdle: true \}/)
+    assert.match(n, /const at = Date\.now\(\) \+ \(o\.inMs \?\? NATIVE_TEST_DELAY_MS\)/)
+    assert.match(n, /id: NATIVE_TEST_ID,[\s\S]*?channelId: channel\.id,[\s\S]*?schedule: \{ at: new Date\(at\), allowWhileIdle: true \}/) // 1.5: the plugin
     assert.match(n, /export const NATIVE_TEST_DELAY_MS = 10_000/) // 10 s (Task #473): lock the phone and listen
     assert.match(n, /if \(\(await n\.checkPermissions\(\)\)\.display !== "granted"\) return 0/)
     const km = read("src/lib/i18n/dictionaries.ts")
@@ -81,5 +82,43 @@ describe("The Adhan with the screen off — Android alarms really set (founder, 
     assert.ok(km.includes('"prayerAlert.nativeTestSet": "ម៉ោងរោទ៍តេស្តនឹងបន្លឺឡើងក្នុង 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះដើម្បីតេស្ត។"'))
     // The instant preview stays beside it: play / stop, no lock needed.
     assert.match(read("src/components/islamic/prayer-alerts.tsx"), /onClick=\{testAdhan\} aria-pressed=\{testing\}/)
+  })
+})
+
+describe("The 10 s lock-screen test that never rang on 1.5 — the Adhan as a real alarm clock from 1.6 (founder, 23/10/2026 — Task #474)", () => {
+  it("1.6+: AlarmManager.setAlarmClock for every prayer and the test; 1.5 keeps the plugin; never both (never two Adhans)", () => {
+    const n = read("src/lib/native-prayer.ts")
+    assert.match(n, /const clock = await AdhanAlarm\.schedule\(\{ alarms: plan\.map\(\(p\) => \(\{ id: p\.id, at: p\.at\.getTime\(\), channelId: channel\.id/)
+    assert.match(n, /if \(clock\) return clock\.scheduled\s+await n\.schedule\(\{/) // the plugin only when the alarm clock is missing
+    assert.match(n, /if \(await AdhanAlarm\.add\(\{ id: NATIVE_TEST_ID, at, title: o\.title, body: o\.body, channelId: channel\.id \}\)\.then\(\(\) => true, \(\) => false\)\) return "scheduled"/)
+    assert.match(n, /await AdhanAlarm\.cancelAll\(\)\.catch\(\(\) => null\) \/\/ the alarm clock/)
+  })
+  it("the card says when Android refuses exact alarms («Alarms & reminders») and opens that switch; the battery card beside it", () => {
+    const c = read("src/components/islamic/prayer-alerts.tsx")
+    assert.match(c, /void nativeAlarmHealth\(\)\.then\(\(h\) => setExact\(h\.exact\)\)/)
+    assert.match(c, /\{exact === false && \(/)
+    assert.match(c, /onClick=\{\(\) => void openExactAlarmSettings\(\)\}/)
+    assert.match(c, /<BatteryExemptionCard \/>\s+<Button type="button" variant="outline" className="h-10 w-full gap-2 rounded-xl" onClick=\{\(\) => void test\(\)\}/)
+    // 1.5 too: the local-notifications plugin's own exact-alarm check and switch.
+    const n = read("src/lib/native-prayer.ts")
+    assert.match(n, /n\.checkExactNotificationSetting\(\)\.then\(\(e\) => e\.exact_alarm === "granted"/)
+    assert.match(n, /await n\.changeExactNotificationSetting\(\)\.catch/)
+    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.exactAllow": "បើក «ម៉ោងរោទ៍ និងការរំលឹក»"'))
+  })
+  it("the Android side: setAlarmClock when exact alarms are allowed, the notification on the Adhan channel, set again after a reboot", { skip: !existsSync(join(process.cwd(), "android")) && "android/ is not in the build context" }, () => {
+    const plugin = read("android/app/src/main/java/com/luychlat/app/AdhanAlarmPlugin.java")
+    assert.match(plugin, /@CapacitorPlugin\(name = "AdhanAlarm"\)/)
+    assert.match(plugin, /alarms\.setAlarmClock\(new AlarmManager\.AlarmClockInfo\(at, show\), fire\)/)
+    assert.match(plugin, /alarms\.canScheduleExactAlarms\(\)/)
+    assert.match(plugin, /Settings\.ACTION_REQUEST_SCHEDULE_EXACT_ALARM/)
+    const receiver = read("android/app/src/main/java/com/luychlat/app/AdhanAlarmReceiver.java")
+    assert.match(receiver, /if \(channelId == null \|\| channelId\.isEmpty\(\)\) channelId = "prayer_adhan_v1"/)
+    assert.match(receiver, /setCategory\(NotificationCompat\.CATEGORY_ALARM\)/)
+    const manifest = read("android/app/src/main/AndroidManifest.xml")
+    assert.match(manifest, /<receiver android:name="\.AdhanAlarmReceiver" android:exported="false" \/>/)
+    assert.match(manifest, /<action android:name="android\.intent\.action\.BOOT_COMPLETED" \/>\s+<action android:name="android\.intent\.action\.MY_PACKAGE_REPLACED" \/>/)
+    assert.match(manifest, /android\.permission\.USE_EXACT_ALARM/)
+    assert.match(read("android/app/src/main/java/com/luychlat/app/MainActivity.java"), /registerPlugin\(AdhanAlarmPlugin\.class\);/)
+    assert.ok(existsSync(join(process.cwd(), "android/app/src/main/res/drawable/ic_stat_prayer.xml")))
   })
 })

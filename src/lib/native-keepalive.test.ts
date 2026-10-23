@@ -60,7 +60,7 @@ describe("The SoundBox with the screen locked — kept awake in the Android app 
     const plugin = read("android/app/src/main/java/com/luychlat/app/SoundboxKeepAlivePlugin.java")
     assert.match(plugin, /@CapacitorPlugin\(name = "SoundboxKeepAlive"\)/)
     assert.match(plugin, /Settings\.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS/)
-    assert.match(read("android/app/src/main/java/com/luychlat/app/MainActivity.java"), /registerPlugin\(SoundboxKeepAlivePlugin\.class\);\s+super\.onCreate\(savedInstanceState\)/)
+    assert.match(read("android/app/src/main/java/com/luychlat/app/MainActivity.java"), /registerPlugin\(SoundboxKeepAlivePlugin\.class\);[\s\S]*?super\.onCreate\(savedInstanceState\)/)
     assert.ok(existsSync(join(root, "android/app/src/main/res/drawable/ic_stat_soundbox.xml")))
   })
 })

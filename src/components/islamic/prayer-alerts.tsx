@@ -18,7 +18,8 @@ import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { enablePush, setPrayerPush } from "@/lib/push"
 import { isNativeApp } from "@/lib/native-bridge"
-import { cancelNativePrayers, NATIVE_TEST_DELAY_MS, requestNativePrayerPermissions, scheduleNativePrayers, scheduleNativeTestAdhan, useNativePrayerStatus } from "@/lib/native-prayer"
+import { BatteryExemptionCard } from "@/components/payments/battery-exemption"
+import { cancelNativePrayers, NATIVE_TEST_DELAY_MS, nativeAlarmHealth, openExactAlarmSettings, requestNativePrayerPermissions, scheduleNativePrayers, scheduleNativeTestAdhan, useNativePrayerStatus } from "@/lib/native-prayer"
 import { formatMinutes, placeNow, prayerTimes } from "@/lib/prayer"
 import {
   ADHAN_MAX_BYTES,
@@ -176,6 +177,14 @@ function NativeAlarmStatus({ sound }: { sound: AlertSound }) {
   const t = useT()
   const { planned, permission } = useNativePrayerStatus()
   const [waiting, setWaiting] = useState(false)
+  // Exact alarms (Android 12+ «Alarms & reminders»): refused → Android may ring minutes late, or not with the screen off (Task #474).
+  const [exact, setExact] = useState<boolean | null>(null)
+  useEffect(() => {
+    const check = () => void nativeAlarmHealth().then((h) => setExact(h.exact))
+    check()
+    document.addEventListener("visibilitychange", check)
+    return () => document.removeEventListener("visibilitychange", check)
+  }, [])
   const test = async () => {
     const r = await scheduleNativeTestAdhan({ sound, title: `🕌 ${t("prayerAlert.nativeTestTitle")}`, body: t("prayerAlert.nativeTestBody") }).catch(() => "no-permission" as const)
     if (r === "scheduled") {
@@ -191,6 +200,15 @@ function NativeAlarmStatus({ sound }: { sound: AlertSound }) {
       <p className={cn("text-xs", permission === "missing" ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground")}>
         {permission === "missing" ? t("prayerAlert.nativeMissing") : planned ? t("prayerAlert.nativePlanned", { count: planned }) : t("prayerAlert.nativeChecking")}
       </p>
+      {exact === false && (
+        <div className="space-y-1.5 rounded-lg bg-amber-500/10 px-2.5 py-2">
+          <p className="text-xs text-amber-800 dark:text-amber-200">{t("prayerAlert.exactMissing")}</p>
+          <Button type="button" size="sm" variant="outline" className="h-9 w-full rounded-lg" onClick={() => void openExactAlarmSettings()}>
+            {t("prayerAlert.exactAllow")}
+          </Button>
+        </div>
+      )}
+      <BatteryExemptionCard />
       <Button type="button" variant="outline" className="h-10 w-full gap-2 rounded-xl" onClick={() => void test()} disabled={waiting}>
         <BellIcon className="size-4" aria-hidden />
         {t(waiting ? "prayerAlert.nativeTestWaiting" : "prayerAlert.nativeTest")}
