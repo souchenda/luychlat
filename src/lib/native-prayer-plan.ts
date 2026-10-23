@@ -10,6 +10,8 @@ import { cambodiaNow, CAMBODIA_UTC_OFFSET, prayerTimes, type PrayerKey } from "@
 export const NATIVE_CHANNELS = {
   adhan: { id: "prayer_adhan_v1", name: "Prayer Times Adhan", sound: "adhan.mp3", importance: 5 },
   chime: { id: "prayer_chime_v1", name: "Prayer Times", sound: undefined, importance: 4 },
+  // «រំញ័រ» (Task #476): from 1.6 the alarm vibrates (AdhanAlarmReceiver); before 1.6 a quiet notification.
+  vibrate: { id: "prayer_vibrate_v1", name: "Prayer Times (vibrate)", sound: undefined, importance: 2 },
   silent: { id: "prayer_silent_v1", name: "Prayer Times (silent)", sound: undefined, importance: 2 },
 } as const
 

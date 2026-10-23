@@ -1617,6 +1617,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "prayerAlert.adhan": "宣礼（Adhan）",
   "prayerAlert.chime": "铃声",
   "prayerAlert.silent": "静音",
+  "prayerAlert.vibrate": "振动",
+  "prayerAlert.respectsPhone": "🔕 应用始终遵从手机的静音／振动模式",
   "prayerAlert.preview": "试听",
   "prayerAlert.testAdhan": "🔊 测试宣礼声音",
   "prayerAlert.nativePlanned": "🔔 锁屏宣礼：已设置 {count} 次礼拜（未来 7 天）",

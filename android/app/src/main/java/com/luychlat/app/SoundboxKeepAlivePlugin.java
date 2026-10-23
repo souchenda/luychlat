@@ -41,6 +41,14 @@ public class SoundboxKeepAlivePlugin extends Plugin {
         call.resolve();
     }
 
+    /** «normal», «vibrate» or «silent» (Do Not Disturb counts as silent) — the SoundBox speaks only on normal (Task #476). */
+    @PluginMethod
+    public void ringerMode(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("mode", PhoneQuiet.mode(getContext()));
+        call.resolve(result);
+    }
+
     @PluginMethod
     public void batteryStatus(PluginCall call) {
         JSObject result = new JSObject();

@@ -140,6 +140,7 @@ export function PrayerAlertScheduler() {
           action: { label: t("prayerAlert.tapToPlay"), onClick: () => (adhan ? void playAdhan(choice) : playChime()) },
         })
       if (alertSound === "chime" && !playChime()) return void blocked()
+      if (alertSound === "vibrate") navigator.vibrate?.([500, 250, 500, 250, 800])
       if (adhan) {
         void playAdhan(choice).then((r) => {
           if (r === "blocked") blocked()
@@ -391,6 +392,7 @@ export function PrayerAlertSettings() {
                 options={[
                   { value: "adhan", label: t("prayerAlert.adhan") },
                   { value: "chime", label: t("prayerAlert.chime") },
+                  { value: "vibrate", label: t("prayerAlert.vibrate") },
                   { value: "silent", label: t("prayerAlert.silent") },
                 ]}
               />
@@ -508,6 +510,8 @@ export function PrayerAlertSettings() {
               {!presets.length && <p className="text-xs text-muted-foreground">{t("prayerAlert.fileHint")}</p>}
             </div>
           )}
+          {/* Always the phone's own Silent / Vibrate / Do Not Disturb (Task #476 — PhoneQuiet in the APK). */}
+          <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{t("prayerAlert.respectsPhone")}</p>
           <p className="text-xs text-muted-foreground">{t("prayerAlert.limit")}</p>
         </div>
       )}

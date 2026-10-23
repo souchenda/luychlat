@@ -17,10 +17,11 @@ import android.os.PowerManager;
 import androidx.core.app.NotificationCompat;
 
 /**
- * The Adhan played out loud at the prayer minute (founder, 23/10/2026 — Task #475): started by AdhanAlarmReceiver when
- * an alarm-clock alarm fires (Android lets an exact alarm start a foreground service from the background). The bundled
- * recording (res/raw/adhan.mp3) plays through MediaPlayer on the ALARM stream (USAGE_ALARM) — heard with the phone on
- * silent or vibrate, and through Do Not Disturb unless alarms are blocked there — with a partial wake lock while it
+ * The Adhan played at the prayer minute (founder, 23/10/2026 — Task #475): started by AdhanAlarmReceiver when an
+ * alarm-clock alarm fires (Android lets an exact alarm start a foreground service from the background), only with the
+ * phone on normal (Task #476 — the receiver and this service both check PhoneQuiet: Silent, Vibrate and Do Not Disturb
+ * are always respected). The bundled recording (res/raw/adhan.mp3) plays through MediaPlayer on the NOTIFICATION stream
+ * (USAGE_NOTIFICATION), at the phone's own notification volume — never forced louder — with a partial wake lock while it
  * plays. Its notification (a silent channel: the sound is the player's, never twice) carries «🔇 បិទសំឡេង».
  */
 public class AdhanPlayerService extends Service {
@@ -43,6 +44,11 @@ public class AdhanPlayerService extends Service {
         String title = intent != null ? intent.getStringExtra("title") : null;
         String body = intent != null ? intent.getStringExtra("body") : null;
         startForegroundWith(title != null ? title : "🕌", body != null ? body : "");
+        // The phone went quiet since the alarm fired: no sound (Task #476).
+        if (!"normal".equals(PhoneQuiet.mode(this))) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         play();
         return START_NOT_STICKY;
     }
@@ -89,11 +95,10 @@ public class AdhanPlayerService extends Service {
         try {
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build());
             player.setDataSource(this, Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.adhan));
-            player.setVolume(1f, 1f);
             player.setOnCompletionListener((mp) -> stopSelf());
             player.setOnErrorListener((mp, what, extra) -> {
                 stopSelf();

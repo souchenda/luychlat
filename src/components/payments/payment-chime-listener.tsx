@@ -14,7 +14,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
 
 import { isNativeApp } from "@/lib/native-bridge"
-import { soundboxAwake } from "@/lib/native-keepalive"
+import { isQuiet, phoneQuiet, soundboxAwake } from "@/lib/native-keepalive"
 import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentClips, paymentSpeech, SPEECH_AFTER_CHIME_MS, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { readVoiceSpeed, reconnectDelay, type VoiceSpeed } from "@/lib/soundbox"
@@ -110,6 +110,14 @@ async function playClips(urls: string[]): Promise<void> {
  * they are on the server, else nothing after the chime (never an English voice). On screen only.
  */
 export function speakPayment(e: Pick<PaymentEvent, "amount" | "currency">): void {
+  // The phone on Silent / Vibrate / Do Not Disturb: never spoken (Task #476 — the chime is a notification sound, the
+  // phone mutes it itself; the voice plays on the media stream, which it does not).
+  void phoneQuiet().then((mode) => {
+    if (!isQuiet(mode)) speakNow(e)
+  })
+}
+
+function speakNow(e: Pick<PaymentEvent, "amount" | "currency">): void {
   const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined
   // On screen — or, in the Android app with the SoundBox kept awake (Task #473), with the screen locked too.
   if (typeof document === "undefined" || (document.visibilityState !== "visible" && !soundboxAwake())) return

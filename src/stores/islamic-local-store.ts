@@ -37,7 +37,7 @@ type IslamicLocalState = {
   setAlerts: (patch: Partial<Pick<IslamicLocalState, "alertsOn" | "alertSound" | "adhanName" | "adhanPreset" | "fajrAdhan">>) => void
 }
 
-export type AlertSound = "adhan" | "chime" | "silent"
+export type AlertSound = "adhan" | "chime" | "vibrate" | "silent"
 
 export const useIslamicLocalStore = create<IslamicLocalState>()(
   persist(

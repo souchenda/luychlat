@@ -114,10 +114,12 @@ describe("The 10 s lock-screen test that never rang on 1.5 — the Adhan as a re
     const receiver = read("android/app/src/main/java/com/luychlat/app/AdhanAlarmReceiver.java")
     assert.match(receiver, /static final String ADHAN_CHANNEL = "prayer_adhan_v1"/)
     assert.match(receiver, /if \(channelId == null \|\| channelId\.isEmpty\(\)\) channelId = ADHAN_CHANNEL/)
-    // Task #475: with the Adhan chosen, the player out loud on the ALARM stream; the notification only as the fallback.
+    // Task #475: with the Adhan chosen and the phone on normal, the player; the notification only as the fallback.
     assert.match(receiver, /if \(ADHAN_CHANNEL\.equals\(channelId\)\) \{[\s\S]*?ContextCompat\.startForegroundService\(context, play\);\s+return;/)
     const player = read("android/app/src/main/java/com/luychlat/app/AdhanPlayerService.java")
-    assert.match(player, /\.setUsage\(AudioAttributes\.USAGE_ALARM\)/)
+    // Task #476: the NOTIFICATION stream at the phone's own volume — never the alarm stream, never forced louder.
+    assert.match(player, /\.setUsage\(AudioAttributes\.USAGE_NOTIFICATION\)/)
+    assert.doesNotMatch(player, /USAGE_ALARM|setVolume\(|setStreamVolume/)
     assert.match(player, /player\.setDataSource\(this, Uri\.parse\("android\.resource:\/\/" \+ getPackageName\(\) \+ "\/" \+ R\.raw\.adhan\)\)/)
     assert.match(player, /newWakeLock\(PowerManager\.PARTIAL_WAKE_LOCK, "luychlat:adhan"\)/)
     assert.match(player, /channel\.setSound\(null, null\); \/\/ the player is the sound/) // never twice
@@ -128,12 +130,42 @@ describe("The 10 s lock-screen test that never rang on 1.5 — the Adhan as a re
     const mf = read("android/app/src/main/AndroidManifest.xml")
     assert.match(mf, /android:name="\.AdhanPlayerService"\s+android:exported="false"\s+android:foregroundServiceType="mediaPlayback"/)
     assert.match(mf, /android\.permission\.FOREGROUND_SERVICE_MEDIA_PLAYBACK/)
-    assert.match(receiver, /setCategory\(NotificationCompat\.CATEGORY_ALARM\)/)
+    assert.match(receiver, /setCategory\(NotificationCompat\.CATEGORY_REMINDER\)/) // not ALARM: DND lets alarms through (Task #476)
     const manifest = read("android/app/src/main/AndroidManifest.xml")
     assert.match(manifest, /<receiver android:name="\.AdhanAlarmReceiver" android:exported="false" \/>/)
     assert.match(manifest, /<action android:name="android\.intent\.action\.BOOT_COMPLETED" \/>\s+<action android:name="android\.intent\.action\.MY_PACKAGE_REPLACED" \/>/)
     assert.match(manifest, /android\.permission\.USE_EXACT_ALARM/)
     assert.match(read("android/app/src/main/java/com/luychlat/app/MainActivity.java"), /registerPlugin\(AdhanAlarmPlugin\.class\);/)
     assert.ok(existsSync(join(process.cwd(), "android/app/src/main/res/drawable/ic_stat_prayer.xml")))
+  })
+})
+
+describe("The phone's Silent / Vibrate / Do Not Disturb, always respected (founder, 23/10/2026 — Task #476)", () => {
+  it("prayers: «រំញ័រ» beside Adhan / chime / silent; a quiet channel for it before 1.6; the safety note on the card", () => {
+    assert.deepEqual(Object.keys(NATIVE_CHANNELS), ["adhan", "chime", "vibrate", "silent"])
+    assert.equal(NATIVE_CHANNELS.vibrate.id, "prayer_vibrate_v1")
+    assert.ok(NATIVE_CHANNELS.vibrate.importance < 3 && !NATIVE_CHANNELS.vibrate.sound) // never a sound of its own
+    const c = read("src/components/islamic/prayer-alerts.tsx")
+    assert.match(c, /\{ value: "vibrate", label: t\("prayerAlert\.vibrate"\) \}/)
+    assert.match(c, /if \(alertSound === "vibrate"\) navigator\.vibrate\?\.\(/)
+    assert.match(c, /\{t\("prayerAlert\.respectsPhone"\)\}/)
+    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.respectsPhone": "🔕 អេបគោរពតាមស្ថានភាព Silent/រំញ័រ របស់ទូរស័ព្ទជានិច្ច"'))
+  })
+  it("the SoundBox: never spoken with the phone on Silent / Vibrate / DND (the app-wide voice and the SoundBox page)", () => {
+    assert.match(read("src/components/payments/payment-chime-listener.tsx"), /void phoneQuiet\(\)\.then\(\(mode\) => \{\s+if \(!isQuiet\(mode\)\) speakNow\(e\)/)
+    assert.match(read("src/app/(app)/soundbox/page.tsx"), /if \(isQuiet\(quiet\)\) return report\(\[document\.visibilityState, `phone:\$\{quiet\}`\]\)/)
+    assert.match(read("src/lib/native-keepalive.ts"), /export const isQuiet = \(mode: "normal" \| "vibrate" \| "silent" \| null\) => mode === "silent" \|\| mode === "vibrate"/)
+  })
+  it("the Android side: Silent or DND → a silent notification; Vibrate → a vibration; the player only on normal, checked twice", { skip: !existsSync(join(process.cwd(), "android")) && "android/ is not in the build context" }, () => {
+    const q = read("android/app/src/main/java/com/luychlat/app/PhoneQuiet.java")
+    assert.match(q, /getCurrentInterruptionFilter\(\) != NotificationManager\.INTERRUPTION_FILTER_ALL/) // DND = silent
+    assert.match(q, /case AudioManager\.RINGER_MODE_SILENT:\s+return "silent";\s+case AudioManager\.RINGER_MODE_VIBRATE:\s+return "vibrate";/)
+    const r = read("android/app/src/main/java/com/luychlat/app/AdhanAlarmReceiver.java")
+    assert.match(r, /boolean silent = "silent"\.equals\(phone\) \|\| SILENT_CHANNEL\.equals\(channelId\);/)
+    assert.match(r, /if \(silent \|\| vibrate\) \{\s+if \(vibrate\) PhoneQuiet\.vibrate\(context\);\s+notify\(context, id, QUIET_CHANNEL, title, body\);\s+return;/)
+    assert.match(r, /channel\.setSound\(null, null\);\s+channel\.enableVibration\(false\);/)
+    assert.match(read("android/app/src/main/java/com/luychlat/app/AdhanPlayerService.java"), /if \(!"normal"\.equals\(PhoneQuiet\.mode\(this\)\)\) \{\s+stopSelf\(\);/)
+    assert.match(read("android/app/src/main/java/com/luychlat/app/SoundboxKeepAlivePlugin.java"), /result\.put\("mode", PhoneQuiet\.mode\(getContext\(\)\)\)/)
+    assert.match(read("android/app/src/main/AndroidManifest.xml"), /android\.permission\.VIBRATE/)
   })
 })
