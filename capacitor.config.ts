@@ -20,7 +20,7 @@ const config: CapacitorConfig = {
   },
   android: {
     // The installed build, for the in-app update (Task #468 — lib/apk-version.ts LATEST_APK.code): raise with versionCode.
-    appendUserAgent: "LuyChlatApp/7",
+    appendUserAgent: "LuyChlatApp/8",
     // HTTPS only; no mixed content.
     allowMixedContent: false,
     backgroundColor: "#ffffff",

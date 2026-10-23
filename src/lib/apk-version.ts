@@ -7,13 +7,26 @@
  * app ships no plugin to ask. Builds before 1.5 send no token: they are older, so they are offered the update.
  */
 export const LATEST_APK = {
-  version: "1.6",
-  code: 7,
-  changelogKm: "• SoundBox ប្រកាសទទួលប្រាក់ភ្លាមៗ ទោះបិទអេក្រង់\n• ប៊ូតុងអនុញ្ញាតប្រើថ្ម សម្រាប់ទូរសព្ទនៅតុគិតលុយ",
+  version: "1.7",
+  code: 8,
+  changelogKm: "• អាប់ដេតក្នុងអេបដោយចុចតែម្ដង មិនបាច់ចេញទៅ Chrome\n• អាហ្សាន និង SoundBox គោរព Silent/រំញ័រ របស់ទូរសព្ទ",
 } as const
 
 /** The first build that opens a download link in the phone's browser (MainActivity's DownloadListener). */
 export const IN_APP_DOWNLOAD_FROM = 6
+
+/** The first build that downloads and installs its update itself — no Chrome (Task #478 — AppUpdaterPlugin). */
+export const IN_APP_INSTALL_FROM = 8
+
+/**
+ * How an installed build takes its update: «in-app» (1.7+: downloaded in the app with a progress sheet, then Android's
+ * installer), «browser» (1.5 / 1.6: the link opens in the phone's browser), «copy-link» (older: the link to paste in
+ * Chrome). The step from an older build to 1.7 is the last one through the browser.
+ */
+export function updatePath(installed: number | null): "in-app" | "browser" | "copy-link" {
+  const code = installed ?? 0
+  return code >= IN_APP_INSTALL_FROM ? "in-app" : code >= IN_APP_DOWNLOAD_FROM ? "browser" : "copy-link"
+}
 
 export const apkFileName = (version: string) => `LuyChlat-v${version}.apk`
 export const apkDownloadPath = (version: string) => `/downloads/${apkFileName(version)}`
@@ -27,7 +40,7 @@ export function installedApkCode(ua: string, native: boolean): number | null {
 }
 
 /** The versions this app has had (build → name), for «ជំនាន់ v1.5 (Build 6)»; a build before the token reads as «≤ 1.4». */
-const VERSION_NAMES: Record<number, string> = { 6: "1.5", 7: "1.6" }
+const VERSION_NAMES: Record<number, string> = { 6: "1.5", 7: "1.6", 8: "1.7" }
 
 /** The installed APK for Settings › About: a known build's name, or «old» (no token), never a guessed number. */
 export function apkVersion(code: number | null): { kind: "browser" } | { kind: "old" } | { kind: "known"; version: string | null; code: number } {

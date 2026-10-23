@@ -64,6 +64,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The in-app update opens Android's installer on the downloaded APK (Task #478 — AppUpdaterPlugin). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- The SoundBox keep-alive (Task #473): its foreground service, the CPU kept awake, the battery exemption prompt. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />

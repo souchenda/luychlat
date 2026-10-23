@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { apkDownloadPath, apkFileName, apkVersion, appVersionInfo, installedApkCode, LATEST_APK, updateAvailable, updateSnoozed, UPDATE_SNOOZE_MS } from "./apk-version"
+import { apkDownloadPath, apkFileName, apkVersion, appVersionInfo, installedApkCode, LATEST_APK, updateAvailable, updatePath, updateSnoozed, UPDATE_SNOOZE_MS } from "./apk-version"
 
 const root = process.cwd()
 const read = (p: string) => readFileSync(join(root, p), "utf8")
@@ -11,15 +11,16 @@ const read = (p: string) => readFileSync(join(root, p), "utf8")
 const native = !existsSync(join(root, "android")) && "android/ is not in the build context"
 
 describe("The Android app's version and in-app update (founder, 22/10/2026 — Task #468)", () => {
-  it("/api/app/version: the newest APK — v1.6, build 7 (Task #473), the versioned file, the Khmer changes", () => {
+  it("/api/app/version: the newest APK — v1.7, build 8 (Task #478), the versioned file, the Khmer changes", () => {
     assert.deepEqual(appVersionInfo(), {
-      latestVersion: "1.6",
-      versionCode: 7,
-      downloadUrl: "/downloads/LuyChlat-v1.6.apk",
-      changelogKhmer: "• SoundBox ប្រកាសទទួលប្រាក់ភ្លាមៗ ទោះបិទអេក្រង់\n• ប៊ូតុងអនុញ្ញាតប្រើថ្ម សម្រាប់ទូរសព្ទនៅតុគិតលុយ",
+      latestVersion: "1.7",
+      versionCode: 8,
+      downloadUrl: "/downloads/LuyChlat-v1.7.apk",
+      changelogKhmer: "• អាប់ដេតក្នុងអេបដោយចុចតែម្ដង មិនបាច់ចេញទៅ Chrome\n• អាហ្សាន និង SoundBox គោរព Silent/រំញ័រ របស់ទូរសព្ទ",
     })
+    assert.deepEqual(apkVersion(8), { kind: "known", version: "1.7", code: 8 })
     assert.deepEqual(apkVersion(7), { kind: "known", version: "1.6", code: 7 })
-    assert.equal(updateAvailable(6, 7), true) // 1.5 is offered 1.6 — one tap (its DownloadListener)
+    assert.equal(updateAvailable(7, 8), true)
     assert.equal(apkFileName("1.5"), "LuyChlat-v1.5.apk")
     assert.equal(apkDownloadPath("1.5"), "/downloads/LuyChlat-v1.5.apk")
     assert.match(read("src/app/api/app/version/route.ts"), /NextResponse\.json\(appVersionInfo\(\), \{ headers: \{ "Cache-Control": "no-store" \} \}\)/)
@@ -50,7 +51,7 @@ describe("The Android app's version and in-app update (founder, 22/10/2026 — T
     assert.match(p, /if \(!isNativeApp\(\)\) return/)
     assert.match(p, /fetch\("\/api\/app\/version"/)
     assert.match(p, /fetch\(latest\.downloadUrl, \{ method: "HEAD"/)
-    assert.match(p, /if \(\(installed \?\? 0\) >= IN_APP_DOWNLOAD_FROM\) \{\s*window\.location\.href = url/)
+    assert.match(p, /if \(path === "browser"\) \{\s*window\.location\.href = url/) // 1.5 / 1.6 (1.7+: in the app — Task #478)
     assert.match(read("src/app/(app)/layout.tsx"), /<AppUpdatePrompt \/>/)
     assert.match(read("src/app/(app)/settings/page.tsx"), /<StatusBadge>\{apkLabel \?\? `v\$\{APP_VERSION\}`\}<\/StatusBadge>/)
     const km = read("src/lib/i18n/dictionaries.ts")
@@ -93,5 +94,37 @@ describe("No hard-coded «1.0.0» in Settings › About (founder, 22/10/2026 —
     const settings = read("src/app/(app)/settings/page.tsx")
     assert.match(settings, /if \(v\.kind === "known"\) setApkLabel\(v\.version \? t\("settings\.apkVersion", \{ version: v\.version, code: v\.code \}\)/)
     assert.doesNotMatch(settings, /hint=\{apkLabel/)
+  })
+})
+
+describe("The update installs inside the app — no Chrome (founder, 23/10/2026 — Task #478)", () => {
+  it("1.7+ in the app; 1.5 / 1.6 through the browser (their last time); older: the link to copy", () => {
+    assert.deepEqual([updatePath(8), updatePath(9), updatePath(7), updatePath(6), updatePath(0), updatePath(null)], ["in-app", "in-app", "browser", "browser", "copy-link", "copy-link"])
+  })
+  it("the sheet: «Install unknown apps» explained first when Android hasn't allowed it; then the progress; then Android's installer", () => {
+    const p = read("src/components/layout/app-update.tsx")
+    assert.match(p, /const allowed = await canInstallUpdates\(\)\.catch\(\(\) => false\)\s+return allowed \? start\(\) : setStage\("permission"\)/)
+    assert.match(p, /await downloadAndInstall\(url, \(p\) => setPercent\(p\)\)/)
+    assert.match(p, /void canInstallUpdates\(\)\.then\(\(ok\) => ok && void start\(\)\)/) // back from the settings: it carries on
+    assert.doesNotMatch(p.slice(p.indexOf("async function start")), /window\.open\(/)
+    const km = read("src/lib/i18n/dictionaries.ts")
+    assert.ok(km.includes('"appUpdate.downloading": "កំពុងទាញយកកំណែថ្មី v{version}... ({percent})"'))
+    assert.ok(km.includes('"appUpdate.permission": "សូមចុចបើកសិទ្ធិ «អនុញ្ញាតប្រភពនេះ» មួយដងគត់ ដើម្បីឱ្យអេបអាចអាប់ដេតដោយស្វ័យប្រវត្តិនាពេលក្រោយៗទៀត"'))
+    const u = read("src/lib/native-updater.ts")
+    assert.match(u, /await AppUpdater\.download\(\{ url \}\)\s+await AppUpdater\.install\(\)/)
+    assert.match(u, /await listener\.remove\(\)/)
+  })
+  it("the Android side: downloads only app.luychlat.com files into the cache, installer through the FileProvider, the permission", { skip: native }, () => {
+    const j = read("android/app/src/main/java/com/luychlat/app/AppUpdaterPlugin.java")
+    assert.match(j, /if \(!"https"\.equals\(target\.getProtocol\(\)\) \|\| !HOST\.equals\(target\.getHost\(\)\)\)/)
+    assert.match(j, /new File\(getContext\(\)\.getCacheDir\(\), FILE_NAME\)/)
+    assert.match(j, /notifyListeners\("progress", p\)/)
+    assert.match(j, /FileProvider\.getUriForFile\(getContext\(\), getContext\(\)\.getPackageName\(\) \+ "\.fileprovider", file\)/)
+    assert.match(j, /intent\.addFlags\(Intent\.FLAG_GRANT_READ_URI_PERMISSION \| Intent\.FLAG_ACTIVITY_NEW_TASK\)/)
+    assert.match(j, /getPackageManager\(\)\.canRequestPackageInstalls\(\)/)
+    assert.match(j, /Settings\.ACTION_MANAGE_UNKNOWN_APP_SOURCES/)
+    assert.match(read("android/app/src/main/AndroidManifest.xml"), /android\.permission\.REQUEST_INSTALL_PACKAGES/)
+    assert.match(read("android/app/src/main/res/xml/file_paths.xml"), /<cache-path /)
+    assert.match(read("android/app/src/main/java/com/luychlat/app/MainActivity.java"), /registerPlugin\(AppUpdaterPlugin\.class\);/)
   })
 })
