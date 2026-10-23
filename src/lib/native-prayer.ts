@@ -7,13 +7,21 @@
  * receiver). In a browser this module does nothing: the Web Push and Telegram alerts carry on.
  */
 import { registerPlugin } from "@capacitor/core"
+import { LocalNotifications } from "@capacitor/local-notifications"
 import { create } from "zustand"
 
 import { isNativeApp } from "@/lib/native-bridge"
 import { NATIVE_CHANNELS, isNativePrayerId, nativePrayerPlan, type NativeSound } from "@/lib/native-prayer-plan"
 import type { PrayerKey } from "@/lib/prayer"
 
-const plugin = () => import("@capacitor/local-notifications").then((m) => m.LocalNotifications)
+/**
+ * NEVER put a Capacitor plugin through a promise (founder, 23/10/2026 — Task #481: «plugin: no answer from Android after
+ * 10 s»). The plugin object is a Proxy that answers every property — `then` too — with a native-call wrapper; resolving
+ * a promise with it (`import(…).then((m) => m.LocalNotifications)`, `await plugin`, `return plugin` from an async
+ * function) makes the engine call that `then`, which never settles. The native prayer alarms (since 20/10) and the
+ * payment notification hung there. Imported statically and used directly — never awaited, never returned.
+ */
+const n = LocalNotifications
 
 /**
  * The Adhan as a real alarm clock, from APK 1.6 (founder, 23/10/2026 — Task #474: on 1.5 the 10 s lock-screen test never
@@ -41,7 +49,6 @@ export async function nativeAlarmHealth(): Promise<{ notifications: boolean | nu
   if (!isNativeApp()) return { notifications: null, exact: null, alarmClock: false }
   const own = await AdhanAlarm.status().catch(() => null)
   if (own) return { notifications: own.notifications, exact: own.exact, alarmClock: true }
-  const n = await plugin()
   const display = await n.checkPermissions().then((p) => p.display === "granted", () => null)
   const exact = await n.checkExactNotificationSetting().then((e) => e.exact_alarm === "granted", () => null)
   return { notifications: display, exact, alarmClock: false }
@@ -52,7 +59,6 @@ export async function openExactAlarmSettings(): Promise<void> {
   if (!isNativeApp()) return
   const own = await AdhanAlarm.openExactAlarmSettings().then(() => true, () => false)
   if (own) return
-  const n = await plugin()
   await n.changeExactNotificationSetting().catch(() => null)
 }
 
@@ -117,7 +123,7 @@ export function step<T>(name: string, p: Promise<T>, ms = NATIVE_STEP_MS): Promi
 let channelsReady: Promise<void> | null = null
 /** The channels (Adhan, chime, vibrate, silent), once per launch — creating an existing channel changes nothing. A failure is retried next time (never cached). */
 function ensureChannels(): Promise<void> {
-  return (channelsReady ??= step("channels", plugin().then(async (n) => {
+  return (channelsReady ??= step("channels", (async () => {
     for (const c of Object.values(NATIVE_CHANNELS)) {
       await n.createChannel({
         id: c.id,
@@ -130,7 +136,7 @@ function ensureChannels(): Promise<void> {
         ...(c.sound ? { sound: c.sound } : {}),
       })
     }
-  })).catch((e) => {
+  })()).catch((e) => {
     channelsReady = null
     throw e
   }))
@@ -142,7 +148,6 @@ function ensureChannels(): Promise<void> {
  */
 export async function requestNativePrayerPermissions(): Promise<boolean> {
   if (!isNativeApp()) return false
-  const n = await plugin()
   const perm = await n.requestPermissions()
   if (perm.display !== "granted") return false
   const exact = await n.checkExactNotificationSetting().catch(() => null)
@@ -154,7 +159,6 @@ export async function requestNativePrayerPermissions(): Promise<boolean> {
 export async function cancelNativePrayers(): Promise<void> {
   if (!isNativeApp()) return
   await AdhanAlarm.cancelAll().catch(() => null) // the alarm clock (1.6+)
-  const n = await plugin()
   const pending = await n.getPending()
   const ours = pending.notifications.filter((p) => isNativePrayerId(p.id))
   if (ours.length) await n.cancel({ notifications: ours.map((p) => ({ id: p.id })) })
@@ -166,7 +170,6 @@ export async function cancelNativePrayers(): Promise<void> {
  */
 export async function scheduleNativePrayers(o: { lat: number; lng: number; sound: NativeSound; text: (prayer: PrayerKey, time: string) => { title: string; body: string } }): Promise<number> {
   if (!isNativeApp()) return 0
-  const n = await step("plugin", plugin())
   // No notification permission: nothing can ring — 0, so the in-app timer stays on and the card says why.
   if ((await step("permission", n.checkPermissions())).display !== "granted") return 0
   await ensureChannels()
@@ -214,7 +217,6 @@ export const NATIVE_TEST_DELAY_MS = 10_000
  */
 export async function scheduleNativeTestAdhan(o: { sound: NativeSound; title: string; body: string; inMs?: number }): Promise<"scheduled" | "no-permission"> {
   if (!isNativeApp()) return "no-permission"
-  const n = await step("plugin", plugin())
   let perm = (await step("permission", n.checkPermissions())).display
   // Asking may wait on the person's answer: a longer limit.
   if (perm !== "granted") perm = (await step("ask permission", n.requestPermissions(), 60_000)).display

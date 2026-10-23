@@ -184,9 +184,9 @@ describe("The lock-screen test that never answered on 1.7 — never a silent «�
   })
   it("wired: every step time-limited, a failed plan shown and reported, the test's tap answered at once, its error on screen", () => {
     const n = read("src/lib/native-prayer.ts")
-    for (const s of ['step("permission", n.checkPermissions())', 'step("cancel", cancelNativePrayers())', 'step("schedule", AdhanAlarm.schedule(', 'step("test alarm", AdhanAlarm.add(', 'step("channels", plugin()'])
+    for (const s of ['step("permission", n.checkPermissions())', 'step("cancel", cancelNativePrayers())', 'step("schedule", AdhanAlarm.schedule(', 'step("test alarm", AdhanAlarm.add(', 'step("channels", (async () => {'])
       assert.ok(n.includes(s), s)
-    assert.match(n, /\}\)\)\.catch\(\(e\) => \{\s+channelsReady = null\s+throw e/) // a failure is never cached
+    assert.match(n, /\}\)\(\)\)\.catch\(\(e\) => \{\s+channelsReady = null\s+throw e/) // a failure is never cached
     assert.match(n, /body: JSON\.stringify\(\{ source: "native-alarm", message: `\$\{where\} · build \$\{build\} · \$\{errorText\(e\)\}` \}\)/)
     const c = read("src/components/islamic/prayer-alerts.tsx")
     assert.match(c, /useNativePrayerStatus\.getState\(\)\.set\(\{ planned: 0, permission: "error", error: errorText\(e\) \}\)\s+reportNativeAlarmError\("plan", e\)/)
@@ -195,5 +195,31 @@ describe("The lock-screen test that never answered on 1.7 — never a silent «�
     assert.match(read("src/app/api/client-error/route.ts"), /"native-alarm"/)
     const km = read("src/lib/i18n/dictionaries.ts")
     assert.ok(km.includes('"prayerAlert.nativeTestSet": "⏰ បានកំណត់ម៉ោងរោទ៍តេស្ត 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះ។"'))
+  })
+})
+
+describe("«plugin: no answer from Android» — a Capacitor plugin never goes through a promise (founder, 23/10/2026 — Task #481)", () => {
+  it("the bug, reproduced: a promise resolved with an object that answers every property hangs; used directly it works", async () => {
+    // Capacitor's plugin object answers `then` with a native-call wrapper that never calls back.
+    const unimplemented = (prop: PropertyKey) => () => {
+      const p = Promise.reject(new Error(`${String(prop)} not implemented`))
+      p.catch(() => null) // as Capacitor's: a promise of its own, the callbacks never called
+      return p
+    }
+    const proxy = new Proxy({}, { get: (_, prop) => (prop === "ping" ? () => Promise.resolve("pong") : unimplemented(prop)) }) as { ping(): Promise<string> }
+    const { step } = await import("./native-prayer")
+    await assert.rejects(step("plugin", Promise.resolve().then(() => proxy), 50), /plugin: no answer from Android/)
+    assert.equal(await proxy.ping(), "pong")
+  })
+  it("no file imports a Capacitor plugin through a promise, awaits it, or returns it from a promise", () => {
+    const files = ["src/lib/native-prayer.ts", "src/components/payments/payment-chime-listener.tsx", "src/lib/native-keepalive.ts", "src/lib/native-updater.ts"]
+    for (const f of files) {
+      const s = read(f)
+      assert.doesNotMatch(s, /import\("@capacitor\/[^"]+"\)\.then\(\(m\) => m\.[A-Z]/, f)
+      assert.doesNotMatch(s, /await (plugin\(\)|LocalNotifications|AdhanAlarm|KeepAlive|AppUpdater)\b(?!\.)/, f)
+      assert.doesNotMatch(s, /=> (LocalNotifications|AdhanAlarm|KeepAlive|AppUpdater)\s*$/m, f)
+    }
+    assert.match(read("src/lib/native-prayer.ts"), /import \{ LocalNotifications \} from "@capacitor\/local-notifications"[\s\S]*const n = LocalNotifications/)
+    assert.match(read("src/components/payments/payment-chime-listener.tsx"), /import \{ LocalNotifications \} from "@capacitor\/local-notifications"[\s\S]*const n = LocalNotifications/)
   })
 })

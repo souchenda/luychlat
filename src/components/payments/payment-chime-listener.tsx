@@ -10,6 +10,7 @@
  * Khmer voice (Web Speech), else the recorded Khmer clips — never English (Task #463); while the app is on screen (no web page can speak with the
  * screen locked — the counter mode keeps it on).
  */
+import { LocalNotifications } from "@capacitor/local-notifications"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
 
@@ -23,24 +24,27 @@ import { useSessionStore } from "@/stores/session-store"
 
 import { useLiveStatus } from "./live-status"
 
-const plugin = () => import("@capacitor/local-notifications").then((m) => m.LocalNotifications)
+/**
+ * NEVER put a Capacitor plugin through a promise (founder, 23/10/2026 — Task #481): its Proxy answers `then` with a
+ * native-call wrapper, so `import(…).then((m) => m.LocalNotifications)` or `await plugin` never settles — the payment
+ * notification hung there. Imported statically and used directly (lib/native-prayer.ts says the same).
+ */
+const n = LocalNotifications
 
 let channelReady: Promise<void> | null = null
 /** The «Payment Alerts» channel, once per launch (creating an existing channel changes nothing). */
 function ensurePaymentChannel(): Promise<void> {
-  return (channelReady ??= plugin()
-    .then((n) =>
-      n.createChannel({
-        id: PAYMENT_CHANNEL.id,
-        name: PAYMENT_CHANNEL.name,
-        description: PAYMENT_CHANNEL.description,
-        importance: PAYMENT_CHANNEL.importance,
-        visibility: 1, // shown on the lock screen
-        vibration: true,
-        lights: true,
-        sound: PAYMENT_CHANNEL.sound,
-      }),
-    )
+  return (channelReady ??= n
+    .createChannel({
+      id: PAYMENT_CHANNEL.id,
+      name: PAYMENT_CHANNEL.name,
+      description: PAYMENT_CHANNEL.description,
+      importance: PAYMENT_CHANNEL.importance,
+      visibility: 1, // shown on the lock screen
+      vibration: true,
+      lights: true,
+      sound: PAYMENT_CHANNEL.sound,
+    })
     .catch(() => {
       channelReady = null
     }))
@@ -49,7 +53,6 @@ function ensurePaymentChannel(): Promise<void> {
 /** From the settings switch (a tap): the notification permission in the Android app. True when allowed (or not native). */
 export async function requestPaymentChimePermission(): Promise<boolean> {
   if (!isNativeApp()) return true
-  const n = await plugin()
   const perm = await n.requestPermissions().catch(() => null)
   await ensurePaymentChannel()
   return perm?.display === "granted"
@@ -138,7 +141,6 @@ async function ring(e: PaymentEvent): Promise<void> {
   const { title, body } = paymentChimeText(e)
   if (isNativeApp()) {
     await ensurePaymentChannel()
-    const n = await plugin()
     // No schedule: shown at once, on the channel whose sound is the chime (vibration, the lock screen).
     await n.schedule({ notifications: [{ id: paymentNotificationId(ringKey(e)), title, body, channelId: PAYMENT_CHANNEL.id, sound: PAYMENT_CHANNEL.sound, extra: { url: "/soundbox" } }] })
     // The notification's own sound is the chime; the amount follows it, spoken, while the app is on screen.
