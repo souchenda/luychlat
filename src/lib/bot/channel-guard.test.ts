@@ -3,14 +3,14 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { ALLOWED_UPDATES, blockedPhrase, COMMENT_REACTIONS, FLOOD_WINDOW_MS, floodTracker, guardVerdict, isAllowedLink, isCommentReaction, isPositiveReaction, linksIn, MUTE_MS, POSITIVE_REACTIONS, reactionDrift, reactionFixText } from "./channel-guard"
+import { ALLOWED_UPDATES, blockedPhrase, COMMENT_REACTIONS, FLOOD_WINDOW_MS, floodTracker, guardVerdict, isAllowedLink, isCommentReaction, isPositiveReaction, linksIn, MUTE_MS, OPTIONAL_REACTIONS, POSITIVE_REACTIONS, reactionDrift, reactionFixText, REQUIRED_REACTIONS } from "./channel-guard"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 const emoji = (...e: string[]) => e.map((x) => ({ type: "emoji", emoji: x }))
 
 describe("Channel reactions — the positive list (founder, 21/10/2026)", () => {
   it("the list is what the founder set on both channels (Task #458) — never 🔥 (Hellfire, Jahannam)", () => {
-    assert.deepEqual([...POSITIVE_REACTIONS], ["🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝"])
+    assert.deepEqual([...REQUIRED_REACTIONS], ["🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝"])
     assert.ok(!POSITIVE_REACTIONS.some((r) => r.includes("🔥")))
     assert.equal(isPositiveReaction("🔥"), false)
     assert.ok(isPositiveReaction("🤝") && isPositiveReaction("💯"))
@@ -20,7 +20,7 @@ describe("Channel reactions — the positive list (founder, 21/10/2026)", () => 
     const configured = emoji("🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝")
     assert.deepEqual(reactionDrift(configured), { ok: true, state: "list", extra: [], missing: [] })
     assert.equal(reactionDrift(undefined).state, "all") // omitted = every emoji, 💩 included
-    assert.deepEqual(reactionDrift([]), { ok: false, state: "off", extra: [], missing: [...POSITIVE_REACTIONS] })
+    assert.deepEqual(reactionDrift([]), { ok: false, state: "off", extra: [], missing: [...REQUIRED_REACTIONS] })
     assert.deepEqual(reactionDrift([...configured, ...emoji("🔥")]).extra, ["🔥"]) // 🔥 back on a channel is flagged as extra
     assert.deepEqual(reactionDrift(emoji("🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯")).missing, ["🏆", "🤝"])
   })
@@ -28,7 +28,8 @@ describe("Channel reactions — the positive list (founder, 21/10/2026)", () => 
     const t = reactionFixText("@LuyChlatCommunity", reactionDrift(undefined))
     assert.match(t, /^🛡️ ប្រតិកម្មក្នុង @LuyChlatCommunity មិនត្រូវតាមបញ្ជី\nបច្ចុប្បន្ន៖ អនុញ្ញាតគ្រប់ប្រតិកម្ម/)
     assert.match(t, /Reactions › Some reactions/)
-    assert.match(t, /៣\. ជ្រើសតែ 🥰 😁 🤔 🎉 👌 🥱 💯 🏆 🤝 › Save/)
+    assert.match(t, /៣\. ជ្រើស 🥰 😁 🤔 🎉 👌 🥱 💯 🏆 🤝 \(និង ❤️ 👍 👏 🙏 ✍️ បើចង់\) › Save/)
+    assert.match(t, /អាចបន្ថែមបាន៖ ❤️ 👍 👏 🙏 ✍️/)
     assert.doesNotMatch(t, /🔥/)
     const guard = read("src/lib/server/channel-guard.ts")
     assert.doesNotMatch(guard, /setChatAvailableReactions/) // not in the Bot API (10.3) — never called
@@ -115,13 +116,11 @@ describe("Wiring: only the channels' discussion groups, nothing else (founder, 2
   })
 })
 
-describe("Comment groups: the channels' reactions plus 👍 ❤️ 🙏 — never 🔥 (founder, 22/10/2026 — Task #459)", () => {
+describe("Comment groups: the channels' fourteen — never 🔥 (founder, 22/10/2026 — Task #459; 23/10 — Task #472)", () => {
   it("the polite everyday ones are kept in the comments; 🔥 and the rude ones are removed", () => {
-    assert.deepEqual([...COMMENT_REACTIONS], ["🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝", "👍", "❤️", "🙏"])
-    for (const ok of ["👍", "❤", "❤️", "🙏", "🤝", "🥰"]) assert.ok(isCommentReaction(ok), ok)
+    assert.deepEqual([...COMMENT_REACTIONS], [...POSITIVE_REACTIONS])
+    for (const ok of ["👍", "❤", "❤️", "🙏", "👏", "✍️", "✍", "🤝", "🥰"]) assert.ok(isCommentReaction(ok), ok)
     for (const bad of ["🔥", "💩", "🤮", "👎", "🖕"]) assert.equal(isCommentReaction(bad), false, bad)
-    // The channels themselves keep the founder's nine: 👍 ❤️ 🙏 on a channel would still be «extra».
-    assert.deepEqual(reactionDrift(emoji("🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝", "👍")).extra, ["👍"])
     assert.match(read("src/lib/server/channel-guard.ts"), /!isCommentReaction\(r\.emoji\)\)/)
   })
   it("no flame for a streak or praise anywhere: the quiz streak is a gold star", () => {
@@ -131,5 +130,22 @@ describe("Comment groups: the channels' reactions plus 👍 ❤️ 🙏 — neve
     const dict = read("src/lib/i18n/dictionaries.ts") + read("src/lib/i18n/zh.ts")
     assert.doesNotMatch(dict, /🔥/)
     assert.match(dict, /· ⭐ \{streak\} ថ្ងៃជាប់ៗគ្នា/)
+  })
+})
+
+describe("❤️ 👍 👏 🙏 ✍️ allowed on both channels — no more «លើស» alerts (founder, 23/10/2026 — Task #472)", () => {
+  it("the fourteen: the founder's nine, then the five; never 🔥", () => {
+    assert.deepEqual([...OPTIONAL_REACTIONS], ["❤️", "👍", "👏", "🙏", "✍️"])
+    assert.deepEqual([...POSITIVE_REACTIONS], ["🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝", "❤️", "👍", "👏", "🙏", "✍️"])
+    assert.ok(!POSITIVE_REACTIONS.some((r) => r.includes("🔥")))
+  })
+  it("the morning check: the five turned on are not extra; left off they are not missing; anything else is still flagged", () => {
+    const nine = emoji(...REQUIRED_REACTIONS)
+    // The channels as the founder set them now: the nine plus the five (Telegram writes ❤ and ✍ bare).
+    assert.deepEqual(reactionDrift([...nine, ...emoji("❤", "👍", "👏", "🙏", "✍")]), { ok: true, state: "list", extra: [], missing: [] })
+    assert.deepEqual(reactionDrift([...nine, ...emoji("👍")]), { ok: true, state: "list", extra: [], missing: [] })
+    assert.deepEqual(reactionDrift(nine), { ok: true, state: "list", extra: [], missing: [] })
+    assert.deepEqual(reactionDrift([...nine, ...emoji("🙏", "🔥")]).extra, ["🔥"])
+    assert.deepEqual(reactionDrift([...nine, ...emoji("👎")]).extra, ["👎"])
   })
 })

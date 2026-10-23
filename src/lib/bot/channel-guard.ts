@@ -14,11 +14,21 @@
  */
 
 /**
- * The reactions the founder set on both channels (in order — founder, 22/10/2026, Task #458). Never 🔥: in Islam fire
- * stands for Hellfire (Jahannam), and the founder removed it from @LuyChlatCommunity and @LuyChlatIslamic on purpose —
- * the morning check must never ask for it again (channel-guard.test.ts).
+ * The reactions the founder set on both channels (in order — founder, 22/10/2026, Task #458): the ones the morning
+ * check asks for. Never 🔥: in Islam fire stands for Hellfire (Jahannam), and the founder removed it from
+ * @LuyChlatCommunity and @LuyChlatIslamic on purpose — the morning check must never ask for it again
+ * (channel-guard.test.ts).
  */
-export const POSITIVE_REACTIONS = ["🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝"] as const
+export const REQUIRED_REACTIONS = ["🥰", "😁", "🤔", "🎉", "👌", "🥱", "💯", "🏆", "🤝"] as const
+
+/**
+ * Also allowed on both channels (founder, 23/10/2026 — Task #472): ❤️ 👍 👏 🙏 ✍️. Turned on or not, they are never
+ * «extra» — the morning check stops flagging them — and never «missing» either (the founder may keep them off).
+ */
+export const OPTIONAL_REACTIONS = ["❤️", "👍", "👏", "🙏", "✍️"] as const
+
+/** Every reaction the channels may show: the founder's nine, then the five allowed since 23/10. Never 🔥. */
+export const POSITIVE_REACTIONS = [...REQUIRED_REACTIONS, ...OPTIONAL_REACTIONS] as const
 
 /** Telegram writes ❤ without the variation selector; compare without it. */
 const bare = (e: string) => e.replace(/️/g, "")
@@ -26,10 +36,10 @@ const bare = (e: string) => e.replace(/️/g, "")
 export const isPositiveReaction = (emoji: string) => POSITIVE_REACTIONS.some((p) => bare(p) === bare(emoji))
 
 /**
- * In a channel's comment group (founder, 22/10/2026 — Task #459): the channels' reactions and the everyday polite ones,
- * 👍 ❤️ 🙏. Never 🔥 — in the comments as on the channels.
+ * In a channel's comment group (founder, 22/10/2026 — Task #459): the channels' reactions, which since 23/10 include
+ * the everyday polite ones (👍 ❤️ 🙏, and 👏 ✍️). Never 🔥 — in the comments as on the channels.
  */
-export const COMMENT_REACTIONS = [...POSITIVE_REACTIONS, "👍", "❤️", "🙏"] as const
+export const COMMENT_REACTIONS = POSITIVE_REACTIONS
 export const isCommentReaction = (emoji: string) => COMMENT_REACTIONS.some((p) => bare(p) === bare(emoji))
 
 export type ReactionType = { type: string; emoji?: string; custom_emoji_id?: string }
@@ -41,9 +51,10 @@ export type ReactionType = { type: string; emoji?: string; custom_emoji_id?: str
 export function reactionDrift(available: ReactionType[] | undefined): { ok: boolean; state: "all" | "off" | "list"; extra: string[]; missing: string[] } {
   if (available === undefined) return { ok: false, state: "all", extra: [], missing: [] }
   const emojis = available.map((r) => (r.type === "emoji" && r.emoji ? r.emoji : r.type === "custom_emoji" ? "custom" : r.type))
-  if (!emojis.length) return { ok: false, state: "off", extra: [], missing: [...POSITIVE_REACTIONS] }
+  if (!emojis.length) return { ok: false, state: "off", extra: [], missing: [...REQUIRED_REACTIONS] }
+  // Extra: outside the allowed fourteen. Missing: one of the founder's nine (the five optional ones may stay off).
   const extra = emojis.filter((e) => !isPositiveReaction(e))
-  const missing = POSITIVE_REACTIONS.filter((p) => !emojis.some((e) => bare(e) === bare(p)))
+  const missing = REQUIRED_REACTIONS.filter((p) => !emojis.some((e) => bare(e) === bare(p)))
   return { ok: !extra.length && !missing.length, state: "list", extra, missing: [...missing] }
 }
 
@@ -54,12 +65,13 @@ export function reactionFixText(channel: string, drift: ReturnType<typeof reacti
   return [
     `🛡️ ប្រតិកម្មក្នុង ${channel} មិនត្រូវតាមបញ្ជី`,
     `បច្ចុប្បន្ន៖ ${now}`,
-    `ត្រូវការ៖ ${POSITIVE_REACTIONS.join(" ")} តែប៉ុណ្ណោះ`,
+    `ត្រូវការ៖ ${REQUIRED_REACTIONS.join(" ")}`,
+    `អាចបន្ថែមបាន៖ ${OPTIONAL_REACTIONS.join(" ")}`,
     "",
     "របៀបកែ (បូតមិនអាចកែជំនួសបានទេ — Telegram មិនអនុញ្ញាត)៖",
     `១. បើក ${channel} › ចុចឈ្មោះ Channel › ✏️ Edit`,
     "២. Reactions › Some reactions",
-    `៣. ជ្រើសតែ ${POSITIVE_REACTIONS.join(" ")} › Save`,
+    `៣. ជ្រើស ${REQUIRED_REACTIONS.join(" ")} (និង ${OPTIONAL_REACTIONS.join(" ")} បើចង់) › Save`,
   ].join("\n")
 }
 
