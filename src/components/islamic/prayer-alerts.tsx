@@ -18,7 +18,7 @@ import { type MessageKey, pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { enablePush, setPrayerPush } from "@/lib/push"
 import { isNativeApp } from "@/lib/native-bridge"
-import { cancelNativePrayers, requestNativePrayerPermissions, scheduleNativePrayers, scheduleNativeTestAdhan, useNativePrayerStatus } from "@/lib/native-prayer"
+import { cancelNativePrayers, NATIVE_TEST_DELAY_MS, requestNativePrayerPermissions, scheduleNativePrayers, scheduleNativeTestAdhan, useNativePrayerStatus } from "@/lib/native-prayer"
 import { formatMinutes, placeNow, prayerTimes } from "@/lib/prayer"
 import {
   ADHAN_MAX_BYTES,
@@ -180,7 +180,9 @@ function NativeAlarmStatus({ sound }: { sound: AlertSound }) {
     const r = await scheduleNativeTestAdhan({ sound, title: `🕌 ${t("prayerAlert.nativeTestTitle")}`, body: t("prayerAlert.nativeTestBody") }).catch(() => "no-permission" as const)
     if (r === "scheduled") {
       setWaiting(true)
-      toast.success(t("prayerAlert.nativeTestSet"), { duration: 10_000 })
+      toast.success(t("prayerAlert.nativeTestSet"), { duration: NATIVE_TEST_DELAY_MS })
+      // Ready for another test once this one has rung.
+      window.setTimeout(() => setWaiting(false), NATIVE_TEST_DELAY_MS + 5_000)
       useNativePrayerStatus.getState().replan()
     } else toast.error(t("prayerAlert.nativeMissing"))
   }

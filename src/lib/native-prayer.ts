@@ -105,10 +105,13 @@ export async function scheduleNativePrayers(o: { lat: number; lng: number; sound
   return plan.length
 }
 
+/** How soon the lock-screen test rings (founder, 23/10/2026 — Task #473: 10 s, not a minute — lock the phone and listen). */
+export const NATIVE_TEST_DELAY_MS = 10_000
+
 /**
- * ⏰ The test with the screen off (Task #472): one Android alarm a minute from now on the chosen channel — the same
- * exact alarm and Adhan sound as a prayer, so «lock the phone and wait» proves the real thing. Asks for the
- * notification permission first when it is missing.
+ * ⏰ The test with the screen locked (Tasks #472 / #473): one Android alarm 10 s from now on the chosen channel — the same
+ * exact, allow-while-idle alarm and Adhan sound as a prayer, so «lock the phone and wait» proves the real thing. Asks
+ * for the notification permission first when it is missing.
  */
 export async function scheduleNativeTestAdhan(o: { sound: NativeSound; title: string; body: string; inMs?: number }): Promise<"scheduled" | "no-permission"> {
   if (!isNativeApp()) return "no-permission"
@@ -127,7 +130,7 @@ export async function scheduleNativeTestAdhan(o: { sound: NativeSound; title: st
         body: o.body,
         channelId: channel.id,
         ...(channel.sound ? { sound: channel.sound } : {}),
-        schedule: { at: new Date(Date.now() + (o.inMs ?? 60_000)), allowWhileIdle: true },
+        schedule: { at: new Date(Date.now() + (o.inMs ?? NATIVE_TEST_DELAY_MS)), allowWhileIdle: true },
         autoCancel: true,
         extra: { url: "/islamic/prayer" },
       },

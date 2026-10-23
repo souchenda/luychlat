@@ -73,8 +73,13 @@ describe("The Adhan with the screen off — Android alarms really set (founder, 
     const n = read("src/lib/native-prayer.ts")
     assert.match(n, /export const NATIVE_TEST_ID = 199_999_999/)
     assert.equal(isNativePrayerId(199_999_999), false)
-    assert.match(n, /id: NATIVE_TEST_ID,[\s\S]*?channelId: channel\.id,[\s\S]*?schedule: \{ at: new Date\(Date\.now\(\) \+ \(o\.inMs \?\? 60_000\)\), allowWhileIdle: true \}/)
+    assert.match(n, /id: NATIVE_TEST_ID,[\s\S]*?channelId: channel\.id,[\s\S]*?schedule: \{ at: new Date\(Date\.now\(\) \+ \(o\.inMs \?\? NATIVE_TEST_DELAY_MS\)\), allowWhileIdle: true \}/)
+    assert.match(n, /export const NATIVE_TEST_DELAY_MS = 10_000/) // 10 s (Task #473): lock the phone and listen
     assert.match(n, /if \(\(await n\.checkPermissions\(\)\)\.display !== "granted"\) return 0/)
-    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.nativeTest": "⏰ សាកល្បងពេលបិទអេក្រង់ (1 នាទី)"'))
+    const km = read("src/lib/i18n/dictionaries.ts")
+    assert.ok(km.includes('"prayerAlert.nativeTest": "⏰ តេស្តសំឡេងអាហ្សានពេលចាក់សោរ (10 វិនាទី)"'))
+    assert.ok(km.includes('"prayerAlert.nativeTestSet": "ម៉ោងរោទ៍តេស្តនឹងបន្លឺឡើងក្នុង 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះដើម្បីតេស្ត។"'))
+    // The instant preview stays beside it: play / stop, no lock needed.
+    assert.match(read("src/components/islamic/prayer-alerts.tsx"), /onClick=\{testAdhan\} aria-pressed=\{testing\}/)
   })
 })
