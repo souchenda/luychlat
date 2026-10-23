@@ -11,6 +11,7 @@ import { useEffect } from "react"
 
 import { useWorkspaces } from "@/lib/data/hooks"
 import { counterModeActive } from "@/lib/payment-chime"
+import { keepSoundboxAwake } from "@/lib/native-keepalive"
 import { keepScreenAwake } from "@/lib/soundbox"
 import { usePrefsStore } from "@/stores/prefs-store"
 
@@ -21,6 +22,11 @@ export function CounterModeKeeper() {
   useEffect(() => {
     if (!active) return
     return keepScreenAwake(navigator as Parameters<typeof keepScreenAwake>[0], document)
+  }, [active])
+  // The Android app (1.6+): the foreground service keeps the payment alerts going with the screen locked (Task #473).
+  useEffect(() => {
+    keepSoundboxAwake("counter", active)
+    return () => keepSoundboxAwake("counter", false)
   }, [active])
   // Nothing on screen (founder, 22/10/2026): the listening status lives on /soundbox only (components/soundbox/live-pill.tsx).
   return null

@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
 
 import { isNativeApp } from "@/lib/native-bridge"
+import { soundboxAwake } from "@/lib/native-keepalive"
 import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentClips, paymentSpeech, SPEECH_AFTER_CHIME_MS, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { readVoiceSpeed, reconnectDelay, type VoiceSpeed } from "@/lib/soundbox"
@@ -110,7 +111,8 @@ async function playClips(urls: string[]): Promise<void> {
  */
 export function speakPayment(e: Pick<PaymentEvent, "amount" | "currency">): void {
   const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined
-  if (typeof document === "undefined" || document.visibilityState !== "visible") return
+  // On screen — or, in the Android app with the SoundBox kept awake (Task #473), with the screen locked too.
+  if (typeof document === "undefined" || (document.visibilityState !== "visible" && !soundboxAwake())) return
   const voices = synth?.getVoices() ?? []
   const say = typeof SpeechSynthesisUtterance === "undefined" ? null : paymentSpeech(e, voices)
   if (!say || !synth) {

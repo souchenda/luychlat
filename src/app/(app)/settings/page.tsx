@@ -13,6 +13,7 @@ import { GuestImportRow } from "@/components/settings/guest-import"
 import { useOfficialBot, useTelegramLink } from "@/components/settings/official-bot"
 import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
 import { PushSettingsRow } from "@/components/notifications/push-prompt"
+import { BatteryExemptionCard } from "@/components/payments/battery-exemption"
 import { playPaymentChimeSound, requestPaymentChimePermission, speakPayment } from "@/components/payments/payment-chime-listener"
 import { SOUND_TESTS } from "@/lib/payment-chime"
 import { DEFAULT_VOICE_SPEED, readVoiceSpeed, VOICE_SPEEDS, writeVoiceSpeed, type VoiceSpeed } from "@/lib/soundbox"
@@ -225,6 +226,18 @@ function CounterModeRow() {
  * 🔊 Sound test (Task #463): the chime and the Khmer amount, one tap — the counter staff hear the volume and the voice.
  * Business owners only, with the counter mode.
  */
+/** The counter phone's battery exemption (Task #473): only while the counter mode is on, in the Android app. */
+function CounterBatteryRow() {
+  const on = usePrefsStore((s) => s.counterMode)
+  const business = (useWorkspaces().data ?? []).some((w) => w.type === "BUSINESS")
+  if (!on || !business) return null
+  return (
+    <div className="px-4 py-2">
+      <BatteryExemptionCard />
+    </div>
+  )
+}
+
 /** «ល្បឿនសំឡេង» (Task #465): ធម្មតា 1.0x · ស្វាហាប់ 1.2x (the default) · លឿន 1.3x — the test buttons below use it at once. */
 function VoiceSpeedRow() {
   const t = useT()
@@ -398,6 +411,7 @@ export default function SettingsPage() {
         <CounterModeRow />
         <VoiceSpeedRow />
         <SoundTestRow />
+        <CounterBatteryRow />
         <HolyDayChimeRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
           {bot.data && telegram.data ? (

@@ -32,7 +32,7 @@ describe("The spoken payment, like a bank soundbox (founder, 21/10/2026 — Task
     assert.match(l, /window\.setTimeout\(\(\) => speakPayment\(e\), SPEECH_AFTER_CHIME_MS\)/)
     assert.match(l, /const say = typeof SpeechSynthesisUtterance === "undefined" \? null : paymentSpeech\(e, voices\)[\s\S]*?const u = new SpeechSynthesisUtterance\(say\.text\)\n\s+u\.lang = say\.tag/)
     // Spoken only on screen; the SoundBox audio module stays the SoundBox page's alone (golden 6).
-    assert.match(l, /document\.visibilityState !== "visible"\) return/)
+    assert.match(l, /\(document\.visibilityState !== "visible" && !soundboxAwake\(\)\)\) return/) // locked too, once kept awake (Task #473)
     assert.doesNotMatch(l, /soundbox-audio/)
   })
 })

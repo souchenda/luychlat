@@ -10,6 +10,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // The SoundBox keep-alive (Task #473): registered before the bridge starts.
+        registerPlugin(SoundboxKeepAlivePlugin.class);
         super.onCreate(savedInstanceState);
         // A WebView has no downloads of its own: a download link (the app's own update, /downloads/LuyChlat-v….apk —
         // Task #468) opens in the phone's browser, which downloads it and hands it to the package installer.

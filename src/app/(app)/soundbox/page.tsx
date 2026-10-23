@@ -6,6 +6,7 @@ import QRCode from "qrcode"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { SettingsSubHeader } from "@/components/settings/settings-ui"
+import { BatteryExemptionCard } from "@/components/payments/battery-exemption"
 import { SoundboxLivePill } from "@/components/soundbox/live-pill"
 import { SoundboxStatus } from "@/components/soundbox/soundbox-status"
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,7 @@ import {
   type SoundboxEvent,
   type SoundboxMode,
 } from "@/lib/soundbox"
+import { keepSoundboxAwake } from "@/lib/native-keepalive"
 import { announce, isUnlocked, speechNeedsTap, unlockAudio, warmSpeech } from "@/lib/soundbox-audio"
 import { enablePush, pushState, type PushState } from "@/lib/push"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -189,6 +191,11 @@ export default function SoundboxPage() {
   // dropped connection never turns it off — only «🔇 បិទសំឡេង» does.
   const counterId = counter?.id ?? null
   const [enabled, setEnabledState] = useState(false)
+  // The Android app (1.6+): kept awake with the screen locked while the SoundBox is on (Task #473).
+  useEffect(() => {
+    keepSoundboxAwake("page", enabled)
+    return () => keepSoundboxAwake("page", false)
+  }, [enabled])
   useEffect(() => {
     const on = readSoundboxEnabled(store(), counterId)
     setEnabledState(on)
@@ -368,6 +375,7 @@ export default function SoundboxPage() {
     <div className="space-y-4">
       <SettingsSubHeader title={t("soundbox.title")} back="/home" />
       <SoundboxLivePill />
+      {enabled && <BatteryExemptionCard />}
       {/* This phone's own state (never «not connected» about itself while it is the SoundBox), then the business's other phones. */}
       <SoundboxStatus
         workspaceId={counterId}

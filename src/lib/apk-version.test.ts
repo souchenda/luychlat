@@ -11,13 +11,15 @@ const read = (p: string) => readFileSync(join(root, p), "utf8")
 const native = !existsSync(join(root, "android")) && "android/ is not in the build context"
 
 describe("The Android app's version and in-app update (founder, 22/10/2026 — Task #468)", () => {
-  it("/api/app/version: v1.5, build 6, the versioned file, the Khmer changes", () => {
+  it("/api/app/version: the newest APK — v1.6, build 7 (Task #473), the versioned file, the Khmer changes", () => {
     assert.deepEqual(appVersionInfo(), {
-      latestVersion: "1.5",
-      versionCode: 6,
-      downloadUrl: "/downloads/LuyChlat-v1.5.apk",
-      changelogKhmer: "• បន្ថែមសិទ្ធិ GPS ទីតាំង\n• ជួសជុលកុងតាក់ម៉ោងសឡាត និងសំឡេងអាហ្សាន",
+      latestVersion: "1.6",
+      versionCode: 7,
+      downloadUrl: "/downloads/LuyChlat-v1.6.apk",
+      changelogKhmer: "• SoundBox ប្រកាសទទួលប្រាក់ភ្លាមៗ ទោះបិទអេក្រង់\n• ប៊ូតុងអនុញ្ញាតប្រើថ្ម សម្រាប់ទូរសព្ទនៅតុគិតលុយ",
     })
+    assert.deepEqual(apkVersion(7), { kind: "known", version: "1.6", code: 7 })
+    assert.equal(updateAvailable(6, 7), true) // 1.5 is offered 1.6 — one tap (its DownloadListener)
     assert.equal(apkFileName("1.5"), "LuyChlat-v1.5.apk")
     assert.equal(apkDownloadPath("1.5"), "/downloads/LuyChlat-v1.5.apk")
     assert.match(read("src/app/api/app/version/route.ts"), /NextResponse\.json\(appVersionInfo\(\), \{ headers: \{ "Cache-Control": "no-store" \} \}\)/)

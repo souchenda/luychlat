@@ -33,11 +33,28 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- The SoundBox kept awake with the screen locked (Task #473 — SoundboxKeepAliveService): a foreground service
+             while the SoundBox or the counter mode is on. «specialUse» (no daily time limit, unlike dataSync): a
+             payment announcer that must stay connected. -->
+        <service
+            android:name=".SoundboxKeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Payment announcer (SoundBox): stays connected to speak incoming payments with the screen locked" />
+        </service>
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The SoundBox keep-alive (Task #473): its foreground service, the CPU kept awake, the battery exemption prompt. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- The prayer-time Adhan at the exact minute, the screen locked (founder, 20/10/2026 — lib/native-prayer.ts). An Adhan
          is an alarm the person set: USE_EXACT_ALARM is granted at install (Android 13+); the local-notifications plugin adds
          POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM and the reboot receiver. -->
