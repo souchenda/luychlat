@@ -180,6 +180,8 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
   // A photo sent with the entry as its caption: kept as the entry's receipt (bot_confirm stores it).
   const action = { ...base, text: extra.text, heard: extra.heard ?? null, ...(extra.receipt ? { receipt: extra.receipt } : {}), ...(extra.route ? { workspace_id: ws.id } : {}) }
   const { data, error } = await botDb().rpc("bot_propose", { p_key: botKey(), p_chat_id: chatId, p_action: action })
+  // Never a silent «couldn't save» (founder, 23/10/2026 — short voice notes got it with no trace): the reason, logged.
+  if (error || typeof data !== "string") logEvent("warn", "bot", `Entry card not saved (${parsed.kind}${extra.heard ? ", voice" : ""}): ${error?.message ?? "no id returned"}`, { fold: true })
   return error || typeof data !== "string" ? null : data
 }
 
@@ -193,7 +195,7 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
  * A text without an amount within 5 minutes of a saved card: the entry's note, and the category its words name
  * (bot_tx_note_recent). False when there is no such card, or the text is not a note (thanks, a question…).
  */
-export async function noteOnRecentEntry(chatId: number, text: string, lang: Locale): Promise<boolean> {
+export async function noteOnRecentEntry(chatId: number, text: string, lang: Locale, voice = false): Promise<boolean> {
   const note = cleanNote(text)
   if (!note || !looksLikeNote(note)) return false
   const { data, error } = await botDb().rpc("bot_tx_note_recent", { p_key: botKey(), p_chat_id: chatId, p_note: note, p_preset: presetFromWords(note) })
@@ -202,7 +204,8 @@ export async function noteOnRecentEntry(chatId: number, text: string, lang: Loca
   if (error || !r?.ok || !r.tx_id) {
     const msg = error?.message ?? ""
     if (/empty_note/.test(msg)) return false
-    await sendText(chatId, tr(lang, /plan_required/.test(msg) ? "bot.cmdPro" : /commands_off/.test(msg) ? "bot.cmdOff" : /not_writable/.test(msg) ? "bot.cmdReadonly" : "bot.saveFailed"))
+    if (!/plan_required|commands_off|not_writable/.test(msg)) logEvent("warn", "bot", `Follow-up note not saved: ${msg || "not ok"}`, { fold: true })
+    await sendText(chatId, tr(lang, /plan_required/.test(msg) ? "bot.cmdPro" : /commands_off/.test(msg) ? "bot.cmdOff" : /not_writable/.test(msg) ? "bot.cmdReadonly" : voice ? "bot.voiceSaveFailed" : "bot.saveFailed"))
     return true
   }
   // A note about a child tags the expense «👶 សម្រាប់កូន» (founder, 20/10/2026); one tap on the card turns it off.
@@ -283,7 +286,7 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
     }
     // No amount, right after an entry was recorded: it is that entry's note (founder, 20/10/2026 — «ចំណាយសំភារៈសិក្សាកូន»
     // after an ABA slip got «🤔 រកមិនឃើញចំនួនទឹកប្រាក់ទេ»), and its words may name the category.
-    if (parsed.reason === "no_amount" && (await noteOnRecentEntry(chatId, heard ?? input, lang))) return
+    if (parsed.reason === "no_amount" && (await noteOnRecentEntry(chatId, heard ?? input, lang, Boolean(heard)))) return
     // A voice note without an amount: say exactly what was heard instead of the general hint.
     if (heard && parsed.reason === "no_amount") return sendText(chatId, tr(lang, "bot.voiceNoAmount", { text: heard }))
     return reply(failureText(parsed, ws, lang))
@@ -291,7 +294,7 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
 
   const tags = entryTags(parsed, input)
   const pendingId = await propose(chatId, parsed, ws, { text: input, heard, route, tags, receipt })
-  if (!pendingId) return reply(tr(lang, "bot.saveFailed"))
+  if (!pendingId) return reply(tr(lang, heard ? "bot.voiceSaveFailed" : "bot.saveFailed"))
   const { text: body, reply_markup } = card(lang, parsed, ws, pendingId, { heard, switcher: route ? all : undefined, tags })
   return sendText(chatId, body, { reply_markup })
 }
