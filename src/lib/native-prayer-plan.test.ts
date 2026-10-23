@@ -112,7 +112,22 @@ describe("The 10 s lock-screen test that never rang on 1.5 — the Adhan as a re
     assert.match(plugin, /alarms\.canScheduleExactAlarms\(\)/)
     assert.match(plugin, /Settings\.ACTION_REQUEST_SCHEDULE_EXACT_ALARM/)
     const receiver = read("android/app/src/main/java/com/luychlat/app/AdhanAlarmReceiver.java")
-    assert.match(receiver, /if \(channelId == null \|\| channelId\.isEmpty\(\)\) channelId = "prayer_adhan_v1"/)
+    assert.match(receiver, /static final String ADHAN_CHANNEL = "prayer_adhan_v1"/)
+    assert.match(receiver, /if \(channelId == null \|\| channelId\.isEmpty\(\)\) channelId = ADHAN_CHANNEL/)
+    // Task #475: with the Adhan chosen, the player out loud on the ALARM stream; the notification only as the fallback.
+    assert.match(receiver, /if \(ADHAN_CHANNEL\.equals\(channelId\)\) \{[\s\S]*?ContextCompat\.startForegroundService\(context, play\);\s+return;/)
+    const player = read("android/app/src/main/java/com/luychlat/app/AdhanPlayerService.java")
+    assert.match(player, /\.setUsage\(AudioAttributes\.USAGE_ALARM\)/)
+    assert.match(player, /player\.setDataSource\(this, Uri\.parse\("android\.resource:\/\/" \+ getPackageName\(\) \+ "\/" \+ R\.raw\.adhan\)\)/)
+    assert.match(player, /newWakeLock\(PowerManager\.PARTIAL_WAKE_LOCK, "luychlat:adhan"\)/)
+    assert.match(player, /channel\.setSound\(null, null\); \/\/ the player is the sound/) // never twice
+    assert.match(player, /\.addAction\(0, "🔇 បិទសំឡេង", stopTap\)/)
+    assert.match(player, /setOnCompletionListener\(\(mp\) -> stopSelf\(\)\)/)
+    assert.match(player, /if \(wakeLock != null && wakeLock\.isHeld\(\)\) wakeLock\.release\(\)/)
+    assert.ok(statSync(join(process.cwd(), "android/app/src/main/res/raw/adhan.mp3")).size > 100_000) // the bundled recording
+    const mf = read("android/app/src/main/AndroidManifest.xml")
+    assert.match(mf, /android:name="\.AdhanPlayerService"\s+android:exported="false"\s+android:foregroundServiceType="mediaPlayback"/)
+    assert.match(mf, /android\.permission\.FOREGROUND_SERVICE_MEDIA_PLAYBACK/)
     assert.match(receiver, /setCategory\(NotificationCompat\.CATEGORY_ALARM\)/)
     const manifest = read("android/app/src/main/AndroidManifest.xml")
     assert.match(manifest, /<receiver android:name="\.AdhanAlarmReceiver" android:exported="false" \/>/)

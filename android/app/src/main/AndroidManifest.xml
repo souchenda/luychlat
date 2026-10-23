@@ -48,6 +48,11 @@
 
         <!-- The Adhan as an alarm clock (Task #474 — AdhanAlarmPlugin): fired, then set again after a reboot. -->
         <receiver android:name=".AdhanAlarmReceiver" android:exported="false" />
+        <!-- The Adhan out loud on the ALARM stream when the alarm fires (Task #475 — AdhanPlayerService). -->
+        <service
+            android:name=".AdhanPlayerService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
         <receiver android:name=".AdhanBootReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -62,6 +67,7 @@
     <!-- The SoundBox keep-alive (Task #473): its foreground service, the CPU kept awake, the battery exemption prompt. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- The prayer-time Adhan at the exact minute, the screen locked (founder, 20/10/2026 — lib/native-prayer.ts). An Adhan
