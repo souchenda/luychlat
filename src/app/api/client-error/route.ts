@@ -10,7 +10,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
  * log. Signed-in users only, a few per minute; never any statement content —
  * the client sends only the error code / message and counts.
  */
-const SOURCES = new Set(["reconcile", "nssf-crop"])
+const SOURCES = new Set(["reconcile", "nssf-crop", "native-alarm"])
 
 export async function POST(request: Request) {
   const blocked = guardRequest(request, { name: "client-error", limit: 6, windowMs: 60_000, maxBytes: 2_000 })
@@ -22,6 +22,8 @@ export async function POST(request: Request) {
   const source = typeof body?.source === "string" && SOURCES.has(body.source) ? body.source : null
   const message = typeof body?.message === "string" ? body.message.replace(/\s+/g, " ").trim().slice(0, 400) : ""
   if (!source || !message) return NextResponse.json({ ok: false }, { status: 400 })
-  logEvent("error", source, `Save failed on a phone (user …${auth.user.id.slice(-4)}): ${message}`)
+  // The prayer alarm's failures (Task #479): what Android refused, with the phone's build — never silently «setting up…».
+  const what = source === "native-alarm" ? "Prayer alarm failed" : "Save failed"
+  logEvent("error", source, `${what} on a phone (user …${auth.user.id.slice(-4)}): ${message}`)
   return NextResponse.json({ ok: true })
 }

@@ -19,7 +19,7 @@ import { useT } from "@/lib/i18n/use-t"
 import { enablePush, setPrayerPush } from "@/lib/push"
 import { isNativeApp } from "@/lib/native-bridge"
 import { BatteryExemptionCard } from "@/components/payments/battery-exemption"
-import { cancelNativePrayers, NATIVE_TEST_DELAY_MS, nativeAlarmHealth, openExactAlarmSettings, requestNativePrayerPermissions, scheduleNativePrayers, scheduleNativeTestAdhan, useNativePrayerStatus } from "@/lib/native-prayer"
+import { cancelNativePrayers, errorText, NATIVE_TEST_DELAY_MS, nativeAlarmHealth, openExactAlarmSettings, reportNativeAlarmError, requestNativePrayerPermissions, scheduleNativePrayers, scheduleNativeTestAdhan, useNativePrayerStatus } from "@/lib/native-prayer"
 import { formatMinutes, placeNow, prayerTimes } from "@/lib/prayer"
 import {
   ADHAN_MAX_BYTES,
@@ -114,7 +114,12 @@ export function PrayerAlertScheduler() {
         setNativeOn(count > 0)
         useNativePrayerStatus.getState().set({ planned: count, permission: count > 0 ? "granted" : "missing" })
       })
-      .catch(() => setNativeOn(false))
+      .catch((e) => {
+        // Never «កំពុងកំណត់…» forever (Task #479): the card says it failed, the server's log says why.
+        setNativeOn(false)
+        useNativePrayerStatus.getState().set({ planned: 0, permission: "error", error: errorText(e) })
+        reportNativeAlarmError("plan", e)
+      })
   }, [alertsOn, alertSound, location.lat, location.lng, location.label, t, tick])
 
   useEffect(() => {
@@ -176,7 +181,7 @@ export function PrayerAlertScheduler() {
  */
 function NativeAlarmStatus({ sound }: { sound: AlertSound }) {
   const t = useT()
-  const { planned, permission } = useNativePrayerStatus()
+  const { planned, permission, error: planError } = useNativePrayerStatus()
   const [waiting, setWaiting] = useState(false)
   // Exact alarms (Android 12+ «Alarms & reminders»): refused → Android may ring minutes late, or not with the screen off (Task #474).
   const [exact, setExact] = useState<boolean | null>(null)
@@ -187,7 +192,19 @@ function NativeAlarmStatus({ sound }: { sound: AlertSound }) {
     return () => document.removeEventListener("visibilitychange", check)
   }, [])
   const test = async () => {
-    const r = await scheduleNativeTestAdhan({ sound, title: `🕌 ${t("prayerAlert.nativeTestTitle")}`, body: t("prayerAlert.nativeTestBody") }).catch(() => "no-permission" as const)
+    // At once: the tap is seen, whatever Android answers next (Task #479).
+    const pending = toast.loading(t("prayerAlert.nativeTestSetting"))
+    let r: "scheduled" | "no-permission" | "error"
+    try {
+      r = await scheduleNativeTestAdhan({ sound, title: `🕌 ${t("prayerAlert.nativeTestTitle")}`, body: t("prayerAlert.nativeTestBody") })
+    } catch (e) {
+      r = "error"
+      reportNativeAlarmError("test", e)
+      // The exact reason on screen, until closed (Task #480).
+      toast.error(t("prayerAlert.nativeTestFailed", { reason: errorText(e) }), { id: pending, duration: Infinity, closeButton: true })
+    }
+    if (r === "error") return
+    toast.dismiss(pending)
     if (r === "scheduled") {
       setWaiting(true)
       toast.success(t("prayerAlert.nativeTestSet"), { duration: NATIVE_TEST_DELAY_MS })
@@ -198,8 +215,14 @@ function NativeAlarmStatus({ sound }: { sound: AlertSound }) {
   }
   return (
     <div className="space-y-2 rounded-xl bg-muted/50 px-3 py-2">
-      <p className={cn("text-xs", permission === "missing" ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground")}>
-        {permission === "missing" ? t("prayerAlert.nativeMissing") : planned ? t("prayerAlert.nativePlanned", { count: planned }) : t("prayerAlert.nativeChecking")}
+      <p className={cn("text-xs", permission === "missing" || permission === "error" ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground")}>
+        {permission === "error"
+          ? t("prayerAlert.nativeFailed", { reason: planError ?? "" })
+          : permission === "missing"
+            ? t("prayerAlert.nativeMissing")
+            : planned
+              ? t("prayerAlert.nativePlanned", { count: planned })
+              : t("prayerAlert.nativeChecking")}
       </p>
       {exact === false && (
         <div className="space-y-1.5 rounded-lg bg-amber-500/10 px-2.5 py-2">

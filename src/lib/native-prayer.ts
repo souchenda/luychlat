@@ -22,6 +22,9 @@ const plugin = () => import("@capacitor/local-notifications").then((m) => m.Loca
  * local-notifications plugin is used instead (its exact alarm falls back to an inexact one when Android refuses).
  */
 type NativeAlarm = { id: number; at: number; title: string; body: string; channelId: string }
+
+/** APK 1.6+ (build 7) ships the alarm-clock plugin. */
+const hasAlarmClock = () => Number(/\bLuyChlatApp\/(\d+)\b/.exec(typeof navigator === "undefined" ? "" : navigator.userAgent)?.[1] ?? 0) >= 7
 const AdhanAlarm = registerPlugin<{
   schedule(o: { alarms: NativeAlarm[] }): Promise<{ scheduled: number; exact: boolean }>
   add(o: NativeAlarm): Promise<{ exact: boolean }>
@@ -58,21 +61,63 @@ export async function openExactAlarmSettings(): Promise<void> {
  * (no notification permission), shown on the prayer card — never silently «on». `replan()` asks the scheduler in the
  * app layout to plan again (after the permission is given, or when the app comes back on screen).
  */
-export const useNativePrayerStatus = create<{ planned: number | null; permission: "granted" | "missing" | null; tick: number; set: (s: { planned: number; permission: "granted" | "missing" }) => void; replan: () => void }>((set) => ({
+export const useNativePrayerStatus = create<{
+  planned: number | null
+  permission: "granted" | "missing" | "error" | null
+  /** Why planning failed (Task #479 — shown on the card and sent to the server's log). */
+  error: string | null
+  tick: number
+  set: (s: { planned: number; permission: "granted" | "missing" | "error"; error?: string | null }) => void
+  replan: () => void
+}>((set) => ({
   planned: null,
   permission: null,
+  error: null,
   tick: 0,
-  set: (s) => set(s),
+  set: (s) => set({ error: null, ...s }),
   replan: () => set((s) => ({ tick: s.tick + 1 })),
 }))
+
+/** The error's own words (a plugin rejection's message / code), short. */
+export const errorText = (e: unknown) => {
+  const x = e as { message?: unknown; code?: unknown } | null
+  return String(x?.message || x?.code || e || "unknown").replace(/\s+/g, " ").slice(0, 200)
+}
+
+/**
+ * A prayer-alarm failure sent to the server's event log (founder, 23/10/2026 — Task #479: «កំពុងកំណត់…» forever, the
+ * test silent, the error swallowed): where, the phone's build, Android's words. Best effort, never in the way.
+ */
+export function reportNativeAlarmError(where: string, e: unknown): void {
+  const build = /\bLuyChlatApp\/(\d+)\b/.exec(typeof navigator === "undefined" ? "" : navigator.userAgent)?.[1] ?? "?"
+  void fetch("/api/client-error", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source: "native-alarm", message: `${where} · build ${build} · ${errorText(e)}` }),
+  }).catch(() => null)
+}
 
 /** The one-minute test alarm's id: outside the prayers' range (isNativePrayerId), so a re-plan never cancels it. */
 export const NATIVE_TEST_ID = 199_999_999
 
+/**
+ * Each native step with a time limit (founder, 23/10/2026 — Task #480: on APK 1.7 the card said «កំពុងកំណត់…» forever —
+ * a plugin call that never answered held every step behind it). Past the limit it fails with the step's name, which the
+ * card shows and the server's log keeps (reportNativeAlarmError) — never a silent wait.
+ */
+export const NATIVE_STEP_MS = 10_000
+export function step<T>(name: string, p: Promise<T>, ms = NATIVE_STEP_MS): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${name}: no answer from Android after ${Math.round(ms / 1000)} s`)), ms)
+  })
+  return Promise.race([p, late]).finally(() => clearTimeout(timer))
+}
+
 let channelsReady: Promise<void> | null = null
-/** The three channels (Adhan, chime, silent), once per launch — creating an existing channel changes nothing. */
+/** The channels (Adhan, chime, vibrate, silent), once per launch — creating an existing channel changes nothing. A failure is retried next time (never cached). */
 function ensureChannels(): Promise<void> {
-  return (channelsReady ??= plugin().then(async (n) => {
+  return (channelsReady ??= step("channels", plugin().then(async (n) => {
     for (const c of Object.values(NATIVE_CHANNELS)) {
       await n.createChannel({
         id: c.id,
@@ -85,6 +130,9 @@ function ensureChannels(): Promise<void> {
         ...(c.sound ? { sound: c.sound } : {}),
       })
     }
+  })).catch((e) => {
+    channelsReady = null
+    throw e
   }))
 }
 
@@ -118,11 +166,11 @@ export async function cancelNativePrayers(): Promise<void> {
  */
 export async function scheduleNativePrayers(o: { lat: number; lng: number; sound: NativeSound; text: (prayer: PrayerKey, time: string) => { title: string; body: string } }): Promise<number> {
   if (!isNativeApp()) return 0
-  const n = await plugin()
+  const n = await step("plugin", plugin())
   // No notification permission: nothing can ring — 0, so the in-app timer stays on and the card says why.
-  if ((await n.checkPermissions()).display !== "granted") return 0
+  if ((await step("permission", n.checkPermissions())).display !== "granted") return 0
   await ensureChannels()
-  await cancelNativePrayers()
+  await step("cancel", cancelNativePrayers())
   const channel = NATIVE_CHANNELS[o.sound]
   const plan = nativePrayerPlan(new Date(), o.lat, o.lng)
   const words = (minutes: number, prayer: PrayerKey) => {
@@ -131,7 +179,10 @@ export async function scheduleNativePrayers(o: { lat: number; lng: number; sound
     return o.text(prayer, `${hh}:${mm}`)
   }
   // 1.6+: the alarm clock (one place for every prayer — never also the plugin's, so never two Adhans).
-  const clock = await AdhanAlarm.schedule({ alarms: plan.map((p) => ({ id: p.id, at: p.at.getTime(), channelId: channel.id, ...words(p.minutes, p.prayer) })) }).catch(() => null)
+  const clock = await step("schedule", AdhanAlarm.schedule({ alarms: plan.map((p) => ({ id: p.id, at: p.at.getTime(), channelId: channel.id, ...words(p.minutes, p.prayer) })) })).catch((e) => {
+    if (hasAlarmClock()) reportNativeAlarmError("schedule", e) // 1.6+ has it: a refusal is a bug, never hidden
+    return null
+  })
   if (clock) return clock.scheduled
   await n.schedule({
     notifications: plan.map((p) => {
@@ -163,15 +214,23 @@ export const NATIVE_TEST_DELAY_MS = 10_000
  */
 export async function scheduleNativeTestAdhan(o: { sound: NativeSound; title: string; body: string; inMs?: number }): Promise<"scheduled" | "no-permission"> {
   if (!isNativeApp()) return "no-permission"
-  const n = await plugin()
-  let perm = (await n.checkPermissions()).display
-  if (perm !== "granted") perm = (await n.requestPermissions()).display
+  const n = await step("plugin", plugin())
+  let perm = (await step("permission", n.checkPermissions())).display
+  // Asking may wait on the person's answer: a longer limit.
+  if (perm !== "granted") perm = (await step("ask permission", n.requestPermissions(), 60_000)).display
   if (perm !== "granted") return "no-permission"
   await ensureChannels()
   const channel = NATIVE_CHANNELS[o.sound]
   const at = Date.now() + (o.inMs ?? NATIVE_TEST_DELAY_MS)
   // 1.6+: the same alarm clock as the prayers.
-  if (await AdhanAlarm.add({ id: NATIVE_TEST_ID, at, title: o.title, body: o.body, channelId: channel.id }).then(() => true, () => false)) return "scheduled"
+  const added = await step("test alarm", AdhanAlarm.add({ id: NATIVE_TEST_ID, at, title: o.title, body: o.body, channelId: channel.id })).then(
+    () => true,
+    (e) => {
+      if (hasAlarmClock()) reportNativeAlarmError("test", e)
+      return false
+    },
+  )
+  if (added) return "scheduled"
   await n.cancel({ notifications: [{ id: NATIVE_TEST_ID }] }).catch(() => null)
   await n.schedule({
     notifications: [

@@ -67,7 +67,7 @@ describe("The Adhan with the screen off — Android alarms really set (founder, 
     assert.match(c, /useNativePrayerStatus\.getState\(\)\.set\(\{ planned: count, permission: count > 0 \? "granted" : "missing" \}\)/)
     // Never silently «on»: the card says how many prayers are set, or that the permission is missing.
     assert.match(c, /\{alertsOn && native && <NativeAlarmStatus sound=\{alertSound\} \/>\}/)
-    assert.match(c, /t\("prayerAlert\.nativeMissing"\) : planned \? t\("prayerAlert\.nativePlanned", \{ count: planned \}\)/)
+    assert.match(c, /permission === "missing"\s+\? t\("prayerAlert\.nativeMissing"\)\s+: planned\s+\? t\("prayerAlert\.nativePlanned", \{ count: planned \}\)/)
   })
   it("⏰ the one-minute test is a real exact alarm on the Adhan channel, with an id a re-plan never cancels", () => {
     const n = read("src/lib/native-prayer.ts")
@@ -76,10 +76,10 @@ describe("The Adhan with the screen off — Android alarms really set (founder, 
     assert.match(n, /const at = Date\.now\(\) \+ \(o\.inMs \?\? NATIVE_TEST_DELAY_MS\)/)
     assert.match(n, /id: NATIVE_TEST_ID,[\s\S]*?channelId: channel\.id,[\s\S]*?schedule: \{ at: new Date\(at\), allowWhileIdle: true \}/) // 1.5: the plugin
     assert.match(n, /export const NATIVE_TEST_DELAY_MS = 10_000/) // 10 s (Task #473): lock the phone and listen
-    assert.match(n, /if \(\(await n\.checkPermissions\(\)\)\.display !== "granted"\) return 0/)
+    assert.match(n, /if \(\(await step\("permission", n\.checkPermissions\(\)\)\)\.display !== "granted"\) return 0/)
     const km = read("src/lib/i18n/dictionaries.ts")
     assert.ok(km.includes('"prayerAlert.nativeTest": "⏰ តេស្តសំឡេងអាហ្សានពេលចាក់សោរ (10 វិនាទី)"'))
-    assert.ok(km.includes('"prayerAlert.nativeTestSet": "ម៉ោងរោទ៍តេស្តនឹងបន្លឺឡើងក្នុង 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះដើម្បីតេស្ត។"'))
+    assert.ok(km.includes('"prayerAlert.nativeTestSet": "⏰ បានកំណត់ម៉ោងរោទ៍តេស្ត 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះ។"')) // bang's words (Task #480)
     // The instant preview stays beside it: play / stop, no lock needed.
     assert.match(read("src/components/islamic/prayer-alerts.tsx"), /onClick=\{testAdhan\} aria-pressed=\{testing\}/)
   })
@@ -88,9 +88,10 @@ describe("The Adhan with the screen off — Android alarms really set (founder, 
 describe("The 10 s lock-screen test that never rang on 1.5 — the Adhan as a real alarm clock from 1.6 (founder, 23/10/2026 — Task #474)", () => {
   it("1.6+: AlarmManager.setAlarmClock for every prayer and the test; 1.5 keeps the plugin; never both (never two Adhans)", () => {
     const n = read("src/lib/native-prayer.ts")
-    assert.match(n, /const clock = await AdhanAlarm\.schedule\(\{ alarms: plan\.map\(\(p\) => \(\{ id: p\.id, at: p\.at\.getTime\(\), channelId: channel\.id/)
+    assert.match(n, /const clock = await step\("schedule", AdhanAlarm\.schedule\(\{ alarms: plan\.map\(\(p\) => \(\{ id: p\.id, at: p\.at\.getTime\(\), channelId: channel\.id/)
     assert.match(n, /if \(clock\) return clock\.scheduled\s+await n\.schedule\(\{/) // the plugin only when the alarm clock is missing
-    assert.match(n, /if \(await AdhanAlarm\.add\(\{ id: NATIVE_TEST_ID, at, title: o\.title, body: o\.body, channelId: channel\.id \}\)\.then\(\(\) => true, \(\) => false\)\) return "scheduled"/)
+    assert.match(n, /const added = await step\("test alarm", AdhanAlarm\.add\(\{ id: NATIVE_TEST_ID, at, title: o\.title, body: o\.body, channelId: channel\.id \}\)\)/)
+    assert.match(n, /if \(added\) return "scheduled"/)
     assert.match(n, /await AdhanAlarm\.cancelAll\(\)\.catch\(\(\) => null\) \/\/ the alarm clock/)
   })
   it("the card says when Android refuses exact alarms («Alarms & reminders») and opens that switch; the battery card beside it", () => {
@@ -167,5 +168,32 @@ describe("The phone's Silent / Vibrate / Do Not Disturb, always respected (found
     assert.match(read("android/app/src/main/java/com/luychlat/app/AdhanPlayerService.java"), /if \(!"normal"\.equals\(PhoneQuiet\.mode\(this\)\)\) \{\s+stopSelf\(\);/)
     assert.match(read("android/app/src/main/java/com/luychlat/app/SoundboxKeepAlivePlugin.java"), /result\.put\("mode", PhoneQuiet\.mode\(getContext\(\)\)\)/)
     assert.match(read("android/app/src/main/AndroidManifest.xml"), /android\.permission\.VIBRATE/)
+  })
+})
+
+describe("The lock-screen test that never answered on 1.7 — never a silent «កំពុងកំណត់…» (founder, 23/10/2026 — Tasks #479 / #480)", () => {
+  it("a native step that never answers fails after its limit, with its name — so the card and the log say which", async () => {
+    const { step } = await import("./native-prayer")
+    await assert.rejects(step("channels", new Promise(() => {}), 30), /channels: no answer from Android/)
+    assert.equal(await step("fast", Promise.resolve(7), 30), 7)
+  })
+  it("«custom» with no phone file plays (and shows) the default recording — never nothing", async () => {
+    const { resolvePreset, availablePresets, CUSTOM_ADHAN } = await import("./adhan-presets")
+    assert.equal(resolvePreset(CUSTOM_ADHAN, false)?.id, availablePresets()[0].id)
+    assert.equal(resolvePreset(CUSTOM_ADHAN, true), undefined) // with a file: the phone's file
+  })
+  it("wired: every step time-limited, a failed plan shown and reported, the test's tap answered at once, its error on screen", () => {
+    const n = read("src/lib/native-prayer.ts")
+    for (const s of ['step("permission", n.checkPermissions())', 'step("cancel", cancelNativePrayers())', 'step("schedule", AdhanAlarm.schedule(', 'step("test alarm", AdhanAlarm.add(', 'step("channels", plugin()'])
+      assert.ok(n.includes(s), s)
+    assert.match(n, /\}\)\)\.catch\(\(e\) => \{\s+channelsReady = null\s+throw e/) // a failure is never cached
+    assert.match(n, /body: JSON\.stringify\(\{ source: "native-alarm", message: `\$\{where\} · build \$\{build\} · \$\{errorText\(e\)\}` \}\)/)
+    const c = read("src/components/islamic/prayer-alerts.tsx")
+    assert.match(c, /useNativePrayerStatus\.getState\(\)\.set\(\{ planned: 0, permission: "error", error: errorText\(e\) \}\)\s+reportNativeAlarmError\("plan", e\)/)
+    assert.match(c, /const pending = toast\.loading\(t\("prayerAlert\.nativeTestSetting"\)\)/)
+    assert.match(c, /toast\.error\(t\("prayerAlert\.nativeTestFailed", \{ reason: errorText\(e\) \}\), \{ id: pending, duration: Infinity, closeButton: true \}\)/)
+    assert.match(read("src/app/api/client-error/route.ts"), /"native-alarm"/)
+    const km = read("src/lib/i18n/dictionaries.ts")
+    assert.ok(km.includes('"prayerAlert.nativeTestSet": "⏰ បានកំណត់ម៉ោងរោទ៍តេស្ត 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះ។"'))
   })
 })

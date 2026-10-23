@@ -73,7 +73,9 @@ export const presetById = (id: string | null | undefined, global: AdhanPreset[] 
 export type AdhanDefaults = { regular?: string | null; fajr?: string | null }
 
 export function resolvePreset(id: string | null | undefined, hasCustomFile: boolean, global: AdhanPreset[] = [], defaults: AdhanDefaults = {}): AdhanPreset | undefined {
-  if (id === CUSTOM_ADHAN) return undefined
+  // «custom» means the phone's file — only when there is one (Task #479: «custom» left without a file selected
+  // nothing on the card and played nothing).
+  if (id === CUSTOM_ADHAN && hasCustomFile) return undefined
   const chosen = presetById(id, global)
   if (chosen) return chosen
   // Never chose one (or it is gone): the phone's file, else the app-wide default, else the first bundled recording.
