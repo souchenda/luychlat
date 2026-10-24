@@ -30,7 +30,11 @@ type PrefsState = {
   collapsedBanks: string[]
   /** 🪷 One soft temple bell with Home's holy-day reminder (Personal only, never with Islamic Mode). On by default. */
   holyDayChime: boolean
-  /** 💰 «ទីង-ទីង» on this phone when a KHQR payment arrives (lib/payment-chime.ts — founder, 21/10/2026). On by default. */
+  /**
+   * 💰 «ទីង-ទីង» on this phone when a KHQR payment arrives (lib/payment-chime.ts — founder, 21/10/2026). Off by default —
+   * an explicit opt-in on each device or browser (founder, 24/10/2026 — Task #488): a PC or phone nobody switched on
+   * stays silent. Turned on here, by the counter mode, never by another device.
+   */
   paymentChime: boolean
   /**
    * 🏪 Counter Soundbox Mode on this phone (Task #442): the screen kept on everywhere in the app, with the chime and the
@@ -65,6 +69,18 @@ type PrefsState = {
 /** Restoring saved preferences: all as saved, except balances — every launch starts hidden. */
 export const restorePrefs = <T extends { hideBalances: boolean }>(persisted: unknown, current: T): T => ({ ...current, ...(persisted as Partial<T>), hideBalances: true })
 
+/**
+ * Saved preferences from an older version. The old built-in rate (4,100) must never show, even for a moment before the
+ * saved rate loads: a device still holding it starts at 4,000. The chime was on by default before Task #488: a saved «on»
+ * was the default, not a choice — off, except on a counter phone (its counter mode was switched on there).
+ */
+export function migratePrefs(persisted: unknown, version: number): PrefsState {
+  let next = persisted as Partial<PrefsState>
+  if (version < 1 && next.khrPerUsd === LEGACY_DEFAULT_KHR_PER_USD) next = { ...next, khrPerUsd: DEFAULT_KHR_PER_USD }
+  if (version < 2) next = { ...next, paymentChime: next.counterMode === true }
+  return next as PrefsState
+}
+
 export const usePrefsStore = create<PrefsState>()(
   persist(
     (set) => ({
@@ -76,7 +92,7 @@ export const usePrefsStore = create<PrefsState>()(
       walletsGrouped: true,
       collapsedBanks: [],
       holyDayChime: true,
-      paymentChime: true,
+      paymentChime: false,
       counterMode: false,
       flipToHide: true,
       balancePinLock: false,
@@ -107,15 +123,9 @@ export const usePrefsStore = create<PrefsState>()(
     }),
     {
       name: "luysmart-prefs",
-      version: 1,
+      version: 2,
       merge: restorePrefs,
-      // The old built-in default (4,100) must never show, even for a moment
-      // before the saved rate loads: a device still holding it starts at 4,000.
-      migrate: (persisted, version) => {
-        const state = persisted as Partial<PrefsState>
-        if (version < 1 && state.khrPerUsd === LEGACY_DEFAULT_KHR_PER_USD) return { ...state, khrPerUsd: DEFAULT_KHR_PER_USD }
-        return state as PrefsState
-      },
+      migrate: migratePrefs,
     },
   ),
 )

@@ -59,11 +59,11 @@ describe("Wiring (founder, 21/10/2026)", () => {
     // The SoundBox stays isolated: its audio module is still imported by the SoundBox page alone.
     assert.doesNotMatch(l, /soundbox-audio/)
   })
-  it("the switch in Settings: business members only, on by default; turning it on asks the permission and plays it once", () => {
+  it("the switch in Settings: business members only, off by default (opt-in per device — Task #488); turning it on asks the permission and plays it once", () => {
     const s = read("src/app/(app)/settings/page.tsx")
     assert.match(s, /const business = \(useWorkspaces\(\)\.data \?\? \[\]\)\.some\(\(w\) => w\.type === "BUSINESS"\)/)
     assert.match(s, /<PushSettingsRow \/>\n\s+<PaymentChimeRow \/>/)
-    assert.match(read("src/stores/prefs-store.ts"), /paymentChime: true,/)
+    assert.match(read("src/stores/prefs-store.ts"), /paymentChime: false,/)
   })
 })
 

@@ -3652,7 +3652,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nssf.backfilled": "✂️ 已裁剪 {count} 张社保卡照片，只保留卡片",
   "settings.holyDayChime": "🪷 佛日提醒铃声",
   "settings.paymentChime": "💰 收款提示音",
-  "settings.paymentChimeHint": "客户通过 KHQR 付款时响起「叮叮」并通知 — 应用打开或在后台运行时",
+  "settings.paymentChimeHint": "客户通过 KHQR 付款时响起「叮叮」并通知 — 应用打开或在后台运行时 · 仅限本设备（默认关闭）",
   "settings.paymentChimeDenied": "请在手机设置中允许 App Luy Chlat 的通知",
   "settings.counterMode": "🏪 收银台语音播报模式",
   "settings.counterModeHint": "收银台手机：打开应用时屏幕常亮，每笔收款响起「叮叮」并播报「收款…」——请保持充电并让应用停留在屏幕上",

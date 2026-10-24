@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { usePrefsStore } from "@/stores/prefs-store"
+import { migratePrefs, usePrefsStore } from "@/stores/prefs-store"
 
 import { counterModeActive, paymentClips, paymentSpeech, SOUND_TESTS } from "./payment-chime"
 
@@ -92,5 +92,24 @@ describe("The SoundBox status pill on /soundbox only (founder, 22/10/2026)", () 
     assert.match(read("src/app/(app)/soundbox/page.tsx"), /<SettingsSubHeader title=\{t\("soundbox\.title"\)\} back="\/home" \/>\s+<SoundboxLivePill \/>/)
     const layout = read("src/app/(app)/layout.tsx")
     assert.doesNotMatch(layout, /SoundboxLivePill|live-pill/)
+  })
+})
+
+describe("Every sound strictly per device (founder, 24/10/2026 — Task #488)", () => {
+  it("the payment chime: off on a new device or browser; an old saved «on» (the default then) off, a counter phone kept", () => {
+    const migrate = migratePrefs
+    const fresh = JSON.parse(read("src/stores/prefs-store.ts").match(/paymentChime: (true|false),\n\s+counterMode: false,/)![1])
+    assert.equal(fresh, false)
+    assert.equal((migrate({ paymentChime: true, counterMode: false }, 1) as { paymentChime: boolean }).paymentChime, false)
+    assert.equal((migrate({ paymentChime: true, counterMode: true }, 1) as { paymentChime: boolean }).paymentChime, true)
+    assert.equal((migrate({ paymentChime: true, counterMode: false }, 2) as { paymentChime: boolean }).paymentChime, true) // a choice made since stays
+  })
+  it("silent when off, or while the phone's own SoundBox feed announces; the feed only from an enabled SoundBox page", () => {
+    const l = read("src/components/payments/payment-chime-listener.tsx")
+    assert.match(l, /shouldChime\(\{ enabled: on\.current,/)
+    assert.match(l, /if \(nativeFeedActive\(\)\) return reportRing\(e, "native-feed"\)/)
+    const page = read("src/app/(app)/soundbox/page.tsx")
+    assert.match(page, /if \(!enabled \|\| !counterId \|\| !device \|\| !isNativeApp\(\)\) return/)
+    assert.doesNotMatch(read("src/stores/prefs-store.ts") + l, /profiles|\.rpc\("set_payment_chime/) // never synced through the account
   })
 })
