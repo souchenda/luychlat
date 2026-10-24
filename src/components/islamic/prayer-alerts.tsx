@@ -73,9 +73,11 @@ export function PrayerAlertScheduler() {
   // The first tap after a launch unlocks the sound, so the Adhan may play at the prayer minute (Task #466).
   useEffect(() => (alertsOn ? primeOnFirstTap() : undefined), [alertsOn])
   // Strictly per device (founder, 24/10/2026 — Task #488: the Adhan rang on every phone): this device's own switch
-  // decides this device's server push, on every launch — another phone's «on» never reaches it.
+  // decides this device's server push — another phone's «on» never reaches it. A launch only ever turns it OFF (Task
+  // #496: a browser whose old switch was still on turned its push back on at every launch after the reset); ON comes
+  // only from a tap on this device's switch (toggle → enablePush → setPrayerPush(true)).
   useEffect(() => {
-    void setPrayerPush(alertsOn).catch(() => false)
+    if (!alertsOn) void setPrayerPush(false).catch(() => false)
   }, [alertsOn])
 
   // In the Android app (founder, 20/10/2026): the week's prayers as native alarms with the Adhan channel — they ring

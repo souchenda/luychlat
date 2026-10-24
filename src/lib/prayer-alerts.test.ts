@@ -171,7 +171,8 @@ describe("The Adhan strictly per device (founder, 24/10/2026 — Task #488: at D
     assert.match(store, /\{ name: "luychlat-islamic-local" \}/) // localStorage: this device only, never the account
     assert.doesNotMatch(store, /supabase|rpc\(/)
     const ui = readFileSync(join(process.cwd(), "src/components/islamic/prayer-alerts.tsx"), "utf8")
-    assert.match(ui, /useEffect\(\(\) => \{\s+void setPrayerPush\(alertsOn\)\.catch\(\(\) => false\)\s+\}, \[alertsOn\]\)/)
+    assert.match(ui, /useEffect\(\(\) => \{\s+if \(!alertsOn\) void setPrayerPush\(false\)\.catch\(\(\) => false\)\s+\}, \[alertsOn\]\)/) // a launch only turns it off (Task #496)
+    assert.doesNotMatch(ui, /setPrayerPush\(alertsOn\)/) // never «on» from a launch — only a tap on this device's switch
     assert.match(ui, /if \(!alertsOn\) \{\s+setNativeOn\(false\)\s+void cancelNativePrayers\(\)/)
     assert.match(readFileSync(join(process.cwd(), "src/lib/native-prayer.ts"), "utf8"), /await AdhanAlarm\.cancelAll\(\)\.catch\(\(\) => null\) \/\/ the alarm clock/)
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270254000000_prayer_push_per_device.sql"), "utf8")
@@ -194,7 +195,8 @@ describe("The Adhan never on a phone that turned it off (founder, 24/10/2026 —
   it("off at launch cancels the native alarms; the server pushes only rows whose own device switched the Adhan on", () => {
     const alerts = readFileSync(join(process.cwd(), "src/components/islamic/prayer-alerts.tsx"), "utf8")
     assert.match(alerts, /if \(!alertsOn\) \{\s+setNativeOn\(false\)\s+void cancelNativePrayers\(\)/)
-    assert.match(alerts, /void setPrayerPush\(alertsOn\)/)
+    assert.match(alerts, /if \(!alertsOn\) void setPrayerPush\(false\)/)
+    assert.match(alerts, /if \(result === "granted"\) void enablePush\(\)\.then\(\(state\) => \(state === "on" \? setPrayerPush\(true\) : false\)\)/) // on: the tap only
     assert.match(readFileSync(join(process.cwd(), "src/lib/native-prayer.ts"), "utf8"), /export const NATIVE_TEST_ID = 199_999_999/)
   })
 })
