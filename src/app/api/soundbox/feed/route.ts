@@ -37,7 +37,8 @@ export async function GET(request: Request) {
   const blocked = guardRequest(request, { name: "soundbox-feed", limit: 40, windowMs: 60_000, maxBytes: 0 })
   if (blocked) return blocked
   const url = new URL(request.url)
-  const device = await deviceOf(url.searchParams.get("d"), url.searchParams.get("t"))
+  // The token in a header (APK 1.10+ — Task #492: in the URL it reached the server's access log); 1.9 still sends ?t=.
+  const device = await deviceOf(url.searchParams.get("d"), request.headers.get("x-soundbox-token") ?? url.searchParams.get("t"))
   if (!device) return NextResponse.json({ ok: false }, { status: 401 })
   const now = Date.now()
   const since = feedSince(url.searchParams.get("since"), now)
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
   const blocked = guardRequest(request, { name: "soundbox-feed-ack", limit: 40, windowMs: 60_000, maxBytes: 1_000 })
   if (blocked) return blocked
   const body = (await readJson(request, 1_000)) as { d?: unknown; t?: unknown; event?: unknown; log?: unknown } | null
-  const device = await deviceOf(typeof body?.d === "string" ? body.d : null, typeof body?.t === "string" ? body.t : null)
+  const device = await deviceOf(typeof body?.d === "string" ? body.d : null, request.headers.get("x-soundbox-token") ?? (typeof body?.t === "string" ? body.t : null))
   if (!device) return NextResponse.json({ ok: false }, { status: 401 })
   const event = typeof body?.event === "string" && UUID.test(body.event) ? body.event : null
   const log = typeof body?.log === "string" ? body.log.replace(/\s+/g, " ").slice(0, 500) : ""

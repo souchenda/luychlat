@@ -65,9 +65,39 @@ describe("The SoundBox announced by the phone itself (founder, 24/10/2026 — Ta
     assert.match(f, /private static final long POLL_MS = 4_000;/)
     assert.match(f, /if \("silent"\.equals\(phone\)\) \{\s+log = "phone:silent";/)
     assert.match(f, /R\.raw\.payment_received/)
-    assert.match(f, /\.setUsage\(AudioAttributes\.USAGE_NOTIFICATION\)/)
+    assert.match(f, /\.setUsage\(AudioAttributes\.USAGE_MEDIA\)/) // the media volume, like the page's «សាកស្ដាប់» (Task #492)
     assert.match(f, /if \(url == null \|\| !url\.startsWith\("https:\/\/app\.luychlat\.com\/"\)\) return null;/)
-    assert.match(read("android/app/src/main/java/com/luychlat/app/SoundboxKeepAliveService.java"), /feed = new SoundboxFeed\(this, intent\.getStringExtra\("feedUrl"\)/)
+    assert.match(read("android/app/src/main/java/com/luychlat/app/SoundboxKeepAliveService.java"), /\.putString\("feedUrl", intent\.getStringExtra\("feedUrl"\)\)[\s\S]+?feed = savedFeed\(\);/)
     assert.match(read("android/app/src/main/java/com/luychlat/app/SoundboxKeepAlivePlugin.java"), /public void startFeed\(PluginCall call\)/)
+  })
+
+  it("Task #492: a sound counts only when it ended without an error; the volume and the watchdog in every report; the token never in the URL", { skip: native }, () => {
+    const f = read("android/app/src/main/java/com/luychlat/app/SoundboxFeed.java")
+    assert.match(f, /return ended\.await\(15, TimeUnit\.SECONDS\) && !failed\.get\(\);/)
+    assert.match(f, /log \+= " vol:" \+ volume\(\) \+ " wd:" \+ SoundboxKeepAliveService\.watchdogRestarts;/)
+    assert.match(f, /String url = feedUrl \+ "\?d=" \+ enc\(device\) \+ "&since="/)
+    assert.doesNotMatch(f, /"&t="/)
+    assert.match(f, /conn\.setRequestProperty\("X-Soundbox-Token", token\);[\s\S]+conn\.setRequestProperty\("X-Soundbox-Token", token\);/) // the poll and the report
+    assert.match(f, /lastOkAt = System\.currentTimeMillis\(\);/)
+  })
+
+  it("Task #492: the wake lock held until the SoundBox is off; a restarted service resumes the feed; a 30 s watchdog", { skip: native }, () => {
+    const s = read("android/app/src/main/java/com/luychlat/app/SoundboxKeepAliveService.java")
+    assert.match(s, /if \(wakeLock != null && !wakeLock\.isHeld\(\)\) wakeLock\.acquire\(\);/)
+    assert.doesNotMatch(s, /WAKE_LOCK_MS|acquire\(\w+_MS\)/) // never on a timer
+    assert.match(s, /private static final long SILENT_MS = 30_000;/)
+    assert.match(s, /if \(f != null && \(!f\.alive\(\) \|\| System\.currentTimeMillis\(\) - f\.lastOkAt\(\) > SILENT_MS\)\) \{\s+holdWakeLock\(\);/)
+    assert.match(s, /\} else if \(intent == null && feed == null\) \{[\s\S]+?feed = savedFeed\(\);/)
+    assert.match(s, /\} else if \(ACTION_FEED_STOP\.equals\(action\)\) \{\s+prefs\(\)\.edit\(\)\.clear\(\)\.apply\(\);/) // off = forgotten
+    assert.match(s, /handler\.removeCallbacks\(watchdog\);\s+if \(feed != null\) feed\.stop\(\);/) // onDestroy
+    const m = read("android/app/src/main/AndroidManifest.xml")
+    assert.match(m, /android:foregroundServiceType="specialUse"/)
+    assert.match(m, /android\.permission\.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS/)
+  })
+
+  it("Task #492: the server reads the token from the X-Soundbox-Token header (1.10+), the query / body only for 1.9", () => {
+    const feed = read("src/app/api/soundbox/feed/route.ts")
+    assert.match(feed, /request\.headers\.get\("x-soundbox-token"\) \?\? url\.searchParams\.get\("t"\)/)
+    assert.match(feed, /request\.headers\.get\("x-soundbox-token"\) \?\? \(typeof body\?\.t === "string" \? body\.t : null\)/)
   })
 })

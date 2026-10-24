@@ -2,6 +2,7 @@ package com.luychlat.app;
 
 import android.content.Context;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 
@@ -24,6 +25,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The SoundBox announced by the phone itself (founder, 24/10/2026 — Task #487: a Huawei froze the WebView with the screen
@@ -31,6 +33,11 @@ import java.util.concurrent.TimeUnit;
  * /api/soundbox/feed (the device's token) for new sales of its workspace and plays each one — the chime, then its Khmer
  * clips (the server picks them) — through MediaPlayer, one after another. The phone's quiet settings first (Task #476 —
  * PhoneQuiet): Silent / Do Not Disturb → no sound; Vibrate → a vibration. What it did is sent back, kept with the sale.
+ *
+ * Task #492 (24/10/2026 — the 600,000 ៛ sale of 14:42 «played» yet unheard): the media volume like the page and its
+ * «សាកស្ដាប់» button (the notification volume before — a phone whose ringtone was low stayed silent); a sound counts as
+ * played only when it ended without an error; the report carries the volume; the token in a header, never in the URL (it
+ * reached the server's access log); every good poll timed for the service's watchdog.
  */
 final class SoundboxFeed implements Runnable {
     private static final long POLL_MS = 4_000;
@@ -44,6 +51,8 @@ final class SoundboxFeed implements Runnable {
     private String cursor;
     private final Set<String> done = new LinkedHashSet<>();
     private Thread thread;
+    /** The last poll the server answered (the watchdog restarts a feed silent for 30 s — SoundboxKeepAliveService). */
+    private volatile long lastOkAt = System.currentTimeMillis();
 
     SoundboxFeed(Context context, String feedUrl, String device, String token, String speed) {
         this.context = context.getApplicationContext();
@@ -66,13 +75,21 @@ final class SoundboxFeed implements Runnable {
         if (thread != null) thread.interrupt();
     }
 
+    long lastOkAt() {
+        return lastOkAt;
+    }
+
+    boolean alive() {
+        return thread != null && thread.isAlive();
+    }
+
     @Override
     public void run() {
         while (running) {
             try {
                 poll();
-            } catch (Exception ignored) {
-                // a network blip: asked again in a moment
+            } catch (Throwable ignored) {
+                // a network blip (or worse): asked again in a moment; the watchdog restarts a feed that stays silent
             }
             try {
                 Thread.sleep(POLL_MS);
@@ -83,9 +100,10 @@ final class SoundboxFeed implements Runnable {
     }
 
     private void poll() throws Exception {
-        String url = feedUrl + "?d=" + enc(device) + "&t=" + enc(token) + "&since=" + enc(cursor) + "&speed=" + enc(speed);
-        JSONObject answer = new JSONObject(get(url));
+        String url = feedUrl + "?d=" + enc(device) + "&since=" + enc(cursor) + "&speed=" + enc(speed);
+        JSONObject answer = new JSONObject(get(url, token));
         if (!answer.optBoolean("ok")) return;
+        lastOkAt = System.currentTimeMillis();
         cursor = answer.optString("cursor", cursor);
         JSONArray items = answer.optJSONArray("items");
         if (items == null) return;
@@ -117,28 +135,37 @@ final class SoundboxFeed implements Runnable {
             }
             log = (chime ? "chime " : "no-chime ") + "km:clips " + played + "/" + total;
         }
+        log += " vol:" + volume() + " wd:" + SoundboxKeepAliveService.watchdogRestarts;
         ack(id, log);
     }
 
-    /** One sound to its end (at most 15 s); false when it could not play. */
+    /** The media volume now, «7/15» — what the phone's speaker had for this sale. */
+    private String volume() {
+        AudioManager audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        if (audio == null) return "?";
+        return audio.getStreamVolume(AudioManager.STREAM_MUSIC) + "/" + audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+    }
+
+    /** One sound to its end (at most 15 s); true only when it ended without an error. */
     private boolean play(Uri uri) {
         MediaPlayer player = new MediaPlayer();
         CountDownLatch ended = new CountDownLatch(1);
+        AtomicBoolean failed = new AtomicBoolean(false);
         try {
             player.setAudioAttributes(new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                 .build());
             player.setDataSource(context, uri);
             player.setOnCompletionListener((mp) -> ended.countDown());
             player.setOnErrorListener((mp, what, extra) -> {
+                failed.set(true);
                 ended.countDown();
                 return true;
             });
             player.prepare();
             player.start();
-            ended.await(15, TimeUnit.SECONDS);
-            return true;
+            return ended.await(15, TimeUnit.SECONDS) && !failed.get();
         } catch (Exception e) {
             return false;
         } finally {
@@ -188,6 +215,7 @@ final class SoundboxFeed implements Runnable {
             conn.setConnectTimeout(10_000);
             conn.setReadTimeout(10_000);
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("X-Soundbox-Token", token);
             try (OutputStream out = conn.getOutputStream()) {
                 out.write(body.toString().getBytes("UTF-8"));
             }
@@ -199,9 +227,10 @@ final class SoundboxFeed implements Runnable {
         }
     }
 
-    private static String get(String url) throws Exception {
+    private static String get(String url, String token) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         try {
+            conn.setRequestProperty("X-Soundbox-Token", token);
             conn.setConnectTimeout(10_000);
             conn.setReadTimeout(10_000);
             conn.setUseCaches(false);
