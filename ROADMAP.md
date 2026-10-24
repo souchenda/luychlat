@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 24/10/2026 · 14:30 (Cambodia time)
+**Last updated:** 24/10/2026 · 15:30 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -121,29 +121,41 @@ Low urgency: the strategic direction, recorded so it is never lost. Not schedule
 - [ ] **Payment Gateway Integration (Bakong / PayWay / Stripe / 2C2P)**: Formal acquiring integration for multi-currency & card rails.
 - [ ] **LuyChlat Branded Smart Soundbox & POS Hardware (OEM)**: Branded merchant hardware terminals for retail shops and distribution hubs.
 
-## 6. 🗺️ ផែនការឆ្លាតវៃមុន Google Play Store (Smart Roadmap to the January 2027 Launch)
+## 6. 🗺️ ផែនការឆ្លាតវៃមុន Google Play Store (Smart Roadmap to the 2027-01-01 Launch)
 
 Approved by the founder and Gemini Spark on 24/10/2026 (RFC Task #489 → Task #490). Phases 2 and 3 **expose and polish
 what is already built** (the bot's voice entries, AR/AP, the slip and invoice readers, the Zakat calculator, the gold
 price) rather than build new; the three business features are new. Every rule still holds: exact money, 100 ៛ rounding
 only where computed, Business / Personal apart, every sound per device (Task #488), the SoundBox isolated.
 
-### Phase 1 — November 2026: the SoundBox closes the day
+**Dates fixed by the founder (24/10/2026 — Task #491):**
+
+- **Feature Freeze: 2026-12-15** — from then two weeks strictly for Closed Testing, bug fixes and Google Play Console
+  policy compliance; no new feature merged.
+- **Target Launch: 2027-01-01** — the official public launch on the Google Play Store.
+
+Every phase is done before the freeze; a feature not live on 2026-12-14 moves after the launch, never into the freeze.
+
+### Phase 1 — November 2026 (done by 2026-11-20): the SoundBox closes the day
 
 - [/] Closing-summary voice clips «សរុបថ្ងៃនេះ», «និង», «ការលក់», «ដង», «អរគុណ» — licensed Google Cloud TTS only, made in the 27 clips' exact format and loudness (mono 24 kHz MP3 64 kbps, −19 dB mean, −2 dB peak, x1.2 / x1.3), checked by the script; `scripts/soundbox-closing-tts.ts`, docs/soundbox-khmer-audio.md ⛔ 🟡 ដំណើរការស្គ្រីបជាមួយ key Google Cloud របស់បង ហើយស្ដាប់ឃ្លីបទាំង 5
 - [ ] SoundBox Daily Audio Closing Summary — at the shop's closing time the server totals the day's KHQR sales (riel and dollars apart, exact, the count) and the phone's native feed speaks it from the clips; on only where switched on, on that device; never on Silent / Vibrate / DND; the same total on screen ⛔ ⚙️ សាងសង់នៅពេលឃ្លីបទាំង 5 រួចរាល់
 - [ ] Auto-DND during prayer time — Islamic Mode devices that opt in: the SoundBox voice quiet for 15–20 min after each Adhan (Jumu'ah longer, adjustable, labelled «ប្រមាណ»); every sale still recorded and shown, then one «ទទួលបាន 3 ការលក់ …» summary after the window; the page hands the native feed plain quiet windows — the SoundBox imports no prayer code ⛔ ⚙️ រចនា និងសាងសង់ក្រោយសង្ខេបបិទបញ្ជី
 
-### Phase 2 — early December 2026: talk, remind, foresee
+### Phase 2 — late November – early December 2026 (done by 2026-12-04): talk, remind, foresee
 
 - [ ] In-app 🎤 voice entry — the bot's Khmer voice-to-expense engine behind a mic button in the app (the same parser, the same friendly fallback)
 - [ ] One-tap Telegram debt reminder — from an AR debt, a polite card (`arReminderText`) the owner sends with one tap; never automatic, never in a group, no balance beyond that debt
 - [ ] 14-day cash-flow forecast — loan instalments (bank schedules), bills and the average daily sales: «ថ្ងៃទី 5 ត្រូវបង់ PPCBank $320 — តាមការលក់មធ្យម បងនឹងខ្វះ $45», 7 days ahead, to protect the CBC score; the method stated on screen, an estimate
 
-### Phase 3 — late December 2026: close the shift, know the regulars
+### Phase 3 — December 2026 (done by 2026-12-14): close the shift, know the regulars
 
 - [ ] End-of-day shift cash reconciliation — the cash counted in the drawer beside the day's KHQR and cash sales, short / over shown, the shift report to the owner's private chat; the same end-of-day moment as the audio summary
 - [ ] KHQR regular-customer insights (Business only) — frequent payers, regulars not seen for a while, the busiest hours, from the KHQR payer names; the owner only, never in a group or the bot
 - [ ] Gold-synced Nisab — the Zakat calculator's Nisab from the day's gold price (85 g), its date and source shown; Islamic Mode only
 - [ ] Receipt and invoice reading polish — the slip, invoice and utility-bill readers made more accurate on real photos (no new reader)
-- [ ] Feature freeze 2 weeks before the Play Store launch: tests, fixes and store listing only ⛔ 🟡 កំណត់ថ្ងៃដាក់ Google Play Store
+
+### Freeze and launch
+
+- [ ] Feature Freeze 2026-12-15 → 2026-12-31: Closed Testing, bug fixes and Google Play Console policy compliance only (store listing, data-safety form, target API level)
+- [ ] Target Launch 2027-01-01: the official public launch of «អេប លុយឆ្លាត» on the Google Play Store
