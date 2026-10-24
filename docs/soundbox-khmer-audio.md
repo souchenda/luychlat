@@ -42,3 +42,27 @@ The 27 files in `public/audio/soundbox/khmer/` were generated from Google Transl
 blocked. That endpoint is not a licensed API: replace the files with Azure AI Speech, Google Cloud TTS
 (`scripts/soundbox-khmer-tts.mjs`) or a Khmer speaker's recordings when possible — the same 27 file names, nothing else
 to change.
+
+## Closing-summary clips (24/10/2026 — Task #490, Phase 1)
+
+The daily closing summary says «សរុបថ្ងៃនេះ 1,200,000 រៀល និង 45 ដុល្លារ · ការលក់ 23 ដង · អរគុណ»: the amounts and the
+count come from the 27, plus five words of its own (`CLOSING_WORDS` in `src/lib/soundbox.ts`):
+
+| File | Says |
+|---|---|
+| `today_total.mp3` | សរុបថ្ងៃនេះ |
+| `and.mp3` | និង |
+| `sales.mp3` | ការលក់ |
+| `times.mp3` | ដង |
+| `thanks.mp3` | អរគុណ |
+
+Approved by the founder: **licensed Google Cloud Text-to-Speech only** (never `translate_tts` — the owner override covers
+the 27 alone). In your own terminal, with your own key (never committed, never pasted in chat):
+
+    GOOGLE_TTS_API_KEY=… npx tsx scripts/soundbox-closing-tts.ts
+
+It needs ffmpeg (on the PATH, `FFMPEG=<path>`, or `npm i --no-save ffmpeg-static`). Each word is synthesized losslessly,
+then made exactly like the 27 (`src/lib/soundbox-clips.ts`, measured on them 24/10/2026): trimmed at −45 dB with 15 ms
+before and 20 ms after, brought to their median loudness (mean −19 dB), limited at their loudest peak (−2 dB), mono
+24 kHz MP3 at 64 kbps without tags, then `x1.2/` and `x1.3/` with atempo. The script prints each clip's loudness and
+stops (exit 1) if one is off by more than 1 dB. Listen to them joined with the 27 before committing.
