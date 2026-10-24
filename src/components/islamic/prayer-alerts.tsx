@@ -72,6 +72,11 @@ export function PrayerAlertScheduler() {
   useEffect(() => listenForStopAdhan(), [])
   // The first tap after a launch unlocks the sound, so the Adhan may play at the prayer minute (Task #466).
   useEffect(() => (alertsOn ? primeOnFirstTap() : undefined), [alertsOn])
+  // Strictly per device (founder, 24/10/2026 — Task #488: the Adhan rang on every phone): this device's own switch
+  // decides this device's server push, on every launch — another phone's «on» never reaches it.
+  useEffect(() => {
+    void setPrayerPush(alertsOn).catch(() => false)
+  }, [alertsOn])
 
   // In the Android app (founder, 20/10/2026): the week's prayers as native alarms with the Adhan channel — they ring
   // with the screen locked and the app closed. Re-planned at every launch and whenever the place, sound or language
@@ -390,6 +395,8 @@ export function PrayerAlertSettings() {
         </span>
         <Switch checked={alertsOn} onCheckedChange={toggle} aria-label={t("prayerAlert.toggle")} />
       </label>
+      {/* This phone only (Task #488): turning it on here never turns it on on the shop's phones. */}
+      <p className="-mt-1 text-[11px] text-muted-foreground">{t("prayerAlert.thisDevice")}</p>
 
       {/* In the Android app: whether the alarms that ring with the screen off are really set (Task #472). */}
       {alertsOn && native && <NativeAlarmStatus sound={alertSound} />}

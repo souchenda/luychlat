@@ -1605,6 +1605,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "fasting.imsakIn": "距封斋还有 {time}",
   "fasting.iftarIn": "距开斋还有 {time}",
   "prayerAlert.toggle": "礼拜通知",
+  "prayerAlert.thisDevice": "📱 仅限本机——同一账号的其他手机不会响，除非在那台手机上开启",
   "prayerAlert.hint": "每个礼拜时间到时发出通知和声音",
   "prayerAlert.title": "{name} 礼拜时间到了",
   "prayerAlert.body": "{time} · {place}",

@@ -164,3 +164,19 @@ describe("«ជូនដំណឹងម៉ោងសឡាត» flips at once —
     assert.doesNotMatch(extras, /alertsOn: false/)
   })
 })
+
+describe("The Adhan strictly per device (founder, 24/10/2026 — Task #488: at Dhuhr it rang on every phone)", () => {
+  it("the switch lives on the phone; it sets this phone's server push on every launch; off cancels this phone's Android alarms", () => {
+    const store = readFileSync(join(process.cwd(), "src/stores/islamic-local-store.ts"), "utf8")
+    assert.match(store, /\{ name: "luychlat-islamic-local" \}/) // localStorage: this device only, never the account
+    assert.doesNotMatch(store, /supabase|rpc\(/)
+    const ui = readFileSync(join(process.cwd(), "src/components/islamic/prayer-alerts.tsx"), "utf8")
+    assert.match(ui, /useEffect\(\(\) => \{\s+void setPrayerPush\(alertsOn\)\.catch\(\(\) => false\)\s+\}, \[alertsOn\]\)/)
+    assert.match(ui, /if \(!alertsOn\) \{\s+setNativeOn\(false\)\s+void cancelNativePrayers\(\)/)
+    assert.match(readFileSync(join(process.cwd(), "src/lib/native-prayer.ts"), "utf8"), /await AdhanAlarm\.cancelAll\(\)\.catch\(\(\) => null\) \/\/ the alarm clock/)
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270254000000_prayer_push_per_device.sql"), "utf8")
+    assert.match(sql, /alter column prayer_alerts set default false/) // a new browser never rings by default
+    assert.match(sql, /update public\.push_subscriptions set prayer_alerts = false where prayer_alerts/)
+    assert.ok(readFileSync(join(process.cwd(), "src/lib/i18n/dictionaries.ts"), "utf8").includes('"prayerAlert.thisDevice": "📱 សម្រាប់តែទូរសព្ទនេះ'))
+  })
+})
