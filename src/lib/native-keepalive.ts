@@ -14,6 +14,8 @@ import { registerPlugin } from "@capacitor/core"
 import { isNativeApp } from "@/lib/native-bridge"
 
 type KeepAlivePlugin = {
+  startFeed(o: { title: string; body: string; feedUrl: string; device: string; token: string; speed: string }): Promise<{ feed?: boolean }>
+  stopFeed(): Promise<void>
   ringerMode(): Promise<{ mode: "normal" | "vibrate" | "silent" }>
   start(o: { title: string; body: string }): Promise<void>
   stop(): Promise<void>
@@ -56,6 +58,29 @@ export function keepSoundboxAwake(source: string, on: boolean): void {
 
 /** The service is running: the app may speak with the screen locked (the process is not frozen). */
 export const soundboxAwake = () => running
+
+let feedOn = false
+/**
+ * The SoundBox announced by the phone itself (founder, 24/10/2026 — Task #487, APK 1.9+): the foreground service asks the
+ * server for new sales and plays them natively — no WebView, which a Huawei froze with the screen off. While it runs the
+ * page and the app-wide voice stay quiet (never twice). An older APK has no such method: false, the page plays as before.
+ */
+export async function startNativeFeed(o: { device: string; token: string; speed: string }): Promise<boolean> {
+  if (!isNativeApp()) return false
+  feedOn = await KeepAlive.startFeed({ ...KEEPALIVE_TEXT, feedUrl: `${FEED_ORIGIN}/api/soundbox/feed`, ...o }).then(
+    (r) => r.feed === true,
+    () => false,
+  )
+  return feedOn
+}
+export function stopNativeFeed(): void {
+  if (!feedOn) return
+  feedOn = false
+  void KeepAlive.stopFeed().catch(() => null)
+}
+/** The phone announces the sales itself: the page and the app-wide voice stay quiet. */
+export const nativeFeedActive = () => feedOn
+const FEED_ORIGIN = "https://app.luychlat.com"
 
 /**
  * The phone's quiet mode (founder, 23/10/2026 — Task #476): «silent» (the ringer on silent, or Do Not Disturb),

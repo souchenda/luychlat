@@ -38,7 +38,8 @@ import {
   type SoundboxEvent,
   type SoundboxMode,
 } from "@/lib/soundbox"
-import { isQuiet, keepSoundboxAwake, phoneQuiet } from "@/lib/native-keepalive"
+import { isQuiet, keepSoundboxAwake, nativeFeedActive, phoneQuiet, startNativeFeed, stopNativeFeed } from "@/lib/native-keepalive"
+import { isNativeApp } from "@/lib/native-bridge"
 import { announce, isUnlocked, speechNeedsTap, unlockAudio, warmSpeech } from "@/lib/soundbox-audio"
 import { enablePush, pushState, type PushState } from "@/lib/push"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -196,6 +197,22 @@ export default function SoundboxPage() {
     keepSoundboxAwake("page", enabled)
     return () => keepSoundboxAwake("page", false)
   }, [enabled])
+  // The phone announces the sales itself (Task #487, APK 1.9+): a device token for the foreground service's feed while
+  // the SoundBox is on; revoked when it goes off.
+  useEffect(() => {
+    const device = deviceId()
+    if (!enabled || !counterId || !device || !isNativeApp()) return
+    let cancelled = false
+    void fetch("/api/soundbox/feed/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device, workspace: counterId }) })
+      .then((r) => (r.ok ? (r.json() as Promise<{ token?: string }>) : null))
+      .then((r) => (!cancelled && r?.token ? startNativeFeed({ device, token: r.token, speed: String(readVoiceSpeed(store())) }) : false))
+      .catch(() => false)
+    return () => {
+      cancelled = true
+      stopNativeFeed()
+      void fetch("/api/soundbox/feed/token", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device }) }).catch(() => null)
+    }
+  }, [enabled, counterId])
   useEffect(() => {
     const on = readSoundboxEnabled(store(), counterId)
     setEnabledState(on)
@@ -277,6 +294,8 @@ export default function SoundboxPage() {
     setFlash(added)
     window.clearTimeout(flashTimer.current)
     flashTimer.current = window.setTimeout(() => setFlash(null), FLASH_MS)
+    // The phone announces it itself (the native feed — Task #487): shown here, never twice.
+    if (nativeFeedActive()) return report([document.visibilityState, "native-feed"])
     // The phone on Silent / Vibrate / Do Not Disturb: shown, never sounded (Task #476) — and said so in the log.
     void phoneQuiet().then((quiet) => {
       console.info(`[SoundBox] Announce: amount=${added.amount} ${added.currency}, quietStatus=${quiet}, result=${isQuiet(quiet) ? "skipped (phone quiet)" : "announcing"}`)

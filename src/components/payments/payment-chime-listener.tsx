@@ -16,7 +16,7 @@ import { useEffect, useRef } from "react"
 
 import { isNativeApp } from "@/lib/native-bridge"
 import { paymentAudioUnlocked, playThroughWebAudio, unlockOnFirstTap } from "@/lib/payment-audio"
-import { isQuiet, phoneQuiet, soundboxAwake } from "@/lib/native-keepalive"
+import { isQuiet, nativeFeedActive, phoneQuiet, soundboxAwake } from "@/lib/native-keepalive"
 import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentClips, paymentSpeech, SPEECH_AFTER_CHIME_MS, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { readVoiceSpeed, reconnectDelay, type VoiceSpeed } from "@/lib/soundbox"
@@ -164,7 +164,24 @@ function speakNow(e: Pick<PaymentEvent, "amount" | "currency">): void {
   synth.speak(u)
 }
 
+/**
+ * What this device did with a KHQR sale (Task #487 — the PC's silence could not be checked: the app-wide voice reported
+ * nothing). Kept with the payment like the SoundBox page's reports (soundbox_report).
+ */
+function reportRing(e: PaymentEvent, what: string) {
+  if (e.source !== "khqr" || !e.id) return
+  const supabase = getSupabaseBrowserClient()
+  if (!supabase) return
+  const visible = typeof document === "undefined" ? "?" : document.visibilityState
+  void supabase.rpc("soundbox_report", { p_event: e.id, p_log: `app-wide ${visible} ${what} audio:${paymentAudioUnlocked() ? "unlocked" : "locked"}`, p_ua: navigator.userAgent.slice(0, 200) }).then(
+    () => null,
+    () => null,
+  )
+}
+
 async function ring(e: PaymentEvent): Promise<void> {
+  // The phone announces it itself (the native feed — Task #487): never twice.
+  if (nativeFeedActive()) return reportRing(e, "native-feed")
   const { title, body } = paymentChimeText(e)
   if (isNativeApp()) {
     await ensurePaymentChannel()
@@ -174,7 +191,9 @@ async function ring(e: PaymentEvent): Promise<void> {
     window.setTimeout(() => speakPayment(e), SPEECH_AFTER_CHIME_MS)
     return
   }
-  if (typeof document !== "undefined" && document.visibilityState === "visible") playPaymentChimeSound(() => speakPayment(e))
+  const shown = typeof document !== "undefined" && document.visibilityState === "visible"
+  reportRing(e, shown ? "chime" : "hidden-tab (no sound: the app's tab is not on screen)")
+  if (shown) playPaymentChimeSound(() => speakPayment(e))
 }
 
 export function PaymentChimeListener() {

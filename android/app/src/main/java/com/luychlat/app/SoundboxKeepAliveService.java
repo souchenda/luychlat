@@ -27,6 +27,10 @@ public class SoundboxKeepAliveService extends Service {
     private static final long WAKE_LOCK_MS = 12L * 60 * 60 * 1000;
 
     private PowerManager.WakeLock wakeLock;
+    /** The native feed (Task #487): the sales announced by the service itself, while the page asked for it. */
+    private SoundboxFeed feed;
+    static final String ACTION_FEED_START = "com.luychlat.app.SOUNDBOX_FEED_START";
+    static final String ACTION_FEED_STOP = "com.luychlat.app.SOUNDBOX_FEED_STOP";
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -68,11 +72,23 @@ public class SoundboxKeepAliveService extends Service {
             }
         }
         if (wakeLock != null) wakeLock.acquire(WAKE_LOCK_MS);
+
+        String action = intent != null ? intent.getAction() : null;
+        if (ACTION_FEED_START.equals(action)) {
+            if (feed != null) feed.stop();
+            feed = new SoundboxFeed(this, intent.getStringExtra("feedUrl"), intent.getStringExtra("device"), intent.getStringExtra("token"), intent.getStringExtra("speed"));
+            feed.start();
+        } else if (ACTION_FEED_STOP.equals(action) && feed != null) {
+            feed.stop();
+            feed = null;
+        }
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        if (feed != null) feed.stop();
+        feed = null;
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
         wakeLock = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

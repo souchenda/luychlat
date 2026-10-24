@@ -35,6 +35,44 @@ public class SoundboxKeepAlivePlugin extends Plugin {
         }
     }
 
+    /** { feedUrl, device, token, speed } → the service announces the sales itself (Task #487); resolves { feed: true }. */
+    @PluginMethod
+    public void startFeed(PluginCall call) {
+        String feedUrl = call.getString("feedUrl");
+        String device = call.getString("device");
+        String token = call.getString("token");
+        if (feedUrl == null || !feedUrl.startsWith("https://app.luychlat.com/") || device == null || token == null) {
+            call.reject("bad_feed");
+            return;
+        }
+        Intent intent = new Intent(getContext(), SoundboxKeepAliveService.class).setAction(SoundboxKeepAliveService.ACTION_FEED_START);
+        intent.putExtra("title", call.getString("title"));
+        intent.putExtra("body", call.getString("body"));
+        intent.putExtra("feedUrl", feedUrl);
+        intent.putExtra("device", device);
+        intent.putExtra("token", token);
+        intent.putExtra("speed", call.getString("speed", "1.2"));
+        try {
+            ContextCompat.startForegroundService(getContext(), intent);
+            JSObject result = new JSObject();
+            result.put("feed", true);
+            call.resolve(result);
+        } catch (Exception e) {
+            call.reject("start_failed", e);
+        }
+    }
+
+    @PluginMethod
+    public void stopFeed(PluginCall call) {
+        Intent intent = new Intent(getContext(), SoundboxKeepAliveService.class).setAction(SoundboxKeepAliveService.ACTION_FEED_STOP);
+        try {
+            getContext().startService(intent);
+        } catch (Exception ignored) {
+            // the service is not running: no feed to stop
+        }
+        call.resolve();
+    }
+
     @PluginMethod
     public void stop(PluginCall call) {
         getContext().stopService(new Intent(getContext(), SoundboxKeepAliveService.class));

@@ -36,7 +36,7 @@ describe("The native Adhan's plan (founder, 20/10/2026)", () => {
     assert.deepEqual(NATIVE_CHANNELS.adhan, { id: "prayer_adhan_v1", name: "Prayer Times Adhan", sound: "adhan.mp3", importance: 5 })
     assert.match(read("android/app/src/main/AndroidManifest.xml"), /<uses-permission android:name="android\.permission\.USE_EXACT_ALARM" \/>/)
     assert.match(read("android/app/capacitor.build.gradle"), /implementation project\(':capacitor-local-notifications'\)/)
-    assert.match(read("android/app/build.gradle"), /versionCode 9\n\s+versionName "1\.8"/) // 1.8: the renderer kept awake (24/10/2026 — Task #486)
+    assert.match(read("android/app/build.gradle"), /versionCode 10\n\s+versionName "1\.9"/) // 1.9: the SoundBox announced natively (24/10/2026 — Task #487)
     // One brand name on the home screen: the APK and the PWA both «អេប លុយឆ្លាត» (founder, 20/10/2026 — two names confused).
     assert.match(read("android/app/src/main/res/values/strings.xml"), /<string name="app_name">អេប លុយឆ្លាត<\/string>/)
     assert.match(read("capacitor.config.ts"), /appName: "អេប លុយឆ្លាត"/)

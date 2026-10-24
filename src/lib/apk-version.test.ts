@@ -11,17 +11,17 @@ const read = (p: string) => readFileSync(join(root, p), "utf8")
 const native = !existsSync(join(root, "android")) && "android/ is not in the build context"
 
 describe("The Android app's version and in-app update (founder, 22/10/2026 — Task #468)", () => {
-  it("/api/app/version: the newest APK — v1.8, build 9 (Task #486), the versioned file, the Khmer changes", () => {
+  it("/api/app/version: the newest APK — v1.9, build 10 (Task #487), the versioned file, the Khmer changes", () => {
     assert.deepEqual(appVersionInfo(), {
-      latestVersion: "1.8",
-      versionCode: 9,
-      downloadUrl: "/downloads/LuyChlat-v1.8.apk",
-      changelogKhmer: "• SoundBox ប្រកាសទាន់ពេល ទោះបិទអេក្រង់យូរ\n• អាហ្សាន និងការជូនដំណឹងមិនគាំងពេលទូរសព្ទសម្រាក",
+      latestVersion: "1.9",
+      versionCode: 10,
+      downloadUrl: "/downloads/LuyChlat-v1.9.apk",
+      changelogKhmer: "• SoundBox ប្រកាសដោយទូរសព្ទផ្ទាល់ ទោះអេបត្រូវបានផ្អាក\n• មិនដែលប្រកាសស្ទួនពីរដង",
     })
+    assert.deepEqual(apkVersion(10), { kind: "known", version: "1.9", code: 10 })
     assert.deepEqual(apkVersion(9), { kind: "known", version: "1.8", code: 9 })
-    assert.deepEqual(apkVersion(8), { kind: "known", version: "1.7", code: 8 })
-    assert.equal(updateAvailable(8, 9), true)
-    assert.equal(updatePath(8), "in-app") // 1.7 → 1.8: the first update installed inside the app
+    assert.equal(updateAvailable(9, 10), true)
+    assert.equal(updatePath(9), "in-app")
     assert.equal(apkFileName("1.5"), "LuyChlat-v1.5.apk")
     assert.equal(apkDownloadPath("1.5"), "/downloads/LuyChlat-v1.5.apk")
     assert.match(read("src/app/api/app/version/route.ts"), /NextResponse\.json\(appVersionInfo\(\), \{ headers: \{ "Cache-Control": "no-store" \} \}\)/)
