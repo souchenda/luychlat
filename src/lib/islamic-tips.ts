@@ -22,6 +22,12 @@ export type IslamicTip = Tip & {
    * caption carries the reviewer's full translation, verbatim ("" = a blank line).
    */
   hadith?: { intro: string; quote: string; dua: string; caption: string[] }
+  /**
+   * The story behind the ayah (Asbab al-Nuzul) and its hadith, as the Islamic advisor Nuryerny Ahmad standardised it
+   * (founder, 24/10/2026 — Task #485: the post showed the bare ayah). The caption carries it verbatim ("" = a blank line),
+   * then the lesson's core message and its reference; the poster keeps the principle and the takeaway.
+   */
+  story?: { caption: string[] }
 }
 
 const quran = (surah: string, s: number, a: number) => ({ label: `${surah} ${s}:${a}`, url: `https://quran.com/${s}/${a}` })
@@ -59,6 +65,20 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
     body: {
       km: "បើអតិថិជន ឬញាតិមិត្តជំពាក់អ្នក ហើយពិតជាជួបការលំបាក ចូរពន្យារពេលឱ្យគេរហូតដល់គេមានលទ្ធភាព។ ហើយបើអ្នកលើកលែងបំណុលនោះជាទាន វារឹតតែប្រសើរ។",
       en: "If a customer or relative owes you and is truly in hardship, give them time until they are able. And if you forgive it as charity, that is better still.",
+    },
+    story: {
+      caption: [
+        "",
+        "📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃអាយ៉ាត់ និង ហាទីស)៖",
+        "នៅសម័យព្យាការី ﷺ ត្រកូលម្ចាស់បំណុលបានទារប្រាក់បន្ថែមពីត្រកូលកូនបំណុលដែលកំពុងជួបវិបត្តិជីវភាពធ្ងន់ធ្ងរ។ ព្រះអល់ឡោះបានបញ្ចុះអាយ៉ាត់នេះដើម្បីបញ្ឈប់ការជិះជាន់ និងបង្គាប់ឱ្យមេត្តាធម៌៖ «ប្រសិនបើគេជួបការលំបាក ចូរពន្យារពេលឱ្យគេ រហូតដល់គេមានលទ្ធភាពសង ហើយបើលើកលែងបំណុលជាទាន រឹតតែប្រសើរ»។",
+        "",
+        "ព្យាការី Muhammad ﷺ បានមានបន្ទូលថា៖",
+        "«អ្នកណាដែលចង់ឱ្យអល់ឡោះផ្ដល់ម្លប់ការពារខ្លួននៅថ្ងៃបរលោក ចូរជួយសម្រាល ឬលើកលែងបំណុលដល់អ្នកដែលកំពុងទ័លច្រក» (Sahih Muslim)។",
+        "",
+        "«ទុកពេលឱ្យគេសងតាមលទ្ធភាព",
+        "ហើយបើលើកលែងបំណុលជាទាន រឹតតែប្រសើរ។»",
+        "(ស៊ូរ៉ាត់ Al-Baqarah: អាយ៉ាត់ 280)",
+      ],
     },
     ref: quran("Al-Baqarah", 2, 280),
   },

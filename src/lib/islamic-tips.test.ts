@@ -76,3 +76,22 @@ describe("Lesson 14 in the Prophet's own words (founder, 21/10/2026 — Yerny's 
     for (const s of [t.poster.principle, t.poster.takeaway, t.body.km, caption]) assert.ok(!s.includes("ខ្ចីតែពេលចាំបាច់"), s)
   })
 })
+
+describe("Al-Baqarah 2:280 with its story (founder, 24/10/2026 — Task #485, as the advisor Nuryerny Ahmad standardised)", () => {
+  it("the caption carries the Asbab al-Nuzul, the Sahih Muslim hadith and the core message verbatim; the poster keeps its two lines", async () => {
+    const { ISLAMIC_TIPS } = await import("./islamic-tips")
+    const tip = ISLAMIC_TIPS.find((t) => t.id === "isl-respite")!
+    const story = tip.story!.caption.join("\n")
+    assert.ok(story.includes("📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃអាយ៉ាត់ និង ហាទីស)៖"))
+    assert.ok(story.includes("ព្យាការី Muhammad ﷺ បានមានបន្ទូលថា៖"))
+    assert.ok(story.includes("ចូរជួយសម្រាល ឬលើកលែងបំណុលដល់អ្នកដែលកំពុងទ័លច្រក» (Sahih Muslim)។"))
+    assert.ok(story.includes("«ទុកពេលឱ្យគេសងតាមលទ្ធភាព\nហើយបើលើកលែងបំណុលជាទាន រឹតតែប្រសើរ។»\n(ស៊ូរ៉ាត់ Al-Baqarah: អាយ៉ាត់ 280)"))
+    assert.equal(tip.poster.takeaway, "ទុកពេលឱ្យគេសងតាមលទ្ធភាព ហើយបើលើកលែងបំណុលជាទាន រឹតតែប្រសើរ។")
+    const { islamicDailyHtml } = await import("./islamic-channel")
+    const { toHijri } = await import("./islamic")
+    const html = islamicDailyHtml("2026-10-24", toHijri(new Date(2026, 9, 24, 12), 0))
+    assert.ok(html.includes("📖 ដំណើររឿងប្រវត្តិ"), "the story is in the 24/10 caption")
+    assert.ok(html.endsWith("— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម"))
+    assert.ok(html.length <= 1024, `a photo caption: ${html.length}`)
+  })
+})
