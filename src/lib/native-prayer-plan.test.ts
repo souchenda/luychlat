@@ -36,7 +36,7 @@ describe("The native Adhan's plan (founder, 20/10/2026)", () => {
     assert.deepEqual(NATIVE_CHANNELS.adhan, { id: "prayer_adhan_v1", name: "Prayer Times Adhan", sound: "adhan.mp3", importance: 5 })
     assert.match(read("android/app/src/main/AndroidManifest.xml"), /<uses-permission android:name="android\.permission\.USE_EXACT_ALARM" \/>/)
     assert.match(read("android/app/capacitor.build.gradle"), /implementation project\(':capacitor-local-notifications'\)/)
-    assert.match(read("android/app/build.gradle"), /versionCode 8\n\s+versionName "1\.7"/) // 1.7: the in-app updater (23/10/2026 — Task #478)
+    assert.match(read("android/app/build.gradle"), /versionCode 9\n\s+versionName "1\.8"/) // 1.8: the renderer kept awake (24/10/2026 — Task #486)
     // One brand name on the home screen: the APK and the PWA both «អេប លុយឆ្លាត» (founder, 20/10/2026 — two names confused).
     assert.match(read("android/app/src/main/res/values/strings.xml"), /<string name="app_name">អេប លុយឆ្លាត<\/string>/)
     assert.match(read("capacitor.config.ts"), /appName: "អេប លុយឆ្លាត"/)
@@ -221,5 +221,20 @@ describe("«plugin: no answer from Android» — a Capacitor plugin never goes t
     }
     assert.match(read("src/lib/native-prayer.ts"), /import \{ LocalNotifications \} from "@capacitor\/local-notifications"[\s\S]*const n = LocalNotifications/)
     assert.match(read("src/components/payments/payment-chime-listener.tsx"), /import \{ LocalNotifications \} from "@capacitor\/local-notifications"[\s\S]*const n = LocalNotifications/)
+  })
+})
+
+describe("A 1,710,000 ៛ sale announced 4 min late, at unlock (founder, 24/10/2026 — Task #486)", () => {
+  it("the WebView's renderer stays «important» when the app is not visible — Android no longer freezes the page", { skip: !existsSync(join(process.cwd(), "android")) && "android/ is not in the build context" }, () => {
+    const m = read("android/app/src/main/java/com/luychlat/app/MainActivity.java")
+    assert.match(m, /getBridge\(\)\.getWebView\(\)\.setRendererPriorityPolicy\(WebView\.RENDERER_PRIORITY_IMPORTANT, false\)/)
+    assert.match(m, /if \(Build\.VERSION\.SDK_INT >= Build\.VERSION_CODES\.O\) \{/)
+  })
+  it("the amount was never the problem: 1,710,000 ៛ is «received 1 lean 7 saen 1 meun riel», every clip there", async () => {
+    const { khmerClipSequence, KHMER_CLIPS } = await import("./soundbox")
+    const seq = khmerClipSequence(1_710_000, "KHR")
+    assert.deepEqual(seq, ["received", "1", "lean", "7", "saen", "1", "meun", "riel"])
+    assert.ok(seq.every((c) => (KHMER_CLIPS as readonly string[]).includes(c)))
+    assert.deepEqual(khmerClipSequence(10_000_000, "KHR"), ["received", "10", "lean", "riel"])
   })
 })
