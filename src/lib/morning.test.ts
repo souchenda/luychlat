@@ -42,9 +42,9 @@ describe("the morning quote rotates with the day of the month", () => {
   })
 })
 
-describe("The 24th's quote in bang's words (24/10/2026 — Task #484)", () => {
-  it("«ដកលុយសន្សំភ្លាមពេលបើកប្រាក់ខែ ហើយកាត់ចិត្តថាគ្មានវា។» — never «ហើយភ្លេចវាចោល»", () => {
-    assert.equal(morningQuote("2026-10-24"), "លុយមិនដុះលើដើមឈើទេ — វាដុះក្នុងគណនីសន្សំដែលអ្នកមិនប៉ះ។ 💡 ដកលុយសន្សំភ្លាមពេលបើកប្រាក់ខែ ហើយកាត់ចិត្តថាគ្មានវា។")
-    assert.ok(!MORNING_QUOTES.some((q) => q.includes("ភ្លេចវាចោល")))
+describe("The 24th's quote in bang's words (24/10/2026 — Tasks #484 / #485)", () => {
+  it("«ដកលុយសន្សំភ្លាមពេលបើកប្រាក់ខែ ហើយតាំងចិត្តកុំដកចាយ។» — never the earlier «ហើយភ្លេចវាចោល» or «ហើយកាត់ចិត្តថាគ្មានវា»", () => {
+    assert.equal(morningQuote("2026-10-24"), "លុយមិនដុះលើដើមឈើទេ — វាដុះក្នុងគណនីសន្សំដែលអ្នកមិនប៉ះ។ 💡 ដកលុយសន្សំភ្លាមពេលបើកប្រាក់ខែ ហើយតាំងចិត្តកុំដកចាយ។")
+    for (const old of ["ភ្លេចវាចោល", "កាត់ចិត្តថាគ្មានវា"]) assert.ok(!MORNING_QUOTES.some((q) => q.includes(old)), old)
   })
 })

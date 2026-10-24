@@ -326,10 +326,13 @@ export function createScheduler(d: SchedulerDeps) {
     if (!r) return
     for (const row of await r.publishedToday()) {
       if (!row.content_hash || !REPLACEABLE(row.kind) || compared.get(row.id) === row.content_hash) continue
-      if (row.replace_status === "PENDING" || row.replace_status === "APPROVED" || row.replace_status === "REPLACING") continue
+      if (row.replace_status === "APPROVED" || row.replace_status === "REPLACING") continue
+      // A 🔄 still waiting when the content changed again (founder, 24/10/2026 — Task #485: the wording refined after the
+      // first card): the newest version previewed once more after the deploy — either card's tap publishes what is current.
+      const waiting = row.replace_status === "PENDING"
       compared.set(row.id, row.content_hash)
       const now = await r.contentHash(row)
-      if (!now || now === row.content_hash || !(await r.replaceAsk(row.id))) continue
+      if (!now || now === row.content_hash || (!waiting && !(await r.replaceAsk(row.id)))) continue
       const sent = await scoped(row, async () => {
         const { png, body } = await d.content(row)
         // «✍️ ចំណុចកែប្រែ ៖ …» — against what went out (Task #462).

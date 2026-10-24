@@ -497,6 +497,15 @@ describe("REPLACE OLD WITH NEW — today's published post, improved, replaces th
     await h.press("spr:7:y", STRANGER) // not an approver
     assert.equal(h.row.replace_status, "PENDING")
   })
+  it("a 🔄 still waiting from before the deploy, its content changed again (Task #485): the newest version previewed once more, not claimed twice", async () => {
+    const h = harness({ v: "v3" })
+    h.row.replace_status = "PENDING" // the first card, never tapped
+    await h.s.checkVersions()
+    await h.s.checkVersions()
+    assert.equal(h.log.previews.length, 1) // once per deploy
+    assert.equal(h.log.asked, 0) // already claimed: the same replacement, a fresh preview
+    assert.equal(h.log.published, 0) // still nothing without a tap
+  })
   it("🔄 (Task #441): the new version is edited INTO the published message — same message, nothing deleted, nothing new; the founder is told", async () => {
     const h = harness({ v: "v2" })
     await h.s.checkVersions()
