@@ -101,3 +101,29 @@ describe("The SoundBox announced by the phone itself (founder, 24/10/2026 — Ta
     assert.match(feed, /request\.headers\.get\("x-soundbox-token"\) \?\? \(typeof body\?\.t === "string" \? body\.t : null\)/)
   })
 })
+
+describe("The sale push strictly per device (founder, 24/10/2026 — Task #493: every sale rang all 9 of the founder's devices)", () => {
+  it("a SoundBox on here, for any workspace — read from this device's own switches only", async () => {
+    const { soundboxOnHere } = await import("./soundbox")
+    const store = (o: Record<string, string>) => ({ length: Object.keys(o).length, key: (i: number) => Object.keys(o)[i] ?? null, getItem: (k: string) => o[k] ?? null })
+    assert.equal(soundboxOnHere(store({ soundbox_enabled_a: "0", other: "1" })), false)
+    assert.equal(soundboxOnHere(store({ soundbox_enabled_a: "0", soundbox_enabled_b: "1" })), true)
+    assert.equal(soundboxOnHere(null), false)
+  })
+
+  it("the server pushes a sale only to subscriptions their own device switched on; off by default, every row reset", () => {
+    const sql = read("supabase/migrations/20270255000000_sale_push_per_device.sql")
+    assert.match(sql, /add column if not exists sale_alerts boolean not null default false;/)
+    assert.match(sql, /update public\.push_subscriptions set sale_alerts = false where sale_alerts;/)
+    assert.match(sql, /where s\.sale_alerts\s+and \(/)
+    assert.match(sql, /update public\.push_subscriptions set sale_alerts = p_on where endpoint = p_endpoint and user_id = \(select auth\.uid\(\)\)/)
+  })
+
+  it("each device sets its own row: the chime or a SoundBox on here — at launch, at every switch, on a new subscription", () => {
+    const l = read("src/components/payments/payment-chime-listener.tsx")
+    assert.match(l, /void setSalePush\(usePrefsStore\.getState\(\)\.paymentChime \|\| soundboxOnHere\(local\)\)/)
+    assert.match(l, /window\.addEventListener\(SOUNDBOX_SWITCH_EVENT, sync\)/)
+    assert.match(read("src/app/(app)/soundbox/page.tsx"), /writeSoundboxEnabled\(store\(\), counterId, on\)\s+window\.dispatchEvent\(new Event\(SOUNDBOX_SWITCH_EVENT\)\)/)
+    assert.match(read("src/lib/push.ts"), /window\.dispatchEvent\(new Event\(SOUNDBOX_SWITCH_EVENT\)\)\s+return "on"/)
+  })
+})

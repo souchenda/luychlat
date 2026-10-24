@@ -19,7 +19,8 @@ import { paymentAudioUnlocked, playThroughWebAudio, unlockOnFirstTap } from "@/l
 import { isQuiet, nativeFeedActive, phoneQuiet, soundboxAwake } from "@/lib/native-keepalive"
 import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentClips, paymentSpeech, SPEECH_AFTER_CHIME_MS, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { readVoiceSpeed, reconnectDelay, type VoiceSpeed } from "@/lib/soundbox"
+import { setSalePush } from "@/lib/push"
+import { readVoiceSpeed, reconnectDelay, SOUNDBOX_SWITCH_EVENT, soundboxOnHere, type VoiceSpeed } from "@/lib/soundbox"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -207,6 +208,24 @@ export function PaymentChimeListener() {
   const on = useRef(enabled)
   on.current = enabled
   const seen = useRef(new Set<string>())
+
+  // The sale push strictly per device (Task #493): this device's subscription rings for sales only while the chime or a
+  // SoundBox is switched on here — on every launch, every switch; every other device of the account stays silent.
+  useEffect(() => {
+    if (!userId) return
+    const sync = () => {
+      let local: Storage | null = null
+      try {
+        local = window.localStorage
+      } catch {
+        local = null
+      }
+      void setSalePush(usePrefsStore.getState().paymentChime || soundboxOnHere(local)).catch(() => false)
+    }
+    sync()
+    window.addEventListener(SOUNDBOX_SWITCH_EVENT, sync)
+    return () => window.removeEventListener(SOUNDBOX_SWITCH_EVENT, sync)
+  }, [userId, enabled])
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()

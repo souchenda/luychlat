@@ -33,6 +33,7 @@ import {
   SOUNDBOX_MODES,
   todayTotals,
   writeSoundboxEnabled,
+  SOUNDBOX_SWITCH_EVENT,
   type AudioIssue,
   type WakeState,
   type SoundboxEvent,
@@ -222,6 +223,7 @@ export default function SoundboxPage() {
   const setEnabled = (on: boolean) => {
     setEnabledState(on)
     writeSoundboxEnabled(store(), counterId, on)
+    window.dispatchEvent(new Event(SOUNDBOX_SWITCH_EVENT)) // this device's sale push follows its switch (Task #493)
   }
   // Payments with the screen locked: the phone push (the browser may be asleep) — offered until it is on.
   const [push, setPush] = useState<PushState | null>(null)

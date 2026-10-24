@@ -364,6 +364,23 @@ export const soundboxStorageKey = (workspaceId: string) => `soundbox_enabled_${w
 
 type KeyValueStore = { getItem(key: string): string | null; setItem(key: string, value: string): void }
 
+/** Raised on this device whenever a SoundBox is switched on or off (the sale push follows it — Task #493). */
+export const SOUNDBOX_SWITCH_EVENT = "luychlat:soundbox-switch"
+
+/** A SoundBox switched on on this device, for any workspace (soundbox_enabled_<workspace> = "1"). */
+export function soundboxOnHere(store: { readonly length: number; key(i: number): string | null; getItem(key: string): string | null } | null): boolean {
+  if (!store) return false
+  try {
+    for (let i = 0; i < store.length; i++) {
+      const key = store.key(i)
+      if (key?.startsWith("soundbox_enabled_") && store.getItem(key) === "1") return true
+    }
+  } catch {
+    // private mode: nothing remembered
+  }
+  return false
+}
+
 /** On only when this workspace's SoundBox was turned on and never turned off since. */
 export function readSoundboxEnabled(store: KeyValueStore | null, workspaceId: string | null | undefined): boolean {
   if (!store || !workspaceId) return false

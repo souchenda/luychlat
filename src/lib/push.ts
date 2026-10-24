@@ -2,6 +2,7 @@
 
 import { PROVINCES } from "@/lib/prayer"
 import { pushProvince } from "@/lib/prayer-push"
+import { SOUNDBOX_SWITCH_EVENT } from "@/lib/soundbox"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 
@@ -61,6 +62,8 @@ export async function enablePush(): Promise<PushState> {
   const { place, gps } = useIslamicLocalStore.getState()
   syncedProvince = null
   await setPrayerProvince(pushProvince(place, gps, PROVINCES)).catch(() => false)
+  // …and this device's sale-push switch (Task #493: off until the chime or a SoundBox is on here).
+  window.dispatchEvent(new Event(SOUNDBOX_SWITCH_EVENT))
   return "on"
 }
 
@@ -86,6 +89,20 @@ export async function setPrayerPush(on: boolean): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
   if (!sub || !supabase) return false
   const { data, error } = await supabase.rpc("set_prayer_push", { p_endpoint: sub.endpoint, p_on: on })
+  return !error && data === true
+}
+
+/**
+ * This device's subscription rings for KHQR sales only when this device says so (founder, 24/10/2026 — Task #493: every
+ * sale was pushed to all of the founder's 9 browsers and phones): the SoundBox or the payment chime switched on here
+ * (PaymentChimeListener, on every launch and every switch). false without a push subscription.
+ */
+export async function setSalePush(on: boolean): Promise<boolean> {
+  if (!supported()) return false
+  const sub = await (await navigator.serviceWorker.getRegistration())?.pushManager.getSubscription()
+  const supabase = getSupabaseBrowserClient()
+  if (!sub || !supabase) return false
+  const { data, error } = await supabase.rpc("set_sale_push", { p_endpoint: sub.endpoint, p_on: on })
   return !error && data === true
 }
 
