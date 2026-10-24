@@ -27,6 +27,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         int id = intent.getIntExtra("id", 0);
+        // Turned off on this phone (Task #494): not in its plan any more — silent, never a stray Adhan.
+        if (!AdhanAlarmPlugin.planned(context, id)) return;
         String title = intent.getStringExtra("title");
         String body = intent.getStringExtra("body");
         String channelId = intent.getStringExtra("channelId");

@@ -145,14 +145,38 @@ public class AdhanAlarmPlugin extends Plugin {
 
     static void cancelAll(Context context) {
         AlarmManager alarms = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        String saved = prefs(context).getString(KEY, null);
-        if (alarms == null || saved == null) return;
+        if (alarms == null) return;
         try {
+            // The 10 s test too (never in the saved list), so nothing is left ringing.
+            alarms.cancel(fireIntent(context, new JSONObject().put("id", TEST_ID)));
+            String saved = prefs(context).getString(KEY, null);
+            if (saved == null) return;
             JSONArray list = new JSONArray(saved);
             for (int i = 0; i < list.length(); i++) alarms.cancel(fireIntent(context, list.getJSONObject(i)));
         } catch (JSONException ignored) {
             // nothing readable to cancel
         }
+    }
+
+    /** The 10 s test's id (lib/native-prayer.ts › NATIVE_TEST_ID). */
+    static final int TEST_ID = 199_999_999;
+
+    /**
+     * The hard guard of Task #494 (founder, 24/10/2026 — «zero tolerance»): an Adhan rings only if it is still in this
+     * phone's plan. Turned off on this phone, the plan is gone (cancelAll), so a stray alarm that still fires — set by an
+     * older build, or missed by a cancel — makes no sound. The 10 s test always rings (the person just tapped it).
+     */
+    static boolean planned(Context context, int id) {
+        if (id == TEST_ID) return true;
+        String saved = prefs(context).getString(KEY, null);
+        if (saved == null) return false;
+        try {
+            JSONArray list = new JSONArray(saved);
+            for (int i = 0; i < list.length(); i++) if (list.getJSONObject(i).optInt("id") == id) return true;
+        } catch (JSONException ignored) {
+            // unreadable: nothing planned
+        }
+        return false;
     }
 
     /** After a reboot: the alarms still ahead, set again. */

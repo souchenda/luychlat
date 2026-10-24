@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
@@ -178,5 +178,23 @@ describe("The Adhan strictly per device (founder, 24/10/2026 — Task #488: at D
     assert.match(sql, /alter column prayer_alerts set default false/) // a new browser never rings by default
     assert.match(sql, /update public\.push_subscriptions set prayer_alerts = false where prayer_alerts/)
     assert.ok(readFileSync(join(process.cwd(), "src/lib/i18n/dictionaries.ts"), "utf8").includes('"prayerAlert.thisDevice": "📱 សម្រាប់តែទូរសព្ទនេះ'))
+  })
+})
+
+describe("The Adhan never on a phone that turned it off (founder, 24/10/2026 — Task #494: «zero tolerance»)", () => {
+  const native = !existsSync(join(process.cwd(), "android")) && "android/ is not in the build context"
+  it("the receiver rings only an alarm still in this phone's plan; off clears the plan and cancels every alarm, the test too", { skip: native }, () => {
+    const receiver = readFileSync(join(process.cwd(), "android/app/src/main/java/com/luychlat/app/AdhanAlarmReceiver.java"), "utf8")
+    assert.match(receiver, /int id = intent\.getIntExtra\("id", 0\);\s+\/\/[^\n]+\n\s+if \(!AdhanAlarmPlugin\.planned\(context, id\)\) return;/)
+    const plugin = readFileSync(join(process.cwd(), "android/app/src/main/java/com/luychlat/app/AdhanAlarmPlugin.java"), "utf8")
+    assert.match(plugin, /alarms\.cancel\(fireIntent\(context, new JSONObject\(\)\.put\("id", TEST_ID\)\)\);/)
+    assert.match(plugin, /static final int TEST_ID = 199_999_999;/)
+    assert.match(plugin, /public void cancelAll\(PluginCall call\) \{\s+cancelAll\(getContext\(\)\);\s+prefs\(getContext\(\)\)\.edit\(\)\.remove\(KEY\)\.apply\(\);/)
+  })
+  it("off at launch cancels the native alarms; the server pushes only rows whose own device switched the Adhan on", () => {
+    const alerts = readFileSync(join(process.cwd(), "src/components/islamic/prayer-alerts.tsx"), "utf8")
+    assert.match(alerts, /if \(!alertsOn\) \{\s+setNativeOn\(false\)\s+void cancelNativePrayers\(\)/)
+    assert.match(alerts, /void setPrayerPush\(alertsOn\)/)
+    assert.match(readFileSync(join(process.cwd(), "src/lib/native-prayer.ts"), "utf8"), /export const NATIVE_TEST_ID = 199_999_999/)
   })
 })
