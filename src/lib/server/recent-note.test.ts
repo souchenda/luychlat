@@ -24,7 +24,7 @@ describe("A follow-up note on the entry just recorded (founder, 20/10/2026)", ()
   })
   it("the reply: the founder's words — the note, the amount, the category", () => {
     const text = recentNoteText("km", { note: "ចំណាយសំភារៈសិក្សាកូន", amount: 51500, currency: "KHR", category: "Education", preset: "education" })
-    assert.equal(text, "✅ បានបន្ថែមចំណាំ៖ «ចំណាយសំភារៈសិក្សាកូន» លើប្រតិបត្តិការ 51,500៛ រួចរាល់!\n📁 ប្រភេទ៖ ការសិក្សា")
+    assert.equal(text, "✏️ បានបន្ថែមចំណាំ៖ «ចំណាយសំភារៈសិក្សាកូន» ទៅលើប្រតិបត្តិការ 51,500៛\n📁 ប្រភេទ៖ ការសិក្សា") // the founder's wording (Task #497)
   })
   it("the flow: a loan named first, then the recent-entry note, then the «no amount» hint; every saved card remembered", () => {
     const c = read("src/lib/server/bot-commands.ts")
@@ -33,7 +33,7 @@ describe("A follow-up note on the entry just recorded (founder, 20/10/2026)", ()
     assert.ok(fail.indexOf("noteOnRecentEntry") < fail.indexOf("bot.voiceNoAmount"), "the note before the hint")
     assert.match(c, /await rememberCard\(chatId, savedTx\.id, cb\.message!\.message_id\)/)
     const s = read("src/lib/server/slip-bot.ts")
-    assert.equal((s.match(/await rememberCard\(chatId, r\.tx_id, /g) ?? []).length, 2) // the zero-click card and the uncategorised one
+    assert.equal((s.match(/await rememberCard\(chatId, r\.tx_id, /g) ?? []).length, 3) // the zero-click card, the uncategorised one, the category tap (Task #497)
     // [📝 បន្ថែមចំណាំ] under the zero-click slip card, and kept after a category change.
     assert.match(s, /const note = \[\{ text: tr\(lang, t\.note \? "bot\.noteBtnEdit" : "bot\.noteBtn"\), callback_data: `st:\$\{txId\}:T` \}\]/)
     assert.match(s, /inline_keyboard: \[row, note\]/)
@@ -61,5 +61,27 @@ describe("A note about a child tags «👶 សម្រាប់កូន» (fou
     const card = savedCard("km", "00000000-0000-0000-0000-000000000000", { amount: 1, currency: "KHR", wallet: "w", label: "l", food: false, subcategory: null, need_want: null, for_child: true, note: "កូន" })
     const buttons = card.reply_markup.inline_keyboard.flat()
     assert.ok(buttons.some((b) => b.text === "✓ 👶 សម្រាប់កូន" && b.callback_data.endsWith(":K0")))
+  })
+})
+
+describe("The note right after a slip saved by a category tap (founder, 24/10/2026 — Task #497)", () => {
+  it("regression: the 4,000 ៛ TIA parking slip — «ចំណតនៅព្រលានទទួលគ្រួសារមកពីយកូកុន», then «ចំណតឡាន», are notes", () => {
+    for (const t of ["ចំណតនៅព្រលានទទួលគ្រួសារមកពីយកូកុន", "ចំណតឡាន"]) assert.ok(looksLikeNote(t), t)
+    const s = read("src/lib/server/slip-bot.ts")
+    const tap = s.slice(s.indexOf("export async function handleSlipCallback"), s.indexOf("async function handleWalletCallback"))
+    assert.match(tap, /await tg\("editMessageText", \{ chat_id: chatId, message_id: cb\.message!\.message_id, \.\.\.card \}\)\n[^\n]*\n[^\n]*\n\s+if \(r\.tx_id\) await rememberCard\(chatId, r\.tx_id, cb\.message!\.message_id\)/)
+    const text = recentNoteText("km", { note: "ចំណតឡាន", amount: 4000, currency: "KHR", category: null, preset: null })
+    assert.equal(text.split("\n")[0], "✏️ បានបន្ថែមចំណាំ៖ «ចំណតឡាន» ទៅលើប្រតិបត្តិការ 4,000៛")
+  })
+  it("a second note within the 5 minutes is added, never replacing the first; the slip line stays last; the same text once", () => {
+    const sql = read("supabase/migrations/20270256000000_recent_note_append.sql")
+    assert.match(sql, /where s not like '🧾%' and btrim\(s\) <> '' and s <> clean;/)
+    assert.match(sql, /set note = left\(concat_ws\(' · ', kept, clean, slip\), 500\)/)
+    assert.match(sql, /created_at > now\(\) - interval '5 minutes'/)
+  })
+  it("the [📝 បន្ថែមចំណាំ] button still asks and takes a reply (text or voice)", () => {
+    const s = read("src/lib/server/slip-bot.ts")
+    assert.match(s, /async function askForNote\(chatId: number, txId: string, cardMsg: number/)
+    assert.match(s, /export async function handleNoteReply\(chatId: number, replyTo: number, text: string\)/)
   })
 })

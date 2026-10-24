@@ -33,7 +33,7 @@ describe("Short voice notes in @luychlat_bot — a friendly reply, never the rig
     const c = read("src/lib/server/bot-commands.ts")
     assert.match(c, /if \(parsed\.reason === "no_amount" && \(await noteOnRecentEntry\(chatId, heard \?\? input, lang, Boolean\(heard\)\)\)\) return/)
     // The saved slip cards are the prompts the note lands on (bot_tx_note_recent).
-    assert.equal(read("src/lib/server/slip-bot.ts").match(/await rememberCard\(chatId, r\.tx_id/g)?.length, 2)
+    assert.equal(read("src/lib/server/slip-bot.ts").match(/await rememberCard\(chatId, r\.tx_id/g)?.length, 3) // + the category tap (Task #497)
   })
 
   it("empty or unclear: «ស្ដាប់មិនសូវច្បាស់ទេបង 🙏 …» (inline text, no alert); a card that could not be saved: a gentle line and the reason logged", () => {

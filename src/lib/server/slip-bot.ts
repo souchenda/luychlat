@@ -636,6 +636,9 @@ export async function handleSlipCallback(cb: Callback) {
       ? savedCard(lang, r.tx_id, tagged)
       : { text: maskNumbers([tr(lang, "bot.slipSaved"), `💵 ${formatMoney(tagged.amount, tagged.currency)}`, `👛 ${tagged.wallet}`, `🏷️ ${label}`].join("\n")) }
   await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, ...card })
+  // The saved card remembered, like the zero-click one (Task #497: the 4,000 ៛ TIA parking slip saved by a category tap
+  // was never remembered, so «ចំណតឡាន» right after it got «រកមិនឃើញចំនួនទឹកប្រាក់ទេ» instead of becoming its note).
+  if (r.tx_id) await rememberCard(chatId, r.tx_id, cb.message!.message_id)
   if (action.kind === "EXPENSE") await settleBillFromPayment(chatId, r.tx_id, action.slip?.consumer, action.slip?.party)
   if (action.kind === "EXPENSE") await offerDebtLink(chatId, r.tx_id, action.slip?.party, ws?.debts ?? [])
 }
