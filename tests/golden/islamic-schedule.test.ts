@@ -30,9 +30,10 @@ describe("GOLDEN · the Islamic channel's 24-hour schedule", () => {
   it("daily: 05:30 morning du'a, 08:00 lesson, 21:00 bedtime du'a — previewed 45 min before", () => {
     assert.ok(kinds("2026-10-20", at(4, 45)).includes("ISLAMIC_MORNING:2026-10-20"))
     // The 08:00 lesson — only one with its story context (founder's decision, 25/10/2026 — Task #498): 25/10 has its
-    // story; 05/11 (lesson 1) has none yet, so no card is planned that day.
+    // story (a lesson without one is never planned — checked below).
     assert.ok(kinds("2026-10-25", at(7, 15)).includes("ISLAMIC_DAILY:2026-10-25"))
-    assert.ok(!kinds("2026-11-05", at(7, 15)).includes("ISLAMIC_DAILY:2026-11-05")) // lesson 1: no story yet
+    // Every lesson has its story since Task #505 — the guard itself stays: the planner plans a lesson only when it is ready.
+    assert.match(readFileSync(join(process.cwd(), "src/lib/islamic-channel.ts"), "utf8"), /if \(open\(S\.ISLAMIC_DAILY\) && dailyLessonReady\(day\)\) plan\("ISLAMIC_DAILY"\)/)
     // No quiz in the channel (founder, 20/10/2026 — a teaser without choices read as clickbait): the app only.
     for (let m = 0; m < 24 * 60; m += 15) assert.ok(!kinds("2026-10-20", m).some((k) => k.startsWith("ISLAMIC_QUIZ")), String(m))
     assert.ok(kinds("2026-10-20", at(20, 15)).includes("ISLAMIC_NIGHT:2026-10-20"))

@@ -180,3 +180,24 @@ describe("Lessons 7–13 with their stories, drafted for the advisor (founder, 2
     assert.ok(tipDayNumber("2026-10-28") > 0)
   })
 })
+
+describe("Lessons 1 and 2 with their stories — the full 14-lesson cycle (founder, 26/10/2026 — Task #505)", () => {
+  it("05/11 (2:282 — Tirmidhi 3368) and 06/11 (2:275 — Muslim 1218): drafts, planned, the caption fits a photo WITH its footer", async () => {
+    const { dailyLessonReady, islamicPostContent, islamicCaptionHtml, STORY_REVIEW } = await import("./islamic-channel")
+    const { postFooter, withFooter } = await import("./post-footer")
+    const { hasStoryContext } = await import("./islamic-tips")
+    for (const [day, id, cites] of [["2026-11-05", "isl-write-debt", ["Jami' at-Tirmidhi 3368", "Al-Baqarah: អាយ៉ាត់ 282"]], ["2026-11-06", "isl-trade-not-riba", ["Sahih Muslim 1218", "Al-Baqarah: អាយ៉ាត់ 275"]]] as const) {
+      assert.equal(dailyLessonReady(day), true, day)
+      const tip = ISLAMIC_TIPS.find((t) => t.id === id)!
+      assert.ok(hasStoryContext(tip) && tip.story?.draft === true, id)
+      const c = islamicPostContent("ISLAMIC_DAILY", day, null)
+      const html = islamicCaptionHtml(c)
+      for (const r of cites) assert.ok(html.includes(r), `${id}: ${r}`)
+      assert.ok(html.includes("💡 មេរៀនហិរញ្ញវត្ថុ៖"), id)
+      const footer = postFooter("islamic")
+      assert.ok(withFooter(html, footer).endsWith(footer), `${id}: the footer is kept (${html.length} + footer ≤ 1,024)`)
+      assert.equal(c.review, STORY_REVIEW)
+    }
+    assert.equal(ISLAMIC_TIPS.filter((t) => !hasStoryContext(t)).length, 0) // every lesson of the cycle has its story
+  })
+})

@@ -51,6 +51,20 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
       km: "ពេលខ្ចី ឬឱ្យខ្ចីលុយ ទោះតិចឬច្រើន ចូរកត់ត្រាចំនួន ថ្ងៃខ្ចី និងថ្ងៃសង ហើយមានសាក្សី។ អល់ឡោះបានបង្គាប់ឱ្យកត់ត្រាបំណុល ដើម្បីរក្សាភាពយុត្តិធម៌ និងទំនាក់ទំនងល្អ។",
       en: "Whenever you lend or borrow, big or small, write down the amount, the date and when it is due, with a witness. Allah commands debts to be written — it keeps both fairness and the friendship.",
     },
+    // The story (Task #505, a draft for Nuryerny Ahmad): Adam, who forgot the years he had given — «so his descendants forget» (Jami' at-Tirmidhi 3368).
+    story: {
+      draft: true,
+      caption: [
+        "",
+        "📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃអាយ៉ាត់)៖",
+        "ព្យាការី ﷺ មានប្រសាសន៍ថា៖ ព្យាការី Adam បានផ្តល់អាយុខ្លួន 40 ឆ្នាំឱ្យព្យាការី Dawud។ ពេលដល់ថ្ងៃស្លាប់ Adam ភ្លេច ហើយបដិសេធ ហើយកូនចៅរបស់លោកក៏ភ្លេចដូចគ្នា (Jami' at-Tirmidhi 3368)។ ដោយសារមនុស្សតែងភ្លេច អល់ឡោះបានបង្គាប់ឱ្យកត់ត្រាបំណុល និងមានសាក្សី។",
+        "",
+        "អល់ឡោះមានបន្ទូលថា៖",
+        "«ឱ អ្នកមានជំនឿ! ពេលអ្នកខ្ចីបំណុលគ្នា ដល់ពេលកំណត់មួយ ចូរកត់ត្រាវាទុក» (ស៊ូរ៉ាត់ Al-Baqarah: អាយ៉ាត់ 282)។",
+        "",
+        "💡 មេរៀនហិរញ្ញវត្ថុ៖ ខ្ចី ឬឱ្យខ្ចីលុយ ចូរកត់ត្រាចំនួន និងថ្ងៃសងក្នុង អេប លុយឆ្លាត ហើយមានសាក្សី។",
+      ],
+    },
     ref: quran("Al-Baqarah", 2, 282),
   },
   {
@@ -61,6 +75,20 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
     body: {
       km: "អល់ឡោះអនុញ្ញាតការជួញដូរ ហើយហាមឃាត់ការប្រាក់ ឬ «រីបា»។ មុនខ្ចីលុយមកពង្រីកហាង ចូរស្វែងរកជម្រើសគ្មានការប្រាក់ ដូចជាការចែករំលែកប្រាក់ចំណេញ ឬការខ្ចីដោយគ្មានការប្រាក់។",
       en: "Allah has permitted trade and forbidden interest (riba). Before borrowing to grow your shop, look for interest-free options such as profit-sharing or an interest-free loan.",
+    },
+    // The story (Task #505, a draft): the Farewell Sermon abolishing the riba of Jahiliyyah, starting with Abbas's (Sahih Muslim 1218).
+    story: {
+      draft: true,
+      caption: [
+        "",
+        "📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃអាយ៉ាត់)៖",
+        "សម័យ Jahiliyyah អ្នកឱ្យខ្ចីតែងបន្ថែមការប្រាក់ ពេលកូនបំណុលសងមិនទាន់។ ក្នុងខុតបះនៃហជ្ជចុងក្រោយ ព្យាការី ﷺ ប្រកាសថា «ការប្រាក់សម័យ Jahiliyyah ត្រូវលុបចោល ហើយការប្រាក់ដំបូងដែលខ្ញុំលុប គឺការប្រាក់របស់ Abbas» ជាពូរបស់លោកផ្ទាល់ (Sahih Muslim 1218)។",
+        "",
+        "អល់ឡោះមានបន្ទូលថា៖",
+        "«អល់ឡោះអនុញ្ញាតការជួញដូរ ហើយហាមឃាត់ការប្រាក់» (ស៊ូរ៉ាត់ Al-Baqarah: អាយ៉ាត់ 275)។",
+        "",
+        "💡 មេរៀនហិរញ្ញវត្ថុ៖ មុនខ្ចីលុយពង្រីកហាង ចូរស្វែងរកជម្រើសគ្មានការប្រាក់ ដូចជាការចែករំលែកប្រាក់ចំណេញ។",
+      ],
     },
     ref: quran("Al-Baqarah", 2, 275),
   },
