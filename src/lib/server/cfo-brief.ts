@@ -3,7 +3,7 @@
 // Only the workspace OWNER's private chat, only with «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» on (bot_cfo_recipients /
 // bot_cfo_for_chat check it); once a week per business (cfo_brief_sent).
 import { DEFAULT_ABOUT } from "@/lib/app-site"
-import { buildCfoBrief, cfoBriefDue, type CfoData } from "@/lib/bot/cfo-brief"
+import { buildCfoBrief, cfoBriefDue, cfoWeekIdle, type CfoData } from "@/lib/bot/cfo-brief"
 
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
@@ -18,9 +18,12 @@ export async function cfoBriefTick() {
   const { data, error } = await db.rpc("bot_cfo_recipients", { p_key: botKey(), p_today: now.day, p_limit: 30 })
   if (error) return logEvent("error", "cfo-brief", `Recipients failed: ${error.message}`, { fold: true })
   let sent = 0
+  let idle = 0
   for (const r of (data as { workspace_id: string; chat_id: number; data: CfoData | null }[] | null) ?? []) {
     try {
-      if (r.data) {
+      // Nothing recorded this week (Task #504): no $0.00 brief — marked below like a sent one, never retried.
+      if (r.data && cfoWeekIdle(r.data)) idle += 1
+      else if (r.data) {
         const res = await sendText(Number(r.chat_id), buildCfoBrief(r.data), { parse_mode: "HTML", ...reportsButton })
         if (res.ok) sent += 1
       }
@@ -30,7 +33,7 @@ export async function cfoBriefTick() {
     // Marked either way: a blocked chat is not retried every minute.
     await db.rpc("bot_mark_cfo_sent", { p_key: botKey(), p_workspace_id: r.workspace_id, p_today: now.day })
   }
-  if (sent) logEvent("info", "cfo-brief", `Weekly CFO brief sent to ${sent} owner${sent === 1 ? "" : "s"}`, { fold: true })
+  if (sent || idle) logEvent("info", "cfo-brief", `Weekly CFO brief sent to ${sent} owner${sent === 1 ? "" : "s"}${idle ? ` · ${idle} business${idle === 1 ? "" : "es"} with no activity this week skipped` : ""}`, { fold: true })
 }
 
 /** /cfo, /healthcheck: the brief now (this week so far), or why not. */

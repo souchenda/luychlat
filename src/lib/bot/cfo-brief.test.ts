@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { buildCfoBrief, cfoBriefDue, cfoFigures, cfoTip, change, inWs, type CfoData } from "./cfo-brief"
+import { buildCfoBrief, cfoBriefDue, cfoFigures, cfoTip, cfoWeekIdle, change, inWs, type CfoData } from "./cfo-brief"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 
 // DL MEAT SUPPLY's week of 05–11/10/2026 as cfo_brief_data returned it (rounded).
 const DL: CfoData = {
@@ -73,5 +75,21 @@ describe("CFO brief — when", () => {
     assert.ok(!cfoBriefDue("2026-10-11", 17))
     assert.ok(!cfoBriefDue("2026-10-11", 21))
     assert.ok(!cfoBriefDue("2026-10-12", 18))
+  })
+})
+
+describe("No $0.00 Sunday brief (founder, 25/10/2026 — Task #504)", () => {
+  it("regression: the empty «អេប លុយឆ្លាត» workspace beside DL MEAT SUPPLY's $20,035.93 — the idle one is skipped", () => {
+    assert.equal(cfoWeekIdle({ sales: 0, income: 0, expense: 0 }), true)
+    assert.equal(cfoWeekIdle({ sales: 20035.93, income: 20035.93, expense: 1200 }), false)
+    assert.equal(cfoWeekIdle({ sales: 0, income: 0, expense: 3.5 }), false) // a single expense is activity
+    assert.equal(cfoWeekIdle({ sales: 0, income: 50, expense: 0 }), false)
+  })
+  it("the Sunday tick skips it (marked, never retried, counted in the log); /cfo on demand still answers", () => {
+    const s = readFileSync(join(process.cwd(), "src/lib/server/cfo-brief.ts"), "utf8")
+    assert.match(s, /if \(r\.data && cfoWeekIdle\(r\.data\)\) idle \+= 1\s+else if \(r\.data\) \{/)
+    assert.match(s, /await db\.rpc\("bot_mark_cfo_sent"/)
+    const onDemand = s.slice(s.indexOf("export async function sendCfoNow"))
+    assert.doesNotMatch(onDemand, /cfoWeekIdle/)
   })
 })

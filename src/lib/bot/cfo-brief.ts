@@ -25,6 +25,13 @@ export type CfoData = {
   receivables: { party: string; amount: number; currency: Currency; days: number }[]
 }
 
+/**
+ * A business with nothing recorded this week — no sales, no income, no expense (founder, 25/10/2026 — Task #504: the
+ * empty «អេប លុយឆ្លាត» workspace got a $0.00 brief beside DL MEAT SUPPLY's). The Sunday brief skips it; /cfo still
+ * answers when asked.
+ */
+export const cfoWeekIdle = (d: Pick<CfoData, "sales" | "income" | "expense">) => !(Number(d.sales) > 0) && !(Number(d.income) > 0) && !(Number(d.expense) > 0)
+
 /** Sunday, 18:00 – 21:00 Cambodia time (a late server start still sends it — never on Monday). */
 export function cfoBriefDue(day: string, hour: number): boolean {
   return new Date(`${day}T12:00:00Z`).getUTCDay() === 0 && hour >= 18 && hour < 21
