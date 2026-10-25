@@ -184,7 +184,7 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
   it("published as sendPhoto with the caption — never text-only (text only if the image fails)", () => {
     const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
     assert.match(sp, /if \(chat\) ids\.telegram = \(await sendPosterPhoto\(chat, islamicPoster\(c\), caption, \{ reply_markup: buttons\.reply_markup \}\)\) \?\? \(await sentText\(caption, true\)\)/)
-    assert.match(sp, /return \{ png: poster\(\(\) => islamicPoster\(c\)\), body: stripHtml\(islamicCaptionHtml\(c\)\) \}/) // the preview is the poster too
+    assert.match(sp, /return \{ png: poster\(\(\) => islamicPoster\(c\)\), body: stripHtml\(islamicCaptionHtml\(c\)\), review: c\.review \}/) // the preview is the poster too (+ the draft flag, Task #500)
   })
   it("lines never break a time («០៤:២៣») or an Islamic term («អ៊ឹមសាក់», «ស៊ុណ្ណះ»…) — the server font is wider than Windows'", async () => {
     const { createCanvas } = await import("@napi-rs/canvas")
