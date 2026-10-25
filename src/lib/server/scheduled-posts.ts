@@ -1028,7 +1028,7 @@ export async function editCardByReply(chatId: number, replyTo: number, actor: nu
       /super admin only/.test(m) ? "សម្រាប់អ្នកអនុម័តប៉ុណ្ណោះ។"
       : /not_waiting/.test(m) ? "ការផ្សាយនេះបានសម្រេចរួចហើយ — មិនអាចកែបានទៀតទេ។"
       : /not_editable/.test(m) ? "ព័ត៌មានស្វ័យប្រវត្តិ (អត្រា មាស សាំង) មិនអាចកែដោយដៃបានទេ។"
-      : /too_long/.test(m) ? "អត្ថបទវែងពេក — សូមកុំឱ្យលើស ៩០០ តួអក្សរ។"
+      : /too_long/.test(m) ? "អត្ថបទវែងពេក — សូមកុំឱ្យលើស 900 តួអក្សរ (ការផ្សាយឥស្លាម 1,000)។"
       : "មិនអាចរក្សាទុកបានទេ។ សូមសាកម្ដងទៀត។",
     )
     return true

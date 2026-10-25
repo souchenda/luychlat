@@ -38,3 +38,13 @@ describe("Editing a waiting post's caption by replying to its card (founder, 20/
     assert.ok(sp.indexOf("    if (row.payload.caption) {") < sp.indexOf('    if (row.kind === "NATIONAL_DAY") {\n      // The commemoration poster'))
   })
 })
+
+describe("The Islamic advisor edits Islamic posts (founder, 25/10/2026 — Task #502)", () => {
+  it("regression: Nuryerny (a co-approver) was refused «សម្រាប់អ្នកអនុម័តប៉ុណ្ណោះ។» on today's lesson — an Islamic caption is hers to edit", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270258000000_co_approver_islamic_caption.sql"), "utf8").replace(/\r\n/g, "\n")
+    assert.match(sql, /islamic := r\.kind like 'ISLAMIC%';\n  actor := public\.tip_chat_super_admin\(p_actor\);\n  if actor is null and islamic then actor := public\.tip_chat_approver\(p_actor, /)
+    assert.match(sql, /if actor is null then raise exception 'super admin only'/) // the general channel's posts: the super admin only
+    assert.match(sql, /char_length\(clean\) > \(case when islamic then 1000 else 900 end\)/)
+    assert.match(readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8"), /សូមកុំឱ្យលើស 900 តួអក្សរ \(ការផ្សាយឥស្លាម 1,000\)/)
+  })
+})
