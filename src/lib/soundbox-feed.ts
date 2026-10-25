@@ -4,7 +4,7 @@
  * phone only fetches and plays. The same rules as the SoundBox page: a sale (an amount, KHR or USD), never a late push
  * (the bank's time over 10 min before the server got it), and only while fresh (recorded at most 5 min ago). Pure.
  */
-import { announceLate, isLatePush, khmerClipSequence, khmerClipUrl, VOICE_SPEEDS, DEFAULT_VOICE_SPEED, type VoiceSpeed } from "@/lib/soundbox"
+import { announceLate, catchUpTotals, isLatePush, khmerClipSequence, khmerClipUrl, quietSpanAt, VOICE_SPEEDS, DEFAULT_VOICE_SPEED, type QuietSpan, type VoiceSpeed } from "@/lib/soundbox"
 
 /** How often the service asks (a few seconds: a customer is still at the counter). */
 export const FEED_POLL_MS = 4_000
@@ -40,3 +40,29 @@ export function feedItems(rows: FeedRow[], now: number, speed: VoiceSpeed, origi
 
 /** The cursor after this answer: the newest sale it saw (announced or not), else where it started. */
 export const feedCursor = (rows: Pick<FeedRow, "created_at">[], since: string) => rows.map((r) => r.created_at).sort().at(-1) ?? since
+
+/**
+ * Quiet during the prayer, for the native feed (founder, 26/10/2026 — Task #506): the page sends this device's spans
+ * (soundbox_devices.quiet_spans); the server answers nothing while one is on, then — within 30 minutes of its end, once
+ * (quiet_caught_to) — a single catch-up item. Works with the APK as it is: the item is clips like any sale.
+ */
+export function feedQuiet(now: number, spans: QuietSpan[], caughtTo: number | null): { quiet: QuietSpan | null; catchUp: QuietSpan | null } {
+  const quiet = quietSpanAt(now, spans)
+  const ended = spans.filter((s) => s.to <= now && now - s.to < 30 * 60_000 && s.to > (caughtTo ?? 0)).sort((a, b) => b.to - a.to)
+  return { quiet, catchUp: quiet ? null : (ended[0] ?? null) }
+}
+
+/** A sale recorded inside a span: said by the catch-up, never on its own. */
+export const inQuietSpan = (createdAt: string, spans: QuietSpan[]) => quietSpanAt(Date.parse(createdAt), spans) !== null
+
+/** The catch-up for a span: «ទទួលបានប្រាក់ … រៀល» then «… ដុល្លារ» — the totals of its sales; null when none. */
+export function catchUpItem(rows: FeedRow[], span: QuietSpan, speed: VoiceSpeed, origin: string): FeedItem | null {
+  const sales = rows
+    .filter((r) => inQuietSpan(r.created_at, [span]) && !isLatePush(r.transaction_time, r.created_at))
+    .map((r) => ({ amount: Number(r.amount), currency: r.currency }))
+    .filter((s): s is { amount: number; currency: "KHR" | "USD" } => s.amount > 0 && (s.currency === "KHR" || s.currency === "USD"))
+  const totals = catchUpTotals(sales)
+  if (!totals.length) return null
+  const clips = totals.flatMap((t) => khmerClipSequence(t.amount, t.currency)).map((c) => `${origin}${khmerClipUrl(c, speed)}`)
+  return { id: `prayer-${span.to}`, createdAt: new Date(span.to).toISOString(), amount: totals[0].amount, currency: totals[0].currency, clips }
+}

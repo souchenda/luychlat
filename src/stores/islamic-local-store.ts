@@ -30,6 +30,10 @@ type IslamicLocalState = {
   /** This phone's server prayer push paused because the GPS put it abroad (it rings by Cambodian province); resumed back home. */
   pushPausedAbroad: boolean
   setPushPausedAbroad: (on: boolean) => void
+  /** «ស្ងាត់ SoundBox អំឡុងពេលសឡាត» on this device (Task #506 — off by default), and its minutes after each Adhan (15 / 20). */
+  soundboxQuiet: boolean
+  soundboxQuietMinutes: number
+  setSoundboxQuiet: (patch: Partial<Pick<IslamicLocalState, "soundboxQuiet" | "soundboxQuietMinutes">>) => void
   setProvince: (key: string) => void
   setGps: (lat: number, lng: number) => void
   setTasbih: (patch: Partial<Pick<IslamicLocalState, "tasbihCount" | "tasbihTarget" | "tasbihPhrase">>) => void
@@ -54,6 +58,9 @@ export const useIslamicLocalStore = create<IslamicLocalState>()(
       fajrAdhan: true,
       pushPausedAbroad: false,
       setPushPausedAbroad: (on) => set({ pushPausedAbroad: on }),
+      soundboxQuiet: false,
+      soundboxQuietMinutes: 15,
+      setSoundboxQuiet: (patch) => set(patch),
       quranLast: null,
       quranFontSize: 28,
       quranShowKm: true,

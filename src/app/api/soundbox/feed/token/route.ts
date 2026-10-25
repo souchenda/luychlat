@@ -52,6 +52,27 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true, token }, { headers: { "Cache-Control": "no-store" } })
 }
 
+/**
+ * PATCH { device, spans } — this device's quiet spans during the prayer (Task #506), from its SoundBox page; [] clears
+ * them. The person's own device only; at most 20 spans, each up to an hour.
+ */
+export async function PATCH(request: Request) {
+  const blocked = guardRequest(request, { name: "soundbox-feed-quiet", limit: 20, windowMs: 60_000, maxBytes: 4_000 })
+  if (blocked) return blocked
+  const supabase = await createSupabaseServerClient()
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return NextResponse.json({ ok: false }, { status: 401 })
+  const body = (await readJson(request, 4_000)) as { device?: unknown; spans?: unknown } | null
+  const device = typeof body?.device === "string" && UUID.test(body.device) ? body.device : null
+  if (!device || !Array.isArray(body?.spans)) return NextResponse.json({ ok: false }, { status: 400 })
+  const spans = (body.spans as { from?: unknown; to?: unknown }[])
+    .map((s) => ({ from: Number(s?.from), to: Number(s?.to) }))
+    .filter((s) => Number.isFinite(s.from) && Number.isFinite(s.to) && s.to > s.from && s.to - s.from <= 60 * 60_000)
+    .slice(0, 20)
+  await service().from("soundbox_devices").update({ quiet_spans: spans.length ? spans : null }).eq("id", device).eq("user_id", auth.user.id)
+  return NextResponse.json({ ok: true, spans: spans.length })
+}
+
 export async function DELETE(request: Request) {
   const blocked = guardRequest(request, { name: "soundbox-feed-token", limit: 10, windowMs: 60_000, maxBytes: 1_000 })
   if (blocked) return blocked

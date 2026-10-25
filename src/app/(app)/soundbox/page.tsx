@@ -34,6 +34,12 @@ import {
   todayTotals,
   writeSoundboxEnabled,
   SOUNDBOX_SWITCH_EVENT,
+  catchUpTotals,
+  PRAYER_QUIET_EVENT,
+  quietSpanAt,
+  readQuietSpans,
+  SILENCED_DURING_PRAYER,
+  type QuietSpan,
   type AudioIssue,
   type WakeState,
   type SoundboxEvent,
@@ -207,12 +213,24 @@ export default function SoundboxPage() {
     void fetch("/api/soundbox/feed/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device, workspace: counterId }) })
       .then((r) => (r.ok ? (r.json() as Promise<{ token?: string }>) : null))
       .then((r) => (!cancelled && r?.token ? startNativeFeed({ device, token: r.token, speed: String(readVoiceSpeed(store())) }) : false))
+      .then((started) => started && window.dispatchEvent(new Event(PRAYER_QUIET_EVENT))) // the feed gets this device's quiet spans
       .catch(() => false)
     return () => {
       cancelled = true
       stopNativeFeed()
       void fetch("/api/soundbox/feed/token", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device }) }).catch(() => null)
     }
+  }, [enabled, counterId])
+  // Quiet during the prayer, for the native feed (Task #506): this device's spans go to the server, which holds the sales
+  // in a span and plays one catch-up after it — sent now and whenever they change (the prayer scheduler writes them).
+  useEffect(() => {
+    const device = deviceId()
+    if (!enabled || !counterId || !device || !isNativeApp()) return
+    const send = () =>
+      void fetch("/api/soundbox/feed/token", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device, spans: readQuietSpans(store()) }) }).catch(() => null)
+    send()
+    window.addEventListener(PRAYER_QUIET_EVENT, send)
+    return () => window.removeEventListener(PRAYER_QUIET_EVENT, send)
   }, [enabled, counterId])
   useEffect(() => {
     const on = readSoundboxEnabled(store(), counterId)
@@ -298,6 +316,13 @@ export default function SoundboxPage() {
     flashTimer.current = window.setTimeout(() => setFlash(null), FLASH_MS)
     // The phone announces it itself (the native feed — Task #487): shown here, never twice.
     if (nativeFeedActive()) return report([document.visibilityState, "native-feed"])
+    // Quiet during the prayer (Task #506): shown and listed, not spoken — said in one catch-up when the span ends.
+    const span = quietSpanAt(Date.now(), readQuietSpans(store()))
+    if (span) {
+      held.current.push(added)
+      catchUpAt(span)
+      return report([document.visibilityState, SILENCED_DURING_PRAYER])
+    }
     // The phone on Silent / Vibrate / Do Not Disturb: shown, never sounded (Task #476) — and said so in the log.
     void phoneQuiet().then((quiet) => {
       console.info(`[SoundBox] Announce: amount=${added.amount} ${added.currency}, quietStatus=${quiet}, result=${isQuiet(quiet) ? "skipped (phone quiet)" : "announcing"}`)
@@ -311,6 +336,23 @@ export default function SoundboxPage() {
     })
   }
   const flashTimer = useRef<number | undefined>(undefined)
+  // The sales held during a prayer span, and its catch-up timer (Task #506).
+  const held = useRef<SoundboxEvent[]>([])
+  const catchUpTimer = useRef<{ to: number; id: number } | null>(null)
+  const catchUpAt = (span: QuietSpan) => {
+    if (catchUpTimer.current?.to === span.to) return
+    const id = window.setTimeout(() => {
+      catchUpTimer.current = null
+      const totals = catchUpTotals(held.current.splice(0))
+      void phoneQuiet().then(async (quiet) => {
+        if (isQuiet(quiet)) return
+        // «ទទួលបានប្រាក់ … រៀល» then «… ដុល្លារ» — the totals of the span, once.
+        for (const t of totals) await announce(t, settings.current.mode, settings.current.soundOn, settings.current.volume / 100, readVoiceSpeed(store()))
+      })
+    }, Math.max(0, span.to - Date.now()) + 1_000)
+    catchUpTimer.current = { to: span.to, id }
+  }
+  useEffect(() => () => window.clearTimeout(catchUpTimer.current?.id), [])
 
   // Today's receipts in every workspace the user belongs to (RLS), then each new one live — the
   // payment's workspace needn't be the one open in the app.

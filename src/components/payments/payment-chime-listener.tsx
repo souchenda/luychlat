@@ -20,7 +20,7 @@ import { isQuiet, nativeFeedActive, phoneQuiet, soundboxAwake } from "@/lib/nati
 import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentClips, paymentSpeech, SPEECH_AFTER_CHIME_MS, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { setSalePush } from "@/lib/push"
-import { readVoiceSpeed, reconnectDelay, SOUNDBOX_SWITCH_EVENT, soundboxOnHere, type VoiceSpeed } from "@/lib/soundbox"
+import { quietSpanAt, readQuietSpans, readVoiceSpeed, reconnectDelay, SILENCED_DURING_PRAYER, SOUNDBOX_SWITCH_EVENT, soundboxOnHere, type VoiceSpeed } from "@/lib/soundbox"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -180,9 +180,19 @@ function reportRing(e: PaymentEvent, what: string) {
   )
 }
 
+const safeLocal = () => {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
+
 async function ring(e: PaymentEvent): Promise<void> {
   // The phone announces it itself (the native feed — Task #487): never twice.
   if (nativeFeedActive()) return reportRing(e, "native-feed")
+  // Quiet during the prayer on this device (Task #506): no chime, no voice.
+  if (quietSpanAt(Date.now(), readQuietSpans(typeof window === "undefined" ? null : safeLocal()))) return reportRing(e, SILENCED_DURING_PRAYER)
   const { title, body } = paymentChimeText(e)
   if (isNativeApp()) {
     await ensurePaymentChannel()

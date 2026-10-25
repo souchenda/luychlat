@@ -359,6 +359,53 @@ export function joinMp3(clips: Uint8Array[]): Uint8Array {
   return out
 }
 
+/**
+ * Quiet during the prayer (founder, 26/10/2026 — Task #506): plain spans `{ from, to }` (epoch ms) this device's prayer
+ * scheduler writes when its «ស្ងាត់ SoundBox អំឡុងពេលសឡាត» switch is on — the SoundBox reads them and nothing else (it
+ * never computes a prayer time). In a span a sale is recorded and listed but not spoken; at its end one catch-up says the
+ * totals. Absent, unreadable or switched off: no span, the SoundBox speaks as always.
+ */
+export type QuietSpan = { from: number; to: number }
+export const PRAYER_QUIET_KEY = "soundbox_prayer_quiet"
+/** Raised when this device's spans change (the page re-sends them to the native feed). */
+export const PRAYER_QUIET_EVENT = "luychlat:soundbox-prayer-quiet"
+/** What a sale held in a span is marked with (its soundbox report). */
+export const SILENCED_DURING_PRAYER = "SILENCED_DURING_PRAYER"
+
+export function readQuietSpans(store: Pick<KeyValueStore, "getItem"> | null): QuietSpan[] {
+  try {
+    const raw = store?.getItem(PRAYER_QUIET_KEY)
+    const spans = raw ? (JSON.parse(raw) as unknown) : null
+    return Array.isArray(spans) ? spans.filter((s): s is QuietSpan => Number.isFinite(s?.from) && Number.isFinite(s?.to) && s.to > s.from).slice(0, 20) : []
+  } catch {
+    return []
+  }
+}
+
+export function writeQuietSpans(store: Pick<KeyValueStore, "setItem"> & { removeItem?(key: string): void } | null, spans: QuietSpan[] | null) {
+  try {
+    if (!spans?.length) store?.removeItem?.(PRAYER_QUIET_KEY)
+    else store?.setItem(PRAYER_QUIET_KEY, JSON.stringify(spans.map((s) => ({ from: s.from, to: s.to }))))
+  } catch {
+    // private mode: not remembered — the SoundBox then speaks as always
+  }
+}
+
+/** The span `now` is in, or null. */
+export const quietSpanAt = (now: number, spans: QuietSpan[]) => spans.find((s) => now >= s.from && now < s.to) ?? null
+
+/** The sales held in a span, summed per currency — exact (riel whole, dollars to the cent), riel first. */
+export function catchUpTotals(sales: { amount: number; currency: "KHR" | "USD" }[]): { amount: number; currency: "KHR" | "USD"; count: number }[] {
+  const out: { amount: number; currency: "KHR" | "USD"; count: number }[] = []
+  for (const currency of ["KHR", "USD"] as const) {
+    const these = sales.filter((s) => s.currency === currency && s.amount > 0)
+    if (!these.length) continue
+    const sum = these.reduce((a, s) => a + s.amount, 0)
+    out.push({ currency, count: these.length, amount: currency === "KHR" ? Math.round(sum) : Math.round(sum * 100) / 100 })
+  }
+  return out
+}
+
 /** The SoundBox's on/off, remembered per business workspace (founder, 12/10/2026): never reset by a reload or navigation. */
 export const soundboxStorageKey = (workspaceId: string) => `soundbox_enabled_${workspaceId}`
 
