@@ -21,7 +21,7 @@ import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLo
 import { bulletinPreview, islamicBulletinText, publishBulletin } from "@/lib/server/community-bulletin"
 import { communityChannel, communityChannelConfigured, founderApproved, islamicChannel, islamicChannelConfigured } from "@/lib/server/channel"
 import { formatHijri, toHijri, type HijriDate } from "@/lib/islamic"
-import { channelFor, dateOf, islamicCaptionHtml, kmDay, islamicPlannedPosts, islamicPostContent, type IslamicKind, type IslamicPostContent } from "@/lib/islamic-channel"
+import { channelFor, dailyLessonReady, dateOf, islamicCaptionHtml, kmDay, islamicPlannedPosts, islamicPostContent, type IslamicKind, type IslamicPostContent } from "@/lib/islamic-channel"
 import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { silPosterContent } from "@/lib/sil-poster"
 import { renderSilPoster, silPosterReady } from "@/lib/server/sil-poster"
@@ -657,6 +657,11 @@ const realDeps = (): SchedulerDeps => ({
       return ids
     }
     if (islamic) {
+      // Never a lesson without its story context (founder, 25/10/2026 — Task #498, Nuryerny Ahmad's standard).
+      if (row.kind === "ISLAMIC_DAILY" && !dailyLessonReady(String(row.payload.day))) {
+        logEvent("error", "scheduled-posts", `ISLAMIC_DAILY ${row.post_key}: refused — the lesson has no story context (Task #498)`)
+        return ids
+      }
       // The poster with its caption (text only if the image can't be sent, so the post is never lost).
       const c = await islamicContent(row.kind as IslamicKind, String(row.payload.day))
       await islamicPosterReady

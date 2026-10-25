@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { ISLAMIC_TIPS, islamicTipOfTheDay } from "./islamic-tips"
@@ -93,5 +95,32 @@ describe("Al-Baqarah 2:280 with its story (founder, 24/10/2026 — Task #485, as
     assert.ok(html.includes("📖 ដំណើររឿងប្រវត្តិ"), "the story is in the 24/10 caption")
     assert.ok(html.endsWith("— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម"))
     assert.ok(html.length <= 1024, `a photo caption: ${html.length}`)
+  })
+})
+
+describe("Every lesson posted with its story context (founder, 25/10/2026 — Task #498, Nuryerny Ahmad's standard)", () => {
+  it("regression: the 25/10 lesson (Sahih al-Bukhari 2287) now carries its hadith's story — the funeral of the man in debt", async () => {
+    const { dailyLessonReady, islamicPostContent, islamicCaptionHtml } = await import("./islamic-channel")
+    const { postFooter, withFooter } = await import("./post-footer")
+    assert.equal(dailyLessonReady("2026-10-25"), true)
+    const html = islamicCaptionHtml(islamicPostContent("ISLAMIC_DAILY", "2026-10-25", null))
+    assert.ok(html.includes("📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃហាទីស)៖"))
+    assert.ok(html.includes("(Sahih al-Bukhari 2289)") && html.includes("(Sahih al-Bukhari 2287)"))
+    assert.ok(withFooter(html, postFooter("islamic")).length <= 1024, "fits a photo caption with its footer")
+  })
+  it("a lesson without it is never planned, previewed or published", async () => {
+    const { hasStoryContext } = await import("./islamic-tips")
+    const { islamicPlannedPosts, tipDayNumber } = await import("./islamic-channel")
+    const bare = ISLAMIC_TIPS.findIndex((t) => !hasStoryContext(t))
+    if (bare < 0) return
+    // a day whose lesson is that bare one
+    let day = "2026-10-25"
+    for (let i = 0; i < ISLAMIC_TIPS.length; i++) {
+      const d = new Date(Date.parse("2026-10-25T00:00:00Z") + i * 86_400_000).toISOString().slice(0, 10)
+      if ((((tipDayNumber(d) % ISLAMIC_TIPS.length) + ISLAMIC_TIPS.length) % ISLAMIC_TIPS.length) === bare) day = d
+    }
+    assert.ok(!islamicPlannedPosts(day, () => null, () => true).some((p) => p.kind === "ISLAMIC_DAILY"))
+    const s = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
+    assert.match(s, /if \(row\.kind === "ISLAMIC_DAILY" && !dailyLessonReady\(String\(row\.payload\.day\)\)\) \{[\s\S]{0,200}return ids/)
   })
 })

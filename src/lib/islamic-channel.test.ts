@@ -33,7 +33,7 @@ describe("Islamic channel — kept 100 % apart from the general channel (founder
   })
   it("posts: the Hijri date and a lesson daily at 08:00, the sunnah fast on Sunday / Wednesday 19:00, Jumu'ah Friday 11:30", () => {
     const kinds = (day: string, minutes: number) => plannedIslamicPosts(day, minutes, plain).map((p) => p.kind)
-    assert.ok(kinds("2026-10-18", 7 * 60 + 15).includes("ISLAMIC_DAILY"))
+    assert.ok(kinds("2026-10-25", 7 * 60 + 15).includes("ISLAMIC_DAILY")) // a lesson with its story (Task #498)
     assert.ok(kinds("2026-10-18", 18 * 60 + 15).includes("ISLAMIC_FAST")) // Sunday → Monday's fast
     assert.ok(kinds("2026-10-21", 18 * 60 + 15).includes("ISLAMIC_FAST")) // Wednesday → Thursday's
     assert.ok(!kinds("2026-10-20", 18 * 60 + 15).includes("ISLAMIC_FAST")) // Tuesday

@@ -17,7 +17,7 @@ import { khmerDigits } from "@/lib/dates"
 import { formatHijri, type HijriDate } from "@/lib/islamic"
 import * as G from "@/lib/islamic/glossary"
 import { DUAS, posterMeaning, type Dua } from "@/lib/duas"
-import { ISLAMIC_TIPS, islamicTipOfTheDay } from "@/lib/islamic-tips"
+import { hasStoryContext, ISLAMIC_TIPS, islamicTipOfTheDay } from "@/lib/islamic-tips"
 import { formatMinutes, imsakTime, prayerTimes, PROVINCES } from "@/lib/prayer"
 
 export const ISLAMIC_KINDS = ["ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"] as const
@@ -101,7 +101,8 @@ export function islamicPlannedPosts(day: string, hijriOf: (day: string) => Hijri
     const tomorrow = addDays(day, 1)
     out.push({ kind: "ISLAMIC_MORNING", postKey: tomorrow, publishMinute: 24 * 60 + S.ISLAMIC_MORNING, payload: { day: tomorrow } })
   }
-  if (open(S.ISLAMIC_DAILY)) plan("ISLAMIC_DAILY")
+  // Only a lesson with its story context (Task #498): none is planned, previewed or published without it.
+  if (open(S.ISLAMIC_DAILY) && dailyLessonReady(day)) plan("ISLAMIC_DAILY")
   if (weekday === 5 && open(S.ISLAMIC_JUMUAH)) plan("ISLAMIC_JUMUAH")
   if (open(S.ISLAMIC_IFTAR) && isFastDay(day, hijriOf(day))) plan("ISLAMIC_IFTAR")
   // Sunday → Monday's fast, Wednesday → Thursday's.
@@ -125,6 +126,9 @@ export function kmDay(day: string) {
 
 /** The day number the in-app Islamic tip uses (lib/tips.ts), so the channel and the app show the same lesson. */
 export const tipDayNumber = (day: string) => Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000)
+
+/** The day's lesson has its story context (Asbab al-Nuzul / the hadith's story — founder, 25/10/2026, Task #498). */
+export const dailyLessonReady = (day: string) => hasStoryContext(islamicTipOfTheDay(tipDayNumber(day)))
 
 /**
  * One post's content — the poster (lib/server/islamic-poster.ts) and its caption are drawn from this, so they

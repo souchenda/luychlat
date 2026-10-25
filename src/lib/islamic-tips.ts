@@ -91,6 +91,20 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
       km: "ការពន្យារការសងបំណុល ពេលខ្លួនមានលទ្ធភាពសងហើយ គឺជាអំពើអយុត្តិធម៌។ ដាក់ថ្ងៃសងក្នុង អេប លុយឆ្លាត ហើយសងឱ្យទាន់ពេល។",
       en: "Delaying a debt when you are able to pay it is injustice. Put the due date in App Luy Chlat and pay on time.",
     },
+    // The story behind the hadith (founder, 25/10/2026 — Task #498): the funeral of a man who died in debt, from the
+    // same book of Sahih al-Bukhari (Hawalat, 2289 — Salama bin al-Akwa'), in Nuryerny Ahmad's format.
+    story: {
+      caption: [
+        "",
+        "📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃហាទីស)៖",
+        "នៅសម័យព្យាការី ﷺ មានគេយកសពបុរសម្នាក់មក ហើយសុំឱ្យព្យាការីសឡាតសព (Janazah) ឱ្យគាត់។ ព្យាការីសួរថា «តើគាត់ជំពាក់បំណុលគេទេ?» គេឆ្លើយថា «ជំពាក់បីឌីណារ ហើយគ្មានទ្រព្យសល់សងទេ»។ ព្យាការីមានប្រសាសន៍ថា «ចូរអ្នករាល់គ្នាសឡាតសពមិត្តរបស់អ្នកចុះ»។ Abu Qatada ក៏និយាយថា «ឱ ព្យាការីរបស់អល់ឡោះ! សូមសឡាតឱ្យគាត់ ខ្ញុំនឹងសងបំណុលនោះជំនួស» ទើបព្យាការី ﷺ សឡាតសពឱ្យគាត់ (Sahih al-Bukhari 2289)។",
+        "",
+        "ព្យាការី Muhammad ﷺ បានមានបន្ទូលថា៖",
+        "«ការពន្យារការសងបំណុល ដោយអ្នកដែលមានលទ្ធភាពសង គឺជាអំពើអយុត្តិធម៌» (Sahih al-Bukhari 2287)។",
+        "",
+        "💡 មេរៀនហិរញ្ញវត្ថុ៖ មានលុយហើយ ចូរសងឱ្យទាន់ពេល — ដាក់ថ្ងៃសងក្នុង អេប លុយឆ្លាត កុំទុកបំណុលឱ្យនៅជាប់ខ្លួន។",
+      ],
+    },
     ref: bukhari(2287),
   },
   {
@@ -223,6 +237,13 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
     ref: bukhari(2397),
   },
 ]
+
+/**
+ * The lesson carries its story context (founder, 25/10/2026 — Task #498, Nuryerny Ahmad's standard): the Asbab al-Nuzul
+ * or the hadith's own story (`story`), or the Prophet's words with their narration (`hadith`). A lesson without it is
+ * never posted to the channel (islamicPlannedPosts plans no card; publish refuses it).
+ */
+export const hasStoryContext = (tip: IslamicTip) => [...(tip.story?.caption ?? []), ...(tip.hadith?.caption ?? [])].some((l) => l.trim().length > 0)
 
 /** Today's Islamic tip (the same for everyone on a day; «another tip» moves on by `offset`). */
 export function islamicTipOfTheDay(dayNumber: number, offset = 0): IslamicTip {
