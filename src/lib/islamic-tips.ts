@@ -27,7 +27,14 @@ export type IslamicTip = Tip & {
    * (founder, 24/10/2026 — Task #485: the post showed the bare ayah). The caption carries it verbatim ("" = a blank line),
    * then the lesson's core message and its reference; the poster keeps the principle and the takeaway.
    */
-  story?: { caption: string[] }
+  story?: {
+    caption: string[]
+    /**
+     * Drafted by the engineering team, not yet reviewed by the Islamic advisor (founder, 25/10/2026 — Task #500): the
+     * approval card says so and names the reviewers; set to false (or removed) once Nuryerny Ahmad has approved it.
+     */
+    draft?: boolean
+  }
 }
 
 const quran = (surah: string, s: number, a: number) => ({ label: `${surah} ${s}:${a}`, url: `https://quran.com/${s}/${a}` })
@@ -94,6 +101,7 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
     // The story behind the hadith (founder, 25/10/2026 — Task #498): the funeral of a man who died in debt, from the
     // same book of Sahih al-Bukhari (Hawalat, 2289 — Salama bin al-Akwa'), in Nuryerny Ahmad's format.
     story: {
+      draft: true,
       caption: [
         "",
         "📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃហាទីស)៖",
@@ -116,6 +124,21 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
       km: "អ្នកទិញ និងអ្នកលក់ដែលនិយាយការពិត ហើយប្រាប់ចំណុចខ្វះខាតរបស់ទំនិញដោយត្រង់ៗ នឹងទទួលបានពរជ័យក្នុងការជួញដូរ។ ការកុហក និងលាក់កំហុសទំនិញ ធ្វើឱ្យពរជ័យនោះបាត់បង់។",
       en: "When buyer and seller speak the truth and openly state any defect, their trade is blessed. Lying and hiding a defect wipe the blessing away.",
     },
+    // The story behind the hadith (founder, 25/10/2026 — Task #500, a draft for Nuryerny Ahmad): its narrator Hakim ibn
+    // Hizam, a Makkan merchant and Khadijah's nephew, and his own question on trade (Sunan Abi Dawud 3503).
+    story: {
+      draft: true,
+      caption: [
+        "",
+        "📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃហាទីស)៖",
+        "Hakim ibn Hizam ជាពាណិជ្ជករល្បីនៅទីក្រុងម៉ាក្កះ និងជាក្មួយរបស់លោកស្រី Khadijah។ ថ្ងៃមួយគាត់បានសួរព្យាការី ﷺ ថា «មានអ្នកមកសុំទិញទំនិញដែលខ្ញុំមិនទាន់មាន តើខ្ញុំអាចលក់ឱ្យគេសិន ហើយទៅទិញពីផ្សារមកឱ្យគេបានទេ?» ព្យាការី ﷺ មានប្រសាសន៍ថា «កុំលក់អ្វីដែលអ្នកមិនទាន់មាន» (Sunan Abi Dawud 3503)។ ហាទីសខាងក្រោម ក៏ជាការរាយការណ៍របស់ Hakim ដែរ។",
+        "",
+        "ព្យាការី Muhammad ﷺ បានមានបន្ទូលថា៖",
+        "«បើអ្នកទិញ និងអ្នកលក់និយាយការពិត ហើយប្រាប់ចំណុចខ្វះខាតដោយត្រង់ៗ ការលក់ដូររបស់ពួកគេនឹងមានពរជ័យ។ តែបើពួកគេកុហក ហើយលាក់បាំង ពរជ័យនៃការលក់ដូរនោះនឹងត្រូវលុបបាត់» (Sahih al-Bukhari 2079)។",
+        "",
+        "💡 មេរៀនហិរញ្ញវត្ថុ៖ ប្រាប់ចំណុចខ្វះខាតរបស់ទំនិញដោយត្រង់ៗ ហើយកុំសន្យាលក់ទំនិញដែលមិនទាន់មានក្នុងដៃ — ទំនុកចិត្តរបស់អតិថិជន គឺជាប្រាក់ចំណេញយូរអង្វែង។",
+      ],
+    },
     ref: bukhari(2079),
   },
   {
@@ -126,6 +149,21 @@ export const ISLAMIC_TIPS: IslamicTip[] = [
     body: {
       km: `${G.PROPHET_FULL} បានឃើញគំនរអាហារដែលសើមនៅខាងក្រោម ហើយមានប្រសាសន៍ថា អ្នកណាបោកប្រាស់ មិនមែនជាពួកយើងទេ។ ទំនិញល្អដាក់ខាងមុខ ទំនិញខូចលាក់ខាងក្រោយ — កុំធ្វើ។`,
       en: "The Prophet ﷺ found a pile of food wet underneath and said: whoever cheats is not one of us. Good goods on top, spoiled ones hidden below — never.",
+    },
+    // The story of the hadith itself (founder, 25/10/2026 — Task #500, a draft for Nuryerny Ahmad): the heap of food
+    // wet underneath, as Abu Hurairah reported it (Sahih Muslim 102).
+    story: {
+      draft: true,
+      caption: [
+        "",
+        "📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃហាទីស)៖",
+        "Abu Hurairah បានរាយការណ៍ថា៖ ព្យាការី ﷺ បានដើរកាត់គំនរស្បៀងអាហារមួយ ហើយលូកដៃចូលក្នុងគំនរនោះ ឃើញម្រាមដៃសើម។ ព្យាការីសួរថា «ម្ចាស់ស្បៀង! នេះជាអ្វី?» គាត់ឆ្លើយថា «ត្រូវទឹកភ្លៀង ឱ ព្យាការីរបស់អល់ឡោះ»។ ព្យាការីមានប្រសាសន៍ថា «ហេតុអ្វីមិនដាក់វានៅខាងលើ ដើម្បីឱ្យមនុស្សឃើញ?»",
+        "",
+        "ព្យាការី Muhammad ﷺ បានមានបន្ទូលថា៖",
+        "«អ្នកណាបោកប្រាស់ អ្នកនោះមិនមែនជាពួកយើងទេ» (Sahih Muslim 102)។",
+        "",
+        "💡 មេរៀនហិរញ្ញវត្ថុ៖ កុំដាក់ទំនិញល្អនៅខាងមុខ ហើយលាក់ទំនិញខូចនៅខាងក្រោយ — បង្ហាញទំនិញតាមស្ថានភាពពិត ភាពស្មោះត្រង់គឺជាដើមទុនរបស់ហាង។",
+      ],
     },
     ref: muslim(102),
   },

@@ -124,3 +124,29 @@ describe("Every lesson posted with its story context (founder, 25/10/2026 — Ta
     assert.match(s, /if \(row\.kind === "ISLAMIC_DAILY" && !dailyLessonReady\(String\(row\.payload\.day\)\)\) \{[\s\S]{0,200}return ids/)
   })
 })
+
+describe("Lessons 5 and 6 with their stories, drafted for the advisor (founder, 25/10/2026 — Task #500)", () => {
+  it("26/10 (Sahih al-Bukhari 2079) and 27/10 (Sahih Muslim 102) are ready: planned, each caption fits a photo with its footer", async () => {
+    const { dailyLessonReady, islamicPostContent, islamicCaptionHtml, STORY_REVIEW } = await import("./islamic-channel")
+    const { postFooter, withFooter } = await import("./post-footer")
+    for (const [day, refs] of [["2026-10-26", ["Sunan Abi Dawud 3503", "Sahih al-Bukhari 2079"]], ["2026-10-27", ["Sahih Muslim 102"]]] as const) {
+      assert.equal(dailyLessonReady(day), true, day)
+      const c = islamicPostContent("ISLAMIC_DAILY", day, null)
+      const html = islamicCaptionHtml(c)
+      assert.ok(html.includes("📖 ដំណើររឿងប្រវត្តិ (ដំណើរដើមទងនៃហាទីស)៖"), day)
+      for (const r of refs) assert.ok(html.includes(`(${r})`), `${day} ${r}`)
+      assert.ok(withFooter(html, postFooter("islamic")).length <= 1024, `${day} fits a photo caption`)
+      // A draft: the approval card names the reviewers; the post itself never carries that line.
+      assert.equal(c.review, STORY_REVIEW)
+      assert.ok(!html.includes(STORY_REVIEW) && STORY_REVIEW.includes("@yernysou") && STORY_REVIEW.includes("@chendasou"))
+    }
+  })
+  it("the card shows the review line under its header; a reviewed story (no draft) shows none", async () => {
+    const { previewText } = await import("./scheduled-posts")
+    const base = { kind: "ISLAMIC_DAILY" as const, targets: { telegram: true, facebook: false, channel: "islamic" as const }, publishAt: "2026-10-26T01:00:00Z", body: "…", status: "PENDING" as const }
+    const { STORY_REVIEW } = await import("./islamic-channel")
+    assert.equal(previewText({ ...base, review: STORY_REVIEW }).split("\n")[2], STORY_REVIEW)
+    assert.ok(!previewText(base).includes("@yernysou"))
+    assert.equal(ISLAMIC_TIPS.find((t) => t.id === "isl-respite")!.story!.draft, undefined) // 2:280 — the advisor's own text
+  })
+})

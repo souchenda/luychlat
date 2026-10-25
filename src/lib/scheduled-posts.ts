@@ -209,11 +209,13 @@ export const isSafetyNet = (kind: string) => (SAFETY_NET_KINDS as readonly strin
 export const isPreviewed = (kind: string, status: PostStatus) => (status === "PENDING" && !isAutoPublish(kind)) || (status === "APPROVED" && isSafetyNet(kind))
 
 /** The preview's header (destination first), the post itself, then the status line. */
-export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus; decider?: Decider | null; now?: string }): string {
+export function previewText(o: { kind: PostKind; targets: Targets; publishAt: string; body: string; status: PostStatus; decider?: Decider | null; now?: string; review?: string }): string {
   const where = targetLabel(o.targets)
   return [
     `📢 គោលដៅផ្សាយ៖ [ ${where} ]`,
     `👀 មើលជាមុន · ${KIND_LABEL[o.kind]}`,
+    // A drafted text the reviewers must check first (Task #500 — the Islamic stories): on the card, never in the post.
+    ...(o.review ? [o.review] : []),
     "",
     o.body,
     // The card's state — none while it waits (founder, 21/10/2026: the team knows silence = HOLD; the ✅ names the time).

@@ -114,6 +114,8 @@ export function islamicPlannedPosts(day: string, hijriOf: (day: string) => Hijri
 // ─── The posts (Telegram HTML; Khmer never in italics) ───────────────────────────────────────────
 
 const SIGN = "— អេប លុយឆ្លាត · សហគមន៍ឥស្លាម"
+/** The approval card's line for a drafted story (Task #500): the advisor and the founder check it before ✅. */
+export const STORY_REVIEW = "📝 ដំណើររឿងប្រវត្តិ ជាសេចក្ដីព្រាង — សូម @yernysou និង @chendasou ពិនិត្យមុនអនុម័ត"
 const KM_WEEKDAY = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"]
 const KM_MONTH = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -136,6 +138,8 @@ export const dailyLessonReady = (day: string) => hasStoryContext(islamicTipOfThe
  */
 export type IslamicPostContent = {
   kind: IslamicKind
+  /** For the approval card only, never the post (Task #500): the lesson's story is a draft awaiting the advisor. */
+  review?: string
   /** The gold pill at the top of the poster. */
   pill: string
   /** The Hijri date in full for the caption (the day of the post; for the fast reminder, tomorrow). */
@@ -348,6 +352,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
     // A lesson with its story (Asbab al-Nuzul and its hadith — Task #485) or in the Prophet's own words carries the
     // reviewer's full text verbatim (founder, 21 and 24/10/2026); else its text.
     paragraphs: tip.story ? tip.story.caption : tip.hadith ? tip.hadith.caption : [tip.body.km],
+    ...(tip.story?.draft ? { review: STORY_REVIEW } : {}),
     // The poster: the principle and its money takeaway (founder, 20/10/2026 — the first sentence alone repeated the
     // title and lost the advice); the whole lesson is in the caption. At most three lines in all (islamic-tips.test.ts).
     // A hadith lesson quotes him instead: the intro, his words and the du'a, each up to three lines.

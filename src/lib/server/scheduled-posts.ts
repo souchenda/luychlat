@@ -112,7 +112,7 @@ export type SchedulerDeps = {
   setPreviews(id: number, previews: Preview[]): Promise<void>
   adminChats(): Promise<number[]>
   /** The preview's content: the poster (or null for a text post) and the post as plain text. */
-  content(row: PostRow): Promise<{ png: Buffer | null; body: string }>
+  content(row: PostRow): Promise<{ png: Buffer | null; body: string; review?: string }>
   targets(row: PostRow): Targets
   publish(row: PostRow): Promise<Published>
   sendPreview(chat: number, png: Buffer | null, text: string, buttons: ReturnType<typeof previewButtons>): Promise<number | null>
@@ -156,7 +156,7 @@ export function createScheduler(d: SchedulerDeps) {
     const targets = d.targets(row)
     const decider = { name: row.decided_name ?? null, username: row.decided_username ?? null, at: row.decided_at ?? null, how: row.decided_how ?? null }
     const now = new Date(d.now()).toISOString()
-    return { png, text: previewText({ kind: row.kind, targets, publishAt: row.publish_at, body, status, decider, now }), buttons: previewButtons(row.id, status, targets, row.kind, { publishAt: row.publish_at, now }) }
+    return { png, text: previewText({ kind: row.kind, targets, publishAt: row.publish_at, body, status, decider, now, review: content.review }), buttons: previewButtons(row.id, status, targets, row.kind, { publishAt: row.publish_at, now }) }
   }
 
   const sendPreviews = (row: PostRow) => scoped(row, () => sendPreviewsNow(row))
@@ -569,7 +569,7 @@ const realDeps = (): SchedulerDeps => ({
         // The poster the channel will get, with its caption (founder, 18/10/2026: never text-only).
         const c = await islamicContent(row.kind, day)
         await islamicPosterReady
-        return { png: poster(() => islamicPoster(c)), body: stripHtml(islamicCaptionHtml(c)) }
+        return { png: poster(() => islamicPoster(c)), body: stripHtml(islamicCaptionHtml(c)), review: c.review }
       }
       default:
         return { png: null, body: String(row.payload.telegram ?? "—") }
