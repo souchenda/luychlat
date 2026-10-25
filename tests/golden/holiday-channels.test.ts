@@ -50,7 +50,10 @@ describe("GOLDEN · strict religious separation of the channels", () => {
     assert.match(read("src/lib/server/scheduled-posts.ts"), /withFooter\(islamicCaptionHtml\(c\), postFooter\("islamic"\)\)/)
   })
   it("the Islamic channel's own posts never speak of a Buddhist day, a Chinese festival or an ancestral offering", () => {
-    const banned = /ថ្ងៃសីល|ភ្ជុំបិណ្ឌ|វិសាខបូជា|ចូលឆ្នាំចិន|ឆេងម៉េង|សែនក្បាលទឹក|សែនព្រះខែ|សែននំលោកខែ|នំលោកខែ|សែនព្រេន|ព្រះពុទ្ធ|វត្ត/
+    // «វត្ត» (a pagoda) — never «ប្រវត្តិ» (history), which contains it: the advisor's «📖 ដំណើររឿងប្រវត្តិ» heading (Task #501).
+    const banned = /ថ្ងៃសីល|ភ្ជុំបិណ្ឌ|វិសាខបូជា|ចូលឆ្នាំចិន|ឆេងម៉េង|សែនក្បាលទឹក|សែនព្រះខែ|សែននំលោកខែ|នំលោកខែ|សែនព្រេន|ព្រះពុទ្ធ|(?<!ប្រ)វត្ត/
+    assert.match("ទៅវត្ត", banned) // still caught
+    assert.doesNotMatch("📖 ដំណើររឿងប្រវត្តិ", banned)
     for (const kind of ISLAMIC_KINDS)
       for (let i = 0; i < 366; i += 7) {
         const day = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10)

@@ -150,3 +150,33 @@ describe("Lessons 5 and 6 with their stories, drafted for the advisor (founder, 
     assert.equal(ISLAMIC_TIPS.find((t) => t.id === "isl-respite")!.story!.draft, undefined) // 2:280 — the advisor's own text
   })
 })
+
+describe("Lessons 7–13 with their stories, drafted for the advisor (founder, 25/10/2026 — Task #501)", () => {
+  it("every lesson from 3 to 14 has its story; each drafted one is flagged; each caption fits a photo", async () => {
+    const { islamicPostContent, islamicCaptionHtml, STORY_REVIEW, tipDayNumber } = await import("./islamic-channel")
+    const { hasStoryContext } = await import("./islamic-tips")
+    const refs: Record<string, string[]> = {
+      "isl-full-measure": ["Sunan Ibn Majah 2223", "Al-Isra: អាយ៉ាត់ 35"],
+      "isl-sadaqah-wealth": ["Jami' at-Tirmidhi 2470", "Sahih Muslim 2588"],
+      "isl-sadaqah-seed": ["Jami' at-Tirmidhi 3701", "Al-Baqarah: អាយ៉ាត់ 261"],
+      "isl-no-waste": ["Sahih Muslim 3028", "Al-A'raf: អាយ៉ាត់ 31"],
+      "isl-balance": ["Sahih al-Bukhari 2742", "Al-Furqan: អាយ៉ាត់ 67"],
+      "isl-own-hands": ["Sahih Muslim 2379", "Sahih al-Bukhari 2072"],
+      "isl-upper-hand": ["Sahih al-Bukhari 1472", "Sahih al-Bukhari 1429"],
+    }
+    for (const [id, cites] of Object.entries(refs)) {
+      const tip = ISLAMIC_TIPS.find((t) => t.id === id)!
+      assert.ok(hasStoryContext(tip) && tip.story?.draft === true, id)
+      const text = tip.story!.caption.join("\n")
+      for (const c of cites) assert.ok(text.includes(c), `${id}: ${c}`)
+      assert.ok(text.includes("💡 មេរៀនហិរញ្ញវត្ថុ៖"), id)
+    }
+    for (let i = 0; i < ISLAMIC_TIPS.length; i++) {
+      const day = new Date(Date.parse("2026-10-25T00:00:00Z") + i * 86_400_000).toISOString().slice(0, 10)
+      const c = islamicPostContent("ISLAMIC_DAILY", day, null)
+      assert.ok(islamicCaptionHtml(c).length <= 1024, day)
+      assert.equal(Boolean(c.review), c.review === STORY_REVIEW, day)
+    }
+    assert.ok(tipDayNumber("2026-10-28") > 0)
+  })
+})

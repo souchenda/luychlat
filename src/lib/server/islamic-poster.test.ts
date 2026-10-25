@@ -154,7 +154,7 @@ describe("@LuyChlatIslamic posters — every post is a poster with its caption (
     assert.ok(islamicCaptionHtml(islamicPostContent("ISLAMIC_FAST", "2026-10-18", h(7))).includes("អំពើល្អទាំងឡាយត្រូវបានលើកយកទៅបង្ហាញនៅថ្ងៃច័ន្ទ និងថ្ងៃព្រហស្បតិ៍"))
     // A lesson's poster: its principle and its money takeaway (founder, 20/10/2026); the whole lesson is in the caption.
     const lesson = islamicPostContent("ISLAMIC_DAILY", "2026-10-18", h(7))
-    const tip = ISLAMIC_TIPS.find((t) => t.body.km === lesson.paragraphs[0])!
+    const tip = ISLAMIC_TIPS.find((t) => t.title.km === lesson.title)! // by its title: the caption may open with its story (Task #501)
     assert.deepEqual(lesson.posterLines, [tip.poster.principle, tip.poster.takeaway])
     assert.equal(firstSentence("មួយ។ ពីរ។"), "មួយ។")
     assert.equal(firstSentence("គ្មានខណ្ឌ"), "គ្មានខណ្ឌ")
