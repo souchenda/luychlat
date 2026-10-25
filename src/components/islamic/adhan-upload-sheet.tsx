@@ -132,7 +132,7 @@ export function AdhanUploadSheet({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="adhan-name-en">{t("adhanUpload.nameEn")}</Label>
-              <Input id="adhan-name-en" value={nameEn} onChange={(e) => setNameEn(e.target.value)} maxLength={80} placeholder="Kuwait Adhan" className="h-11" />
+              <Input id="adhan-name-en" value={nameEn} onChange={(e) => setNameEn(e.target.value)} maxLength={80} placeholder="Fajr Adhan" className="h-11" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="adhan-credit">{t("adhanUpload.credit")}</Label>

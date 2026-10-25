@@ -170,3 +170,27 @@ describe("«⬆️ បង្ហោះ និងកំណត់ជាសកល» 
     assert.match(sheet, /const problem = globalAdhanError\(\{ nameKm, credit, rights \}\)/)
   })
 })
+
+describe("The Kuwait Adhan withdrawn before the Play Store (founder, 25/10/2026 — Task #499)", () => {
+  const KUWAIT = "g:a96d61e5-8eb0-4c65-8f8a-9dd522d6809f"
+  const DEFAULTS = { regular: "commons-cc0-natural", fajr: null }
+  it("inactive, the default the bundled CC0 recording; the row kept with the reason, never deleted", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270257000000_withdraw_kuwait_adhan.sql"), "utf8")
+    assert.match(sql, /set active = false,/)
+    assert.match(sql, /jsonb_build_object\('regular', 'commons-cc0-natural', 'fajr', null\)/)
+    assert.doesNotMatch(sql, /delete from/i)
+  })
+  it("a phone that had picked it, or never picked: the CC0 recording at every prayer, Fajr too", () => {
+    for (const choice of [KUWAIT, null]) {
+      assert.equal(resolvePreset(choice, false, [], DEFAULTS)?.id, "commons-cc0-natural")
+      for (const prayer of ["fajr", "dhuhr", "maghrib"]) assert.equal(adhanForPrayer(prayer, choice, true, false, FAJR_ADHAN, [], DEFAULTS).presetFile, "/adhan/commons-cc0-natural.mp3")
+    }
+    assert.equal(hasFajrRecording([], DEFAULTS), false) // no Fajr default: no licensed Fajr recording yet
+  })
+  it("every bundled recording is CC0 and names no copyrighted reciter; the Android app's own Adhan is the CC0 file", () => {
+    for (const p of availablePresets()) assert.match(p.credit ?? "", /CC0 1\.0/, p.id)
+    assert.doesNotMatch(JSON.stringify(ADHAN_PRESETS.filter((p) => p.file)), /kuwait|trab/i)
+    const raw = join(process.cwd(), "android/app/src/main/res/raw/adhan.mp3")
+    if (existsSync(raw)) assert.ok(readFileSync(raw).equals(readFileSync(join(process.cwd(), "public/adhan/commons-cc0-natural.mp3"))))
+  })
+})

@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 24/10/2026 · 15:30 (Cambodia time)
+**Last updated:** 25/10/2026 · 09:00 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -39,9 +39,9 @@ dropped between sessions. The founder reviews it every evening.
 - [x] Admin publishes an Adhan for everyone or keeps it on the device (295b194)
 - [x] App-wide default Adhans (regular and Fajr), one tap per track in the prayer settings and the /admin Adhan manager (dd8be5a)
 - [x] «⬆️ បង្ហោះ និងកំណត់ជាសកល» — publish the phone's Adhan file and make it the default in one go (450e5e1)
-- [x] Set the first global default Adhan — «អាហ្សានផ្លូវការ អេប លុយឆ្លាត» (19/10/2026), the regular and Fajr default
+- [x] Set the first global default Adhan — «អាហ្សានផ្លូវការ អេប លុយឆ្លាត» (19/10/2026), the regular and Fajr default; replaced on 25/10/2026 by the CC0 «អាហ្សានល្បឿនធម្មជាតិ» (it was the Kuwait recording — Task #499)
 - [ ] Du'a recordings: none uploaded yet (card «📤 បញ្ចូលសំឡេង» or /setdua) ⛔ ⏳ អេដមីនថតសំឡេងឌុអា ហើយបញ្ចូលតាម /setdua
-- [ ] Kuwait Adhan (Sheikh Ahmad Al-Trabulsi) for everyone — needs the founder's publishing permission / licence first ⛔ 🟡 សម្រេចថាស្នើសុំអាជ្ញាប័ណ្ណ ឬបោះបង់អាហ្សានគុយវ៉ែត
+- [x] ~~Kuwait Adhan (Sheikh Ahmad Al-Trabulsi) for everyone~~ — dropped by the founder on 25/10/2026 (Task #499): no licensing or copyright doubt before the Play Store launch; withdrawn from the app, the alerts and the bot, the default now the bundled CC0 recording. Licensed popular voices may be negotiated once the brand is established.
 - [ ] Bitesize lessons screen — 8 lessons written (a0ffcd7), each needs a local Imam's / teacher's review before it shows ⛔ ⏳ អ៊ីម៉ាំ ឬគ្រូពិនិត្យមេរៀនទាំង ៨
 - [ ] Fiqh reference assistant screen — the guarded back end is live (a0ffcd7)
 - [/] The founder's du'a texts vs the app's: after eating decided (Sunan Abi Dawud 3850), before eating rewritten; worry / debt still open ⛔ 🟡 ជ្រើសអត្ថបទឌុអាពេលព្រួយបារម្ភ និងពេលជំពាក់បំណុល
