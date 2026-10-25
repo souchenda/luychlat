@@ -1,6 +1,6 @@
 # LuyChlat - Master Feature Roadmap & Task Backlog
 
-**Last updated:** 25/10/2026 · 09:00 (Cambodia time)
+**Last updated:** 25/10/2026 · 23:10 (Cambodia time)
 
 The single source of truth for every feature request, idea discussed and pending backlog item, so nothing agreed is
 dropped between sessions. The founder reviews it every evening.
@@ -47,9 +47,9 @@ dropped between sessions. The founder reviews it every evening.
 - [/] The founder's du'a texts vs the app's: after eating decided (Sunan Abi Dawud 3850), before eating rewritten; worry / debt still open ⛔ 🟡 ជ្រើសអត្ថបទឌុអាពេលព្រួយបារម្ភ និងពេលជំពាក់បំណុល
 - [/] Telegram bot audio Adhan alert — /adhan on | off and the switch under Settings › bot prayer alerts; the app-wide default Adhan with prayer, time and place (Telegram's own notification sound rings on a locked iPhone; the Adhan plays on a tap) ⛔ 🟢 គ្រួសារបើក /adhan on ហើយបញ្ជាក់ថាឮអាហ្សាន (តេស្តបានដល់ទូរស័ព្ទទាំង ៣ ហើយ 20/10)
 - [/] Prayer-time web push for Islamic Mode members (Android rings with the app closed) and counts in the prayer-alert log (949fd3e) ⛔ 🟢 បើកការជូនដំណឹងម៉ោងសឡាតលើទូរស័ព្ទ Android ហើយបញ្ជាក់ថារោទ៍ពេលបិទអេប
-- [/] Native Adhan in the Android app — exact-minute alarms on the «Prayer Times Adhan» channel, screen locked, app closed (f88008f); APK 1.3 built and live at /LuyChlat.apk on 20/10 ⛔ 🟢 ដំឡើង APK 1.3 ពី app.luychlat.com/LuyChlat.apk ហើយសាកអាហ្សានពេលបិទអេប
+- [x] Native Adhan in the Android app — exact-minute alarms on the «Prayer Times Adhan» channel, screen locked, app closed (f88008f); APK 1.3 built and live at /LuyChlat.apk on 20/10 — verified 25/10/2026 23:02: the Samsung S22 and the Huawei run APK 1.11 (build 12), the Adhan per device with the off-switch hard guard (5514c3f)
 - [x] The Android app offer on the prayer page — to hear the Adhan with the screen locked (677781d)
-- [/] Bedtime du'a reading joins the kaf to the lam — «ប៊ីស-មី-កល់-ឡ-ហ៊ុម្ម៉ា …» (9037204) ⛔ 🟡 ចុច ✅ លើកាត #860 ក្នុង «LCA Approval»
+- [x] Bedtime du'a reading joins the kaf to the lam — «ប៊ីស-មី-កល់-ឡ-ហ៊ុម្ម៉ា …» (9037204) — verified 25/10/2026: approved by Nuryerny on 20/10, published every night since
 - [x] Place suggestions with a photo — the approval card is the photo; the directory shows it (0264ca3)
 - [x] Halal finance lesson posters: the principle and its money takeaway on every one of the 14 (a730c5f); today's lesson 13 replaced (c5c9d4c)
 
@@ -90,7 +90,7 @@ dropped between sessions. The founder reviews it every evening.
 - [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E) ⛔ 🟡 ផ្ញើឯកសារដើម Mascot ≥ 1024 px, Logo និង Cover របស់ Page
 - [x] **Master Brand & Visual Design System** — `docs/BRAND_DESIGN_SYSTEM.md`, the permanent design foundation for every poster: the four pillars, royal protocol (verbatim table), Islamic terminology and two-tier colours, Sil days and festivals, daily education, the pre-flight four-layer checklist; referenced in CLAUDE.md. Evolves only on the founder's decisions (its change log)
 - [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder) ⛔ 🟡 ចុច ✅ លើកាត #833 (ផ្សាយ ០៥:០០ ថ្ងៃ ២៩ តុលា)
-- [/] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 05:00 on 29/10 only after a tap (the card names the day) ⛔ 🟡 ចុច ✅ លើកាត #833 (ផ្សាយ ០៥:០០ ថ្ងៃ ២៩ តុលា)
+- [x] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 05:00 on 29/10 only after a tap (the card names the day) — verified 25/10/2026: approved by the founder on 20/10 16:44 (post #2908), publishes 29/10 05:00
 - [x] National and royal holidays at 05:00; the approval card and its ✅ name the day «ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក» (811c2b1)
 - [/] All-inclusive holiday engine — national, Islamic, Chinese, global — every one at 05:00 (1de372a) ⛔ 🟢 ពិនិត្យកាតបុណ្យបន្ទាប់ក្នុង «LCA Approval» ថាឈ្មោះថ្ងៃ និងម៉ោង ០៥:០០ ត្រឹមត្រូវ
 - [x] Strict religious separation of the channels — constitutional, golden test (87b384b)
