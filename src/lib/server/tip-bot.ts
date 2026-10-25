@@ -42,7 +42,7 @@ export type DailyTip = {
   status: "DRAFT" | "APPROVED" | "SKIPPED" | "POSTED"
   version: number
   /** Preview photos, plus the "send the new text" prompts (prompt: true) that a reply to also edits. */
-  previews: { chat: number; msg: number; prompt?: boolean; v?: number }[]
+  previews: { chat: number; msg: number; prompt?: boolean; v?: number; at?: number; open?: boolean }[]
   /** Approved by the system at the 12:00 cut-off (nobody approved it). */
   auto_approved?: boolean
   /** A «✏️ កែអត្ថបទ» reply waiting for ✅ / ❌ — never applied before. */
@@ -55,6 +55,12 @@ export type DailyTip = {
 const PREVIEW = { from: 10 * 60 + 30, until: 12 * 60 }
 const POST = { from: 12 * 60, until: 13 * 60 }
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+/** ✏️ on a card in «LCA Approval» (founder, 25/10/2026 — Task #503: the old popup sent people to a private chat that held nothing). */
+export const TIP_EDIT_GROUP_HINT = "✏️ ដើម្បីកែសម្រួល សូមចុច Reply លើសារកាតនេះក្នុងគ្រុប រួចវាយអត្ថបទថ្មីផ្ញើចូលជាការស្រេច។"
+export const TIP_EDIT_DM_SENT = "📩 អត្ថបទបច្ចុប្បន្ន ក៏បានផ្ញើទៅសារឯកជនជាមួយ bot ដែរ។"
+/** After ✏️, the approver's next text in the private chat is the new text — for this long, once. */
+export const TIP_EDIT_DM_MINUTES = 15
 const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 
 /** What happens at this minute of the Cambodian day. */
@@ -342,8 +348,14 @@ export async function handleTipCallback(cb: Callback) {
   const action = m[5]
   const current = await getTip(day)
   if (!current) return answer("រកមិនឃើញគន្លឹះនេះទេ។", true)
-  // ✏️ asks for a reply — in the private chat only (a group's replies are not read as tip text).
-  if (action === "e") return isPrivate ? askForText(chatId, current, cb.message!.message_id, answer) : answer("✏️ សូមកែក្នុងសារឯកជនជាមួយ bot ឬក្នុងអេប។", true)
+  // ✏️ asks for the new text. In the group (Task #503): a reply to the card works right there, and the approver also
+  // gets the current text in the private chat, where the next message (or a reply to it) is the new text.
+  if (action === "e") {
+    if (isPrivate) return askForText(chatId, current, cb.message!.message_id, answer)
+    if (t_locked(current)) return answer("ផុតម៉ោងកែហើយ។", true)
+    const dm = cb.from?.id ? await askInPrivate(cb.from.id, current) : false
+    return answer(dm ? `${TIP_EDIT_GROUP_HINT}\n${TIP_EDIT_DM_SENT}` : TIP_EDIT_GROUP_HINT, true)
+  }
   // The «✏️» proposal: ✅ applies exactly the previewed text, ❌ drops it.
   if (action === "k") {
     await botDb().rpc("bot_tip_set_pending", { p_key: botKey(), p_day: day, p_pending: null })
@@ -394,9 +406,49 @@ export async function handleTipCallback(cb: Callback) {
   await refreshPreviews(t, action === "n")
 }
 
+const t_locked = (t: DailyTip) => t.status === "POSTED" || lockedFor(t.day)
+
+/**
+ * ✏️ from the group (Task #503): the current title and text in the approver's private chat with the bot, to copy and
+ * change; their next message there within TIP_EDIT_DM_MINUTES (handleTipEditText) or a reply to it is the new text.
+ * False when the bot cannot write to them (they never opened it).
+ */
+async function askInPrivate(userId: number, t: DailyTip): Promise<boolean> {
+  const sent = await tg<{ message_id: number }>("sendMessage", {
+    chat_id: userId,
+    text: [
+      `✏️ កែគន្លឹះថ្ងៃ ${t.day} — សូមផ្ញើអត្ថបទថ្មីនៅទីនេះ (ក្នុង ${TIP_EDIT_DM_MINUTES} នាទី) ឬ Reply សារនេះ៖`,
+      "• ច្រើនជួរ៖ ជួរទី 1 = ចំណងជើង, ជួរបន្ទាប់ = ការពន្យល់",
+      "• មួយជួរ៖ ប្តូរតែការពន្យល់",
+      "",
+      "អត្ថបទបច្ចុប្បន្ន (ចម្លងយកទៅកែបាន)៖",
+      t.title,
+      t.body,
+    ].join("\n"),
+    reply_markup: { force_reply: true, input_field_placeholder: t.title.slice(0, 60) },
+  })
+  if (!sent.ok || !sent.result) return false
+  await botDb().rpc("bot_tip_set_previews", { p_key: botKey(), p_day: t.day, p_previews: [...(t.previews ?? []), { chat: userId, msg: sent.result.message_id, prompt: true, at: Date.now(), open: true }] })
+  return true
+}
+
+/**
+ * The approver's next text in the private chat after ✏️ (not a reply, not a command — Task #503): the new text, once,
+ * within TIP_EDIT_DM_MINUTES. False otherwise, so the message is handled as usual (an entry, a command).
+ */
+export async function handleTipEditText(chatId: number, text: string): Promise<boolean> {
+  if (text.trim().startsWith("/")) return false
+  const current = await getTip(phnomPenhToday().day)
+  if (!current) return false
+  const prompt = (current.previews ?? []).filter((p) => p.chat === chatId && p.prompt && p.open && p.at && Date.now() - p.at < TIP_EDIT_DM_MINUTES * 60_000).at(-1)
+  if (!prompt) return false
+  await botDb().rpc("bot_tip_set_previews", { p_key: botKey(), p_day: current.day, p_previews: current.previews.map((p) => (p === prompt ? { ...p, open: false } : p)) })
+  return handleTipReply(chatId, prompt.msg, text)
+}
+
 /** ✏️ កែអត្ថបទ: a prompt to reply to with the new text; the reply edits the tip (handleTipReply). */
 async function askForText(chatId: number, t: DailyTip, previewMsg: number, answer: (text?: string, alert?: boolean) => unknown) {
-  if (t.status === "POSTED" || lockedFor(t.day)) return answer("ផុតម៉ោងកែហើយ។", true)
+  if (t_locked(t)) return answer("ផុតម៉ោងកែហើយ។", true)
   const sent = await tg<{ message_id: number }>("sendMessage", {
     chat_id: chatId,
     text: [
@@ -419,15 +471,21 @@ async function askForText(chatId: number, t: DailyTip, previewMsg: number, answe
  * first is the title, the rest the explanation; one line → the explanation).
  * Returns false when the message isn't a reply to a tip preview.
  */
-export async function handleTipReply(chatId: number, replyTo: number, text: string): Promise<boolean> {
+export async function handleTipReply(chatId: number, replyTo: number, text: string, group?: { from: number | undefined }): Promise<boolean> {
   const db = botDb()
   const { data: day } = await db.rpc("bot_tip_by_preview", { p_key: botKey(), p_chat_id: chatId, p_message_id: replyTo })
   if (typeof day !== "string") return false
   const current = await getTip(day)
   if (!current) return false
-  // Only a reply to the ✏️ prompt changes the text — a comment or design note sent as a reply to the
-  // preview photo must never become the published tip (it would auto-publish at 12:00).
-  if (!current.previews?.some((p) => p.chat === chatId && p.msg === replyTo && p.prompt)) {
+  // In «LCA Approval» (Task #503): an approver's reply to the card itself is the new text (the popup says so); anyone
+  // else's reply is a comment — left alone, never replacing an approver's pending text.
+  if (group) {
+    const { data: ok } = group.from ? await db.rpc("bot_is_approver", { p_key: botKey(), p_tg: group.from }) : { data: false }
+    if (ok !== true) return false
+  }
+  // In the private chat, only a reply to the ✏️ prompt changes the text — a comment or design note sent as a reply to
+  // the preview photo must never become the published tip. Either way nothing is applied before ✅ (below).
+  if (!group && !current.previews?.some((p) => p.chat === chatId && p.msg === replyTo && p.prompt)) {
     await tg("sendMessage", { chat_id: chatId, text: "ℹ️ សារនេះមិនបានកែគន្លឹះទេ។ ដើម្បីកែអត្ថបទ សូមចុច «✏️ កែអត្ថបទ» នៅក្រោមរូបមើលជាមុន។", reply_to_message_id: replyTo })
     return true
   }

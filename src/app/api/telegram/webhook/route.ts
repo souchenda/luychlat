@@ -29,7 +29,7 @@ import { botFeatures, featureOk, KEYBOARD_OFF, menuCommand, menuFor } from "@/li
 import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
-import { handleTipCallback, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
+import { handleTipCallback, handleTipEditText, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { editCardByReply, editLatestCardByPaste, handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
 import { handleNasheedCallback } from "@/lib/server/nasheed-review"
 import { isNasheedCallback } from "@/lib/nasheed"
@@ -457,6 +457,8 @@ export async function POST(request: Request) {
       // @username first (the founder's «បានកែសម្រួលដោយ @username»), else the name.
       const editor = message.from?.username ? `@${message.from.username}` : [message.from?.first_name, message.from?.last_name].filter(Boolean).join(" ").trim()
       if (await editCardByReply(message.chat.id, message.reply_to_message.message_id, message.from?.id, editor, message.text)) return NextResponse.json({ ok: true })
+      // …or to the daily tip's card: an approver's new text, shown with ✅ / ❌ first (founder, 25/10/2026 — Task #503).
+      if (await handleTipReply(message.chat.id, message.reply_to_message.message_id, message.text, { from: message.from?.id })) return NextResponse.json({ ok: true })
     }
     // A card pasted back without swiping to reply (founder, 21/10/2026): starting with «📢 គោលដៅផ្សាយ…», it edits the
     // latest waiting card here — the same approver check as a reply.
@@ -575,6 +577,8 @@ export async function POST(request: Request) {
     )
       return NextResponse.json({ ok: true })
   }
+  // Right after ✏️ in «LCA Approval»: the approver's next text here is the daily tip's new text (Task #503).
+  if (!message.reply_to_message && !menuCommand(message.text) && (await handleTipEditText(chatId, message.text))) return NextResponse.json({ ok: true })
   // Before linking, replies follow the Telegram app's language (Khmer by default);
   // linked chats use the language chosen in the app or with /lang.
   const lang: Locale = telegramLocale(message.from?.language_code)
