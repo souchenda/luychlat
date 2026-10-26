@@ -67,7 +67,12 @@ async function prepare(audio: Blob): Promise<{ blob: Blob; name: string }> {
   }
 }
 
-type Segment = { avg_logprob?: number; no_speech_prob?: number }
+/**
+ * What Whisper says of each segment. Groq / OpenAI take no condition_on_previous_text or no_speech_threshold (those are
+ * the local model's options): the same checks are made here on what it returns — no_speech_prob, and compression_ratio
+ * for a loop (lib/bot/voice-guard.ts, Task #512).
+ */
+type Segment = { avg_logprob?: number; no_speech_prob?: number; compression_ratio?: number }
 
 async function whisper(provider: Provider, audio: { blob: Blob; name: string }, language: Locale | null, hint: string) {
   const form = new FormData()
@@ -96,19 +101,37 @@ async function whisper(provider: Provider, audio: { blob: Blob; name: string }, 
     const segs = data.segments ?? []
     const logprob = segs.length ? segs.reduce((s, x) => s + (x.avg_logprob ?? 0), 0) / segs.length : null
     const noSpeech = segs.length ? Math.max(...segs.map((x) => x.no_speech_prob ?? 0)) : null
-    const confidence = logprob === null ? undefined : `logprob ${logprob.toFixed(2)}, no-speech ${noSpeech?.toFixed(2)}`
-    return { text, language: data.language?.toLowerCase() ?? null, confidence, logprob, noSpeech }
+    const compression = segs.length ? Math.max(...segs.map((x) => x.compression_ratio ?? 0)) : null
+    const confidence = logprob === null ? undefined : `logprob ${logprob.toFixed(2)}, no-speech ${noSpeech?.toFixed(2)}, compression ${compression?.toFixed(2)}`
+    return { text, language: data.language?.toLowerCase() ?? null, confidence, logprob, noSpeech, compression }
   } catch (error) {
     console.error(`[voice] whisper error: ${(error as Error).message}`)
     return null
   }
 }
 
-/** Gemini (audio understanding): an exact transcription, numbers as digits. */
+/**
+ * The Gemini models tried in turn (Task #512, measured 26/10/2026 13:10): gemini-flash-latest answered 503 «high demand»
+ * all day (06:58 and 12:54 the voice notes waited 30 s and fell to Whisper, which invented the words) while
+ * gemini-3.5-flash answered in 2.3 s. A model that is down, busy or slow → the next; each gets GEMINI_TIMEOUT_MS.
+ */
+export const GEMINI_VOICE_MODELS = ["gemini-flash-latest", "gemini-3.5-flash"] as const
+const GEMINI_TIMEOUT_MS = 12_000
+
+/** Gemini (audio understanding): an exact transcription, numbers as digits — the first model that answers. */
 async function gemini(key: string, audio: { blob: Blob; name: string }) {
+  const data = Buffer.from(await audio.blob.arrayBuffer()).toString("base64")
+  for (const model of GEMINI_VOICE_MODELS) {
+    const r = await geminiOnce(key, model, audio, data)
+    // An answer — words, or «no clear speech» — ends it; only a model that failed hands over to the next.
+    if (r !== "failed") return r
+  }
+  return null
+}
+
+async function geminiOnce(key: string, model: string, audio: { blob: Blob; name: string }, data: string): Promise<{ text: string; language: string; model: string } | null | "failed"> {
   try {
-    const data = Buffer.from(await audio.blob.arrayBuffer()).toString("base64")
-    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent", {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
@@ -122,21 +145,23 @@ async function gemini(key: string, audio: { blob: Blob; name: string }) {
             ],
           },
         ],
-        generationConfig: { temperature: 0 },
+        // No «thinking» for a transcript (Task #512): with it on, both voice notes of 26/10 waited the full 30 s and
+        // fell to Whisper (06:58 «បាយព្រឹកកូនពៅ», 12:54 «ដោះគោស្រស់និងផ្លែឈើ») — the slip reader runs without it too.
+        generationConfig: { temperature: 0, maxOutputTokens: 256, thinkingConfig: { thinkingBudget: 0 } },
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
     })
     if (!res.ok) {
-      console.error(`[voice] gemini failed: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`)
-      return null
+      console.error(`[voice] gemini ${model} failed: HTTP ${res.status} ${(await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160)}`)
+      return "failed"
     }
     const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
     const text = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join(" ").trim()
-    return text ? { text, language: "khmer" } : null
+    return text ? { text, language: "khmer", model } : null
   } catch (error) {
-    console.error(`[voice] gemini error: ${(error as Error).message}`)
-    return null
+    console.error(`[voice] gemini ${model} error: ${(error as Error).message}`)
+    return "failed"
   }
 }
 
@@ -149,10 +174,10 @@ async function gemini(key: string, audio: { blob: Blob; name: string }) {
  */
 export async function transcribe(raw: Blob, chatLanguage: Locale, seconds?: number): Promise<Transcript | null> {
   const t = await heard(raw, chatLanguage, seconds)
-  return t ? { ...t, unsure: transcriptUnsure({ text: t.text, seconds, logprob: t.logprob, noSpeech: t.noSpeech }) } : null
+  return t ? { ...t, unsure: transcriptUnsure({ text: t.text, seconds, logprob: t.logprob, noSpeech: t.noSpeech, compression: t.compression }) } : null
 }
 
-async function heard(raw: Blob, chatLanguage: Locale, seconds?: number): Promise<(Transcript & { logprob?: number | null; noSpeech?: number | null }) | null> {
+async function heard(raw: Blob, chatLanguage: Locale, seconds?: number): Promise<(Transcript & { logprob?: number | null; noSpeech?: number | null; compression?: number | null }) | null> {
   const provider = transcriptionProvider()
   const key = geminiKey()
   if (!provider && !key) return null
@@ -161,7 +186,7 @@ async function heard(raw: Blob, chatLanguage: Locale, seconds?: number): Promise
   if (chatLanguage === "km") {
     if (key) {
       const g = await gemini(key, audio)
-      if (g) return { ...g, retried: false, via: "gemini" }
+      if (g) return { ...g, retried: false, via: `gemini ${g.model}` }
     }
     if (!provider) return null
     // A short clip: the everyday words as the bias, temperature 0 (Task #507).
@@ -179,7 +204,7 @@ async function heard(raw: Blob, chatLanguage: Locale, seconds?: number): Promise
   // Khmer speech in a non-Khmer chat: Gemini if configured, else Whisper again with Khmer set.
   if (key) {
     const g = await gemini(key, audio)
-    if (g) return { ...g, retried: true, via: "gemini" }
+    if (g) return { ...g, retried: true, via: `gemini ${g.model}` }
   }
   const khmer = await whisper(provider, audio, "km", khmerHint(seconds, HINT_KM))
   if (khmer) return { ...khmer, language: "khmer", retried: true, via }
