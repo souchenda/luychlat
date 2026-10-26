@@ -101,6 +101,7 @@ public class SoundboxKeepAliveService extends Service {
                 .putString("device", intent.getStringExtra("device"))
                 .putString("token", intent.getStringExtra("token"))
                 .putString("speed", intent.getStringExtra("speed"))
+                .putString("voice", intent.getStringExtra("voice"))
                 .apply();
             feed = savedFeed();
             if (feed != null) feed.start();
@@ -141,7 +142,7 @@ public class SoundboxKeepAliveService extends Service {
         String device = p.getString("device", null);
         String token = p.getString("token", null);
         if (url == null || device == null || token == null) return null;
-        return new SoundboxFeed(this, url, device, token, p.getString("speed", "1.2"));
+        return new SoundboxFeed(this, url, device, token, p.getString("speed", "1.2"), p.getString("voice", "female"));
     }
 
     @Override

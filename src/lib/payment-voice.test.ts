@@ -75,7 +75,7 @@ describe("The SoundBox engine stays connected and Khmer (founder, 22/10/2026 —
   })
   it("no Khmer voice → the clips when the server has them, else nothing after the chime; the Settings test: 50,000៛ and $10.00", () => {
     const l = read("src/components/payments/payment-chime-listener.tsx")
-    assert.match(l, /if \(!say \|\| !synth\) \{\s*void khmerClipsAvailable\(\)\.then\(\(ok\) => \(ok \? playClips\(paymentClips\(e, voiceSpeed\(\)\)\) : undefined\)\)/) // in the chosen speed (Task #465)
+    assert.match(l, /if \(!say \|\| !synth\) \{\s*void khmerClipsAvailable\(\)\.then\(\(ok\) => \(ok \? playClips\(paymentClips\(e, voiceSpeed\(\), voiceGender\(\)\)\) : undefined\)\)/) // in the chosen speed (Task #465) and voice (Task #509)
     assert.doesNotMatch(read("src/lib/payment-chime.ts"), /for \(const lang of \["km", "en"\]/)
     assert.deepEqual(SOUND_TESTS, [{ amount: 50_000, currency: "KHR" }, { amount: 10, currency: "USD" }])
     assert.match(read("src/app/(app)/settings/page.tsx"), /onClick=\{\(\) => playPaymentChimeSound\(\(\) => speakPayment\(s\)\)\}/)

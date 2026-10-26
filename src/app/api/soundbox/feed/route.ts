@@ -3,7 +3,7 @@ import { timingSafeEqual } from "crypto"
 import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 
-import { catchUpItem, feedCursor, feedItems, feedQuiet, feedSince, feedSpeed, inQuietSpan, type FeedRow } from "@/lib/soundbox-feed"
+import { catchUpItem, feedCursor, feedItems, feedQuiet, feedSince, feedSpeed, feedVoice, inQuietSpan, type FeedRow } from "@/lib/soundbox-feed"
 import { SILENCED_DURING_PRAYER, type QuietSpan } from "@/lib/soundbox"
 import { guardRequest, readJson } from "@/lib/server/guard"
 import { tokenHash } from "@/lib/server/soundbox-token"
@@ -47,6 +47,7 @@ export async function GET(request: Request) {
   const now = Date.now()
   const since = feedSince(url.searchParams.get("since"), now)
   const speed = feedSpeed(url.searchParams.get("speed"))
+  const voice = feedVoice(url.searchParams.get("voice"))
   // Quiet during the prayer (Task #506): nothing while a span is on (the cursor stays); after it, one catch-up.
   const spans = spansOf(device.quiet_spans)
   const { quiet, catchUp } = feedQuiet(now, spans, device.quiet_caught_to ? Date.parse(device.quiet_caught_to) : null)
@@ -61,7 +62,7 @@ export async function GET(request: Request) {
     .limit(20)
   if (error) return NextResponse.json({ ok: false }, { status: 502 })
   const rows = (data ?? []) as FeedRow[]
-  const items = feedItems(rows.filter((r) => !inQuietSpan(r.created_at, spans)), now, speed, ORIGIN)
+  const items = feedItems(rows.filter((r) => !inQuietSpan(r.created_at, spans)), now, speed, ORIGIN, voice)
   if (catchUp) {
     const { data: held } = await db
       .from("soundbox_events")
@@ -73,7 +74,7 @@ export async function GET(request: Request) {
       .limit(200)
     await db.from("soundbox_devices").update({ quiet_caught_to: new Date(catchUp.to).toISOString() }).eq("id", device.id)
     const heldRows = (held ?? []) as FeedRow[]
-    const item = catchUpItem(heldRows, catchUp, speed, ORIGIN)
+    const item = catchUpItem(heldRows, catchUp, speed, ORIGIN, voice)
     if (item) {
       items.unshift(item)
       await db.from("soundbox_reports").insert(heldRows.map((r) => ({ event_id: r.id, user_id: device.user_id, log: `native ${SILENCED_DURING_PRAYER} → said in the catch-up`, user_agent: (request.headers.get("user-agent") ?? "").slice(0, 200) })))

@@ -35,7 +35,7 @@ public class SoundboxKeepAlivePlugin extends Plugin {
         }
     }
 
-    /** { feedUrl, device, token, speed } → the service announces the sales itself (Task #487); resolves { feed: true }. */
+    /** { feedUrl, device, token, speed, voice } → the service announces the sales itself (Task #487); resolves { feed: true }. */
     @PluginMethod
     public void startFeed(PluginCall call) {
         String feedUrl = call.getString("feedUrl");
@@ -52,6 +52,8 @@ public class SoundboxKeepAlivePlugin extends Plugin {
         intent.putExtra("device", device);
         intent.putExtra("token", token);
         intent.putExtra("speed", call.getString("speed", "1.2"));
+        // 👩 / 👨 (Task #509): the server picks the clips of that voice.
+        intent.putExtra("voice", call.getString("voice", "female"));
         try {
             ContextCompat.startForegroundService(getContext(), intent);
             JSObject result = new JSObject();

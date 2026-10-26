@@ -47,6 +47,7 @@ final class SoundboxFeed implements Runnable {
     private final String device;
     private final String token;
     private final String speed;
+    private final String voice;
     private volatile boolean running = true;
     private String cursor;
     private final Set<String> done = new LinkedHashSet<>();
@@ -54,12 +55,14 @@ final class SoundboxFeed implements Runnable {
     /** The last poll the server answered (the watchdog restarts a feed silent for 30 s — SoundboxKeepAliveService). */
     private volatile long lastOkAt = System.currentTimeMillis();
 
-    SoundboxFeed(Context context, String feedUrl, String device, String token, String speed) {
+    SoundboxFeed(Context context, String feedUrl, String device, String token, String speed, String voice) {
         this.context = context.getApplicationContext();
         this.feedUrl = feedUrl;
         this.device = device;
         this.token = token;
         this.speed = speed == null ? "1.2" : speed;
+        // 👩 / 👨 (Task #509): the server answers with that voice's clips.
+        this.voice = voice == null ? "female" : voice;
         SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
         iso.setTimeZone(TimeZone.getTimeZone("UTC"));
         this.cursor = iso.format(new Date()); // never a sale from before the feed started
@@ -100,7 +103,7 @@ final class SoundboxFeed implements Runnable {
     }
 
     private void poll() throws Exception {
-        String url = feedUrl + "?d=" + enc(device) + "&since=" + enc(cursor) + "&speed=" + enc(speed);
+        String url = feedUrl + "?d=" + enc(device) + "&since=" + enc(cursor) + "&speed=" + enc(speed) + "&voice=" + enc(voice);
         JSONObject answer = new JSONObject(get(url, token));
         if (!answer.optBoolean("ok")) return;
         lastOkAt = System.currentTimeMillis();

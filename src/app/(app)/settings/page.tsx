@@ -15,6 +15,7 @@ import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/s
 import { PushSettingsRow } from "@/components/notifications/push-prompt"
 import { BatteryExemptionCard } from "@/components/payments/battery-exemption"
 import { playPaymentChimeSound, requestPaymentChimePermission, speakPayment } from "@/components/payments/payment-chime-listener"
+import { VoiceGenderPicker } from "@/components/settings/voice-gender-row"
 import { SOUND_TESTS } from "@/lib/payment-chime"
 import { DEFAULT_VOICE_SPEED, readVoiceSpeed, VOICE_SPEEDS, writeVoiceSpeed, type VoiceSpeed } from "@/lib/soundbox"
 import { formatMoney } from "@/lib/money"
@@ -269,6 +270,12 @@ function VoiceSpeedRow() {
   )
 }
 
+/** «សំឡេងអ្នកនិយាយ» (Task #509): 👩 / 👨 with a preview each (components/settings/voice-gender-row.tsx) — Business, like the speed. */
+function VoiceGenderRow() {
+  const business = (useWorkspaces().data ?? []).some((w) => w.type === "BUSINESS")
+  return business ? <VoiceGenderPicker /> : null
+}
+
 function SoundTestRow() {
   const t = useT()
   const business = (useWorkspaces().data ?? []).some((w) => w.type === "BUSINESS")
@@ -458,6 +465,7 @@ export default function SettingsPage() {
         <PaymentChimeRow />
         <CounterModeRow />
         <VoiceSpeedRow />
+        <VoiceGenderRow />
         <SoundTestRow />
         <CounterBatteryRow />
         <HolyDayChimeRow />

@@ -20,7 +20,7 @@ import { isQuiet, nativeFeedActive, phoneQuiet, soundboxAwake } from "@/lib/nati
 import { PAYMENT_CHANNEL, PAYMENT_CHIME_URL, paymentChimeText, paymentClips, paymentSpeech, SPEECH_AFTER_CHIME_MS, paymentFromRow, paymentNotificationId, ringKey, shouldChime, type PaymentEvent, type PaymentSource } from "@/lib/payment-chime"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { setSalePush } from "@/lib/push"
-import { quietSpanAt, readQuietSpans, readVoiceSpeed, reconnectDelay, SILENCED_DURING_PRAYER, SOUNDBOX_SWITCH_EVENT, soundboxOnHere, type VoiceSpeed } from "@/lib/soundbox"
+import { quietSpanAt, readQuietSpans, readVoiceGender, readVoiceSpeed, reconnectDelay, SILENCED_DURING_PRAYER, SOUNDBOX_SWITCH_EVENT, soundboxOnHere, type VoiceGender, type VoiceSpeed } from "@/lib/soundbox"
 import { usePrefsStore } from "@/stores/prefs-store"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -95,6 +95,13 @@ function khmerClipsAvailable(): Promise<boolean> {
 
 /** The voice speed chosen in Settings (Task #465 — 1.2x unless changed); read at each payment, so a change counts at once. */
 const voiceSpeed = (): VoiceSpeed => readVoiceSpeed(typeof localStorage === "undefined" ? null : localStorage)
+/** 👩 / 👨 chosen in Settings (Task #509), read at each payment like the speed. */
+const voiceGender = (): VoiceGender => readVoiceGender(typeof localStorage === "undefined" ? null : localStorage)
+
+/** «🔊 សាកល្បង» beside a voice in Settings (Task #509): «ទទួលបានប្រាក់ មួយម៉ឺនរៀល» from that voice's clips, at the chosen speed. */
+export function previewVoice(gender: VoiceGender): void {
+  void playClips(paymentClips({ amount: 10_000, currency: "KHR" }, voiceSpeed(), gender))
+}
 
 /**
  * The recorded Khmer clips, one after another (the device has no Khmer voice) — gapless (Task #465): every clip is
@@ -155,7 +162,7 @@ function speakNow(e: Pick<PaymentEvent, "amount" | "currency">): void {
   const voices = synth?.getVoices() ?? []
   const say = typeof SpeechSynthesisUtterance === "undefined" ? null : paymentSpeech(e, voices)
   if (!say || !synth) {
-    void khmerClipsAvailable().then((ok) => (ok ? playClips(paymentClips(e, voiceSpeed())) : undefined))
+    void khmerClipsAvailable().then((ok) => (ok ? playClips(paymentClips(e, voiceSpeed(), voiceGender())) : undefined))
     return
   }
   const u = new SpeechSynthesisUtterance(say.text)

@@ -53,7 +53,7 @@ describe("The SoundBox announced by the phone itself (founder, 24/10/2026 — Ta
   it("never twice: while the phone announces, the page and the app-wide voice stay quiet; the app-wide voice reports every sale", () => {
     const page = read("src/app/(app)/soundbox/page.tsx")
     assert.match(page, /if \(nativeFeedActive\(\)\) return report\(\[document\.visibilityState, "native-feed"\]\)/)
-    assert.match(page, /startNativeFeed\(\{ device, token: r\.token, speed: String\(readVoiceSpeed\(store\(\)\)\) \}\)/)
+    assert.match(page, /startNativeFeed\(\{ device, token: r\.token, speed: String\(readVoiceSpeed\(store\(\)\)\), voice: readVoiceGender\(store\(\)\) \}\)/)
     assert.match(page, /stopNativeFeed\(\)\s+void fetch\("\/api\/soundbox\/feed\/token", \{ method: "DELETE"/)
     const l = read("src/components/payments/payment-chime-listener.tsx")
     assert.match(l, /if \(nativeFeedActive\(\)\) return reportRing\(e, "native-feed"\)/)

@@ -1,6 +1,6 @@
 "use client"
 
-import { announcementText, audioPlan, DEFAULT_VOICE_SPEED, KHMER_CLIPS, khmerClipSequence, khmerClipUrl, voiceAvailability, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceLang, type VoiceSpeed } from "@/lib/soundbox"
+import { announcementText, audioPlan, DEFAULT_VOICE_GENDER, DEFAULT_VOICE_SPEED, KHMER_CLIPS, khmerClipSequence, khmerClipUrl, playedVoice, voiceAvailability, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceGender, type VoiceLang, type VoiceSpeed } from "@/lib/soundbox"
 
 /**
  * The SoundBox's sound: one AudioContext created on the cashier's tap (browsers block audio until a
@@ -24,42 +24,47 @@ const release = () => {
   if (ctx && ctx.state === "running") void ctx.suspend().catch(() => null)
 }
 
-/** One decoded set of the 27 clips per voice speed (Task #465 — the faster sets are rendered ahead, pitch kept). */
-const clipSets = new Map<VoiceSpeed, Map<KhmerClip, AudioBuffer>>()
-const clipsLoading = new Map<VoiceSpeed, Promise<boolean>>()
+/**
+ * One decoded set of the 27 clips per voice and speed (Task #465 — the faster sets are rendered ahead, pitch kept; Task #509
+ * — 👩 / 👨, keyed by the voice that really plays, so male-before-its-clips shares the female set).
+ */
+const clipSets = new Map<string, Map<KhmerClip, AudioBuffer>>()
+const clipsLoading = new Map<string, Promise<boolean>>()
+const setKey = (speed: VoiceSpeed, gender: VoiceGender) => `${playedVoice(gender)}:${speed}`
 
 /** All 27 Khmer clips of a speed decoded once (a few KB each); false — and Khmer falls back — when any is missing. */
-function loadKhmerClips(speed: VoiceSpeed): Promise<boolean> {
+function loadKhmerClips(speed: VoiceSpeed, gender: VoiceGender): Promise<boolean> {
   if (!ctx) return Promise.resolve(false)
   const audio = ctx
-  const pending = clipsLoading.get(speed)
+  const key = setKey(speed, gender)
+  const pending = clipsLoading.get(key)
   if (pending) return pending
   const set = new Map<KhmerClip, AudioBuffer>()
   const loading = Promise.all(
     KHMER_CLIPS.map(async (name) => {
-      const res = await fetch(khmerClipUrl(name, speed), { cache: "force-cache" })
+      const res = await fetch(khmerClipUrl(name, speed, gender), { cache: "force-cache" })
       if (!res.ok) throw new Error(name)
       set.set(name, await audio.decodeAudioData(await res.arrayBuffer()))
     }),
   ).then(
     () => {
-      clipSets.set(speed, set)
+      clipSets.set(key, set)
       return true
     },
     () => false,
   )
-  clipsLoading.set(speed, loading)
+  clipsLoading.set(key, loading)
   return loading
 }
 
-export const khmerClipsReady = (speed: VoiceSpeed = DEFAULT_VOICE_SPEED) => clipSets.get(speed)?.size === KHMER_CLIPS.length
+export const khmerClipsReady = (speed: VoiceSpeed = DEFAULT_VOICE_SPEED, gender: VoiceGender = DEFAULT_VOICE_GENDER) => clipSets.get(setKey(speed, gender))?.size === KHMER_CLIPS.length
 
 /**
  * The clips back to back, sample-accurate on the audio clock (no gaps from starting files one by one); the
  * clips are trimmed of their silence (Task #465), so the words run on like a bank soundbox's.
  */
-function playKhmerClips(sequence: KhmerClip[], volume: number, speed: VoiceSpeed): Promise<void> {
-  const clips = clipSets.get(speed)
+function playKhmerClips(sequence: KhmerClip[], volume: number, speed: VoiceSpeed, gender: VoiceGender): Promise<void> {
+  const clips = clipSets.get(setKey(speed, gender))
   if (!ctx || !clips || clips.size !== KHMER_CLIPS.length) return Promise.resolve()
   const gain = ctx.createGain()
   gain.gain.value = Math.min(1, Math.max(0, volume))
@@ -95,7 +100,7 @@ function voicesReady(timeoutMs = 1_500): Promise<void> {
 }
 
 /** On the «🔊 បើកសំឡេង SoundBox» tap (or the first tap after a reload): the audio context, the Khmer clips, and an empty utterance (iOS needs speech started by a tap too) — then the audio is released until a payment. */
-export async function unlockAudio(speed: VoiceSpeed = DEFAULT_VOICE_SPEED): Promise<boolean> {
+export async function unlockAudio(speed: VoiceSpeed = DEFAULT_VOICE_SPEED, gender: VoiceGender = DEFAULT_VOICE_GENDER): Promise<boolean> {
   const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
   if (!Ctx) return false
   ctx ??= new Ctx()
@@ -105,7 +110,7 @@ export async function unlockAudio(speed: VoiceSpeed = DEFAULT_VOICE_SPEED): Prom
   warmSpeech()
   if (ctx.state !== "running") await ctx.resume().catch(() => null)
   if (ctx.state === "running") unlocked = true
-  void loadKhmerClips(speed)
+  void loadKhmerClips(speed, gender)
   void voicesReady()
   const ok = ctx.state === "running"
   // Nothing plays until a payment: give the audio back to the phone (Telegram, calls, music…).
@@ -281,7 +286,7 @@ export type AnnounceResult = "played" | "muted" | "locked" | "error"
 let queue: Promise<unknown> = Promise.resolve()
 export type Announced = { result: AnnounceResult; log: string[] }
 /** The chime at 1.0x, then the amount at the chosen voice speed (Task #465 — 1.2x by default). */
-export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: SoundboxMode, soundOn: boolean, volume = 1, speed: VoiceSpeed = DEFAULT_VOICE_SPEED): Promise<Announced> {
+export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: SoundboxMode, soundOn: boolean, volume = 1, speed: VoiceSpeed = DEFAULT_VOICE_SPEED, gender: VoiceGender = DEFAULT_VOICE_GENDER): Promise<Announced> {
   const run = queue.then(async (): Promise<Announced> => {
     // What happened, step by step — reported with the payment, so a silent announcement is never a guess.
     const log: string[] = [document.visibilityState]
@@ -296,7 +301,7 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
     }
     try {
       // The clips load on the unlock tap; a payment right after it waits for them (a second at most).
-      if (mode.startsWith("km") && !khmerClipsReady(speed)) await Promise.race([loadKhmerClips(speed), new Promise((r) => window.setTimeout(r, 1_500))])
+      if (mode.startsWith("km") && !khmerClipsReady(speed, gender)) await Promise.race([loadKhmerClips(speed, gender), new Promise((r) => window.setTimeout(r, 1_500))])
       await voicesReady()
       for (const step of audioPlan({ soundOn, unlocked: true, mode, voices: availableVoices() })) {
         if (step === "chime" || step === "melody") log.push(step)
@@ -311,9 +316,9 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
         } else {
           const lang = step.slice("speech:".length) as VoiceLang
           // Khmer: the recorded clips first (they sound the same on every phone).
-          if (lang === "km" && khmerClipsReady(speed)) {
+          if (lang === "km" && khmerClipsReady(speed, gender)) {
             await audible()
-            await playKhmerClips(khmerClipSequence(e.amount, e.currency), volume, speed)
+            await playKhmerClips(khmerClipSequence(e.amount, e.currency), volume, speed, gender)
             log.push("km:clips")
             continue
           }

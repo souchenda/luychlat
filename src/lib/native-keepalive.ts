@@ -14,7 +14,7 @@ import { registerPlugin } from "@capacitor/core"
 import { isNativeApp } from "@/lib/native-bridge"
 
 type KeepAlivePlugin = {
-  startFeed(o: { title: string; body: string; feedUrl: string; device: string; token: string; speed: string }): Promise<{ feed?: boolean }>
+  startFeed(o: { title: string; body: string; feedUrl: string; device: string; token: string; speed: string; voice: string }): Promise<{ feed?: boolean }>
   stopFeed(): Promise<void>
   ringerMode(): Promise<{ mode: "normal" | "vibrate" | "silent" }>
   start(o: { title: string; body: string }): Promise<void>
@@ -65,7 +65,8 @@ let feedOn = false
  * server for new sales and plays them natively — no WebView, which a Huawei froze with the screen off. While it runs the
  * page and the app-wide voice stay quiet (never twice). An older APK has no such method: false, the page plays as before.
  */
-export async function startNativeFeed(o: { device: string; token: string; speed: string }): Promise<boolean> {
+/** `voice` (Task #509): 👩 female / 👨 male — an APK before it ignores it (the female voice, as before). */
+export async function startNativeFeed(o: { device: string; token: string; speed: string; voice: string }): Promise<boolean> {
   if (!isNativeApp()) return false
   feedOn = await KeepAlive.startFeed({ ...KEEPALIVE_TEXT, feedUrl: `${FEED_ORIGIN}/api/soundbox/feed`, ...o }).then(
     (r) => r.feed === true,

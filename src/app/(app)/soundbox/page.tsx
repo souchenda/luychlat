@@ -25,6 +25,7 @@ import {
   keepScreenAwake,
   pollSince,
   readSoundboxEnabled,
+  readVoiceGender,
   readVoiceSpeed,
   receiveEvent,
   reconnectDelay,
@@ -212,7 +213,7 @@ export default function SoundboxPage() {
     let cancelled = false
     void fetch("/api/soundbox/feed/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device, workspace: counterId }) })
       .then((r) => (r.ok ? (r.json() as Promise<{ token?: string }>) : null))
-      .then((r) => (!cancelled && r?.token ? startNativeFeed({ device, token: r.token, speed: String(readVoiceSpeed(store())) }) : false))
+      .then((r) => (!cancelled && r?.token ? startNativeFeed({ device, token: r.token, speed: String(readVoiceSpeed(store())), voice: readVoiceGender(store()) }) : false))
       .then((started) => started && window.dispatchEvent(new Event(PRAYER_QUIET_EVENT))) // the feed gets this device's quiet spans
       .catch(() => false)
     return () => {
@@ -275,7 +276,7 @@ export default function SoundboxPage() {
         }
         return
       }
-      void unlockAudio(readVoiceSpeed(store())).then((ok) => ok && setAudioIssue(null))
+      void unlockAudio(readVoiceSpeed(store()), readVoiceGender(store())).then((ok) => ok && setAudioIssue(null))
     }
     document.addEventListener("pointerdown", wake, true)
     document.addEventListener("keydown", wake, true)
@@ -327,7 +328,7 @@ export default function SoundboxPage() {
     void phoneQuiet().then((quiet) => {
       console.info(`[SoundBox] Announce: amount=${added.amount} ${added.currency}, quietStatus=${quiet}, result=${isQuiet(quiet) ? "skipped (phone quiet)" : "announcing"}`)
       if (isQuiet(quiet)) return report([document.visibilityState, `phone:${quiet}`])
-      void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100, readVoiceSpeed(store())).then((r) => {
+      void announce(added, settings.current.mode, settings.current.soundOn, settings.current.volume / 100, readVoiceSpeed(store()), readVoiceGender(store())).then((r) => {
         setAudioIssue(audioIssueOf(r))
         // What the phone did (chime, each voice attempt, the melody) is kept with the payment — a silent
         // announcement is diagnosed from facts, never guessed.
@@ -347,7 +348,7 @@ export default function SoundboxPage() {
       void phoneQuiet().then(async (quiet) => {
         if (isQuiet(quiet)) return
         // «ទទួលបានប្រាក់ … រៀល» then «… ដុល្លារ» — the totals of the span, once.
-        for (const t of totals) await announce(t, settings.current.mode, settings.current.soundOn, settings.current.volume / 100, readVoiceSpeed(store()))
+        for (const t of totals) await announce(t, settings.current.mode, settings.current.soundOn, settings.current.volume / 100, readVoiceSpeed(store()), readVoiceGender(store()))
       })
     }, Math.max(0, span.to - Date.now()) + 1_000)
     catchUpTimer.current = { to: span.to, id }
@@ -434,7 +435,7 @@ export default function SoundboxPage() {
   const totals = useMemo(() => todayTotals(events, ppDay()), [events])
 
   const start = async () => {
-    const ok = await unlockAudio(readVoiceSpeed(store()))
+    const ok = await unlockAudio(readVoiceSpeed(store()), readVoiceGender(store()))
     setEnabled(true)
     setAudioIssue(ok ? null : "locked")
   }
@@ -539,8 +540,8 @@ export default function SoundboxPage() {
             size="sm"
             variant="outline"
             onClick={async () => {
-              await unlockAudio(readVoiceSpeed(store()))
-              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100, readVoiceSpeed(store())).then((r) => {
+              await unlockAudio(readVoiceSpeed(store()), readVoiceGender(store()))
+              void announce({ amount: 50_000, currency: "KHR" }, mode, true, volume / 100, readVoiceSpeed(store()), readVoiceGender(store())).then((r) => {
                 setAudioIssue(audioIssueOf(r))
                 // What the phone did, on screen: «visible chime km:timeout … en:spoken».
                 setTestLog(r.log.join(" "))

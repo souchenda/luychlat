@@ -79,7 +79,7 @@ describe("The SoundBox quiet during the prayer (founder, 26/10/2026 — Task #50
     assert.match(read("src/components/payments/payment-chime-listener.tsx"), /if \(quietSpanAt\(Date\.now\(\), readQuietSpans\(typeof window === "undefined" \? null : safeLocal\(\)\)\)\) return reportRing\(e, SILENCED_DURING_PRAYER\)/)
     const feed = read("src/app/api/soundbox/feed/route.ts")
     assert.match(feed, /if \(quiet\) return NextResponse\.json\(\{ ok: true, items: \[\], cursor: url\.searchParams\.get\("since"\) \?\? since \}/)
-    assert.match(feed, /feedItems\(rows\.filter\(\(r\) => !inQuietSpan\(r\.created_at, spans\)\), now, speed, ORIGIN\)/)
+    assert.match(feed, /feedItems\(rows\.filter\(\(r\) => !inQuietSpan\(r\.created_at, spans\)\), now, speed, ORIGIN, voice\)/)
     assert.match(feed, /update\(\{ quiet_caught_to: new Date\(catchUp\.to\)\.toISOString\(\) \}\)/)
     const token = read("src/app/api/soundbox/feed/token/route.ts")
     assert.match(token, /s\.to > s\.from && s\.to - s\.from <= 60 \* 60_000\)\s+\.slice\(0, 20\)/)

@@ -479,8 +479,50 @@ export function writeVoiceSpeed(store: KeyValueStore | null, speed: VoiceSpeed) 
   }
 }
 
-/** A recorded Khmer clip's address (public/audio/soundbox/khmer — KHMER_CLIPS), in the chosen tempo. */
-export const khmerClipUrl = (clip: KhmerClip, speed: VoiceSpeed = 1) => `/audio/soundbox/khmer/${speed === 1 ? "" : `x${speed}/`}${clip}.mp3`
+/**
+ * The voice persona (founder, 26/10/2026 — Task #509): 👩 សំឡេងស្រី (the default — the 27 + 5 clips in
+ * public/audio/soundbox/khmer) or 👨 សំឡេងប្រុស (the same 32 names in public/audio/soundbox/khmer/male, with its own
+ * x1.2 / x1.3). Chosen per device («soundbox_voice_gender»), like the speed.
+ */
+export const VOICE_GENDERS = ["female", "male"] as const
+export type VoiceGender = (typeof VOICE_GENDERS)[number]
+export const DEFAULT_VOICE_GENDER: VoiceGender = "female"
+export const VOICE_GENDER_KEY = "soundbox_voice_gender"
+/**
+ * The male clips are not recorded yet: no licensed or authorised male Khmer voice is available (translate_tts has one,
+ * female, voice; Edge-TTS is banned — CLAUDE.md › Licensing). Until they are in public/audio/soundbox/khmer/male (all 32,
+ * three speeds — soundbox-voice.test.ts checks it when this turns true), a phone set to male hears the female voice and
+ * settings say so; never a silent announcement.
+ */
+export const MALE_VOICE_READY = false
+
+/** The chosen persona on this phone; anything unknown (never set, private mode, an old value) → female. */
+export function readVoiceGender(store: KeyValueStore | null): VoiceGender {
+  try {
+    const v = store?.getItem(VOICE_GENDER_KEY)
+    return VOICE_GENDERS.find((g) => g === v) ?? DEFAULT_VOICE_GENDER
+  } catch {
+    return DEFAULT_VOICE_GENDER
+  }
+}
+
+export function writeVoiceGender(store: KeyValueStore | null, gender: VoiceGender) {
+  try {
+    store?.setItem(VOICE_GENDER_KEY, gender)
+  } catch {
+    // private mode: not remembered
+  }
+}
+
+/** The persona that really plays: male only once its clips are in place, else the female voice. */
+export const playedVoice = (gender: VoiceGender): VoiceGender => (gender === "male" && MALE_VOICE_READY ? "male" : "female")
+
+/** A voice's folder under public/audio/soundbox/khmer: the female clips at its root (as since Task #464), the male in male/. */
+export const voiceDir = (voice: VoiceGender) => (voice === "male" ? "male/" : "")
+
+/** A recorded Khmer clip's address (public/audio/soundbox/khmer — KHMER_CLIPS / CLOSING_CLIPS), in the chosen tempo and voice. */
+export const khmerClipUrl = (clip: KhmerClip | ClosingClip, speed: VoiceSpeed = 1, gender: VoiceGender = DEFAULT_VOICE_GENDER) =>
+  `/audio/soundbox/khmer/${voiceDir(playedVoice(gender))}${speed === 1 ? "" : `x${speed}/`}${clip}.mp3`
 
 /**
  * The phone push for a payment (the SoundBox with the screen locked — founder, 14/10/2026): the amount

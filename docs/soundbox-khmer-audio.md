@@ -70,3 +70,9 @@ then made exactly like the 27 (`src/lib/soundbox-clips.ts`, measured on them 24/
 before and 20 ms after, brought to their median loudness (mean −19 dB), limited at their loudest peak (−2 dB), mono
 24 kHz MP3 at 64 kbps without tags, then `x1.2/` and `x1.3/` with atempo. The script prints each clip's loudness and
 stops (exit 1) if one is off by more than 1 dB. Listen to them joined with the 27 before committing.
+
+## The male voice (26/10/2026 — Task #509)
+
+Settings › «សំឡេងអ្នកនិយាយ» lets each counter phone choose 👩 សំឡេងស្រី (the default — the files above) or 👨 សំឡេងប្រុស. The male clips live in `public/audio/soundbox/khmer/male/` with the SAME 32 file names (the 27 + the 5 closing words), and their own `male/x1.2/` and `male/x1.3/`, made exactly like the female ones (`src/lib/soundbox-clips.ts`: mono 24 kHz MP3 64 kbps, mean −19 dB ±1, peak ≤ −2 dB, trimmed 15 ms / 20 ms, atempo for the faster sets).
+
+No licensed or authorised male Khmer voice exists yet: translate_tts has one (female) voice and Edge-TTS is banned. Sources that would do: a Khmer speaker's recordings, or a licensed male voice (Azure AI Speech `km-KH-PisethNeural`, or a Google Cloud male km-KH voice if listed) through the licensed scripts with the output folder set to `male/` (`npx tsx scripts/soundbox-closing-tts.ts public/audio/soundbox/khmer/male` for the five). When all 96 files are in place, set `MALE_VOICE_READY = true` in `src/lib/soundbox.ts` — `soundbox-voice.test.ts` then checks every file exists. Until then a phone set to male hears the female voice, its preview is off and Settings says so. The Android feed sends `&voice=` from the next APK; older APKs get the female voice.
