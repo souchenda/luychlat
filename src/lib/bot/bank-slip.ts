@@ -313,7 +313,29 @@ export function walletLabel(w: Pick<BotWallet, "name" | "account_no">): string {
 }
 
 /** A one-tap button: the category (by preset, with fallbacks) and a note tag for the finer ones. */
-export type SlipChoice = { label: MessageKey; presets: string[]; tag?: boolean }
+export type SlipChoice = { label: MessageKey; presets: string[]; tag?: boolean; draw?: boolean }
+
+/**
+ * A slip paid from a BUSINESS account (founder, 26/10/2026 — Task #510: the $370 from DL MEAT SUPPLY's «ABA DL USD» got
+ * the household buttons — food, coffee…): the business's own one-tap categories, and the owner's draw — money the owner
+ * took for himself, kept out of the business P&L (owner_draw), mirrored into a Personal wallet he names (bot_owner_draw).
+ */
+export const SLIP_OUT_BUSINESS: SlipChoice[] = [
+  { label: "bot.slipBiz.stock", presets: ["inventory"] },
+  { label: "bot.slipBiz.delivery", presets: ["delivery", "transport"] },
+  { label: "bot.slipBiz.payroll", presets: ["payroll"] },
+  { label: "bot.slipBiz.stall", presets: ["operating", "rent", "utilities"] },
+  { label: "bot.slipBiz.draw", presets: ["owner_draw"], draw: true },
+  { label: "bot.slipBiz.other", presets: ["other_expense"] },
+]
+
+/** Business slips get SLIP_OUT_BUSINESS; Personal and Family the household SLIP_OUT. */
+export const isBusinessWorkspace = (type: string | null | undefined) => type === "BUSINESS"
+
+/** A meat business («DL MEAT SUPPLY», «… សាច់ …») buys «🥩 ស្តុកសាច់»; any other business «🛒 ស្តុកទំនិញ». */
+export function businessChoiceLabel(choice: SlipChoice, workspaceName: string | null | undefined): MessageKey {
+  return choice.label === "bot.slipBiz.stock" && /meat|សាច់/i.test(workspaceName ?? "") ? "bot.slipBiz.stockMeat" : choice.label
+}
 
 export const SLIP_OUT: SlipChoice[] = [
   { label: "bot.slipCat.food", presets: ["food"] },
