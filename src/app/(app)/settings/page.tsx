@@ -16,6 +16,7 @@ import { PushSettingsRow } from "@/components/notifications/push-prompt"
 import { BatteryExemptionCard } from "@/components/payments/battery-exemption"
 import { playPaymentChimeSound, requestPaymentChimePermission, speakPayment } from "@/components/payments/payment-chime-listener"
 import { VoiceGenderPicker } from "@/components/settings/voice-gender-row"
+import { GREETING_CLIPS_READY, readWelcomeVoice, writeWelcomeVoice } from "@/lib/welcome-greeting"
 import { SOUND_TESTS } from "@/lib/payment-chime"
 import { DEFAULT_VOICE_SPEED, readVoiceSpeed, VOICE_SPEEDS, writeVoiceSpeed, type VoiceSpeed } from "@/lib/soundbox"
 import { formatMoney } from "@/lib/money"
@@ -276,6 +277,28 @@ function VoiceGenderRow() {
   return business ? <VoiceGenderPicker /> : null
 }
 
+/**
+ * «🔊 សំឡេងស្វាគមន៍ពេលបើកអេប» (founder, 26/10/2026 — Task #518): off unless switched on, on this phone only; never on Silent /
+ * Vibrate. Until the greeting is recorded (GREETING_CLIPS_READY) the switch is kept and the row says it shows as text.
+ */
+function WelcomeVoiceRow() {
+  const t = useT()
+  const [on, setOn] = useState(false)
+  useEffect(() => setOn(readWelcomeVoice(localStorage)), [])
+  return (
+    <SettingsRow icon={<Volume2Icon />} tile="emerald" title={t("settings.welcomeVoice")} hint={t(on && !GREETING_CLIPS_READY ? "settings.welcomeVoicePending" : "settings.welcomeVoiceHint")}>
+      <Switch
+        checked={on}
+        aria-label={t("settings.welcomeVoice")}
+        onCheckedChange={(v) => {
+          setOn(v)
+          writeWelcomeVoice(localStorage, v)
+        }}
+      />
+    </SettingsRow>
+  )
+}
+
 function SoundTestRow() {
   const t = useT()
   const business = (useWorkspaces().data ?? []).some((w) => w.type === "BUSINESS")
@@ -469,6 +492,7 @@ export default function SettingsPage() {
         <SoundTestRow />
         <CounterBatteryRow />
         <HolyDayChimeRow />
+        <WelcomeVoiceRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
           {bot.data && telegram.data ? (
             <StatusBadge tone="success">
