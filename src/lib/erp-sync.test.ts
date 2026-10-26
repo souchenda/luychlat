@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
@@ -86,6 +86,7 @@ describe("SL Staff ERP → LuyChlat: the database and the route (Task #515)", ()
     assert.ok(route.indexOf("verifyErpSignature(") < route.indexOf("JSON.parse(raw)"))
     // Nothing that can ring is even imported (the SoundBox, the chime, the voice alert, the sale push).
     assert.doesNotMatch(route.split("\n").filter((l) => l.startsWith("import")).join("\n"), /soundbox|payment-chime|voice-alert|web-push/i)
-    assert.match(read("docker-compose.yml"), /ERP_SYNC_SECRET: \$\{ERP_SYNC_SECRET:-\}/)
+    // docker-compose.yml is not in the Docker build context (.dockerignore): checked where it is.
+    if (existsSync(join(process.cwd(), "docker-compose.yml"))) assert.match(read("docker-compose.yml"), /ERP_SYNC_SECRET: \$\{ERP_SYNC_SECRET:-\}/)
   })
 })
