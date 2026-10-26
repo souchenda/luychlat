@@ -6,7 +6,12 @@ import { createHmac, timingSafeEqual } from "node:crypto"
 
 export const ERP_TYPES = ["income", "expense", "owner_draw"] as const
 export type ErpType = (typeof ERP_TYPES)[number]
-export const ERP_METHODS = ["bank", "cash"] as const
+/**
+ * Where the money moved (Task #516): the depot's cash box, its ABA or its ACLEDA account — each currency booked into the
+ * DL wallet erp_sync_config maps it to (cash → «សាច់ប្រាក់ DL», aba → ABA DL, acleda → the DL ACLEDA accounts). A plain
+ * «bank» is still accepted but maps nowhere: refused (422) rather than guessed between ABA and ACLEDA.
+ */
+export const ERP_METHODS = ["cash", "aba", "acleda", "bank"] as const
 export type ErpMethod = (typeof ERP_METHODS)[number]
 
 export type ErpPayload =
@@ -25,6 +30,11 @@ export type ErpPayload =
       payment_method: ErpMethod
       /** YYYY-MM-DD or an ISO time with its offset; null → when it arrived. */
       date: string | null
+      /**
+       * The bank's own reference (Trx. ID / Hash), lower-case, for money that came through a bank: the same payment
+       * already recorded by AUTOBOK or a slip is taken over, never booked twice (Task #516 — erp_sync_apply).
+       */
+      bank_ref: string | null
     }
 
 /** A signed request older (or newer) than this is refused — a captured request cannot be replayed later. */
@@ -112,12 +122,14 @@ export function parseErpPayload(body: unknown): { ok: true; payload: ErpPayload 
   // (10.1 × 100 is 1010.0000000000001 in floating point: compared with a tolerance, never ===.)
   if (currency === "KHR" ? !Number.isInteger(amount) : Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-6) return { ok: false, error: currency === "KHR" ? "amount: whole riel" : "amount: at most 2 decimals" }
   const method = b.payment_method === undefined ? "bank" : ERP_METHODS.find((m) => m === b.payment_method)
-  if (!method) return { ok: false, error: "payment_method: bank | cash" }
+  if (!method) return { ok: false, error: "payment_method: cash | aba | acleda" }
+  const bankRef = str(b.bank_ref, 40).toLowerCase() || null
+  if (bankRef && !/^[a-z0-9-]{4,40}$/.test(bankRef)) return { ok: false, error: "bank_ref: 4–40 letters, digits or -" }
   const date = str(b.date, 40) || null
   if (date && !/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2}))?$/.test(date)) return { ok: false, error: "date: YYYY-MM-DD or ISO 8601 with its offset" }
   const category = str(b.category, 60)
   return {
     ok: true,
-    payload: { action: "create", reference_id, type, amount, currency, preset: erpPreset(type, category), category, note: str(b.note, 300) || null, payment_method: method, date },
+    payload: { action: "create", reference_id, type, amount, currency, preset: erpPreset(type, category), category, note: str(b.note, 300) || null, payment_method: method, date, bank_ref: bankRef },
   }
 }
