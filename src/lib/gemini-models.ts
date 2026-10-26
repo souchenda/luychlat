@@ -14,7 +14,7 @@ export const geminiModelUrl = (model: string) => `https://generativelanguage.goo
  * Each model's share of a reader's time limit: never more than the caller allowed in all (a slip's 20 s, a loan schedule's
  * 35 s), never under 8 s (an image in JSON takes ~2 s on a healthy model).
  */
-export const perModelTimeout = (totalMs: number, models = GEMINI_MODELS.length) => Math.max(8_000, Math.round(totalMs / Math.max(1, models)))
+export const perModelTimeout = (totalMs: number, models: number = GEMINI_MODELS.length) => Math.max(8_000, Math.round(totalMs / Math.max(1, models)))
 
 /** «gemini-3.5-flash HTTP 503 · gemini-flash-latest timed out» — what every model said, for the event log. */
 export const failureLine = (fails: { model: string; why: string }[]) => fails.map((f) => `${f.model} ${f.why}`).join(" · ")
