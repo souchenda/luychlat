@@ -119,3 +119,31 @@ describe("The ERP is the primary ledger, nothing counted twice (founder, 26/10/2
     assert.match(sql, /select id into mirror from public\.transactions where draw_of = tx;\n\s+if mirror is not null then\n\s+draw_status := 'mirrored';/)
   })
 })
+
+describe("Matching by day and amount, and a void that never deletes the bank's entry (founder, 26/10/2026 — Task #518)", () => {
+  const sql = read("supabase/migrations/20270265000000_erp_sync_match.sql")
+  it("no bank reference (a delivery paid by KHQR): the bank's INCOME entry of the same DL wallet, exact amount and Cambodian day", () => {
+    assert.match(sql, /elsif v_type = 'income' and v_method in \('aba', 'acleda'\) then/)
+    assert.match(sql, /where t0\.workspace_id = ws\.id and t0\.wallet_id = w\.id and t0\.type = 'INCOME' and t0\.currency::text = v_cur and t0\.amount = v_amount\n\s+and t0\.bank_ref is not null\n\s+and \(t0\.transaction_date at time zone 'Asia\/Phnom_Penh'\)::date = \(v_when at time zone 'Asia\/Phnom_Penh'\)::date/)
+    assert.match(sql, /and not exists \(select 1 from public\.erp_sync_events e where e\.transaction_id = t0\.id and e\.voided_at is null\)\n\s+order by t0\.transaction_date, t0\.created_at limit 1;/)
+  })
+  it("never silent: the founder's tag on a match by day and amount", () => {
+    assert.match(sql, /select '🔗 ផ្គូផ្គងស្វ័យប្រវត្តិតាមកាលបរិច្ឆេទ និងទឹកប្រាក់ ERP'/)
+    assert.equal((sql.match(/case when (v_matched = 'amount_day'|by_day) then public\.erp_match_tag\(\) end/g) ?? []).length, 2) // both orders
+  })
+  it("the bank after the ERP: a no-reference ERP bank income is matched by its wallet, amount and day too", () => {
+    assert.match(sql, /where x\.bank_wallet = new\.wallet_id and x\.voided_at is null and x\.matched_by is null and x\.transaction_id <> new\.id/)
+    assert.match(sql, /case when v_type = 'income' and v_method in \('aba', 'acleda'\) and v_bref is null and v_matched is null then w\.id end/)
+  })
+  it("a void of a matched entry: the bank's entry stays — its own note and category back, the link gone; the ERP's own entries are deleted", () => {
+    const voidPart = sql.slice(sql.indexOf("if ev.matched_by is not null then"), sql.indexOf("return jsonb_build_object('status', 'unlinked'"))
+    assert.match(voidPart, /set note = ev\.original_note, category_id = coalesce\(ev\.original_category, category_id\)/)
+    assert.doesNotMatch(voidPart, /delete from public\.transactions where id = ev\.transaction_id/)
+    assert.match(sql, /original_note = new\.note, original_category = new\.category_id/) // remembered when the bank's entry came second
+    assert.match(sql, /delete from public\.transactions where id = ev\.transaction_id and workspace_id = ws\.id;\n\s+update public\.erp_sync_events set voided_at = now\(\) where reference_id = ref;\n\s+return jsonb_build_object\('status', 'voided'/)
+  })
+  it("cash is never matched by day (a cash sale has no bank entry); a mirror the draw already had is never the ERP's to remove", () => {
+    assert.doesNotMatch(sql, /v_method in \([^)]*'cash'/)
+    assert.match(sql, /mirror := null; -- not the ERP's: a void never removes it/)
+  })
+})
