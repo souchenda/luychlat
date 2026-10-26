@@ -83,7 +83,7 @@ describe("Whisper looping and the prompt's size (founder, 26/10/2026 — Task #5
     assert.match(t, /const compression = segs\.length \? Math\.max\(\.\.\.segs\.map\(\(x\) => x\.compression_ratio \?\? 0\)\) : null/)
     assert.match(t, /transcriptUnsure\(\{ text: t\.text, seconds, logprob: t\.logprob, noSpeech: t\.noSpeech, compression: t\.compression \}\)/)
     assert.match(t, /generationConfig: \{ temperature: 0, maxOutputTokens: 256, thinkingConfig: \{ thinkingBudget: 0 \} \}/)
-    assert.match(t, /export const GEMINI_VOICE_MODELS = \["gemini-flash-latest", "gemini-3\.5-flash"\] as const/)
+    assert.match(t, /for \(const model of GEMINI_MODELS\) \{/) // the shared list (lib/gemini-models.ts — Task #513)
     assert.match(t, /if \(r !== "failed"\) return r/) // «no clear speech» is an answer, not a failure
     assert.match(t, /signal: AbortSignal\.timeout\(GEMINI_TIMEOUT_MS\)/)
     // The audio for Whisper and Gemini alike: 0.4 s before, 0.8 s after, levelled, 16 kHz mono — no word clipped.

@@ -34,8 +34,8 @@ import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, maskNumbers, sendText, telegramFile, tg, tr } from "@/lib/server/telegram-bot"
 import { emitSlipChime } from "./payment-chime"
+import { failureLine, GEMINI_MODELS, geminiModelUrl, perModelTimeout } from "@/lib/gemini-models"
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
 // The fallback reader while Gemini is overloaded (503s / no answer): fast, good on Latin print, weak on Khmer script.
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 const GROQ_VISION = "qwen/qwen3.8-27b"
@@ -80,12 +80,28 @@ const PROMPT = [
 
 export type ReadResult = { slip: Slip } | { error: "unreadable" | "busy" | "utility_bill" | "loan_schedule" | "loan_detail" | "term_deposit" | "kscore" | "bank_account" } | { error: "ev_charge"; kwh: number; date: string | null }
 
-export type Answer = { text: string } | { fail: string }
+/** `model`: which Gemini model answered (Task #513 — logged with the slip). */
+export type Answer = { text: string; model?: string } | { fail: string }
 
-/** Gemini Vision's raw answer (retrying brief overloads). */
+/**
+ * Gemini Vision's raw answer: the models of lib/gemini-models.ts in turn (gemini-3.5-flash, then gemini-flash-latest),
+ * «thinking» off, each with its share of `timeoutMs` — a model that is down, busy, out of quota or slow hands over to
+ * the next at once (Task #513: on 26/10 gemini-flash-latest answered 503 then 429 all day, and the old retries on it
+ * only waited longer). Shared by every photo reader (slips, bills, loans, accounts, deposits, NSSF, scan, K-Score, fuel).
+ */
 export async function askGemini(key: string, type: string, image: string, prompt: string = PROMPT, maxTokens = 600, timeoutMs = 20_000): Promise<Answer> {
+  const fails: { model: string; why: string }[] = []
+  for (const model of GEMINI_MODELS) {
+    const got = await askGeminiModel(model, key, type, image, prompt, maxTokens, perModelTimeout(timeoutMs))
+    if ("text" in got) return got
+    fails.push({ model, why: got.fail })
+  }
+  return { fail: failureLine(fails) }
+}
+
+async function askGeminiModel(model: string, key: string, type: string, image: string, prompt: string, maxTokens: number, timeoutMs: number): Promise<Answer> {
   const request = () =>
-    fetch(GEMINI_URL, {
+    fetch(geminiModelUrl(model), {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
@@ -96,16 +112,11 @@ export async function askGemini(key: string, type: string, image: string, prompt
       signal: AbortSignal.timeout(timeoutMs),
     })
   try {
-    // Quick 429 / 5xx answers are retried; a request that hangs goes straight to the fallback.
-    let res = await request()
-    for (const wait of [1500, 4000]) {
-      if (res.ok || !(res.status === 429 || res.status >= 500)) break
-      await new Promise((resolve) => setTimeout(resolve, wait))
-      res = await request()
-    }
+    // No waiting retries on a busy model: the next model is the retry.
+    const res = await request()
     if (!res.ok) return { fail: `HTTP ${res.status}` }
     const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
-    return { text: (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("") }
+    return { text: (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join(""), model }
   } catch (e) {
     return { fail: e instanceof Error && e.name === "TimeoutError" ? "timed out" : "request failed" }
   }
@@ -190,7 +201,11 @@ export async function readSlipImage(type: string, image: string): Promise<ReadRe
       return { error: "unreadable" }
     }
     const slip = cleanSlip(raw)
-    if (slip) return { slip }
+    if (slip) {
+      // Which reader read it (Task #513): «Slip read by gemini-3.5-flash» — a slow or failing model shows in the log.
+      logEvent("info", "slips", `Slip read by ${"model" in got && got.model ? got.model : name}`, { fold: true })
+      return { slip }
+    }
     // A definite answer ("not a receipt" / no amount): the photo is the problem, not the reader.
     logEvent("warn", "slips", `Slip not accepted (${name}): ${(raw as { is_slip?: unknown })?.is_slip === false ? "not a bank receipt" : "amount / currency unreadable"}`, { fold: true })
     return { error: "unreadable" }

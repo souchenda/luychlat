@@ -6,6 +6,7 @@ import { tmpdir } from "os"
 import { join } from "path"
 
 import { KHMER_EVERYDAY, khmerHint, transcriptUnsure } from "@/lib/bot/voice-guard"
+import { GEMINI_MODELS, geminiModelUrl } from "@/lib/gemini-models"
 import type { Locale } from "@/lib/i18n/dictionaries"
 
 /**
@@ -111,17 +112,16 @@ async function whisper(provider: Provider, audio: { blob: Blob; name: string }, 
 }
 
 /**
- * The Gemini models tried in turn (Task #512, measured 26/10/2026 13:10): gemini-flash-latest answered 503 «high demand»
- * all day (06:58 and 12:54 the voice notes waited 30 s and fell to Whisper, which invented the words) while
- * gemini-3.5-flash answered in 2.3 s. A model that is down, busy or slow → the next; each gets GEMINI_TIMEOUT_MS.
+ * The Gemini models, in turn (lib/gemini-models.ts — Tasks #512 / #513: gemini-3.5-flash first; on 26/10
+ * gemini-flash-latest answered 503 then 429 all day, and the voice notes of 06:58 and 12:54 fell to Whisper, which
+ * invented the words). A model that is down, busy or slow → the next; each gets GEMINI_TIMEOUT_MS.
  */
-export const GEMINI_VOICE_MODELS = ["gemini-flash-latest", "gemini-3.5-flash"] as const
 const GEMINI_TIMEOUT_MS = 12_000
 
 /** Gemini (audio understanding): an exact transcription, numbers as digits — the first model that answers. */
 async function gemini(key: string, audio: { blob: Blob; name: string }) {
   const data = Buffer.from(await audio.blob.arrayBuffer()).toString("base64")
-  for (const model of GEMINI_VOICE_MODELS) {
+  for (const model of GEMINI_MODELS) {
     const r = await geminiOnce(key, model, audio, data)
     // An answer — words, or «no clear speech» — ends it; only a model that failed hands over to the next.
     if (r !== "failed") return r
@@ -131,7 +131,7 @@ async function gemini(key: string, audio: { blob: Blob; name: string }) {
 
 async function geminiOnce(key: string, model: string, audio: { blob: Blob; name: string }, data: string): Promise<{ text: string; language: string; model: string } | null | "failed"> {
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    const res = await fetch(geminiModelUrl(model), {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
