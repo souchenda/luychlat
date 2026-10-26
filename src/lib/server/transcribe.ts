@@ -5,6 +5,7 @@ import { readFile, unlink, writeFile } from "fs/promises"
 import { tmpdir } from "os"
 import { join } from "path"
 
+import { KHMER_EVERYDAY, khmerHint, transcriptUnsure } from "@/lib/bot/voice-guard"
 import type { Locale } from "@/lib/i18n/dictionaries"
 
 /**
@@ -37,7 +38,8 @@ const HINT_KM = "កត់ត្រាចំណាយលុយឆ្លាត៖
 const HINT_ZH = "支出 收入 还款 美元 瑞尔 咖啡 午饭 汽油 工资 ABA ACLEDA Wing"
 const HINT_EN = "expense income repay dollars riel coffee lunch fuel salary ABA ACLEDA Wing"
 
-export type Transcript = { text: string; language: string | null; retried: boolean; via: string; confidence?: string }
+/** `unsure`: the clip could not have held this text, or Whisper scored it low (lib/bot/voice-guard.ts, Task #507). */
+export type Transcript = { text: string; language: string | null; retried: boolean; via: string; confidence?: string; unsure?: boolean }
 
 /** Khmer script in a transcript. */
 const KHMER = /[ក-៿]/
@@ -95,7 +97,7 @@ async function whisper(provider: Provider, audio: { blob: Blob; name: string }, 
     const logprob = segs.length ? segs.reduce((s, x) => s + (x.avg_logprob ?? 0), 0) / segs.length : null
     const noSpeech = segs.length ? Math.max(...segs.map((x) => x.no_speech_prob ?? 0)) : null
     const confidence = logprob === null ? undefined : `logprob ${logprob.toFixed(2)}, no-speech ${noSpeech?.toFixed(2)}`
-    return { text, language: data.language?.toLowerCase() ?? null, confidence }
+    return { text, language: data.language?.toLowerCase() ?? null, confidence, logprob, noSpeech }
   } catch (error) {
     console.error(`[voice] whisper error: ${(error as Error).message}`)
     return null
@@ -115,7 +117,7 @@ async function gemini(key: string, audio: { blob: Blob; name: string }) {
             parts: [
               { inline_data: { mime_type: audio.blob.type || "audio/ogg", data } },
               {
-                text: "Transcribe this Khmer voice note accurately for personal expense tracking (for example: ទិញទឹក ១០០០រៀល, កាហ្វេ ២ដុល្លារ). Write amounts as digits. Output only the Khmer transcript without commentary or translation. If there is no clear speech, output nothing.",
+                text: `Transcribe this Khmer voice note accurately for personal expense tracking (for example: ទិញទឹក ១០០០រៀល, កាហ្វេ ២ដុល្លារ). Notes are often only 2–4 everyday words, such as: ${KHMER_EVERYDAY}. Write amounts as digits. Output only the Khmer transcript without commentary or translation. If there is no clear speech, output nothing.`,
               },
             ],
           },
@@ -145,7 +147,12 @@ async function gemini(key: string, audio: { blob: Blob; name: string }) {
  *   Other chats: the spoken language is detected (a chat set to English often
  *   speaks Khmer); Khmer heard as Thai / Lao is asked again with language=km.
  */
-export async function transcribe(raw: Blob, chatLanguage: Locale): Promise<Transcript | null> {
+export async function transcribe(raw: Blob, chatLanguage: Locale, seconds?: number): Promise<Transcript | null> {
+  const t = await heard(raw, chatLanguage, seconds)
+  return t ? { ...t, unsure: transcriptUnsure({ text: t.text, seconds, logprob: t.logprob, noSpeech: t.noSpeech }) } : null
+}
+
+async function heard(raw: Blob, chatLanguage: Locale, seconds?: number): Promise<(Transcript & { logprob?: number | null; noSpeech?: number | null }) | null> {
   const provider = transcriptionProvider()
   const key = geminiKey()
   if (!provider && !key) return null
@@ -157,7 +164,8 @@ export async function transcribe(raw: Blob, chatLanguage: Locale): Promise<Trans
       if (g) return { ...g, retried: false, via: "gemini" }
     }
     if (!provider) return null
-    const w = await whisper(provider, audio, "km", HINT_KM)
+    // A short clip: the everyday words as the bias, temperature 0 (Task #507).
+    const w = await whisper(provider, audio, "km", khmerHint(seconds, HINT_KM))
     return w ? { ...w, retried: false, via: `whisper${audio.name.endsWith(".wav") ? "+ffmpeg" : ""}` } : null
   }
 
@@ -173,7 +181,7 @@ export async function transcribe(raw: Blob, chatLanguage: Locale): Promise<Trans
     const g = await gemini(key, audio)
     if (g) return { ...g, retried: true, via: "gemini" }
   }
-  const khmer = await whisper(provider, audio, "km", HINT_KM)
+  const khmer = await whisper(provider, audio, "km", khmerHint(seconds, HINT_KM))
   if (khmer) return { ...khmer, language: "khmer", retried: true, via }
   return first ? { ...first, retried: false, via } : null
 }

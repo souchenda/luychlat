@@ -103,9 +103,11 @@ export const looksLikeNote = (text: string) => {
 }
 
 /** «✅ បានបន្ថែមចំណាំ៖ «{note}» លើប្រតិបត្តិការ {amount} រួចរាល់!» and «📁 ប្រភេទ៖ {category}». */
-export function recentNoteText(lang: Locale, o: { note: string; amount: number; currency: "USD" | "KHR"; category: string | null; preset: string | null }) {
+export function recentNoteText(lang: Locale, o: { note: string; amount: number; currency: "USD" | "KHR"; category: string | null; preset: string | null; corrected?: boolean }) {
   const category = o.category ? categoryLabel({ name: o.category, preset_key: o.preset }, lang) : tr(lang, "entry.uncategorized")
-  return [tr(lang, "bot.recentNoteSaved", { note: o.note, amount: formatMoney(o.amount, o.currency) }), tr(lang, "bot.recentNoteCategory", { category })].join("\n")
+  // A typed text right after a voice note replaced what was heard (founder, 26/10/2026 — Task #507): «✏️ បានកែសម្រួលចំណាំជា៖ …».
+  const first = tr(lang, o.corrected ? "bot.noteCorrected" : "bot.recentNoteSaved", { note: o.note, amount: formatMoney(o.amount, o.currency) })
+  return [first, tr(lang, "bot.recentNoteCategory", { category })].join("\n")
 }
 
 /**

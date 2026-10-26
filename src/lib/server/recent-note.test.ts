@@ -82,6 +82,36 @@ describe("The note right after a slip saved by a category tap (founder, 24/10/20
   it("the [📝 បន្ថែមចំណាំ] button still asks and takes a reply (text or voice)", () => {
     const s = read("src/lib/server/slip-bot.ts")
     assert.match(s, /async function askForNote\(chatId: number, txId: string, cardMsg: number/)
-    assert.match(s, /export async function handleNoteReply\(chatId: number, replyTo: number, text: string\)/)
+    assert.match(s, /export async function handleNoteReply\(chatId: number, replyTo: number, text: string, voice = false\)/)
+  })
+})
+
+describe("A typed text corrects the voice note just heard (founder, 26/10/2026 — Task #507)", () => {
+  const sql = read("supabase/migrations/20270261000000_voice_note_correction.sql")
+  it("regression: «បាយព្រឹកកូនពៅ» after the 9,000 ៛ slip failed — the two enums are compared as text", () => {
+    // «operator does not exist: public.category_type = public.transaction_type» — every note naming a category failed.
+    assert.match(sql, /where workspace_id = t\.workspace_id and type::text = t\.type::text and preset_key = p_preset/)
+    assert.doesNotMatch(sql, /and type = t\.type and/)
+    assert.equal(presetFromWords("បាយព្រឹកកូនពៅ"), "food")
+    assert.ok(looksLikeNote("បាយព្រឹកកូនពៅ"))
+    assert.ok(mentionsChild("បាយព្រឹកកូនពៅ"))
+  })
+  it("a voice note is remembered on the card (both paths), and the next text replaces that heard part — never appended to it", () => {
+    assert.match(sql, /alter table public\.bot_note_prompts add column if not exists voice_note text;/)
+    assert.equal((sql.match(/set voice_note = case when coalesce\(p_voice, false\) then clean end,/g) ?? []).length, 2) // bot_tx_note_recent and bot_tx_note
+    assert.match(sql, /corrected := not coalesce\(p_voice, false\) and pr\.voice_note is not null and pr\.voice_note <> clean/)
+    assert.match(sql, /and s <> clean and not \(corrected and s = pr\.voice_note\);/)
+    assert.match(sql, /grant execute on function public\.bot_tx_note_recent\(text, bigint, text, text, boolean\) to anon, authenticated;/)
+    assert.match(sql, /grant execute on function public\.bot_tx_note\(text, bigint, bigint, text, boolean\) to anon, authenticated;/)
+    // The 5 minutes count from the voice note (a slow typist is still in time).
+    assert.match(sql, /created_at = case when coalesce\(p_voice, false\) and card_msg = message_id then now\(\) else created_at end/)
+  })
+  it("the bot passes who spoke: a voice reply to [📝], a voice note after a card; the reply is the founder's wording", () => {
+    assert.match(read("src/app/api/telegram/webhook/route.ts"), /\(text\) => handleNoteReply\(chatId, replyTo, text, true\)/)
+    assert.match(read("src/lib/server/slip-bot.ts"), /p_note: note, p_voice: voice \}\)/)
+    assert.match(read("src/lib/server/bot-commands.ts"), /p_preset: presetFromWords\(note\), p_voice: voice \}\)/)
+    const text = recentNoteText("km", { note: "បាយព្រឹកកូនពៅ", amount: 9000, currency: "KHR", category: "Food", preset: "food", corrected: true })
+    assert.equal(text.split("\n")[0], "✏️ បានកែសម្រួលចំណាំជា៖ «បាយព្រឹកកូនពៅ» (ប្រតិបត្តិការ 9,000៛)")
+    assert.match(recentNoteText("en", { note: "x y z", amount: 1, currency: "USD", category: null, preset: null, corrected: true }), /^✏️ Note corrected to: «x y z»/)
   })
 })

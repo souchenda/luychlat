@@ -511,7 +511,7 @@ export async function POST(request: Request) {
     after(async () => {
       const ctx = await botContext(chatId)
       if (!ctx?.linked) await sendGate(chatId, message.from?.first_name)
-      else await handleVoiceMessage(chatId, voice, ctx, replyTo ? (text) => handleNoteReply(chatId, replyTo, text) : undefined)
+      else await handleVoiceMessage(chatId, voice, ctx, replyTo ? (text) => handleNoteReply(chatId, replyTo, text, true) : undefined)
     })
     return NextResponse.json({ ok: true })
   }

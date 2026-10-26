@@ -198,9 +198,10 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
 export async function noteOnRecentEntry(chatId: number, text: string, lang: Locale, voice = false): Promise<boolean> {
   const note = cleanNote(text)
   if (!note || !looksLikeNote(note)) return false
-  const { data, error } = await botDb().rpc("bot_tx_note_recent", { p_key: botKey(), p_chat_id: chatId, p_note: note, p_preset: presetFromWords(note) })
+  // p_voice: a spoken note is remembered, so a typed text right after it corrects it instead of adding to it (Task #507).
+  const { data, error } = await botDb().rpc("bot_tx_note_recent", { p_key: botKey(), p_chat_id: chatId, p_note: note, p_preset: presetFromWords(note), p_voice: voice })
   if (!error && data === null) return false
-  const r = data as ({ ok?: boolean; tx_id?: string; card_msg?: number | null; user_note?: string; type?: string } & TaggedRow) | null
+  const r = data as ({ ok?: boolean; tx_id?: string; card_msg?: number | null; user_note?: string; type?: string; corrected?: boolean } & TaggedRow) | null
   if (error || !r?.ok || !r.tx_id) {
     const msg = error?.message ?? ""
     if (/empty_note/.test(msg)) return false
@@ -211,14 +212,14 @@ export async function noteOnRecentEntry(chatId: number, text: string, lang: Loca
   // A note about a child tags the expense «👶 សម្រាប់កូន» (founder, 20/10/2026); one tap on the card turns it off.
   const child = r.type === "EXPENSE" && !r.for_child && mentionsChild(r.user_note ?? note) ? (await tagTransaction(chatId, r.tx_id, null, null, true)).data : null
   const row = child?.ok ? { ...r, ...child } : r
-  const reply = recentNoteText(lang, { note: r.user_note ?? note, amount: Number(r.amount), currency: r.currency ?? "USD", category: r.category ?? null, preset: r.preset ?? null })
+  const reply = recentNoteText(lang, { note: r.user_note ?? note, amount: Number(r.amount), currency: r.currency ?? "USD", category: r.category ?? null, preset: r.preset ?? null, corrected: Boolean(r.corrected) })
   await sendText(chatId, child?.ok ? `${reply}\n${tr(lang, "bot.forChildOn")}` : reply)
   // The card shows the note, the category and the tag now.
   if (r.card_msg && r.type === "EXPENSE") {
     const card = savedCard(lang, r.tx_id, taggedFrom(lang, row as TaggedRow))
     await tg("editMessageText", { chat_id: chatId, message_id: r.card_msg, ...card }).catch(() => null)
   }
-  logEvent("info", "bot", `Follow-up note on the entry just recorded${presetFromWords(note) ? " (category from its words)" : ""}`, { fold: true })
+  logEvent("info", "bot", `Follow-up note on the entry just recorded${r.corrected ? " (corrects the voice note)" : ""}${presetFromWords(note) ? " (category from its words)" : ""}`, { fold: true })
   return true
 }
 
@@ -444,13 +445,17 @@ export async function handleVoiceMessage(chatId: number, voice: Voice, ctx: Cont
   }
   if (audio.size > MAX_VOICE_BYTES) return sendText(chatId, tr(lang, "bot.voiceTooLong"))
 
-  const transcript = await transcribe(audio, lang)
+  const transcript = await transcribe(audio, lang, voice.duration)
   const text = transcript?.text.replace(/\s+/g, " ").slice(0, 300)
   // Server log (not the admin event log): what was heard, to diagnose recognition problems.
   console.info(
     `[voice] chat …${String(chatId).slice(-4)} · chat language ${lang} · ${transcript?.via ?? "-"} · heard ${transcript?.language ?? "?"}${transcript?.retried ? " (asked again as Khmer)" : ""}${transcript?.confidence ? ` · ${transcript.confidence}` : ""} · ${text ? `"${text.slice(0, 120)}"` : "no text"}`,
   )
   if (!text) return sendText(chatId, tr(lang, "bot.voiceFailed"))
+  // Unsure (a short clip with a low score, or more words than its length allows) and no amount in it: never saved as a
+  // note — what was heard is shown and nothing is kept (founder, 26/10/2026 — Task #507: «បាយព្រឹកកូនពៅ» became
+  // «អាចង្របស្ពីភាត្របស្រៀល» on a 9,000 ៛ slip). With an amount the card still asks ✅ first, the transcript on top.
+  if (transcript?.unsure && !/[\d០-៩]/.test(khmerWordsToDigits(text))) return sendText(chatId, tr(lang, "bot.voiceUnsure", { text }))
   if (onText && (await onText(text))) return
   // Speech-to-text writes amounts as Khmer words ("ពីរដុល្លារ"): turn them into digits for the parser.
   return handleEntryMessage(chatId, khmerWordsToDigits(text), ctx, text)

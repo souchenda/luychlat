@@ -730,10 +730,11 @@ async function askForNote(chatId: number, txId: string, cardMsg: number, lang: L
  * set the note, acknowledge, and redraw the saved card. False when the replied-to
  * message isn't a note prompt — the message is then handled as usual.
  */
-export async function handleNoteReply(chatId: number, replyTo: number, text: string): Promise<boolean> {
+export async function handleNoteReply(chatId: number, replyTo: number, text: string, voice = false): Promise<boolean> {
   const note = cleanNote(text)
   if (!note) return false
-  const { data, error } = await botDb().rpc("bot_tx_note", { p_key: botKey(), p_chat_id: chatId, p_prompt_message_id: replyTo, p_note: note })
+  // p_voice: a spoken note is remembered — the text typed right after it corrects it (Task #507).
+  const { data, error } = await botDb().rpc("bot_tx_note", { p_key: botKey(), p_chat_id: chatId, p_prompt_message_id: replyTo, p_note: note, p_voice: voice })
   if (!error && data === null) return false
   const lang = contextLocale(await botContext(chatId))
   const r = data as ({ ok?: boolean; tx_id?: string; card_msg?: number | null; user_note?: string; type?: string } & TaggedRow) | null
