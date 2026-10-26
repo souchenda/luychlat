@@ -56,8 +56,12 @@ count come from the 27, plus five words of its own (`CLOSING_WORDS` in `src/lib/
 | `times.mp3` | ដង |
 | `thanks.mp3` | អរគុណ |
 
-Approved by the founder: **licensed Google Cloud Text-to-Speech only** (never `translate_tts` — the owner override covers
-the 27 alone). In your own terminal, with your own key (never committed, never pasted in chat):
+**Current files (26/10/2026 — Task #508, owner override):** Google Cloud TTS needs billing on the founder's project, so he
+extended the Task #464 override to these five: they come from `translate_tts` (the same voice as the 27), made by
+`npx tsx scripts/soundbox-closing-override.ts` in the exact format below (1.0x mean −19.4 / −19.5 dB). Replace them with
+licensed audio when possible — the same file names.
+
+The licensed way, in your own terminal with your own key (never committed, never pasted in chat):
 
     GOOGLE_TTS_API_KEY=… npx tsx scripts/soundbox-closing-tts.ts
 

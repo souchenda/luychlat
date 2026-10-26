@@ -64,7 +64,9 @@ use come before feature count: no half-baked features, broken links or untested 
   **Owner override — the 27 SoundBox clips only (founder, 22/10/2026 — Task #464):** Azure sign-up was blocked, so the
   founder authorised generating `public/audio/soundbox/khmer/*.mp3` from Google Translate's free speech endpoint
   (`translate_tts`, not a licensed API). The founder accepted the risk; replace them with Azure / Google Cloud TTS or a
-  Khmer speaker's recordings (same file names) when possible. No other asset may use that endpoint.
+  Khmer speaker's recordings (same file names) when possible. **Extended to the 5 closing-summary clips (founder,
+  26/10/2026 — Task #508):** `today_total`, `and`, `sales`, `times`, `thanks` (`scripts/soundbox-closing-override.ts`),
+  the same voice as the 27, Google Cloud TTS needing billing. No other asset may use that endpoint.
   **Exception — community qasidah (founder, 20/10/2026):** members may share nasheeds they found, for non-commercial
   listening in the community, under Notice & Take-down: one confirmation (authentic Islamic content), the founder's ✅
   before anything is public, and removal at once when an original owner asks. The app's own assets (Adhans, du'as,

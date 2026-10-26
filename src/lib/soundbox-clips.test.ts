@@ -42,3 +42,36 @@ describe("The closing-summary clips, made like the 27 (founder, 24/10/2026 — T
     assert.match(s, /if \(failed\) \{/) // a clip off the 27's loudness is never left to commit silently
   })
 })
+
+/** The first MPEG frame of a file with no tags: version, sample rate, kbps, mono. */
+function mp3Header(file: string) {
+  const b = readFileSync(join(process.cwd(), file))
+  const i = b.findIndex((x, k) => x === 0xff && (b[k + 1] & 0xe0) === 0xe0)
+  const version = (b[i + 1] >> 3) & 3 // 2 = MPEG-2
+  const layer = (b[i + 1] >> 1) & 3 // 1 = Layer III
+  const kbps = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160][b[i + 2] >> 4] // MPEG-2 Layer III
+  const rate = [22050, 24000, 16000][(b[i + 2] >> 2) & 3]
+  return { tagless: i === 0, version, layer, kbps, rate, mono: b[i + 3] >> 6 === 3, bytes: b.length }
+}
+
+describe("The 5 closing clips are in place (founder, 26/10/2026 — Task #508, owner override)", () => {
+  it("15 files — 1.0x, x1.2, x1.3 — each in the 27's encoding: MPEG-2 Layer III, 24 kHz, 64 kbps, mono, no tags", () => {
+    const ref = mp3Header("public/audio/soundbox/khmer/riel.mp3")
+    for (const dir of ["", ...CLIP_FORMAT.speeds.map((s) => `x${s}/`)])
+      for (const c of CLOSING_CLIPS) {
+        const h = mp3Header(`public/audio/soundbox/khmer/${dir}${c}.mp3`)
+        assert.deepEqual({ ...h, bytes: 0 }, { tagless: true, version: 2, layer: 1, kbps: 64, rate: 24_000, mono: true, bytes: 0 }, `${dir}${c}`)
+        assert.ok(h.bytes > 2_000, `${dir}${c} holds a word`)
+        assert.deepEqual({ ...h, bytes: 0, tagless: ref.tagless }, { ...ref, bytes: 0 }) // the same encoding as a clip of the 27
+      }
+  })
+  it("the override is the 5 words only: translate_tts for CLOSING_WORDS, checked against the 27's loudness, recorded in CLAUDE.md", () => {
+    const s = read("scripts/soundbox-closing-override.ts")
+    assert.deepEqual([...new Set(s.match(/https:\/\/[^\s"`/]+/g))], ["https://translate.google.com"])
+    assert.match(s, /for \(const \[name, text\] of Object\.entries\(CLOSING_WORDS\)\)/)
+    assert.match(s, /const ok = clipMatches\(v\)/)
+    assert.match(s, /if \(failed\) \{/)
+    assert.match(read("CLAUDE.md"), /\*\*Extended to the 5 closing-summary clips \(founder,\s+26\/10\/2026 — Task #508\):\*\*/)
+    assert.deepEqual(Object.keys(CLOSING_WORDS), ["today_total", "and", "sales", "times", "thanks"])
+  })
+})

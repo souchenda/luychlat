@@ -138,7 +138,7 @@ Every phase is done before the freeze; a feature not live on 2026-12-14 moves af
 
 ### Phase 1 — November 2026 (done by 2026-11-20): the SoundBox closes the day
 
-- [/] Closing-summary voice clips «សរុបថ្ងៃនេះ», «និង», «ការលក់», «ដង», «អរគុណ» — licensed Google Cloud TTS only, made in the 27 clips' exact format and loudness (mono 24 kHz MP3 64 kbps, −19 dB mean, −2 dB peak, x1.2 / x1.3), checked by the script; `scripts/soundbox-closing-tts.ts`, docs/soundbox-khmer-audio.md ⛔ 🟡 ដំណើរការស្គ្រីបជាមួយ key Google Cloud របស់បង ហើយស្ដាប់ឃ្លីបទាំង 5
+- [x] Closing-summary voice clips «សរុបថ្ងៃនេះ», «និង», «ការលក់», «ដង», «អរគុណ» — made 26/10/2026 (Task #508) from translate_tts under the owner override (the 27's voice; Google Cloud TTS needed billing), in the 27 clips' exact format and loudness (mono 24 kHz MP3 64 kbps, mean −19.4 dB, x1.2 / x1.3); `scripts/soundbox-closing-override.ts` — licensed replacement later via `scripts/soundbox-closing-tts.ts`
 - [ ] SoundBox Daily Audio Closing Summary — at the shop's closing time the server totals the day's KHQR sales (riel and dollars apart, exact, the count) and the phone's native feed speaks it from the clips; on only where switched on, on that device; never on Silent / Vibrate / DND; the same total on screen ⛔ ⚙️ សាងសង់នៅពេលឃ្លីបទាំង 5 រួចរាល់
 - [ ] Auto-DND during prayer time — Islamic Mode devices that opt in: the SoundBox voice quiet for 15–20 min after each Adhan (Jumu'ah longer, adjustable, labelled «ប្រមាណ»); every sale still recorded and shown, then one «ទទួលបាន 3 ការលក់ …» summary after the window; the page hands the native feed plain quiet windows — the SoundBox imports no prayer code ⛔ ⚙️ រចនា និងសាងសង់ក្រោយសង្ខេបបិទបញ្ជី
 

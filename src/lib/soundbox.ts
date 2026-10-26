@@ -80,9 +80,10 @@ export type KhmerClip = (typeof KHMER_CLIPS)[number]
 
 /**
  * The daily closing summary's own words (founder, 24/10/2026 — Task #490, Phase 1): «សរុបថ្ងៃនេះ 1,200,000 រៀល និង
- * 45 ដុល្លារ · ការលក់ 23 ដង · អរគុណ» — the amounts and the count joined from KHMER_CLIPS. Made with licensed Google
- * Cloud TTS in the 27 clips' exact format (scripts/soundbox-closing-tts.ts); apart from KHMER_CLIPS, so the sale
- * announcement never waits for them.
+ * 45 ដុល្លារ · ការលក់ 23 ដង · អរគុណ» — the amounts and the count joined from KHMER_CLIPS. Made in the 27 clips' exact
+ * format; for now from translate_tts under the owner override (founder, 26/10/2026 — Task #508,
+ * scripts/soundbox-closing-override.ts), to be replaced by licensed TTS (scripts/soundbox-closing-tts.ts). Apart from
+ * KHMER_CLIPS, so the sale announcement never waits for them.
  */
 export const CLOSING_WORDS = {
   today_total: "សរុបថ្ងៃនេះ",
