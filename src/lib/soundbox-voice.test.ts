@@ -84,7 +84,9 @@ describe("SoundBox voice persona — 👩 female (default) or 👨 male, per dev
     const listener = read("src/components/payments/payment-chime-listener.tsx")
     assert.match(listener, /playClips\(paymentClips\(e, voiceSpeed\(\), voiceGender\(\)\)\)/)
     assert.match(read("src/app/api/soundbox/feed/route.ts"), /const voice = feedVoice\(url\.searchParams\.get\("voice"\)\)/)
-    // The Android service sends it (an older APK sends none → female, as before).
+    // The Android service sends it (an older APK sends none → female, as before). android/ is not in the Docker build
+    // context (.dockerignore): checked where the sources are, like apk-version.test.ts.
+    if (!existsSync(join(process.cwd(), "android"))) return
     assert.match(read("android/app/src/main/java/com/luychlat/app/SoundboxFeed.java"), /\+ "&speed=" \+ enc\(speed\) \+ "&voice=" \+ enc\(voice\);/)
     assert.match(read("android/app/src/main/java/com/luychlat/app/SoundboxKeepAlivePlugin.java"), /intent\.putExtra\("voice", call\.getString\("voice", "female"\)\);/)
   })
