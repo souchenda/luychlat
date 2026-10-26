@@ -63,6 +63,9 @@ services:
       TELEGRAM_APPROVAL_CHAT_ID: ${TELEGRAM_APPROVAL_CHAT_ID:-}
       TELEGRAM_APPROVER_IDS: ${TELEGRAM_APPROVER_IDS:-}
       DEVOPS_CHAT_ID: ${DEVOPS_CHAT_ID:-}
+      # Server-only, optional: the SL Staff ERP's shared secret (≥ 32 characters) for POST /api/integrations/erp-sync
+      # (Task #515). Unset → the endpoint answers 503 and records nothing. The same value goes in the ERP's settings.
+      ERP_SYNC_SECRET: ${ERP_SYNC_SECRET:-}
       # Server-only, optional: «ចូលរហ័សជាមួយ Telegram» (/api/auth/telegram). On with TELEGRAM_LOGIN=on
       # and the service-role key (all-powerful: server only, never NEXT_PUBLIC_, never in chat or git).
       TELEGRAM_LOGIN: ${TELEGRAM_LOGIN:-}

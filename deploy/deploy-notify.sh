@@ -71,8 +71,15 @@ full=$(git rev-parse HEAD 2>/dev/null || echo "?")
 # («Task: #049» or «កិច្ចការ: #049» in its message) gets that number. A redeploy of the same commit keeps its number.
 TASKS=deploy/run/task-numbers
 task_number() {
-  local tag known last
-  tag=$(git log -1 --format=%B "$full" 2>/dev/null | grep -oiE '(Task|កិច្ចការ)[[:space:]]*:[[:space:]]*#?[0-9]+' | head -1 | grep -oE '[0-9]+$')
+  local tag known last prev range
+  # The task this release carries (Task #515): named in ANY of its commits since the last announced release — «Task #514»
+  # with or without a colon (before, only «Task: #N» counted, and two tasks shipped in one release or a task without a
+  # deploy pushed the counter off: Task #514 showed as #512). The highest wins; deploy/task-tag.sh reads them.
+  prev=$(awk 'END { print $2 }' "$TASKS" 2>/dev/null)
+  # Unknown or unrelated last release (a first run, a rewritten history): this commit alone.
+  range="-1 $full"
+  if [ -n "$prev" ] && [ "$prev" != "$full" ] && git merge-base --is-ancestor "$prev" "$full" 2>/dev/null; then range="-n 40 $prev..$full"; fi
+  tag=$(git log --format='%B%x1e' $range 2>/dev/null | sh deploy/task-tag.sh)
   if [ -n "$tag" ]; then echo $((10#$tag)); return; fi
   known=$(awk -v h="$full" '$2 == h { n = $1 } END { if (n) print n }' "$TASKS" 2>/dev/null)
   if [ -n "$known" ]; then echo "$known"; return; fi
