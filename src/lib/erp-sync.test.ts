@@ -11,7 +11,7 @@ const NOW = Date.parse("2026-10-26T08:00:00Z")
 const TS = String(Math.floor(NOW / 1000))
 const BODY = JSON.stringify({ reference_id: "OE-1042", type: "expense", amount: 120.5, currency: "USD", category: "stock" })
 
-describe("SL Staff ERP → LuyChlat: the signature (founder, 26/10/2026 — Task #515)", () => {
+describe("DL Staff ERP → LuyChlat: the signature (founder, 26/10/2026 — Task #515)", () => {
   it("HMAC-SHA256 of «<timestamp>.<raw body>» with the shared secret, «sha256=<hex>»", () => {
     const sig = erpSignature(SECRET, TS, BODY)
     assert.match(sig, /^sha256=[0-9a-f]{64}$/)
@@ -31,7 +31,7 @@ describe("SL Staff ERP → LuyChlat: the signature (founder, 26/10/2026 — Task
   })
 })
 
-describe("SL Staff ERP → LuyChlat: the payload (Task #515)", () => {
+describe("DL Staff ERP → LuyChlat: the payload (Task #515)", () => {
   it("create: type, exact amount, currency, category → our preset, note, bank by default; void: the reference only", () => {
     const p = parseErpPayload({ reference_id: "OE-1042", type: "expense", amount: 120.5, currency: "USD", category: "stock", note: "  សាច់ជ្រូក   50kg " })
     assert.deepEqual(p, { ok: true, payload: { action: "create", reference_id: "OE-1042", type: "expense", amount: 120.5, currency: "USD", preset: "inventory", category: "stock", note: "សាច់ជ្រូក 50kg", payment_method: "bank", date: null, bank_ref: null } })
@@ -61,7 +61,7 @@ describe("SL Staff ERP → LuyChlat: the payload (Task #515)", () => {
   })
 })
 
-describe("SL Staff ERP → LuyChlat: the database and the route (Task #515)", () => {
+describe("DL Staff ERP → LuyChlat: the database and the route (Task #515)", () => {
   const sql = read("supabase/migrations/20270263000000_erp_sync.sql")
   const route = read("src/app/api/integrations/erp-sync/route.ts")
   it("the business workspace only, from the configuration (never the request); an unmapped method / currency refused", () => {

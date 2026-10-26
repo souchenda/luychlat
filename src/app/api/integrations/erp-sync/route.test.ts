@@ -39,3 +39,18 @@ describe("POST /api/integrations/erp-sync — before the database (founder, 26/1
     assert.match(((await res.json()) as { error: string }).error, /whole riel/)
   })
 })
+
+describe("POST /api/integrations/erp-sync — 60 requests a minute per address (founder, 26/10/2026 — Task #521)", () => {
+  it("the 61st request in a minute from one address → 429 with Retry-After, before any work; another address is not held back", async () => {
+    process.env.ERP_SYNC_SECRET = SECRET
+    const from = (ip: string) => ({ "cf-connecting-ip": ip })
+    const statuses: number[] = []
+    for (let i = 0; i < 61; i++) statuses.push((await call("{}", from("203.0.113.61"))).status)
+    assert.deepEqual([...new Set(statuses.slice(0, 60))], [401]) // the first 60 reach the signature check (unsigned → 401)
+    assert.equal(statuses[60], 429)
+    const held = await call("{}", from("203.0.113.61"))
+    assert.equal(held.status, 429)
+    assert.ok(Number(held.headers.get("retry-after")) > 0)
+    assert.equal((await call("{}", from("203.0.113.62"))).status, 401)
+  })
+})

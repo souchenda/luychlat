@@ -29,6 +29,7 @@ import { botFeatures, featureOk, KEYBOARD_OFF, menuCommand, menuFor } from "@/li
 import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
+import { handleErpDrawCallback, isErpDrawCallback } from "@/lib/server/erp-draw-bot"
 import { handleTipCallback, handleTipEditText, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
 import { editCardByReply, editLatestCardByPaste, handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
 import { handleNasheedCallback } from "@/lib/server/nasheed-review"
@@ -413,6 +414,9 @@ export async function POST(request: Request) {
       await handleBankUndoCallback(update.callback_query, contextLocale(ctx))
     } else if (isSlipCallback(update.callback_query.data)) {
       await handleSlipCallback(update.callback_query)
+    } else if (isErpDrawCallback(update.callback_query.data)) {
+      // The owner's draw from DL Staff: ✅ into the Personal wallet, ❌ not (Task #521).
+      await handleErpDrawCallback(update.callback_query)
     } else if (isTipCallback(update.callback_query.data)) {
       await handleTipCallback(update.callback_query)
     } else if (isDebtLinkCallback(update.callback_query.data)) {

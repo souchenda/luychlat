@@ -1,4 +1,4 @@
-// SL Staff ERP → LuyChlat (founder, 26/10/2026 — Task #515, phase 1 of #511). The depot ERP (DL Staff) is the source
+// DL Staff ERP → LuyChlat (founder, 26/10/2026 — Task #515, phase 1 of #511). The depot ERP (DL Staff) is the source
 // of truth for DL MEAT SUPPLY's ledger: it pushes each money movement here, signed with a shared secret. Pure
 // (erp-sync.test.ts): the signature check, the payload check and the category mapping; the writing is
 // public.erp_sync_apply (migration 20270263000000), always into the configured business workspace.
