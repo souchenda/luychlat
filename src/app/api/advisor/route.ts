@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { advisorRequestSchema, type AdvisorRequest } from "@/lib/advisor/payload"
 import { isOffTopic, OFF_TOPIC_REPLY } from "@/lib/ai-guard"
 import { advisorPlainText, advisorSystemPrompt } from "@/lib/advisor/prompt"
+import { geminiChain, NO_THINKING } from "@/lib/server/gemini"
 import { guardRequest, readJson } from "@/lib/server/guard"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -73,7 +74,6 @@ async function askOpenAI(req: AdvisorRequest): Promise<string> {
 }
 
 /** Gemini Flash — the server's GEMINI_API_KEY (the model the Telegram bot uses). */
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
 
 type GeminiResponse = {
   candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[]
@@ -83,34 +83,21 @@ type GeminiResponse = {
 /** The answer from Gemini; throws on HTTP / network errors (the client then answers offline). */
 async function askGemini(req: AdvisorRequest, apiKey: string): Promise<string> {
   const contents = conversation(req).map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }))
-  const request = () =>
-    fetch(GEMINI_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt(req) }] },
-        contents,
-        // Low thinking: ~5 s instead of 40–100 s (measured on production, 18/10/2026); "minimal" is refused.
-        generationConfig: { temperature: 0.4, maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "low" } },
-      }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(45_000),
-    })
-  // "High demand" (503) and rate limits (429) are usually brief: try again — only while the 60 s route has time.
-  const started = Date.now()
-  let res = await request()
-  for (const wait of [1500, 4000]) {
-    if (res.ok || !(res.status === 429 || res.status >= 500) || Date.now() - started > 12_000) break
-    await new Promise((resolve) => setTimeout(resolve, wait))
-    res = await request()
-  }
-  if (!res.ok) {
-    console.error(`[advisor] gemini failed: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`)
-    const error = new Error(`gemini ${res.status}`) as Error & { status: number }
-    error.status = res.status === 429 ? 429 : 502
+  // The shared model chain (lib/server/gemini.ts — Task #514): gemini-3.5-flash, then gemini-flash-latest, thinking
+  // off (3.2 s on 26/10/2026, where «low» thinking took 16 s and gemini-flash-latest timed out at 45 s) — within the
+  // 60 s route.
+  const got = await geminiChain(
+    apiKey,
+    { systemInstruction: { parts: [{ text: systemPrompt(req) }] }, contents, generationConfig: { temperature: 0.4, maxOutputTokens: 4096, thinkingConfig: NO_THINKING } },
+    45_000,
+  )
+  if (!got.ok) {
+    console.error(`[advisor] gemini failed: ${got.line}`)
+    const error = new Error(`gemini ${got.status ?? "unavailable"}`) as Error & { status: number }
+    error.status = got.status === 429 ? 429 : 502
     throw error
   }
-  const body = (await res.json()) as GeminiResponse
+  const body = (await got.res.json()) as GeminiResponse
   const candidate = body.candidates?.[0]
   if (body.promptFeedback?.blockReason || candidate?.finishReason === "SAFETY" || candidate?.finishReason === "PROHIBITED_CONTENT") {
     return req.language === "km" ? "សូមអភ័យទោស ខ្ញុំមិនអាចឆ្លើយសំណួរនេះបានទេ។" : "Sorry, I can't help with that request."

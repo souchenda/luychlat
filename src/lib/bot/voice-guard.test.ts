@@ -82,10 +82,12 @@ describe("Whisper looping and the prompt's size (founder, 26/10/2026 — Task #5
     const t = read("src/lib/server/transcribe.ts")
     assert.match(t, /const compression = segs\.length \? Math\.max\(\.\.\.segs\.map\(\(x\) => x\.compression_ratio \?\? 0\)\) : null/)
     assert.match(t, /transcriptUnsure\(\{ text: t\.text, seconds, logprob: t\.logprob, noSpeech: t\.noSpeech, compression: t\.compression \}\)/)
-    assert.match(t, /generationConfig: \{ temperature: 0, maxOutputTokens: 256, thinkingConfig: \{ thinkingBudget: 0 \} \}/)
-    assert.match(t, /for \(const model of GEMINI_MODELS\) \{/) // the shared list (lib/gemini-models.ts — Task #513)
-    assert.match(t, /if \(r !== "failed"\) return r/) // «no clear speech» is an answer, not a failure
-    assert.match(t, /signal: AbortSignal\.timeout\(GEMINI_TIMEOUT_MS\)/)
+    assert.match(t, /generationConfig: \{ temperature: 0, maxOutputTokens: 256, thinkingConfig: NO_THINKING \}/)
+    // The shared model chain (lib/server/gemini.ts — Tasks #513 / #514), 12 s per model.
+    assert.match(t, /const got = await geminiChain\(\n\s+key,/)
+    assert.match(t, /\},\n\s+24_000,\n\s+\)/)
+    // «no clear speech» (an empty answer) is an answer, not a failure.
+    assert.match(t, /return text \? \{ text, language: "khmer", model: got\.model \} : null/)
     // The audio for Whisper and Gemini alike: 0.4 s before, 0.8 s after, levelled, 16 kHz mono — no word clipped.
     assert.match(t, /"adelay=400:all=1,apad=pad_dur=0\.8,loudnorm=I=-16:TP=-1\.5:LRA=11", "-ar", "16000", "-ac", "1"/)
   })

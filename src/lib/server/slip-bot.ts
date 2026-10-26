@@ -34,7 +34,7 @@ import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, maskNumbers, sendText, telegramFile, tg, tr } from "@/lib/server/telegram-bot"
 import { emitSlipChime } from "./payment-chime"
-import { failureLine, GEMINI_MODELS, geminiModelUrl, perModelTimeout } from "@/lib/gemini-models"
+import { geminiChain, NO_THINKING } from "@/lib/server/gemini"
 
 // The fallback reader while Gemini is overloaded (503s / no answer): fast, good on Latin print, weak on Khmer script.
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -90,35 +90,21 @@ export type Answer = { text: string; model?: string } | { fail: string }
  * only waited longer). Shared by every photo reader (slips, bills, loans, accounts, deposits, NSSF, scan, K-Score, fuel).
  */
 export async function askGemini(key: string, type: string, image: string, prompt: string = PROMPT, maxTokens = 600, timeoutMs = 20_000): Promise<Answer> {
-  const fails: { model: string; why: string }[] = []
-  for (const model of GEMINI_MODELS) {
-    const got = await askGeminiModel(model, key, type, image, prompt, maxTokens, perModelTimeout(timeoutMs))
-    if ("text" in got) return got
-    fails.push({ model, why: got.fail })
-  }
-  return { fail: failureLine(fails) }
-}
-
-async function askGeminiModel(model: string, key: string, type: string, image: string, prompt: string, maxTokens: number, timeoutMs: number): Promise<Answer> {
-  const request = () =>
-    fetch(geminiModelUrl(model), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({
-        contents: [{ parts: [{ inline_data: { mime_type: type, data: image } }, { text: prompt }] }],
-        generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } },
-      }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(timeoutMs),
-    })
+  // No waiting retries on a busy model: the next model is the retry (lib/server/gemini.ts).
+  const got = await geminiChain(
+    key,
+    {
+      contents: [{ parts: [{ inline_data: { mime_type: type, data: image } }, { text: prompt }] }],
+      generationConfig: { temperature: 0, responseMimeType: "application/json", maxOutputTokens: maxTokens, thinkingConfig: NO_THINKING },
+    },
+    timeoutMs,
+  )
+  if (!got.ok) return { fail: got.line }
   try {
-    // No waiting retries on a busy model: the next model is the retry.
-    const res = await request()
-    if (!res.ok) return { fail: `HTTP ${res.status}` }
-    const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
-    return { text: (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join(""), model }
-  } catch (e) {
-    return { fail: e instanceof Error && e.name === "TimeoutError" ? "timed out" : "request failed" }
+    const body = (await got.res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
+    return { text: (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").join(""), model: got.model }
+  } catch {
+    return { fail: `${got.model} answered without JSON` }
   }
 }
 

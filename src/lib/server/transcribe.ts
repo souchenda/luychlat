@@ -6,7 +6,7 @@ import { tmpdir } from "os"
 import { join } from "path"
 
 import { KHMER_EVERYDAY, khmerHint, transcriptUnsure } from "@/lib/bot/voice-guard"
-import { GEMINI_MODELS, geminiModelUrl } from "@/lib/gemini-models"
+import { geminiChain, NO_THINKING } from "@/lib/server/gemini"
 import type { Locale } from "@/lib/i18n/dictionaries"
 
 /**
@@ -112,56 +112,42 @@ async function whisper(provider: Provider, audio: { blob: Blob; name: string }, 
 }
 
 /**
- * The Gemini models, in turn (lib/gemini-models.ts — Tasks #512 / #513: gemini-3.5-flash first; on 26/10
- * gemini-flash-latest answered 503 then 429 all day, and the voice notes of 06:58 and 12:54 fell to Whisper, which
- * invented the words). A model that is down, busy or slow → the next; each gets GEMINI_TIMEOUT_MS.
+ * Gemini (audio understanding): an exact transcription, numbers as digits — through the shared model chain
+ * (lib/server/gemini.ts — Tasks #512–#514: gemini-3.5-flash, then gemini-flash-latest; on 26/10 gemini-flash-latest
+ * answered 503 then 429 all day, and the voice notes of 06:58 and 12:54 fell to Whisper, which invented the words).
+ * 12 s per model; «no clear speech» (an empty answer) is an answer, not a failure.
  */
-const GEMINI_TIMEOUT_MS = 12_000
-
-/** Gemini (audio understanding): an exact transcription, numbers as digits — the first model that answers. */
 async function gemini(key: string, audio: { blob: Blob; name: string }) {
   const data = Buffer.from(await audio.blob.arrayBuffer()).toString("base64")
-  for (const model of GEMINI_MODELS) {
-    const r = await geminiOnce(key, model, audio, data)
-    // An answer — words, or «no clear speech» — ends it; only a model that failed hands over to the next.
-    if (r !== "failed") return r
+  const got = await geminiChain(
+    key,
+    {
+      contents: [
+        {
+          parts: [
+            { inline_data: { mime_type: audio.blob.type || "audio/ogg", data } },
+            {
+              text: `Transcribe this Khmer voice note accurately for personal expense tracking (for example: ទិញទឹក ១០០០រៀល, កាហ្វេ ២ដុល្លារ). Notes are often only 2–4 everyday words, such as: ${KHMER_EVERYDAY}. Write amounts as digits. Output only the Khmer transcript without commentary or translation. If there is no clear speech, output nothing.`,
+            },
+          ],
+        },
+      ],
+      // No «thinking» for a transcript (Task #512).
+      generationConfig: { temperature: 0, maxOutputTokens: 256, thinkingConfig: NO_THINKING },
+    },
+    24_000,
+  )
+  if (!got.ok) {
+    console.error(`[voice] gemini failed: ${got.line}`)
+    return null
   }
-  return null
-}
-
-async function geminiOnce(key: string, model: string, audio: { blob: Blob; name: string }, data: string): Promise<{ text: string; language: string; model: string } | null | "failed"> {
   try {
-    const res = await fetch(geminiModelUrl(model), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { inline_data: { mime_type: audio.blob.type || "audio/ogg", data } },
-              {
-                text: `Transcribe this Khmer voice note accurately for personal expense tracking (for example: ទិញទឹក ១០០០រៀល, កាហ្វេ ២ដុល្លារ). Notes are often only 2–4 everyday words, such as: ${KHMER_EVERYDAY}. Write amounts as digits. Output only the Khmer transcript without commentary or translation. If there is no clear speech, output nothing.`,
-              },
-            ],
-          },
-        ],
-        // No «thinking» for a transcript (Task #512): with it on, both voice notes of 26/10 waited the full 30 s and
-        // fell to Whisper (06:58 «បាយព្រឹកកូនពៅ», 12:54 «ដោះគោស្រស់និងផ្លែឈើ») — the slip reader runs without it too.
-        generationConfig: { temperature: 0, maxOutputTokens: 256, thinkingConfig: { thinkingBudget: 0 } },
-      }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
-    })
-    if (!res.ok) {
-      console.error(`[voice] gemini ${model} failed: HTTP ${res.status} ${(await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160)}`)
-      return "failed"
-    }
-    const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
+    const body = (await got.res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
     const text = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join(" ").trim()
-    return text ? { text, language: "khmer", model } : null
+    return text ? { text, language: "khmer", model: got.model } : null
   } catch (error) {
-    console.error(`[voice] gemini ${model} error: ${(error as Error).message}`)
-    return "failed"
+    console.error(`[voice] gemini ${got.model} error: ${(error as Error).message}`)
+    return null
   }
 }
 

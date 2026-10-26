@@ -12,6 +12,7 @@ import { parseAmountText } from "@/lib/bot/parse-entry"
 import { categoryLabel } from "@/lib/categories/presets"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
+import { geminiChain, NO_THINKING } from "@/lib/server/gemini"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
 
 type Figures = {
@@ -122,7 +123,6 @@ function systemPrompt(locale: Locale, data: Record<string, unknown> | null) {
   ].join("\n")
 }
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
 
 type GeminiResponse = {
   candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[]
@@ -147,30 +147,17 @@ async function askGemini(locale: Locale, data: Record<string, unknown> | null, h
     ]),
     { role: "user", parts: [{ text: question }] },
   ]
-  const request = () =>
-    fetch(GEMINI_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY ?? "" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt(locale, data) }] },
-        contents,
-        generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
-      }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(40_000),
-    })
-  // "High demand" (503) and rate limits (429) are usually brief: try twice more.
-  let res = await request()
-  for (const wait of [1500, 4000]) {
-    if (res.ok || !(res.status === 429 || res.status >= 500)) break
-    await new Promise((resolve) => setTimeout(resolve, wait))
-    res = await request()
+  // The shared model chain (lib/server/gemini.ts — Task #514): gemini-3.5-flash, then gemini-flash-latest, thinking off.
+  const got = await geminiChain(
+    process.env.GEMINI_API_KEY?.trim() ?? "",
+    { systemInstruction: { parts: [{ text: systemPrompt(locale, data) }] }, contents, generationConfig: { temperature: 0.4, maxOutputTokens: 4096, thinkingConfig: NO_THINKING } },
+    40_000,
+  )
+  if (!got.ok) {
+    console.error(`[ai] gemini failed: ${got.line}`)
+    throw new Error(`gemini ${got.status ?? "unavailable"}`)
   }
-  if (!res.ok) {
-    console.error(`[ai] gemini failed: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`)
-    throw new Error(`gemini ${res.status}`)
-  }
-  const body = (await res.json()) as GeminiResponse
+  const body = (await got.res.json()) as GeminiResponse
   const candidate = body.candidates?.[0]
   if (body.promptFeedback?.blockReason || candidate?.finishReason === "SAFETY" || candidate?.finishReason === "PROHIBITED_CONTENT") return null
   const text = (candidate?.content?.parts ?? [])

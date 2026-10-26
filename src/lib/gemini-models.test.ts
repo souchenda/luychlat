@@ -22,17 +22,19 @@ describe("One Gemini model chain for voice and every photo reader (founder, 26/1
   it("the slip reader (askGemini, shared by every photo reader): the chain, thinking off, no waiting retries, the model logged", () => {
     const s = read("src/lib/server/slip-bot.ts")
     assert.doesNotMatch(s, /gemini-flash-latest:generateContent|const GEMINI_URL/)
-    assert.match(s, /for \(const model of GEMINI_MODELS\) \{\n\s+const got = await askGeminiModel\(model, key, type, image, prompt, maxTokens, perModelTimeout\(timeoutMs\)\)/)
-    assert.match(s, /return \{ fail: failureLine\(fails\) \}/)
-    assert.match(s, /fetch\(geminiModelUrl\(model\), \{/)
-    assert.match(s, /thinkingConfig: \{ thinkingBudget: 0 \}/)
+    assert.match(s, /const got = await geminiChain\(\n\s+key,/)
+    assert.match(s, /if \(!got\.ok\) return \{ fail: got\.line \}/)
+    assert.match(s, /thinkingConfig: NO_THINKING/)
     assert.doesNotMatch(s, /for \(const wait of \[1500, 4000\]\)/) // the next model is the retry
     assert.match(s, /logEvent\("info", "slips", `Slip read by \$\{"model" in got && got\.model \? got\.model : name\}`, \{ fold: true \}\)/)
     // Groq stays the last resort after every Gemini model.
     assert.ok(s.indexOf('readers.push(["Gemini"') < s.indexOf('readers.push(["Groq"'))
-    const t = read("src/lib/server/transcribe.ts")
-    assert.match(t, /for \(const model of GEMINI_MODELS\) \{/)
-    assert.match(t, /fetch\(geminiModelUrl\(model\), \{/)
+    // Every Gemini caller goes through the one chain (Task #514): no module names a model or a Gemini URL itself.
+    for (const f of ["src/lib/server/transcribe.ts", "src/app/api/advisor/route.ts", "src/lib/server/ai-bot.ts", "src/lib/server/fiqh-assistant.ts", "src/lib/server/slip-bot.ts"]) {
+      const c = read(f)
+      assert.match(c, /await geminiChain\(/, f)
+      assert.doesNotMatch(c, /generativelanguage\.googleapis\.com|gemini-flash-latest:|GEMINI_URL/, f)
+    }
   })
 })
 

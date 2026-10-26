@@ -48,7 +48,8 @@ describe("The guarded Islamic reference assistant (founder, 19/10/2026)", () => 
 
   it("the server asks the model only after the boundary check, with the key from the server's environment", () => {
     const server = readFileSync(join(process.cwd(), "src/lib/server/fiqh-assistant.ts"), "utf8")
-    assert.ok(server.indexOf("if (fiqhBoundary(q))") < server.indexOf("await fetch(GEMINI_URL"))
+    assert.ok(server.indexOf("if (fiqhBoundary(q))") < server.indexOf("await geminiChain(")) // the shared model chain (Task #514)
+    assert.match(server, /systemInstruction: \{ parts: \[\{ text: fiqhSystemPrompt\(locale\) \}\] \}/)
     assert.match(server, /process\.env\.GEMINI_API_KEY/)
     assert.doesNotMatch(server, /NEXT_PUBLIC_/)
     assert.match(server, /return finishFiqhAnswer\(plain\(text\), locale\) \?\? unavailable/)
