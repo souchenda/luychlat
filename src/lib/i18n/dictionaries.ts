@@ -77,7 +77,7 @@ const km = {
   "settings.welcomeVoicePending": "⏳ សំឡេងស្វាគមន៍មិនទាន់បានថតទេ — ពេលនេះបង្ហាញតែជាអក្សរ ហើយនឹងឮដោយស្វ័យប្រវត្តិពេលរួចរាល់",
   "whatsNew.badge": "✨ មុខងារថ្មី",
   "islamic.hajj": "🕋 បានបំពេញកាតព្វកិច្ចហាជ្ជ (Hajj)",
-  "islamic.hajjHint": "បង្ហាញងារ ហាជ្ជី ឬ ហាជ្ញះ មុខឈ្មោះ ពេលបើក Islamic Mode",
+  "islamic.hajjHint": "បង្ហាញងារ ហាជ្ជី ឬ ហាជ្ជះ មុខឈ្មោះ ពេលបើក Islamic Mode",
   "islamic.hajjPick": "ជ្រើសរើសងារខាងក្រោម ដើម្បីបង្ហាញមុខឈ្មោះ",
   "islamic.hajjTitle": "ងារ",
   "whatsNew.try": "សាកល្បងឥឡូវ",

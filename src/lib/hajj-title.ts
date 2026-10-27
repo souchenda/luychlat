@@ -1,5 +1,5 @@
 // The Hajj honorific (founder, 27/10/2026 — Task #524): a person who has completed the 5th pillar may be greeted
-// «ហាជ្ជី ចិន្តា» / «ហាជ្ញះ …» — only in Islamic Mode, only when they said so themselves (islamic_settings
+// «ហាជ្ជី ចិន្តា» / «ហាជ្ជះ …» — only in Islamic Mode, only when they said so themselves (islamic_settings
 // .has_completed_hajj) and only with the title they chose (hajj_title). The profile has no gender, so the title is
 // never inferred: switched on without a choice, the name stays plain (no silent guessing). Pure (hajj-title.test.ts).
 
@@ -11,7 +11,7 @@ export const HAJJ_TITLES: readonly HajjTitle[] = ["haji", "hajjah"]
 /** The founder's spelling (Task #524) — changed only by the founder's decision. */
 export const HAJJ_TITLE_TEXT: Record<HajjTitle, { km: string; en: string }> = {
   haji: { km: "ហាជ្ជី", en: "Haji" },
-  hajjah: { km: "ហាជ្ញះ", en: "Hajjah" },
+  hajjah: { km: "ហាជ្ជះ", en: "Hajjah" },
 }
 
 export const isHajjTitle = (v: unknown): v is HajjTitle => v === "haji" || v === "hajjah"

@@ -18,7 +18,7 @@ export type IslamicSettings = {
   include_business: boolean
   /** Subtract debts I owe before Zakat (Hanafi / AAOIFI). Off by default: in the Shafi'i school debts don't reduce Zakat. */
   subtract_debts: boolean
-  /** Task #524: completed the Hajj, and the title chosen («ហាជ្ជី» / «ហាជ្ញះ» — lib/hajj-title.ts); never inferred. */
+  /** Task #524: completed the Hajj, and the title chosen («ហាជ្ជី» / «ហាជ្ជះ» — lib/hajj-title.ts); never inferred. */
   has_completed_hajj: boolean
   hajj_title: HajjTitle | null
   /** The user has chosen on or off at least once (a saved row exists); never sent back to the database. */

@@ -13,10 +13,10 @@ const f = (o: Partial<Parameters<typeof formatHonorificName>[0]>) =>
   formatHonorificName({ name: "ចិន្តា", islamic: true, hasCompletedHajj: true, hajjTitle: "haji", locale: "km", ...o })
 
 describe("formatHonorificName — the Hajj title (founder, 27/10/2026 — Task #524)", () => {
-  it("Islamic Mode, Hajj completed: «ហាជ្ជី ចិន្តា» (male) · «ហាជ្ញះ ចិន្តា» (female) — the founder's spelling", () => {
+  it("Islamic Mode, Hajj completed: «ហាជ្ជី ចិន្តា» (male) · «ហាជ្ជះ ចិន្តា» (female) — the founder's spelling", () => {
     assert.equal(f({}), "ហាជ្ជី ចិន្តា")
-    assert.equal(f({ hajjTitle: "hajjah" }), "ហាជ្ញះ ចិន្តា")
-    assert.deepEqual(HAJJ_TITLE_TEXT, { haji: { km: "ហាជ្ជី", en: "Haji" }, hajjah: { km: "ហាជ្ញះ", en: "Hajjah" } })
+    assert.equal(f({ hajjTitle: "hajjah" }), "ហាជ្ជះ ចិន្តា")
+    assert.deepEqual(HAJJ_TITLE_TEXT, { haji: { km: "ហាជ្ជី", en: "Haji" }, hajjah: { km: "ហាជ្ជះ", en: "Hajjah" } })
   })
   it("English and Chinese screens: «Haji» / «Hajjah»", () => {
     assert.equal(f({ locale: "en", name: "Chenda" }), "Haji Chenda")
