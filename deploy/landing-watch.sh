@@ -93,6 +93,18 @@ if [ "$(cat "$STATE.domains-day" 2>/dev/null)" != "$today" ]; then
   done
 fi
 
+# 1d. The nightly database backup (deploy/db-backup.sh) is no more than 26 hours old — a cron that stopped is caught.
+last_ok=$(cat /var/lib/luysmart-backup/last-ok 2>/dev/null || echo "")
+if [ -n "$last_ok" ]; then
+  stale=$(cat "$STATE.backup" 2>/dev/null || echo 0)
+  if [ $(( $(date +%s) - last_ok )) -gt 93600 ]; then
+    [ "$stale" = "1" ] || { send "⚠️ Backup ទិន្នន័យអេប មិនបានធ្វើលើស 26 ម៉ោងហើយ។ សូមពិនិត្យ៖ sudo sh /opt/luysmart/deploy/db-backup.sh list"; echo 1 > "$STATE.backup"; }
+  else
+    [ "$stale" = "1" ] && send "✅ Backup ទិន្នន័យអេប ដំណើរការវិញហើយ។"
+    echo 0 > "$STATE.backup"
+  fi
+fi
+
 # 2. The published files, unchanged
 [ -f "$MANIFEST" ] || exit 0
 problem=""
