@@ -317,3 +317,32 @@ details a { color: var(--brand); }
   .hero h1 span, .hero::before, .hero::after { animation: none; }
   .motion .reveal { opacity: 1; transform: none; }
 }
+
+/* Card link */
+.card-link { display: inline-flex; align-items: center; min-height: 40px; margin-top: 8px; color: var(--brand); font-weight: 600; text-decoration: none; }
+.card-link:hover { text-decoration: underline; }
+
+/* Islamic Mode page — emerald and gold */
+.gold { color: var(--gold); }
+.arabic { font-family: "Amiri", serif; font-size: 1.9rem; color: var(--gold); margin-bottom: 6px; line-height: 1.6; }
+.isl-hero { position: relative; overflow: hidden; padding: 48px 0 56px; background: radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb, var(--brand-2) 20%, transparent), transparent), radial-gradient(800px 400px at -10% 110%, color-mix(in srgb, var(--gold) 14%, transparent), transparent); }
+.isl-hero-in { display: grid; gap: 32px; align-items: center; }
+.isl-hero h1 { font-size: clamp(1.9rem, 6vw, 3.1rem); font-weight: 700; }
+.isl-hero h1 span { color: var(--brand); }
+.isl-mascot { justify-self: center; width: min(300px, 70vw); height: auto; border-radius: 40px; box-shadow: 0 30px 60px -28px rgba(6, 78, 59, .6); animation: float 7s ease-in-out infinite; }
+.isl-mascot.small { width: 180px; border-radius: 30px; }
+@media (min-width: 900px) { .isl-hero { padding: 80px 0; } .isl-hero-in { grid-template-columns: 1.2fr .8fr; } }
+.isl-day { padding: 64px 0; }
+.timeline { list-style: none; padding: 0; margin: 30px auto 0; max-width: 760px; display: grid; gap: 14px; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 27px; top: 10px; bottom: 10px; width: 2px; background: linear-gradient(var(--gold), var(--brand)); opacity: .5; }
+.timeline li { position: relative; display: flex; gap: 16px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px 18px 14px; }
+.timeline .t { flex: none; width: 28px; height: 28px; display: grid; place-items: center; font-size: 22px; margin-left: 0; position: relative; z-index: 1; }
+.timeline h3 { font-size: 1.05rem; margin-bottom: 4px; }
+.timeline p { color: var(--muted); font-size: .95rem; }
+.isl-money { padding: 72px 0; background: linear-gradient(180deg, var(--gold-soft), transparent); }
+.isl-money .sub { color: var(--muted); max-width: 620px; margin: 10px auto 0; }
+.isl-respect { padding: 56px 0; background: var(--brand-deep); }
+.isl-respect .tr { padding: 22px; border-radius: var(--radius); background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); }
+.isl-respect .tr b { display: block; font-size: 1.4rem; margin-bottom: 8px; }
+.isl-respect .tr p { color: #c9e3d8; font-size: .95rem; }
+@media (prefers-reduced-motion: reduce) { .isl-mascot { animation: none; } }
