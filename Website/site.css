@@ -382,8 +382,9 @@ details a { color: var(--brand); }
 .ai svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .ai svg.fill { fill: currentColor; stroke: none; }
 .acct.web .ai { background: rgba(252, 211, 77, .16); color: #fcd34d; }
-.acct.tg .ai { background: #229ed9; color: #fff; }
-.acct.fb .ai { background: #1877f2; color: #fff; }
+.acct.tg .ai { background: radial-gradient(circle, #fff 58%, transparent 60%); color: #26a5e4; }
+.acct.tg .ai svg, .acct.fb .ai svg { width: 30px; height: 30px; }
+.acct.fb .ai { background: radial-gradient(circle, #fff 58%, transparent 60%); color: #0866ff; }
 .acct.mail .ai { background: rgba(167, 243, 208, .16); color: #a7f3d0; }
 .at { min-width: 0; display: flex; flex-direction: column; line-height: 1.35; }
 .at small { color: #a9cfc0; font-size: .78rem; }
