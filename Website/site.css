@@ -148,6 +148,15 @@ p { margin: 0; }
 .ph-toast small { color: #55665e; font-size: 10px; }
 .ph-row { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 14px; background: #fbf3e2; color: #6b4e14; font-size: 11px; }
 
+.signature { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; }
+.signature li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.signature span { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: var(--brand-soft); font-size: 22px; }
+.signature b { display: block; font-size: 1.04rem; }
+.signature small { display: block; color: var(--muted); font-size: .9rem; line-height: 1.55; }
+.more-link { display: inline-flex; align-items: center; min-height: 44px; margin-top: 16px; color: var(--brand); font-weight: 600; text-decoration: none; }
+.more-link:hover { text-decoration: underline; }
+.ticks.light { color: #d1fae5; }
+.ticks.light li::before { color: #fcd34d; }
 .ticks { list-style: none; padding: 0; margin: 18px 0 0; display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: .92rem; }
 .ticks li { position: relative; padding-left: 22px; }
 .ticks li::before { content: "✓"; position: absolute; left: 0; color: var(--brand); font-weight: 700; }
