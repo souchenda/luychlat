@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
@@ -46,13 +46,16 @@ describe("Control Center verdicts (founder, 28/10/2026)", () => {
     assert.equal(level({ ...healthy, security: { ...healthy.security, firewall: false } }, "security"), "bad")
     assert.equal(level({ ...healthy, security: { ...healthy.security, auto_updates: false } }, "security"), "warn")
   })
-  it("the database: super admins read, only ops_request() writes, with 2FA on the session; the agent runs a whitelist", () => {
+  it("the database: super admins read, only ops_request() writes, with 2FA on the session", () => {
     const sql = read("supabase/migrations/20270268000000_ops_control.sql")
     assert.match(sql, /revoke insert, update, delete on public\.ops_status from anon, authenticated/)
     assert.match(sql, /revoke insert, update, delete on public\.ops_commands from anon, authenticated/)
     assert.match(sql, /perform public\.require_super_admin\(\)/)
     assert.match(sql, /coalesce\(auth\.jwt\(\) ->> 'aal', ''\) <> 'aal2'/)
     assert.match(sql, /perform public\.audit\('OPS_REQUEST'/)
+  })
+  // deploy/ is not in the Docker build context (the build runs this suite): checked where it exists.
+  it("the agent runs a fixed whitelist of server commands", { skip: !existsSync(join(process.cwd(), "deploy")) && "deploy/ is not in the build context" }, () => {
     const agent = read("deploy/ops-agent.py")
     assert.match(agent, /ACTIONS = \{\n    "website_republish": \["sh", f"\{REPO\}\/deploy\/landing-publish\.sh"\],\n    "website_rollback": \["sh", f"\{REPO\}\/deploy\/landing-publish\.sh", "rollback"\],\n    "backup_now": \["sh", f"\{REPO\}\/deploy\/db-backup\.sh"\],\n\}/)
   })
