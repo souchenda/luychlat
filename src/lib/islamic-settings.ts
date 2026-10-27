@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
+import type { HajjTitle } from "@/lib/hajj-title"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useSessionStore } from "@/stores/session-store"
 
@@ -17,6 +18,9 @@ export type IslamicSettings = {
   include_business: boolean
   /** Subtract debts I owe before Zakat (Hanafi / AAOIFI). Off by default: in the Shafi'i school debts don't reduce Zakat. */
   subtract_debts: boolean
+  /** Task #524: completed the Hajj, and the title chosen («ហាជ្ជី» / «ហាជ្ញះ» — lib/hajj-title.ts); never inferred. */
+  has_completed_hajj: boolean
+  hajj_title: HajjTitle | null
   /** The user has chosen on or off at least once (a saved row exists); never sent back to the database. */
   decided?: boolean
 }
@@ -34,6 +38,8 @@ export const DEFAULT_ISLAMIC: IslamicSettings = {
   include_receivables: false,
   include_business: true,
   subtract_debts: false,
+  has_completed_hajj: false,
+  hajj_title: null,
 }
 
 const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v))

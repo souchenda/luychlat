@@ -39,6 +39,7 @@ import { todayDate } from "@/lib/debts"
 import { latinDigits } from "@/lib/dates"
 import { formatHijri, toHijri } from "@/lib/islamic"
 import { useIslamicMutations, useIslamicSettings } from "@/lib/islamic-settings"
+import { HAJJ_TITLE_TEXT, HAJJ_TITLES, isHajjTitle, type HajjTitle } from "@/lib/hajj-title"
 import { parseAmount } from "@/lib/money"
 import { usePlan } from "@/lib/plan"
 import { useMarket } from "@/lib/market"
@@ -89,6 +90,43 @@ function IslamicToolsRow() {
         />
       </SettingsRow>
       {settings.enabled && <SettingsRow href="/islamic" className="pl-16" title={t("islamic.open")} hint={t("islamic.openHint")} />}
+      {settings.enabled && <HajjRow />}
+    </>
+  )
+}
+
+/**
+ * «🕋 បានបំពេញកាតព្វកិច្ចហាជ្ជ» (founder, 27/10/2026 — Task #524): on → the title chosen here goes before the name in Islamic
+ * Mode (Home header, welcome — lib/hajj-title.ts). No title is picked for the person: until they tap one, the name stays plain.
+ */
+function HajjRow() {
+  const t = useT()
+  const { settings } = useIslamicSettings()
+  const { update } = useIslamicMutations()
+  const save = (patch: { has_completed_hajj?: boolean; hajj_title?: HajjTitle | null }) =>
+    update.mutate(patch, { onError: () => toast.error(t("common.error")) })
+  return (
+    <>
+      <SettingsRow className="pl-16" title={t("islamic.hajj")} hint={t(settings.has_completed_hajj && !settings.hajj_title ? "islamic.hajjPick" : "islamic.hajjHint")}>
+        <Switch
+          checked={settings.has_completed_hajj}
+          disabled={update.isPending}
+          onCheckedChange={(on) => save({ has_completed_hajj: on })}
+          aria-label={t("islamic.hajj")}
+        />
+      </SettingsRow>
+      {settings.has_completed_hajj && (
+        <SettingsRow className="pl-16" title={t("islamic.hajjTitle")}>
+          <div className="w-60 shrink-0">
+            <Segmented
+              aria-label={t("islamic.hajjTitle")}
+              value={settings.hajj_title ?? ""}
+              onChange={(v) => isHajjTitle(v) && save({ hajj_title: v })}
+              options={HAJJ_TITLES.map((h) => ({ value: h, label: `${HAJJ_TITLE_TEXT[h].km} (${HAJJ_TITLE_TEXT[h].en})` }))}
+            />
+          </div>
+        </SettingsRow>
+      )}
     </>
   )
 }

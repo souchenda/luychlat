@@ -41,7 +41,7 @@ describe("Home greeting — Islamic Mode (founder, 18/10/2026)", () => {
     // Cambodia's hour, whatever the phone's zone: 23:30 UTC is 06:30 in Phnom Penh.
     assert.equal(cambodiaHour(Date.parse("2026-10-21T23:30:00Z")), 6)
     const page = readFileSync(join(process.cwd(), "src/app/(app)/home/page.tsx"), "utf8")
-    assert.match(page, /const greeting = greetingStack\(islamic, givenName, cambodiaHour\(\)\)/)
+    assert.match(page, /const greeting = greetingStack\(islamic, displayName, cambodiaHour\(\)\)/) // displayName: the Hajj title in Islamic Mode (Task #524)
     assert.doesNotMatch(page, /HandIcon|animate-wave|t\("home\.greetingName"/)
   })
 })
