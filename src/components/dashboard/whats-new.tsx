@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,7 @@ export const WHATS_NEW_DELAY_MS = 6_000
  */
 export function WhatsNewDialog({ islamic }: { islamic: boolean }) {
   const t = useT()
+  const router = useRouter()
   const locale = useLocaleStore((s) => s.locale)
   const workspaces = useWorkspaces().data
   const [entry, setEntry] = useState<WhatsNewEntry | null>(null)
@@ -68,6 +70,9 @@ export function WhatsNewDialog({ islamic }: { islamic: boolean }) {
       // A tap: the browser lets it sound. The person's own volume decides; this is the preview they asked for.
       void new Audio(greetingClipUrl(islamic ? "islamic" : "khmer", readVoiceGender(local))).play().catch(() => null)
     }
+    // Task #528: the preview keeps playing while Settings opens on the switch that turns it on or off.
+    close()
+    router.push(entry.action.href)
   }
 
   return (

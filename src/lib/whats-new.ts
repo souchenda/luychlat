@@ -7,7 +7,15 @@
 
 import type { LocalizedText } from "@/lib/i18n/dictionaries"
 
-export type WhatsNewAction = { kind: "greeting" } | { kind: "link"; href: string }
+/**
+ * «សាកល្បងឥឡូវ» (Task #528): a «greeting» plays its preview THEN opens its switch in Settings; a «link» just opens the
+ * page. Either way the person lands where the feature is turned on or off.
+ */
+export type WhatsNewAction = { kind: "greeting"; href: string } | { kind: "link"; href: string }
+
+/** The welcome-voice switch's place in Settings — the row scrolls into view and pulses when the address names it. */
+export const WELCOME_VOICE_ANCHOR = "welcome-voice"
+export const WELCOME_VOICE_HREF = `/settings#${WELCOME_VOICE_ANCHOR}`
 
 export type WhatsNewEntry = {
   id: string
@@ -32,7 +40,7 @@ export const WHATS_NEW: WhatsNewEntry[] = [
       en: "When the app opens you hear «ជម្រាបសួរ» — or «السلام عليكم» in Arabic with Islamic Mode on. Never on Silent or Vibrate; switch it off in Settings.",
       zh: "打开应用时会听到问候语（伊斯兰模式下为阿拉伯语 السلام عليكم）。静音或振动时不会播放，可在设置中关闭。",
     },
-    action: { kind: "greeting" },
+    action: { kind: "greeting", href: WELCOME_VOICE_HREF },
   },
 ]
 

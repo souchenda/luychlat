@@ -5,7 +5,7 @@ import { describe, it } from "node:test"
 
 import { dictionaries } from "@/lib/i18n/dictionaries"
 
-import { ANNOUNCE_DAYS, markSeen, pendingAnnouncements, readSeen, WHATS_NEW, WHATS_NEW_SEEN_KEY, type WhatsNewEntry } from "./whats-new"
+import { ANNOUNCE_DAYS, markSeen, pendingAnnouncements, readSeen, WELCOME_VOICE_ANCHOR, WELCOME_VOICE_HREF, WHATS_NEW, WHATS_NEW_SEEN_KEY, type WhatsNewEntry } from "./whats-new"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 const memory = () => {
@@ -79,5 +79,28 @@ describe("«✨ មុខងារថ្មី» — a new feature announced onc
       const d = (l === "zh" ? { ...dictionaries.en, ...dictionaries.zh } : dictionaries[l]) as Record<string, string>
       for (const k of ["whatsNew.badge", "whatsNew.try", "whatsNew.gotIt"]) assert.ok(d[k], `${l} ${k}`)
     }
+  })
+})
+
+describe("«សាកល្បងឥឡូវ» opens the switch in Settings (Task #528)", () => {
+  it("the welcome voice's try: the preview, then /settings#welcome-voice", () => {
+    const entry = WHATS_NEW.find((e) => e.id === "2026-10-27-welcome-voice")!
+    assert.deepEqual(entry.action, { kind: "greeting", href: WELCOME_VOICE_HREF })
+    assert.equal(WELCOME_VOICE_HREF, `/settings#${WELCOME_VOICE_ANCHOR}`)
+    for (const e of WHATS_NEW) assert.match(e.action.href, /^\/[a-z]/, e.id) // every try lands somewhere in the app
+  })
+  it("the dialog: try plays, closes and navigates; «យល់ហើយ» only closes; seen is remembered before it shows", () => {
+    const dialog = read("src/components/dashboard/whats-new.tsx")
+    const tryIt = dialog.slice(dialog.indexOf("const tryIt"), dialog.indexOf("return (", dialog.indexOf("const tryIt")))
+    assert.ok(tryIt.indexOf(".play()") < tryIt.indexOf("close()") && tryIt.indexOf("close()") < tryIt.indexOf("router.push(entry.action.href)"))
+    assert.match(dialog, /variant="outline" className="h-12 rounded-2xl" onClick=\{close\}>\s*\{t\("whatsNew\.gotIt"\)\}/)
+    assert.ok(dialog.indexOf("markSeen(local, [next.id])") < dialog.indexOf("setEntry(next)"))
+  })
+  it("Settings: the row carries the anchor, scrolls into view and pulses when the address names it", () => {
+    const settings = read("src/app/(app)/settings/page.tsx")
+    assert.match(settings, /id=\{WELCOME_VOICE_ANCHOR\}/)
+    assert.match(settings, /window\.location\.hash !== `#\$\{WELCOME_VOICE_ANCHOR\}`/)
+    assert.match(settings, /scrollIntoView\(\{ block: "center"/)
+    assert.match(settings, /pulse && "animate-pulse ring-2 ring-emerald-500"/)
   })
 })

@@ -3,7 +3,7 @@
 import { BellIcon, BookOpenIcon, GaugeIcon, LockKeyholeIcon, SmartphoneIcon, StoreIcon, Volume2Icon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Segmented } from "@/components/common/segmented"
@@ -51,6 +51,8 @@ import { DeleteAccountSheet } from "@/components/settings/delete-account"
 import { useOnboardingStore } from "@/lib/onboarding"
 import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { useLockStore } from "@/stores/lock-store"
+import { WELCOME_VOICE_ANCHOR } from "@/lib/whats-new"
+import { cn } from "@/lib/utils"
 
 /** Today in each calendar — what the Islamic Mode switch changes in the home header (founder, 18/10/2026). */
 function calendarExamples(locale: string): { lunar: string; hijri: string } {
@@ -323,7 +325,21 @@ function WelcomeVoiceRow() {
   const t = useT()
   const [on, setOn] = useState(true)
   useEffect(() => setOn(readWelcomeVoice(localStorage)), [])
+  // Task #528: opened from «✨ មុខងារថ្មី» › «សាកល្បងឥឡូវ» (/settings#welcome-voice) — the row comes into view and pulses.
+  const ref = useRef<HTMLDivElement>(null)
+  const [pulse, setPulse] = useState(false)
+  useEffect(() => {
+    if (window.location.hash !== `#${WELCOME_VOICE_ANCHOR}`) return
+    setPulse(true)
+    const frame = window.requestAnimationFrame(() => ref.current?.scrollIntoView({ block: "center", behavior: "smooth" }))
+    const done = window.setTimeout(() => setPulse(false), 2_400)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(done)
+    }
+  }, [])
   return (
+    <div ref={ref} id={WELCOME_VOICE_ANCHOR} className={cn("scroll-mt-24 rounded-2xl transition-shadow", pulse && "animate-pulse ring-2 ring-emerald-500")}>
     <SettingsRow icon={<Volume2Icon />} tile="emerald" title={t("settings.welcomeVoice")} hint={t(on && !GREETING_CLIPS_READY ? "settings.welcomeVoicePending" : "settings.welcomeVoiceHint")}>
       <Switch
         checked={on}
@@ -334,6 +350,7 @@ function WelcomeVoiceRow() {
         }}
       />
     </SettingsRow>
+    </div>
   )
 }
 
