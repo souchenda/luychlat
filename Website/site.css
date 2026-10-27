@@ -346,3 +346,17 @@ details a { color: var(--brand); }
 .isl-respect .tr b { display: block; font-size: 1.4rem; margin-bottom: 8px; }
 .isl-respect .tr p { color: #c9e3d8; font-size: .95rem; }
 @media (prefers-reduced-motion: reduce) { .isl-mascot { animation: none; } }
+
+/* The phone with the real app's screenshots */
+.phone-wrap { margin: 0; justify-self: center; display: grid; justify-items: center; gap: 14px; }
+.phone-wrap .phone { aspect-ratio: auto; width: min(290px, 78vw); }
+.screen.shots { position: relative; padding: 0; aspect-ratio: 592 / 971; display: block; background: #fff; }
+.shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; opacity: 0; transition: opacity .8s ease; }
+.shot.on { opacity: 1; }
+.screen.shots .ph-toast { position: absolute; left: 10px; right: 10px; bottom: 14%; z-index: 2; font-size: 12px; }
+.shot-tabs { display: flex; gap: 8px; }
+.shot-tabs span { padding: 5px 12px; border-radius: 999px; font-size: .85rem; color: var(--muted); background: var(--surface); border: 1px solid var(--line); transition: all .3s ease; }
+.shot-tabs span.on { color: #fff; background: var(--brand); border-color: var(--brand); }
+@media (prefers-color-scheme: dark) { .shot-tabs span.on { color: #022c22; } }
+.screen.shots .ph-toast { transition: opacity .5s ease; }
+.screen.shots[data-on="me"] .ph-toast { opacity: 0; }

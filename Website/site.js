@@ -19,6 +19,8 @@
   "sig.3t": "Shop and home, kept apart",
   "sig.3": "Separate books, balances always hidden",
   "hero.more": "See how it helps your shop ↓",
+  "ph.biz": "🏪 Business",
+  "ph.me": "🏠 Personal",
   "ph.total": "Total",
   "ph.hidden": "Hidden on open",
   "ph.cash": "Cash",
@@ -175,6 +177,8 @@
   "sig.3t": "店钱家钱，分得清",
   "sig.3": "生意和家庭分开记，余额始终隐藏",
   "hero.more": "看看它怎么帮您的店 ↓",
+  "ph.biz": "🏪 商家",
+  "ph.me": "🏠 个人",
   "ph.total": "总额",
   "ph.hidden": "打开时隐藏",
   "ph.cash": "现金",
@@ -381,6 +385,19 @@
       if (amt) amt.textContent = sales[n][0];
       if (via) via.textContent = sales[n][1];
     }, 3200);
+  }
+
+  // The phone shows the real app: Business, then Personal.
+  var shots = document.querySelectorAll(".shot"), tabs = document.querySelectorAll(".shot-tabs [data-for]"), k = 0;
+  if (shots.length > 1 && !still) {
+    setInterval(function () {
+      shots[k].classList.remove("on");
+      k = (k + 1) % shots.length;
+      shots[k].classList.add("on");
+      var label = shots[k].getAttribute("data-label");
+      tabs.forEach(function (t) { t.classList.toggle("on", t.getAttribute("data-for") === label); });
+      shots[k].parentNode.setAttribute("data-on", label); // the SoundBox sale shows on the Business screen only
+    }, 5200);
   }
 
   // Cards rise into place as they scroll in.
