@@ -396,7 +396,7 @@
       shots[k].classList.add("on");
       var label = shots[k].getAttribute("data-label");
       tabs.forEach(function (t) { t.classList.toggle("on", t.getAttribute("data-for") === label); });
-      shots[k].parentNode.setAttribute("data-on", label); // the SoundBox sale shows on the Business screen only
+      shots[k].closest(".screen").setAttribute("data-on", label); // the SoundBox sale shows on the Business screen only
     }, 5200);
   }
 
