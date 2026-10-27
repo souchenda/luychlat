@@ -96,8 +96,9 @@ describe("Once per launch, per device, and never a sound on a muted phone (Task 
     for (const quiet of ["silent", "vibrate"] as const) assert.equal(shouldSpeakWelcome({ enabled: true, ready: true, quiet }), false, quiet)
     assert.equal(shouldSpeakWelcome({ enabled: false, ready: true, quiet: "normal" }), false)
     assert.equal(shouldSpeakWelcome({ enabled: true, ready: false, quiet: "normal" }), false)
-    assert.equal(GREETING_CLIPS_READY, false) // not recorded yet: shown as text only
-    assert.deepEqual([greetingClipUrl("khmer", "female"), greetingClipUrl("islamic", "male")], ["/audio/greeting/female/chumreap.mp3", "/audio/greeting/male/salam.mp3"])
+    assert.equal(GREETING_CLIPS_READY, true) // Task #522: recorded (greeting-audio.test.ts checks the files)
+    // No male Khmer voice yet: 👨 hears the female clip — never a 404.
+    assert.deepEqual([greetingClipUrl("khmer", "female"), greetingClipUrl("islamic", "male")], ["/audio/greeting/female/chumreap.mp3", "/audio/greeting/female/salam.mp3"])
   })
   it("wired: the pill on Home outside the hero, once per launch; the audio only through shouldSpeakWelcome; the Settings switch", () => {
     const home = read("src/app/(app)/home/page.tsx")
@@ -106,7 +107,7 @@ describe("Once per launch, per device, and never a sound on a muted phone (Task 
     const pill = read("src/components/dashboard/welcome-greeting.tsx")
     assert.match(pill, /if \(!firstOfLaunch\(session\)\) return/)
     assert.match(pill, /if \(readWelcomeVoice\(local\) && GREETING_CLIPS_READY\) \{/)
-    assert.match(pill, /if \(!shouldSpeakWelcome\(\{ enabled: true, ready: GREETING_CLIPS_READY, quiet \}\)\) return/)
+    assert.match(pill, /if \(gone \|\| !shouldSpeakWelcome\(\{ enabled: true, ready: GREETING_CLIPS_READY, quiet \}\)\) return/)
     assert.equal((pill.match(/new Audio\(/g) ?? []).length, 1)
     assert.doesNotMatch(pill, /line-clamp/) // a du'a is never cut off
     const settings = read("src/app/(app)/settings/page.tsx")

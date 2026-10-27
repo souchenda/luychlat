@@ -10,6 +10,47 @@ import { cambodiaDay, firstOfLaunch, GREETING_CLIPS_READY, greetingClipUrl, read
 import { useLocaleStore } from "@/stores/locale-store"
 
 const SHOWN_MS = 5_200
+/** The browser lets a page sound only after a first touch: the greeting waits for one this long, never later. */
+export const FIRST_TOUCH_MS = 15_000
+
+/**
+ * The spoken greeting (Task #522): played at once when the browser allows it (an APK, a page already touched); refused
+ * (autoplay — NotAllowedError) → played at the first touch or key within FIRST_TOUCH_MS, once. Returns the clean-up.
+ */
+function speakOnLaunch(url: string): () => void {
+  const audio = new Audio(url)
+  let done = false
+  let wait = 0
+  const off = () => {
+    window.removeEventListener("pointerdown", retry)
+    window.removeEventListener("keydown", retry)
+    window.clearTimeout(wait)
+  }
+  function retry() {
+    if (done) return
+    done = true
+    off()
+    void audio.play().catch(() => null)
+  }
+  audio.play().then(
+    () => {
+      done = true
+    },
+    (error: unknown) => {
+      if (done || (error as { name?: string } | null)?.name !== "NotAllowedError") return
+      window.addEventListener("pointerdown", retry, { once: true })
+      window.addEventListener("keydown", retry, { once: true })
+      wait = window.setTimeout(() => {
+        done = true
+        off()
+      }, FIRST_TOUCH_MS)
+    },
+  )
+  return () => {
+    done = true
+    off()
+  }
+}
 
 /**
  * The welcome greeting as the app opens (founder, 26/10/2026 — Task #518): a pill that fades in over the top of Home —
@@ -38,14 +79,17 @@ export function WelcomeGreetingPill({ islamic, name }: { islamic: boolean; name:
       local = window.localStorage
     } catch {}
     // The spoken greeting: asked for on this device, recorded, and the phone not quiet — else silent, never an error.
+    let stopSpeaking = () => {}
+    let gone = false
     if (readWelcomeVoice(local) && GREETING_CLIPS_READY) {
       void phoneQuiet().then((quiet) => {
-        if (!shouldSpeakWelcome({ enabled: true, ready: GREETING_CLIPS_READY, quiet })) return
-        const audio = new Audio(greetingClipUrl(g.kind, readVoiceGender(local)))
-        void audio.play().catch(() => null)
+        if (gone || !shouldSpeakWelcome({ enabled: true, ready: GREETING_CLIPS_READY, quiet })) return
+        stopSpeaking = speakOnLaunch(greetingClipUrl(g.kind, readVoiceGender(local)))
       })
     }
     return () => {
+      gone = true
+      stopSpeaking()
       window.clearTimeout(show)
       window.clearTimeout(hide)
     }

@@ -5,7 +5,7 @@
 import { DUAS, posterMeaning, type Dua } from "@/lib/duas"
 import { ASSALAMU_ALAIKUM } from "@/lib/islamic/glossary"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
-import { DEFAULT_VOICE_GENDER, type VoiceGender } from "@/lib/soundbox"
+import { DEFAULT_VOICE_GENDER, playedVoice, type VoiceGender } from "@/lib/soundbox"
 
 type Store = { getItem(key: string): string | null; setItem(key: string, value: string): void }
 
@@ -68,13 +68,21 @@ export function writeWelcomeVoice(store: Store | null, on: boolean) {
 }
 
 /**
- * The spoken greetings are not recorded yet (a licensed voice or a Khmer speaker — like the SoundBox's male voice): until
- * public/audio/greeting/<female|male>/<chumreap|salam>.mp3 exist and this is true, the greeting is shown, never spoken,
- * and Settings says so.
+ * What the spoken greeting says (founder, 27/10/2026 — Task #522): the Khmer welcome, and the Salam in the glossary's
+ * spelling (never retyped). Made by scripts/greeting-clips-override.ts into public/audio/greeting/female/ — the owner
+ * override of the SoundBox clips extended to these two (CLAUDE.md › Licensing), the same voice as the SoundBox.
  */
-export const GREETING_CLIPS_READY = false
+export const GREETING_WORDS = { chumreap: "ជម្រាបសួរ! សូមស្វាគមន៍មកកាន់ អេប លុយឆ្លាត", salam: ASSALAMU_ALAIKUM } as const
+
+/** The clips are in public/audio/greeting/female/ (greeting-audio.test.ts checks every one exists). */
+export const GREETING_CLIPS_READY = true
+
+/**
+ * The clip of a greeting in the chosen voice persona. No male Khmer voice exists yet (as for the SoundBox — MALE_VOICE_READY):
+ * a phone set to 👨 hears the female clip, never a 404 or silence.
+ */
 export const greetingClipUrl = (kind: "khmer" | "islamic", voice: VoiceGender = DEFAULT_VOICE_GENDER) =>
-  `/audio/greeting/${voice}/${kind === "islamic" ? "salam" : "chumreap"}.mp3`
+  `/audio/greeting/${playedVoice(voice)}/${kind === "islamic" ? "salam" : "chumreap"}.mp3`
 
 /**
  * Spoken only when this device asked for it, the clip exists, and the phone is not on Silent, Vibrate or Do Not Disturb
