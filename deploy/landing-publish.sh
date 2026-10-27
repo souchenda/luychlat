@@ -7,7 +7,10 @@
 #
 # Only the site's own files are copied (never the drafts index01.html / «index_wrong data.html»); the live folder is
 # kept as a dated backup first. Nginx learns, once: clean addresses (/privacy, /islamic, /delete-account), the 404
-# page, and a week's cache for the images (the HTML, CSS and JS stay «no-cache», so an update shows at once).
+# page, a Content-Security-Policy (only this site's own scripts, Google Fonts and Cloudflare's cookieless analytics) and
+# a week's cache for the images (the HTML, CSS and JS stay «no-cache», so an update shows at once). It writes the
+# manifest deploy/landing-watch.sh checks every 5 minutes (a changed or unknown file → a Telegram alert), installs that
+# watcher once, and tells the founder in Telegram what was published.
 set -eu
 
 REPO=$(cd "$(dirname "$0")/.." && pwd)
@@ -15,17 +18,32 @@ SRC="$REPO/Website"
 DEST=/var/www/luychlat-landing
 BACKUP_ROOT=/var/www/luychlat-landing-backups
 SITE_CONF=/etc/nginx/sites-enabled/luychlat.com.conf
+MANIFEST_DIR=/var/lib/luychlat-landing
+
+# The fingerprint of every published file (deploy/landing-watch.sh compares the live folder with it).
+write_manifest() {
+  mkdir -p "$MANIFEST_DIR"
+  (cd "$DEST" && find . -type f | sed 's|^\./||' | sort > "$MANIFEST_DIR/files.txt" \
+    && xargs -d '\n' sha256sum < "$MANIFEST_DIR/files.txt" > "$MANIFEST_DIR/manifest.sha256")
+}
+
+# One line to the founder — the watcher's route (DEVOPS_CHAT_ID, else the super admins' linked chats).
+notify() {
+  sh "$REPO/deploy/landing-watch.sh" notify "$1" || true
+}
 
 if [ "${1:-}" = "rollback" ]; then
-  last=$(ls -1d "$BACKUP_ROOT"/* 2>/dev/null | tail -1)
+  last=$(ls -1d "$BACKUP_ROOT"/2* 2>/dev/null | tail -1)
   [ -n "$last" ] || { echo "No backup to roll back to."; exit 1; }
   rm -rf "$DEST" && cp -a "$last" "$DEST"
+  write_manifest
   echo "✓ Rolled back to $last"
+  notify "↩️ គេហទំព័រ luychlat.com ត្រូវបានត្រឡប់ទៅកំណែមុន ($(basename "$last"))។"
   exit 0
 fi
 
-FILES="index.html islamic.html privacy.html delete-account.html 404.html site.css site.js i18n.js
-logo.png logo-islamic.png screen-business.webp screen-personal.webp og.png og-islamic.png robots.txt sitemap.xml
+FILES="index.html islamic.html privacy.html delete-account.html 404.html site.css site.js i18n.js islamic-t.js privacy-t.js
+delete-t.js logo.png logo-islamic.png screen-business.webp screen-personal.webp og.png og-islamic.png robots.txt sitemap.xml
 en/index.html zh/index.html"
 
 for f in $FILES; do [ -f "$SRC/$f" ] || { echo "Missing $SRC/$f — nothing published."; exit 1; }; done
@@ -39,7 +57,8 @@ rm -rf "$next" && mkdir -p "$next/en" "$next/zh"
 for f in $FILES; do cp "$SRC/$f" "$next/$f"; done
 chmod -R a+rX "$next"
 rm -rf "$DEST.old" && { [ -d "$DEST" ] && mv "$DEST" "$DEST.old" || true; } && mv "$next" "$DEST" && rm -rf "$DEST.old"
-echo "✓ Published $(echo $FILES | wc -w) files to $DEST"
+write_manifest
+echo "✓ Published $(echo $FILES | wc -w) files to $DEST (manifest in $MANIFEST_DIR)"
 
 if ! grep -q "luychlat-landing-v2" "$SITE_CONF"; then
   cp "$SITE_CONF" "$BACKUP_ROOT/luychlat.com.conf.$stamp"
@@ -52,10 +71,15 @@ old = """    location / {
         try_files $uri $uri/ /index.html;
         add_header Cache-Control "no-cache" always;
     }"""
-new = """    # luychlat-landing-v2 (27/10/2026): clean addresses, the 404 page, cached images.
+csp = ("default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; "
+       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
+       "img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; "
+       "frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'; upgrade-insecure-requests")
+new = """    # luychlat-landing-v2 (27/10/2026): clean addresses, the 404 page, the CSP, cached images.
     error_page 404 /404.html;
     location / {
         include snippets/luychlat-security.conf;
+        add_header Content-Security-Policy "CSP" always;
         try_files $uri $uri.html $uri/ =404;
         add_header Cache-Control "no-cache" always;
     }
@@ -63,19 +87,27 @@ new = """    # luychlat-landing-v2 (27/10/2026): clean addresses, the 404 page, 
         include snippets/luychlat-security.conf;
         try_files $uri =404;
         add_header Cache-Control "public, max-age=604800" always;
-    }"""
+    }""".replace("CSP", csp)
 if old not in s:
     sys.exit("luychlat.com.conf: the expected «location /» block was not found — Nginx left unchanged")
 open(p, "w").write(s.replace(old, new, 1))
 PY
   if nginx -t 2>/dev/null; then
-    systemctl reload nginx && echo "✓ Nginx: clean addresses, 404 page, image cache"
+    systemctl reload nginx && echo "✓ Nginx: clean addresses, 404 page, CSP, image cache"
   else
     cp "$BACKUP_ROOT/luychlat.com.conf.$stamp" "$SITE_CONF"
     echo "! Nginx test failed — the previous configuration was restored (the site files are published)."
     exit 1
   fi
 fi
+
+# The watcher, once (every 5 minutes).
+if ! crontab -l 2>/dev/null | grep -q "luychlat-landing-watch"; then
+  (crontab -l 2>/dev/null; echo "*/5 * * * * sh $REPO/deploy/landing-watch.sh >/dev/null 2>&1 # luychlat-landing-watch") | crontab -
+  echo "✓ Watcher installed (every 5 minutes)"
+fi
+
+notify "🌐 គេហទំព័រ luychlat.com បានដាក់កំណែថ្មីហើយ ($stamp)។ បើមានបញ្ហា៖ sudo sh $REPO/deploy/landing-publish.sh rollback"
 
 for path in / /en/ /zh/ /islamic /privacy /delete-account /og.png /no-such-page; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "https://luychlat.com$path")
