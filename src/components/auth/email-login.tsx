@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { EMAIL_PATTERN, parseLoginIdentifier } from "@/lib/auth-identifier"
+import { initialAuthTab } from "@/lib/login-mode"
 import { claimSingleSession } from "@/lib/auth/single-session"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -82,6 +83,10 @@ export function EmailLogin({ disabled, initialEmail = "", signInExtra }: { disab
   /** Arrived from /login?signed_out=elsewhere (single-device rule): a one-line note on the sign-in tab. */
   const [elsewhere, setElsewhere] = useState(false)
   useEffect(() => setElsewhere(new URLSearchParams(window.location.search).get("signed_out") === "elsewhere"), [])
+  // From luychlat.com's «ចុះឈ្មោះឥតគិតថ្លៃ» (/login?signup=1 — Task #529): straight to «បង្កើតគណនី».
+  useEffect(() => {
+    if (initialAuthTab(window.location.search) === "signup") setMode("signup")
+  }, [])
   /** Forgot password started: the code step (Telegram) takes over the form. */
   const [reset, setReset] = useState<ResetStart | null>(null)
   /** Shows the error and gives the form a short shake. */
