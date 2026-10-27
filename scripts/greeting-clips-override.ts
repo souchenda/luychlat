@@ -7,7 +7,7 @@
  *
  *   npx tsx scripts/greeting-clips-override.ts            (needs ffmpeg: PATH, FFMPEG=<path> or ffmpeg-static)
  *
- * The words are lib/welcome-greeting.ts › GREETING_WORDS (the Salam from the Islamic glossary). Each clip is made like the
+ * The words are lib/welcome-greeting.ts › GREETING_WORDS (the Salam in Arabic, by the Arabic voice — Task #523). Each clip is made like the
  * SoundBox clips (src/lib/soundbox-clips.ts): trimmed, brought to their loudness, limited, mono 24 kHz 64 kbps without tags;
  * a clip off their loudness stops it (exit 1). Female only — there is no male Khmer voice; a phone set to 👨 hears these.
  */
@@ -50,8 +50,9 @@ async function main(outDir: string) {
   mkdirSync(outDir, { recursive: true })
   let failed = 0
   try {
-    for (const [name, text] of Object.entries(GREETING_WORDS)) {
-      const res = await fetch(`${SPEECH}?ie=UTF-8&tl=km&client=tw-ob&q=${encodeURIComponent(text)}`, { headers: { "User-Agent": "Mozilla/5.0" } })
+    // Each in its own language (Task #523): the Khmer welcome by the Khmer voice, the Salam in Arabic by the Arabic voice.
+    for (const [name, { text, lang }] of Object.entries(GREETING_WORDS)) {
+      const res = await fetch(`${SPEECH}?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(text)}`, { headers: { "User-Agent": "Mozilla/5.0" } })
       const body = Buffer.from(await res.arrayBuffer())
       if (!res.ok || body.length < 1000) throw new Error(`${name}: HTTP ${res.status}, ${body.length} bytes`)
       const raw = path.join(work, `${name}.mp3`)

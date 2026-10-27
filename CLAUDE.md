@@ -67,8 +67,8 @@ use come before feature count: no half-baked features, broken links or untested 
   Khmer speaker's recordings (same file names) when possible. **Extended to the 5 closing-summary clips (founder,
   26/10/2026 — Task #508):** `today_total`, `and`, `sales`, `times`, `thanks` (`scripts/soundbox-closing-override.ts`),
   the same voice as the 27, Google Cloud TTS needing billing. **And to the 2 welcome greeting clips (founder, 27/10/2026 —
-  Task #522):** `public/audio/greeting/female/{chumreap,salam}.mp3` (`scripts/greeting-clips-override.ts`; the Salam in the
-  glossary's spelling). No other asset may use that endpoint.
+  Task #522):** `public/audio/greeting/female/{chumreap,salam}.mp3` (`scripts/greeting-clips-override.ts`; the Salam in Arabic by
+  the Arabic voice — Task #523; a native speaker's recording replaces either via `scripts/import-greeting-voice.ts`). No other asset may use that endpoint.
   **Exception — community qasidah (founder, 20/10/2026):** members may share nasheeds they found, for non-commercial
   listening in the community, under Notice & Take-down: one confirmation (authentic Islamic content), the founder's ✅
   before anything is public, and removal at once when an original owner asks. The app's own assets (Adhans, du'as,

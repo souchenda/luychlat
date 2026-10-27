@@ -5,7 +5,7 @@
 import { DUAS, posterMeaning, type Dua } from "@/lib/duas"
 import { ASSALAMU_ALAIKUM } from "@/lib/islamic/glossary"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
-import { DEFAULT_VOICE_GENDER, playedVoice, type VoiceGender } from "@/lib/soundbox"
+import { DEFAULT_VOICE_GENDER, type VoiceGender } from "@/lib/soundbox"
 
 type Store = { getItem(key: string): string | null; setItem(key: string, value: string): void }
 
@@ -68,21 +68,28 @@ export function writeWelcomeVoice(store: Store | null, on: boolean) {
 }
 
 /**
- * What the spoken greeting says (founder, 27/10/2026 — Task #522): the Khmer welcome, and the Salam in the glossary's
- * spelling (never retyped). Made by scripts/greeting-clips-override.ts into public/audio/greeting/female/ — the owner
- * override of the SoundBox clips extended to these two (CLAUDE.md › Licensing), the same voice as the SoundBox.
+ * What the spoken greeting says, in its own language (founder, 27/10/2026 — Tasks #522 / #523): the Khmer welcome read by a
+ * Khmer voice, and the Salam in ARABIC read by an Arabic voice — «السلام عليكم ورحمة الله وبركاته» — never a Khmer voice
+ * reading a transliteration (the founder: «authentic Arabic»). The banner keeps the glossary's Khmer spelling
+ * (ASSALAMU_ALAIKUM). Made by scripts/greeting-clips-override.ts (the owner override extended to these two — CLAUDE.md ›
+ * Licensing); a native speaker's recording replaces either with scripts/import-greeting-voice.ts.
  */
-export const GREETING_WORDS = { chumreap: "ជម្រាបសួរ! សូមស្វាគមន៍មកកាន់ អេប លុយឆ្លាត", salam: ASSALAMU_ALAIKUM } as const
+export const GREETING_WORDS = {
+  chumreap: { text: "ជម្រាបសួរ! សូមស្វាគមន៍មកកាន់ អេប លុយឆ្លាត", lang: "km" },
+  salam: { text: "السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ", lang: "ar" },
+} as const
 
-/** The clips are in public/audio/greeting/female/ (greeting-audio.test.ts checks every one exists). */
+/** The banner's Salam (the glossary's), unchanged by the spoken one. */
+export const GREETING_SALAM_TEXT = ASSALAMU_ALAIKUM
+
+/** The female clips are in public/audio/greeting/female/ (greeting-audio.test.ts checks every one exists). */
 export const GREETING_CLIPS_READY = true
+/** Male clips imported (scripts/import-greeting-voice.ts … male) for BOTH greetings: then a phone set to 👨 hears them. */
+export const GREETING_MALE_READY = false
 
-/**
- * The clip of a greeting in the chosen voice persona. No male Khmer voice exists yet (as for the SoundBox — MALE_VOICE_READY):
- * a phone set to 👨 hears the female clip, never a 404 or silence.
- */
+/** The clip of a greeting in the chosen voice persona; 👨 hears the female clip until the male ones exist — never a 404. */
 export const greetingClipUrl = (kind: "khmer" | "islamic", voice: VoiceGender = DEFAULT_VOICE_GENDER) =>
-  `/audio/greeting/${playedVoice(voice)}/${kind === "islamic" ? "salam" : "chumreap"}.mp3`
+  `/audio/greeting/${voice === "male" && GREETING_MALE_READY ? "male" : "female"}/${kind === "islamic" ? "salam" : "chumreap"}.mp3`
 
 /**
  * Spoken only when this device asked for it, the clip exists, and the phone is not on Silent, Vibrate or Do Not Disturb

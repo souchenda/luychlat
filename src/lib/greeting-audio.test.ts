@@ -6,7 +6,7 @@ import { describe, it } from "node:test"
 import { ASSALAMU_ALAIKUM } from "@/lib/islamic/glossary"
 import { VOICE_GENDERS } from "@/lib/soundbox"
 
-import { GREETING_CLIPS_READY, GREETING_WORDS, greetingClipUrl } from "./welcome-greeting"
+import { GREETING_CLIPS_READY, GREETING_MALE_READY, GREETING_SALAM_TEXT, GREETING_WORDS, greetingClipUrl } from "./welcome-greeting"
 
 const root = process.cwd()
 const read = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n")
@@ -41,14 +41,19 @@ describe("The spoken welcome greeting's clips (founder, 27/10/2026 — Task #522
     }
   })
   it("what they say: the Khmer welcome with the brand's name; the Salam in the glossary's spelling (never retyped)", () => {
-    assert.equal(GREETING_WORDS.chumreap, "ជម្រាបសួរ! សូមស្វាគមន៍មកកាន់ អេប លុយឆ្លាត")
-    assert.equal(GREETING_WORDS.salam, ASSALAMU_ALAIKUM)
-    assert.doesNotMatch(GREETING_WORDS.chumreap, /កម្មវិធី|អែប|LuyChlat/) // the brand standard
+    assert.deepEqual(GREETING_WORDS.chumreap, { text: "ជម្រាបសួរ! សូមស្វាគមន៍មកកាន់ អេប លុយឆ្លាត", lang: "km" })
+    assert.doesNotMatch(GREETING_WORDS.chumreap.text, /កម្មវិធី|អែប|LuyChlat/) // the brand standard
+    // Task #523: the Salam spoken in ARABIC by the Arabic voice (never a Khmer voice reading a transliteration);
+    // the banner keeps the glossary's Khmer spelling.
+    assert.deepEqual(GREETING_WORDS.salam, { text: "السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ", lang: "ar" })
+    assert.match(GREETING_WORDS.salam.text, /^[\u0600-\u06FF\s]+$/)
+    assert.equal(GREETING_SALAM_TEXT, ASSALAMU_ALAIKUM)
   })
   it("made under the owner's override only: translate_tts in that script alone, recorded in CLAUDE.md; loudness checked", () => {
     const s = read("scripts/greeting-clips-override.ts")
     assert.deepEqual([...new Set(s.match(/https:\/\/[^\s"`/]+/g))], ["https://translate.google.com"])
-    assert.match(s, /for \(const \[name, text\] of Object\.entries\(GREETING_WORDS\)\)/)
+    assert.match(s, /for \(const \[name, \{ text, lang \}\] of Object\.entries\(GREETING_WORDS\)\)/)
+    assert.match(s, /tl=\$\{lang\}/) // each in its own language
     assert.match(s, /const ok = clipMatches\(v\)/)
     assert.match(read("CLAUDE.md"), /\*\*And to the 2 welcome greeting clips \(founder, 27\/10\/2026 —\s+Task #522\):\*\*/)
   })
@@ -59,5 +64,21 @@ describe("The spoken welcome greeting's clips (founder, 27/10/2026 — Task #522
     assert.match(pill, /window\.addEventListener\("pointerdown", retry, \{ once: true \}\)/)
     assert.match(pill, /if \(gone \|\| !shouldSpeakWelcome\(\{ enabled: true, ready: GREETING_CLIPS_READY, quiet \}\)\) return/)
     assert.match(pill, /stopSpeaking = speakOnLaunch\(greetingClipUrl\(g\.kind, readVoiceGender\(local\)\)\)/)
+  })
+})
+
+describe("A native speaker's recording replaces a clip (founder, 27/10/2026 — Task #523)", () => {
+  it("the importer: any phone recording → the SoundBox clips' standard; too short / long / faint is refused, never amplified", () => {
+    const s = read("scripts/import-greeting-voice.ts")
+    assert.match(s, /"-ac", "1", "-ar", "24000", "-af", `highpass=f=70,\$\{trimFilter\(\)\}`/) // mono 24 kHz, rumble off, trimmed
+    assert.match(s, /export const MIN_SECONDS = 0\.6\nexport const MAX_SECONDS = 8/)
+    assert.match(s, /if \(gain === null\) throw new Error\("silent or far too faint/)
+    assert.match(s, /const ok = clipMatches\(v\)/)
+    assert.match(s, /public", "audio", "greeting", voice/)
+    assert.doesNotMatch(s, /https?:\/\//) // a local file only — nothing fetched
+  })
+  it("male clips only once both are imported and switched on; until then 👨 hears the female ones", () => {
+    assert.equal(GREETING_MALE_READY, false)
+    assert.equal(greetingClipUrl("islamic", "male"), "/audio/greeting/female/salam.mp3")
   })
 })
