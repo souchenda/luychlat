@@ -50,7 +50,7 @@ def psql(sql):
         raise RuntimeError("no DATABASE_URL")
     r = subprocess.run(
         ["docker", "run", "--rm", "-i", "-e", "DATABASE_URL", "postgres:17-alpine",
-         "sh", "-c", 'exec psql "$DATABASE_URL" -X -At -v ON_ERROR_STOP=1'],
+         "sh", "-c", 'exec psql "$DATABASE_URL" -X -q -At -v ON_ERROR_STOP=1'],
         input=sql, text=True, capture_output=True, timeout=120, env={**os.environ, "DATABASE_URL": url},
     )
     if r.returncode != 0:
@@ -96,7 +96,7 @@ def cert_days():
         m = re.search(r"notAfter=(.+)", text)
         if code == 0 and m:
             end = datetime.datetime.strptime(m.group(1).strip(), "%b %d %H:%M:%S %Y %Z")
-            out[os.path.basename(os.path.dirname(pem))] = (end - datetime.datetime.utcnow()).days
+            out[os.path.basename(os.path.dirname(pem))] = (end - datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)).days
     return out
 
 
@@ -174,12 +174,14 @@ def main():
 
     # 1. The command a super admin asked for (claimed atomically; one at a time).
     did = False
-    claimed = psql(
+    out = psql(
         "update public.ops_commands set status = 'running' where id = (select id from public.ops_commands "
         "where status = 'pending' order by requested_at limit 1 for update skip locked) returning id, action;"
-    ).strip()
+    )
+    # Only the returned row (id|action) — never a status line such as «UPDATE 0».
+    claimed = next((l for l in out.splitlines() if re.fullmatch(r"[0-9a-f-]{36}\|[a-z_]+", l.strip())), "")
     if claimed:
-        cid, action = claimed.split("|", 1)
+        cid, action = claimed.strip().split("|", 1)
         cmd = ACTIONS.get(action)
         code, out = run(cmd, 900) if cmd else (1, "unknown action")
         status = "done" if code == 0 else "failed"
