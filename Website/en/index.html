@@ -60,7 +60,7 @@
           <p class="lead" data-i="hero.lead">Track income, spending, debts and loan dates in Khmer — as easy as sending a message.</p>
           <ul class="signature">
             <li><span>🔊</span><div><b data-i="sig.1t">Hear every sale</b><small data-i="sig.1">Your phone calls out each KHQR payment, in Khmer</small></div></li>
-            <li><span>🎤</span><div><b data-i="sig.2t">Just say it in Khmer</b><small data-i="sig.2">Text or voice the Telegram bot — it's recorded</small></div></li>
+            <li><span>🎤</span><div><b data-i="sig.2t">Just say it in Khmer</b><small data-i="sig.2">Text or voice the Telegram bot, tap Confirm — recorded</small></div></li>
             <li><span>🏪</span><div><b data-i="sig.3t">Shop and home, kept apart</b><small data-i="sig.3">Separate books, balances always hidden</small></div></li>
           </ul>
           <a class="more-link" href="#business" data-i="hero.more">See how it helps your shop ↓</a>
@@ -85,6 +85,7 @@
             <span class="on" data-for="biz" data-i="ph.biz">🏪 Business</span>
             <span data-for="me" data-i="ph.me">🏠 Personal</span>
           </figcaption>
+          <p class="note" data-i="ph.note">The real app · names and amounts are examples</p>
         </figure>
       </div>
     </section>
@@ -172,16 +173,21 @@
       <div class="wrap bot-in">
         <div>
           <p class="eyebrow" data-i="bot.eyebrow">Telegram Bot</p>
-          <h2 data-i="bot.title">One message. Recorded.</h2>
+          <h2 data-i="bot.title">One message, one tap. Recorded.</h2>
           <p class="lead" data-i="bot.lead">Type or speak Khmer to @luychlat_bot, like texting a friend. It never shows your balances unless you allow it — and never in a group.</p>
           <a class="btn" href="https://t.me/luychlat_bot" target="_blank" rel="noopener" data-i="bot.open">Open @luychlat_bot</a>
         </div>
-        <div class="chat reveal" aria-hidden="true">
-          <p class="me" data-i="bot.m1">Iced coffee 6000</p>
-          <p class="them" data-i="bot.r1">✅ Expense: 6,000 ៛ · Drinks</p>
-          <p class="me" data-i="bot.m2">🎤 “Fuel, 20 thousand”</p>
-          <p class="them" data-i="bot.r2">✅ Expense: 20,000 ៛ · Fuel</p>
-        </div>
+        <figure class="chat-wrap reveal">
+          <div class="chat" aria-hidden="true">
+            <p class="me" data-i="bot.m1">Iced coffee 6000</p>
+            <div class="them card">
+              <p data-i="bot.card">🧾 Expense<br>💵 6,000 ៛<br>👛 Cash<br>🏷️ Drinks</p>
+              <div class="kb"><span data-i="bot.ok">✅ Confirm</span><span data-i="bot.no">❌ Cancel</span></div>
+            </div>
+            <p class="them" data-i="bot.saved">✅ Saved to Cash!</p>
+          </div>
+          <figcaption class="note" data-i="bot.example">An example — the bot's own words and buttons</figcaption>
+        </figure>
       </div>
     </section>
 
@@ -348,6 +354,9 @@
 
   <script src="../i18n.js"></script>
   <script src="../site.js"></script>
+
+
+
 
 
 

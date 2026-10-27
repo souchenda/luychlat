@@ -60,7 +60,7 @@
           <p class="lead" data-i="hero.lead">用高棉语记收支、欠款和还款日 —— 像发消息一样简单。</p>
           <ul class="signature">
             <li><span>🔊</span><div><b data-i="sig.1t">钱到账，马上听到</b><small data-i="sig.1">顾客扫 KHQR 付款，手机用高棉语播报</small></div></li>
-            <li><span>🎤</span><div><b data-i="sig.2t">说句话就记好</b><small data-i="sig.2">给 Telegram 机器人发文字或语音，自动记账</small></div></li>
+            <li><span>🎤</span><div><b data-i="sig.2t">说句话就记好</b><small data-i="sig.2">给 Telegram 机器人发文字或语音，点确认即记账</small></div></li>
             <li><span>🏪</span><div><b data-i="sig.3t">店钱家钱，分得清</b><small data-i="sig.3">生意和家庭分开记，余额始终隐藏</small></div></li>
           </ul>
           <a class="more-link" href="#business" data-i="hero.more">看看它怎么帮您的店 ↓</a>
@@ -85,6 +85,7 @@
             <span class="on" data-for="biz" data-i="ph.biz">🏪 商家</span>
             <span data-for="me" data-i="ph.me">🏠 个人</span>
           </figcaption>
+          <p class="note" data-i="ph.note">真实应用界面 · 名字和金额为示例</p>
         </figure>
       </div>
     </section>
@@ -172,16 +173,21 @@
       <div class="wrap bot-in">
         <div>
           <p class="eyebrow" data-i="bot.eyebrow">Telegram 机器人</p>
-          <h2 data-i="bot.title">发一条消息，就记好了</h2>
+          <h2 data-i="bot.title">发一条消息，点一下确认，就记好了</h2>
           <p class="lead" data-i="bot.lead">像跟朋友聊天一样，用高棉语给 @luychlat_bot 打字或说话。未经允许，它不会显示余额 —— 在群里更不会。</p>
           <a class="btn" href="https://t.me/luychlat_bot" target="_blank" rel="noopener" data-i="bot.open">打开 @luychlat_bot</a>
         </div>
-        <div class="chat reveal" aria-hidden="true">
-          <p class="me" data-i="bot.m1">冰咖啡 6000</p>
-          <p class="them" data-i="bot.r1">✅ 支出 6,000 ៛ · 饮品</p>
-          <p class="me" data-i="bot.m2">🎤「加油 2 万」</p>
-          <p class="them" data-i="bot.r2">✅ 支出 20,000 ៛ · 燃油</p>
-        </div>
+        <figure class="chat-wrap reveal">
+          <div class="chat" aria-hidden="true">
+            <p class="me" data-i="bot.m1">冰咖啡 6000</p>
+            <div class="them card">
+              <p data-i="bot.card">🧾 支出<br>💵 6,000 ៛<br>👛 现金<br>🏷️ 饮品</p>
+              <div class="kb"><span data-i="bot.ok">✅ 确认</span><span data-i="bot.no">❌ 取消</span></div>
+            </div>
+            <p class="them" data-i="bot.saved">✅ 已保存到 现金！</p>
+          </div>
+          <figcaption class="note" data-i="bot.example">示例 —— 文字和按钮与真实机器人一致</figcaption>
+        </figure>
       </div>
     </section>
 
@@ -348,6 +354,9 @@
 
   <script src="../i18n.js"></script>
   <script src="../site.js"></script>
+
+
+
 
 
 

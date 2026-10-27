@@ -396,3 +396,11 @@ details a { color: var(--brand); }
 .nf .code { font: 800 3.6rem/1 "Plus Jakarta Sans", sans-serif; color: var(--brand); }
 .nf h1 { margin-top: 8px; }
 .nf .cta { justify-content: center; }
+
+/* The bot conversation as the bot does it, and the «example» notes */
+.chat-wrap { margin: 0; }
+.chat .card { padding: 0; overflow: hidden; max-width: 78%; border-radius: 18px; border-bottom-left-radius: 6px; box-shadow: 0 1px 1px rgba(0, 0, 0, .06); }
+.chat .card p { box-shadow: none; max-width: none; padding: 10px 14px 8px; line-height: 1.75; }
+.chat .kb { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0 6px 6px; }
+.chat .kb span { text-align: center; font-size: .85rem; padding: 7px 4px; border-radius: 10px; background: rgba(34, 158, 217, .12); color: #1f7ab3; font-weight: 600; }
+.note { margin-top: 10px; color: var(--muted); font-size: .8rem; text-align: center; }
