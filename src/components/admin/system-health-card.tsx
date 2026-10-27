@@ -83,8 +83,11 @@ const LEVEL: Record<Status["events"][number]["level"], { icon: string; className
   security: { icon: "🛡️", className: "text-violet-700 dark:text-violet-300" },
 }
 
-/** /admin › System health & bot security (24/7): server, database, feeds, bot, bulletin and the event log. */
-export function SystemHealthCard() {
+/**
+ * /admin › System health & bot security (24/7): server, database, feeds, bot, bulletin and the event log.
+ * `embedded`: inside the Control Center (founder, 28/10/2026 — one place for health and security), always open.
+ */
+export function SystemHealthCard({ embedded = false }: { embedded?: boolean } = {}) {
   const t = useT()
   const q = useQuery({
     queryKey: ["admin-system"],
@@ -129,10 +132,11 @@ export function SystemHealthCard() {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>("system")
   useEffect(() => {
+    if (embedded) return setOpen(true)
     try {
       setOpen(localStorage.getItem(OPEN_KEY) === "1")
     } catch {}
-  }, [])
+  }, [embedded])
   const toggle = () => {
     setOpen((v) => {
       try {

@@ -15,6 +15,7 @@ import {
   ServerCogIcon,
   SettingsIcon,
   ShieldAlertIcon,
+  ShieldCheckIcon,
   UsersIcon,
   XIcon,
 } from "lucide-react"
@@ -705,7 +706,19 @@ export default function AdminPage() {
         {founder && <PendingPayments />}
         <SupportTickets />
       </div>
-      <SystemHealthCard />
+      {/* Super admin: health and security 24/7 live in one place, the Control Center (founder, 28/10/2026). */}
+      {founder ? (
+        <Link href="/admin/super/control" className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3 transition-colors hover:bg-muted/50">
+          <ShieldCheckIcon className="size-5 shrink-0 text-emerald-600" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">{t("ops.title")}</span>
+            <span className="block text-xs text-muted-foreground">{t("ops.cardHint")}</span>
+          </span>
+          <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
+        </Link>
+      ) : (
+        <SystemHealthCard />
+      )}
       {admin && <AdhanManager />}
       {admin && (
         <>
