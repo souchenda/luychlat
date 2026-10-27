@@ -27,7 +27,7 @@
   "ph.scan": "Scan",
   "ph.goals": "Goals",
   "ph.reports": "Reports",
-  "ph.sale": "Received 25,000 ៛",
+  "ph.sale": "Received <span class=\"amt\">25,000 ៛</span>",
   "ph.loan": "PPCBank loan",
   "ph.loanDue": "Due 5th · $320",
   "mo.title": "Sound familiar?",
@@ -182,7 +182,7 @@
   "ph.scan": "扫描",
   "ph.goals": "目标",
   "ph.reports": "报表",
-  "ph.sale": "收到 25,000 ៛",
+  "ph.sale": "收到 <span class=\"amt\">25,000 ៛</span>",
   "ph.loan": "PPCBank 贷款",
   "ph.loanDue": "5 号 · $320",
   "mo.title": "是不是很熟悉？",
@@ -362,4 +362,39 @@
   document.querySelectorAll("[data-period]").forEach(function (b) {
     b.addEventListener("click", function () { setPeriod(b.getAttribute("data-period")); });
   });
+
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // The sales keep coming in on the phone (sample figures).
+  var sales = [["25,000 ៛", "KHQR · ABA"], ["$12.50", "KHQR · ACLEDA"], ["8,000 ៛", "KHQR · Wing"], ["$4.75", "KHQR · Bakong"]];
+  var n = 0;
+  var toast = document.querySelector(".ph-toast");
+  if (toast && !still) {
+    setInterval(function () {
+      n = (n + 1) % sales.length;
+      toast.classList.remove("ping");
+      void toast.offsetWidth;
+      toast.classList.add("ping");
+      var amt = toast.querySelector(".amt"), via = toast.querySelector(".via");
+      if (amt) amt.textContent = sales[n][0];
+      if (via) via.textContent = sales[n][1];
+    }, 3200);
+  }
+
+  // Cards rise into place as they scroll in.
+  var items = document.querySelectorAll(".reveal");
+  if (!still && "IntersectionObserver" in window) {
+    document.documentElement.classList.add("motion");
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var el = e.target;
+        el.classList.add("in");
+        io.unobserve(el);
+        // Settled: back to a plain card, so its own hover lift works again.
+        setTimeout(function () { el.classList.remove("reveal", "in"); el.style.transitionDelay = ""; }, 900);
+      });
+    }, { rootMargin: "0px 0px -8% 0px" });
+    items.forEach(function (el, i) { el.style.transitionDelay = (i % 3) * 70 + "ms"; io.observe(el); });
+  }
 })();
