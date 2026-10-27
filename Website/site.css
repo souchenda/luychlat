@@ -202,6 +202,19 @@ p { margin: 0; }
 /* Trust */
 .trust { padding: 72px 0; background: var(--brand-deep); color: #e8f5ef; }
 .trust h2 { color: #fff; }
+.trust .sub { color: #c9e3d8; max-width: 640px; margin: 10px auto 0; }
+.trust-in { display: grid; gap: 16px; margin-top: 30px; }
+@media (min-width: 900px) { .trust-in { grid-template-columns: 1fr 1fr; } }
+.never, .control { padding: 24px; border-radius: var(--radius); background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12); }
+.trust h3 { color: #fff; font-size: 1.1rem; margin-bottom: 12px; }
+.never ul, .control ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; color: #d6ebe2; }
+.never li, .control li { position: relative; padding-left: 30px; }
+.never li::before, .control li::before { position: absolute; left: 0; top: .1em; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: .75rem; font-weight: 700; }
+.never li::before { content: "✕"; background: rgba(248, 113, 113, .18); color: #fca5a5; }
+.control li::before { content: "✓"; background: rgba(252, 211, 77, .18); color: #fcd34d; }
+.official { margin-top: 18px; padding: 20px 24px; border-radius: var(--radius); border: 1px dashed rgba(252, 211, 77, .45); text-align: center; }
+.official p { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; }
+.official a { color: #fcd34d; text-decoration: none; font-weight: 600; min-height: 32px; display: inline-flex; align-items: center; }
 .tr { padding: 22px; border-radius: var(--radius); background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); }
 .tr b { display: block; font-size: 1.4rem; color: #fcd34d; margin-bottom: 8px; letter-spacing: 1px; }
 .tr p { color: #c9e3d8; font-size: .95rem; }
