@@ -79,15 +79,17 @@ describe("Once per launch, per device, and never a sound on a muted phone (Task 
     assert.equal(firstOfLaunch(session), false)
     assert.equal(firstOfLaunch(null), false)
   })
-  it("the spoken greeting: per device (localStorage «welcome_voice»), OFF unless switched on there", () => {
+  it("the spoken greeting: per device (localStorage «welcome_voice»), ON unless switched off there (founder, 27/10/2026)", () => {
     const phoneA = memory()
     const phoneB = memory()
     assert.equal(WELCOME_VOICE_KEY, "welcome_voice")
-    assert.equal(readWelcomeVoice(phoneA), false)
+    assert.equal(readWelcomeVoice(phoneA), true) // a new feature is on by default
+    writeWelcomeVoice(phoneA, false)
+    assert.deepEqual([readWelcomeVoice(phoneA), readWelcomeVoice(phoneB)], [false, true]) // switched off on one phone only
     writeWelcomeVoice(phoneA, true)
-    assert.deepEqual([readWelcomeVoice(phoneA), readWelcomeVoice(phoneB)], [true, false]) // the other phone stays silent
+    assert.equal(readWelcomeVoice(phoneA), true)
     const broken = { getItem: () => { throw new Error("private") }, setItem: () => { throw new Error("private") } }
-    assert.equal(readWelcomeVoice(broken), false)
+    assert.equal(readWelcomeVoice(broken), true)
     assert.doesNotThrow(() => writeWelcomeVoice(broken, true))
   })
   it("never spoken on Silent or Vibrate (DND reads as silent), when off, or before the clips are recorded", () => {
@@ -116,5 +118,21 @@ describe("Once per launch, per device, and never a sound on a muted phone (Task 
     assert.equal(km["settings.welcomeVoice"], "🔊 សំឡេងស្វាគមន៍ពេលបើកអេប")
     for (const l of ["en", "zh"] as const) assert.ok((dictionaries[l] as Record<string, string>)["welcome.titleName"], l)
     assert.doesNotMatch(Object.entries(km).filter(([k]) => k.startsWith("welcome.") || k.startsWith("settings.welcomeVoice")).map(([, v]) => v).join(" "), /លោក|[០-៩]/)
+  })
+})
+
+describe("Regression: the greeting is never spent behind the App Lock (founder, 27/10/2026 — «no greeting, no voice»)", () => {
+  it("it waits for the unlock — read from the store itself after mount (the hydration snapshot says «unlocked» even with a PIN)", () => {
+    const pill = read("src/components/dashboard/welcome-greeting.tsx")
+    // The lock as the phone really has it (getState), and every change after (subscribe) — never the render's snapshot.
+    assert.match(pill, /const s = useLockStore\.getState\(\)\n\s+if \(!\(s\.isLocked && s\.pinHash\)\) setUnlocked\(true\)/)
+    assert.match(pill, /return useLockStore\.subscribe\(check\)/)
+    assert.doesNotMatch(pill, /useLockStore\(\(s\)/)
+    // Nothing — not the once-per-launch flag, not the voice — before the unlock.
+    const effect = pill.slice(pill.indexOf("if (!unlocked || started.current) return"))
+    assert.ok(effect.indexOf("if (!unlocked || started.current) return") < effect.indexOf("firstOfLaunch(session)"))
+    assert.ok(effect.indexOf("if (!unlocked || started.current) return") < effect.indexOf("speakOnLaunch("))
+    // The app hides itself while locked (layout.tsx) — the reason the greeting must wait.
+    assert.match(read("src/app/(app)/layout.tsx"), /<div hidden=\{isLocked\} inert=\{isLocked\}/)
   })
 })

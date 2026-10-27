@@ -37,6 +37,7 @@ import { headerDate, monthRange, recentMonths } from "@/lib/dates"
 import { headerBadge, toHijri } from "@/lib/islamic"
 import { cambodiaHour, greetingStack } from "@/lib/islamic-expressions"
 import { WelcomeGreetingPill } from "@/components/dashboard/welcome-greeting"
+import { WhatsNewDialog } from "@/components/dashboard/whats-new"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { useIslamicDefaults, useIslamicEnabled } from "@/lib/islamic-settings"
@@ -107,6 +108,8 @@ export default function HomePage() {
     <div className="dash space-y-4">
       {/* The welcome as the app opens (Task #518): an overlay pill, once per launch — never inside the hero card. */}
       <WelcomeGreetingPill islamic={islamic} name={givenName} />
+      {/* «✨ មុខងារថ្មី» (27/10/2026): a new feature, once per phone — after the welcome, never over another dialog. */}
+      <WhatsNewDialog islamic={islamic} />
       <header>
         {/* Two columns (founder, 21/10/2026 — Task #447): who on the left, when on the right (the date with its year, the
             lunar or Hijri pill under it, flush right, at most 55% wide). Who is two lines beside the 42 px photo (Task #448):

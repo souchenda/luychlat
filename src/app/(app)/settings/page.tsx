@@ -278,12 +278,12 @@ function VoiceGenderRow() {
 }
 
 /**
- * «🔊 សំឡេងស្វាគមន៍ពេលបើកអេប» (founder, 26/10/2026 — Task #518): off unless switched on, on this phone only; never on Silent /
+ * «🔊 សំឡេងស្វាគមន៍ពេលបើកអេប» (founder, 26/10/2026 — Task #518): on unless switched off (27/10), this phone only; never on Silent /
  * Vibrate. Until the greeting is recorded (GREETING_CLIPS_READY) the switch is kept and the row says it shows as text.
  */
 function WelcomeVoiceRow() {
   const t = useT()
-  const [on, setOn] = useState(false)
+  const [on, setOn] = useState(true)
   useEffect(() => setOn(readWelcomeVoice(localStorage)), [])
   return (
     <SettingsRow icon={<Volume2Icon />} tile="emerald" title={t("settings.welcomeVoice")} hint={t(on && !GREETING_CLIPS_READY ? "settings.welcomeVoicePending" : "settings.welcomeVoiceHint")}>

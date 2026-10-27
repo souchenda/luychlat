@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { useT } from "@/lib/i18n/use-t"
 import { phoneQuiet } from "@/lib/native-keepalive"
@@ -8,6 +8,7 @@ import { readVoiceGender } from "@/lib/soundbox"
 import { cambodiaHour } from "@/lib/islamic-expressions"
 import { cambodiaDay, firstOfLaunch, GREETING_CLIPS_READY, greetingClipUrl, readWelcomeVoice, shouldSpeakWelcome, welcomeDuaText, welcomeGreeting, type WelcomeGreeting } from "@/lib/welcome-greeting"
 import { useLocaleStore } from "@/stores/locale-store"
+import { useLockStore } from "@/stores/lock-store"
 
 const SHOWN_MS = 5_200
 /** The browser lets a page sound only after a first touch: the greeting waits for one this long, never later. */
@@ -63,8 +64,24 @@ export function WelcomeGreetingPill({ islamic, name }: { islamic: boolean; name:
   const locale = useLocaleStore((s) => s.locale)
   const [greeting, setGreeting] = useState<WelcomeGreeting | null>(null)
   const [visible, setVisible] = useState(false)
+  // Behind the App Lock (PIN / Face ID) the whole app is mounted but hidden (layout.tsx): the greeting waits for the
+  // unlock — before, it ran and vanished behind the lock screen and was never seen or heard (founder, 27/10/2026). Read
+  // from the store itself, after mount: while the page hydrates, the hook gives the SERVER's state (unlocked, no PIN)
+  // even when this phone has a PIN and starts locked (lock-store.ts).
+  const [unlocked, setUnlocked] = useState(false)
+  useEffect(() => {
+    const check = () => {
+      const s = useLockStore.getState()
+      if (!(s.isLocked && s.pinHash)) setUnlocked(true)
+    }
+    check()
+    return useLockStore.subscribe(check)
+  }, [])
+  const started = useRef(false)
 
   useEffect(() => {
+    if (!unlocked || started.current) return
+    started.current = true
     let session: Storage | null = null
     try {
       session = window.sessionStorage
@@ -93,9 +110,9 @@ export function WelcomeGreetingPill({ islamic, name }: { islamic: boolean; name:
       window.clearTimeout(show)
       window.clearTimeout(hide)
     }
-    // Once per mount: the greeting is the launch's, not re-run when the profile loads its name later.
+    // Once per mount, as soon as the app is unlocked: the launch's greeting, not re-run when the profile loads its name.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [unlocked])
 
   if (!greeting) return null
   const title = greeting.kind === "islamic" ? greeting.title : t(greeting.title, greeting.params)

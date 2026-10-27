@@ -50,13 +50,16 @@ export function firstOfLaunch(session: Store | null): boolean {
   }
 }
 
-/** «🔊 សំឡេងស្វាគមន៍ពេលបើកអេប»: per device (localStorage), off unless switched on here. */
+/**
+ * «🔊 សំឡេងស្វាគមន៍ពេលបើកអេប»: per device (localStorage), ON unless switched off here — a new feature is on by default
+ * (founder, 27/10/2026 — lib/whats-new.ts announces it). Silent / Vibrate still keep it quiet (shouldSpeakWelcome).
+ */
 export const WELCOME_VOICE_KEY = "welcome_voice"
 export function readWelcomeVoice(store: Store | null): boolean {
   try {
-    return store?.getItem(WELCOME_VOICE_KEY) === "1"
+    return store?.getItem(WELCOME_VOICE_KEY) !== "0"
   } catch {
-    return false
+    return true
   }
 }
 export function writeWelcomeVoice(store: Store | null, on: boolean) {
