@@ -369,3 +369,6 @@ details a { color: var(--brand); }
 @media (prefers-color-scheme: dark) { .shot-tabs span.on { color: #022c22; } }
 .screen.shots .ph-toast { transition: opacity .5s ease; }
 .screen.shots[data-on="me"] .ph-toast { opacity: 0; }
+
+.save { display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 999px; background: var(--gold-soft); color: #8a5a00; font-size: .82rem; font-weight: 600; width: max-content; }
+@media (prefers-color-scheme: dark) { .save { color: var(--gold); } }
