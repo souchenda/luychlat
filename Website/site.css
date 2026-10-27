@@ -148,6 +148,10 @@ p { margin: 0; }
 .ph-toast small { color: #55665e; font-size: 10px; }
 .ph-row { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 14px; background: #fbf3e2; color: #6b4e14; font-size: 11px; }
 
+.ticks { list-style: none; padding: 0; margin: 18px 0 0; display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: .92rem; }
+.ticks li { position: relative; padding-left: 22px; }
+.ticks li::before { content: "✓"; position: absolute; left: 0; color: var(--brand); font-weight: 700; }
+
 /* Moments */
 .moments { padding: 64px 0; }
 .cards3 { display: grid; gap: 14px; margin-top: 28px; }
@@ -173,6 +177,16 @@ p { margin: 0; }
 .more { padding: 8px 0 64px; }
 .chips { list-style: none; padding: 0; margin: 24px 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .chips li { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-size: .95rem; }
+
+/* Start */
+.start { padding: 64px 0; background: var(--gold-soft); }
+.steps { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 14px; counter-reset: s; }
+@media (min-width: 760px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+.steps li { background: var(--surface); border-radius: var(--radius); padding: 22px; border: 1px solid var(--line); }
+.steps b { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--brand); color: var(--surface); margin-bottom: 10px; }
+.steps h3 { font-size: 1.05rem; margin-bottom: 4px; }
+.steps p { color: var(--muted); font-size: .95rem; }
+.center-cta { justify-content: center; }
 
 /* Bot */
 .bot { padding: 72px 0; }
@@ -210,6 +224,10 @@ p { margin: 0; }
 .plan li { position: relative; padding-left: 28px; font-size: .95rem; }
 .plan li::before { content: ""; position: absolute; left: 0; top: .45em; width: 18px; height: 18px; border-radius: 50%; background: var(--brand-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / 12px no-repeat; }
 .plan .btn { margin-top: auto; }
+
+.howpay { margin: 28px auto 0; max-width: 760px; background: var(--brand-soft); border-radius: var(--radius); padding: 22px 24px; }
+.howpay h3 { font-size: 1.08rem; margin-bottom: 10px; }
+.howpay ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
 
 /* FAQ */
 .faq { padding: 72px 0; }
