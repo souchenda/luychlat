@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 /**
+ * One id per build (Task #526): inlined into the browser bundle and answered by /api/health, so an app left open in the
+ * background across a deploy notices and reloads once (components/common/stale-build-reload.tsx). Set on process.env
+ * here, so the build workers started after this file is read share the same value.
+ */
+process.env.NEXT_PUBLIC_BUILD_ID ||= String(Date.now());
+
+/**
  * Security headers on every response (production). They are sent by the app
  * itself so they also apply where Nginx locations set their own add_header
  * (which would otherwise drop server-level headers).

@@ -18,6 +18,7 @@ import { AudioMiniPlayer } from "@/components/islamic/audio-player"
 import { FestiveBadge, FestiveSplash } from "@/components/culture/festive-greeting"
 import { HashScroller } from "@/components/layout/hash-scroller"
 import { PrayerAlertScheduler } from "@/components/islamic/prayer-alerts"
+import { StaleBuildReload } from "@/components/common/stale-build-reload"
 import { CounterModeKeeper } from "@/components/payments/counter-mode"
 import { AppUpdatePrompt } from "@/components/layout/app-update"
 import { FlipToHideListener } from "@/components/privacy/flip-to-hide"
@@ -80,6 +81,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <PaymentChimeListener />
       <CounterModeKeeper />
       <AppUpdatePrompt />
+      <StaleBuildReload />
       <FlipToHideListener />
       <RealtimeSync />
       <PendingInviteRedirect />
