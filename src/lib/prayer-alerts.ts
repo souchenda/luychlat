@@ -15,6 +15,19 @@ export const ALERT_PRAYERS: PrayerKey[] = ["fajr", "dhuhr", "asr", "maghrib", "i
 export const ALERT_WINDOW_MINUTES = 5
 export const ADHAN_MAX_BYTES = 15 * 1024 * 1024
 
+/**
+ * Whether this phone may ring the Adhan (founder, 27/10/2026 — Task #525: at Asr the Adhan rang with Islamic Mode OFF —
+ * the scheduler looked only at the phone's own switch, so a switch left on kept planning a week of Android alarms).
+ * BOTH must be on: this phone's prayer switch AND the member's Islamic Mode. «wait» only while Islamic Mode is still
+ * loading — nothing is planned then; the phone's switch off is «off» at once, Islamic Mode off is «off» once known.
+ */
+export type PrayerGate = "on" | "off" | "wait"
+export function prayerAlertGate(o: { alertsOn: boolean; islamicEnabled: boolean; islamicLoaded: boolean }): PrayerGate {
+  if (!o.alertsOn) return "off"
+  if (!o.islamicLoaded) return "wait"
+  return o.islamicEnabled ? "on" : "off"
+}
+
 /** The prayer whose time arrived within the alert window, if any. */
 export function duePrayer(times: PrayerTimes, minutes: number): PrayerKey | null {
   for (const key of ALERT_PRAYERS) {

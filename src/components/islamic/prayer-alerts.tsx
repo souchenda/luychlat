@@ -34,6 +34,7 @@ import {
   playChime,
   playPreset,
   primeAdhanAudio,
+  prayerAlertGate,
   primeOnFirstTap,
   saveAdhan,
   listenForStopAdhan,
@@ -42,6 +43,7 @@ import {
   stopSound,
 } from "@/lib/prayer-alerts"
 import { cn } from "@/lib/utils"
+import { useIslamicSettings } from "@/lib/islamic-settings"
 import { useIslamicLocalStore, type AlertSound } from "@/stores/islamic-local-store"
 import { useLocaleStore } from "@/stores/locale-store"
 
@@ -63,6 +65,10 @@ export function PrayerAlertScheduler() {
   const global = useGlobalAdhanPresets()
   // The app-wide defaults (regular and Fajr) the Adhan manager sets.
   const defaults = useAdhanDefaults()
+  // Task #525: the phone's switch AND Islamic Mode (prayerAlertGate) — Islamic Mode off silences every Adhan path below.
+  const islamicSettings = useIslamicSettings()
+  const gate = prayerAlertGate({ alertsOn, islamicEnabled: islamicSettings.settings.enabled, islamicLoaded: islamicSettings.loaded })
+  const active = gate === "on"
   const latest = useRef({ t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults })
   latest.current = { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults }
 
@@ -71,14 +77,14 @@ export function PrayerAlertScheduler() {
   // The notification's «🔇 បិទសំឡេង» reaches the app through the service worker.
   useEffect(() => listenForStopAdhan(), [])
   // The first tap after a launch unlocks the sound, so the Adhan may play at the prayer minute (Task #466).
-  useEffect(() => (alertsOn ? primeOnFirstTap() : undefined), [alertsOn])
+  useEffect(() => (active ? primeOnFirstTap() : undefined), [active])
   // Strictly per device (founder, 24/10/2026 — Task #488: the Adhan rang on every phone): this device's own switch
   // decides this device's server push — another phone's «on» never reaches it. A launch only ever turns it OFF (Task
   // #496: a browser whose old switch was still on turned its push back on at every launch after the reset); ON comes
   // only from a tap on this device's switch (toggle → enablePush → setPrayerPush(true)).
   useEffect(() => {
-    if (!alertsOn) void setPrayerPush(false).catch(() => false)
-  }, [alertsOn])
+    if (gate === "off") void setPrayerPush(false).catch(() => false)
+  }, [gate])
 
   // In the Android app (founder, 20/10/2026): the week's prayers as native alarms with the Adhan channel — they ring
   // with the screen locked and the app closed. Re-planned at every launch and whenever the place, sound or language
@@ -102,7 +108,9 @@ export function PrayerAlertScheduler() {
   }, [])
   useEffect(() => {
     if (!isNativeApp()) return
-    if (!alertsOn) {
+    if (gate === "wait") return
+    // Off — this phone's switch, or Islamic Mode (Task #525): every Android alarm cancelled and the native gate closed.
+    if (gate === "off") {
       setNativeOn(false)
       void cancelNativePrayers().catch(() => {})
       return
@@ -127,10 +135,10 @@ export function PrayerAlertScheduler() {
         useNativePrayerStatus.getState().set({ planned: 0, permission: "error", error: errorText(e) })
         reportNativeAlarmError("plan", e)
       })
-  }, [alertsOn, alertSound, location.lat, location.lng, location.label, t, tick])
+  }, [gate, alertSound, location.lat, location.lng, location.label, t, tick])
 
   useEffect(() => {
-    if (!alertsOn || nativeOn) return
+    if (!active || nativeOn) return
     const tick = () => {
       const { t, alertSound, adhanPreset, adhanName, fajrAdhan, location, global, defaults } = latest.current
       // The place's own clock (Cambodia time, or the phone's zone abroad — Hajj, Umrah): the Adhan at the minute its times say.
@@ -176,7 +184,7 @@ export function PrayerAlertScheduler() {
       document.removeEventListener("visibilitychange", tick)
       window.removeEventListener("pageshow", tick)
     }
-  }, [alertsOn, nativeOn])
+  }, [active, nativeOn])
 
   return null
 }

@@ -33,6 +33,39 @@ import org.json.JSONObject;
 public class AdhanAlarmPlugin extends Plugin {
     static final String PREFS = "luychlat_adhan_alarms";
     static final String KEY = "alarms";
+    /**
+     * The gate (founder, 27/10/2026 — Task #525: at Asr the Adhan rang with Islamic Mode OFF): true only while the app
+     * says this phone's prayer switch AND Islamic Mode are on (lib/native-prayer.ts › setGate). Closed — or never set,
+     * as after an update from an older build — no prayer alarm sounds and every one is cancelled when the app starts.
+     */
+    static final String GATE = "gate";
+
+    /** The app starts: a closed gate cancels every prayer alarm at once, before any could fire. */
+    @Override
+    public void load() {
+        Context context = getContext();
+        if (!gateOpen(context)) purge(context);
+    }
+
+    /** { on } — opened just before a plan; closed by every cancel (the phone's switch or Islamic Mode turned off). */
+    @PluginMethod
+    public void setGate(PluginCall call) {
+        Context context = getContext();
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        prefs(context).edit().putBoolean(GATE, on).apply();
+        if (!on) purge(context);
+        call.resolve();
+    }
+
+    static boolean gateOpen(Context context) {
+        return prefs(context).getBoolean(GATE, false);
+    }
+
+    /** Every prayer alarm cancelled and the plan forgotten. */
+    static void purge(Context context) {
+        cancelAll(context);
+        prefs(context).edit().remove(KEY).apply();
+    }
 
     /** { alarms: [{ id, at (ms), title, body, channelId }] } — replaces every alarm planned before. */
     @PluginMethod
@@ -168,6 +201,8 @@ public class AdhanAlarmPlugin extends Plugin {
      */
     static boolean planned(Context context, int id) {
         if (id == TEST_ID) return true;
+        // Task #525: the gate first — Islamic Mode or the prayer switch off on this phone, nothing ever sounds.
+        if (!gateOpen(context)) return false;
         String saved = prefs(context).getString(KEY, null);
         if (saved == null) return false;
         try {
@@ -181,6 +216,11 @@ public class AdhanAlarmPlugin extends Plugin {
 
     /** After a reboot: the alarms still ahead, set again. */
     static void restore(Context context) {
+        // Task #525: a closed gate is never restored after a reboot — the alarms are cancelled instead.
+        if (!gateOpen(context)) {
+            purge(context);
+            return;
+        }
         String saved = prefs(context).getString(KEY, null);
         if (saved == null) return;
         boolean exact = canScheduleExact(context);

@@ -37,6 +37,8 @@ const AdhanAlarm = registerPlugin<{
   schedule(o: { alarms: NativeAlarm[] }): Promise<{ scheduled: number; exact: boolean }>
   add(o: NativeAlarm): Promise<{ exact: boolean }>
   cancelAll(): Promise<void>
+  /** Task #525 (APK 1.12+): the native gate — closed, the receiver never sounds and every alarm is cancelled at start. */
+  setGate(o: { on: boolean }): Promise<void>
   status(): Promise<{ exact: boolean; notifications: boolean }>
   openExactAlarmSettings(): Promise<void>
 }>("AdhanAlarm")
@@ -158,6 +160,7 @@ export async function requestNativePrayerPermissions(): Promise<boolean> {
 /** Our scheduled prayer alarms are cancelled (switch off, or before a re-plan). */
 export async function cancelNativePrayers(): Promise<void> {
   if (!isNativeApp()) return
+  void AdhanAlarm.setGate({ on: false }).catch(() => null) // Task #525: the gate closed (an older APK has none)
   await AdhanAlarm.cancelAll().catch(() => null) // the alarm clock (1.6+)
   const pending = await n.getPending()
   const ours = pending.notifications.filter((p) => isNativePrayerId(p.id))
@@ -181,6 +184,8 @@ export async function scheduleNativePrayers(o: { lat: number; lng: number; sound
     const mm = String(Math.round(minutes) % 60).padStart(2, "0")
     return o.text(prayer, `${hh}:${mm}`)
   }
+  // Task #525: the gate opened only here — the scheduler plans only when the phone's switch AND Islamic Mode are on.
+  void AdhanAlarm.setGate({ on: true }).catch(() => null)
   // 1.6+: the alarm clock (one place for every prayer — never also the plugin's, so never two Adhans).
   const clock = await step("schedule", AdhanAlarm.schedule({ alarms: plan.map((p) => ({ id: p.id, at: p.at.getTime(), channelId: channel.id, ...words(p.minutes, p.prayer) })) })).catch((e) => {
     if (hasAlarmClock()) reportNativeAlarmError("schedule", e) // 1.6+ has it: a refusal is a bug, never hidden

@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { isStopAdhanMessage, playAdhan, playPreset, prayerNotificationOptions, primeAdhanAudio, silentWav, STOP_ADHAN_ACTION, STOP_ADHAN_MESSAGE, stopSound } from "./prayer-alerts"
+import { isStopAdhanMessage, playAdhan, playPreset, prayerNotificationOptions, prayerAlertGate, primeAdhanAudio, silentWav, STOP_ADHAN_ACTION, STOP_ADHAN_MESSAGE, stopSound } from "./prayer-alerts"
 
 class FakeAudio {
   src: string
@@ -137,7 +137,7 @@ describe("The Adhan plays at the prayer minute — never silence (founder, 22/10
 
   it("wired: unlocked on the first tap, a blocked Adhan becomes a ▶ banner, a 🔊 test button, the server never fails silently", () => {
     const ui = read("src/components/islamic/prayer-alerts.tsx")
-    assert.match(ui, /useEffect\(\(\) => \(alertsOn \? primeOnFirstTap\(\) : undefined\), \[alertsOn\]\)/)
+    assert.match(ui, /useEffect\(\(\) => \(active \? primeOnFirstTap\(\) : undefined\), \[active\]\)/)
     assert.match(ui, /if \(r === "blocked"\) blocked\(\)/)
     assert.match(ui, /action: \{ label: t\("prayerAlert\.tapToPlay"\)/)
     assert.match(ui, /onClick=\{testAdhan\}/)
@@ -171,9 +171,9 @@ describe("The Adhan strictly per device (founder, 24/10/2026 — Task #488: at D
     assert.match(store, /\{ name: "luychlat-islamic-local" \}/) // localStorage: this device only, never the account
     assert.doesNotMatch(store, /supabase|rpc\(/)
     const ui = readFileSync(join(process.cwd(), "src/components/islamic/prayer-alerts.tsx"), "utf8")
-    assert.match(ui, /useEffect\(\(\) => \{\s+if \(!alertsOn\) void setPrayerPush\(false\)\.catch\(\(\) => false\)\s+\}, \[alertsOn\]\)/) // a launch only turns it off (Task #496)
+    assert.match(ui, /useEffect\(\(\) => \{\s+if \(gate === "off"\) void setPrayerPush\(false\)\.catch\(\(\) => false\)\s+\}, \[gate\]\)/) // a launch only turns it off (Task #496)
     assert.doesNotMatch(ui, /setPrayerPush\(alertsOn\)/) // never «on» from a launch — only a tap on this device's switch
-    assert.match(ui, /if \(!alertsOn\) \{\s+setNativeOn\(false\)\s+void cancelNativePrayers\(\)/)
+    assert.match(ui, /if \(gate === "off"\) \{\s+setNativeOn\(false\)\s+void cancelNativePrayers\(\)/)
     assert.match(readFileSync(join(process.cwd(), "src/lib/native-prayer.ts"), "utf8"), /await AdhanAlarm\.cancelAll\(\)\.catch\(\(\) => null\) \/\/ the alarm clock/)
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270254000000_prayer_push_per_device.sql"), "utf8")
     assert.match(sql, /alter column prayer_alerts set default false/) // a new browser never rings by default
@@ -194,9 +194,50 @@ describe("The Adhan never on a phone that turned it off (founder, 24/10/2026 —
   })
   it("off at launch cancels the native alarms; the server pushes only rows whose own device switched the Adhan on", () => {
     const alerts = readFileSync(join(process.cwd(), "src/components/islamic/prayer-alerts.tsx"), "utf8")
-    assert.match(alerts, /if \(!alertsOn\) \{\s+setNativeOn\(false\)\s+void cancelNativePrayers\(\)/)
-    assert.match(alerts, /if \(!alertsOn\) void setPrayerPush\(false\)/)
+    // Task #525: «off» is the phone's switch OR Islamic Mode (prayerAlertGate) — stricter than #494, never weaker.
+    assert.match(alerts, /if \(gate === "off"\) \{\s+setNativeOn\(false\)\s+void cancelNativePrayers\(\)/)
+    assert.match(alerts, /if \(gate === "off"\) void setPrayerPush\(false\)/)
     assert.match(alerts, /if \(result === "granted"\) void enablePush\(\)\.then\(\(state\) => \(state === "on" \? setPrayerPush\(true\) : false\)\)/) // on: the tap only
     assert.match(readFileSync(join(process.cwd(), "src/lib/native-prayer.ts"), "utf8"), /export const NATIVE_TEST_ID = 199_999_999/)
+  })
+})
+
+describe("Regression: the Adhan rang at Asr with Islamic Mode OFF (founder, 27/10/2026 — Task #525)", () => {
+  it("prayerAlertGate: ON only with the phone's switch AND Islamic Mode; the switch off is off at once; Islamic Mode loading waits", () => {
+    assert.equal(prayerAlertGate({ alertsOn: true, islamicEnabled: true, islamicLoaded: true }), "on")
+    // The case of 27/10: the phone's switch was still on, Islamic Mode off — it must be off, never a week of alarms.
+    assert.equal(prayerAlertGate({ alertsOn: true, islamicEnabled: false, islamicLoaded: true }), "off")
+    assert.equal(prayerAlertGate({ alertsOn: false, islamicEnabled: true, islamicLoaded: true }), "off")
+    assert.equal(prayerAlertGate({ alertsOn: false, islamicEnabled: false, islamicLoaded: false }), "off")
+    // Still loading: nothing planned (never «on» on a guess), nothing torn down on a guess either.
+    assert.equal(prayerAlertGate({ alertsOn: true, islamicEnabled: false, islamicLoaded: false }), "wait")
+  })
+  it("the scheduler: every Adhan path behind the gate — native plan, in-page timer, the first-tap primer, the server push", () => {
+    const alerts = readFileSync(join(process.cwd(), "src/components/islamic/prayer-alerts.tsx"), "utf8").replace(/\r\n/g, "\n")
+    assert.match(alerts, /const gate = prayerAlertGate\(\{ alertsOn, islamicEnabled: islamicSettings\.settings\.enabled, islamicLoaded: islamicSettings\.loaded \}\)/)
+    assert.match(alerts, /if \(gate === "wait"\) return\n[^\n]*\n\s+if \(gate === "off"\) \{\s+setNativeOn\(false\)\s+void cancelNativePrayers\(\)/)
+    assert.match(alerts, /if \(!active \|\| nativeOn\) return/)
+    assert.match(alerts, /useEffect\(\(\) => \(active \? primeOnFirstTap\(\) : undefined\), \[active\]\)/)
+    // Planning needs the gate: no `alertsOn`-only check is left in the scheduler.
+    const scheduler = alerts.slice(alerts.indexOf("export function PrayerAlertScheduler"), alerts.indexOf("function NativeAlarmStatus"))
+    assert.doesNotMatch(scheduler, /if \(!alertsOn\)/)
+    const native = readFileSync(join(process.cwd(), "src/lib/native-prayer.ts"), "utf8")
+    assert.match(native, /void AdhanAlarm\.setGate\(\{ on: false \}\)\.catch\(\(\) => null\)[^\n]*\n\s+await AdhanAlarm\.cancelAll\(\)/)
+    assert.ok(native.indexOf('await step("cancel", cancelNativePrayers())') < native.indexOf("void AdhanAlarm.setGate({ on: true })"), "opened only after the cancel, just before the plan")
+  })
+  it("the server: a prayer push or Telegram Adhan only for Islamic Mode members whose own switch is on", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270248000000_prayer_push_province.sql"), "utf8")
+    assert.match(sql, /join public\.islamic_settings s on s\.user_id = p\.user_id and s\.enabled\s+where p\.prayer_alerts;/)
+    const tg = readFileSync(join(process.cwd(), "supabase/migrations/20270203000000_telegram_adhan_audio.sql"), "utf8")
+    assert.match(tg, /join public\.islamic_settings s on s\.user_id = l\.user_id and s\.enabled\s+where l\.prayer_alerts;/)
+  })
+  const noAndroid = !existsSync(join(process.cwd(), "android")) && "android/ is not in the build context"
+  it("Android: a closed gate never sounds, purges at app start and is never restored after a reboot", { skip: noAndroid }, () => {
+    const plugin = readFileSync(join(process.cwd(), "android/app/src/main/java/com/luychlat/app/AdhanAlarmPlugin.java"), "utf8").replace(/\r\n/g, "\n")
+    assert.match(plugin, /public void load\(\) \{\s+Context context = getContext\(\);\s+if \(!gateOpen\(context\)\) purge\(context\);/)
+    assert.match(plugin, /if \(id == TEST_ID\) return true;\n[^\n]*\n\s+if \(!gateOpen\(context\)\) return false;/)
+    assert.match(plugin, /static void restore\(Context context\) \{\n[^\n]*\n\s+if \(!gateOpen\(context\)\) \{\s+purge\(context\);\s+return;/)
+    assert.match(plugin, /return prefs\(context\)\.getBoolean\(GATE, false\);/) // never set = closed
+    assert.match(plugin, /if \(!on\) purge\(context\);/)
   })
 })

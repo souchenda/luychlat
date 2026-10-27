@@ -47,7 +47,7 @@ describe("The native Adhan's plan (founder, 20/10/2026)", () => {
     const c = read("src/components/islamic/prayer-alerts.tsx")
     assert.match(c, /if \(!isNativeApp\(\)\) return/)
     assert.match(c, /\.then\(\(count\) => \{\s*setNativeOn\(count > 0\)/) // and the status shown (Task #472)
-    assert.match(c, /if \(!alertsOn \|\| nativeOn\) return/)
+    assert.match(c, /if \(!active \|\| nativeOn\) return/) // the gate: switch AND Islamic Mode (Task #525)
     assert.match(c, /const granted = await withTimeout\(requestNativePrayerPermissions\(\), 20_000\)/) // after the switch is on (Task #467)
     const n = read("src/lib/native-prayer.ts")
     assert.match(n, /if \(!isNativeApp\(\)\) return 0/)
@@ -62,7 +62,7 @@ describe("The Adhan with the screen off — Android alarms really set (founder, 
     // The bug: the first plan ran before the permission, found none, planned nothing — the in-page timer, frozen with
     // the screen off, rang only at unlock.
     assert.match(c, /const granted = await withTimeout\(requestNativePrayerPermissions\(\), 20_000\)[^\n]*\n[^\n]*\n\s+useNativePrayerStatus\.getState\(\)\.replan\(\)/)
-    assert.match(c, /\}, \[alertsOn, alertSound, location\.lat, location\.lng, location\.label, t, tick\]\)/)
+    assert.match(c, /\}, \[gate, alertSound, location\.lat, location\.lng, location\.label, t, tick\]\)/)
     assert.match(c, /document\.addEventListener\("visibilitychange", onShow\)/)
     assert.match(c, /useNativePrayerStatus\.getState\(\)\.set\(\{ planned: count, permission: count > 0 \? "granted" : "missing" \}\)/)
     // Never silently «on»: the card says how many prayers are set, or that the permission is missing.
