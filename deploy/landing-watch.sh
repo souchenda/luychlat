@@ -57,6 +57,18 @@ else
   fi
 fi
 
+# 1b. The server's certificates renew themselves (certbot); if that ever stops, say so 14 days ahead — not on the day.
+soon=""
+for cert in /etc/letsencrypt/live/*/fullchain.pem; do
+  [ -f "$cert" ] || continue
+  openssl x509 -checkend 1209600 -noout -in "$cert" >/dev/null 2>&1 || soon="${soon:+$soon, }$(basename "$(dirname "$cert")")"
+done
+warned=$(cat "$STATE.cert" 2>/dev/null || echo "")
+if [ -n "$soon" ] && [ "$warned" != "$soon" ]; then
+  send "⚠️ វិញ្ញាបនបត្រ SSL ជិតផុតកំណត់ (តិចជាង 14 ថ្ងៃ)៖ $soon។ ការបន្តស្វ័យប្រវត្តិ (certbot) ប្រហែលមិនដំណើរការ — សូមពិនិត្យ៖ sudo certbot renew --dry-run"
+fi
+echo "$soon" > "$STATE.cert"
+
 # 2. The published files, unchanged
 [ -f "$MANIFEST" ] || exit 0
 problem=""
