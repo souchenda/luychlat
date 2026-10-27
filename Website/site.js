@@ -52,7 +52,11 @@
       "faq.q4": "Does the SoundBox announce money going out?", "faq.a4": "No. The SoundBox announces sales (money in) only, and respects your phone's Silent and Vibrate modes.",
       "faq.q5": "How do I delete my account?", "faq.a5": "In the app: Settings › Delete account. Details on the", "faq.a5link": "account deletion page",
       "dl.title": "Start today", "dl.lead": "Scan the QR code to download, or tap a button below.", "dl.android": "Download for Android", "dl.web": "Open on iPhone / Web",
-      "ft.privacy": "Privacy and terms", "ft.delete": "Delete account", "ft.download": "Download", "ft.community": "Telegram community", "ft.support": "Support"
+      "ft.privacy": "Privacy and terms", "ft.delete": "Delete account", "ft.download": "Download", "ft.community": "Telegram community", "ft.support": "Support",
+      "ft.rights": "All rights reserved",
+      "more.title": "And more", "more.1": "🤖 An AI advisor in Khmer", "more.2": "📈 The K-Score credit score", "more.3": "🪙 Daily NBC exchange rate, gold and fuel prices",
+      "more.4": "🔄 Tontines", "more.5": "🪪 Card and document vault (NSSF, ID card…)", "more.6": "📄 Bank statement import", "more.7": "🏧 Find a nearby ATM",
+      "more.8": "🏦 Fixed deposits and their maturity dates", "more.9": "📊 Reports and Excel export"
     },
     zh: {
       "skip": "跳到内容",
@@ -104,7 +108,11 @@
       "faq.q4": "语音播报会播报支出吗？", "faq.a4": "不会。只播报收款（进账），并遵从手机的静音和振动模式。",
       "faq.q5": "如何删除账户？", "faq.a5": "在应用中：设置 › 删除账户。详情请见", "faq.a5link": "删除账户页面",
       "dl.title": "今天就开始", "dl.lead": "扫描二维码下载，或点按下方按钮。", "dl.android": "下载 Android 版", "dl.web": "在 iPhone / 网页上打开",
-      "ft.privacy": "隐私与条款", "ft.delete": "删除账户", "ft.download": "下载", "ft.community": "Telegram 社区", "ft.support": "客服"
+      "ft.privacy": "隐私与条款", "ft.delete": "删除账户", "ft.download": "下载", "ft.community": "Telegram 社区", "ft.support": "客服",
+      "ft.rights": "版权所有",
+      "more.title": "还有更多", "more.1": "🤖 高棉语 AI 顾问", "more.2": "📈 K-Score 信用评分", "more.3": "🪙 每日国家银行汇率、金价和油价",
+      "more.4": "🔄 标会（Tontine）", "more.5": "🪪 证卡和文件保管（NSSF、身份证……）", "more.6": "📄 导入银行对账单", "more.7": "🏧 查找附近的 ATM",
+      "more.8": "🏦 定期存款及到期日", "more.9": "📊 报表和 Excel 导出"
     }
   };
   if (window.EXTRA_T) for (var l in window.EXTRA_T) for (var k in window.EXTRA_T[l]) (T[l] = T[l] || {})[k] = window.EXTRA_T[l][k];
