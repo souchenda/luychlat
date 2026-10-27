@@ -8,7 +8,10 @@ const OUT = process.argv[2] || ROOT + "brand/facebook-cover-1640x924.png"
 for (const w of [400, 600, 700]) GlobalFonts.registerFromPath(path.join(ROOT, "public/fonts", `KantumruyPro-${w}.ttf`), "Kantumruy Pro")
 
 const W = 1640, H = 924
-const c = createCanvas(W, H), g = c.getContext("2d")
+// SCALE=2 draws the same cover at 3280 × 1848 (text and shapes are vectors, so it stays sharp on retina screens).
+const S = Number(process.env.SCALE || 1)
+const c = createCanvas(W * S, H * S), g = c.getContext("2d")
+g.scale(S, S)
 
 // Background: deep emerald to teal, with soft gold and mint glows
 const bg = g.createLinearGradient(0, 0, W, H)
