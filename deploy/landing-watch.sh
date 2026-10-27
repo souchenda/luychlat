@@ -69,6 +69,30 @@ if [ -n "$soon" ] && [ "$warned" != "$soon" ]; then
 fi
 echo "$soon" > "$STATE.cert"
 
+# 1c. The domains, once a day (founder, 27/10/2026 — «what matters is being reminded in time»): their expiry from the
+#     .com registry (RDAP), a reminder at 60, 30, 14, 7, 3 and 1 day(s) before — each once.
+DOMAINS=${DOMAINS:-"luychlat.com ibmserp.com"}
+today=${TODAY:-$(date -u +%F)}
+if [ "$(cat "$STATE.domains-day" 2>/dev/null)" != "$today" ]; then
+  echo "$today" > "$STATE.domains-day"
+  for domain in $DOMAINS; do
+    expiry=$(curl -s -m 20 -H "Accept: application/rdap+json" "https://rdap.verisign.com/com/v1/domain/$domain" \
+      | python3 -c 'import sys, json; print(next(e["eventDate"][:10] for e in json.load(sys.stdin)["events"] if e["eventAction"] == "expiration"))' 2>/dev/null)
+    [ -n "$expiry" ] || continue
+    left=$(( ( $(date -u -d "$expiry" +%s) - $(date -u -d "$today" +%s) ) / 86400 ))
+    for mark in 1 3 7 14 30 60; do  # the nearest threshold first
+      if [ "$left" -le "$mark" ]; then
+        key="$STATE.domain-$domain-$expiry-$mark"
+        if [ ! -f "$key" ]; then
+          send "📅 រំលឹក៖ domain $domain ផុតកំណត់ក្នុង $left ថ្ងៃទៀត ($expiry)។ សូមឆែក Auto-renew និងកាតបង់ប្រាក់ ក្នុង Cloudflare › Domains › Registrations — បើផុត គេហទំព័រ អេប អ៊ីមែល និង Bot ឈប់ទាំងអស់។"
+          : > "$key"
+        fi
+        break
+      fi
+    done
+  done
+fi
+
 # 2. The published files, unchanged
 [ -f "$MANIFEST" ] || exit 0
 problem=""
