@@ -13,14 +13,14 @@ describe("The standard post footer (founder, 20–21/10/2026 — the Charge+ for
       postFooter("community"),
       [
         "📲 ប្រើប្រាស់ អេប លុយឆ្លាត ដោយឥតគិតថ្លៃ៖",
-        '<a href="https://app.luychlat.com/LuyChlat.apk">Android (APK)</a> · <a href="https://app.luychlat.com">iOS / Web</a> · <a href="https://t.me/luychlat_bot">Telegram Bot</a>',
+        '<a href="https://app.luychlat.com/download">Android (APK)</a> · <a href="https://app.luychlat.com">iOS / Web</a> · <a href="https://t.me/luychlat_bot">Telegram Bot</a>',
         "",
         "👉 ចូលរួមសហគមន៍ ៖ @LuyChlatCommunity",
         "#LuyChlat #អេបលុយឆ្លាត",
         "#គ្រប់គ្រងហិរញ្ញវត្ថុ", // its own line: never broken in two on an iPhone (21/10/2026)
       ].join("\n"),
     )
-    assert.deepEqual(APP_LINKS.map((l) => l.url), ["https://app.luychlat.com/LuyChlat.apk", "https://app.luychlat.com", "https://t.me/luychlat_bot"])
+    assert.deepEqual(APP_LINKS.map((l) => l.url), ["https://app.luychlat.com/download", "https://app.luychlat.com", "https://t.me/luychlat_bot"])
   })
   it("regression: four lines of bare URLs looked cluttered next to Charge+ — the links on one line, no raw URL on Telegram", () => {
     for (const channel of ["community", "islamic"] as const) {
@@ -44,7 +44,7 @@ describe("The standard post footer (founder, 20–21/10/2026 — the Charge+ for
   })
   it("on Facebook (no inline links): one line of names with short addresses; the handles are t.me links", () => {
     const f = postFooter("community", "facebook")
-    assert.ok(f.includes("Android (APK): app.luychlat.com/LuyChlat.apk · iOS / Web: app.luychlat.com · Telegram Bot: t.me/luychlat_bot"))
+    assert.ok(f.includes("Android (APK): app.luychlat.com/download · iOS / Web: app.luychlat.com · Telegram Bot: t.me/luychlat_bot"))
     assert.match(f, /👉 ចូលរួមសហគមន៍ ៖ t\.me\/LuyChlatCommunity/)
     assert.doesNotMatch(f, /@|<a /)
   })

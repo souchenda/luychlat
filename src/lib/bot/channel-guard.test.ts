@@ -38,7 +38,7 @@ describe("Channel reactions — the positive list (founder, 21/10/2026)", () => 
 
 describe("Discussion-group links (founder, 21/10/2026)", () => {
   it("allowed: the app, the brand's channels and the bot", () => {
-    for (const ok of ["app.luychlat.com", "https://app.luychlat.com/bills", "https://app.luychlat.com/LuyChlat.apk", "t.me/LuyChlatCommunity", "https://t.me/LuyChlatIslamic", "t.me/luychlat_bot?start=abc"])
+    for (const ok of ["app.luychlat.com", "https://app.luychlat.com/bills", "https://app.luychlat.com/LuyChlat.apk", "https://app.luychlat.com/download", "t.me/LuyChlatCommunity", "https://t.me/LuyChlatIslamic", "t.me/luychlat_bot?start=abc"])
       assert.ok(isAllowedLink(ok), ok)
   })
   it("blocked: shorteners, scam domains, Telegram invites and other channels, hidden text links", () => {

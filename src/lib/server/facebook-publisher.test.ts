@@ -96,7 +96,7 @@ describe("facebook publisher — caption and checks", () => {
     assert.match(c, /^☀️ អរុណសួស្តីថ្ងៃថ្មី/)
     assert.match(c, /«.+»/)
     assert.ok(c.endsWith(postFooter("community", "facebook")))
-    assert.ok(c.includes("Android (APK): app.luychlat.com/LuyChlat.apk · iOS / Web: app.luychlat.com · Telegram Bot: t.me/luychlat_bot")) // Facebook: no inline links
+    assert.ok(c.includes("Android (APK): app.luychlat.com/download · iOS / Web: app.luychlat.com · Telegram Bot: t.me/luychlat_bot")) // Facebook: no inline links
     assert.match(c, /#LuyChlat #អេបលុយឆ្លាត\n#គ្រប់គ្រងហិរញ្ញវត្ថុ/)
     assert.doesNotMatch(c, /<[a-z]|អែប|កម្មវិធី|&/)
   })

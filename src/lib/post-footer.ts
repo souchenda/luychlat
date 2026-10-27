@@ -17,7 +17,7 @@ export type FooterPlatform = "telegram" | "facebook"
 
 /** The three ways to use the app, in the founder's order. */
 export const APP_LINKS = [
-  { label: "Android (APK)", url: "https://app.luychlat.com/LuyChlat.apk" },
+  { label: "Android (APK)", url: "https://app.luychlat.com/download" }, // the download page, not the raw file (Task #527)
   { label: "iOS / Web", url: "https://app.luychlat.com" },
   { label: "Telegram Bot", url: "https://t.me/luychlat_bot" },
 ] as const
