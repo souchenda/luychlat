@@ -1,5 +1,6 @@
 "use client"
 
+import { ClientErrorReporter } from "@/components/common/client-diagnostics"
 import { BalancePrivacyGuard } from "@/components/security/balance-privacy-guard"
 import { BalanceRevealGate } from "@/components/security/balance-reveal-gate"
 import { QueryClientProvider } from "@tanstack/react-query"
@@ -116,6 +117,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <SessionGuard />
         <BalancePrivacyGuard />
         <BalanceRevealGate />
+        {/* Errors met on this phone reach the Control Center, cleaned of personal data (founder, 28/10/2026). */}
+        <ClientErrorReporter />
         {children}
         <Toaster position="top-center" richColors />
       </ThemeProvider>

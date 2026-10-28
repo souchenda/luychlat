@@ -19,6 +19,8 @@ import { formatMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { isPhoneLoginEmail, loginLabel } from "@/lib/auth-identifier"
 import { formatDuration } from "@/lib/format"
+import { apkVersion } from "@/lib/apk-version"
+import { type DeviceInfo, buildLabel, deviceLine, isOutdated, supportCode } from "@/lib/diagnostics"
 import { useLocaleStore } from "@/stores/locale-store"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 
@@ -83,7 +85,7 @@ function Badges({ c }: { c: Customer }) {
   )
 }
 
-function CustomerRow({ c, onOpen }: { c: Customer; onOpen: () => void }) {
+function CustomerRow({ c, onOpen, report, live }: { c: Customer; onOpen: () => void; report?: ClientReportRow; live: string | null }) {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const lifetime = useLifetimeUsers().has(c.user_id)
@@ -134,7 +136,26 @@ function CustomerRow({ c, onOpen }: { c: Customer; onOpen: () => void }) {
           .join(" · ")}
       </p>
       <Badges c={c} />
+      <DeviceLine report={report} live={live} />
     </button>
+  )
+}
+
+/** A row of public.admin_client_reports: the person's last version and phone (lib/diagnostics.ts). */
+type ClientReportRow = { user_id: string; seen_at: string; build: string | null; apk_code: number | null; device: Partial<DeviceInfo> }
+
+/** «SM-S921B · Chrome · 384×832 @3x · font 18 · app · km · BUSINESS — Build 28/10 08:40 · APK 1.11» — an old version in amber. */
+function DeviceLine({ report, live }: { report: ClientReportRow | undefined; live: string | null }) {
+  const t = useT()
+  if (!report) return <p className="text-[11px] text-muted-foreground/70">📱 {t("customers.device.none")}</p>
+  const old = isOutdated(report.build, live)
+  const apk = report.apk_code !== null ? apkVersion(report.apk_code) : null
+  return (
+    <p className={cn("text-[11px] break-words", old ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground")}>
+      📱 {supportCode(report.user_id)} · {deviceLine(report.device)} · Build {buildLabel(report.build)}
+      {apk?.kind === "known" ? ` · APK ${apk.version ?? apk.code}` : apk?.kind === "old" ? " · APK ≤ 1.4" : ""}
+      {old ? ` · ⚠️ ${t("customers.device.old")}` : ""} · {ago(report.seen_at)}
+    </p>
   )
 }
 
@@ -259,6 +280,19 @@ export function CustomerDirectory() {
     placeholderData: (prev) => prev,
   })
   const total = data?.[0]?.total ?? 0
+  const ids = (data ?? []).map((c) => c.user_id)
+  const reports = useQuery({
+    queryKey: ["admin", "client-reports", ids],
+    enabled: ids.length > 0,
+    queryFn: () => rpc<ClientReportRow[]>("admin_client_reports", { p_user_ids: ids }),
+  })
+  const byUser = new Map((reports.data ?? []).map((r) => [r.user_id, r]))
+  // The build that is live now: an older one on a phone is flagged.
+  const live = useQuery({
+    queryKey: ["live-build"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => ((await (await fetch("/api/health", { cache: "no-store" })).json()) as { build?: string }).build ?? null,
+  }).data ?? null
 
   return (
     <Section title={t("customers.title")} icon={<UsersRoundIcon />} action={isFetching ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" /> : null}>
@@ -284,7 +318,7 @@ export function CustomerDirectory() {
         {!data?.length ? (
           <p className="px-4 py-4 text-sm text-muted-foreground">{t(debounced || filter !== "all" ? "admin.noUsers" : "customers.none")}</p>
         ) : (
-          data.map((c) => <CustomerRow key={c.user_id} c={c} onOpen={() => setOpen(c)} />)
+          data.map((c) => <CustomerRow key={c.user_id} c={c} onOpen={() => setOpen(c)} report={byUser.get(c.user_id)} live={live} />)
         )}
       </Card>
       {data && total > data.length && (

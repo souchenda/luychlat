@@ -9,6 +9,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { SupportCodeCard } from "@/components/common/support-code"
+import { apkCode, readDevice } from "@/components/common/client-diagnostics"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -107,6 +109,8 @@ function TicketForm() {
   const queryClient = useQueryClient()
   const locale = useLocaleStore((s) => s.locale)
   const { plan } = usePlan()
+  const { workspace } = useActiveWorkspace()
+  const islamic = useIslamicEnabled()
   const signedIn = useSessionStore((s) => Boolean(s.user))
   const preset = params.get("category")?.toUpperCase() as TicketCategory | undefined
   const [category, setCategory] = useState<TicketCategory>(preset && TICKET_CATEGORIES.includes(preset) ? preset : "BUG")
@@ -123,8 +127,17 @@ function TicketForm() {
         p_category: category,
         p_message: message,
         p_contact: contact,
-        // No personal data: just enough to reproduce the problem.
-        p_context: { from: params.get("from") ?? pathname, locale, plan: plan.plan_code, ua: navigator.userAgent.slice(0, 160) },
+        // No personal data: just enough to reproduce the problem — and to see what they see: the version, the phone, the
+        // screen and font size, the workspace (founder, 28/10/2026 — lib/diagnostics.ts).
+        p_context: {
+          from: params.get("from") ?? pathname,
+          locale,
+          plan: plan.plan_code,
+          ua: navigator.userAgent.slice(0, 160),
+          build: process.env.NEXT_PUBLIC_BUILD_ID ?? null,
+          apk: apkCode(),
+          device: readDevice({ lang: locale, workspace: workspace?.type ?? null, islamic }),
+        },
       })
       if (error) throw error
     },
@@ -278,6 +291,9 @@ export default function SupportPage() {
       </section>
 
       <MyTickets />
+
+      {/* What support needs to see what this person sees: a code to read out, the version and the phone (founder, 28/10/2026). */}
+      <SupportCodeCard />
     </div>
   )
 }

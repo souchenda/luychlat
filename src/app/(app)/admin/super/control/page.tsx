@@ -5,6 +5,7 @@ import Link from "next/link"
 
 import { useState } from "react"
 
+import { ClientErrorsCard } from "@/components/admin/client-errors"
 import { ControlCenter } from "@/components/admin/control-center"
 import { SecuritySummaryCard } from "@/components/admin/security-summary"
 import { SystemHealthCard } from "@/components/admin/system-health-card"
@@ -56,7 +57,12 @@ export default function ControlCenterPage() {
         ]}
       />
       {tab === "security" && <ControlCenter />}
-      {tab === "system" && <SystemHealthCard embedded />}
+      {tab === "system" && (
+        <>
+          <SystemHealthCard embedded />
+          <ClientErrorsCard />
+        </>
+      )}
       {tab === "traffic" && <SecuritySummaryCard from={today()} to={today()} today={today()} />}
     </div>
   )

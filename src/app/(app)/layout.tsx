@@ -20,6 +20,7 @@ import { HashScroller } from "@/components/layout/hash-scroller"
 import { PrayerAlertScheduler } from "@/components/islamic/prayer-alerts"
 import { StaleBuildReload } from "@/components/common/stale-build-reload"
 import { AppNoticeBanner } from "@/components/common/app-notice-banner"
+import { ClientReport } from "@/components/common/client-diagnostics"
 import { CounterModeKeeper } from "@/components/payments/counter-mode"
 import { AppUpdatePrompt } from "@/components/layout/app-update"
 import { FlipToHideListener } from "@/components/privacy/flip-to-hide"
@@ -83,6 +84,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <CounterModeKeeper />
       <AppUpdatePrompt />
       <StaleBuildReload />
+      <ClientReport />
       <FlipToHideListener />
       <RealtimeSync />
       <PendingInviteRedirect />
