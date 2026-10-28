@@ -32,6 +32,10 @@ describe("The Android app offer on the prayer page (founder, 20/10/2026)", () =>
     assert.equal(dictionaries.km["apkOffer.title"], "🔔 ដំឡើងអេប លុយឆ្លាត សម្រាប់ Android ដើម្បីឮអាហ្សានពេលចាក់សោអេក្រង់")
     assert.equal(dictionaries.km["apkOffer.download"], "ទាញយក APK")
     assert.equal(dictionaries.km["apkOffer.later"], "ពេលក្រោយ")
+    // The founder's father (28/10/2026): the APK installed, yet the old Samsung Internet icon kept opening the browser
+    // (no Adhan with the screen locked) — the card says to remove it and open only the new icon.
+    assert.match(dictionaries.km["apkOffer.note"], /លុបរូបតំណាងចាស់.*browser.*App Luy Chlat/)
+    assert.match(dictionaries.en["apkOffer.note"], /remove the old icon.*browser.*App Luy Chlat/)
     const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/prayer/page.tsx"), "utf8")
     assert.ok(page.indexOf("<ApkOffer />") > 0 && page.indexOf("<ApkOffer />") < page.indexOf("<PrayerAlertSettings />"))
     const card = readFileSync(join(process.cwd(), "src/components/islamic/apk-offer.tsx"), "utf8")
