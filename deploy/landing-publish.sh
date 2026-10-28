@@ -55,6 +55,19 @@ mkdir -p "$BACKUP_ROOT"
 next="$DEST.next"
 rm -rf "$next" && mkdir -p "$next/en" "$next/zh"
 for f in $FILES; do cp "$SRC/$f" "$next/$f"; done
+# Every page asks for its styles, scripts and pictures by content version («site.css?v=1a2b3c4d»): Cloudflare and the
+# browsers keep them for hours or days, so a new page must never meet yesterday's CSS or screenshot (founder, 28/10/2026
+# — the new footer drawn with the old styles). A file that did not change keeps its address and its cache.
+version_assets() {
+  for a in site.css site.js i18n.js islamic-t.js privacy-t.js delete-t.js screen-business.webp screen-personal.webp logo.png logo-islamic.png og.png og-islamic.png; do
+    v=$(sha256sum "$1/$a" | cut -c1-8)
+    re=$(printf '%s' "$a" | sed 's/\./\\./g')
+    for page in "$1"/*.html "$1"/en/index.html "$1"/zh/index.html; do
+      sed -i "s#\([\"/]\)$re\"#\1$a?v=$v\"#g" "$page"
+    done
+  done
+}
+version_assets "$next"
 chmod -R a+rX "$next"
 rm -rf "$DEST.old" && { [ -d "$DEST" ] && mv "$DEST" "$DEST.old" || true; } && mv "$next" "$DEST" && rm -rf "$DEST.old"
 write_manifest
