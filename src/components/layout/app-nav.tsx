@@ -2,11 +2,11 @@
 
 import { CarIcon,
   ArrowLeftRightIcon,
+  CalculatorIcon,
   BookOpenIcon,
   CoinsIcon,
   ChartColumnIcon,
   CrownIcon,
-  FileSpreadsheetIcon,
   GiftIcon,
   HandCoinsIcon,
   HeadsetIcon,
@@ -20,11 +20,13 @@ import { CarIcon,
   ChevronRightIcon,
   PencilIcon,
   SettingsIcon,
+  SparklesIcon,
   ShieldIcon,
   TargetIcon,
   ReceiptIcon,
   ScrollTextIcon,
   UsersRoundIcon,
+  UsersIcon,
   Volume2Icon,
   WalletIcon,
   type LucideIcon,
@@ -101,17 +103,21 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
   const islamic = useIslamicEnabled()
   const features = useFeatures()
 
-  // Staff only. Cosmetic: the admin pages and their RPCs check the staff role in the database.
-  const admin: Item[] = plan.is_admin || plan.staff_role ? [{ href: "/admin", label: "admin.title", icon: ShieldIcon }] : []
-  const exportItem: Item = { href: "/reports#export", label: "reports.export", icon: FileSpreadsheetIcon, pro: true }
+  // One home per feature (founder, 28/10/2026 — «not scattered everywhere»): the menu is where every feature lives,
+  // grouped and in order; Home is shortcuts, Settings is account and preferences only. Export lives in Reports and the
+  // referral in Plan. Staff only, last: the admin pages and their RPCs check the staff role in the database.
+  const staff = plan.is_admin || plan.staff_role
+    ? [{ title: "nav.group.staff" as MessageKey, items: [{ href: "/admin", label: "admin.title", icon: ShieldIcon }] as Item[] }]
+    : []
+  const tools: Item[] = [
+    { href: "/market", label: "market.title", icon: LandmarkIcon },
+    { href: "/atms", label: "atm.title", icon: MapPinIcon },
+    { href: "/advisor", label: "nav.advisor", icon: SparklesIcon },
+  ]
   const help = {
     title: "nav.group.help" as MessageKey,
     items: [
       { href: "/guide", label: "nav.userGuide", icon: BookOpenIcon },
-      { href: "/market", label: "market.title", icon: LandmarkIcon },
-      { href: "/atms", label: "atm.title", icon: MapPinIcon },
-      { href: "/cards", label: "cards.title", icon: IdCardIcon },
-      { href: "/learn", label: "tips.hubTitle", icon: LightbulbIcon },
       { href: "/support", label: "support.title", icon: HeadsetIcon },
       { href: "/settings", label: "nav.settings", icon: SettingsIcon },
     ] as Item[],
@@ -125,31 +131,37 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
             title: "nav.group.bizOps",
             items: [
               { href: "/home", label: "nav.home", icon: LayoutDashboardIcon },
-              { href: "/invoices", label: "nav.invoicesKhqr", icon: ScrollTextIcon },
               { href: "/soundbox", label: "soundbox.title", icon: Volume2Icon },
+              { href: "/invoices", label: "nav.invoicesKhqr", icon: ScrollTextIcon },
               { href: "/wallets", label: "nav.bizWallets", icon: WalletIcon },
               { href: "/transactions", label: "nav.bizTransactions", icon: ArrowLeftRightIcon },
             ],
           },
-          { title: "nav.group.bizDebts", items: [{ href: "/debts", label: "nav.bizDebts", icon: HandCoinsIcon }] },
+          {
+            title: "nav.group.bizDebts",
+            items: [
+              { href: "/business/ar", label: "quick.receivable", icon: HandCoinsIcon },
+              { href: "/business/ap", label: "quick.payable", icon: HandCoinsIcon },
+            ],
+          },
           {
             title: "nav.group.bizAdmin",
             items: [
               { href: "/reports", label: "nav.bizReports", icon: ChartColumnIcon },
+              { href: "/reports/tax", label: "tax.title", icon: CalculatorIcon },
               { href: "/assets", label: "nav.bizAssets", icon: CoinsIcon },
               { href: "/bills", label: "nav.bizBills", icon: ReceiptIcon },
-              ...admin,
-              exportItem,
             ],
           },
+          { title: "nav.group.tools", items: tools },
           help,
+          ...staff,
         ]
       : [
           {
             title: "nav.group.daily",
             items: [
               { href: "/home", label: "nav.home", icon: LayoutDashboardIcon },
-              ...admin,
               { href: "/wallets", label: "nav.walletsBanks", icon: WalletIcon },
               { href: "/transactions", label: "nav.transactions", icon: ArrowLeftRightIcon },
               { href: "/reports", label: "reports.title", icon: ChartColumnIcon },
@@ -158,30 +170,38 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
           {
             title: "nav.group.planning",
             items: [
+              { href: "/budgets", label: "nav.budgetSaving", icon: TargetIcon },
               { href: "/bills", label: "nav.personalNssfBills", icon: ReceiptIcon },
+              { href: "/debts", label: "nav.debtTracking", icon: HandCoinsIcon },
+              { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
+            ],
+          },
+          {
+            title: "nav.group.documents",
+            items: [
+              { href: "/cards", label: "cards.title", icon: IdCardIcon },
               // Vehicle documents are Personal only (workspace-scope «vehicleDocs», RLS is_personal_workspace) — not Family.
               ...(workspace?.type === "PERSONAL" ? [{ href: "/car", label: "nav.vehicleDocs", icon: CarIcon } as Item] : []),
-              { href: "/debts", label: "nav.debtTracking", icon: HandCoinsIcon },
-              { href: "/budgets", label: "nav.budgetSaving", icon: TargetIcon },
-              { href: "/assets", label: "assets.pageTitle", icon: CoinsIcon },
+            ],
+          },
+          {
+            title: "nav.group.tools",
+            items: [
+              ...tools,
+              { href: "/learn", label: "tips.hubTitle", icon: LightbulbIcon },
+              ...(islamic ? [{ href: "/islamic", label: "islamic.title", icon: MoonStarIcon } as Item] : []),
             ],
           },
           {
             title: "nav.group.social",
             items: [
+              { href: "/settings/family", label: "family.section", icon: UsersIcon },
               { href: "/gifts", label: "gift.pageTitle", icon: GiftIcon },
               { href: "/pools", label: "pool.pageTitle", icon: UsersRoundIcon },
             ],
           },
-          {
-            title: "nav.group.other",
-            items: [
-              { href: "/settings/plan#referral", label: "referral.title", icon: GiftIcon, hint: "nav.referHint" },
-              ...(islamic ? [{ href: "/islamic/prayer", label: "islamic.title", icon: MoonStarIcon } as Item] : []),
-              exportItem,
-            ],
-          },
           help,
+          ...staff,
         ]
   // Features in testing (ADMIN_ONLY) only for staff and 🧪 test accounts; a group left empty goes.
   const groups = allGroups

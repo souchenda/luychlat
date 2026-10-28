@@ -15,7 +15,8 @@ describe("1-tap Islamic hub (founder, 19/10/2026)", () => {
   })
   it("the bottom bar reads Islamic Mode; the Hijri badge and the next-prayer chip open /islamic", () => {
     const nav = readFileSync(join(process.cwd(), "src/components/layout/bottom-nav.tsx"), "utf8")
-    assert.match(nav, /rightTabs\(useIslamicEnabled\(\)\)/)
+    // Not in a Business workspace (founder, 28/10/2026 — the business menu has no Islamic tools).
+    assert.match(nav, /rightTabs\(islamicOn && workspace\?\.type !== "BUSINESS"\)/)
     const home = readFileSync(join(process.cwd(), "src/app/(app)/home/page.tsx"), "utf8")
     assert.match(home, /badge\.kind === "hijri" \? \(\s*<Link\s+href="\/islamic"/)
     assert.match(home, /<NextPrayerChip \/>/)

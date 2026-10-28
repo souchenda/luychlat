@@ -1,6 +1,6 @@
 "use client"
 
-import { BellIcon, BookOpenIcon, GaugeIcon, LockKeyholeIcon, SmartphoneIcon, StoreIcon, Volume2Icon, ChartColumnIcon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LightbulbIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, TargetIcon, UserXIcon, UsersIcon } from "lucide-react"
+import { BellIcon, GaugeIcon, LockKeyholeIcon, SmartphoneIcon, StoreIcon, Volume2Icon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -562,9 +562,6 @@ export default function SettingsPage() {
 
       <SettingsGroup title={t("settings.group.general")}>
         <SettingsRow href="/categories" icon={<TagsIcon />} tile="rose" title={t("settings.categories")} />
-        <SettingsRow href="/learn" icon={<LightbulbIcon />} tile="amber" title={t("tips.hubTitle")} hint={t("tips.settingsHint")} />
-        <SettingsRow href="/budgets" icon={<TargetIcon />} tile="emerald" title={t("budget.title")} hint={t("budget.settingsHint")} />
-        <SettingsRow href="/reports" icon={<ChartColumnIcon />} tile="sky" title={t("reports.title")} hint={t("reports.settingsHint")} />
         <ExchangeRateRow />
         <SettingsRow href="/settings/family" icon={<UsersIcon />} tile="violet" title={t("family.section")} hint={t("settings.familyHint")} />
         <SettingsRow href="/settings/ai" icon={<SparklesIcon />} tile="indigo" title={t("aiSettings.title")} hint={t("settings.aiHint")} />
@@ -583,7 +580,6 @@ export default function SettingsPage() {
 
       <SettingsGroup title={t("settings.group.about")}>
         <SettingsRow onClick={() => useOnboardingStore.getState().show()} icon={<CompassIcon />} tile="emerald" title={t("onboarding.replay")} hint={t("onboarding.replayHint")} />
-        <SettingsRow href="/guide" icon={<BookOpenIcon />} tile="teal" title={t("guide.title")} hint={t("guide.settingsHint")} />
         <SettingsRow href="/support" icon={<LifeBuoyIcon />} tile="sky" title={t("support.title")} hint={t("support.settingsHint")} />
         <SettingsRow onClick={() => setAboutOpen(true)} icon={<InfoIcon />} tile="emerald" title={t("about.title")}>
           {/* The installed APK's own version in the app («ជំនាន់ v1.5 (Build 6)»), the app's version in a browser (Task #470). */}

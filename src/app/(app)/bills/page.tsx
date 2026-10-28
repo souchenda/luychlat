@@ -9,7 +9,6 @@ import { toast } from "sonner"
 import { BillSheet } from "@/components/bills/bill-sheet"
 import { PartyAvatar } from "@/components/common/party-avatar"
 import { billCategory } from "@/lib/institution-logos"
-import { VehicleDocsCard } from "@/components/bills/vehicle-docs-card"
 import { EvHomeCard } from "@/components/bills/ev-home-card"
 import { NssfVault } from "@/components/bills/nssf-vault"
 import { BottomSheet } from "@/components/common/bottom-sheet"
@@ -293,7 +292,6 @@ export default function BillsPage() {
       )}
 
       {/* 🚗 Inspection, road tax, insurance — strictly the Personal workspace. */}
-      {ws && scope.vehicleDocs && <VehicleDocsCard workspaceId={ws} editable={editable} />}
       {ws && scope.homeEv && <EvHomeCard workspaceId={ws} editable={editable} />}
 
       {scope.nssf && <NssfVault />}

@@ -106,7 +106,10 @@ function QuickAdd() {
 export function BottomNav() {
   const pathname = usePathname()
   // Islamic Mode: «ឥស្លាម» takes the 5th tab — one tap to the prayer times, the Quran and the fasts (lib/nav-tabs.ts).
-  const right: Item[] = rightTabs(useIslamicEnabled()).map((tab) => ({ href: tab.href, label: tab.label, icon: RIGHT_ICONS[tab.id] }))
+  // Not in a Business workspace (founder, 28/10/2026): the business tools only, as the menu.
+  const islamicOn = useIslamicEnabled()
+  const { workspace } = useActiveWorkspace()
+  const right: Item[] = rightTabs(islamicOn && workspace?.type !== "BUSINESS").map((tab) => ({ href: tab.href, label: tab.label, icon: RIGHT_ICONS[tab.id] }))
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t print:hidden bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:inset-x-auto md:bottom-6 md:left-[calc(50%+8.5rem)] md:w-full md:max-w-md md:-translate-x-1/2 md:rounded-b-[2rem] md:border-x md:border-b">
