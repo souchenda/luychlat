@@ -43,6 +43,8 @@ export const LAUNCH_DATE = "2027-01-01"
  * before the next invoice, every 7 days until this window ends (founder: «remind me by Telegram mid next month»).
  */
 export const DOWNGRADE_REVIEW_FROM = "2026-11-12"
+/** The Pro cycle ends 28/11/2026 (Billing › Upcoming invoice): changed back before it, no second $25. */
+export const DOWNGRADE_BY = "2026-11-28"
 export const DOWNGRADE_REVIEW_UNTIL = "2026-12-15"
 
 /** After a build, the 15-minute load average needs this long to forget it. */
@@ -120,7 +122,7 @@ export function reminderText(i: CapacityItem): string {
     case "cpu":
       return `${head}CPU របស់ server រវល់ ${i.pct}% ជាមធ្យម 15 នាទី (មិនមែនពេល build)។ សូមប្រាប់វិស្វករ៖ ផ្លាស់ការ build ទៅ GitHub (ឥតគិតថ្លៃ) ឬដំឡើង server។`
     case "downgrade":
-      return `${head}ពិនិត្យ Supabase › organization «CHENDA SOU» › Usage › Egress របស់ dl-attendance។ បើខែនេះក្រោម 5 GB បងអាចប្តូរ «CHENDA SOU» ពី Pro ត្រឡប់មក Free វិញ (Billing › Change subscription plan › Free) មុនថ្ងៃចេញវិក្កយបត្របន្ទាប់ ដើម្បីកុំបង់ $25 ទៀត។ បើនៅលើស 5 GB សូមរក្សា Pro ហើយប្រាប់វិស្វករ DL Staff។`
+      return `${head}ពិនិត្យ Supabase › organization «CHENDA SOU» › Usage › Egress របស់ dl-attendance។ បើខែនេះក្រោម 5 GB បងអាចប្តូរ «CHENDA SOU» ពី Pro ត្រឡប់មក Free វិញ (Billing › Change subscription plan › Free) មុនថ្ងៃ 28/11 ដែលជាថ្ងៃចេញវិក្កយបត្របន្ទាប់ ដើម្បីកុំបង់ $25 ទៀត។ បើនៅលើស 5 GB សូមរក្សា Pro ហើយប្រាប់វិស្វករ DL Staff។`
     case "launch":
       return `${head}ជិតដល់ថ្ងៃដាក់ Play Store (${LAUNCH_DATE}) ហើយ។ មុនបើកឲ្យសាធារណៈ៖ តេស្តបន្ទុក និងសម្រេចប្តូរ Supabase ទៅ Pro ($25/ខែ)។`
     default:
