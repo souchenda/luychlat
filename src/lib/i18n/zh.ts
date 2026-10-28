@@ -3056,6 +3056,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "nav.group.documents": "证件与文件",
   "nav.group.tools": "工具",
   "nav.group.staff": "员工",
+  "nav.controlCenter": "控制中心",
   "nav.walletsBanks": "钱包与银行",
   "nav.billsLife": "每月账单",
   "nav.debtTracking": "债务与借款",

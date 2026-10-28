@@ -22,6 +22,7 @@ import { CarIcon,
   SettingsIcon,
   SparklesIcon,
   ShieldIcon,
+  ShieldCheckIcon,
   TargetIcon,
   ReceiptIcon,
   ScrollTextIcon,
@@ -106,8 +107,17 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
   // One home per feature (founder, 28/10/2026 — «not scattered everywhere»): the menu is where every feature lives,
   // grouped and in order; Home is shortcuts, Settings is account and preferences only. Export lives in Reports and the
   // referral in Plan. Staff only, last: the admin pages and their RPCs check the staff role in the database.
+  // The founder (super admin) opens it many times a day: first in his menu, with the Control Center one tap away
+  // (founder, 28/10/2026); other staff keep it last.
+  const superAdmin = plan.staff_role === "super_admin"
   const staff = plan.is_admin || plan.staff_role
-    ? [{ title: "nav.group.staff" as MessageKey, items: [{ href: "/admin", label: "admin.title", icon: ShieldIcon }] as Item[] }]
+    ? [{
+        title: "nav.group.staff" as MessageKey,
+        items: [
+          { href: "/admin", label: "admin.title", icon: ShieldIcon },
+          ...(superAdmin ? [{ href: "/admin/super/control", label: "nav.controlCenter", icon: ShieldCheckIcon } as Item] : []),
+        ] as Item[],
+      }]
     : []
   const tools: Item[] = [
     { href: "/market", label: "market.title", icon: LandmarkIcon },
@@ -204,7 +214,8 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
           ...staff,
         ]
   // Features in testing (ADMIN_ONLY) only for staff and 🧪 test accounts; a group left empty goes.
-  const groups = allGroups
+  const arranged = superAdmin ? [...staff, ...allGroups.filter((g) => g.title !== "nav.group.staff")] : allGroups
+  const groups = arranged
     .map((g) => ({ ...g, items: g.items.filter((i) => {
       const feature = featureOfPath(i.href.split("#")[0])
       return !feature || features.allowed(feature)
