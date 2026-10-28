@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeftIcon, BotIcon, ChevronDownIcon, ChevronRightIcon, CrownIcon, LifeBuoyIcon, ReceiptTextIcon, ScaleIcon, SearchIcon, WalletIcon } from "lucide-react"
+import { ArrowLeftIcon, BotIcon, ChevronDownIcon, ChevronRightIcon, CrownIcon, LifeBuoyIcon, ReceiptTextIcon, ScaleIcon, SearchIcon, ShieldCheckIcon, WalletIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -18,6 +18,7 @@ const ICONS: Record<GuideSection["id"], React.ComponentType<{ className?: string
   reconcile: ScaleIcon,
   ai: BotIcon,
   plans: CrownIcon,
+  safety: ShieldCheckIcon,
 }
 
 /** របៀបប្រើប្រាស់: collapsible FAQ; /guide#<section> opens and scrolls to that section. */

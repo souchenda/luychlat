@@ -12,6 +12,7 @@ import { PinSetupDialog } from "@/components/lock/pin-setup-dialog"
 import { stepUp } from "@/components/security/step-up"
 import { TwoFactorRow } from "@/components/security/two-factor"
 import { ActiveDevices } from "@/components/settings/active-devices"
+import { LostPhoneRow } from "@/components/settings/lost-phone"
 import { SettingsGroup, SettingsRow } from "@/components/settings/settings-ui"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -160,6 +161,8 @@ export function SecuritySettings() {
         )}
         <TwoFactorRow />
         <ActiveDevices />
+        {/* Phone lost or stolen: one tap closes every door it still has (founder, 28/10/2026). */}
+        <LostPhoneRow />
       </SettingsGroup>
 
       <PinSetupDialog open={pinOpen} onOpenChange={setPinOpen} />

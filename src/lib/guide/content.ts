@@ -5,7 +5,7 @@
  */
 export type Bilingual = { km: string; en: string }
 export type GuideItem = { q: Bilingual; a: Bilingual[] }
-export type GuideSection = { id: "start" | "tracking" | "reconcile" | "ai" | "plans"; title: Bilingual; items: GuideItem[] }
+export type GuideSection = { id: "start" | "tracking" | "reconcile" | "ai" | "plans" | "safety"; title: Bilingual; items: GuideItem[] }
 
 export const GUIDE: GuideSection[] = [
   {
@@ -178,6 +178,47 @@ export const GUIDE: GuideSection[] = [
         a: [
           { km: "«ការកំណត់» › «ណែនាំមិត្តភក្តិ» › ចែករំលែកលេខកូដ ឬតំណរបស់អ្នក។ ពេលមិត្តចុះឈ្មោះ ហើយប្រើលេខកូដក្នុងថ្ងៃដំបូងៗ អ្នកទាំងពីរទទួលបានថ្ងៃ PRO ឥតគិតថ្លៃ (បន្ថែមលើ PRO ដែលមានស្រាប់) — ចំនួនថ្ងៃបង្ហាញក្នុងកាត «ណែនាំមិត្តភក្តិ»។", en: "Settings › Refer a Friend › share your code or link. When a friend signs up and uses it in their first days, you both get free days of PRO, added on top of any PRO you already have — the Refer a Friend card shows how many." },
           { km: "គណនីនីមួយៗប្រើលេខកូដបានតែម្តង ហើយប្រើលេខកូដខ្លួនឯងមិនបានទេ។", en: "Each account can use one code once, and you can't use your own." },
+        ],
+      },
+    ],
+  },
+  {
+    // Safety and help (founder, 28/10/2026): what protects the account and the money, and how to get help fastest.
+    id: "safety",
+    title: { km: "6. សុវត្ថិភាព និងជំនួយ", en: "6. Safety & help" },
+    items: [
+      {
+        q: { km: "ទូរសព្ទខ្ញុំបាត់ ឬខូច ធ្វើដូចម្តេច?", en: "My phone is lost or broken. What do I do?" },
+        a: [
+          { km: "ទិន្នន័យរបស់អ្នកនៅលើ server មិនបាត់ទេ។ ចូលគណនីពីទូរសព្ទ ឬកុំព្យូទ័រផ្សេង — ទូរសព្ទដែលបាត់ត្រូវចេញពីគណនីដោយស្វ័យប្រវត្តិ។", en: "Your data is on our server, not on the phone. Sign in on another phone or computer: the lost phone is signed out automatically." },
+          { km: "បន្ទាប់មក ចុច «ការកំណត់» › «សុវត្ថិភាព» › «🚨 ទូរសព្ទខ្ញុំបាត់»៖ ឧបករណ៍ផ្សេងទាំងអស់ចេញ ហើយបត Telegram ត្រូវផ្តាច់។ ជំហានពេញលេញ (ធនាគារ Telegram ស៊ីម)៖ app.luychlat.com/lost", en: "Then tap Settings › Security › 🚨 My phone is lost: every other device is signed out and the Telegram bot is unlinked. All the steps (bank, Telegram, SIM): app.luychlat.com/lost" },
+        ],
+      },
+      {
+        q: { km: "គណនី និងលុយរបស់ខ្ញុំ ត្រូវបានការពារយ៉ាងណា?", en: "How are my account and my numbers protected?" },
+        a: [
+          { km: "ពេលបើកអេប លេខលុយលាក់ជា ***** ជានិច្ច រហូតដល់អ្នកចុចរូបភ្នែក។ គណនីមួយប្រើបានលើឧបករណ៍តែមួយ។", en: "Every time the app opens, your numbers are hidden as ***** until you tap the eye. An account is used on one device at a time." },
+          { km: "បើកសោអេប (PIN ឬស្នាមម្រាមដៃ) និង 2FA នៅ «ការកំណត់» › «សុវត្ថិភាព»។ បត Telegram មិនបង្ហាញលេខលុយទេ លុះត្រាតែអ្នកបើក «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» ហើយមិនដែលបង្ហាញក្នុងគ្រុបឡើយ។", en: "Turn on the app lock (PIN or fingerprint) and 2FA in Settings › Security. The Telegram bot never shows your numbers unless you turn on «Let AI see my numbers», and never in a group." },
+        ],
+      },
+      {
+        q: { km: "ពេលអេបអាប់ដេត ខ្ញុំត្រូវធ្វើអ្វីទេ?", en: "Do I need to do anything when the app updates?" },
+        a: [
+          { km: "ទេ។ អេបអាប់ដេតដោយមិនផ្អាក។ ការអាប់ដេតធំៗ ធ្វើពេលយប់ (22:00–07:00) ពេលអ្នកប្រើតិច។ ពេលអ្នកត្រឡប់មកអេបវិញ វាប្តូរទៅកំណែថ្មីដោយខ្លួនឯង។", en: "No. The app updates without stopping. Bigger updates happen at night (22:00–07:00), when few people use it. When you come back to the app, it moves to the new version by itself." },
+          { km: "បើមានបញ្ហាបន្តិចបន្តួច អេបបង្ហាញប៊ូតុង «បើកឡើងវិញ» មិនមែនអេក្រង់ទទេទេ។", en: "If something goes wrong, the app shows a «Reload» button, never a blank screen." },
+        ],
+      },
+      {
+        q: { km: "ខ្ញុំឃើញសារពណ៌លឿងនៅខាងលើ មានន័យអ្វី?", en: "I see a yellow notice at the top. What does it mean?" },
+        a: [
+          { km: "ពេលប្រព័ន្ធមានបញ្ហា ឬមានការថែទាំ អេបប្រាប់អ្នកភ្លាមៗ ដោយសារដែលយើងរៀបចំទុកជាមុន — អ្នកមិនចាំបាច់សួរទេ។ ទិន្នន័យរបស់អ្នកមានសុវត្ថិភាព ហើយសារនោះបាត់ពេលដោះស្រាយរួច។", en: "When something is wrong, or maintenance is planned, the app tells you at once with a message we prepared in advance; you don't need to ask. Your data is safe, and the notice goes away once it's fixed." },
+        ],
+      },
+      {
+        q: { km: "សុំជំនួយឲ្យលឿនបំផុត ធ្វើដូចម្តេច?", en: "How do I get help fastest?" },
+        a: [
+          { km: "«ការកំណត់» › «ជំនួយ»៖ រាយការណ៍បញ្ហា — ព័ត៌មានកំណែអេប និងប្រភេទទូរសព្ទភ្ជាប់ទៅជាមួយដោយស្វ័យប្រវត្តិ ដើម្បីយើងឃើញដូចអ្នកឃើញ។", en: "Settings › Help: report a problem. Your app version and phone details are attached automatically, so we see what you see." },
+          { km: "ពេលនិយាយជាមួយយើង សូមប្រាប់ «កូដជំនួយ» របស់អ្នក (ឧ. LC-7F3C2A) នៅទំព័រដដែល។ វាមិនមានលេខលុយ ឬឈ្មោះរបស់អ្នកទេ។", en: "When you talk to us, give your support code (e.g. LC-7F3C2A) from the same page. It never contains your money or your name." },
         ],
       },
     ],

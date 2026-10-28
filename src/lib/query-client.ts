@@ -19,7 +19,7 @@ export const QUERY_ERROR_TOAST = "⚠️ មិនអាចផ្ទុកទិ
 const CORE = new Set(["workspaces", "profile", "wallets", "categories", "transactions", "debts", "budgets", "bills", "tontines"])
 
 /** Pages a signed-out visitor sees (founder, 15/10/2026: the warning showed on /login before signing in). */
-const PUBLIC_PATHS = ["/login", "/join", "/reset-password", "/auth", "/p/", "/legal", "/download"]
+const PUBLIC_PATHS = ["/login", "/join", "/reset-password", "/auth", "/p/", "/legal", "/download", "/lost"]
 export const isPublicPath = (pathname: string | null | undefined) =>
   !!pathname && (pathname === "/" || PUBLIC_PATHS.some((p) => pathname === p.replace(/\/$/, "") || pathname.startsWith(p.endsWith("/") ? p : `${p}/`)))
 
