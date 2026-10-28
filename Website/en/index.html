@@ -74,6 +74,8 @@
               <div class="viewport">
               <img class="shot on" src="../screen-business.webp" width="589" height="1280" alt="អេប លុយឆ្លាត — ទំព័រដើមអាជីវកម្ម" data-label="biz">
               <img class="shot" src="../screen-personal.webp" width="589" height="1280" alt="អេប លុយឆ្លាត — ទំព័រដើមផ្ទាល់ខ្លួន" data-label="me" loading="lazy">
+              <!-- Today's date in the viewer's own calendar, where the app shows it (founder, 28/10/2026 — site.js) -->
+              <span class="ph-date" aria-hidden="true"></span>
               </div>
               <div class="ph-toast" aria-hidden="true">
                 <span class="dot">🔊</span>
@@ -350,14 +352,25 @@
         <img src="../logo.png" alt="" width="36" height="36">
         <span><b>អេប លុយឆ្លាត</b><small>App Luy Chlat</small></span>
       </div>
-      <nav aria-label="Footer">
-        <a href="../privacy.html" data-i="ft.privacy">Privacy and terms</a>
-        <a href="https://app.luychlat.com/download" data-i="ft.download">Download</a>
-        <a href="https://t.me/LuyChlatCommunity" target="_blank" rel="noopener" data-i="ft.community">Telegram community</a>
-        <a href="https://www.facebook.com/appluychlat" target="_blank" rel="noopener">Facebook</a>
-        <a href="https://t.me/luychlat_bot" target="_blank" rel="noopener">@luychlat_bot</a>
-        <a href="https://t.me/luychlat_support" target="_blank" rel="noopener" data-i="ft.support">Support</a>
-        <a href="mailto:info@luychlat.com">info@luychlat.com</a>
+      <!-- Grouped like an international site's footer (founder, 28/10/2026 — «the footer is scattered») -->
+      <nav class="foot-cols" aria-label="Footer">
+        <div>
+          <h4 data-i="ft.colApp">App</h4>
+          <a href="https://app.luychlat.com/download" data-i="ft.download">Download</a>
+          <a href="https://app.luychlat.com" data-i="ft.open">Open the app</a>
+          <a href="../privacy.html" data-i="ft.privacy">Privacy and terms</a>
+        </div>
+        <div>
+          <h4 data-i="ft.colContact">Contact</h4>
+          <a href="https://t.me/luychlat_support" target="_blank" rel="noopener" data-i="ft.support">Support</a>
+          <a href="mailto:info@luychlat.com">info@luychlat.com</a>
+        </div>
+        <div>
+          <h4 data-i="ft.colFollow">Follow us</h4>
+          <a href="https://www.facebook.com/appluychlat" target="_blank" rel="noopener">Facebook</a>
+          <a href="https://t.me/LuyChlatCommunity" target="_blank" rel="noopener" data-i="ft.community">Telegram community</a>
+          <a href="https://t.me/luychlat_bot" target="_blank" rel="noopener">@luychlat_bot</a>
+        </div>
       </nav>
       <p class="copy">© 2026 App Luy Chlat · iBMS · <span data-i="ft.rights">All rights reserved</span></p>
     </div>
@@ -373,6 +386,7 @@
 
   <!-- Cloudflare Web Analytics (cookieless) — the website only, never the app -->
   <script defer="" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;: &quot;d414eab13d024a1aade4e9fc8f5ddf1f&quot;}"></script>
+
 
 
 

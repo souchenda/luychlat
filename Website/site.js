@@ -19,10 +19,28 @@
     });
     document.querySelectorAll("[data-lang]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang)); });
     if (window.PAGE_TITLES) document.title = window.PAGE_TITLES[lang] || titles.km;
+    phoneDate(lang);
     setPeriod(period);
   }
 
   var period = "m";
+  // The phone shows today's date in the viewer's own calendar, as the app does (founder, 28/10/2026): «ថ្ងៃពុធ 28 តុលា
+  // 2026» / "Wednesday, 28 October 2026" / "2026年10月28日 星期三" — 0-9 digits, like the app.
+  function phoneDate(lang) {
+    var el = document.querySelector(".ph-date");
+    if (!el) return;
+    var d = new Date();
+    var KM_DAYS = ["អាទិត្យ", "ចន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"];
+    var KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"];
+    var EN_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    var EN_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    var ZH_DAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+    el.textContent = lang === "en" ? EN_DAYS[d.getDay()] + ", " + d.getDate() + " " + EN_MONTHS[d.getMonth()] + " " + d.getFullYear()
+      : lang === "zh" ? d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 " + ZH_DAYS[d.getDay()]
+      : "ថ្ងៃ" + KM_DAYS[d.getDay()] + " " + d.getDate() + " " + KM_MONTHS[d.getMonth()] + " " + d.getFullYear();
+  }
+  phoneDate(document.documentElement.lang || "km");
+
   function setPeriod(p) {
     period = p;
     document.querySelectorAll("[data-period]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-period") === p)); });

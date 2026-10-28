@@ -300,12 +300,22 @@ details a { color: var(--brand); }
 
 /* Footer */
 .foot { padding: 36px 0 calc(36px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
-.foot-in { display: grid; gap: 18px; }
-.foot nav { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.foot-in { display: grid; gap: 24px; }
+/* Three groups (founder, 28/10/2026 — «scattered»): the app, contact, follow us; the copyright its own line below. */
+.foot-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
+.foot-cols div { display: grid; align-content: start; gap: 2px; }
+.foot-cols h4 { margin: 0 0 4px; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
 .foot nav a { color: var(--muted); text-decoration: none; min-height: 32px; display: inline-flex; align-items: center; }
 .foot nav a:hover { color: var(--brand); }
+.foot .copy { margin: 0; padding-top: 18px; border-top: 1px solid var(--line); }
+/* The other pages' short footer (a few links in a row). */
+.foot nav:not(.foot-cols) { display: flex; flex-wrap: wrap; gap: 8px 20px; align-content: start; }
 .copy { color: var(--muted); font-size: .85rem; }
-@media (min-width: 900px) { .foot-in { grid-template-columns: auto 1fr auto; align-items: center; } .foot nav { justify-content: center; } }
+@media (min-width: 900px) {
+  .foot-in { grid-template-columns: 1fr 2fr; align-items: start; }
+  .foot-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .foot .copy { grid-column: 1 / -1; }
+}
 
 /* Legal pages */
 .doc { padding: 40px 0 72px; }
@@ -372,6 +382,9 @@ details a { color: var(--brand); }
 .homebar::after { content: ""; position: absolute; left: 50%; top: 9px; width: 34%; height: 4px; margin-left: -17%; border-radius: 4px; background: #111827; opacity: .8; }
 .shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; opacity: 0; transition: opacity .8s ease; }
 .shot.on { opacity: 1; }
+/* Today's date, where the app writes it (the screenshots' own was erased): right-aligned under the header. */
+.viewport { container-type: inline-size; }
+.ph-date { position: absolute; z-index: 1; top: 14.25%; right: 3.6%; font: 500 3.35cqw/1.2 "Kantumruy Pro", "Plus Jakarta Sans", sans-serif; color: #374151; white-space: nowrap; }
 .screen.shots .ph-toast { position: absolute; left: 10px; right: 10px; bottom: 14%; z-index: 2; font-size: 12px; }
 .shot-tabs { display: flex; gap: 8px; }
 .shot-tabs span { padding: 5px 12px; border-radius: 999px; font-size: .85rem; color: var(--muted); background: var(--surface); border: 1px solid var(--line); transition: all .3s ease; }
