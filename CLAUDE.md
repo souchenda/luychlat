@@ -191,9 +191,8 @@ cluttered, and unreadable»):
   founder told on a weekday — `lib/bulletin-timing.ts`), the evening NBC rates and the 05:30 prayer times with the waking du'a are created
   APPROVED by the database (`public.post_auto_publish` = `AUTO_PUBLISH_KINDS`) and publish at their time, Telegram
   only. Nothing creative, humorous or bound for Facebook is on the list. The bulletin and the NBC rates publish
-  silently; **the 05:30 prayer times keep a safety net (founder, 21/10/2026 — `SAFETY_NET_KINDS`):** still on the
-  whitelist (nobody wakes at 05:00 to tap), their card reaches «LCA Approval» the evening before, from 21:30, with
-  [ ❌ ផ្អាកថ្ងៃនេះ ] only (no 🚀 at night) and caption editing by reply; silence = it publishes on time. Every du'a's
+  silently; **the 05:30 prayer times publish silently too (founder, 28/10/2026 — the 21/10 safety-net card is gone, `SAFETY_NET_KINDS`
+  is empty):** the prayer times every day, a sourced du'a only on Monday and Thursday, four in turn (`morningDuaOf`). Every du'a's
   Khmer reading connects each Arabic wasl join with a hyphen, never a space (`WASL` in `src/lib/duas.test.ts`).
   **The bedtime du'a joins them (founder, 28/10/2026 — «a repetitive job, no tap needed»):** 21:00 on Tuesday and Saturday
   and every night of Ramadan (`NIGHT_DAYS` in `src/lib/islamic-channel.ts`), the app's sourced du'a, @LuyChlatIslamic only,

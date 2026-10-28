@@ -38,7 +38,7 @@ export const channelFor = (kind: string): "islamic" | "community" => (isIslamicK
  * tests/golden/islamic-schedule.test.ts. Every slot is previewed to the founder and published only on ✅ / 🚀.
  */
 export const ISLAMIC_SCHEDULE = {
-  ISLAMIC_MORNING: 5 * 60 + 30, // the waking du'a + the five prayer times (daily)
+  ISLAMIC_MORNING: 5 * 60 + 30, // the five prayer times (daily) + a du'a on Monday / Thursday (MORNING_DUA_DAYS)
   ISLAMIC_DAILY: 8 * 60, // the Hijri date + a halal-finance lesson (daily)
   ISLAMIC_JUMUAH: 11 * 60 + 30, // Jumu'ah + Surah Al-Kahf (Friday)
   ISLAMIC_IFTAR: 17 * 60 + 30, // the iftar du'a (fast days: Monday / Thursday, every day of Ramadan)
@@ -53,6 +53,22 @@ export const ISLAMIC_SCHEDULE = {
  */
 export const NIGHT_DAYS: readonly number[] = [2, 6]
 export const bedtimeNight = (day: string, tomorrowHijri: HijriDate | null) => NIGHT_DAYS.includes(weekdayOf(day)) || tomorrowHijri?.month === 9
+
+/**
+ * The 05:30 post's du'a, Monday and Thursday only (founder, 28/10/2026 — the same waking du'a every morning was too
+ * much); the prayer times stay every day. Four sourced du'as from the app's library, in turn (Monday 19/10/2026 = the
+ * first). Never a text that is not in lib/duas.ts.
+ */
+export const MORNING_DUA_DAYS: readonly number[] = [1, 4]
+export const MORNING_DUAS = ["wake", "halal-provision", "leave-home", "both-worlds"] as const
+export function morningDuaOf(day: string): (typeof MORNING_DUAS)[number] | null {
+  const weekday = weekdayOf(day)
+  if (!MORNING_DUA_DAYS.includes(weekday)) return null
+  const n = Math.floor((tipDayNumber(day) - tipDayNumber("2026-10-19")) / 7) * 2 + (weekday === 4 ? 1 : 0)
+  return MORNING_DUAS[((n % MORNING_DUAS.length) + MORNING_DUAS.length) % MORNING_DUAS.length]
+}
+/** The prayer times' own source line (lib/prayer.ts: Fajr 20°, Isha 18°, Asr Shafi'i, computed by the app). */
+export const PRAYER_TIMES_SOURCE = { label: "ម៉ោងគណនាដោយ អេប លុយឆ្លាត (Fajr 20° · Isha 18° · Asr Shafi'i)", url: "https://app.luychlat.com/islamic/prayer" }
 type IslamicKindName = "ISLAMIC_MORNING" | "ISLAMIC_DAILY" | "ISLAMIC_JUMUAH" | "ISLAMIC_IFTAR" | "ISLAMIC_FAST" | "ISLAMIC_NIGHT"
 /** 05:30 is too early for a 04:45 preview: it is previewed the evening before, from 21:30. */
 export const MORNING_PREVIEW_EVENING_MINUTE = 21 * 60 + 30
@@ -252,19 +268,19 @@ const duaLines = (x: Dua) => [`អានថា៖ ${x.phonetic}`, `អត្ថ�
 export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriDate | null, tomorrowHijri: HijriDate | null = null): IslamicPostContent {
   const dated = { hijri: hijri ? formatHijri(hijri, "km", { khmerDigits: true }) : null, hijriShort: hijri ? formatHijri(hijri, "km", { short: true, khmerDigits: true }) : null, date: kmDay(day) }
   if (kind === "ISLAMIC_MORNING") {
-    const wake = dua("wake")
+    const blessing = `សូមឱ្យថ្ងៃថ្មីនេះពោរពេញដោយ${G.BARAKAH} និងការរកស៊ីសុចរិត។`
+    const id = morningDuaOf(day)
+    const common = { kind, ...dated, title: "អរុណសួស្តីថ្ងៃថ្មី", titleArabic: G.MORNING_ARABIC, posterLines: [...POSTER_HOOKS.morning], prayers: dayPrayers(day) }
+    // The other mornings: the prayer times and the blessing only — the calculation is the source.
+    if (!id) return { ...common, pill: "ម៉ោងថ្វាយបង្គំថ្ងៃនេះ", lead: "🌅 <b>អរុណសួស្តីថ្ងៃថ្មី</b>", paragraphs: [blessing], source: PRAYER_TIMES_SOURCE, posterSource: "ម៉ោងគណនាដោយ អេប លុយឆ្លាត" }
+    const d = dua(id)
     return {
-      kind,
-      ...dated,
-      pill: "ឌុអាពេលភ្ញាក់ពីដំណេក",
-      title: "អរុណសួស្តីថ្ងៃថ្មី",
-      titleArabic: G.MORNING_ARABIC,
-      lead: "🌅 <b>អរុណសួស្តីថ្ងៃថ្មី — ឌុអាពេលភ្ញាក់ពីដំណេក</b>",
-      arabic: wake.arabic,
-      paragraphs: [...duaLines(wake), `សូមឱ្យថ្ងៃថ្មីនេះពោរពេញដោយ${G.BARAKAH} និងការរកស៊ីសុចរិត។`],
-      posterLines: [...POSTER_HOOKS.morning],
-      source: duaSource(wake.source),
-      prayers: dayPrayers(day),
+      ...common,
+      pill: d.title.km,
+      lead: `🌅 <b>អរុណសួស្តីថ្ងៃថ្មី — ${d.title.km}</b>`,
+      arabic: d.arabic,
+      paragraphs: [...duaLines(d), blessing],
+      source: duaSource(d.source),
     }
   }
   if (kind === "ISLAMIC_IFTAR") {

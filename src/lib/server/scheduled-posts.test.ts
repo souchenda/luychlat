@@ -277,29 +277,23 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
       assert.equal(f.previewsSent.length, 0, kind)
     }
   })
-  it("the 05:30 prayer times (founder, 21/10/2026): still auto-published — and previewed the evening before as a safety net", async () => {
-    assert.deepEqual(SAFETY_NET_KINDS, ["ISLAMIC_MORNING"])
+  it("the 05:30 prayer times: auto-published, and no card to the approval room any more (founder, 28/10/2026)", async () => {
+    // 21/10/2026 a safety-net card reached «LCA Approval» every evening; 28/10/2026: «what is set to auto must not come
+    // back to me» — the card is gone, the post still publishes on time, once.
+    assert.deepEqual(SAFETY_NET_KINDS, [])
     assert.ok(isAutoPublish("ISLAMIC_MORNING")) // stays on the whitelist: nobody wakes at 05:00 to tap
     const f = fake(clock(21, 30))
     await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(29, 30)).toISOString())
     assert.equal(f.rows[0].status, "APPROVED")
-    assert.equal(f.previewsSent.length, 1, "one card to the approval room")
-    assert.match(f.previewsSent[0].text, /🤖 ព័ត៌មានស្វ័យប្រវត្តិ — នឹងផ្សាយទៅ \[ [^\]]+ \] នៅ[^\n]+ដោយមិនចាំបាច់ចុច។$/) // no instruction line (founder, 21/10/2026): ❌ and ✏️ are the buttons
-    // Silence = it publishes on time, once.
+    assert.equal(f.previewsSent.length, 0, "no card to the approval room")
     await f.at(29, 30) // 05:30 the next morning
     assert.deepEqual(f.published, [1])
+    assert.equal(f.previewsSent.length, 0)
   })
-  it("the safety net's card has ✏️ and ❌ only (no 🚀 at night) — and ❌ stops the 05:30 post", async () => {
+  it("an approved poster's card keeps 🚀 | ✏️ and ❌, without the auto-feed line", () => {
     const targets = { telegram: true, facebook: false }
-    assert.deepEqual(previewButtons(7, "APPROVED", targets, "ISLAMIC_MORNING"), [[{ text: "✏️ កែអត្ថបទ", callback_data: "sp:7:e" }], [{ text: "❌ ផ្អាកថ្ងៃនេះ", callback_data: "sp:7:x" }]])
-    assert.equal(previewButtons(7, "APPROVED", targets, "MORNING").length, 2) // an approved poster keeps 🚀 | ✏️ and ❌
+    assert.equal(previewButtons(7, "APPROVED", targets, "MORNING").length, 2)
     assert.doesNotMatch(previewText({ kind: "MORNING", targets, publishAt: new Date(clock(7, 0)).toISOString(), body: "x", status: "APPROVED" }), /🤖/)
-    const f = fake(clock(21, 30))
-    await f.s.schedulePost("ISLAMIC_MORNING", DAY, { day: DAY }, new Date(clock(29, 30)).toISOString())
-    await f.press("sp:1:x")
-    assert.equal(f.rows[0].status, "PAUSED")
-    await f.at(29, 30) // 05:30 the next morning
-    assert.deepEqual(f.published, [])
   })
   it("regression: ✅ on a held post after its time only approved it — the timer then expired it 90 minutes late; now it publishes at once", async () => {
     const f = fake(clock(7, 15))

@@ -6,7 +6,7 @@ import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import type { HijriDate } from "../../src/lib/islamic"
-import { channelFor, isFastDay, ISLAMIC_KINDS, ISLAMIC_SCHEDULE, MORNING_PREVIEW_EVENING_MINUTE } from "../../src/lib/islamic-channel"
+import { channelFor, isFastDay, islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS, ISLAMIC_SCHEDULE, morningDuaOf, MORNING_PREVIEW_EVENING_MINUTE, PRAYER_TIMES_SOURCE } from "../../src/lib/islamic-channel"
 import { dueAction, plannedIslamicPosts, takeAllowed } from "../../src/lib/scheduled-posts"
 
 const plain = (): HijriDate => ({ day: 15, month: 4, year: 1448 })
@@ -47,6 +47,22 @@ describe("GOLDEN · the Islamic channel's 24-hour schedule", () => {
     assert.deepEqual(nights, ["2026-10-20", "2026-10-24"])
     // In Ramadan every night (it carries the Sahur reminder).
     assert.ok(kinds("2026-10-21", at(21), ramadan).includes("ISLAMIC_NIGHT:2026-10-21"))
+  })
+  it("05:30: the prayer times every day, a du'a only on Monday / Thursday, four sourced du'as in turn (founder, 28/10/2026)", () => {
+    assert.equal(morningDuaOf("2026-10-19"), "wake") // Monday
+    assert.equal(morningDuaOf("2026-10-22"), "halal-provision") // Thursday
+    assert.equal(morningDuaOf("2026-10-26"), "leave-home")
+    assert.equal(morningDuaOf("2026-10-29"), "both-worlds")
+    assert.equal(morningDuaOf("2026-11-02"), "wake") // round again
+    for (const d of ["2026-10-20", "2026-10-21", "2026-10-23", "2026-10-24", "2026-10-25"]) assert.equal(morningDuaOf(d), null, d)
+    const tuesday = islamicPostContent("ISLAMIC_MORNING", "2026-10-20", plain())
+    assert.equal(tuesday.arabic, undefined)
+    assert.ok(tuesday.prayers?.length)
+    assert.deepEqual(tuesday.source, PRAYER_TIMES_SOURCE)
+    assert.doesNotMatch(islamicCaptionHtml(tuesday), /អានថា៖/)
+    assert.match(islamicCaptionHtml(islamicPostContent("ISLAMIC_MORNING", "2026-10-22", plain())), /Sunan Ibn Majah 925/)
+    // Still planned every day (the prayer times are needed like the Adhan).
+    for (const d of ["2026-10-20", "2026-10-21", "2026-10-24"]) assert.ok(kinds(d, at(4, 45)).includes(`ISLAMIC_MORNING:${d}`), d)
   })
   it("the 05:30 post is previewed the evening before, from 21:30 (the founder approves before bed)", () => {
     assert.ok(kinds("2026-10-19", at(21, 30)).includes("ISLAMIC_MORNING:2026-10-20"))

@@ -204,7 +204,9 @@ export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly s
  * 21:30, with [ ❌ ផ្អាកថ្ងៃនេះ ] only (no 🚀 at night) and caption editing by reply. Silence = it publishes on time.
  * The other factual feeds (the bulletin, the NBC rates) stay silent.
  */
-export const SAFETY_NET_KINDS: readonly PostKind[] = ["ISLAMIC_MORNING"]
+// Emptied (founder, 28/10/2026 — «what is set to auto must not come back to me»): the 05:30 card no longer reaches the
+// approval room every evening; the mechanism stays for a feed the founder wants to watch again.
+export const SAFETY_NET_KINDS: readonly PostKind[] = []
 export const isSafetyNet = (kind: string) => (SAFETY_NET_KINDS as readonly string[]).includes(kind)
 
 /** A card goes to the approval room for a post that waits for a tap, or an auto-published post with a safety net. */
