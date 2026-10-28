@@ -16,6 +16,7 @@ import { founderChats } from "@/lib/server/admin-routes"
 import { compactFooter } from "@/lib/post-footer"
 import { SITE_URL } from "@/lib/app-site"
 import { holdForApproval } from "@/lib/server/scheduled-posts"
+import { EVENING_RATES_WEEKDAYS } from "@/lib/scheduled-posts"
 
 /**
  * Every morning @luychlat_bot posts one Khmer "daily market update" to the
@@ -350,8 +351,9 @@ const phnomPenhDay = (iso: string) => new Date(Date.parse(iso) + 7 * 3_600_000).
 
 /** 17:00–19:30: once NBC's next-working-day rate is in, post it (once a day). */
 async function maybeSendEveningRates(now: ReturnType<typeof phnomPenhNow>) {
-  // Working days only: NBC publishes Monday–Friday (a weekend would repeat Friday's rate).
-  if ([0, 6].includes(now.date.getDay())) return
+  // Friday only (founder, 28/10/2026 — EVENING_RATES_WEEKDAYS): Monday's rate before the weekend; the other days the
+  // 08:00 bulletin carries the same rate the next morning.
+  if (!EVENING_RATES_WEEKDAYS.includes(now.date.getDay())) return
   if (now.hour < 17 || now.hour > 19 || (now.hour === 19 && now.minute > 30)) return
   const market = await currentMarket()
   if (!market?.nbc || market.nbc.date <= now.day) return

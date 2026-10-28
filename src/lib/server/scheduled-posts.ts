@@ -14,7 +14,7 @@ import { quranRefOf, verseCitation } from "@/lib/quran-verse"
 import { getQuranVerses } from "@/lib/server/quran-verses"
 
 import { holidayMessage, holidayMoment, holidayPostHtml } from "@/lib/holiday-lifecycle"
-import { dueAction, endOfCambodiaDay, isPreviewed, isReplaceCallback, kmClock, parseReplaceCallback, parseScheduledPostCallback, REPLACEABLE, replaceButtons, replacedNote, replacePreviewText, reminderLevel, urgentReminderButtons, urgentReminderText, plannedIslamicPosts, plannedPosts, previewButtons, previewText, atMinute, EVENT_LEAD_MIN, type PostKind, type PostStatus, type Targets, pastedCardBody, promptStep, changeSummary, type PostSnapshot } from "@/lib/scheduled-posts"
+import { dueAction, endOfCambodiaDay, isPreviewed, silentPost, isReplaceCallback, kmClock, parseReplaceCallback, parseScheduledPostCallback, REPLACEABLE, replaceButtons, replacedNote, replacePreviewText, reminderLevel, urgentReminderButtons, urgentReminderText, plannedIslamicPosts, plannedPosts, previewButtons, previewText, atMinute, EVENT_LEAD_MIN, type PostKind, type PostStatus, type Targets, pastedCardBody, promptStep, changeSummary, type PostSnapshot } from "@/lib/scheduled-posts"
 import { eveningButtons } from "@/lib/evening-reminder"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { eveningText, morningPoster, morningText, publishMorningToFacebook, fbLog } from "@/lib/server/community-routine"
@@ -37,6 +37,7 @@ import { holidayPoster } from "@/lib/server/holiday-poster"
 import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster, portraitCredit } from "@/lib/server/national-day-poster"
 import { holidayRouteAllowed, nationalCaptionHtml, nationalCaptionText, nationalChannel, nationalDateNote, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE, royalNumerals } from "@/lib/calendar/cambodia-holidays"
 import { withKhmerDigits } from "@/lib/server/numerals"
+import { quietly } from "@/lib/server/quiet-post"
 import { editingMessage } from "@/lib/server/edit-in-place"
 import { publishWindow, spacingWait, windowRefusal } from "@/lib/publish-window"
 import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
@@ -132,6 +133,8 @@ export type SchedulerDeps = {
    * commemoration keeps the Khmer numerals there, every other post is 0-9 (founder, 21/10/2026 — Task #440).
    */
   scope?<T>(row: PostRow, fn: () => Promise<T>): Promise<T>
+  /** Runs a new post's sending without ringing the members' phones when it is a routine one (SILENT_KINDS). */
+  quiet?<T>(row: PostRow, fn: () => Promise<T>): Promise<T>
   /**
    * Anti-flood (Task #441): the public channel a post goes to, and when that channel last got a broadcast — at most one
    * per CHANNEL_SPACING_MIN; posts ready together are spaced out (the founder's 🚀 goes at once).
@@ -195,7 +198,7 @@ export function createScheduler(d: SchedulerDeps) {
       return refresh(row)
     }
     try {
-      const ids = await d.publish(row)
+      const ids = await (d.quiet ? d.quiet(row, () => d.publish(row)) : d.publish(row))
       if (ids.telegram && d.channelOf) d.noteBroadcast?.(d.channelOf(row), d.now())
       await d.recordIds(row.id, ids)
       d.log("info", `${row.kind} ${row.post_key} published (${how}) · Telegram ${ids.telegram ?? "—"} · Facebook ${ids.facebook ?? "—"}`)
@@ -464,6 +467,7 @@ function royalRow(row: Pick<PostRow, "kind" | "payload">): boolean {
 
 const realDeps = (): SchedulerDeps => ({
   scope: (row, fn) => (royalRow(row) ? withKhmerDigits(fn) : fn()),
+  quiet: (row, fn) => (silentPost(row.kind) ? quietly(fn) : fn()),
   async schedule(kind, postKey, payload, publishAt) {
     const { data, error } = await botDb().rpc("bot_post_schedule", { p_key: botKey(), p_kind: kind, p_post_key: postKey, p_payload: payload, p_publish_at: publishAt })
     if (error) logEvent("error", "scheduled-posts", `Schedule ${kind} ${postKey} failed: ${error.message}`, { fold: true })

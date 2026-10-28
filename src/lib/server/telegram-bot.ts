@@ -2,6 +2,7 @@
 import { createHmac } from "crypto"
 import { asEdit, editTarget } from "@/lib/server/edit-in-place"
 import { outgoingPayload } from "@/lib/server/numerals"
+import { isQuiet } from "@/lib/server/quiet-post"
 
 import { createClient } from "@supabase/supabase-js"
 
@@ -37,6 +38,8 @@ export async function tg<T = unknown>(method: string, payload: Record<string, un
     const thread = threadFor(payload.chat_id)
     if (thread) payload = { ...payload, message_thread_id: thread }
   }
+  // A routine channel post rings no phone (founder, 28/10/2026 — quiet-post.ts).
+  if (method.startsWith("send") && isQuiet()) payload = { ...payload, disable_notification: true }
   // 0-9 in everything the bot says (founder, 21/10/2026 — Task #440; lib/numerals.ts), but a royal or national day's.
   payload = outgoingPayload(payload)
   // An update to a published post edits its message — never a new one in the channel (Task #441, edit-in-place.ts).

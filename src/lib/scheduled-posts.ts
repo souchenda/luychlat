@@ -36,6 +36,13 @@ export const FUEL_DELAY_MIN = 45
 export const MORNING_POST_MINUTE = 7 * 60
 /** The 20:00 check-in in the channel. */
 export const EVENING_POST_MINUTE = 20 * 60
+/**
+ * Fewer, worth more (founder, 28/10/2026 — «members must never feel disturbed»): the 20:00 check-in on Monday, Wednesday
+ * and Sunday (the week's review) instead of every night; the evening NBC rates on Friday only (Monday's rate before the
+ * weekend) — on the other days the 08:00 bulletin carries the same rate the next morning.
+ */
+export const EVENING_WEEKDAYS: readonly number[] = [0, 1, 3]
+export const EVENING_RATES_WEEKDAYS: readonly number[] = [5]
 /** An event-driven post (the bulletin, festival posters…): previewed at once, publishable from this many minutes on. */
 export const EVENT_LEAD_MIN = 1
 
@@ -50,7 +57,8 @@ export function plannedPosts(day: string, minutes: number): { kind: PostKind; po
   const open = (at: number) => minutes >= at - PREVIEW_LEAD_MIN && minutes < at + LATE_LIMIT_MIN
   const out: { kind: PostKind; postKey: string; publishMinute: number; payload: Record<string, string> }[] = []
   if (open(MORNING_POST_MINUTE)) out.push({ kind: "MORNING", postKey: day, publishMinute: MORNING_POST_MINUTE, payload: { day } })
-  if (open(EVENING_POST_MINUTE)) out.push({ kind: "EVENING", postKey: day, publishMinute: EVENING_POST_MINUTE, payload: { day } })
+  if (EVENING_WEEKDAYS.includes(new Date(`${day}T00:00:00Z`).getUTCDay()) && open(EVENING_POST_MINUTE))
+    out.push({ kind: "EVENING", postKey: day, publishMinute: EVENING_POST_MINUTE, payload: { day } })
   // Tuesday / Friday 18:30: a money dilemma for the community and the Facebook Page (founder, 18/10/2026).
   if (DILEMMA_WEEKDAYS.includes(new Date(`${day}T00:00:00Z`).getUTCDay()) && open(DILEMMA_MINUTE))
     out.push({ kind: "DILEMMA", postKey: day, publishMinute: DILEMMA_MINUTE, payload: { day } })
@@ -197,6 +205,15 @@ const KIND_LABEL: Record<PostKind, string> = {
 // Tuesday / Saturday and the nights of Ramadan (lib/islamic-channel.ts NIGHT_DAYS) — no preview card, no tap.
 export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "ISLAMIC_MORNING", "ISLAMIC_BULLETIN", "ISLAMIC_NIGHT"]
 export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly string[]).includes(kind)
+
+/**
+ * Silent posts (founder, 28/10/2026 — «members must never feel disturbed»): the everyday ones arrive in the channel without
+ * ringing the phone — the bulletins, the rates, the 07:00 poster, the 05:30 prayer times, the 08:00 lesson, the bedtime
+ * du'a (and the 12:00 tip, tip-bot.ts). What a member must not miss still rings: holidays and national days, the Sil
+ * day, a fuel price change, Jumu'ah, the fast and iftar reminders, the 20:00 reminder, the dilemma and the spotlight.
+ */
+export const SILENT_KINDS: readonly PostKind[] = ["MORNING", "BULLETIN", "RATES", "ISLAMIC_BULLETIN", "ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_NIGHT"]
+export const silentPost = (kind: string) => (SILENT_KINDS as readonly string[]).includes(kind)
 
 /**
  * Auto-published, yet previewed — the safety net (founder, 21/10/2026): the 05:30 prayer times with the waking du'a stay

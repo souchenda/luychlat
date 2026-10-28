@@ -61,7 +61,9 @@ describe("GOLDEN · publish only with the founder's approval", () => {
     assert.equal(takeAllowed("PENDING", "PUBLISHED", false), false)
   })
   it("the 20:00 check-in and the Saturday spotlight are previewed too (no direct channel send left)", () => {
-    assert.ok(plannedPosts("2026-10-17", 19 * 60 + 15).some((p) => p.kind === "EVENING"))
+    // The 20:00 check-in on Monday, Wednesday and Sunday only (founder, 28/10/2026 — EVENING_WEEKDAYS).
+    assert.ok(plannedPosts("2026-10-19", 19 * 60 + 15).some((p) => p.kind === "EVENING")) // a Monday
+    assert.ok(!plannedPosts("2026-10-17", 19 * 60 + 15).some((p) => p.kind === "EVENING")) // a Saturday
     assert.ok(plannedPosts("2026-10-17", 16 * 60 + 15).some((p) => p.kind === "SPOTLIGHT")) // a Saturday
     assert.ok(!plannedPosts("2026-10-16", 16 * 60 + 15).some((p) => p.kind === "SPOTLIGHT")) // a Friday
   })

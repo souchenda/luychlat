@@ -20,6 +20,7 @@
 import { TIP_BODY_MAX, TIP_TITLE_MAX, defaultTip, nextTip } from "@/lib/daily-tip"
 import { editsChat, editTarget } from "@/lib/server/edit-in-place"
 import { outgoingForm } from "@/lib/server/numerals"
+import { isQuiet, quietly } from "@/lib/server/quiet-post"
 import { SERIES_HASHTAGS, postFooter, withFooter } from "@/lib/post-footer"
 import { needsFounderApproval, tipTextIssues } from "@/lib/tip-quality"
 import { TIPS } from "@/lib/tips"
@@ -165,6 +166,8 @@ async function photo(chatId: number | string, png: Buffer, caption: string, opts
     form.append("photo", new Blob([new Uint8Array(png)], { type: "image/png" }), "poster.png")
     form.append("caption", caption)
     form.append("parse_mode", "HTML")
+    // A routine channel post rings no phone (founder, 28/10/2026 — quiet-post.ts).
+    if (isQuiet()) form.append("disable_notification", "true")
   }
   if (opts.reply_markup) form.append("reply_markup", JSON.stringify(opts.reply_markup))
   // Why it failed is always said (founder, 22/10/2026 — the 23/10 card failed as a bare «no answer»): the network
@@ -316,7 +319,8 @@ export async function dailyTipTick() {
   if (!t?.day) return
   const chat = communityChannel(founderApproved(`tip ${t.day} v${t.version}`))
   if (!chat) return
-  const msg = await photo(chat, await posterFor(t), tipCaption(t), await getChannelPostButtons())
+  // The 12:00 tip arrives without a sound (founder, 28/10/2026 — an everyday post; quiet-post.ts).
+  const msg = await quietly(async () => photo(chat, await posterFor(t), tipCaption(t), await getChannelPostButtons()))
   if (!msg) {
     await db.rpc("bot_tip_post_failed", { p_key: botKey(), p_day: t.day })
     logEvent("error", "daily-tip", "Posting the approved tip failed — will retry next minute (until 13:00)", { fold: true })

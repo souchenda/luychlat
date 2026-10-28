@@ -157,7 +157,10 @@ cluttered, and unreadable»):
   - 07:00 morning quote poster → Telegram Channel **and** Facebook Page.
   - MoC fuel notice → Facebook **only** when EA92 or diesel changed (Δ ≠ 0, ▲ / ▼); unchanged (or
     no known previous period) → Telegram only.
-  - 20:00 nightly reminder → Telegram **only**, never the Page.
+  - 20:00 nightly reminder → Telegram **only**, never the Page — Monday, Wednesday and Sunday only (founder, 28/10/2026).
+  - **Members never feel disturbed (founder, 28/10/2026):** everyday posts go out silently (`SILENT_KINDS`, `quietly` in
+    `lib/server/quiet-post.ts`) — the bulletins, rates, 07:00 poster, 12:00 tip, prayer times, lesson and bedtime du'a; holidays,
+    Sil days, fuel changes, Jumu'ah, the fast reminders, the dilemma and the spotlight still ring. The evening NBC rates only on Friday.
   - Holiday notes (the eve and the day back, both at 05:00 — founder, 20/10/2026; previewed the evening before from
     21:30) and the Saturday 17:00 core-value spotlight → both.
   - National days and royal ceremonies (founder, 20/10/2026 — `lib/calendar/cambodia-holidays.ts`): a commemoration
