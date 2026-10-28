@@ -5,6 +5,7 @@ import Link from "next/link"
 
 import { useState } from "react"
 
+import { CapacityCard } from "@/components/admin/capacity-card"
 import { ClientErrorsCard } from "@/components/admin/client-errors"
 import { ControlCenter } from "@/components/admin/control-center"
 import { SecuritySummaryCard } from "@/components/admin/security-summary"
@@ -60,6 +61,7 @@ export default function ControlCenterPage() {
       {tab === "system" && (
         <>
           <SystemHealthCard embedded />
+          <CapacityCard />
           <ClientErrorsCard />
         </>
       )}

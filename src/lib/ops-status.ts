@@ -2,6 +2,8 @@
 // public.ops_status) read into green / amber / red lines, so the founder sees at a glance what needs him. Pure
 // (ops-status.test.ts); the page is src/app/(app)/admin/super/control.
 
+import type { Capacity } from "@/lib/capacity"
+
 export type Level = "ok" | "warn" | "bad"
 
 export type OpsReport = {
@@ -13,6 +15,8 @@ export type OpsReport = {
   backup: { last_ok: number | null; last: string | null }
   security: { ssh_password_login: boolean; firewall: boolean; banned_now: number | null; banned_total: number | null; auto_updates: boolean }
   disk: { free_gb: number; used_pct: number }
+  /** How full things are (deploy/ops-agent.py › capacity) — the limits and rules: lib/capacity.ts. */
+  capacity?: Capacity
 }
 
 export type OpsAction = "website_republish" | "website_rollback" | "backup_now"

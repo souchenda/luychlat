@@ -12,6 +12,7 @@ import { communityRoutineTick } from "@/lib/server/community-routine"
 import { scheduledPostsTick } from "@/lib/server/scheduled-posts"
 import { dailyTipTick } from "@/lib/server/tip-bot"
 import { watchdogTick } from "@/lib/server/health-watchdog"
+import { capacityTick } from "@/lib/server/capacity-reminder"
 import { marketScheduleTick, syncMarket } from "@/lib/server/market-sync"
 import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
@@ -167,6 +168,8 @@ export async function dispatchOnce() {
     await atmSyncTick()
     await islamicPlacesSyncTick()
     await watchdogTick()
+    // Capacity and spending: the founder told once when an item is full enough to act on (founder, 28/10/2026).
+    await capacityTick()
     await reactionAuditTick()
   } catch (error) {
     console.error("[bot] dispatch failed:", (error as Error).message)

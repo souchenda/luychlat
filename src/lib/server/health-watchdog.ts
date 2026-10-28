@@ -276,7 +276,6 @@ async function loadOpenAlerts() {
   loaded = true
 }
 
-/** Once a minute. */
 /** Shows (or clears) the users' notice for a paged outage; a notice the founder set is never replaced (public.bot_notice_auto). */
 async function autoNotice(issue: Issue, on: boolean) {
   const kind = issue === "db_down" || issue === "webhook" ? AUTO_NOTICE[issue] : null
@@ -288,6 +287,7 @@ async function autoNotice(issue: Issue, on: boolean) {
   }
 }
 
+/** Once a minute. */
 export async function watchdogTick() {
   if (!loaded) await loadOpenAlerts()
   const sample = await takeSample()

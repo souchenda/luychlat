@@ -122,6 +122,45 @@ def domains():
     return found
 
 
+def capacity():
+    """How full things are (founder, 28/10/2026 — «remind me when it is time to act or spend»): the server's RAM and CPU,
+    the database, the stored files and the accounts. The app compares them with the limits (src/lib/capacity.ts)."""
+    mem = {}
+    for line in read("/proc/meminfo").splitlines():
+        k, _, v = line.partition(":")
+        if v.strip().endswith("kB"):
+            mem[k] = int(v.split()[0])
+    total, avail = mem.get("MemTotal", 0), mem.get("MemAvailable", 0)
+    dockerd_mb = None
+    _, pid = run(["pidof", "dockerd"], 15)
+    if pid.strip().isdigit():
+        m = re.search(r"VmRSS:\s*(\d+)", read(f"/proc/{pid.strip()}/status"))
+        dockerd_mb = round(int(m.group(1)) / 1024) if m else None
+    out = {
+        "cpus": os.cpu_count() or 1,
+        "load15": round(os.getloadavg()[2], 2),
+        "ram_pct": round((total - avail) * 100 / total) if total else None,
+        "ram_total_mb": round(total / 1024) if total else None,
+        "dockerd_mb": dockerd_mb,
+        # A build's CPU and RAM are not the users' (the deploy and the APK build mark themselves).
+        "building": any(os.path.exists(f"{REPO}/deploy/run/{m}") for m in ("building-deploy", "building-apk")),
+    }
+    try:
+        row = psql(
+            "select pg_database_size(current_database()), (select count(*) from pg_stat_activity), "
+            "current_setting('max_connections')::int, (select count(*) from auth.users), "
+            "(select count(*) from auth.users where last_sign_in_at > now() - interval '30 days'), "
+            "(select coalesce(sum((metadata->>'size')::bigint), 0) from storage.objects);"
+        ).strip().split("|")
+        out.update({
+            "db_bytes": int(row[0]), "db_conns": int(row[1]), "db_max_conns": int(row[2]),
+            "accounts": int(row[3]), "active_30d": int(row[4]), "storage_bytes": int(row[5]),
+        })
+    except Exception:  # noqa: BLE001 — the rest of the report still goes out
+        pass
+    return out
+
+
 def report():
     site_code, site_body = http("https://luychlat.com/")
     app_code, app_body = http("https://app.luychlat.com/api/health")
@@ -159,6 +198,7 @@ def report():
             "auto_updates": run(["systemctl", "is-active", "unattended-upgrades"], 15)[1] == "active",
         },
         "disk": {"free_gb": round(disk.free / 1e9, 1), "used_pct": round(disk.used * 100 / disk.total)},
+        "capacity": capacity(),
     }
 
 
