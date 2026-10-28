@@ -300,14 +300,22 @@ details a { color: var(--brand); }
 
 /* Footer */
 .foot { padding: 36px 0 calc(36px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
-/* One line of essentials (founder, 28/10/2026): brand · links · copyright; the accounts are in «គណនីផ្លូវការ». */
-.foot-in { display: grid; gap: 16px; }
-.foot nav { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+.foot-in { display: grid; gap: 24px; }
+/* Three groups like a world-class app's footer (founder, 28/10/2026): the app, contact, follow us; the copyright below. */
+.foot-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
+.foot-cols div { display: grid; align-content: start; gap: 2px; }
+.foot-cols h4 { margin: 0 0 4px; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
 .foot nav a { color: var(--muted); text-decoration: none; min-height: 32px; display: inline-flex; align-items: center; }
 .foot nav a:hover { color: var(--brand); }
-.foot .copy { margin: 0; color: var(--muted); font-size: .85rem; }
+.foot .copy { margin: 0; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+/* The other pages' short footer (a few links in a row). */
+.foot nav:not(.foot-cols) { display: flex; flex-wrap: wrap; gap: 8px 20px; align-content: start; }
 .copy { color: var(--muted); font-size: .85rem; }
-@media (min-width: 900px) { .foot-in { grid-template-columns: auto 1fr auto; align-items: center; gap: 32px; } .foot nav { justify-content: center; } }
+@media (min-width: 900px) {
+  .foot-in { grid-template-columns: 1fr 2fr; align-items: start; }
+  .foot-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .foot .copy { grid-column: 1 / -1; }
+}
 
 /* Legal pages */
 .doc { padding: 40px 0 72px; }
