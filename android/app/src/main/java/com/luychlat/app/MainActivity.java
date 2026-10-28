@@ -18,6 +18,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AdhanAlarmPlugin.class);
         // The app updates itself, no trip to Chrome (Task #478).
         registerPlugin(AppUpdaterPlugin.class);
+        // The phone's own Khmer voice for the spoken greeting (founder, 28/10/2026 — as DL Staff speaks).
+        registerPlugin(KhmerVoicePlugin.class);
         super.onCreate(savedInstanceState);
         // The page keeps running with the screen off (founder, 24/10/2026 — Task #486: a 1,710,000 ៛ sale announced 4 min
         // late, at unlock). The WebView's JavaScript runs in its own renderer process, whose priority the WebView lowers

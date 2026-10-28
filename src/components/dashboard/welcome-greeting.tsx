@@ -6,7 +6,8 @@ import { useT } from "@/lib/i18n/use-t"
 import { phoneQuiet } from "@/lib/native-keepalive"
 import { readVoiceGender } from "@/lib/soundbox"
 import { cambodiaHour } from "@/lib/islamic-expressions"
-import { cambodiaDay, firstOfLaunch, GREETING_CLIPS_READY, greetingClipUrl, readWelcomeVoice, shouldSpeakWelcome, welcomeDuaText, welcomeGreeting, type WelcomeGreeting } from "@/lib/welcome-greeting"
+import { speakKhmer } from "@/lib/khmer-voice"
+import { cambodiaDay, firstOfLaunch, GREETING_CLIPS_READY, GREETING_WORDS, greetingClipUrl, readWelcomeVoice, shouldSpeakWelcome, welcomeDuaText, welcomeGreeting, type WelcomeGreeting } from "@/lib/welcome-greeting"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useLockStore } from "@/stores/lock-store"
 
@@ -101,7 +102,16 @@ export function WelcomeGreetingPill({ islamic, name }: { islamic: boolean; name:
     if (readWelcomeVoice(local) && GREETING_CLIPS_READY) {
       void phoneQuiet().then((quiet) => {
         if (gone || !shouldSpeakWelcome({ enabled: true, ready: GREETING_CLIPS_READY, quiet })) return
-        stopSpeaking = speakOnLaunch(greetingClipUrl(g.kind, readVoiceGender(local)))
+        const gender = readVoiceGender(local)
+        // The Khmer welcome in the phone's own Khmer voice first (APK 1.12+, as DL Staff speaks — founder, 28/10/2026);
+        // the recorded clip when it cannot (a browser, an older app, no Khmer voice). The Salam stays its Arabic clip.
+        if (g.kind !== "khmer") {
+          stopSpeaking = speakOnLaunch(greetingClipUrl(g.kind, gender))
+          return
+        }
+        void speakKhmer(GREETING_WORDS.chumreap.text, gender).then((spoken) => {
+          if (!spoken && !gone) stopSpeaking = speakOnLaunch(greetingClipUrl(g.kind, gender))
+        })
       })
     }
     return () => {

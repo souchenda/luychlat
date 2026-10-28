@@ -10,7 +10,8 @@ import { useWorkspaces } from "@/lib/data/hooks"
 import { pick } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { readVoiceGender } from "@/lib/soundbox"
-import { greetingClipUrl } from "@/lib/welcome-greeting"
+import { speakKhmer } from "@/lib/khmer-voice"
+import { GREETING_WORDS, greetingClipUrl } from "@/lib/welcome-greeting"
 import { markSeen, pendingAnnouncements, readSeen, type WhatsNewEntry } from "@/lib/whats-new"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useLockStore } from "@/stores/lock-store"
@@ -68,7 +69,11 @@ export function WhatsNewDialog({ islamic }: { islamic: boolean }) {
         local = window.localStorage
       } catch {}
       // A tap: the browser lets it sound. The person's own volume decides; this is the preview they asked for.
-      void new Audio(greetingClipUrl(islamic ? "islamic" : "khmer", readVoiceGender(local))).play().catch(() => null)
+      const gender = readVoiceGender(local)
+      const clip = () => void new Audio(greetingClipUrl(islamic ? "islamic" : "khmer", gender)).play().catch(() => null)
+      // The phone's own Khmer voice first (APK 1.12+), the clip otherwise — as on launch (welcome-greeting.tsx).
+      if (islamic) clip()
+      else void speakKhmer(GREETING_WORDS.chumreap.text, gender).then((spoken) => spoken || clip())
     }
     // Task #528: the preview keeps playing while Settings opens on the switch that turns it on or off.
     close()

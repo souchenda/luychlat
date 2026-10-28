@@ -11,13 +11,14 @@ const read = (p: string) => readFileSync(join(root, p), "utf8")
 const native = !existsSync(join(root, "android")) && "android/ is not in the build context"
 
 describe("The Android app's version and in-app update (founder, 22/10/2026 — Task #468)", () => {
-  it("/api/app/version: the newest APK — v1.11, build 12 (Task #494), the versioned file, the Khmer changes", () => {
+  it("/api/app/version: the newest APK — v1.12, build 13 (the phone's Khmer voice, 28/10/2026), the versioned file, the Khmer changes", () => {
     assert.deepEqual(appVersionInfo(), {
-      latestVersion: "1.11",
-      versionCode: 12,
-      downloadUrl: "/downloads/LuyChlat-v1.11.apk",
-      changelogKhmer: "• អាហ្សានរោទ៍តែលើទូរសព្ទដែលបើកកុងតាក់ប៉ុណ្ណោះ\n• SoundBox ប្រកាសតាមសំឡេង Media ហើយដំណើរការជាប់",
+      latestVersion: "1.12",
+      versionCode: 13,
+      downloadUrl: "/downloads/LuyChlat-v1.12.apk",
+      changelogKhmer: "• សំឡេងស្វាគមន៍ធម្មជាតិជាងមុន ដោយប្រើសំឡេងខ្មែររបស់ទូរសព្ទ",
     })
+    assert.deepEqual(apkVersion(13), { kind: "known", version: "1.12", code: 13 })
     assert.deepEqual(apkVersion(12), { kind: "known", version: "1.11", code: 12 })
     assert.deepEqual(apkVersion(11), { kind: "known", version: "1.10", code: 11 })
     assert.equal(updateAvailable(11, 12), true)
@@ -96,7 +97,7 @@ describe("No hard-coded «1.0.0» in Settings › About (founder, 22/10/2026 —
     assert.match(settings, /if \(v\.kind === "known"\) setApkLabel\(v\.version \? t\("settings\.apkVersion", \{ version: v\.version, code: v\.code \}\)/)
     assert.doesNotMatch(settings, /hint=\{apkLabel/)
   })
-})
+})
 
 describe("The update installs inside the app — no Chrome (founder, 23/10/2026 — Task #478)", () => {
   it("1.7+ in the app; 1.5 / 1.6 through the browser (their last time); older: the link to copy", () => {
