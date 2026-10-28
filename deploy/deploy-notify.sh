@@ -65,6 +65,11 @@ esc() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
 kind=${1:-ok}
 head=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
 full=$(git rev-parse HEAD 2>/dev/null || echo "?")
+# «held»: the release waiting for the quiet hours is not pulled yet — it is origin/master (deploy/auto-update.sh).
+if [ "$kind" = "held" ]; then
+  head=$(git rev-parse --short origin/master 2>/dev/null || echo "?")
+  full=$(git rev-parse origin/master 2>/dev/null || echo "?")
+fi
 
 # Task numbers instead of commit hashes (founder, 20/10/2026): every release gets the next number — «កិច្ចការទី #N» —
 # kept on the server («N <commit>» per line, outside git, so a pull never resets it). A commit that names its task
@@ -111,6 +116,14 @@ if [ "$kind" = "fail" ]; then
   text="⚠️ <b>កិច្ចការទី #$task មិនបាន Live</b>
 • <b>មូលហេតុ៖</b> ${step}
 • <b>Server៖</b> 🟢 កំណែមុននៅដើរធម្មតា"
+elif [ "$kind" = "held" ]; then
+  # Once per release: auto-update.sh checks every 5 minutes until 22:00 (deploy/deploy-window.sh).
+  mkdir -p deploy/run
+  [ "$(cat deploy/run/.held-notified 2>/dev/null)" = "$head" ] && exit 0
+  echo "$head" > deploy/run/.held-notified
+  text="🌙 <b>កិច្ចការទី #$task រង់ចាំម៉ោង 22:00</b>
+• <b>មូលហេតុ៖</b> មានការកែមូលដ្ឋានទិន្នន័យ — ដាក់ពេលយប់ ពេលអ្នកប្រើតិច
+• <b>Server៖</b> 🟢 កំណែបច្ចុប្បន្ននៅដើរធម្មតា"
 else
   rm -f deploy/run/.failed-notified
   prev=${2:-}

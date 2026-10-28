@@ -1,6 +1,6 @@
 // LuyChlat service worker: offline shell + cache-first static assets.
 // Never caches API traffic (Supabase), so financial data is not stored here.
-const CACHE = "luysmart-v5" // bump to drop old caches (v5: the mascot icons, 11/10/2026)
+const CACHE = "luysmart-v6" // bump to drop old caches (v6: entries saved from a 404 or the maintenance page, 28/10/2026)
 // Quran recitations kept for offline listening (founder, 19/10/2026 — lib/audio-cache.ts): never dropped by an
 // update, only by the person («សម្អាតទំហំចម្រៀង/គួរអាន» in Settings). Public recitations only.
 const AUDIO_CACHE = "luysmart-quran-audio-v1"
@@ -172,8 +172,11 @@ self.addEventListener("fetch", (event) => {
         (hit) =>
           hit ||
           fetch(request).then((res) => {
-            const copy = res.clone()
-            caches.open(CACHE).then((cache) => cache.put(request, copy))
+            // Only a real file: an old build's chunk answered 404 after an update must never be kept (founder, 28/10/2026).
+            if (res.ok) {
+              const copy = res.clone()
+              caches.open(CACHE).then((cache) => cache.put(request, copy))
+            }
             return res
           }),
       ),
@@ -185,8 +188,11 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const copy = res.clone()
-          caches.open(CACHE).then((cache) => cache.put(request, copy))
+          // Never the maintenance page (502 / 503 / 504 during a restart) or an error in place of the page's offline copy.
+          if (res.ok) {
+            const copy = res.clone()
+            caches.open(CACHE).then((cache) => cache.put(request, copy))
+          }
           return res
         })
         .catch(() => caches.match(request).then((hit) => hit || caches.match("/"))),

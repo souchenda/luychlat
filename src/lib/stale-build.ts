@@ -25,3 +25,22 @@ export function shouldReloadForBuild(o: {
   if (o.pathname === "/soundbox" || o.pathname.startsWith("/soundbox/")) return false
   return o.reloadedFor !== o.deployed
 }
+
+/** sessionStorage: the build this tab already reloaded for after a missing code chunk — once per build, never a loop. */
+export const CHUNK_RELOADED_KEY = "luychlat:chunk-reloaded-for"
+
+/**
+ * A page still running the previous build asks for one of its code chunks after the update removed it (founder,
+ * 28/10/2026 — «never stuck after an update»): every browser words it differently.
+ */
+export function isChunkError(message: string | null | undefined): boolean {
+  if (!message) return false
+  return /ChunkLoadError|Loading (CSS )?chunk [\w-]+ failed|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(message)
+}
+
+/** Reload once onto the live build — never twice for the same running build, never on the SoundBox (its tap-unlocked sound). */
+export function shouldReloadForChunk(o: { message: string | null | undefined; running: string | null | undefined; pathname: string; reloadedFor: string | null }): boolean {
+  if (!isChunkError(o.message)) return false
+  if (o.pathname === "/soundbox" || o.pathname.startsWith("/soundbox/")) return false
+  return o.reloadedFor !== (o.running ?? "unknown")
+}

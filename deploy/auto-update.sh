@@ -17,6 +17,27 @@ if [ "$deployed" = "$(git rev-parse origin/master)" ] && [ "$env_now" = "$env_de
   exit 0
 fi
 
+# A release that changes the database waits for the quiet hours, 22:00–06:59 (deploy/deploy-window.sh — founder,
+# 28/10/2026); the founder is told once that it waits. Unknown history counts as a migration (the safe side).
+target=$(git rev-parse origin/master)
+if [ "$deployed" != "$target" ]; then
+  if changed=$(git diff --name-only "$deployed" "$target" -- supabase/migrations/ 2>/dev/null); then
+    migrations=$(printf '%s' "$changed" | grep -c . || true)
+  else
+    migrations=1
+  fi
+  forced=0
+  git log --format=%B "$deployed..$target" 2>/dev/null | grep -qE '^Deploy-now:' && forced=1
+  hour=$(TZ=Asia/Phnom_Penh date +%-H)
+  if ! sh deploy/deploy-window.sh "$hour" "$migrations" "$forced"; then
+    if [ "$(cat deploy/run/.held-notified 2>/dev/null)" != "$(git rev-parse --short "$target")" ]; then
+      echo "=== $(date -Is) holding $(git rev-parse --short "$target") until 22:00 ($migrations database change(s))"
+      bash ./deploy/deploy-notify.sh held || true
+    fi
+    exit 0
+  fi
+fi
+
 if [ "$env_now" != "$env_deployed" ]; then
   echo "=== $(date -Is) .env changed: redeploying"
 else
