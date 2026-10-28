@@ -33,3 +33,12 @@ export function formatHonorificName(o: {
   if ([text.km, text.en.toLowerCase(), "hajji", "haj"].some((t) => lower === t || lower.startsWith(`${t} `))) return name
   return `${title} ${name}`
 }
+
+/**
+ * How the spoken welcome addresses the person (founder, 28/10/2026): «ហាជ្ជី» / «ហាជ្ជះ» in Islamic Mode when they said
+ * so themselves and chose the title — the same rule as the written name — else «បង». Khmer: the voice speaks Khmer.
+ */
+export function spokenAddress(o: { islamic: boolean; hasCompletedHajj: boolean | null | undefined; hajjTitle: string | null | undefined }): string {
+  if (o.islamic && o.hasCompletedHajj && isHajjTitle(o.hajjTitle)) return HAJJ_TITLE_TEXT[o.hajjTitle].km
+  return "បង"
+}

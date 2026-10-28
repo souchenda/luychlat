@@ -67,7 +67,8 @@ describe("The spoken welcome greeting's clips (founder, 27/10/2026 — Task #522
     assert.match(pill, /if \(gone \|\| !shouldSpeakWelcome\(\{ enabled: true, ready: GREETING_CLIPS_READY, quiet \}\)\) return/)
     // The clip: the Salam, and the Khmer welcome when the phone's own voice cannot speak it (khmer-voice.test.ts).
     assert.match(pill, /const gender = readVoiceGender\(local\)/)
-    assert.equal((pill.match(/stopSpeaking = speakOnLaunch\(greetingClipUrl\(g\.kind, gender\)\)/g) ?? []).length, 2)
+    assert.match(pill, /stopSpeaking = speakOnLaunch\(greetingClipUrl\(g\.kind, gender\), \(\) => \{/) // the Salam, then the welcome
+    assert.match(pill, /if \(!spoken && !gone\) stopSpeaking = speakOnLaunch\(greetingClipUrl\(g\.kind, gender\)\)/) // the Khmer clip
   })
 })
 

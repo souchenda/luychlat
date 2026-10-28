@@ -104,7 +104,7 @@ describe("Once per launch, per device, and never a sound on a muted phone (Task 
   })
   it("wired: the pill on Home outside the hero, once per launch; the audio only through shouldSpeakWelcome; the Settings switch", () => {
     const home = read("src/app/(app)/home/page.tsx")
-    assert.match(home, /<div className="dash space-y-4">\n\s+\{\/\*[^\n]*\*\/\}\n\s+<WelcomeGreetingPill islamic=\{islamic\} name=\{displayName\} \/>/)
+    assert.match(home, /<div className="dash space-y-4">\n\s+\{\/\*[^\n]*\*\/\}\n\s+<WelcomeGreetingPill islamic=\{islamic\} name=\{displayName\} address=\{spokenAddress\(/)
     assert.ok(home.indexOf("<WelcomeGreetingPill") < home.indexOf("<NetWorthCard"), "an overlay before (never inside) the hero")
     const pill = read("src/components/dashboard/welcome-greeting.tsx")
     assert.match(pill, /if \(!firstOfLaunch\(session\)\) return/)

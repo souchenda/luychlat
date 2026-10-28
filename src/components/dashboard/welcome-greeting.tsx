@@ -7,7 +7,7 @@ import { phoneQuiet } from "@/lib/native-keepalive"
 import { readVoiceGender } from "@/lib/soundbox"
 import { cambodiaHour } from "@/lib/islamic-expressions"
 import { speakKhmer } from "@/lib/khmer-voice"
-import { cambodiaDay, firstOfLaunch, GREETING_CLIPS_READY, GREETING_WORDS, greetingClipUrl, readWelcomeVoice, shouldSpeakWelcome, welcomeDuaText, welcomeGreeting, type WelcomeGreeting } from "@/lib/welcome-greeting"
+import { cambodiaDay, firstOfLaunch, GREETING_CLIPS_READY, GREETING_WORDS, greetingClipUrl, islamicWelcomeSpoken, readWelcomeVoice, shouldSpeakWelcome, welcomeDuaText, welcomeGreeting, type WelcomeGreeting } from "@/lib/welcome-greeting"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useLockStore } from "@/stores/lock-store"
 
@@ -19,8 +19,9 @@ export const FIRST_TOUCH_MS = 15_000
  * The spoken greeting (Task #522): played at once when the browser allows it (an APK, a page already touched); refused
  * (autoplay — NotAllowedError) → played at the first touch or key within FIRST_TOUCH_MS, once. Returns the clean-up.
  */
-function speakOnLaunch(url: string): () => void {
+function speakOnLaunch(url: string, onEnd?: () => void): () => void {
   const audio = new Audio(url)
+  if (onEnd) audio.addEventListener("ended", onEnd, { once: true })
   let done = false
   let wait = 0
   const off = () => {
@@ -60,7 +61,10 @@ function speakOnLaunch(url: string): () => void {
  * launch, gone by itself (or at a tap). Outside the hero card: an overlay, never part of the dashboard's layout
  * (CLAUDE.md › dashboard layout). Spoken only when this device asked for it and the phone is not on Silent / Vibrate.
  */
-export function WelcomeGreetingPill({ islamic, name }: { islamic: boolean; name: string | null | undefined }) {
+export function WelcomeGreetingPill({ islamic, name, address = "បង" }: { islamic: boolean; name: string | null | undefined; address?: string }) {
+  // Read when it is spoken (after the Salam), not at launch: the Islamic settings (the Hajj title) may load a moment later.
+  const addressRef = useRef(address)
+  addressRef.current = address
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
   const [greeting, setGreeting] = useState<WelcomeGreeting | null>(null)
@@ -105,8 +109,11 @@ export function WelcomeGreetingPill({ islamic, name }: { islamic: boolean; name:
         const gender = readVoiceGender(local)
         // The Khmer welcome in the phone's own Khmer voice first (APK 1.12+, as DL Staff speaks — founder, 28/10/2026);
         // the recorded clip when it cannot (a browser, an older app, no Khmer voice). The Salam stays its Arabic clip.
+        // Islamic Mode: the Arabic Salam, then «ហាជ្ជី / បង សូមស្វាគមន៍…» in the phone's Khmer voice (where it has one).
         if (g.kind !== "khmer") {
-          stopSpeaking = speakOnLaunch(greetingClipUrl(g.kind, gender))
+          stopSpeaking = speakOnLaunch(greetingClipUrl(g.kind, gender), () => {
+            if (!gone) void speakKhmer(islamicWelcomeSpoken(addressRef.current), gender)
+          })
           return
         }
         void speakKhmer(GREETING_WORDS.chumreap.text, gender).then((spoken) => {

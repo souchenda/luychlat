@@ -41,7 +41,7 @@ import { WhatsNewDialog } from "@/components/dashboard/whats-new"
 import { useAssetsTotal } from "@/lib/assets-total"
 import { isGoal } from "@/lib/goals"
 import { useIslamicDefaults, useIslamicSettings } from "@/lib/islamic-settings"
-import { formatHonorificName } from "@/lib/hajj-title"
+import { formatHonorificName, spokenAddress } from "@/lib/hajj-title"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
 import { usePrefsStore } from "@/stores/prefs-store"
@@ -111,7 +111,7 @@ export default function HomePage() {
     // «dash»: readable Khmer on the dashboard (globals.css — line-height 1.6, nothing under 13 px).
     <div className="dash space-y-4">
       {/* The welcome as the app opens (Task #518): an overlay pill, once per launch — never inside the hero card. */}
-      <WelcomeGreetingPill islamic={islamic} name={displayName} />
+      <WelcomeGreetingPill islamic={islamic} name={displayName} address={spokenAddress({ islamic, hasCompletedHajj: islamicSettings.has_completed_hajj, hajjTitle: islamicSettings.hajj_title })} />
       {/* «✨ មុខងារថ្មី» (27/10/2026): a new feature, once per phone — after the welcome, never over another dialog. */}
       <WhatsNewDialog islamic={islamic} />
       <header>

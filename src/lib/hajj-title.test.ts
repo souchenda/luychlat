@@ -6,7 +6,8 @@ import { describe, it } from "node:test"
 import { dictionaries } from "@/lib/i18n/dictionaries"
 import { greetingStack } from "@/lib/islamic-expressions"
 
-import { formatHonorificName, HAJJ_TITLE_TEXT, isHajjTitle } from "./hajj-title"
+import { formatHonorificName, HAJJ_TITLE_TEXT, isHajjTitle, spokenAddress } from "./hajj-title"
+import { islamicWelcomeSpoken } from "./welcome-greeting"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 const f = (o: Partial<Parameters<typeof formatHonorificName>[0]>) =>
@@ -47,7 +48,7 @@ describe("formatHonorificName — the Hajj title (founder, 27/10/2026 — Task #
     const home = read("src/app/(app)/home/page.tsx")
     assert.match(home, /formatHonorificName\(\{ name: givenName, islamic, hasCompletedHajj: islamicSettings\.has_completed_hajj, hajjTitle: islamicSettings\.hajj_title, locale \}\)/)
     assert.match(home, /greetingStack\(islamic, displayName, cambodiaHour\(\)\)/)
-    assert.match(home, /<WelcomeGreetingPill islamic=\{islamic\} name=\{displayName\} \/>/)
+    assert.match(home, /<WelcomeGreetingPill islamic=\{islamic\} name=\{displayName\} address=\{spokenAddress\(/)
     const settings = read("src/app/(app)/settings/page.tsx")
     assert.match(settings, /\{settings\.enabled && <HajjRow \/>\}/)
     assert.match(settings, /\{settings\.has_completed_hajj && \(/)
@@ -57,5 +58,23 @@ describe("formatHonorificName — the Hajj title (founder, 27/10/2026 — Task #
       for (const k of ["islamic.hajj", "islamic.hajjHint", "islamic.hajjPick", "islamic.hajjTitle"]) assert.ok(d[k], `${l} ${k}`)
     }
     assert.equal((dictionaries.km as Record<string, string>)["islamic.hajj"], "🕋 បានបំពេញកាតព្វកិច្ចហាជ្ជ (Hajj)")
+  })
+})
+
+describe("The spoken welcome says «ហាជ្ជី» instead of «បង» when the person has it (founder, 28/10/2026)", () => {
+  const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
+  it("Islamic Mode, the 5th pillar completed and the title chosen: «ហាជ្ជី» / «ហាជ្ជះ»; any other case «បង» — never guessed", () => {
+    assert.equal(spokenAddress({ islamic: true, hasCompletedHajj: true, hajjTitle: "haji" }), "ហាជ្ជី")
+    assert.equal(spokenAddress({ islamic: true, hasCompletedHajj: true, hajjTitle: "hajjah" }), "ហាជ្ជះ")
+    assert.equal(spokenAddress({ islamic: true, hasCompletedHajj: true, hajjTitle: null }), "បង") // no title chosen
+    assert.equal(spokenAddress({ islamic: true, hasCompletedHajj: false, hajjTitle: "haji" }), "បង")
+    assert.equal(spokenAddress({ islamic: false, hasCompletedHajj: true, hajjTitle: "haji" }), "បង") // only in Islamic Mode
+    assert.equal(islamicWelcomeSpoken("ហាជ្ជី"), "ហាជ្ជី សូមស្វាគមន៍មកកាន់អេបលុយឆ្លាត")
+  })
+  it("after the Arabic Salam, in the phone's Khmer voice; the address read when spoken (the settings may load later)", () => {
+    const pill = read("src/components/dashboard/welcome-greeting.tsx")
+    assert.match(pill, /speakOnLaunch\(greetingClipUrl\(g\.kind, gender\), \(\) => \{\n\s+if \(!gone\) void speakKhmer\(islamicWelcomeSpoken\(addressRef\.current\), gender\)/)
+    assert.match(pill, /addressRef\.current = address/)
+    assert.match(read("src/app/(app)/home/page.tsx"), /address=\{spokenAddress\(\{ islamic, hasCompletedHajj: islamicSettings\.has_completed_hajj, hajjTitle: islamicSettings\.hajj_title \}\)\}/)
   })
 })

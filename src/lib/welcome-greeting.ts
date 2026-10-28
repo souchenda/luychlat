@@ -85,6 +85,13 @@ export const GREETING_WORDS = {
   salam: { text: "السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ", lang: "ar", tempo: 1 },
 } as const
 
+/**
+ * Islamic Mode, after the Arabic Salam: the welcome in the phone's Khmer voice, addressing the person as they asked —
+ * «ហាជ្ជី សូមស្វាគមន៍មកកាន់អេបលុយឆ្លាត» (lib/hajj-title.ts › spokenAddress; founder, 28/10/2026). Only where the phone
+ * speaks Khmer itself (APK 1.12+): a clip cannot say a chosen title, so elsewhere the Salam stands alone.
+ */
+export const islamicWelcomeSpoken = (address: string) => `${address} សូមស្វាគមន៍មកកាន់អេបលុយឆ្លាត`
+
 /** The banner's Salam (the glossary's), unchanged by the spoken one. */
 export const GREETING_SALAM_TEXT = ASSALAMU_ALAIKUM
 
