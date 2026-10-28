@@ -39,6 +39,13 @@ describe("Capacity and spending — remind the founder only when it is time (fou
     assert.equal(at(capacityItems(TODAY, "2026-12-01"), "launch").level, "act")
     assert.equal(capacityItems(TODAY, "2027-01-01").some((i) => i.key === "launch"), false)
   })
+  it("the Supabase Pro → Free reminder from 12/11/2026 (founder: «remind me by Telegram mid next month»), weekly, until 15/12", () => {
+    assert.equal(capacityItems(TODAY, "2026-11-11").some((i) => i.key === "downgrade"), false)
+    const due = dueReminders(capacityItems(TODAY, "2026-11-12"), {}, Date.parse("2026-11-12T02:05:00Z"))
+    assert.deepEqual(due.map((i) => i.key), ["downgrade"])
+    assert.match(reminderText(due[0]), /CHENDA SOU.*Free.*\$25/)
+    assert.equal(capacityItems(TODAY, "2026-12-16").some((i) => i.key === "downgrade"), false)
+  })
   it("told once, again only after 7 days if it is still there; engineering's items never reach the founder", () => {
     const items = capacityItems({ ...TODAY, db_bytes: 450 * MB, dockerd_mb: 2000 }, "2026-10-28")
     const now = Date.parse("2026-10-28T02:05:00Z")
