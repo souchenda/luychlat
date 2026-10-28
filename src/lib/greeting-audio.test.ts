@@ -41,18 +41,20 @@ describe("The spoken welcome greeting's clips (founder, 27/10/2026 — Task #522
     }
   })
   it("what they say: the Khmer welcome with the brand's name; the Salam in the glossary's spelling (never retyped)", () => {
-    assert.deepEqual(GREETING_WORDS.chumreap, { text: "ជម្រាបសួរ! សូមស្វាគមន៍មកកាន់ អេប លុយឆ្លាត", lang: "km" })
+    // Founder, 28/10/2026: «ជម្រាបសួរបង», no pause-making «!» or space, a little faster.
+    assert.deepEqual(GREETING_WORDS.chumreap, { text: "ជម្រាបសួរបង សូមស្វាគមន៍មកកាន់អេបលុយឆ្លាត", lang: "km", tempo: 1.12 })
     assert.doesNotMatch(GREETING_WORDS.chumreap.text, /កម្មវិធី|អែប|LuyChlat/) // the brand standard
     // Task #523: the Salam spoken in ARABIC by the Arabic voice (never a Khmer voice reading a transliteration);
     // the banner keeps the glossary's Khmer spelling.
-    assert.deepEqual(GREETING_WORDS.salam, { text: "السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ", lang: "ar" })
+    assert.deepEqual(GREETING_WORDS.salam, { text: "السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ", lang: "ar", tempo: 1 })
     assert.match(GREETING_WORDS.salam.text, /^[\u0600-\u06FF\s]+$/)
     assert.equal(GREETING_SALAM_TEXT, ASSALAMU_ALAIKUM)
   })
   it("made under the owner's override only: translate_tts in that script alone, recorded in CLAUDE.md; loudness checked", () => {
     const s = read("scripts/greeting-clips-override.ts")
     assert.deepEqual([...new Set(s.match(/https:\/\/[^\s"`/]+/g))], ["https://translate.google.com"])
-    assert.match(s, /for \(const \[name, \{ text, lang \}\] of Object\.entries\(GREETING_WORDS\)\)/)
+    assert.match(s, /for \(const \[name, \{ text, lang, tempo \}\] of Object\.entries\(GREETING_WORDS\)\)/)
+    assert.match(s, /`atempo=\$\{tempo\}`/) // faster without a higher pitch
     assert.match(s, /tl=\$\{lang\}/) // each in its own language
     assert.match(s, /const ok = clipMatches\(v\)/)
     assert.match(read("CLAUDE.md"), /\*\*And to the 2 welcome greeting clips \(founder, 27\/10\/2026 —\s+Task #522\):\*\*/)

@@ -51,18 +51,24 @@ async function main(outDir: string) {
   let failed = 0
   try {
     // Each in its own language (Task #523): the Khmer welcome by the Khmer voice, the Salam in Arabic by the Arabic voice.
-    for (const [name, { text, lang }] of Object.entries(GREETING_WORDS)) {
+    for (const [name, { text, lang, tempo }] of Object.entries(GREETING_WORDS)) {
       const res = await fetch(`${SPEECH}?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(text)}`, { headers: { "User-Agent": "Mozilla/5.0" } })
       const body = Buffer.from(await res.arrayBuffer())
       if (!res.ok || body.length < 1000) throw new Error(`${name}: HTTP ${res.status}, ${body.length} bytes`)
       const raw = path.join(work, `${name}.mp3`)
       writeFileSync(raw, body)
+      // A little faster when asked (founder, 28/10/2026): atempo keeps the pitch — never a chipmunk voice.
+      let src = raw
+      if (tempo !== 1) {
+        src = path.join(work, `${name}-tempo.wav`)
+        execFileSync(ff, ["-hide_banner", "-loglevel", "error", "-y", "-i", raw, "-af", `atempo=${tempo}`, src])
+      }
       const trimmed = path.join(work, `${name}-trim.wav`)
-      execFileSync(ff, ["-hide_banner", "-loglevel", "error", "-y", "-i", raw, "-af", trimFilter(), trimmed])
+      execFileSync(ff, ["-hide_banner", "-loglevel", "error", "-y", "-i", src, "-af", trimFilter(), trimmed])
       const gain = clipGainDb(volume(ff, trimmed).mean)
       if (gain === null) throw new Error(`${name}: the speech is silent or far too quiet — not amplified`)
       const out = path.join(outDir, `${name}.mp3`)
-      execFileSync(ff, encodeArgs(raw, out, gain))
+      execFileSync(ff, encodeArgs(src, out, gain))
       const v = volume(ff, out)
       const ok = clipMatches(v)
       if (!ok) failed++
