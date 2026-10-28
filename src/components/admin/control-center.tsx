@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { DatabaseBackupIcon, GlobeIcon, Loader2Icon, RotateCcwIcon, ShieldCheckIcon } from "lucide-react"
 import { toast } from "sonner"
 
+import { NoticePanel } from "@/components/admin/notice-panel"
 import { ago, rpc, Section } from "@/components/admin/ui"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -107,6 +108,9 @@ export function ControlCenter() {
         <p className="text-lg font-bold">{t(`ops.overall.${head}` as MessageKey)}</p>
         <p className="text-xs text-muted-foreground">{report ? t("ops.updated", { ago: ago(new Date(report.at * 1000).toISOString()) }) : t("ops.noReport")}</p>
       </Card>
+
+      {/* The incident kit: what every user sees when something is wrong (founder, 28/10/2026). */}
+      <NoticePanel />
 
       <Section title={t("ops.healthTitle")} icon={<ShieldCheckIcon />}>
         <Card className="gap-0 divide-y py-0">

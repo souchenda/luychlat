@@ -19,6 +19,7 @@ import { FestiveBadge, FestiveSplash } from "@/components/culture/festive-greeti
 import { HashScroller } from "@/components/layout/hash-scroller"
 import { PrayerAlertScheduler } from "@/components/islamic/prayer-alerts"
 import { StaleBuildReload } from "@/components/common/stale-build-reload"
+import { AppNoticeBanner } from "@/components/common/app-notice-banner"
 import { CounterModeKeeper } from "@/components/payments/counter-mode"
 import { AppUpdatePrompt } from "@/components/layout/app-update"
 import { FlipToHideListener } from "@/components/privacy/flip-to-hide"
@@ -124,6 +125,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               bare && "pt-[calc(env(safe-area-inset-top)+0.75rem)]",
             )}
           >
+            {/* The incident kit: a prepared notice when something is wrong (founder, 28/10/2026). */}
+            <AppNoticeBanner />
             <WorkspaceLockedBanner workspace={workspace} />
             <DormantGate>
               <FeatureGate>{children}</FeatureGate>

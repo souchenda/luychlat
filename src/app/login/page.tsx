@@ -10,6 +10,7 @@ import { EmailLogin } from "@/components/auth/email-login"
 import { PhoneLogin } from "@/components/auth/phone-login"
 import { SocialLogin, TelegramReturn } from "@/components/auth/social-login"
 import { ReferralCapture } from "@/components/billing/referral"
+import { AppNoticeBanner } from "@/components/common/app-notice-banner"
 import { KeepTogether } from "@/components/keep-together"
 import { BrandMark } from "@/components/brand-mark"
 import { useGuestSummary } from "@/components/settings/guest-import"
@@ -151,6 +152,8 @@ export default function LoginPage() {
                 </p>
               )}
               <TelegramReturn />
+              {/* The incident kit: someone who cannot sign in reads why, without asking (founder, 28/10/2026). */}
+              <AppNoticeBanner />
               <Suspense>
                 <OAuthError />
                 <AccountDeletedNote />

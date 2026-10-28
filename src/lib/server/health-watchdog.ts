@@ -4,6 +4,7 @@ import fs from "fs"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { logEvent } from "@/lib/server/events"
 import { devopsChats } from "@/lib/server/admin-routes"
+import { AUTO_NOTICE } from "@/lib/incident-notices"
 
 /**
  * Runs every minute from the dispatcher (production only):
@@ -276,6 +277,17 @@ async function loadOpenAlerts() {
 }
 
 /** Once a minute. */
+/** Shows (or clears) the users' notice for a paged outage; a notice the founder set is never replaced (public.bot_notice_auto). */
+async function autoNotice(issue: Issue, on: boolean) {
+  const kind = issue === "db_down" || issue === "webhook" ? AUTO_NOTICE[issue] : null
+  if (!kind) return
+  try {
+    await botDb().rpc("bot_notice_auto", { p_key: botKey(), p_kind: kind, p_on: on })
+  } catch {
+    // the database itself may be the outage: the founder was paged all the same
+  }
+}
+
 export async function watchdogTick() {
   if (!loaded) await loadOpenAlerts()
   const sample = await takeSample()
@@ -303,6 +315,8 @@ export async function watchdogTick() {
     if (!paged.has(issue) && shouldPage(issue, downSince.get(issue) ?? now, now)) {
       paged.add(issue)
       await sendCritical(alertText(issue, sample))
+      // The incident kit: every user reads the prepared notice at the same moment (founder, 28/10/2026).
+      await autoNotice(issue, true)
     }
   }
   // An open alert clears once it has really recovered (margin + a few minutes), with one message.
@@ -315,7 +329,10 @@ export async function watchdogTick() {
     await botDb().rpc("bot_health_alert_set", { p_key: botKey(), p_issue: issue, p_open: false })
     await botDb().rpc("bot_health_incident", { p_key: botKey(), p_issue: issue, p_event: "close" })
     // «Recovered» only for what was paged.
-    if (paged.delete(issue)) await sendCritical(recoveredText(issue, sample, [...lastAlert.keys()].filter((i) => PAGE_ISSUES.includes(i))))
+    if (paged.delete(issue)) {
+      await sendCritical(recoveredText(issue, sample, [...lastAlert.keys()].filter((i) => PAGE_ISSUES.includes(i))))
+      await autoNotice(issue, false)
+    }
     logEvent("info", "watchdog", `Recovered: ${issue}`)
   }
 
