@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { type Capacity, REMIND_EVERY_MS, capacityItems, dueReminders, reminderText } from "./capacity"
+import { BUILD_SETTLE_S, type Capacity, REMIND_EVERY_MS, capacityItems, dueReminders, reminderText } from "./capacity"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 // The server on 28/10/2026, measured by the agent's capacity() on the Droplet.
@@ -26,6 +26,13 @@ describe("Capacity and spending — remind the founder only when it is time (fou
   it("a build's CPU and RAM are never a reason to spend", () => {
     const items = capacityItems({ ...TODAY, building: true, ram_pct: 97, load15: 2 }, "2026-10-28")
     assert.deepEqual([at(items, "ram").level, at(items, "cpu").level], ["ok", "ok"])
+  })
+  it("regression: «CPU 99%» seven minutes after a deploy (the real load 9%) — the 15-minute average still carried the build", () => {
+    const after = capacityItems({ ...TODAY, load15: 1.98, build_ago_s: 7 * 60 }, "2026-10-28")
+    assert.equal(at(after, "cpu").level, "ok")
+    assert.equal(dueReminders(after, {}, Date.now()).some((i) => i.key === "cpu"), false)
+    // Long after any build, a real sustained load still counts.
+    assert.equal(at(capacityItems({ ...TODAY, load15: 1.98, build_ago_s: BUILD_SETTLE_S + 60 }, "2026-10-28"), "cpu").level, "act")
   })
   it("the Play Store decision from 01/12/2026 until the launch", () => {
     assert.equal(at(capacityItems(TODAY, "2026-11-30"), "launch").level, "ok")

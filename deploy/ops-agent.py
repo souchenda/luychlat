@@ -144,6 +144,9 @@ def capacity():
         "dockerd_mb": dockerd_mb,
         # A build's CPU and RAM are not the users' (the deploy and the APK build mark themselves).
         "building": any(os.path.exists(f"{REPO}/deploy/run/{m}") for m in ("building-deploy", "building-apk")),
+        # When the last build ended: the 15-minute load average still carries it for a while (28/10/2026 — a «CPU 99%»
+        # reminder 7 minutes after a deploy). The deploy log and the APK build log are written to the end of every build.
+        "build_ago_s": int(time.time() - max([os.path.getmtime(p) for p in ("/var/log/luysmart-deploy.log", "/var/log/luysmart-apk-build.log") if os.path.exists(p)] or [0])),
     }
     try:
         row = psql(

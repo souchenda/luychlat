@@ -11,6 +11,8 @@ export type Capacity = {
   ram_total_mb: number | null
   dockerd_mb: number | null
   building: boolean
+  /** Seconds since the last build ended (deploy or APK). */
+  build_ago_s?: number
   db_bytes?: number
   db_conns?: number
   db_max_conns?: number
@@ -35,6 +37,9 @@ export const ACCOUNTS_MILESTONE = 500
 /** The Google Play launch (ROADMAP §6): the plan decision is due from this date. */
 export const LAUNCH_DECISION_FROM = "2026-12-01"
 export const LAUNCH_DATE = "2027-01-01"
+
+/** After a build, the 15-minute load average needs this long to forget it. */
+export const BUILD_SETTLE_S = 20 * 60
 
 export type Level = "ok" | "warn" | "act"
 export type CapacityKey = "db" | "storage" | "conns" | "accounts" | "ram" | "cpu" | "dockerd" | "launch"
@@ -61,10 +66,12 @@ export function capacityItems(c: Capacity | null | undefined, today: string): Ca
     items.push({ key: "conns", level: level(conns, 70, 85), pct: conns, used: String(c.db_conns ?? "?"), limit: String(c.db_max_conns ?? "?"), owner: "founder" })
     const acc = pctOf(c.accounts, ACCOUNTS_MILESTONE)
     items.push({ key: "accounts", level: level(acc, 80, 100), pct: acc, used: String(c.accounts ?? "?"), limit: String(ACCOUNTS_MILESTONE), owner: "founder" })
-    // A build's CPU and RAM are not the users': never a reason to spend.
-    const ram = c.building ? null : c.ram_pct
+    // A build's CPU and RAM are not the users': never a reason to spend — during a build, nor while the 15-minute average
+    // still carries it (BUILD_SETTLE_S after it ended — 28/10/2026: «CPU 99%» seven minutes after a deploy, the real 9%).
+    const build = c.building || (c.build_ago_s !== undefined && c.build_ago_s < BUILD_SETTLE_S)
+    const ram = build ? null : c.ram_pct
     items.push({ key: "ram", level: level(ram, 80, 90), pct: ram, used: `${c.ram_pct ?? "?"}%`, limit: `${c.ram_total_mb ? Math.round(c.ram_total_mb / 1024) : "?"} GB`, owner: "founder" })
-    const cpu = c.building ? null : Math.round((c.load15 * 100) / Math.max(1, c.cpus))
+    const cpu = build ? null : Math.round((c.load15 * 100) / Math.max(1, c.cpus))
     items.push({ key: "cpu", level: level(cpu, 70, 85), pct: cpu, used: String(c.load15), limit: `${c.cpus} CPU`, owner: "founder" })
     // Docker's own memory creeping up is fixed for free (a restart in the quiet hours) — engineering, not money.
     const dk = pctOf(c.dockerd_mb, 1024)
