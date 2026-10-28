@@ -193,7 +193,9 @@ const KIND_LABEL: Record<PostKind, string> = {
  * the founder's ✅ / 🚀.
  */
 // The Islamic market bulletin (NBC, SAR, gold, the Zakat Nisab — founder, 20/10/2026) is factual too: @LuyChlatIslamic only.
-export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "ISLAMIC_MORNING", "ISLAMIC_BULLETIN"]
+// The bedtime du'a (founder, 28/10/2026 — «a repetitive job, no tap needed»): the app's sourced du'a, @LuyChlatIslamic only,
+// Tuesday / Saturday and the nights of Ramadan (lib/islamic-channel.ts NIGHT_DAYS) — no preview card, no tap.
+export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "ISLAMIC_MORNING", "ISLAMIC_BULLETIN", "ISLAMIC_NIGHT"]
 export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly string[]).includes(kind)
 
 /**

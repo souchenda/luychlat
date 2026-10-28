@@ -39,6 +39,15 @@ describe("GOLDEN · the Islamic channel's 24-hour schedule", () => {
     assert.ok(kinds("2026-10-20", at(20, 15)).includes("ISLAMIC_NIGHT:2026-10-20"))
     assert.ok(!kinds("2026-10-20", at(20, 14)).includes("ISLAMIC_NIGHT:2026-10-20")) // not before its preview time
   })
+  it("the bedtime du'a two nights a week — Tuesday / Saturday — and every night of Ramadan (founder, 28/10/2026)", () => {
+    // «The same du'a every night is too much»: Tuesday 20 and Saturday 24 only, never the other nights.
+    const nights = ["2026-10-18", "2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24"].filter((d) =>
+      kinds(d, at(21)).includes(`ISLAMIC_NIGHT:${d}`),
+    )
+    assert.deepEqual(nights, ["2026-10-20", "2026-10-24"])
+    // In Ramadan every night (it carries the Sahur reminder).
+    assert.ok(kinds("2026-10-21", at(21), ramadan).includes("ISLAMIC_NIGHT:2026-10-21"))
+  })
   it("the 05:30 post is previewed the evening before, from 21:30 (the founder approves before bed)", () => {
     assert.ok(kinds("2026-10-19", at(21, 30)).includes("ISLAMIC_MORNING:2026-10-20"))
     assert.ok(!kinds("2026-10-19", at(21, 29)).includes("ISLAMIC_MORNING:2026-10-20"))

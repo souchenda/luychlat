@@ -5,7 +5,8 @@
  *   Islamic  the 24-hour lifecycle (founder, 18/10/2026 — ISLAMIC_SCHEDULE below): 05:30 the waking du'a and
  *            the day's prayer times · 08:00 the Hijri date and a halal-finance lesson · Friday 11:30 Jumu'ah
  *            and Surah Al-Kahf · 17:30 the iftar du'a (Monday / Thursday, all of
- *            Ramadan) · Sunday / Wednesday 19:00 tomorrow's sunnah fast · 21:00 the bedtime du'a. Never a
+ *            Ramadan) · Sunday / Wednesday 19:00 tomorrow's sunnah fast · 21:00 the bedtime du'a (Tuesday / Saturday and every
+ *            night of Ramadan, published on its own — NIGHT_DAYS). Never a
  *            holy-day note.
  * No quiz in the channel (founder, 20/10/2026 — a text teaser without choices read as clickbait): the Islamic Quiz
  * Challenge lives only in the app (/islamic?tab=quiz). The channel carries the market bulletin, the halal-finance
@@ -42,8 +43,16 @@ export const ISLAMIC_SCHEDULE = {
   ISLAMIC_JUMUAH: 11 * 60 + 30, // Jumu'ah + Surah Al-Kahf (Friday)
   ISLAMIC_IFTAR: 17 * 60 + 30, // the iftar du'a (fast days: Monday / Thursday, every day of Ramadan)
   ISLAMIC_FAST: 19 * 60, // tomorrow's sunnah fast (Sunday / Wednesday)
-  ISLAMIC_NIGHT: 21 * 60, // the bedtime du'a (daily)
+  ISLAMIC_NIGHT: 21 * 60, // the bedtime du'a (Tuesday / Saturday, every night of Ramadan — NIGHT_DAYS)
 } as const satisfies Record<IslamicKindName, number>
+
+/**
+ * The bedtime du'a, two nights a week (founder, 28/10/2026: «the same du'a every night is too much, and I approve the same
+ * thing every night»): Tuesday and Saturday — never the eve of a sunnah fast, which has its own 19:00 reminder — and every
+ * night before a fast of Ramadan (it carries the Sahur reminder). Published on its own (AUTO_PUBLISH_KINDS).
+ */
+export const NIGHT_DAYS: readonly number[] = [2, 6]
+export const bedtimeNight = (day: string, tomorrowHijri: HijriDate | null) => NIGHT_DAYS.includes(weekdayOf(day)) || tomorrowHijri?.month === 9
 type IslamicKindName = "ISLAMIC_MORNING" | "ISLAMIC_DAILY" | "ISLAMIC_JUMUAH" | "ISLAMIC_IFTAR" | "ISLAMIC_FAST" | "ISLAMIC_NIGHT"
 /** 05:30 is too early for a 04:45 preview: it is previewed the evening before, from 21:30. */
 export const MORNING_PREVIEW_EVENING_MINUTE = 21 * 60 + 30
@@ -107,7 +116,7 @@ export function islamicPlannedPosts(day: string, hijriOf: (day: string) => Hijri
   if (open(S.ISLAMIC_IFTAR) && isFastDay(day, hijriOf(day))) plan("ISLAMIC_IFTAR")
   // Sunday → Monday's fast, Wednesday → Thursday's.
   if ((weekday === 0 || weekday === 3) && open(S.ISLAMIC_FAST) && sunnahFastTomorrow(hijriOf(addDays(day, 1)))) plan("ISLAMIC_FAST")
-  if (open(S.ISLAMIC_NIGHT)) plan("ISLAMIC_NIGHT")
+  if (open(S.ISLAMIC_NIGHT) && bedtimeNight(day, hijriOf(addDays(day, 1)))) plan("ISLAMIC_NIGHT")
   return out
 }
 

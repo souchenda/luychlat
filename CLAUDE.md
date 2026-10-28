@@ -195,6 +195,9 @@ cluttered, and unreadable»):
   whitelist (nobody wakes at 05:00 to tap), their card reaches «LCA Approval» the evening before, from 21:30, with
   [ ❌ ផ្អាកថ្ងៃនេះ ] only (no 🚀 at night) and caption editing by reply; silence = it publishes on time. Every du'a's
   Khmer reading connects each Arabic wasl join with a hyphen, never a space (`WASL` in `src/lib/duas.test.ts`).
+  **The bedtime du'a joins them (founder, 28/10/2026 — «a repetitive job, no tap needed»):** 21:00 on Tuesday and Saturday
+  and every night of Ramadan (`NIGHT_DAYS` in `src/lib/islamic-channel.ts`), the app's sourced du'a, @LuyChlatIslamic only,
+  no preview card.
 - **The approval card — clean and thumb-friendly (founder, 21/10/2026):** a waiting card is the destination line, the
   kind and the post — no instruction lines («🔒 មិនផ្សាយទេ …», «✏️ ចុច «កែអត្ថបទ» …» are gone: the team knows silence =
   HOLD). Its keyboard: [ ✅ អនុម័ត (ផ្សាយម៉ោង …) ] full width (a later day named, «… ឥឡូវនេះ» once its time has passed) ·

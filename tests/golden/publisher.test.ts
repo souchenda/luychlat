@@ -48,7 +48,8 @@ describe("GOLDEN · video and humour: the founder's private preview first, never
   })
   it("ONLY the factual feeds publish without a tap: the market bulletin, the evening NBC rates and the prayer times", () => {
     // + the Islamic market bulletin on @LuyChlatIslamic (NBC, SAR, gold, the Zakat Nisab — the founder, 20/10/2026).
-    assert.deepEqual([...AUTO_PUBLISH_KINDS].sort(), ["BULLETIN", "ISLAMIC_BULLETIN", "ISLAMIC_MORNING", "RATES"])
+    // + the bedtime du'a, two nights a week (the founder, 28/10/2026: «a repetitive job — no tap needed»).
+    assert.deepEqual([...AUTO_PUBLISH_KINDS].sort(), ["BULLETIN", "ISLAMIC_BULLETIN", "ISLAMIC_MORNING", "ISLAMIC_NIGHT", "RATES"])
   })
   it("still waiting at its time: an URGENT reminder in the founder's private chat with ✅ publish now / ❌ pause", () => {
     const server = readFileSync(join(ROOT, "lib/server/scheduled-posts.ts"), "utf8")
@@ -119,16 +120,17 @@ describe("GOLDEN · factual feeds on time, everything creative behind the founde
   it("only the market bulletin, the evening NBC rates and the 05:30 prayer times publish without a tap — the same list in TS and SQL", async () => {
     const { AUTO_PUBLISH_KINDS } = await import("../../src/lib/scheduled-posts")
     // + the Islamic market bulletin on @LuyChlatIslamic (NBC, SAR, gold, the Zakat Nisab — the founder, 20/10/2026).
-    assert.deepEqual([...AUTO_PUBLISH_KINDS].sort(), ["BULLETIN", "ISLAMIC_BULLETIN", "ISLAMIC_MORNING", "RATES"])
+    // + the bedtime du'a, two nights a week (the founder, 28/10/2026: «a repetitive job — no tap needed»).
+    assert.deepEqual([...AUTO_PUBLISH_KINDS].sort(), ["BULLETIN", "ISLAMIC_BULLETIN", "ISLAMIC_MORNING", "ISLAMIC_NIGHT", "RATES"])
     const migrations = readdirSync(join(process.cwd(), "supabase/migrations")).sort()
     const defining = migrations.filter((m) => /function public\.post_auto_publish/.test(readFileSync(join(process.cwd(), "supabase/migrations", m), "utf8")))
     const sql = readFileSync(join(process.cwd(), "supabase/migrations", defining.at(-1)!), "utf8")
-    assert.match(sql, /select p_kind in \('BULLETIN', 'RATES', 'ISLAMIC_MORNING', 'ISLAMIC_BULLETIN'\)/)
+    assert.match(sql, /select p_kind in \('BULLETIN', 'RATES', 'ISLAMIC_MORNING', 'ISLAMIC_BULLETIN', 'ISLAMIC_NIGHT'\)/)
     // The Islamic bulletin goes to the Islamic channel only — never the general one.
     const { channelFor } = await import("../../src/lib/islamic-channel")
     assert.equal(channelFor("ISLAMIC_BULLETIN"), "islamic")
     assert.equal(channelFor("BULLETIN"), "community")
-    for (const creative of ["MORNING", "DILEMMA", "SPOTLIGHT", "HOLIDAY", "POSTER", "FUEL", "EVENING", "HOLYDAY", "ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH", "ISLAMIC_NIGHT", "ISLAMIC_IFTAR", "ISLAMIC_QUIZ"])
+    for (const creative of ["MORNING", "DILEMMA", "SPOTLIGHT", "HOLIDAY", "POSTER", "FUEL", "EVENING", "HOLYDAY", "ISLAMIC_DAILY", "ISLAMIC_FAST", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR", "ISLAMIC_QUIZ"])
       assert.ok(!AUTO_PUBLISH_KINDS.includes(creative as never), `${creative} must wait for the founder`)
   })
   it("no auto-published feed reaches Facebook (the Page stays behind the founder's tap)", () => {
