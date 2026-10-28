@@ -13,6 +13,14 @@ export const GUIDE: GuideSection[] = [
     title: { km: "១. ការចាប់ផ្តើមដំបូង", en: "1. Getting started" },
     items: [
       {
+        // Founder, 28/10/2026: the first customer took the app for a bank app and looked for «withdraw».
+        q: { km: "តើខ្ញុំអាចដកលុយពីអេប លុយឆ្លាត បានទេ?", en: "Can I withdraw money from App Luy Chlat?" },
+        a: [
+          { km: "ទេ។ អេប លុយឆ្លាត ជាសៀវភៅកត់ត្រាលុយ មិនមែនធនាគារ ឬកាបូបអេឡិចត្រូនិកទេ។ សមតុល្យក្នុងអេបគឺជាចំនួនដែលអ្នកកត់ត្រាដើម្បីតាមដាន — លុយពិតនៅតែក្នុងធនាគារ ឬហោប៉ៅរបស់អ្នក។", en: "No. App Luy Chlat is a money notebook, not a bank or an e-wallet. The balances in the app are what you record to keep track — the real money stays in your bank or your pocket." },
+          { km: "ដើម្បីដក ឬផ្ទេរលុយ សូមប្រើអេបធនាគាររបស់អ្នក (ABA, ACLEDA, Wing…) ហើយកត់ត្រាវានៅក្នុង អេប លុយឆ្លាត។", en: "To withdraw or send money, use your bank's app (ABA, ACLEDA, Wing…), then record it in App Luy Chlat." },
+        ],
+      },
+      {
         q: { km: "តើបង្កើតកាបូប ឬគណនីធនាគារដោយរបៀបណា?", en: "How do I add a wallet or bank account?" },
         a: [
           { km: "ចូល «កាបូប» › «បន្ថែមកាបូប»។ ជ្រើសធនាគារ (ABA, ACLEDA, Wing…) ឬ «សាច់ប្រាក់សុទ្ធ» ដាក់ឈ្មោះ និងជ្រើសរូបិយប័ណ្ណ USD ឬ KHR។", en: "Go to Wallets › Add wallet. Pick the bank (ABA, ACLEDA, Wing…) or Cash, give it a name and choose USD or KHR." },

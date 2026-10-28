@@ -687,7 +687,10 @@ export function WalletFormSheet({ open, onOpenChange, workspaceId, wallet, hasHi
             autoComplete="off"
             {...register("balance")}
             aria-invalid={Boolean(formState.errors.balance)}
+            aria-describedby={card ? undefined : "wallet-balance-hint"}
           />
+          {/* The app records, it never holds money (founder, 28/10/2026 — a customer looked for «withdraw»). */}
+          {!card && <p id="wallet-balance-hint" className="text-xs leading-relaxed text-muted-foreground">{t("walletForm.openingBalanceHint")}</p>}
           {formState.errors.balance && <p className="text-sm text-destructive">{errorText(formState.errors.balance.message)}</p>}
         </div>
         )}

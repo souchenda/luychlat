@@ -43,6 +43,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import type { Currency } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { proofOf } from "@/lib/payment-proof"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { useMarket } from "@/lib/market"
@@ -154,7 +155,9 @@ function PendingPayments() {
 
   const decide = (p: AdminPayment, approve: boolean) => {
     if (approve) {
-      if (!window.confirm(t("admin.approveConfirm", { name: who(p), amount: formatMoney(p.amount, p.currency) }))) return
+      // No transaction code: the approver confirms having seen the money in the bank (founder, 28/10/2026).
+      const ask = proofOf(p) === "missing" ? "admin.approveNoProofConfirm" : "admin.approveConfirm"
+      if (!window.confirm(t(ask, { name: who(p), amount: formatMoney(p.amount, p.currency) }))) return
       review.mutate({ id: p.id, approve, note: null })
     } else {
       const note = window.prompt(t("admin.rejectReason"))
@@ -186,6 +189,7 @@ function PendingPayments() {
                 <span className="font-mono font-semibold text-foreground">#{paymentCode(p.id)}</span> · {t(`upgrade.method.${p.method}` as MessageKey)}
                 {p.reference && <span className="font-mono"> · {p.reference}</span>} · {ago(p.created_at)}
               </p>
+              {proofOf(p) === "missing" && <p className="rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">{t("admin.noProof")}</p>}
               <div className="grid grid-cols-2 gap-2">
                 <Button size="sm" variant="outline" className="text-destructive" onClick={() => decide(p, false)} disabled={review.isPending}>
                   <XIcon />

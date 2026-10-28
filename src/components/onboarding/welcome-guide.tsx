@@ -1,6 +1,6 @@
 "use client"
 
-import { BotIcon, CalendarCheckIcon, ChevronLeftIcon, ChevronRightIcon, WalletIcon, ZapIcon } from "lucide-react"
+import { BookOpenIcon, BotIcon, CalendarCheckIcon, ChevronLeftIcon, ChevronRightIcon, WalletIcon, ZapIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils"
 import { useSessionStore } from "@/stores/session-store"
 
 const STEPS = [
+  // First: what the app is — a money notebook, never a bank (founder, 28/10/2026 — the first customer looked for «withdraw»).
+  { icon: BookOpenIcon, key: "notebook" },
   { icon: WalletIcon, key: "wallet" },
   { icon: ZapIcon, key: "record" },
   { icon: CalendarCheckIcon, key: "loans" },
@@ -21,7 +23,7 @@ const STEPS = [
 const NEW_ACCOUNT_DAYS = 14
 
 /**
- * Welcome guide: 4 steps (wallets, 3-second entries, loans & bills, the
+ * Welcome guide: 5 steps (a notebook not a bank, wallets, 3-second entries, loans & bills, the
  * Telegram bot) with dots, Back / Next, swipe on phones and "Skip" on every
  * step. Opens by itself once for a new account; never again once seen.
  */

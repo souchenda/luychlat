@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { Currency } from "@/lib/data/types"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
+import { referenceOk } from "@/lib/payment-proof"
 import { useT } from "@/lib/i18n/use-t"
 import { formatMoney } from "@/lib/money"
 import { usePlan, usePlanOptions, useUpgradeStore, type UpgradeReason } from "@/lib/plan"
@@ -157,7 +158,10 @@ export function UpgradeSheet() {
       setSent({ ...row, amount: Number(row.amount) })
       void queryClient.invalidateQueries({ queryKey: ["payments-mine"] })
     },
-    onError: (error) => toast.error(/too_many_pending/.test(String((error as Error).message)) ? t("upgrade.tooMany") : t("common.error")),
+    onError: (error) => {
+      const message = String((error as Error).message)
+      toast.error(/reference_required/.test(message) ? t("upgrade.referenceRequired") : /too_many_pending/.test(message) ? t("upgrade.tooMany") : t("common.error"))
+    },
   })
 
   const cancel = useMutation({
@@ -376,10 +380,12 @@ export function UpgradeSheet() {
               }}
             >
               <div className="space-y-1.5">
-                <Label htmlFor="pay-ref">{t("upgrade.referenceOptional")}</Label>
-                <Input id="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} placeholder="TRX…" />
+                {/* Required (founder, 28/10/2026 — «I've paid» was tapped without paying): the code the approver finds in the bank. */}
+                <Label htmlFor="pay-ref">{t("upgrade.referenceLabel")}</Label>
+                <Input id="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} placeholder="TRX…" required aria-describedby="pay-ref-hint" />
+                <p id="pay-ref-hint" className="text-xs leading-relaxed text-muted-foreground">{t("upgrade.referenceHint")}</p>
               </div>
-              <Button type="submit" className="h-12 w-full text-base" disabled={request.isPending}>
+              <Button type="submit" className="h-12 w-full text-base" disabled={request.isPending || !referenceOk(reference)}>
                 {request.isPending ? <Loader2Icon className="animate-spin" /> : <CrownIcon />}
                 {t("upgrade.iHavePaid")}
               </Button>
