@@ -41,8 +41,8 @@ describe("The spoken welcome greeting's clips (founder, 27/10/2026 — Task #522
     }
   })
   it("what they say: the Khmer welcome with the brand's name; the Salam in the glossary's spelling (never retyped)", () => {
-    // Founder, 28/10/2026: «ជម្រាបសួរបង», no pause-making «!» or space, a little faster.
-    assert.deepEqual(GREETING_WORDS.chumreap, { text: "ជម្រាបសួរបង សូមស្វាគមន៍មកកាន់អេបលុយឆ្លាត", lang: "km", tempo: 1.12 })
+    // Founder, 28/10/2026: «ជម្រាបសួរ បង» (spaced: written together the voice said «សួ-របង»), no pause-making «!», barely faster.
+    assert.deepEqual(GREETING_WORDS.chumreap, { text: "ជម្រាបសួរ បង សូមស្វាគមន៍មកកាន់អេបលុយឆ្លាត", lang: "km", tempo: 1.05 })
     assert.doesNotMatch(GREETING_WORDS.chumreap.text, /កម្មវិធី|អែប|LuyChlat/) // the brand standard
     // Task #523: the Salam spoken in ARABIC by the Arabic voice (never a Khmer voice reading a transliteration);
     // the banner keeps the glossary's Khmer spelling.

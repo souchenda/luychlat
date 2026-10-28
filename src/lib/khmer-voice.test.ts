@@ -10,9 +10,9 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace
 const native = !existsSync(join(process.cwd(), "android")) && "android/ is not in the build context"
 
 describe("The welcome in the phone's own Khmer voice, as DL Staff speaks (founder, 28/10/2026)", () => {
-  it("DL Staff's tuning: 1.2× speed; 👩 a little higher, 👨 lower (one Khmer voice on a phone)", () => {
-    assert.deepEqual(khmerVoiceParams("female"), { rate: 1.2, pitch: 1.08 })
-    assert.deepEqual(khmerVoiceParams("male"), { rate: 1.2, pitch: 0.88 })
+  it("the normal speed (1.2× was too fast — founder, 28/10/2026); 👩 a little higher, 👨 lower (one Khmer voice on a phone)", () => {
+    assert.deepEqual(khmerVoiceParams("female"), { rate: 1, pitch: 1.08 })
+    assert.deepEqual(khmerVoiceParams("male"), { rate: 1, pitch: 0.88 })
   })
   it("the phone's voice first, the recorded clip when it cannot — on launch and in What's New; the Salam stays its clip", () => {
     const launch = read("src/components/dashboard/welcome-greeting.tsx")

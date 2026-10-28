@@ -14,11 +14,11 @@ type KhmerVoicePlugin = { speak(o: { text: string; rate: number; pitch: number; 
 const KhmerVoice = registerPlugin<KhmerVoicePlugin>("KhmerVoice")
 
 /**
- * DL Staff's tuning, which the founder liked: 1.2× speed; the phone has one Khmer voice, so 👩 / 👨 is its pitch —
- * a little higher for a woman's, lower for a man's.
+ * The phone has one Khmer voice, so 👩 / 👨 is its pitch — a little higher for a woman's, lower for a man's (DL Staff's
+ * pitches). The normal speed: DL Staff's 1.2× was too fast for a greeting (founder, 28/10/2026).
  */
 export function khmerVoiceParams(gender: VoiceGender): { rate: number; pitch: number } {
-  return gender === "male" ? { rate: 1.2, pitch: 0.88 } : { rate: 1.2, pitch: 1.08 }
+  return gender === "male" ? { rate: 1, pitch: 0.88 } : { rate: 1, pitch: 1.08 }
 }
 
 /** Speaks `text` in the phone's Khmer voice; false when it cannot (then play the clip). Never throws. */

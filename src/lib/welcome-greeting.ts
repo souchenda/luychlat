@@ -78,9 +78,10 @@ export function writeWelcomeVoice(store: Store | null, on: boolean) {
  * Licensing); a native speaker's recording replaces either with scripts/import-greeting-voice.ts.
  */
 export const GREETING_WORDS = {
-  // Founder, 28/10/2026: «ជម្រាបសួរបង» is warmer than a bare «ជម្រាបសួរ»; no «!» and no space before the brand (the voice
-  // paused three times — choppy); a little faster (tempo, the pitch kept).
-  chumreap: { text: "ជម្រាបសួរបង សូមស្វាគមន៍មកកាន់អេបលុយឆ្លាត", lang: "km", tempo: 1.12 },
+  // Founder, 28/10/2026: «ជម្រាបសួរ បង» is warmer than a bare «ជម្រាបសួរ»; no «!» and no space before the brand (the voice
+  // paused three times — choppy). A space between «សួរ» and «បង»: written together the voice split them «សួ-របង».
+  // Barely faster (1.12 was too fast — the founder, the same day).
+  chumreap: { text: "ជម្រាបសួរ បង សូមស្វាគមន៍មកកាន់អេបលុយឆ្លាត", lang: "km", tempo: 1.05 },
   salam: { text: "السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللَّهِ وَبَرَكَاتُهُ", lang: "ar", tempo: 1 },
 } as const
 
