@@ -18,7 +18,7 @@ window.EXTRA_T = {
     "d.s8": "Services we use",
     "d.s8a": "Supabase — the database and sign-in.",
     "d.s8b": "Telegram — the bot and notifications, when you link Telegram.",
-    "d.s8c": "AI providers (such as Google Gemini or Anthropic) — only when you use the AI Advisor or read a receipt photo.",
+    "d.s8c": "AI providers (such as Google Gemini or Anthropic) — only when you use the AI Advisor or have a receipt photo read.",
     "d.s8d": "Cloudflare — protects the website and delivers it fast.",
     "d.s9": "How long we keep it",
     "d.s9a": "We keep your data while your account exists. When you delete your account, your financial data and files are deleted permanently.",

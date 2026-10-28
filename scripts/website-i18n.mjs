@@ -49,7 +49,13 @@ function page(lang) {
     d.querySelector('meta[name="description"]').setAttribute("content", t["meta.desc"])
     d.querySelector('meta[property="og:title"]').setAttribute("content", t["meta.title"])
     d.querySelector('meta[property="og:description"]').setAttribute("content", t["meta.desc"])
-    // the images' alt text and the QR's label stay as they are (names and addresses)
+    // An image's description in the page's language (data-i-alt — founder, 28/10/2026: the screenshots were Khmer on
+    // the English page); the QR's label stays as it is (an address).
+    for (const el of d.querySelectorAll("[data-i-alt]")) {
+      const v = t[el.getAttribute("data-i-alt")]
+      if (v == null) throw new Error(`${lang}: no alt text for ${el.getAttribute("data-i-alt")}`)
+      el.setAttribute("alt", v)
+    }
   }
   d.querySelector('meta[property="og:locale"]').setAttribute("content", OG_LOCALE[lang])
   d.querySelector('meta[property="og:url"]').setAttribute("content", ORIGIN + here)

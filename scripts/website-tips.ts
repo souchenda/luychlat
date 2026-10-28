@@ -2,7 +2,7 @@
  * «គន្លឹះលុយខ្លីៗ» on luychlat.com (founder, 28/10/2026 — «where are the short money tips?»): six tips from the app's
  * own library (src/lib/tips.ts — the vetted copy the channel publishes at 12:00, never retyped here), 0-9 digits like
  * the app. Writes the section between the markers in Website/index.html and its English / Chinese text into
- * Website/i18n.js (Chinese reads the English, as in the app). Then run scripts/website-i18n.mjs.
+ * Website/i18n.js (Chinese from ZH below — never the English on the Chinese page). Then run scripts/website-i18n.mjs.
  *
  *   npx tsx scripts/website-tips.ts
  */
@@ -13,6 +13,17 @@ import { TIPS } from "../src/lib/tips"
 
 /** Short, everyday, one per need: saving, debt, the shop. */
 export const WEBSITE_TIPS = ["emergency-fund", "separate-goals", "true-cost", "lending-family", "separate-money", "cash-flow-daily"]
+
+/** The Chinese page's own words (the app's library is km / en only — never the English on the Chinese page). */
+const ZH: Record<string, { t: string; b: string }> = {
+  "emergency-fund": { t: "建立应急备用金", b: "目标是存够 3–6 个月的必要开支，并单独存放。从小额开始——哪怕每周 $10，也会慢慢积少成多。" },
+  "separate-goals": { t: "给储蓄起个名字", b: "为“孩子学费”或“新摩托车”存钱，比“随便存点”更容易坚持。分别设定目标，看着它一天天增长。" },
+  "true-cost": { t: "了解贷款的真实成本", b: "月息 2%，一年大约就是 24%。借钱前先用应用里的贷款计算器，算清楚要付的总利息。" },
+  "lending-family": { t: "借钱也要留记录", b: "即使是借给亲戚，也要记下金额、日期和还款日。这样既保护彼此的关系，提醒还款时也不尴尬。" },
+  "separate-money": { t: "店里的钱和家里的钱分开", b: "生意用单独的钱包。从店里拿钱自用时，记为“老板支取”，才能看到真实的利润。" },
+  "cash-flow-daily": { t: "每天看现金流", b: "账面上的利润不等于手里的现金。每天检查进账、出账，以及谁还欠你钱。" },
+}
+for (const id of WEBSITE_TIPS) if (!ZH[id]) throw new Error(`no Chinese for tip ${id}`)
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 const tips = WEBSITE_TIPS.map((id) => {
@@ -58,7 +69,11 @@ const lines = (lang: "en" | "zh") =>
     `  "tips.title": ${json(lang === "zh" ? "理财小贴士" : "Short money tips")},`,
     `  "tips.sub": ${json(lang === "zh" ? "来自应用内的贴士库——储蓄、还债与经营小店" : "From the app's tip library — saving, paying off debt, running a shop")},`,
     `  "tips.more": ${json(lang === "zh" ? "在应用中查看更多贴士 →" : "More tips in the app →")},`,
-    ...tips.flatMap((t) => [`  "tip.${t.id}.t": ${json(latinDigits(t.title.en))},`, `  "tip.${t.id}.b": ${json(latinDigits(t.body.en))},`]),
+    ...tips.flatMap((t) =>
+      lang === "zh"
+        ? [`  "tip.${t.id}.t": ${json(ZH[t.id].t)},`, `  "tip.${t.id}.b": ${json(ZH[t.id].b)},`]
+        : [`  "tip.${t.id}.t": ${json(latinDigits(t.title.en))},`, `  "tip.${t.id}.b": ${json(latinDigits(t.body.en))},`],
+    ),
     `  // tips:end`,
   ].join("\n")
 const T = "Website/i18n.js"
