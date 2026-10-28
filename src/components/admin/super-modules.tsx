@@ -141,10 +141,17 @@ function PlanEditor({ plan, onClose }: { plan: Plan; onClose: () => void }) {
   const original = toDraft(plan)
   const save = useMutation({
     mutationFn: ({ changes, note }: { changes: Record<string, unknown>; note: string }) => rpc("admin_update_plan", { p_code: plan.code, p_changes: changes, p_note: note }),
-    onSuccess: () => {
+    onSuccess: (_, { changes }) => {
       toast.success(t("admin.saved"))
       void queryClient.invalidateQueries({ queryKey: ["admin", "plans"] })
       void queryClient.invalidateQueries({ queryKey: planKeys.options })
+      // A new price reaches luychlat.com at once: the server republishes it with the app's prices (deploy/site-prices.py —
+      // founder, 28/10/2026). Busy or no 2FA on this session: the next publish carries it.
+      if ("price_usd" in changes || "price_khr" in changes)
+        void rpc("ops_request", { p_action: "website_republish" }).then(
+          () => toast.success(t("super.planWebsite")),
+          () => null,
+        )
       onClose()
     },
     onError: () => toast.error(t("super.planInvalid")),

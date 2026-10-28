@@ -67,6 +67,8 @@ version_assets() {
     done
   done
 }
+# The prices from the app's own plans (deploy/site-prices.py — founder, 28/10/2026); a failure keeps the page's own.
+python3 "$REPO/deploy/site-prices.py" "$next" || true
 version_assets "$next"
 chmod -R a+rX "$next"
 rm -rf "$DEST.old" && { [ -d "$DEST" ] && mv "$DEST" "$DEST.old" || true; } && mv "$next" "$DEST" && rm -rf "$DEST.old"

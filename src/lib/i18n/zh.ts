@@ -2272,6 +2272,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "super.unlimited": "无限制",
   "super.planActive": "提供此套餐",
   "super.fixedRules": "银行对账单导入（免费：1 次）和机器人付费功能目前仍为固定规则。",
+  "super.planWebsite": "新价格正在更新到 luychlat.com——大约 1 分钟。",
   "super.planInvalid": "数值无效",
   "super.planPrompt": "更改套餐 {plan}？原因（记录在审计日志中）：",
   "super.partners": "银行、CBC 与合作伙伴",
