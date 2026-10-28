@@ -146,3 +146,16 @@ describe("the 🔄 card says what changed (founder, 22/10/2026 — Task #462)", 
     assert.match(appLinksLine("telegram"), /Android \(APK\)<\/a> · <a/)
   })
 })
+
+describe("Regression: the Islamic bulletin came back as a «new version» for a gold price that had moved (founder, 28/10/2026)", () => {
+  it("every kind the founder set to publish on its own is a snapshot of its moment — never offered for replacement", async () => {
+    const { AUTO_PUBLISH_KINDS, REPLACEABLE } = await import("./scheduled-posts")
+    for (const kind of AUTO_PUBLISH_KINDS) assert.equal(REPLACEABLE(kind), false, kind)
+    assert.equal(REPLACEABLE("ISLAMIC_BULLETIN"), false) // the one that came back (gold $486 → $487)
+    assert.equal(REPLACEABLE("ISLAMIC_MORNING"), false)
+    assert.equal(REPLACEABLE("FUEL"), false)
+    // Content fixed by the day still gets the 🔄 card: a poster, a lesson.
+    assert.equal(REPLACEABLE("MORNING"), true)
+    assert.equal(REPLACEABLE("ISLAMIC_DAILY"), true)
+  })
+})

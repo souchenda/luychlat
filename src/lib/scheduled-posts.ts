@@ -317,9 +317,12 @@ export const isScheduledPostCallback = (data: string | undefined) => Boolean(dat
 // [ 🔄 ] it is published and the old message deleted (lib/server/scheduled-posts.ts, migration 20270200000000).
 
 /** Kinds whose content is fixed by the day (a poster, a lesson, a quote) — a difference means a new version. The live
- *  feeds (bulletin, NBC rates, a fuel notice) change by themselves and are never offered for replacement. Nor is a
- *  retired kind (no longer in KIND_LABEL, e.g. the channel quiz, 20/10/2026): its content is gone, not improved. */
-export const REPLACEABLE = (kind: string) => Object.hasOwn(KIND_LABEL, kind) && kind !== "BULLETIN" && kind !== "RATES" && kind !== "FUEL"
+ *  feeds change by themselves and are never offered for replacement: a fuel notice, and EVERY kind the founder set to
+ *  publish on its own (AUTO_PUBLISH_KINDS — the bulletins, the NBC rates, the prayer times): a snapshot of its moment, an
+ *  improvement reaches the next day's post (founder, 28/10/2026 — the Islamic bulletin came back to him five times for a
+ *  gold price that had moved). Nor is a retired kind (no longer in KIND_LABEL, e.g. the channel quiz, 20/10/2026). */
+export const REPLACEABLE = (kind: string) =>
+  Object.hasOwn(KIND_LABEL, kind) && kind !== "FUEL" && !(AUTO_PUBLISH_KINDS as readonly string[]).includes(kind)
 
 export function replacePreviewText(kind: PostKind, body: string, summary?: string): string {
   return [

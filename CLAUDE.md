@@ -223,6 +223,9 @@ cluttered, and unreadable»):
   silent; the Page post's text edited) — never a delete and a new post (founder, 21/10/2026 — Task #441,
   `lib/server/edit-in-place.ts`) — and the founder is told (`replaceDue` / `checkVersions` in `src/lib/server/scheduled-posts.ts`, migration
   `20270200000000`). Still preview-first: nothing is replaced without an approver's tap or the founder's own instruction.
+  **Never for what publishes on its own (founder, 28/10/2026):** every `AUTO_PUBLISH_KINDS` post (the bulletins, the NBC
+  rates, the prayer times) and a fuel notice is a snapshot of its moment — never offered for replacement (`REPLACEABLE`); an
+  improvement reaches the next day's post. («What I set to auto must not come back to me.»)
 - **Wording guards:** never italicise Khmer in a caption (no `<i>`); banned phrases in quotes, tips and the
   spotlight fail the build (`tests/golden/content-guards.test.ts`).
 - **Video (Reels / MP4), whenever added:** length follows substance — 30–60 s with a complete
