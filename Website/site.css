@@ -279,6 +279,14 @@ p { margin: 0; }
 .howpay ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
 
 /* FAQ */
+/* «គន្លឹះលុយខ្លីៗ» (founder, 28/10/2026): six tips from the app's library (scripts/website-tips.ts). */
+.tips { padding: 72px 0 24px; }
+.tip-grid { display: grid; gap: 14px; margin-top: 28px; }
+@media (min-width: 640px) { .tip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 980px) { .tip-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tip { padding: 20px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+.tip h3 { margin: 0 0 8px; font-size: 1.02rem; line-height: 1.5; color: var(--ink); }
+.tip p { margin: 0; color: var(--muted); line-height: 1.75; font-size: .95rem; }
 .faq { padding: 72px 0; }
 .faq h2 { margin-bottom: 24px; }
 details { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; margin-top: 10px; }
