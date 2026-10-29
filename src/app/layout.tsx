@@ -62,6 +62,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Fixed like an app (founder, 29/10/2026 — iPhone users found the page zooming and sliding; globals.css holds the rest).
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   // Light by default (the app never follows the device's dark mode); updated when Dark is chosen in Settings.
   themeColor: "#ffffff",

@@ -211,6 +211,24 @@
   html {
     @apply font-sans;
   }
+  /* Steady like an app on iPhone (founder, 29/10/2026 — «the screen slides around and zooms»): no sideways drift from a
+     too-wide element, no rubber-band bounce of the whole page, no double-tap zoom; text keeps its size on rotation. */
+  html,
+  body {
+    overflow-x: clip;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* iOS zooms into any field under 16px when it is tapped — every field is 16px on a phone. */
+  @media (width < 48rem) {
+    input,
+    select,
+    textarea {
+      font-size: max(16px, 1em) !important;
+    }
+  }
 }
 
 /*
