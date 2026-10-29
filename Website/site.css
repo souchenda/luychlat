@@ -455,3 +455,20 @@ details a { color: var(--brand); }
 .door b { color: var(--brand); }
 .fam-art { justify-self: center; display: grid; place-items: center; width: min(280px, 70vw); aspect-ratio: 1; margin: 0; border-radius: 50%; background: var(--brand-soft); box-shadow: var(--shadow); }
 .fam-art svg { width: 78%; height: auto; display: block; }
+
+/* Line icons in place of emoji (founder, 29/10/2026: «cartoon icons don't fit the app's value») — icons.svg, one stroke
+   style in the brand colour; the emoji left on the page are the bot's and the app's own words, shown as they are. */
+.i { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.feat .ic, .signature span, .door .ic { color: var(--brand); }
+.feat .ic .i, .signature span .i { font-size: 24px; }
+.moment > span { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 14px; background: var(--brand-soft); color: var(--brand); font-size: 22px; }
+.door .ic { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: var(--brand-soft); font-size: 26px; }
+.timeline .t { color: var(--gold, #d4a514); }
+.tr b .i { font-size: 26px; }
+.ph-toast .dot { color: #059669; font-size: 18px; }
+.chips li { display: inline-flex; align-items: center; gap: 8px; }
+.chips li .i { color: var(--brand); font-size: 18px; }
+.moment .fix { position: relative; padding-left: 24px; }
+.moment .fix::before { content: ""; position: absolute; left: 0; top: .3em; width: 17px; height: 17px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat; }
+.safe { position: relative; padding-left: 42px; }
+.safe::before { content: ""; position: absolute; left: 14px; top: 12px; width: 20px; height: 20px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E") center / contain no-repeat; }

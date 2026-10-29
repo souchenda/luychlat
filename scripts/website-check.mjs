@@ -64,6 +64,13 @@ for (const page of PAGES) {
     if (!existsSync(join(dirname(file), src))) bad(page, `missing file ${src}`)
   }
   for (const img of doc.querySelectorAll("img")) if (!img.hasAttribute("alt")) warn(page, `image without alt: ${img.getAttribute("src")}`)
+  // The line icons (founder, 29/10/2026): «/icons.svg#name» — the file there and the icon in it, on every page and language.
+  for (const use of doc.querySelectorAll("use[href]")) {
+    const [file, id] = use.getAttribute("href").split("#")
+    const local = file.startsWith("/") ? join(ROOT, file.split("?")[0]) : join(dirname(join(ROOT, page)), file.split("?")[0])
+    if (!existsSync(local)) bad(page, `icon file missing: ${use.getAttribute("href")}`)
+    else if (!readFileSync(local, "utf8").includes(`<symbol id="${id}"`)) bad(page, `no icon «${id}» in ${file}`)
+  }
   // 5. The page's own metadata
   if (!doc.title.trim()) bad(page, "no <title>")
   if (page !== "404.html" && !doc.querySelector('meta[name="description"]')?.getAttribute("content")) warn(page, "no meta description")
