@@ -18,6 +18,11 @@ describe("my_account_status answers every gate (AccountGate and DormantGate)", (
       assert.match(latest, new RegExp(`'${key}'`), `my_account_status lost '${key}'`)
     }
   })
+  it("removing a staff member lifts the 2FA lock their role put on (the demo account, a former staff, stayed locked)", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270277000000_staff_remove_2fa.sql"), "utf8")
+    assert.match(sql, /admin_staff_remove/)
+    assert.match(sql, /set require_2fa = false/)
+  })
   it("both gates read it", () => {
     for (const f of ["src/components/security/mfa-gate.tsx", "src/components/layout/dormant-gate.tsx"]) {
       assert.match(readFileSync(join(process.cwd(), f), "utf8"), /rpc\("my_account_status"\)/)
