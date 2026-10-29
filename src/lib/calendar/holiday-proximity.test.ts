@@ -77,6 +77,6 @@ describe("23 October — the poster's title in the founder's two lines (Task #45
   })
   it("the waiting card is sent again with the new poster (a migration flag this build knows)", () => {
     assert.match(read("supabase/migrations/20270251000000_repreview_paris_title.sql"), /jsonb_build_object\('repreview', 'paris-title'\)[\s\S]*post_key = 'paris-peace-2026-10-23' and status = 'PENDING'/)
-    assert.match(read("src/lib/server/scheduled-posts.ts"), /const REPREVIEW_READY = \[[^\]]*"paris-title"\]/)
+    assert.match(read("src/lib/server/scheduled-posts.ts"), /const REPREVIEW_READY = \[[^\]]*"paris-title"[^\]]*\]/)
   })
 })

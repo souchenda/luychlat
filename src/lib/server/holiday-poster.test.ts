@@ -22,6 +22,9 @@ describe("holiday poster — the words on the artwork", () => {
     assert.doesNotMatch(t.date, /ឈប់សម្រាក/)
     const src = readFileSync(join(process.cwd(), "src/lib/server/holiday-poster.ts"), "utf8")
     assert.match(src, /m\.stage === "post" && m\.block\.kind === "GENERAL" \? "ចូលធ្វើការវិញ"/)
+    // The card already waiting for 30 October is sent again with this poster.
+    assert.match(readFileSync(join(process.cwd(), "supabase/migrations/20270279000000_repreview_holiday_back_day.sql"), "utf8"), /'holiday-back-day'[\s\S]*post_key = '2026-10-30-post' and status = 'PENDING'/)
+    assert.match(readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8"), /const REPREVIEW_READY = \[[^\]]*"holiday-back-day"/)
   })
   it("the eve of the Water Festival: the date line is not repeated in the message", () => {
     const t = holidayPosterText(holidayMoment("2026-11-20")!)
