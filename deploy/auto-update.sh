@@ -17,12 +17,18 @@ if [ "$deployed" = "$(git rev-parse origin/master)" ] && [ "$env_now" = "$env_de
   exit 0
 fi
 
-# A release that changes the database waits for the quiet hours, 22:00–06:59 (deploy/deploy-window.sh — founder,
-# 28/10/2026); the founder is told once that it waits. Unknown history counts as a migration (the safe side).
+# A release whose database change removes or renames something (a migration marked «-- contract:») waits for the quiet
+# hours, 22:00–06:59 (deploy/deploy-window.sh — founder, 28/10/2026); the founder is told once that it waits. An additive
+# migration — the rule for every migration (lib/migration-safety.ts) — goes live at once with its fixes (founder,
+# 29/10/2026: «a fix waiting for the night leaves the error showing — it hurts the app's name»). Unknown history counts
+# as one that waits (the safe side).
 target=$(git rev-parse origin/master)
 if [ "$deployed" != "$target" ]; then
   if changed=$(git diff --name-only "$deployed" "$target" -- supabase/migrations/ 2>/dev/null); then
-    migrations=$(printf '%s' "$changed" | grep -c . || true)
+    migrations=0
+    for f in $changed; do
+      git show "$target:$f" 2>/dev/null | grep -qiE '^[[:space:]]*--[[:space:]]*contract:' && migrations=$((migrations + 1))
+    done
   else
     migrations=1
   fi

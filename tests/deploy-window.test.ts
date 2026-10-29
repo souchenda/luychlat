@@ -28,6 +28,8 @@ describe("A release that changes the database waits for the quiet hours (founder
     assert.ok(auto.indexOf("deploy-window.sh") < auto.indexOf("exec ./deploy/update.sh"))
     assert.match(auto, /git diff --name-only "\$deployed" "\$target" -- supabase\/migrations\//)
     assert.match(auto, /else\n    migrations=1\n/)
+    // Only a «-- contract:» migration waits; an additive one goes live at once with its fixes (founder, 29/10/2026).
+    assert.ok(auto.includes(`git show "$target:$f" 2>/dev/null | grep -qiE '^[[:space:]]*--[[:space:]]*contract:' && migrations=$((migrations + 1))`))
     assert.match(auto, /grep -qE '\^Deploy-now:' && forced=1/)
     assert.match(auto, /hour=\$\(TZ=Asia\/Phnom_Penh date \+%-H\)/)
     assert.match(auto, /bash \.\/deploy\/deploy-notify\.sh held \|\| true\n/)
