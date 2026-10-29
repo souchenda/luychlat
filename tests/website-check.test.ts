@@ -12,7 +12,9 @@ describe("luychlat.com passes its quality gate (founder, 28/10/2026 — «the wh
     const r = spawnSync(process.execPath, ["scripts/website-check.mjs"], { encoding: "utf8" })
     assert.equal(r.status, 0, r.stdout + r.stderr)
   })
-  it("a release that changes the website publishes it on its own, gated before the push (founder, 29/10/2026)", () => {
+  // deploy/ and .githooks/ are not in the Docker build context (regression 29/10/2026: this read failed the build there).
+  const deployHere = existsSync(join(process.cwd(), "deploy/update.sh")) && existsSync(join(process.cwd(), ".githooks/pre-push"))
+  it("a release that changes the website publishes it on its own, gated before the push (founder, 29/10/2026)", { skip: !deployHere && "deploy/ is not in the build context" }, () => {
     const update = readFileSync(join(process.cwd(), "deploy/update.sh"), "utf8")
     assert.match(update, /git diff --quiet "\$prev_deployed" HEAD -- Website\/ deploy\/landing-publish\.sh deploy\/site-prices\.py/)
     assert.match(update, /sh \.\/deploy\/landing-publish\.sh \|\| echo "! Website not published/)
