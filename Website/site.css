@@ -384,15 +384,17 @@ details a { color: var(--brand); }
 .sbar .sig { display: inline-flex; align-items: center; gap: 5px; }
 .sbar .sig b { display: inline-block; width: 20px; height: 10px; border-radius: 3px; border: 1.5px solid #111827; position: relative; }
 .sbar .sig b::after { content: ""; position: absolute; inset: 1.5px; right: 5px; background: #111827; border-radius: 1px; }
-.viewport { position: relative; aspect-ratio: 589 / 1280; flex: none; }
-.island { position: absolute; z-index: 3; left: 50%; top: 2.2%; width: 30%; height: 3.6%; margin-left: -15%; border-radius: 999px; background: #050806; }
+.viewport { position: relative; aspect-ratio: 589 / 1263; flex: none; }
+/* Android (founder, 29/10/2026 — most of our members, and the APK): the punch-hole camera in the status bar. */
+.punch { position: absolute; z-index: 3; left: 50%; top: 1.15%; width: 4%; aspect-ratio: 1; margin-left: -2%; border-radius: 50%; background: #050806; box-shadow: inset 0 0 0 2px #1c2522; }
 .homebar { height: 22px; flex: none; background: #fff; position: relative; }
 .homebar::after { content: ""; position: absolute; left: 50%; top: 9px; width: 34%; height: 4px; margin-left: -17%; border-radius: 4px; background: #111827; opacity: .8; }
 .shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; opacity: 0; transition: opacity .8s ease; }
 .shot.on { opacity: 1; }
 /* Today's date, where the app writes it (the screenshots' own was erased): right-aligned under the header. */
 .viewport { container-type: inline-size; }
-.ph-date { position: absolute; z-index: 1; top: 14.25%; right: 3.6%; font: 500 3.35cqw/1.2 "Kantumruy Pro", "Plus Jakarta Sans", sans-serif; color: #374151; white-space: nowrap; }
+.ph-date { position: absolute; z-index: 1; top: 13.35%; right: 4.1%; font: 500 3.2cqw/1.2 "Kantumruy Pro", "Plus Jakarta Sans", sans-serif; color: #374151; white-space: nowrap; }
+.screen.shots[data-on="me"] .ph-date { top: 12.85%; }
 .screen.shots .ph-toast { position: absolute; left: 10px; right: 10px; bottom: 14%; z-index: 2; font-size: 12px; }
 .shot-tabs { display: flex; gap: 8px; }
 .shot-tabs span { padding: 5px 12px; border-radius: 999px; font-size: .85rem; color: var(--muted); background: var(--surface); border: 1px solid var(--line); transition: all .3s ease; }
