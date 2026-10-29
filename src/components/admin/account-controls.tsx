@@ -177,15 +177,19 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
           <BanIcon />
           {t(user.suspended ? "admin.reactivate" : "admin.suspend")}
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={act.isPending}
-          onClick={() => void run("admin_set_require_2fa", "p_on", !user.require_2fa, t(user.require_2fa ? "admin.require2faOffPrompt" : "admin.require2faPrompt", { name: label }))}
-        >
-          <ShieldIcon />
-          {t(user.require_2fa ? "admin.require2faOff" : "admin.require2fa")}
-        </Button>
+        {/* 2FA is the member's own choice (founder, 29/10/2026 — «Facebook, Telegram, Cloudflare never force it»): an
+            admin can only lift an old requirement, never put one on. */}
+        {user.require_2fa && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={act.isPending}
+            onClick={() => void run("admin_set_require_2fa", "p_on", false, t("admin.require2faOffPrompt", { name: label }))}
+          >
+            <ShieldIcon />
+            {t("admin.require2faOff")}
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"

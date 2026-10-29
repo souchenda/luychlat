@@ -23,6 +23,14 @@ describe("my_account_status answers every gate (AccountGate and DormantGate)", (
     assert.match(sql, /admin_staff_remove/)
     assert.match(sql, /set require_2fa = false/)
   })
+  it("2FA is the member's own choice (founder, 29/10/2026): no role and no admin puts it on; old requirements lifted", () => {
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270278000000_2fa_voluntary.sql"), "utf8")
+    assert.match(sql, /admin_staff_set/)
+    assert.match(sql, /if p_on then\s+return jsonb_build_object\('ok', false, 'reason', 'voluntary'\)/)
+    assert.match(sql, /where c\.require_2fa loop/)
+    const ui = readFileSync(join(process.cwd(), "src/components/admin/account-controls.tsx"), "utf8")
+    assert.doesNotMatch(ui, /"admin\.require2faPrompt"/)
+  })
   it("both gates read it", () => {
     for (const f of ["src/components/security/mfa-gate.tsx", "src/components/layout/dormant-gate.tsx"]) {
       assert.match(readFileSync(join(process.cwd(), f), "utf8"), /rpc\("my_account_status"\)/)
