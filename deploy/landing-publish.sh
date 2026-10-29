@@ -123,9 +123,29 @@ if ! crontab -l 2>/dev/null | grep -q "luychlat-landing-watch"; then
   echo "✓ Watcher installed (every 5 minutes)"
 fi
 
-notify "🌐 គេហទំព័រ luychlat.com បានដាក់កំណែថ្មីហើយ ($stamp)។ បើមានបញ្ហា៖ sudo sh $REPO/deploy/landing-publish.sh rollback"
-
-for path in / /en/ /zh/ /business /islamic /privacy /delete-account /og.png /no-such-page; do
+# Every page checked live first, then the founder is told what is new and whether it all opens (founder, 29/10/2026 —
+# «just tell me in Telegram that it was published, and what changed»). WEBSITE_CHANGES: the releases' Khmer lines.
+pages=0; broken=""
+for path in / /en/ /zh/ /business /islamic /privacy /delete-account /og.png; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "https://luychlat.com$path")
   echo "  $code  https://luychlat.com$path"
+  if [ "$code" = "200" ]; then pages=$((pages + 1)); else broken="$broken $path"; fi
 done
+code=$(curl -s -o /dev/null -w "%{http_code}" "https://luychlat.com/no-such-page"); echo "  $code  https://luychlat.com/no-such-page"
+msg="🌐 គេហទំព័រ luychlat.com បានផ្សាយកំណែថ្មីហើយ ✅"
+if [ -n "${WEBSITE_CHANGES:-}" ]; then
+  msg="$msg
+
+អ្វីដែលថ្មី៖
+$(printf '%s\n' "$WEBSITE_CHANGES" | sed 's/^/• /')"
+fi
+if [ -z "$broken" ]; then
+  msg="$msg
+
+ទំព័រទាំង $pages បើកបានធម្មតា។"
+else
+  msg="$msg
+
+⚠️ ទំព័របើកមិនបាន៖$broken — កំណែមុនត្រូវបានរក្សាទុក (rollback)។"
+fi
+notify "$msg"
