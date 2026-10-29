@@ -185,7 +185,7 @@ p { margin: 0; }
 /* Moments */
 .moments { padding: 64px 0; }
 .cards3 { display: grid; gap: 14px; margin-top: 28px; }
-@media (min-width: 760px) { .cards3 { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 760px) { .cards3 { grid-template-columns: repeat(3, 1fr); } .cards3.cards2 { grid-template-columns: repeat(2, 1fr); } }
 .moment { display: flex; gap: 14px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
 .moment span { font-size: 26px; line-height: 1; }
 .moment p { color: var(--muted); }

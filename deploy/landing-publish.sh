@@ -6,7 +6,7 @@
 #   sudo sh deploy/landing-publish.sh rollback   (put the previous version back)
 #
 # Only the site's own files are copied (never the drafts index01.html / «index_wrong data.html»); the live folder is
-# kept as a dated backup first. Nginx learns, once: clean addresses (/privacy, /islamic, /delete-account), the 404
+# kept as a dated backup first. Nginx learns, once: clean addresses (/business, /privacy, /islamic, /delete-account), the 404
 # page, a Content-Security-Policy (only this site's own scripts, Google Fonts and Cloudflare's cookieless analytics) and
 # a week's cache for the images (the HTML, CSS and JS stay «no-cache», so an update shows at once). It writes the
 # manifest deploy/landing-watch.sh checks every 5 minutes (a changed or unknown file → a Telegram alert), installs that
@@ -42,8 +42,8 @@ if [ "${1:-}" = "rollback" ]; then
   exit 0
 fi
 
-FILES="index.html islamic.html privacy.html delete-account.html 404.html site.css site.js i18n.js islamic-t.js privacy-t.js
-delete-t.js logo.png logo-islamic.png screen-business.webp screen-personal.webp og.png og-islamic.png robots.txt sitemap.xml
+FILES="index.html business.html islamic.html privacy.html delete-account.html 404.html site.css site.js i18n.js islamic-t.js privacy-t.js
+delete-t.js business-t.js logo.png logo-islamic.png screen-business.webp screen-personal.webp og.png og-islamic.png robots.txt sitemap.xml
 en/index.html zh/index.html"
 
 for f in $FILES; do [ -f "$SRC/$f" ] || { echo "Missing $SRC/$f — nothing published."; exit 1; }; done
@@ -59,7 +59,7 @@ for f in $FILES; do cp "$SRC/$f" "$next/$f"; done
 # browsers keep them for hours or days, so a new page must never meet yesterday's CSS or screenshot (founder, 28/10/2026
 # — the new footer drawn with the old styles). A file that did not change keeps its address and its cache.
 version_assets() {
-  for a in site.css site.js i18n.js islamic-t.js privacy-t.js delete-t.js screen-business.webp screen-personal.webp logo.png logo-islamic.png og.png og-islamic.png; do
+  for a in site.css site.js i18n.js islamic-t.js privacy-t.js delete-t.js business-t.js screen-business.webp screen-personal.webp logo.png logo-islamic.png og.png og-islamic.png; do
     v=$(sha256sum "$1/$a" | cut -c1-8)
     re=$(printf '%s' "$a" | sed 's/\./\\./g')
     for page in "$1"/*.html "$1"/en/index.html "$1"/zh/index.html; do
@@ -124,7 +124,7 @@ fi
 
 notify "🌐 គេហទំព័រ luychlat.com បានដាក់កំណែថ្មីហើយ ($stamp)។ បើមានបញ្ហា៖ sudo sh $REPO/deploy/landing-publish.sh rollback"
 
-for path in / /en/ /zh/ /islamic /privacy /delete-account /og.png /no-such-page; do
+for path in / /en/ /zh/ /business /islamic /privacy /delete-account /og.png /no-such-page; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "https://luychlat.com$path")
   echo "  $code  https://luychlat.com$path"
 done
