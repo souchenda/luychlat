@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { holidayMoment } from "../holiday-lifecycle"
@@ -9,10 +11,17 @@ describe("holiday poster — the words on the artwork", () => {
   it("the day back after Pchum Ben: the title, the dates as a chip, the blessing and the tip — no emoji (the fonts have none)", () => {
     const t = holidayPosterText(holidayMoment("2026-10-13")!)
     assert.equal(t.title, "សូមស្វាគមន៍ការត្រឡប់មកវិញ")
-    assert.equal(t.date, "១០–១២ តុលា · ឈប់សម្រាក ៣ ថ្ងៃ")
+    assert.equal(t.date, "ចូលធ្វើការវិញ · ថ្ងៃអង្គារ ១៣ តុលា")
     assert.match(t.lead, /^សូមអនុមោទនាកុសលបុណ្យ។/)
     assert.match(t.tip ?? "", /^ថ្ងៃនេះ ពិនិត្យសមតុល្យគណនី/)
     for (const s of [t.title, t.date, t.lead, t.tip ?? ""]) assert.doesNotMatch(s, /\p{Extended_Pictographic}/u)
+  })
+  it("the day back names its own day, never the holiday's date with «ឈប់សម្រាក» (founder, 29/10/2026 — the 30 October poster)", () => {
+    const t = holidayPosterText(holidayMoment("2026-10-30")!)
+    assert.equal(t.date, "ចូលធ្វើការវិញ · ថ្ងៃសុក្រ ៣០ តុលា")
+    assert.doesNotMatch(t.date, /ឈប់សម្រាក/)
+    const src = readFileSync(join(process.cwd(), "src/lib/server/holiday-poster.ts"), "utf8")
+    assert.match(src, /m\.stage === "post" && m\.block\.kind === "GENERAL" \? "ចូលធ្វើការវិញ"/)
   })
   it("the eve of the Water Festival: the date line is not repeated in the message", () => {
     const t = holidayPosterText(holidayMoment("2026-11-20")!)

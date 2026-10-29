@@ -61,7 +61,21 @@ export function holidayPosterText(m: HolidayMoment): { title: string; date: stri
   const tipAt = lines.findIndex((l) => l.startsWith("💡"))
   const lead = noEmoji((tipAt >= 0 ? lines.slice(0, tipAt) : lines).join(" "))
   const tip = tipAt >= 0 ? noEmoji(lines.slice(tipAt).join(" ")) : null
-  return { title: noEmoji(title), date: `${kmRange(m.block)} · ឈប់សម្រាក ${khmerDigits(String(m.block.days))} ថ្ងៃ`, lead, tip }
+  // The day back names the day it is posted — never the holiday's date with «ឈប់សម្រាក», which read as a holiday
+  // announced for the day of work (founder, 29/10/2026: posted on 30 October «29 តុលា · ឈប់សម្រាក 1 ថ្ងៃ»).
+  const date =
+    m.stage === "post" ? `ចូលធ្វើការវិញ · ${backDayLabel(m.block.end)}` : `${kmRange(m.block)} · ឈប់សម្រាក ${khmerDigits(String(m.block.days))} ថ្ងៃ`
+  return { title: noEmoji(title), date, lead, tip }
+}
+
+const KM_WEEKDAYS = ["អាទិត្យ", "ច័ន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"]
+const KM_MONTHS = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"]
+
+/** «ថ្ងៃសុក្រ 30 តុលា» — the first day after the holiday block (its weekends are inside the block). */
+export function backDayLabel(blockEnd: string): string {
+  const d = new Date(`${blockEnd}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 1)
+  return `ថ្ងៃ${KM_WEEKDAYS[d.getUTCDay()]} ${khmerDigits(String(d.getUTCDate()))} ${KM_MONTHS[d.getUTCMonth()]}`
 }
 
 export function holidayPoster(m: HolidayMoment): Buffer {
@@ -93,7 +107,9 @@ export function holidayPoster(m: HolidayMoment): Buffer {
   ctx.textBaseline = "alphabetic"
   ctx.fillText("៛", W + 50, H - 150)
 
-  drawHeader(ctx, { text: PILL[m.block.kind], icon: religious ? (cx, cy) => lotus(ctx, cx, cy + 10, 0.34) : "calendar" })
+  // The day back is a working day: its pill says so, not «ថ្ងៃឈប់សម្រាក» (a festival keeps its name).
+  const pill = m.stage === "post" && m.block.kind === "GENERAL" ? "ចូលធ្វើការវិញ" : PILL[m.block.kind]
+  drawHeader(ctx, { text: pill, icon: religious ? (cx, cy) => lotus(ctx, cx, cy + 10, 0.34) : "calendar" })
 
   // The motif, top right: a gold lotus (Pchum Ben) or a gold ៛ coin.
   const motifX = W - PAD - 110
