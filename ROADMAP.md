@@ -55,7 +55,7 @@ dropped between sessions. The founder reviews it every evening.
 
 ## 2. ⚙️ ប្រព័ន្ធអេដមីន & ស្វ័យប្រវត្តិកម្ម (Admin, Approval & Bot Engine)
 
-- [ ] Password reset by e-mail opens localhost:3000, not the app (found 29/10/2026 with the demo account): Supabase Auth's Site URL and Redirect URLs were never moved to app.luychlat.com with the domain (11/10/2026); the app already asks for app.luychlat.com — Supabase only honours a listed address ⛔ 🟡 Supabase › Authentication › URL Configuration៖ Site URL = https://app.luychlat.com និងបន្ថែម https://app.luychlat.com/** ក្នុង Redirect URLs
+- [x] Password reset by e-mail opens localhost:3000, not the app (found 29/10/2026 with the demo account): Supabase Auth's Site URL and Redirect URLs were never moved to app.luychlat.com with the domain (11/10/2026); the app already asks for app.luychlat.com — Supabase only honours a listed address — fixed by the founder 29/10/2026 (Site URL https://app.luychlat.com, Redirect URLs https://app.luychlat.com/**)
 - [ ] AUTOBOK still sends the KHQR sales to luy.ibmserp.com/api/khqr/ingest (it works — /api is not redirected — but the sales stop if that old domain lapses) ⛔ 🟡 យល់ព្រមឲ្យប្តូរ LUYCHLAT_WEBHOOK_URL របស់ AUTOBOK ទៅ https://app.luychlat.com/api/khqr/ingest
 - [x] Dedicated «LCA Approval» group (-5578121916) with custom avatar (d5065e2)
 - [x] Factual feeds publish on time, silently — market bulletin 09:30–10:30 (as soon as the gold shops publish), evening NBC rates, 05:30 prayer times; no preview in the approval room (d5065e2, 84f427f)
