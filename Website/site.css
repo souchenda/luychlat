@@ -454,4 +454,4 @@ details a { color: var(--brand); }
 .door p { color: var(--muted); flex: 1; }
 .door b { color: var(--brand); }
 .fam-art { justify-self: center; display: grid; place-items: center; width: min(280px, 70vw); aspect-ratio: 1; margin: 0; border-radius: 50%; background: var(--brand-soft); box-shadow: var(--shadow); }
-.fam-art span { font-size: clamp(90px, 22vw, 140px); line-height: 1; }
+.fam-art svg { width: 78%; height: auto; display: block; }
