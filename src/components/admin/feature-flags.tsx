@@ -1,13 +1,13 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { FlaskConicalIcon } from "lucide-react"
+import { FileTextIcon, FlaskConicalIcon, GiftIcon, ReceiptTextIcon, ScanTextIcon, UsersIcon, type LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { ago, confirmChange, rpc, Section } from "@/components/admin/ui"
 import { Segmented } from "@/components/common/segmented"
 import { Card } from "@/components/ui/card"
-import { FEATURES, type FeatureKey, type FeatureStatus } from "@/lib/features"
+import { type FeatureKey, type FeatureStatus } from "@/lib/features"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 
@@ -43,8 +43,9 @@ export function FeatureFlagsCard() {
         {(data ?? []).map((flag) => (
           <div key={flag.key} className="space-y-2 px-4 py-3">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="text-sm font-medium">
-                {FEATURES[flag.key as FeatureKey]?.emoji} {t(`feature.name.${flag.key}` as MessageKey)}
+              <p className="flex items-center gap-2 text-sm font-medium">
+                <FeatureIcon k={flag.key as FeatureKey} />
+                {t(`feature.name.${flag.key}` as MessageKey)}
               </p>
               <p className="shrink-0 text-[11px] text-muted-foreground">
                 {ago(flag.updated_at)}
@@ -64,4 +65,18 @@ export function FeatureFlagsCard() {
       <p className="px-1 text-xs leading-relaxed text-muted-foreground">{t("feature.hint")}</p>
     </Section>
   )
+}
+
+/** Each feature's line icon (founder, 29/10/2026 — no cartoon emoji on the app's screens). */
+const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
+  invoices: ReceiptTextIcon,
+  gifts: GiftIcon,
+  pools: UsersIcon,
+  statement_import: FileTextIcon,
+  bank_slips: ScanTextIcon,
+}
+
+function FeatureIcon({ k }: { k: FeatureKey }) {
+  const Icon = FEATURE_ICONS[k]
+  return Icon ? <Icon className="size-4 shrink-0 text-primary" aria-hidden /> : null
 }

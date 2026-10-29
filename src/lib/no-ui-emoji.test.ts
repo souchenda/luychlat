@@ -93,3 +93,13 @@ describe("no emoji on the app's screens", () => {
     }
   })
 })
+
+// Regression (29/10/2026): the admin feature list drew 🧾 🎁 👥 📄 from lib/features.ts — data shown on a screen.
+describe("no emoji in the feature registry the admin screen draws", () => {
+  it("lib/features.ts carries no emoji (the screen maps each key to a line icon)", async () => {
+    const { readFileSync } = await import("node:fs")
+    const { join } = await import("node:path")
+    const src = readFileSync(join(process.cwd(), "src/lib/features.ts"), "utf8").replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "")
+    assert.doesNotMatch(src, /\p{Extended_Pictographic}/u)
+  })
+})

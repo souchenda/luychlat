@@ -7,16 +7,16 @@ import { useSessionStore } from "@/stores/session-store"
 
 /**
  * Feature flags (public.feature_flags): a feature in testing is ADMIN_ONLY —
- * only staff and 🧪 test accounts see it in the menu, open its pages and use
+ * only staff and test accounts see it in the menu, open its pages and use
  * its bot commands. Super admins flip them in /admin/super.
  */
 export const FEATURES = {
-  invoices: { routes: ["/invoices"], emoji: "🧾" },
-  gifts: { routes: ["/gifts"], emoji: "🎁" },
-  pools: { routes: ["/pools"], emoji: "👥" },
-  statement_import: { routes: ["/wallets/import"], emoji: "📄" },
+  invoices: { routes: ["/invoices"] },
+  gifts: { routes: ["/gifts"] },
+  pools: { routes: ["/pools"] },
+  statement_import: { routes: ["/wallets/import"] },
   // Telegram only: slip photos read by Gemini Vision, saved with one tap.
-  bank_slips: { routes: [], emoji: "🧾" },
+  bank_slips: { routes: [] },
 } as const
 
 export type FeatureKey = keyof typeof FEATURES
