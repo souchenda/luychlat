@@ -17,6 +17,9 @@ describe("«ធ្លាប់ទេ?» — a pain the reader knows, and the app
       assert.doesNotMatch(`${f.question}${f.answer}${f.how}`, /កម្មវិធី|អែប/, f.id)
     }
   })
+  it("personal and family life only for now — no shop item (founder, 29/10/2026: «bring personal users first»)", () => {
+    for (const f of FAMILIAR) assert.doesNotMatch(`${f.question}${f.how}${f.answer}`, /ហាង|ភ្ញៀវ|អតិថិជន|KHQR|SoundBox|វិក្កយបត្រមាន/, f.id)
+  })
   it("Wednesday 18:30, one a week from 4 November 2026, in turn — never before the start", () => {
     assert.equal(FAMILIAR_WEEKDAY, 3)
     assert.equal(FAMILIAR_MINUTE, 18 * 60 + 30)

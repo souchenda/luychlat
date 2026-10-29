@@ -1,7 +1,8 @@
 /**
  * «ធ្លាប់ទេ?» — a weekly series for @LuyChlatCommunity and the Facebook Page (founder, 29/10/2026: «a pain people knew
  * before, and App Luy Chlat has the answer»). Each post asks about a real everyday money pain, then shows what the app
- * does about it — only features the app really has. Wednesday 18:30, one a week, twelve in turn (about three months).
+ * does about it — only features the app really has. Personal and family life only for now (founder, 29/10/2026: «not
+ * the shop yet — bring personal users first»). Wednesday 18:30, one a week, twelve in turn (about three months).
  * Drawn on the approved tip poster (lib/server/tip-poster.ts, v3 — the question as the headline, the answer as the gold
  * takeaway); previewed to the founder and published only on ✅ / 🚀 (scheduled_posts, kind FAMILIAR).
  * Pure (familiar.test.ts); the wording guard (tests/golden/content-guards.test.ts) covers every line.
@@ -31,6 +32,12 @@ export const FAMILIAR: Familiar[] = [
     answer: "អេបរំលឹកជំនួសអ្នក មិនបាច់ខ្មាស់សួរ។",
   },
   {
+    id: "wedding-gifts",
+    question: "ដល់វេនចងដៃគេវិញ ភ្លេចថាគេចងយើងប៉ុន្មាន?",
+    how: "កត់ចំណងដៃ និងបច្ច័យ ដែលយើងចងគេ និងគេចងយើង។",
+    answer: "តបស្នងបានសមរម្យ មិនខ្មាស់គេ។",
+  },
+  {
     id: "loan-date",
     question: "ភ្លេចថ្ងៃបង់រំលស់ធនាគារ ត្រូវពិន័យ ហើយខូចប្រវត្តិ CBC?",
     how: "ថតតារាងបង់ប្រាក់របស់ធនាគារ អេបកត់ទុកគ្រប់ខែ។",
@@ -43,16 +50,10 @@ export const FAMILIAR: Familiar[] = [
     answer: "អេបរំលឹកមុនថ្ងៃកំណត់ រាល់ខែ។",
   },
   {
-    id: "shop-home",
-    question: "ដកលុយហាងចាយក្នុងផ្ទះ មិនដឹងហាងចំណេញប៉ុន្មាន?",
-    how: "ហាង និងផ្ទះ ជាគណនីដាច់ពីគ្នា។ យកលុយហាងទៅប្រើ កត់ជា «ម្ចាស់ដកប្រើ»។",
-    answer: "ឃើញប្រាក់ចំណេញពិតរបស់ហាង។",
-  },
-  {
-    id: "khqr",
-    question: "ភ្ញៀវថាស្កេន KHQR ហើយ តែលុយចូលឬអត់?",
-    how: "SoundBox ស្តាប់លុយចូលគណនីធនាគាររបស់អ្នក (PRO)។",
-    answer: "ទូរសព្ទប្រកាសជាសំឡេងខ្មែរ «ទទួលបាន 25,000 រៀល»។",
+    id: "savings",
+    question: "ចង់សន្សំទិញម៉ូតូ តែសន្សំមិនដែលបាន?",
+    how: "ដាក់ឈ្មោះគោលដៅ ម៉ូតូ ឬថ្លៃសាលាកូន និងចំនួនដែលត្រូវការ។",
+    answer: "ឃើញវាកើនឡើងបន្តិចម្តងៗ រហូតដល់គោលដៅ។",
   },
   {
     id: "many-banks",
@@ -61,28 +62,28 @@ export const FAMILIAR: Familiar[] = [
     answer: "ឃើញសរុបនៅកន្លែងតែមួយ ហើយលាក់លេខពេលបើកអេប។",
   },
   {
-    id: "customers-owe",
-    question: "ភ្ញៀវជំពាក់ច្រើន ចាំមិនអស់អ្នកណាប៉ុន្មាន?",
-    how: "បញ្ជីអ្នកជំពាក់ (AR) និងបញ្ជីយើងជំពាក់គេ (AP)។",
-    answer: "ដឹងច្បាស់ ប៉ុន្មាន ដល់ថ្ងៃណា។",
+    id: "group-money",
+    question: "លុយរួមដើរលេង មិនដឹងចាយអស់ប៉ុន្មាន?",
+    how: "បេឡារួមសម្រាប់ដើរលេង ឬធ្វើបុណ្យ៖ ម្នាក់កាន់ ហើយគ្រប់គ្នាមើលឃើញសមតុល្យ។",
+    answer: "ច្បាស់លាស់ គ្មានការសង្ស័យគ្នា។",
   },
   {
-    id: "savings",
-    question: "ចង់សន្សំទិញម៉ូតូ តែសន្សំមិនដែលបាន?",
-    how: "ដាក់ឈ្មោះគោលដៅ ម៉ូតូ ឬថ្លៃសាលាកូន និងចំនួនដែលត្រូវការ។",
-    answer: "ឃើញវាកើនឡើងបន្តិចម្តងៗ រហូតដល់គោលដៅ។",
-  },
-  {
-    id: "invoice",
-    question: "សរសេរវិក្កយបត្រដោយដៃ ភ្ញៀវថាមិនទាន់ទទួល?",
-    how: "ចេញវិក្កយបត្រមាន KHQR របស់ហាង។",
-    answer: "ផ្ញើជារូបភាពភ្លាម អតិថិជនស្កេនបង់បានតែម្តង។",
+    id: "budget",
+    question: "គ្រោងចាយហើយ តែនៅតែចាយហួសរាល់ខែ?",
+    how: "កំណត់ថវិកាតាមប្រភេទ ម្ហូប សាំង កម្សាន្ត។",
+    answer: "ឃើញភ្លាមថានៅសល់ប៉ុន្មានសម្រាប់ខែនេះ។",
   },
   {
     id: "car-papers",
     question: "ពន្ធផ្លូវ ឬត្រួតពិនិត្យឡាន ផុតកំណត់មិនដឹងខ្លួន?",
     how: "កត់ថ្ងៃផុតកំណត់នៃឯកសារយានយន្តម្តង។",
     answer: "អេបរំលឹកមុន 30, 15 និង 7 ថ្ងៃ។",
+  },
+  {
+    id: "voice",
+    question: "ខ្ជិលវាយអក្សរ ទើបមិនដែលកត់ចំណាយ?",
+    how: "និយាយជាសំឡេងខ្មែរទៅ Telegram Bot ហើយចុចបញ្ជាក់ (PRO)។",
+    answer: "កត់រួច ដោយមិនបាច់វាយមួយតួ។",
   },
   {
     id: "lost-phone",
