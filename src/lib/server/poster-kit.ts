@@ -128,20 +128,39 @@ function keepTerms(pieces: string[]): string[] {
   return out
 }
 
-/** Lines of `text` that fit `maxWidth`, at most `maxLines` (the last cut with "…"). */
+/**
+ * A last line shorter than this share of the width is a lone word hanging under the rest («សូមស្វាគមន៍មកកាន់ការពិត» /
+ * «វិញ» on the day-back poster — founder, 29/10/2026: «it damages our brand»): words move down from the line above.
+ */
+export const ORPHAN_SHARE = 0.4
+
+/** Lines of `text` that fit `maxWidth`, at most `maxLines` (the last cut with "…"); never a lone word on a last line. */
 export function wrap(ctx: SKRSContext2D, text: string, maxWidth: number, maxLines: number): string[] {
+  const width = (parts: string[]) => ctx.measureText(parts.join("").trim()).width
   const lines: string[] = []
   for (const paragraph of text.replace(/[\u0000-\u0009\u000b-\u001f]/g, " ").split(/\n+/)) {
-    let line = ""
+    const rows: string[][] = []
+    let row: string[] = []
     for (const segment of pieces(paragraph)) {
-      const next = line + segment
-      if (ctx.measureText(next).width <= maxWidth || !line) line = next
+      if (width([...row, segment]) <= maxWidth || !row.length) row.push(segment)
       else {
-        lines.push(line.trimEnd())
-        line = segment.trimStart()
+        rows.push(row)
+        row = [segment.trimStart()]
       }
     }
-    if (line.trim()) lines.push(line.trimEnd())
+    if (row.join("").trim()) rows.push(row)
+    // Balance the end: move words down while the last line is short, it still fits, and the line above stays longer.
+    while (rows.length >= 2) {
+      const last = rows[rows.length - 1]
+      const above = rows[rows.length - 2]
+      if (width(last) >= maxWidth * ORPHAN_SHARE || above.length < 2) break
+      const moved = [above[above.length - 1].trimStart(), ...last]
+      const rest = above.slice(0, -1)
+      if (width(moved) > maxWidth || width(rest) < width(moved)) break
+      rows[rows.length - 2] = rest
+      rows[rows.length - 1] = moved
+    }
+    for (const r of rows) lines.push(r.join("").trim())
   }
   if (lines.length <= maxLines) return lines
   const kept = lines.slice(0, maxLines)
