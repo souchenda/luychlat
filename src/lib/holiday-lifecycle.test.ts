@@ -67,6 +67,8 @@ describe("holiday lifecycle — the bell card and the words", () => {
       const m = holidayMoment(day)!
       const { title, body } = holidayMessage(m)
       assert.doesNotMatch(title + body, /រីករាយ|អែប|កម្មវិធី|&/)
+      // «សូមស្វាគមន៍មកកាន់ការពិតវិញ» read as a translated idiom on the day after the Coronation (founder, 29/10/2026).
+      assert.doesNotMatch(title, /ការពិត/)
       assert.match(holidayPostHtml(m), /^<b>.+<\/b>\n\n/)
     }
     assert.match(holidayMessage(holidayMoment("2026-11-20")!).body, /^📅 ២១–២៥ វិច្ឆិកា · ឈប់សម្រាក ៥ ថ្ងៃ/)

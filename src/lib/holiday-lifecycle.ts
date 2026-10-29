@@ -108,7 +108,7 @@ export function holidayMessage({ stage, block }: HolidayMoment): { title: string
       }
     case "KHMER_NEW_YEAR":
       return {
-        title: "☀️ សូមស្វាគមន៍មកកាន់ការពិតវិញ",
+        title: "☀️ ឆ្នាំថ្មី ចាប់ផ្តើមកត់ត្រាថ្មី",
         body: "ឆ្នាំថ្មី សមតុល្យចាស់ — ប្រហែលជាតិចជាងមុនបន្តិច។\n💡 ពិនិត្យគណនីថ្ងៃនេះ កត់ត្រាចំណាយចូលឆ្នាំដែលភ្លេច ហើយចាប់ផ្តើមកត់ត្រាឡើងវិញ។",
       }
     case "WATER_FESTIVAL":
@@ -118,7 +118,9 @@ export function holidayMessage({ stage, block }: HolidayMoment): { title: string
       }
     default:
       return {
-        title: "☀️ សូមស្វាគមន៍មកកាន់ការពិតវិញ",
+        // Plain Khmer, never a translated idiom («welcome back to reality» read as one — founder, 29/10/2026), and it
+        // follows royal and national days too.
+        title: "☀️ ត្រឡប់មកធ្វើការវិញហើយ",
         body: "ថ្ងៃឈប់សម្រាកចប់ហើយ — តែវិក្កយបត្រមិនបានឈប់សម្រាកជាមួយយើងទេ។\n💡 ពិនិត្យសមតុល្យ មើលវិក្កយបត្រជិតដល់ថ្ងៃ ហើយចាប់ផ្តើមកត់ត្រាឡើងវិញ។",
       }
   }
