@@ -419,11 +419,8 @@ details a { color: var(--brand); }
 .ai { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; }
 .ai svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .ai svg.fill { fill: currentColor; stroke: none; }
-.acct.web .ai { background: rgba(252, 211, 77, .16); color: #fcd34d; }
-.acct.tg .ai { background: radial-gradient(circle, #fff 58%, transparent 60%); color: #26a5e4; }
-.acct.tg .ai svg, .acct.fb .ai svg { width: 30px; height: 30px; }
-.acct.fb .ai { background: radial-gradient(circle, #fff 58%, transparent 60%); color: #0866ff; }
-.acct.mail .ai { background: rgba(167, 243, 208, .16); color: #a7f3d0; }
+/* One look for every official account (founder, 29/10/2026 — «the icons don't match»): the same gold line icon in the same tile. */
+.acct .ai { background: rgba(252, 211, 77, .16); color: #fcd34d; }
 .at { min-width: 0; display: flex; flex-direction: column; line-height: 1.35; }
 .at small { color: #a9cfc0; font-size: .78rem; }
 .at b { color: #fff; font-weight: 600; font-size: .95rem; overflow-wrap: anywhere; }
