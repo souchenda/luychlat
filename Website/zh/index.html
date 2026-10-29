@@ -385,35 +385,45 @@
 
   <footer class="foot">
     <div class="wrap foot-in">
-      <div class="brand">
-        <img src="../logo.png" alt="" width="36" height="36">
-        <span><b>អេប លុយឆ្លាត</b><small>App Luy Chlat</small></span>
+      <div class="foot-brand">
+        <div class="brand">
+          <img src="../logo.png" alt="" width="36" height="36">
+          <span><b>អេប លុយឆ្លាត</b><small>App Luy Chlat</small></span>
+        </div>
+        <p class="foot-tag" data-i="ft.tag">手机里的记账本，专为柬埔寨家庭打造</p>
       </div>
-      <!-- Grouped like a world-class app's footer (founder, 28/10/2026): navigation here; «គណនីផ្លូវការ» above is the
-           trust block (only these are us). -->
+      <!-- Three even columns and a legal line (founder, 29/10/2026 — «what do you think?»): who it is for, the app, contact.
+           «គណនីផ្លូវការ» on the home page stays the trust block (only these are us). -->
       <nav class="foot-cols" aria-label="Footer">
+        <div>
+          <h4 data-i="ft.colFor">适合谁</h4>
+          <a href="../personal" data-i="ft.personal">个人</a>
+          <a href="../family" data-i="ft.family">家庭</a>
+          <a href="../business" data-i="ft.business">店主</a>
+          <a href="../islamic" data-i="ft.islamic">伊斯兰模式</a>
+        </div>
         <div>
           <h4 data-i="ft.colApp">应用</h4>
           <a href="https://app.luychlat.com/download" data-i="ft.download">下载</a>
           <a href="https://app.luychlat.com" data-i="ft.open">打开应用</a>
-          <a href="../personal" data-i="ft.personal">个人版</a>
-          <a href="../family" data-i="ft.family">家庭版</a>
-          <a href="../business" data-i="ft.business">商家版</a>
-          <a href="../privacy" data-i="ft.privacy">隐私与条款</a>
+          <a href="../#pricing" data-i="nav.pricing">价格</a>
+          <a href="../#tips" data-i="nav.tips">贴士</a>
         </div>
         <div>
           <h4 data-i="ft.colContact">联系我们</h4>
           <a href="https://t.me/luychlat_support" target="_blank" rel="noopener" data-i="ft.support">客服</a>
           <a href="mailto:info@luychlat.com">info@luychlat.com</a>
-        </div>
-        <div>
-          <h4 data-i="ft.colFollow">关注我们</h4>
           <a href="https://www.facebook.com/appluychlat" target="_blank" rel="noopener">Facebook</a>
           <a href="https://t.me/LuyChlatCommunity" target="_blank" rel="noopener" data-i="ft.community">Telegram 社区</a>
-          <a href="https://t.me/luychlat_bot" target="_blank" rel="noopener">@luychlat_bot</a>
         </div>
       </nav>
-      <p class="copy">© 2026 App Luy Chlat · <span data-i="ft.rights">版权所有</span></p>
+      <div class="foot-bottom">
+        <p class="copy">© 2026 App Luy Chlat · <span data-i="ft.rights">版权所有</span></p>
+        <nav class="legal" aria-label="Legal">
+          <a href="../privacy" data-i="ft.privacy">隐私与条款</a>
+          <a href="../delete-account" data-i="ft.delete">删除账户</a>
+        </nav>
+      </div>
     </div>
   </footer>
 
@@ -427,6 +437,7 @@
 
   <!-- Cloudflare Web Analytics (cookieless) — the website only, never the app -->
   <script defer="" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;: &quot;d414eab13d024a1aade4e9fc8f5ddf1f&quot;}"></script>
+
 
 
 
