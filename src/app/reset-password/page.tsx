@@ -2,7 +2,7 @@
 
 import { EyeIcon, EyeOffIcon, KeyRoundIcon, Loader2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { authErrorCode } from "@/components/auth/email-login"
@@ -13,13 +13,16 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useHydrated } from "@/hooks/use-hydrated"
+import { recoveryFromHash } from "@/lib/auth/recovery-link"
+import { claimSingleSession } from "@/lib/auth/single-session"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useSessionStore } from "@/stores/session-store"
 
 /**
- * Target of the "reset password" email: /auth/callback has already signed the
- * user in from the link, so here they only choose the new password.
+ * Target of the "reset password" email. The link brings the session in the URL fragment (implicit flow, so it works in
+ * any browser — lib/auth/recovery-link.ts): it is set here and wiped from the address bar; then they only choose the
+ * new password. (An older link through /auth/callback arrives already signed in.)
  */
 export default function ResetPasswordPage() {
   const t = useT()
@@ -31,6 +34,22 @@ export default function ResetPasswordPage() {
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
+  // While the link's session is being set, neither the form nor «link expired».
+  const [linking, setLinking] = useState(true)
+
+  useEffect(() => {
+    const link = recoveryFromHash(window.location.hash)
+    if (link) window.history.replaceState(null, "", window.location.pathname) // the tokens never stay in the URL
+    const supabase = getSupabaseBrowserClient()
+    if (link?.kind !== "session" || !supabase) return setLinking(false)
+    void supabase.auth
+      .setSession({ access_token: link.accessToken, refresh_token: link.refreshToken })
+      .then(async ({ error }) => {
+        // A reset link is a fresh sign-in too: one device at a time.
+        if (!error) await claimSingleSession(supabase)
+      })
+      .finally(() => setLinking(false))
+  }, [])
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,7 +78,7 @@ export default function ResetPasswordPage() {
   return (
     <main className="app-frame flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-6 py-8">
       <BrandMark className="mx-auto size-12 text-2xl" />
-      {!hydrated || !authReady ? (
+      {!hydrated || !authReady || linking ? (
         <Loader2Icon className="mx-auto size-6 animate-spin text-muted-foreground" />
       ) : !user ? (
         // The link expired, was already used, or was opened without signing in.

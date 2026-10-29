@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { EMAIL_PATTERN, parseLoginIdentifier } from "@/lib/auth-identifier"
 import { initialAuthTab } from "@/lib/login-mode"
+import { RESET_PATH } from "@/lib/auth/recovery-link"
 import { claimSingleSession } from "@/lib/auth/single-session"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { getImplicitClient } from "@/lib/supabase/implicit-client"
 import { cn } from "@/lib/utils"
 
 import { MIN_PASSWORD, PasswordHint } from "./password-hint"
@@ -121,7 +123,8 @@ export function EmailLogin({ disabled, initialEmail = "", signInExtra }: { disab
       const [tgRes, mailRes] = await Promise.all([
         fetch("/api/auth/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier: email }) }).catch(() => null),
         id.kind === "email"
-          ? supabase.auth.resetPasswordForEmail(address, { redirectTo: `${window.location.origin}/auth/callback?next=/reset-password` })
+          ? // Implicit flow: the link works in whichever browser Gmail opens it (lib/auth/recovery-link.ts).
+            (getImplicitClient() ?? supabase).auth.resetPasswordForEmail(address, { redirectTo: `${window.location.origin}${RESET_PATH}` })
           : Promise.resolve(null),
       ])
       setBusy(false)
