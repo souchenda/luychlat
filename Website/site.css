@@ -442,3 +442,16 @@ details a { color: var(--brand); }
 .chat .kb { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0 6px 6px; }
 .chat .kb span { text-align: center; font-size: .85rem; padding: 7px 4px; border-radius: 10px; background: rgba(34, 158, 217, .12); color: #1f7ab3; font-weight: 600; }
 .note { margin-top: 10px; color: var(--muted); font-size: .8rem; text-align: center; }
+
+/* «ខ្ញុំជា…» — one door per reader (founder, 29/10/2026) */
+.doors { padding: 64px 0; }
+.door-grid { display: grid; gap: 14px; margin-top: 28px; }
+@media (min-width: 760px) { .door-grid { grid-template-columns: repeat(3, 1fr); } }
+.door { display: flex; flex-direction: column; gap: 8px; padding: 22px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); color: inherit; text-decoration: none; box-shadow: var(--shadow); transition: transform .2s ease, border-color .2s ease; }
+.door:hover { transform: translateY(-3px); border-color: var(--brand); }
+.door .ic { font-size: 30px; line-height: 1; }
+.door h3 { font-size: 1.2rem; }
+.door p { color: var(--muted); flex: 1; }
+.door b { color: var(--brand); }
+.fam-art { justify-self: center; display: grid; place-items: center; width: min(280px, 70vw); aspect-ratio: 1; margin: 0; border-radius: 50%; background: var(--brand-soft); box-shadow: var(--shadow); }
+.fam-art span { font-size: clamp(90px, 22vw, 140px); line-height: 1; }

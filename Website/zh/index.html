@@ -34,8 +34,9 @@
         <span><b>អេប លុយឆ្លាត</b><small>App Luy Chlat</small></span>
       </a>
       <nav class="links" aria-label="Main">
-        <a href="#family" data-i="nav.family">家庭</a>
-        <a href="#business" data-i="nav.business">商家</a>
+        <a href="../personal.html" data-i="nav.personal">个人</a>
+        <a href="../family.html" data-i="nav.family">家庭</a>
+        <a href="../business.html" data-i="nav.business">商家</a>
         <a href="#pricing" data-i="nav.pricing">价格</a>
         <a href="#tips" data-i="nav.tips">贴士</a>
         <a href="#faq" data-i="nav.faq">常见问题</a>
@@ -65,7 +66,7 @@
             <li><span>🎤</span><div><b data-i="sig.2t">说句话就记好</b><small data-i="sig.2">给 Telegram 机器人发文字或语音，点确认即记账（PRO）</small></div></li>
             <li><span>🤝</span><div><b data-i="sig.3t">借款和随礼，不再忘记</b><small data-i="sig.3">谁借了钱、谁送了多少礼——应用替您提醒，打开时数字默认隐藏</small></div></li>
           </ul>
-          <a class="more-link" href="#family" data-i="hero.more">看看它怎么帮您的家庭 ↓</a>
+          <a class="more-link" href="#who" data-i="hero.more">看看它怎么帮到您 ↓</a>
         </div>
 
         <!-- The real app (the founder's Android screenshots, 29/10/2026 — the photo a rabbit, the shop «ហាងឆ្លាត») -->
@@ -110,36 +111,30 @@
       </div>
     </section>
 
-    <!-- Family -->
-    <section class="features" id="family">
+    <!-- «ខ្ញុំជា…» — one door per kind of account (founder, 29/10/2026): each page speaks to one reader -->
+    <section class="doors" id="who">
       <div class="wrap">
-        <p class="eyebrow" data-i="fam.eyebrow">个人与家庭</p>
-        <h2 data-i="fam.title">家里的钱，花在哪里一清二楚</h2>
-        <div class="grid">
-          <article class="feat reveal"><span class="ic">👛</span><h3 data-i="fam.1t">美元和瑞尔</h3><p data-i="fam.1">现金、银行、银行卡集中管理，按柬埔寨国家银行（NBC）汇率换算。</p></article>
-          <article class="feat reveal"><span class="ic">🔔</span><h3 data-i="fam.2t">账单提醒</h3><p data-i="fam.2">水电、网费、贷款和定存，到期前提醒。</p></article>
-          <article class="feat reveal"><span class="ic">🚗</span><h3 data-i="fam.3t">车辆证件</h3><p data-i="fam.3">年检、路税、保险 —— 提前 30、15、7 天提醒。</p></article>
-          <article class="feat reveal"><span class="ic">🎯</span><h3 data-i="fam.4t">目标和预算</h3><p data-i="fam.4">定好目标和每月预算，每天看到进度。</p></article>
-          <article class="feat reveal"><span class="ic">👨‍👩‍👧</span><h3 data-i="fam.5t">全家共享</h3><p data-i="fam.5">和配偶、孩子一起记账（PRO），个人设置依然私密。</p></article>
-          <article class="feat reveal"><span class="ic">🌙</span><h3 data-i="fam.6t">高棉历和伊斯兰模式</h3><p data-i="fam.6">持戒日和高棉节日。伊斯兰模式（可选）：礼拜时间和天课。</p><a class="card-link" href="../islamic.html" data-i="fam.6link">全部伊斯兰功能 →</a></article>
+        <h2 class="center" data-i="who.title">我是…</h2>
+        <div class="door-grid">
+          <a class="door reveal" href="../personal.html" id="personal">
+            <span class="ic">👤</span>
+            <h3 data-i="who.met">个人</h3>
+            <p data-i="who.me">支出、欠款、还款日、储蓄目标——我的钱，天天清楚。</p>
+            <b data-i="who.go">了解更多 →</b>
+          </a>
+          <a class="door reveal" href="../family.html" id="family">
+            <span class="ic">👨‍👩‍👧</span>
+            <h3 data-i="who.famt">一家人</h3>
+            <p data-i="who.fam">夫妻和孩子一起记账——随礼、共同基金、家庭账单。</p>
+            <b data-i="who.go">了解更多 →</b>
+          </a>
+          <a class="door reveal" href="../business.html" id="business">
+            <span class="ic">🏪</span>
+            <h3 data-i="who.bizt">店主</h3>
+            <p data-i="who.biz">店里的钱和家里的钱分开——KHQR SoundBox、发票、顾客欠款。</p>
+            <b data-i="who.go">了解更多 →</b>
+          </a>
         </div>
-      </div>
-    </section>
-
-    <!-- Business -->
-    <section class="features alt" id="business">
-      <div class="wrap">
-        <p class="eyebrow" data-i="biz.eyebrow">商家</p>
-        <h2 data-i="biz.title">开店，更省心</h2>
-        <div class="grid">
-          <article class="feat reveal"><span class="ic">🔊</span><h3 data-i="biz.1t">KHQR 收款播报</h3><p data-i="biz.1">顾客扫您银行的 KHQR，手机播报「收到 25,000 瑞尔」并自动入账。只播报收款（PRO）。</p></article>
-          <article class="feat reveal"><span class="ic">🧾</span><h3 data-i="biz.2t">发票</h3><p data-i="biz.2">带本店 KHQR 的发票，生成图片直接发给顾客。</p></article>
-          <article class="feat reveal"><span class="ic">🤝</span><h3 data-i="biz.3t">谁欠谁多少</h3><p data-i="biz.3">客户和供应商的欠款、金额、到期日，一目了然。</p></article>
-          <article class="feat reveal"><span class="ic">🏦</span><h3 data-i="biz.4t">银行还款计划</h3><p data-i="biz.4">拍下银行还款表，每期到期前提醒您。</p></article>
-          <article class="feat reveal"><span class="ic">📷</span><h3 data-i="biz.5t">转账凭证</h3><p data-i="biz.5">拍下转账凭证，自动读出金额和银行，绝不猜测。</p></article>
-          <article class="feat reveal"><span class="ic">🧮</span><h3 data-i="biz.6t">税款估算</h3><p data-i="biz.6">适用于小型纳税人。仅为估算，请向会计师或税务局确认。</p></article>
-        </div>
-        <p class="center"><a class="more-link" href="../business.html" data-i="biz.more">店主请看：了解更多 →</a></p>
       </div>
     </section>
 
@@ -401,6 +396,8 @@
           <h4 data-i="ft.colApp">应用</h4>
           <a href="https://app.luychlat.com/download" data-i="ft.download">下载</a>
           <a href="https://app.luychlat.com" data-i="ft.open">打开应用</a>
+          <a href="../personal.html" data-i="ft.personal">个人版</a>
+          <a href="../family.html" data-i="ft.family">家庭版</a>
           <a href="../business.html" data-i="ft.business">商家版</a>
           <a href="../privacy.html" data-i="ft.privacy">隐私与条款</a>
         </div>
@@ -430,6 +427,7 @@
 
   <!-- Cloudflare Web Analytics (cookieless) — the website only, never the app -->
   <script defer="" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;: &quot;d414eab13d024a1aade4e9fc8f5ddf1f&quot;}"></script>
+
 
 
 

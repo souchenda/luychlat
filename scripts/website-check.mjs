@@ -5,7 +5,7 @@ import { dirname, join } from "node:path"
 import { JSDOM } from "jsdom"
 
 const ROOT = "Website"
-const PAGES = ["index.html", "en/index.html", "zh/index.html", "business.html", "islamic.html", "privacy.html", "delete-account.html", "404.html"]
+const PAGES = ["index.html", "en/index.html", "zh/index.html", "personal.html", "family.html", "business.html", "islamic.html", "privacy.html", "delete-account.html", "404.html"]
 // Khmer letters \u2014 the riel sign \u00AB\u17DB\u00BB (U+17DB) aside: it is a currency, in every language.
 const KHMER = /[\u1780-\u17DA\u17DC-\u17FF]/
 const issues = []
@@ -81,7 +81,7 @@ for (const k of new Set(keys)) {
 }
 
 // 7. The other pages' own translations (islamic-t.js, privacy-t.js, delete-t.js — window.EXTRA_T, merged by site.js)
-for (const [page, script] of [["business.html", "business-t.js"], ["islamic.html", "islamic-t.js"], ["privacy.html", "privacy-t.js"], ["delete-account.html", "delete-t.js"]]) {
+for (const [page, script] of [["personal.html", "personal-t.js"], ["family.html", "family-t.js"], ["business.html", "business-t.js"], ["islamic.html", "islamic-t.js"], ["privacy.html", "privacy-t.js"], ["delete-account.html", "delete-t.js"]]) {
   const w = {}
   new Function("window", readFileSync(join(ROOT, script), "utf8"))(w)
   const extra = w.EXTRA_T || {}
