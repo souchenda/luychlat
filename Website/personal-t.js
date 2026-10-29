@@ -1,5 +1,5 @@
 // The personal.html page's English and Chinese text (read by site.js; the shared lines come from i18n.js).
-window.PAGE_TITLES = { km: "សម្រាប់ខ្លួនឯង | អេប លុយឆ្លាត", en: "For you | App Luy Chlat", zh: "个人版 | App Luy Chlat" }
+window.PAGE_TITLES = { km: "សម្រាប់ផ្ទាល់ខ្លួន | អេប លុយឆ្លាត", en: "For you | App Luy Chlat", zh: "个人版 | App Luy Chlat" }
 window.EXTRA_T = {
   en: {
     "p.eyebrow": "For you",
