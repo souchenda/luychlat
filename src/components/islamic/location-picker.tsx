@@ -14,6 +14,7 @@ import { setPrayerProvince, setPrayerPush } from "@/lib/push"
 import { useIslamicLocalStore } from "@/stores/islamic-local-store"
 import { useLocaleStore } from "@/stores/locale-store"
 import { pick } from "@/lib/i18n/dictionaries"
+import { placeNameFor } from "@/lib/native-place"
 
 /**
  * The place used for prayer times and the Qibla: the last GPS fix (kept on this phone) or a province (default Phnom
@@ -22,13 +23,29 @@ import { pick } from "@/lib/i18n/dictionaries"
 export function useIslamicLocation(): { lat: number; lng: number; label: string; gps: boolean; utcOffset: number; abroad: boolean } {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
-  const { place, gps } = useIslamicLocalStore()
+  const { place, gps, gpsName } = useIslamicLocalStore()
   if (place === "gps" && gps) {
     const utcOffset = prayerUtcOffset(gps, deviceUtcOffset())
-    return { ...gps, label: t("prayer.myLocation"), gps: true, utcOffset, abroad: !inCambodia(gps.lat, gps.lng) }
+    return { ...gps, label: gpsLabel(t, gpsName, locale), gps: true, utcOffset, abroad: !inCambodia(gps.lat, gps.lng) }
   }
   const p = PROVINCES.find((x) => x.key === place) ?? PROVINCES[0]
   return { lat: p.lat, lng: p.lng, label: pick(p, locale), gps: false, utcOffset: 7, abroad: false }
+}
+
+/**
+ * «My location» by its name (founder, 29/10/2026 — «show កួរស្រូវ, like my Samsung»): the phone's geocoder's name as it
+ * is, the nearest known place as «ជិត…», else «ទីតាំងរបស់ខ្ញុំ (GPS)». A name in another language than the app's waits
+ * for the next lookup.
+ */
+export function gpsLabel(t: ReturnType<typeof useT>, name: { name: string; kind: "exact" | "near"; locale: string } | null, locale: string): string {
+  if (!name || name.locale !== locale) return t("prayer.myLocation")
+  return name.kind === "exact" ? name.name : t("prayer.nearPlace", { place: name.name })
+}
+
+/** Names the fix on the phone (lib/native-place.ts) — from the full fix, before the store rounds it — and keeps the name. */
+async function nameFix(lat: number, lng: number, locale: "km" | "en" | "zh") {
+  const found = await placeNameFor(lat, lng, locale).catch(() => null)
+  useIslamicLocalStore.getState().setGpsName(found ? { ...found, locale } : null)
 }
 
 const REFRESH_MS = 30 * 60_000
@@ -51,7 +68,10 @@ export function useGpsRefresh() {
       if (state !== "granted") return
       lastRefresh = Date.now()
       const result = await locateDevice()
-      if (result.ok) setGps(result.lat, result.lng)
+      if (result.ok) {
+        setGps(result.lat, result.lng)
+        void nameFix(result.lat, result.lng, useLocaleStore.getState().locale)
+      }
     }
     void refresh()
     const id = window.setInterval(() => void refresh(), REFRESH_MS)
@@ -127,9 +147,14 @@ export async function networkProvince(): Promise<string | null> {
 export function LocationPicker() {
   const t = useT()
   const locale = useLocaleStore((s) => s.locale)
-  const { place, gps, setProvince, setGps } = useIslamicLocalStore()
+  const { place, gps, gpsName, setProvince, setGps } = useIslamicLocalStore()
   const [locating, setLocating] = useState(false)
   const [help, setHelp] = useState(false)
+
+  // A fix saved before names existed (or in another language): named once from the saved, rounded fix.
+  useEffect(() => {
+    if (place === "gps" && gps && (!gpsName || gpsName.locale !== locale)) void nameFix(gps.lat, gps.lng, locale)
+  }, [place, gps, gpsName, locale])
 
   const locate = async () => {
     setLocating(true)
@@ -137,6 +162,7 @@ export function LocationPicker() {
     setLocating(false)
     if (result.ok) {
       setGps(result.lat, result.lng)
+      void nameFix(result.lat, result.lng, locale)
       return void toast.success(t("prayer.gpsSet"))
     }
     // No GPS: the network's province instead of a blocking dialog — said to be approximate; the help one tap away.
@@ -162,7 +188,7 @@ export function LocationPicker() {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {gps && <SelectItem value="gps">{t("prayer.myLocation")}</SelectItem>}
+          {gps && <SelectItem value="gps">{gpsLabel(t, gpsName, locale)}</SelectItem>}
           {PROVINCES.map((p) => (
             <SelectItem key={p.key} value={p.key}>
               {pick(p, locale)}

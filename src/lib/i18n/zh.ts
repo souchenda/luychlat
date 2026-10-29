@@ -1225,6 +1225,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "prayer.next": "下一次礼拜",
   "prayer.location": "位置",
   "prayer.myLocation": "我的位置（GPS）",
+  "prayer.nearPlace": "{place}附近",
   "prayer.useGps": "定位",
   "prayer.gpsSet": "正在使用您的当前位置",
   "prayer.networkSet": "根据网络的大致位置：{place}——不对可在上方更换省份",

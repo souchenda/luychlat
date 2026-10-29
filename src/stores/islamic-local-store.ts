@@ -9,6 +9,12 @@ type IslamicLocalState = {
   /** A province key from lib/prayer PROVINCES, or "gps" for the last device location. */
   place: string
   gps: { lat: number; lng: number } | null
+  /**
+   * The place's name for «my location» (founder, 29/10/2026 — lib/place-name.ts), worked out on the phone from the full
+   * fix and kept here only: «exact» from the phone's geocoder, «near» from the nearest known place; with its language.
+   */
+  gpsName: { name: string; kind: "exact" | "near"; locale: string } | null
+  setGpsName: (name: IslamicLocalState["gpsName"]) => void
   tasbihCount: number
   tasbihTarget: number
   tasbihPhrase: number
@@ -48,6 +54,8 @@ export const useIslamicLocalStore = create<IslamicLocalState>()(
     (set) => ({
       place: "phnom_penh",
       gps: null,
+      gpsName: null,
+      setGpsName: (gpsName) => set({ gpsName }),
       tasbihCount: 0,
       tasbihTarget: 33,
       tasbihPhrase: 0,
@@ -67,7 +75,13 @@ export const useIslamicLocalStore = create<IslamicLocalState>()(
       quranReciter: "alafasy",
       setProvince: (key) => set({ place: key }),
       // Rounded to ~1 km: enough for prayer times, and less precise than a home address.
-      setGps: (lat, lng) => set({ place: "gps", gps: { lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100 } }),
+      // A new fix elsewhere drops the old name until the new one is found (never a name for another place).
+      setGps: (lat, lng) =>
+        set((s) => {
+          const gps = { lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100 }
+          const moved = !s.gps || s.gps.lat !== gps.lat || s.gps.lng !== gps.lng
+          return { place: "gps", gps, ...(moved ? { gpsName: null } : {}) }
+        }),
       setTasbih: (patch) => set(patch),
       setAlerts: (patch) => set(patch),
       setQuran: (patch) => set(patch),

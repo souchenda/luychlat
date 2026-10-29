@@ -20,6 +20,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppUpdaterPlugin.class);
         // The phone's own Khmer voice for the spoken greeting (founder, 28/10/2026 — as DL Staff speaks).
         registerPlugin(KhmerVoicePlugin.class);
+        // «My location» by name — the phone's own Geocoder (founder, 29/10/2026: «show កួរស្រូវ, as Samsung does»).
+        registerPlugin(PlaceNamePlugin.class);
         super.onCreate(savedInstanceState);
         // The page keeps running with the screen off (founder, 24/10/2026 — Task #486: a 1,710,000 ៛ sale announced 4 min
         // late, at unlock). The WebView's JavaScript runs in its own renderer process, whose priority the WebView lowers

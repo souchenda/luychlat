@@ -11,13 +11,14 @@ const read = (p: string) => readFileSync(join(root, p), "utf8")
 const native = !existsSync(join(root, "android")) && "android/ is not in the build context"
 
 describe("The Android app's version and in-app update (founder, 22/10/2026 — Task #468)", () => {
-  it("/api/app/version: the newest APK — v1.12, build 13 (the phone's Khmer voice, 28/10/2026), the versioned file, the Khmer changes", () => {
+  it("/api/app/version: the newest APK — v1.13, build 14 (my location by name, 29/10/2026), the versioned file, the Khmer changes", () => {
     assert.deepEqual(appVersionInfo(), {
-      latestVersion: "1.12",
-      versionCode: 13,
-      downloadUrl: "/downloads/LuyChlat-v1.12.apk",
-      changelogKhmer: "• សំឡេងស្វាគមន៍ធម្មជាតិជាងមុន ដោយប្រើសំឡេងខ្មែររបស់ទូរសព្ទ",
+      latestVersion: "1.13",
+      versionCode: 14,
+      downloadUrl: "/downloads/LuyChlat-v1.13.apk",
+      changelogKhmer: "• «ទីតាំងរបស់ខ្ញុំ» បង្ហាញឈ្មោះកន្លែងពិត ដូចជា កួរស្រូវ · ខណ្ឌដង្កោ",
     })
+    assert.deepEqual(apkVersion(14), { kind: "known", version: "1.13", code: 14 })
     assert.deepEqual(apkVersion(13), { kind: "known", version: "1.12", code: 13 })
     assert.deepEqual(apkVersion(12), { kind: "known", version: "1.11", code: 12 })
     assert.deepEqual(apkVersion(11), { kind: "known", version: "1.10", code: 11 })
