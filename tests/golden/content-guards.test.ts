@@ -11,6 +11,7 @@ import { SPOTLIGHT_CALL, SPOTLIGHT_HOOK, SPOTLIGHT_PILLARS } from "../../src/lib
 import { TIPS } from "../../src/lib/tips"
 import { ISLAMIC_TIPS } from "../../src/lib/islamic-tips"
 import { MONEY_DILEMMAS } from "../../src/lib/money-dilemmas"
+import { FAMILIAR, familiarPostText } from "../../src/lib/familiar"
 import { islamicCaptionHtml, islamicPostContent, ISLAMIC_KINDS, posterDateline } from "../../src/lib/islamic-channel"
 
 /** Banned anywhere in published wording (founder, 18/10/2026). */
@@ -26,6 +27,11 @@ const lines: { where: string; text: string; title?: boolean }[] = [
   ...MONEY_DILEMMAS.flatMap((d) => [
     { where: `dilemma ${d.id} title`, text: d.title, title: true },
     { where: `dilemma ${d.id} story`, text: `${d.story} ${d.question}` },
+  ]),
+  // «ធ្លាប់ទេ?» (founder, 29/10/2026): the question is the poster's headline, the caption carries all of it.
+  ...FAMILIAR.flatMap((f) => [
+    { where: `familiar ${f.id} question`, text: f.question, title: true },
+    { where: `familiar ${f.id} caption`, text: familiarPostText(f) },
   ]),
   { where: "spotlight hook", text: SPOTLIGHT_HOOK, title: true },
   { where: "spotlight call", text: SPOTLIGHT_CALL },

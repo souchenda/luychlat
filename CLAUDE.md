@@ -169,6 +169,8 @@ cluttered, and unreadable»):
     the official ones the founder provides (never a web photo); every preview asks the approver to check the royal
     wording (រាជស័ព្ទ).
   - Tuesday / Friday 18:30 money dilemma (`lib/money-dilemmas.ts`, an open question + the app CTA) → both.
+  - Wednesday 18:30 «ធ្លាប់ទេ?» (founder, 29/10/2026 — `lib/familiar.ts`, from 4 November 2026): a pain the reader knows and
+    the app's answer, twelve in turn, on the approved tip poster → both; previewed, published only on ✅ / 🚀.
   - Buddhist Sil day (07:00 on 8 / 15 កើត, 8 រោច, ដាច់ខែ) → the branded poster (`lib/server/sil-poster.ts`) to the
     community channel **and** the Page — never @LuyChlatIslamic; the eve stays a channel note.
 - **Zero public posts without the founder's approval (founder, 18/10/2026 — replaces the 12/10 auto-publish

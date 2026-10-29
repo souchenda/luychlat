@@ -26,6 +26,8 @@ import { islamicPoster, islamicPosterReady } from "@/lib/server/islamic-poster"
 import { silPosterContent } from "@/lib/sil-poster"
 import { renderSilPoster, silPosterReady } from "@/lib/server/sil-poster"
 import { DILEMMA_MINUTE, DILEMMA_POSTERS_ENABLED, DILEMMA_WEEKDAYS, dilemmaOfDay, dilemmaPostText } from "@/lib/money-dilemmas"
+import { FAMILIAR_TAG, familiarOfDay, familiarPoster, familiarPostText } from "@/lib/familiar"
+import { tipPoster } from "@/lib/server/tip-poster"
 import { renderDilemmaPoster } from "@/lib/server/dilemma-poster"
 import { posterAssetsReady } from "@/lib/server/poster-kit"
 import { posterPreview, publishFestivalPoster } from "@/lib/server/festival-poster"
@@ -542,6 +544,12 @@ const realDeps = (): SchedulerDeps => ({
         await posterAssetsReady
         return { png: DILEMMA_POSTERS_ENABLED && d.poster ? poster(() => renderDilemmaPoster(d.poster!).png) : null, body: dilemmaPostText(d) }
       }
+      case "FAMILIAR": {
+        // «ធ្លាប់ទេ?» on the approved tip poster (v3): the pain as the headline, the app's answer as the gold takeaway.
+        const f = familiarOfDay(day)
+        await posterAssetsReady
+        return { png: poster(() => tipPoster(familiarPoster(f), day, { tag: FAMILIAR_TAG })), body: familiarPostText(f) }
+      }
       case "NATIONAL_DAY": {
         // A national day or royal ceremony (founder, 20/10/2026): the poster and its caption.
         const d = nationalDayByKey(String(row.payload.key))
@@ -589,6 +597,7 @@ const realDeps = (): SchedulerDeps => ({
     if (row.kind === "HOLIDAY") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "holiday" }) }
     if (row.kind === "SPOTLIGHT") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "spotlight" }) }
     if (row.kind === "DILEMMA") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "dilemma" }) }
+    if (row.kind === "FAMILIAR") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "familiar" }) }
     // The Sil day poster goes to the Page too (founder, 19/10/2026); the eve note stays on the channel.
     if (row.kind === "HOLYDAY" && silDayOf(row)) return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "silday" }) }
     if (row.kind === "EVENING" || row.kind === "BULLETIN" || row.kind === "RATES" || row.kind === "POSTER" || row.kind === "HOLYDAY") return { telegram, facebook: false }
@@ -745,6 +754,21 @@ const realDeps = (): SchedulerDeps => ({
       if (chat) ids.telegram = png ? ((await sendPosterPhoto(chat, png, text, { reply_markup: buttons.reply_markup })) ?? (await sentText(text, true))) : await sentText(text, true)
       if (facebookConfig() && shouldPublishToFacebook({ kind: "dilemma" })) {
         const fb = await publishLogged(`money dilemma (${row.post_key})`, () => (png ? publishPhotoToFacebook(approval, png, fbText) : publishTextToFacebook(approval, fbText)), fbLog)
+        if (fb?.ok) ids.facebook = fb.postId
+      }
+      return ids
+    }
+    if (row.kind === "FAMILIAR") {
+      // «ធ្លាប់ទេ?»: the poster with its caption on the community channel and the Facebook Page.
+      const f = familiarOfDay(String(row.payload.day))
+      const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      const text = withFooter(esc(familiarPostText(f)), postFooter("community"), 1024)
+      const fbText = withFooter(familiarPostText(f), postFooter("community", "facebook"), 60_000)
+      await posterAssetsReady
+      const png = tipPoster(familiarPoster(f), String(row.payload.day), { tag: FAMILIAR_TAG })
+      if (chat) ids.telegram = (await sendPosterPhoto(chat, png, text, { reply_markup: buttons.reply_markup })) ?? (await sentText(text, true))
+      if (facebookConfig() && shouldPublishToFacebook({ kind: "familiar" })) {
+        const fb = await publishLogged(`familiar (${row.post_key})`, () => publishPhotoToFacebook(approval, png, fbText), fbLog)
         if (fb?.ok) ids.facebook = fb.postId
       }
       return ids
@@ -984,7 +1008,7 @@ async function fuelTextOf(row: PostRow): Promise<string | null> {
   return f ? newPricesText(f.fuel, f.fuel.previous ?? null, f.notice) : null
 }
 
-const FOOTER_KINDS = new Set<string>(["MORNING", "HOLIDAY", "EVENING", "DILEMMA", "FUEL", "ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"])
+const FOOTER_KINDS = new Set<string>(["MORNING", "HOLIDAY", "EVENING", "DILEMMA", "FAMILIAR", "FUEL", "ISLAMIC_MORNING", "ISLAMIC_DAILY", "ISLAMIC_JUMUAH", "ISLAMIC_IFTAR", "ISLAMIC_FAST", "ISLAMIC_NIGHT"])
 
 /** «(✏️ បានកែសម្រួលដោយ @username ម៉ោង HH:mm)» under an edited caption on the card — the founder's wording. */
 function editedLine(row: PostRow): string {

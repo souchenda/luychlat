@@ -71,6 +71,8 @@ export type ChannelPostKind =
   | { kind: "evening" }
   /** The Tuesday / Friday money dilemma: a conversation starter — Page and channel. */
   | { kind: "dilemma" }
+  /** «ធ្លាប់ទេ?» (Wednesday 18:30, founder 29/10/2026): a pain and the app's answer — the community channel and the Page. */
+  | { kind: "familiar" }
   /** The Buddhist Sil day poster (07:00 on the day, founder 19/10/2026): the community channel and the Page. */
   | { kind: "silday" }
   /** A national day or royal ceremony poster (founder, 20/10/2026): the community channel and the Page. */
@@ -83,6 +85,7 @@ export function shouldPublishToFacebook(post: ChannelPostKind): boolean {
     case "holiday":
     case "spotlight":
     case "dilemma":
+    case "familiar":
     case "silday":
     case "national":
       return true
