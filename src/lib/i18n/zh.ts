@@ -3230,7 +3230,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "upgrade.referenceRequired": "请输入银行应用中的交易编号（至少 4 个字符）。",
   "walletForm.openingBalanceHint": "您今天在银行或手上实际拥有的金额——应用只做记录，从不保管资金。",
   "onboarding.notebook.title": "1. 记账本，不是银行",
-  "onboarding.notebook.body": "您的钱仍在您的银行或口袋里。App Luy Chlat 不保管、不提取、不转账——只帮您把钱看清楚。",
+  "onboarding.notebook.body": "您的钱仍在您的银行或口袋里。App Luy Chlat 不保管、不提取、不转账——只帮您把钱看清楚。🛡️ 我们绝不会打电话或发消息向您索取验证码（OTP）或密码。",
   "onboarding.replayHint": "重新查看 4 步入门指南",
   "holyDay.title": "今日高棉农历",
   "holyDay.next": "下一个佛日：",
