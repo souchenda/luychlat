@@ -2,6 +2,7 @@ import type { EmailOtpType } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 
 import { claimSingleSession } from "@/lib/auth/single-session"
+import { publicOrigin } from "@/lib/public-origin"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 const EMAIL_LINK_TYPES: EmailOtpType[] = ["email", "signup", "magiclink", "recovery", "invite", "email_change"]
@@ -12,7 +13,9 @@ const EMAIL_LINK_TYPES: EmailOtpType[] = ["email", "signup", "magiclink", "recov
  * use token_hash so they also work when opened on another device.
  */
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
+  // Not request.url's origin: inside the container that is https://0.0.0.0:3000 (lib/public-origin.ts).
+  const origin = publicOrigin(request.headers)
   const code = searchParams.get("code")
   const tokenHash = searchParams.get("token_hash")
   const type = searchParams.get("type") as EmailOtpType | null
@@ -38,5 +41,6 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=oauth`)
+  // A reset link that failed (opened in another browser, used or expired) says so — not «Google / Apple failed».
+  return NextResponse.redirect(`${origin}/login?error=${safeNext === "/reset-password" ? "link" : "oauth"}`)
 }
