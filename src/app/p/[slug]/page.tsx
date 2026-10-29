@@ -1,3 +1,4 @@
+import { ChartColumnIcon, CircleCheckIcon, ClockIcon, HandHeartIcon, InboxIcon, LockOpenIcon, QrCodeIcon, RepeatIcon, TriangleAlertIcon } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 import type { Metadata } from "next"
 import Link from "next/link"
@@ -80,7 +81,8 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
         {charity && (
           // What the page really offers: every entry in the open. Not a verification of the cause by LuyChlat.
           <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-            🔓 បញ្ជីចំហ · Open ledger — every expense{pool.share_photos ? " and receipt" : ""} is public
+            <LockOpenIcon className="size-3.5 shrink-0" aria-hidden />
+            បញ្ជីចំហ · Open ledger — every expense{pool.share_photos ? " and receipt" : ""} is public
           </p>
         )}
       </header>
@@ -89,7 +91,10 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
         <section className="space-y-3 rounded-2xl border-2 border-emerald-500/40 bg-card p-4 text-center">
           {khqrSvg && (
             <>
-              <p className="text-base font-bold">📲 ស្កេន KHQR ដើម្បីបង់ចំណែក · Scan to pay your share</p>
+              <p className="flex items-center justify-center gap-1.5 text-base font-bold">
+                <QrCodeIcon className="size-5 shrink-0 text-primary" aria-hidden />
+                ស្កេន KHQR ដើម្បីបង់ចំណែក · Scan to pay your share
+              </p>
               <div className="mx-auto w-60 rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: khqrSvg }} />
               <p className="text-xs text-muted-foreground">
                 {pool.keeper ? `${pool.keeper} · ` : ""}KHQR{shareEach !== null ? ` · ${money(shareEach)} / គ្រួសារ · per family` : ""}
@@ -99,7 +104,8 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
           {shares.length > 0 && (
             <div className="space-y-1.5 text-left">
               <p className="text-sm font-medium tabular-nums">
-                📊 {sharesDone}/{shares.length} គ្រួសារបានចូលរួចរាល់ <span className="text-muted-foreground">({money(sharesPaid)} / {money(sharesTarget)})</span>
+                <ChartColumnIcon className="mr-1 inline size-4 align-[-3px] text-primary" aria-hidden />
+                {sharesDone}/{shares.length} គ្រួសារបានចូលរួចរាល់ <span className="text-muted-foreground">({money(sharesPaid)} / {money(sharesTarget)})</span>
               </p>
               <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
@@ -112,20 +118,28 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
       <section className="rounded-2xl border bg-card p-4">
         <PoolGauge pool={pool} labels={{ status: GAUGE[pool.gauge], pooled: "លុយរួម · Pooled", spent: "បានចាយ · Spent", remaining: "នៅសល់ · Remaining", collecting: "កំពុងប្រមូលលុយ · Collecting" }} />
         {pool.status === "active" && pool.topup_per_member !== null && (
-          <p className="mt-3 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
-            ⚠️ សូមរៃបន្ថែមម្នាក់ {money(pool.topup_per_member)} · Suggested top-up per person
+          <p className="mt-3 flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+            <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
+            សូមរៃបន្ថែមម្នាក់ {money(pool.topup_per_member)} · Suggested top-up per person
           </p>
         )}
       </section>
 
       {settlement && (
         <section className="space-y-2 rounded-2xl border bg-card p-4">
-          <h2 className="font-semibold">
+          <h2 className="flex items-center gap-1.5 font-semibold">
+            {settlement.mode === "REFUND" ? (
+              <CircleCheckIcon className="size-4 shrink-0 text-emerald-600" aria-hidden />
+            ) : settlement.mode === "COLLECT" ? (
+              <InboxIcon className="size-4 shrink-0 text-amber-600" aria-hidden />
+            ) : (
+              <RepeatIcon className="size-4 shrink-0 text-primary" aria-hidden />
+            )}
             {settlement.mode === "REFUND"
-              ? `✅ បិទបញ្ជី · សល់ ${money(settlement.remaining)} ប្រគល់ជូនវិញ`
+              ? `បិទបញ្ជី · សល់ ${money(settlement.remaining)} ប្រគល់ជូនវិញ`
               : settlement.mode === "COLLECT"
-                ? `📥 បិទបញ្ជី · ខ្វះ ${money(Math.abs(settlement.remaining))} សូមរៃបន្ថែម`
-                : `🔁 សល់ ${money(settlement.remaining)} ផ្ទេរទៅបេឡាបន្ទាប់`}
+                ? `បិទបញ្ជី · ខ្វះ ${money(Math.abs(settlement.remaining))} សូមរៃបន្ថែម`
+                : `សល់ ${money(settlement.remaining)} ផ្ទេរទៅបេឡាបន្ទាប់`}
           </h2>
           {settlement.shares.map((s) => (
             <div key={s.name} className="flex justify-between text-sm">
@@ -140,7 +154,10 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
         <section className={charity ? "space-y-2 rounded-2xl border-2 border-emerald-500/40 bg-card p-4 text-center" : "space-y-2 rounded-2xl border bg-card p-4 text-center"}>
           {charity && pool.status === "active" ? (
             <>
-              <p className="text-base font-bold">🤲 បើកទទួលការបរិច្ចាគ · Open for donations</p>
+              <p className="flex items-center justify-center gap-1.5 text-base font-bold">
+                <HandHeartIcon className="size-5 shrink-0 text-primary" aria-hidden />
+                បើកទទួលការបរិច្ចាគ · Open for donations
+              </p>
               <p className="text-xs text-muted-foreground">ស្កេន KHQR ដើម្បីបរិច្ចាគជូន {pool.keeper || "អ្នកកាន់បេឡា"} · Scan to donate to the keeper</p>
             </>
           ) : (
@@ -157,14 +174,20 @@ export default async function PublicPoolPage({ params }: { params: Promise<{ slu
           <div className="divide-y rounded-2xl border bg-card">
             {members.map((m, i) => (
               <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                <span>
-                  {familyOpen && m.pledged > 0 ? (m.paid >= m.pledged ? "✅ " : "⏳ ") : ""}
+                <span className="flex items-center gap-1.5">
+                  {familyOpen && m.pledged > 0 ? (
+                    m.paid >= m.pledged ? (
+                      <CircleCheckIcon className="size-4 shrink-0 text-emerald-600" aria-label="paid" />
+                    ) : (
+                      <ClockIcon className="size-4 shrink-0 text-amber-500" aria-label="waiting" />
+                    )
+                  ) : null}
                   {m.name}
                 </span>
                 <span className="tabular-nums">
                   {money(m.paid)}
                   {m.pledged > 0 && <span className="text-muted-foreground"> / {money(m.pledged)}</span>}
-                  {m.pledged > 0 && m.paid >= m.pledged && " ✅"}
+                  {m.pledged > 0 && m.paid >= m.pledged && <CircleCheckIcon className="ml-1 inline size-4 align-[-3px] text-emerald-600" aria-label="paid" />}
                 </span>
               </div>
             ))}

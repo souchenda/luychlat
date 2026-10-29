@@ -17,9 +17,9 @@ describe("Staff in the app: the badge, the role from the user's card, the admin 
     assert.match(role, /const locked = member\?\.is_owner \|\| userId === me/) // never the owner, never oneself
   })
 
-  it("a staff member's profile: «🛡️ role · space» and the portal — content at once, the console behind 2FA", () => {
+  it("a staff member's profile: «role · space» and the portal — content at once, the console behind 2FA", () => {
     const profile = read("src/app/(app)/profile/page.tsx")
-    assert.match(profile, /plan\.staff_role \? `🛡️ \$\{t\(`admin\.role\.\$\{plan\.staff_role\}`/)
+    assert.match(profile, /plan\.staff_role \? `\$\{t\(`admin\.role\.\$\{plan\.staff_role\}`/)
     assert.match(profile, /<AdminPortalCard \/>/)
     const card = read("src/components/admin/admin-portal-card.tsx")
     assert.match(card, /if \(role !== "admin" && role !== "super_admin" && role !== "content_admin"\) return null/)

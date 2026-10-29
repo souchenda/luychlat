@@ -57,7 +57,7 @@ describe("The Android app's version and in-app update (founder, 22/10/2026 — T
     assert.match(read("src/app/(app)/layout.tsx"), /<AppUpdatePrompt \/>/)
     assert.match(read("src/app/(app)/settings/page.tsx"), /<StatusBadge>\{apkLabel \?\? `v\$\{APP_VERSION\}`\}<\/StatusBadge>/)
     const km = read("src/lib/i18n/dictionaries.ts")
-    assert.ok(km.includes('"appUpdate.title": "🚀 មានកំណែថ្មី v{version}!"'))
+    assert.ok(km.includes('"appUpdate.title": "មានកំណែថ្មី v{version}!"'))
     assert.ok(km.includes('"appUpdate.update": "អាប់ដេតឥឡូវនេះ (Update)"'))
     assert.ok(km.includes('"settings.apkVersion": "ជំនាន់ v{version} (Build {code})"'))
   })

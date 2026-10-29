@@ -1,6 +1,6 @@
 "use client"
 
-import { BadgeCheckIcon, CalendarClockIcon, CalendarDaysIcon, CameraIcon, ChevronRightIcon, CoinsIcon, CrownIcon, LogOutIcon, MailIcon, PencilIcon, PhoneIcon } from "lucide-react"
+import { BadgeCheckIcon, CalendarClockIcon, CalendarDaysIcon, CameraIcon, ChevronRightIcon, CoinsIcon, CrownIcon, GemIcon, LogOutIcon, MailIcon, PencilIcon, PhoneIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -56,9 +56,9 @@ function InfoRow({
 }
 
 const TIER_BADGE = {
-  FREE: { label: "🆓 FREE", className: "bg-muted text-muted-foreground" },
-  PRO: { label: "💎 PRO", className: "bg-sky-500/15 text-sky-700 dark:text-sky-300" },
-  ULTRA: { label: "👑 ULTRA", className: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
+  FREE: { label: "FREE", Icon: null, className: "bg-muted text-muted-foreground" },
+  PRO: { label: "PRO", Icon: GemIcon, className: "bg-sky-500/15 text-sky-700 dark:text-sky-300" },
+  ULTRA: { label: "ULTRA", Icon: CrownIcon, className: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
 } as const
 
 /** My profile, read first: photo, name, contact and account details; "Edit profile" opens the form. */
@@ -123,7 +123,12 @@ export default function ProfilePage() {
           icon={<CrownIcon />}
           tile="amber"
           label={t("profile.membership")}
-          value={<span className={cn("inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide", badge.className)}>{badge.label}</span>}
+          value={
+            <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide", badge.className)}>
+              {badge.Icon && <badge.Icon className="size-3.5" aria-hidden />}
+              {badge.label}
+            </span>
+          }
           placeholder=""
         />
         <TestPlanSwitch />
@@ -185,7 +190,7 @@ export default function ProfilePage() {
               tile="amber"
               label={t("profile.role")}
               // Staff first: «🛡️ អ្នកគ្រប់គ្រង (Admin) · ផ្ទាល់ខ្លួន» (founder, 19/10/2026).
-              value={`${plan.staff_role ? `🛡️ ${t(`admin.role.${plan.staff_role}` as MessageKey)} (${plan.staff_role === "super_admin" ? "Super admin" : plan.staff_role === "admin" ? "Admin" : plan.staff_role === "content_admin" ? "Content admin" : "Support"})` : t(`family.role.${workspace.role}` as MessageKey)} · ${workspace.type === "PERSONAL" ? t("ws.PERSONAL") : workspace.name}`}
+              value={`${plan.staff_role ? `${t(`admin.role.${plan.staff_role}` as MessageKey)} (${plan.staff_role === "super_admin" ? "Super admin" : plan.staff_role === "admin" ? "Admin" : plan.staff_role === "content_admin" ? "Content admin" : "Support"})` : t(`family.role.${workspace.role}` as MessageKey)} · ${workspace.type === "PERSONAL" ? t("ws.PERSONAL") : workspace.name}`}
               placeholder=""
             />
             <InfoRow

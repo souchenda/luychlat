@@ -1,4 +1,4 @@
-import { BanknoteIcon, WalletIcon } from "lucide-react"
+import { BanknoteIcon, MilestoneIcon, WalletIcon, ZapIcon } from "lucide-react"
 
 import { goalEmoji } from "@/lib/goals"
 import { poolEmoji } from "@/lib/pool"
@@ -31,7 +31,17 @@ export function WalletAvatar({
   if (icon?.startsWith("goal_") || icon?.startsWith("pool_") || icon?.startsWith("prepaid_")) {
     return (
       <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-lg", className)} aria-hidden>
-        {icon.startsWith("pool_") ? poolEmoji(icon.slice(5)) : icon.startsWith("prepaid_") ? (icon === "prepaid_toll" ? "🛣️" : "⚡") : goalEmoji(icon)}
+        {icon.startsWith("pool_") ? (
+          poolEmoji(icon.slice(5))
+        ) : icon.startsWith("prepaid_") ? (
+          icon === "prepaid_toll" ? (
+            <MilestoneIcon className="size-5 text-primary" />
+          ) : (
+            <ZapIcon className="size-5 text-primary" />
+          )
+        ) : (
+          goalEmoji(icon)
+        )}
       </span>
     )
   }

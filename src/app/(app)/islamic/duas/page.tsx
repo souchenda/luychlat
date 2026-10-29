@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckIcon, CopyIcon, UploadIcon } from "lucide-react"
+import { BookOpenIcon, CheckIcon, CopyIcon, MicIcon, UploadIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -62,10 +62,18 @@ export default function DuasPage() {
             {locale === "km" && <p className="text-[11px] text-muted-foreground italic">{d.latin}</p>}
           </div>
           <p className="text-sm leading-relaxed">{pick(d, locale)}</p>
-          <p className="text-[11px] text-muted-foreground">📖 {d.source}</p>
+          <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <BookOpenIcon className="size-3.5 shrink-0" aria-hidden />
+            {d.source}
+          </p>
           {(uploaded[d.id] || owner) && (
             <div className="flex items-center gap-2">
-              {uploaded[d.id] && <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">🎙 {uploaded[d.id].credit}</p>}
+              {uploaded[d.id] && (
+                <p className="flex min-w-0 flex-1 items-center gap-1 text-[11px] text-muted-foreground">
+                  <MicIcon className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">{uploaded[d.id].credit}</span>
+                </p>
+              )}
               {owner && (
                 <Button size="sm" variant="ghost" className="ml-auto h-9 gap-1 px-2 text-xs text-muted-foreground" onClick={() => setUploading(d)}>
                   <UploadIcon className="size-4" aria-hidden />

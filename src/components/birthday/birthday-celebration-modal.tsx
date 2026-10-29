@@ -207,7 +207,7 @@ export function BirthdayCelebrationModal() {
         </button>
         {/* eslint-disable-next-line @next/next/no-img-element -- the local mascot, a small static file */}
         <img src="/logo.png" alt="" className="mx-auto size-28 animate-bounce [animation-iteration-count:2] motion-reduce:animate-none" />
-        <DialogTitle className="text-xl leading-snug font-bold">{title} 🎂🎉</DialogTitle>
+        <DialogTitle className="text-xl leading-snug font-bold">{title}</DialogTitle>
         <DialogDescription className="text-base leading-relaxed text-neutral-700 dark:text-neutral-200">{blessing}</DialogDescription>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <Button type="button" variant="outline" className="h-12" onClick={() => close(false)}>

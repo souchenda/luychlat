@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { MegaphoneIcon } from "lucide-react"
+import { GlobeIcon, MegaphoneIcon, SearchIcon, SendIcon, ThumbsUpIcon, UsersIcon, type LucideIcon } from "lucide-react"
 
 import { rpc, Section } from "@/components/admin/ui"
 import { Card } from "@/components/ui/card"
@@ -13,7 +13,7 @@ type Row = AcquisitionSource | "other"
 type Counts = Record<Row | "unknown", number>
 type Breakdown = Counts & { total: number; last_30_days: Counts; other_sources?: { label: string; count: number }[] }
 
-const EMOJI: Record<Row, string> = { facebook: "🔵", telegram: "✈️", referral: "👥", organic_search: "🔍", other: "🌐" }
+const ICON: Record<Row, LucideIcon> = { facebook: ThumbsUpIcon, telegram: SendIcon, referral: UsersIcon, organic_search: SearchIcon, other: GlobeIcon }
 const ROWS: Row[] = [...ACQUISITION_SOURCES, "other"]
 
 /** Admin overview: where users heard of the app (the first-visit question), all time and the last 30 days. */
@@ -29,11 +29,12 @@ export function AcquisitionSources() {
       <Card className="gap-2.5 px-4 py-3">
         {rows.map((s) => {
           const n = Number(data[s] ?? 0)
+          const Icon = ICON[s]
           const pct = answered ? Math.round((n / answered) * 100) : 0
           return (
             <div key={s} className="space-y-1">
               <div className="flex items-center gap-2 text-sm">
-                <span aria-hidden>{EMOJI[s]}</span>
+                <Icon className="size-4 shrink-0 text-primary" aria-hidden />
                 <span className="min-w-0 flex-1 truncate">{t(`source.${s}` as MessageKey)}</span>
                 <span className="text-xs text-muted-foreground tabular-nums">+{Number(data.last_30_days?.[s] ?? 0)} · {t("admin.sources30")}</span>
                 <span className="w-16 text-right font-semibold tabular-nums">
@@ -49,7 +50,10 @@ export function AcquisitionSources() {
         {/* The typed «ផ្សេងៗ» answers, grouped — new channels (TikTok, a poster, an event…) show here first. */}
         {typed.length > 0 && (
           <div className="space-y-1.5 border-t pt-2">
-            <p className="text-xs font-medium text-muted-foreground">🌐 {t("admin.sourcesOther")}</p>
+            <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <GlobeIcon className="size-3.5" aria-hidden />
+              {t("admin.sourcesOther")}
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {typed.map((o) => (
                 <span key={o.label} className="rounded-lg bg-muted px-2 py-1 text-xs">

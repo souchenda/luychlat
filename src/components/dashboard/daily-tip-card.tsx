@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRightIcon, LightbulbIcon, RefreshCwIcon, XIcon } from "lucide-react"
+import { BookOpenIcon, ChevronRightIcon, LightbulbIcon, RefreshCwIcon, XIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 
@@ -75,8 +75,9 @@ export function DailyTipCard({ wallets, debts, workspace }: { wallets?: Wallet[]
         <p className="mt-1 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{latinDigits(pick(tip.body, locale))}</p>
         {"ref" in tip && (
           // The exact source of an Islamic tip (Quran / Bukhari / Muslim).
-          <a href={tip.ref.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex min-h-8 items-center text-xs font-medium text-emerald-800 underline-offset-4 hover:underline dark:text-emerald-300">
-            📖 {tip.ref.label}
+          <a href={tip.ref.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex min-h-8 items-center gap-1 text-xs font-medium text-emerald-800 underline-offset-4 hover:underline dark:text-emerald-300">
+            <BookOpenIcon className="size-3.5 shrink-0" aria-hidden />
+            {tip.ref.label}
           </a>
         )}
       </div>

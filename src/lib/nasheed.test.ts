@@ -151,7 +151,7 @@ describe("Yerny's «Hulum Takhrij» upload (founder, 20/10/2026)", () => {
     assert.equal(submissionError({ ...ok, file: arabic, authentic: false }), "nasheed.confirmRequired")
     assert.equal(dictionaries.km["nasheed.confirmAuthentic"], "ខ្ញុំបញ្ជាក់ថា នេះជាបទកសាដះ ឬណាស្សីដឥស្លាមពិតប្រាកដ (គ្មានខ្លឹមសារខុសឆ្គង)")
     assert.ok(!("nasheed.confirmRights" in dictionaries.km))
-    assert.equal(dictionaries.km["nasheed.disclaimer"], "ℹ️ សំឡេងសាធារណៈចែករំលែកដើម្បីស្តាប់ក្នុងសហគមន៍ដោយមិនរកប្រាក់ចំណេញ។ ប្រព័ន្ធនឹងលុបចេញវិញភ្លាមៗ ប្រសិនបើមានការស្នើសុំពីម្ចាស់កម្មសិទ្ធិដើម។")
+    assert.equal(dictionaries.km["nasheed.disclaimer"], "សំឡេងសាធារណៈចែករំលែកដើម្បីស្តាប់ក្នុងសហគមន៍ដោយមិនរកប្រាក់ចំណេញ។ ប្រព័ន្ធនឹងលុបចេញវិញភ្លាមៗ ប្រសិនបើមានការស្នើសុំពីម្ចាស់កម្មសិទ្ធិដើម។")
     const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/nasheed/page.tsx"), "utf8")
     assert.doesNotMatch(page, /s-rights|confirmRights/)
     assert.match(page, /const missingConfirm = tried && isPublic && !authentic/)
@@ -193,10 +193,10 @@ describe("🌐 public or 🔒 private, and the two tabs (founder, 20/10/2026)", 
     assert.match(page, /useState<NasheedVisibility>\("public"\)/) // public by default
     assert.match(page, /\{isPublic && \(\s+<>\s+\{check\("s-authentic"/)
     assert.match(page, /t\(isPublic \? "nasheed\.send" : "nasheed\.savePrivate"\)/)
-    assert.equal(dictionaries.km["nasheed.tabCommunity"], "🌐 បណ្ណាល័យរួម (Community)")
-    assert.equal(dictionaries.km["nasheed.tabMine"], "👤 បទផ្ទាល់ខ្លួន (My Tracks)")
-    assert.equal(dictionaries.km["nasheed.visPublic"], "🌐 ចែករំលែកជាសាធារណៈ")
-    assert.equal(dictionaries.km["nasheed.visPrivate"], "🔒 ទុកស្តាប់ផ្ទាល់ខ្លួន")
+    assert.equal(dictionaries.km["nasheed.tabCommunity"], "បណ្ណាល័យរួម (Community)")
+    assert.equal(dictionaries.km["nasheed.tabMine"], "បទផ្ទាល់ខ្លួន (My Tracks)")
+    assert.equal(dictionaries.km["nasheed.visPublic"], "ចែករំលែកជាសាធារណៈ")
+    assert.equal(dictionaries.km["nasheed.visPrivate"], "ទុកស្តាប់ផ្ទាល់ខ្លួន")
     assert.equal(dictionaries.km["nasheed.savePrivate"], "រក្សាទុកស្តាប់ផ្ទាល់ខ្លួន")
     assert.equal(dictionaries.km["nasheed.send"], "ផ្ញើសុំការអនុម័ត")
     // Private tracks are never sent to the approval room.

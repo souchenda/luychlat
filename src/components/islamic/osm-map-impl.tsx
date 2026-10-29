@@ -3,11 +3,31 @@
 import "leaflet/dist/leaflet.css"
 
 import L from "leaflet"
-import { useEffect, useRef } from "react"
+import { HourglassIcon, MapPinIcon, MoonIcon, MoonStarIcon, UtensilsIcon, type LucideIcon } from "lucide-react"
+import { createElement, useEffect, useRef } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
 
 import type { MapMarker, OsmMapProps } from "./osm-map"
 
-const EMOJI: Record<MapMarker["tone"], string> = { MOSQUE: "🕌", SURAU: "🛐", HALAL: "🍽️", PENDING: "⏳", PIN: "📍" }
+/** The app's line icons in the brand colours (founder, 29/10/2026 — no cartoon emoji). */
+const ICON: Record<MapMarker["tone"], { Icon: LucideIcon; color: string }> = {
+  MOSQUE: { Icon: MoonStarIcon, color: "#059669" },
+  SURAU: { Icon: MoonIcon, color: "#0d9488" },
+  HALAL: { Icon: UtensilsIcon, color: "#d97706" },
+  PENDING: { Icon: HourglassIcon, color: "#64748b" },
+  PIN: { Icon: MapPinIcon, color: "#059669" },
+}
+const svgCache = new Map<string, string>()
+function svg(tone: MapMarker["tone"], px: number): string {
+  const key = `${tone}:${px}`
+  let out = svgCache.get(key)
+  if (!out) {
+    const { Icon, color } = ICON[tone]
+    out = renderToStaticMarkup(createElement(Icon, { size: px, color, strokeWidth: tone === "PIN" ? 2.5 : 2, "aria-hidden": true }))
+    svgCache.set(key, out)
+  }
+  return out
+}
 
 function icon(m: MapMarker, selected: boolean): L.DivIcon {
   const size = m.tone === "PIN" ? 34 : selected ? 38 : 30
@@ -16,7 +36,7 @@ function icon(m: MapMarker, selected: boolean): L.DivIcon {
     iconSize: [size, size],
     iconAnchor: [size / 2, m.tone === "PIN" ? size : size / 2],
     // Static markup only: names are never put into HTML.
-    html: `<span style="display:flex;width:${size}px;height:${size}px;align-items:center;justify-content:center;border-radius:9999px;font-size:${Math.round(size * 0.55)}px;background:${m.tone === "PIN" ? "transparent" : "white"};box-shadow:${m.tone === "PIN" ? "none" : "0 1px 4px rgba(0,0,0,.35)"};${selected ? "outline:3px solid #10b981;" : ""}${m.tone === "PENDING" ? "opacity:.75;" : ""}">${EMOJI[m.tone]}</span>`,
+    html: `<span style="display:flex;width:${size}px;height:${size}px;align-items:center;justify-content:center;border-radius:9999px;background:${m.tone === "PIN" ? "transparent" : "white"};box-shadow:${m.tone === "PIN" ? "none" : "0 1px 4px rgba(0,0,0,.35)"};${selected ? "outline:3px solid #10b981;" : ""}${m.tone === "PENDING" ? "opacity:.75;" : ""}">${svg(m.tone, Math.round(size * (m.tone === "PIN" ? 0.85 : 0.55)))}</span>`,
   })
 }
 

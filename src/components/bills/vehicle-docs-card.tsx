@@ -1,6 +1,6 @@
 "use client"
 
-import { CarIcon, Loader2Icon, PencilIcon, PlusIcon, RefreshCwIcon } from "lucide-react"
+import { CarIcon, CircleCheckIcon, CircleXIcon, Loader2Icon, PencilIcon, PlusIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -90,6 +90,13 @@ export function VehicleDocsCard({ workspaceId, editable, addType = null }: { wor
                     {d.cost != null ? ` · ${t("vdoc.about")} ${formatMoney(d.cost, d.currency, { hidden })}` : ""}
                   </p>
                   <p className={`mt-0.5 text-xs font-medium ${STATUS_STYLE[status]}`}>
+                    {status === "valid" ? (
+                      <CircleCheckIcon className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
+                    ) : status === "soon" ? (
+                      <TriangleAlertIcon className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
+                    ) : (
+                      <CircleXIcon className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
+                    )}
                     {t(`vdoc.status.${status}` as MessageKey)} · {t("vdoc.expires", { date: date(d.expires_on) })}
                     {status !== "valid" && ` (${left < 0 ? t("vdoc.daysAgo", { n: -left }) : left === 0 ? t("vdoc.today") : t("vdoc.daysLeft", { n: left })})`}
                   </p>

@@ -8,10 +8,10 @@ import { LOCALES, type Locale } from "@/lib/i18n/dictionaries"
 import { useLocaleStore } from "@/stores/locale-store"
 
 /** Each language named in itself, as the switchers show it. */
-export const LANGUAGE_NAMES: Record<Locale, { flag: string; name: string; short: string }> = {
-  km: { flag: "🇰🇭", name: "ភាសាខ្មែរ", short: "ខ្មែរ" },
-  en: { flag: "🇬🇧", name: "English", short: "EN" },
-  zh: { flag: "🇨🇳", name: "中文（简体）", short: "中文" },
+export const LANGUAGE_NAMES: Record<Locale, { name: string; short: string }> = {
+  km: { name: "ភាសាខ្មែរ", short: "ខ្មែរ" },
+  en: { name: "English", short: "EN" },
+  zh: { name: "中文（简体）", short: "中文" },
 }
 
 /** The header button: one short label, nothing else (flag emoji show as "KH" letters on Windows). */

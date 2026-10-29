@@ -1,6 +1,6 @@
 "use client"
 
-import { BadgeCheckIcon, Loader2Icon, LockIcon, PauseIcon, PlayIcon, UploadIcon } from "lucide-react"
+import { BadgeCheckIcon, GlobeIcon, Loader2Icon, LockIcon, MoonStarIcon, PauseIcon, PlayIcon, SunriseIcon, UploadIcon, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { useSyncExternalStore } from "react"
 import { toast } from "sonner"
@@ -31,7 +31,7 @@ export function AdhanGlobalButtons({ presetId, defaults }: { presetId: string; d
       { kind, preset: presetId },
       { onSuccess: () => toast.success(t("adhanGlobal.saved")), onError: () => toast.error(t("common.error")) },
     )
-  const button = (kind: "regular" | "fajr", active: boolean, label: string) =>
+  const button = (kind: "regular" | "fajr", active: boolean, label: string, Icon: LucideIcon) =>
     active ? (
       <span className="inline-flex h-8 items-center gap-1 rounded-full bg-emerald-600 px-2.5 text-[11px] font-semibold text-white">
         <BadgeCheckIcon className="size-3.5" aria-hidden />
@@ -39,14 +39,14 @@ export function AdhanGlobalButtons({ presetId, defaults }: { presetId: string; d
       </span>
     ) : (
       <Button size="sm" variant="outline" className="h-8 px-2.5 text-[11px]" disabled={set.isPending} onClick={() => choose(kind)}>
-        {set.isPending && set.variables?.kind === kind && set.variables.preset === presetId && <Loader2Icon className="animate-spin" />}
+        {set.isPending && set.variables?.kind === kind && set.variables.preset === presetId ? <Loader2Icon className="animate-spin" /> : <Icon aria-hidden />}
         {label}
       </Button>
     )
   return (
     <div className="flex w-full flex-wrap gap-1.5">
-      {button("regular", regular, `🌐 ${t("adhanGlobal.setRegular")}`)}
-      {button("fajr", fajr, `🌅 ${t("adhanGlobal.setFajr")}`)}
+      {button("regular", regular, t("adhanGlobal.setRegular"), GlobeIcon)}
+      {button("fajr", fajr, t("adhanGlobal.setFajr"), SunriseIcon)}
     </div>
   )
 }
@@ -63,7 +63,10 @@ export function AdhanManager() {
   return (
     <Card className="gap-3 px-4 py-4">
       <div>
-        <h2 className="text-sm font-semibold">🕌 {t("adhanGlobal.title")}</h2>
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+          <MoonStarIcon className="size-4 shrink-0 text-amber-500" aria-hidden />
+          {t("adhanGlobal.title")}
+        </h2>
         <p className="text-xs text-muted-foreground">{t("adhanGlobal.hint")}</p>
       </div>
       {availablePresets(global).map((p) => (

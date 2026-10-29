@@ -30,20 +30,20 @@ const memory = () => {
 }
 
 describe("The welcome greeting — Khmer (founder, 26/10/2026 — Task #518)", () => {
-  it("«ជម្រាបសួរ ចិន្ដា! 🙏» and the time of day: អរុណ 05–12 · ទិវា 12–18 · សាយណ្ហ otherwise (Cambodian hours)", () => {
+  it("«ជម្រាបសួរ ចិន្ដា!» and the time of day: អរុណ 05–12 · ទិវា 12–18 · សាយណ្ហ otherwise (Cambodian hours)", () => {
     const g = welcomeGreeting({ islamic: false, name: "ចិន្ដា", hour: 7, day: 0 })
     assert.equal(g.kind, "khmer")
     if (g.kind !== "khmer") return
-    assert.equal(km[g.title]!.replace("{name}", g.params.name), "ជម្រាបសួរ ចិន្ដា! 🙏")
+    assert.equal(km[g.title]!.replace("{name}", g.params.name), "ជម្រាបសួរ ចិន្ដា!")
     const sub = (hour: number) => {
       const x = welcomeGreeting({ islamic: false, name: "ចិន្ដា", hour, day: 0 })
       return x.kind === "khmer" ? km[x.subtitle] : null
     }
     assert.deepEqual([4, 5, 11, 12, 17, 18, 23].map(sub), ["សាយណ្ហសួស្តី", "អរុណសួស្តី", "អរុណសួស្តី", "ទិវាសួស្តី", "ទិវាសួស្តី", "សាយណ្ហសួស្តី", "សាយណ្ហសួស្តី"])
   })
-  it("no name yet: «ជម្រាបសួរ! 🙏» — never an empty space before the «!»", () => {
+  it("no name yet: «ជម្រាបសួរ!» — never an empty space before the «!»", () => {
     const g = welcomeGreeting({ islamic: false, name: "  ", hour: 9, day: 0 })
-    assert.equal(g.kind === "khmer" ? km[g.title] : null, "ជម្រាបសួរ! 🙏")
+    assert.equal(g.kind === "khmer" ? km[g.title] : null, "ជម្រាបសួរ!")
   })
 })
 
@@ -115,7 +115,7 @@ describe("Once per launch, per device, and never a sound on a muted phone (Task 
     const settings = read("src/app/(app)/settings/page.tsx")
     assert.match(settings, /<HolyDayChimeRow \/>\n\s+<WelcomeVoiceRow \/>/) // beside the other personal sound, for every workspace
     assert.match(settings, /writeWelcomeVoice\(localStorage, v\)/)
-    assert.equal(km["settings.welcomeVoice"], "🔊 សំឡេងស្វាគមន៍ពេលបើកអេប")
+    assert.equal(km["settings.welcomeVoice"], "សំឡេងស្វាគមន៍ពេលបើកអេប")
     for (const l of ["en", "zh"] as const) assert.ok((dictionaries[l] as Record<string, string>)["welcome.titleName"], l)
     assert.doesNotMatch(Object.entries(km).filter(([k]) => k.startsWith("welcome.") || k.startsWith("settings.welcomeVoice")).map(([, v]) => v).join(" "), /លោក|[០-៩]/)
   })

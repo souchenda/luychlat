@@ -119,7 +119,6 @@ export function PhoneLogin({ disabled }: { disabled?: boolean }) {
       <Label htmlFor="phone">{t("login.phoneLabel")}</Label>
       <div className="flex h-12 items-center rounded-lg border bg-background focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
         <span className="flex h-full items-center gap-1.5 border-r px-3 text-sm font-medium">
-          <span aria-hidden>🇰🇭</span>
           {KH_COUNTRY_CODE}
         </span>
         <Input

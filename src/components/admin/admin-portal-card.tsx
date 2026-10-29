@@ -29,7 +29,7 @@ export function AdminPortalCard() {
     <Card className="gap-2 border-amber-400/50 bg-linear-to-br from-emerald-600/10 to-amber-400/10 px-4 py-3">
       <p className="flex items-center gap-2 text-sm font-semibold">
         <SettingsIcon className="size-4 text-emerald-700 dark:text-emerald-300" aria-hidden />
-        ⚙️ {t("adminPortal.title")}
+        {t("adminPortal.title")}
       </p>
       <div className="grid grid-cols-3 gap-2">
         {LINKS.map(({ href, label, icon: Icon }) => (

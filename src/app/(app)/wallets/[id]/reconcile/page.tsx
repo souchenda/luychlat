@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { ArrowLeftIcon, CircleCheckIcon, CrownIcon, FileUpIcon, Loader2Icon, LockIcon, ScaleIcon, Trash2Icon } from "lucide-react"
+import { ArrowLeftIcon, CircleCheckIcon, CrownIcon, FileUpIcon, GiftIcon, Loader2Icon, LockIcon, ScaleIcon, Trash2Icon } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useRef, useState } from "react"
@@ -156,7 +156,12 @@ export default function ReconcileStatementPage() {
         </Card>
       ) : step.kind === "upload" ? (
         <>
-          {freeLeft && <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">🎁 {t("stmt.freeFirst")}</p>}
+          {freeLeft && (
+            <p className="flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+              <GiftIcon className="size-4 shrink-0" aria-hidden />
+              {t("stmt.freeFirst")}
+            </p>
+          )}
           <Card className="gap-4 px-5 py-6">
             <p className="text-sm text-muted-foreground">{t("recon.intro")}</p>
             <ol className="list-decimal space-y-1 pl-5 text-sm">

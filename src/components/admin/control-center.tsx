@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { DatabaseBackupIcon, GlobeIcon, Loader2Icon, RotateCcwIcon, ShieldCheckIcon } from "lucide-react"
+import { CircleCheckIcon, CircleXIcon, DatabaseBackupIcon, GlobeIcon, Loader2Icon, RotateCcwIcon, ShieldCheckIcon, TriangleAlertIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { NoticePanel } from "@/components/admin/notice-panel"
@@ -105,7 +105,16 @@ export function ControlCenter() {
   return (
     <div className="space-y-6">
       <Card className={cn("gap-1 px-4 py-4", head === "ok" ? "bg-emerald-500/10" : head === "warn" ? "bg-amber-500/10" : "bg-red-500/10")}>
-        <p className="text-lg font-bold">{t(`ops.overall.${head}` as MessageKey)}</p>
+        <p className="flex items-center gap-2 text-lg font-bold">
+          {head === "ok" ? (
+            <CircleCheckIcon className="size-5 text-emerald-600" aria-hidden />
+          ) : head === "warn" ? (
+            <TriangleAlertIcon className="size-5 text-amber-600" aria-hidden />
+          ) : (
+            <CircleXIcon className="size-5 text-red-600" aria-hidden />
+          )}
+          {t(`ops.overall.${head}` as MessageKey)}
+        </p>
         <p className="text-xs text-muted-foreground">{report ? t("ops.updated", { ago: ago(new Date(report.at * 1000).toISOString()) }) : t("ops.noReport")}</p>
       </Card>
 

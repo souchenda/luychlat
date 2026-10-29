@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { BugIcon, Loader2Icon } from "lucide-react"
+import { BugIcon, Loader2Icon, SmartphoneIcon } from "lucide-react"
 
 import { ago, rpc, Section } from "@/components/admin/ui"
 import { Card } from "@/components/ui/card"
@@ -32,7 +32,8 @@ export function ClientErrorsCard() {
                 {t("ops.errors.hits", { hits: e.hits, users: e.users })} · {e.page ?? "?"} · {ago(e.last_at)}
               </p>
               <p className="text-[11px] break-words text-muted-foreground">
-                📱 {deviceLine(e.device)} · Build {e.builds.map(buildLabel).join(", ")}
+                <SmartphoneIcon className="mr-1 inline size-3 align-[-1px]" aria-hidden />
+                {deviceLine(e.device)} · Build {e.builds.map(buildLabel).join(", ")}
               </p>
             </div>
           ))

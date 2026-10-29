@@ -1,6 +1,6 @@
 "use client"
 
-import { ExternalLinkIcon, Loader2Icon, Trash2Icon } from "lucide-react"
+import { CircleCheckIcon, ClockIcon, ExternalLinkIcon, Loader2Icon, Trash2Icon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -379,7 +379,11 @@ export function BillSheet({
                 <span>{st.due_date ? st.due_date.split("-").reverse().slice(0, 2).join("/") : "—"}</span>
                 <span className="text-muted-foreground">{st.usage !== null ? `${st.usage} ${form.kind === "WATER" ? "m³" : "kWh"}` : ""}</span>
                 <span>{formatMoney(st.amount, st.currency)}</span>
-                <span>{st.status === "PAID" ? "✅" : "⏳"}</span>
+                {st.status === "PAID" ? (
+                  <CircleCheckIcon className="size-4 text-emerald-600" aria-label={t("bills.paidBadge")} />
+                ) : (
+                  <ClockIcon className="size-4 text-amber-500" aria-label={t("bills.unpaidBadge")} />
+                )}
                 <button
                   type="button"
                   className="-mr-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"

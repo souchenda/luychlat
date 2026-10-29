@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BanIcon, BuildingIcon, FlaskConicalIcon, CheckCircle2Icon, IdCardIcon, ShieldCheckIcon, ShieldIcon, SmartphoneIcon } from "lucide-react"
+import { BanIcon, BuildingIcon, CheckCircle2Icon, FlaskConicalIcon, IdCardIcon, MoonStarIcon, ShieldCheckIcon, ShieldIcon, SmartphoneIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { stepUp } from "@/components/security/step-up"
@@ -152,12 +152,18 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium">{t("admin.accountStatus")}</p>
         <span className={cn("text-sm font-semibold", user.suspended ? "text-destructive" : "text-emerald-600 dark:text-emerald-400")}>
-          {user.suspended ? `🔴 ${t("admin.badge.suspended")}` : `🟢 ${t("admin.statusActive")}`}
+          <span className={cn("mr-1.5 inline-block size-2 rounded-full align-middle", user.suspended ? "bg-red-500" : "bg-emerald-500")} aria-hidden />
+          {user.suspended ? t("admin.badge.suspended") : t("admin.statusActive")}
         </span>
       </div>
       {user.suspended && user.suspended_reason && <p className="text-xs text-muted-foreground">{user.suspended_reason}</p>}
       <UserBadges user={user} />
-      {user.business_verified && user.business_note && <p className="text-xs text-muted-foreground">🏢 {user.business_note}</p>}
+      {user.business_verified && user.business_note && (
+        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+          <BuildingIcon className="size-3.5 shrink-0" aria-hidden />
+          {user.business_note}
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-3">
         <Button
           variant="outline"
@@ -196,7 +202,10 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
       {/* Islamic Mode is managed by an admin (founder, 18/10/2026): read only here, never in the directory. */}
       <label className="flex items-center justify-between gap-3 border-t pt-2 text-sm">
         <span>
-          <span className="block font-medium">🌙 {t("islamic.mode")}</span>
+          <span className="flex items-center gap-1.5 font-medium">
+            <MoonStarIcon className="size-4 text-amber-500" aria-hidden />
+            {t("islamic.mode")}
+          </span>
           <span className="block text-xs text-muted-foreground">{t("admin.islamicModeHint")}</span>
         </span>
         <Switch
@@ -209,7 +218,10 @@ export function AccountControls({ user, onDone }: { user: DirectoryUser; onDone:
       {superAdmin && (
         <label className="flex items-center justify-between gap-3 border-t pt-2 text-sm">
           <span>
-            <span className="block font-medium">🧪 {t("customers.markTest")}</span>
+            <span className="flex items-center gap-1.5 font-medium">
+              <FlaskConicalIcon className="size-4 text-violet-600" aria-hidden />
+              {t("customers.markTest")}
+            </span>
             <span className="block text-xs text-muted-foreground">{t("customers.markTestHint")}</span>
           </span>
           <Switch

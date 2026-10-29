@@ -143,7 +143,7 @@ describe("The Adhan plays at the prayer minute — never silence (founder, 22/10
     assert.match(ui, /onClick=\{testAdhan\}/)
     assert.match(ui, /primeAdhanAudio\(\) \/\/ this tap also unlocks/)
     assert.match(ui, /adhanForPrayer\("dhuhr", adhanPreset, fajrAdhan, !!adhanName, FAJR_ADHAN, global, defaults\)/)
-    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.testAdhan": "🔊 សាកល្បងសំឡេងអាហ្សាន (Test Adhan)"'))
+    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.testAdhan": "សាកល្បងសំឡេងអាហ្សាន (Test Adhan)"'))
     const bot = read("src/lib/server/bot-dispatch.ts")
     assert.match(bot, /if \(error\) return logEvent\("error", "prayer", `Telegram prayer alerts: subscribers not read/)
     assert.match(bot, /if \(error\) return logEvent\("error", "prayer", `Prayer push: phones not read/)
@@ -178,7 +178,7 @@ describe("The Adhan strictly per device (founder, 24/10/2026 — Task #488: at D
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270254000000_prayer_push_per_device.sql"), "utf8")
     assert.match(sql, /alter column prayer_alerts set default false/) // a new browser never rings by default
     assert.match(sql, /update public\.push_subscriptions set prayer_alerts = false where prayer_alerts/)
-    assert.ok(readFileSync(join(process.cwd(), "src/lib/i18n/dictionaries.ts"), "utf8").includes('"prayerAlert.thisDevice": "📱 សម្រាប់តែទូរសព្ទនេះ'))
+    assert.ok(readFileSync(join(process.cwd(), "src/lib/i18n/dictionaries.ts"), "utf8").includes('"prayerAlert.thisDevice": "សម្រាប់តែទូរសព្ទនេះ'))
   })
 })
 

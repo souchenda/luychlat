@@ -1,6 +1,6 @@
 "use client"
 
-import { BellRingIcon, CheckIcon, ChevronRightIcon, CoinsIcon, CompassIcon, CopyIcon, HeadphonesIcon, MapPinIcon, MoonIcon, UtensilsIcon, type LucideIcon } from "lucide-react"
+import { BellRingIcon, BookOpenIcon, CheckIcon, ChevronRightIcon, CoinsIcon, CompassIcon, CopyIcon, HeadphonesIcon, MapPinIcon, MoonIcon, UtensilsIcon, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 
@@ -164,7 +164,10 @@ export function ContextualDuaCard() {
         {pick(dua, locale)}
       </p>
       <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-        <span>📖 {dua.source}</span>
+        <span className="flex items-center gap-1">
+          <BookOpenIcon className="size-3.5 shrink-0" aria-hidden />
+          {dua.source}
+        </span>
         <Link href="/islamic/duas" className="flex min-h-9 items-center gap-0.5 font-medium text-primary">
           {t("islamicHub.allDuas")}
           <ChevronRightIcon className="size-3.5" aria-hidden />

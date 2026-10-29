@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BellIcon, BotIcon, ChartColumnIcon, CheckCircle2Icon, CrownIcon, Loader2Icon, MessageSquarePlusIcon, MoonStarIcon, NotebookPenIcon, SendIcon, UnlinkIcon } from "lucide-react"
+import { BellIcon, BotIcon, ChartColumnIcon, CheckCircle2Icon, CrownIcon, FlowerIcon, Loader2Icon, MessageSquarePlusIcon, MoonStarIcon, NotebookPenIcon, SendIcon, StoreIcon, UnlinkIcon, UserIcon, UsersIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -62,7 +62,18 @@ export function useOfficialBot() {
 
 /** Select value for ULTRA's "all workspaces" routing. */
 const ALL = "__all__"
-const WS_ICON = { PERSONAL: "👤", BUSINESS: "🏪", FAMILY: "👨‍👩‍👧" } as const
+const WS_ICON = { PERSONAL: UserIcon, BUSINESS: StoreIcon, FAMILY: UsersIcon } as const
+
+/** A workspace in the routing choice: its line icon and name. */
+function WsLabel({ type, name }: { type: keyof typeof WS_ICON; name: string }) {
+  const Icon = WS_ICON[type]
+  return (
+    <span className="flex items-center justify-center gap-1 truncate px-1">
+      <Icon className="size-3.5 shrink-0" aria-hidden />
+      <span className="truncate">{name}</span>
+    </span>
+  )
+}
 
 export function useTelegramLink() {
   const userId = useSessionStore((s) => s.user?.id ?? null)
@@ -217,9 +228,7 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
               <Switch checked={linked.ai_numbers ?? false} onCheckedChange={(v) => update.mutate({ ai_numbers: v })} aria-label={t("bot.aiNumbers")} />
             </label>
             <label className="flex items-center gap-3 text-sm">
-              <span className="w-4 shrink-0 text-center text-sm" aria-hidden>
-                🙏
-              </span>
+              <FlowerIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               <span className="min-w-0 flex-1">
                 <span className="block font-medium">{t("bot.holyDayAlerts")}</span>
                 <span className="block text-xs text-muted-foreground">{t("bot.holyDayAlertsHint")}</span>
@@ -306,9 +315,17 @@ export function OfficialBotCard({ legacy }: { legacy: React.ReactNode }) {
                         options={[
                           ...writable.map((w) => ({
                             value: w.id,
-                            label: <span className="block truncate px-1">{`${WS_ICON[w.type]} ${w.name}`}</span>,
+                            label: <WsLabel type={w.type} name={w.name} />,
                           })),
-                          { value: ALL, label: <span className="block truncate px-1">👑 {t("bot.routeAllShort")}</span> },
+                          {
+                            value: ALL,
+                            label: (
+                              <span className="flex items-center justify-center gap-1 truncate px-1">
+                                <CrownIcon className="size-3.5 shrink-0 text-amber-500" aria-hidden />
+                                {t("bot.routeAllShort")}
+                              </span>
+                            ),
+                          },
                         ]}
                       />
                     ) : (

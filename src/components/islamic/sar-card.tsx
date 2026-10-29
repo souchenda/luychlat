@@ -1,5 +1,6 @@
 "use client"
 
+import { BanknoteIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Segmented } from "@/components/common/segmented"
@@ -32,7 +33,9 @@ export function SarCard() {
   return (
     <Card className="gap-3 px-4 py-4">
       <div>
-        <h2 className="text-sm font-semibold">🇸🇦 ហាងឆេងលុយអារ៉ាប់ (SAR - Saudi Riyal)</h2>
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+          <BanknoteIcon className="size-4 shrink-0 text-amber-500" aria-hidden />
+          ហាងឆេងលុយអារ៉ាប់ (SAR - Saudi Riyal)</h2>
         <p className="text-xs text-muted-foreground">សម្រាប់អ្នកធ្វើដំណើរទៅធ្វើរូកូន ហាជ និងអ៊ុំរ៉ោះ</p>
       </div>
       {usdKhr > 0 ? (

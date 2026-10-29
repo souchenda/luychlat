@@ -1,7 +1,7 @@
 "use client"
 
 import { formatDuration, formatOverdue } from "@/lib/format"
-import { CheckIcon, ChevronDownIcon, ExternalLinkIcon, Loader2Icon, PlusIcon, ReceiptIcon, ShieldCheckIcon, Undo2Icon } from "lucide-react"
+import { CheckIcon, ChevronDownIcon, CircleCheckIcon, ClockIcon, ExternalLinkIcon, Loader2Icon, PlusIcon, ReceiptIcon, ShieldCheckIcon, Undo2Icon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -224,6 +224,11 @@ export default function BillsPage() {
                       {/* Unpaid vs paid, never confused: "⏳ មិនទាន់បង់" until it is marked paid, then "✅ បង់រួច". */}
                       {status !== "off" && bill.kind !== "DEPOSIT" && (
                         <span className={cn("font-medium", recentlyPaid(bill) && status === "later" ? "text-emerald-700 dark:text-emerald-400" : "")}>
+                          {recentlyPaid(bill) && status === "later" ? (
+                            <CircleCheckIcon className="mr-0.5 inline size-3.5 align-[-2px]" aria-hidden />
+                          ) : (
+                            <ClockIcon className="mr-0.5 inline size-3.5 align-[-2px]" aria-hidden />
+                          )}
                           {t(recentlyPaid(bill) && status === "later" ? "bills.paidBadge" : "bills.unpaidBadge")}
                           {" · "}
                         </span>

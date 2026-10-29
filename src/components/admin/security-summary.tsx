@@ -1,6 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
+import { CircleCheckIcon, CircleXIcon } from "lucide-react"
 
 import { Card } from "@/components/ui/card"
 import { useT } from "@/lib/i18n/use-t"
@@ -70,8 +71,9 @@ export function SecuritySummaryCard({ from, to, today }: { from: string; to: str
           <div className="space-y-1.5 border-t pt-3">
             {s.incidents.map((i) => (
               <div key={i.started_at + i.issue} className="text-sm">
-                <p className="font-medium">
-                  {i.ended_at ? "✅" : "🔴"} {i.issue.toUpperCase()}
+                <p className="flex flex-wrap items-center gap-1 font-medium">
+                  {i.ended_at ? <CircleCheckIcon className="size-4 text-emerald-600" aria-hidden /> : <CircleXIcon className="size-4 text-red-600" aria-hidden />}
+                  {i.issue.toUpperCase()}
                   {i.peak != null && ` · ${t("dev.peak", { value: i.peak })}`}
                 </p>
                 <p className="text-xs text-muted-foreground tabular-nums">

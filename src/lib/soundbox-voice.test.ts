@@ -102,7 +102,7 @@ describe("SoundBox voice persona — 👩 female (default) or 👨 male, per dev
     assert.match(s, /hint=\{gender === "male" && !MALE_VOICE_READY \? t\("settings\.voiceMalePending"\) : undefined\}/)
     assert.match(read("src/components/payments/payment-chime-listener.tsx"), /void playClips\(paymentClips\(\{ amount: 10_000, currency: "KHR" \}, voiceSpeed\(\), gender\)\)/)
     const km = dictionaries.km as Record<string, string>
-    assert.deepEqual([km["settings.voiceFemale"], km["settings.voiceMale"], km["settings.voicePreview"]], ["👩 សំឡេងស្រី", "👨 សំឡេងប្រុស", "សាកល្បង"])
+    assert.deepEqual([km["settings.voiceFemale"], km["settings.voiceMale"], km["settings.voicePreview"]], ["សំឡេងស្រី", "សំឡេងប្រុស", "សាកល្បង"])
     assert.doesNotMatch(km["settings.voiceMalePending"], /លោក/)
     for (const l of ["en", "zh"] as const) assert.ok((dictionaries[l] as Record<string, string>)["settings.voiceMalePending"], l)
   })

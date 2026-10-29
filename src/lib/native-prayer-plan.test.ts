@@ -82,8 +82,8 @@ describe("The Adhan with the screen off — Android alarms really set (founder, 
     assert.match(n, /export const NATIVE_TEST_DELAY_MS = 10_000/) // 10 s (Task #473): lock the phone and listen
     assert.match(n, /if \(\(await step\("permission", n\.checkPermissions\(\)\)\)\.display !== "granted"\) return 0/)
     const km = read("src/lib/i18n/dictionaries.ts")
-    assert.ok(km.includes('"prayerAlert.nativeTest": "⏰ តេស្តសំឡេងអាហ្សានពេលចាក់សោរ (10 វិនាទី)"'))
-    assert.ok(km.includes('"prayerAlert.nativeTestSet": "⏰ បានកំណត់ម៉ោងរោទ៍តេស្ត 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះ។"')) // bang's words (Task #480)
+    assert.ok(km.includes('"prayerAlert.nativeTest": "តេស្តសំឡេងអាហ្សានពេលចាក់សោរ (10 វិនាទី)"'))
+    assert.ok(km.includes('"prayerAlert.nativeTestSet": "បានកំណត់ម៉ោងរោទ៍តេស្ត 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះ។"')) // bang's words (Task #480)
     // The instant preview stays beside it: play / stop, no lock needed.
     assert.match(read("src/components/islamic/prayer-alerts.tsx"), /onClick=\{testAdhan\} aria-pressed=\{testing\}/)
   })
@@ -154,7 +154,7 @@ describe("The phone's Silent / Vibrate / Do Not Disturb, always respected (found
     assert.match(c, /\{ value: "vibrate", label: t\("prayerAlert\.vibrate"\) \}/)
     assert.match(c, /if \(alertSound === "vibrate"\) navigator\.vibrate\?\.\(/)
     assert.match(c, /\{t\("prayerAlert\.respectsPhone"\)\}/)
-    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.respectsPhone": "🔕 អេបគោរពតាមស្ថានភាព Silent/រំញ័រ របស់ទូរស័ព្ទជានិច្ច"'))
+    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.respectsPhone": "អេបគោរពតាមស្ថានភាព Silent/រំញ័រ របស់ទូរស័ព្ទជានិច្ច"'))
   })
   it("the SoundBox: never spoken with the phone on Silent / Vibrate / DND (the app-wide voice and the SoundBox page)", () => {
     assert.match(read("src/components/payments/payment-chime-listener.tsx"), /void phoneQuiet\(\)\.then\(\(mode\) => \{\s+announceLog\([^\n]*\n\s+if \(!isQuiet\(mode\)\) speakNow\(e\)/)
@@ -198,7 +198,7 @@ describe("The lock-screen test that never answered on 1.7 — never a silent «�
     assert.match(c, /toast\.error\(t\("prayerAlert\.nativeTestFailed", \{ reason: errorText\(e\) \}\), \{ id: pending, duration: Infinity, closeButton: true \}\)/)
     assert.match(read("src/app/api/client-error/route.ts"), /"native-alarm"/)
     const km = read("src/lib/i18n/dictionaries.ts")
-    assert.ok(km.includes('"prayerAlert.nativeTestSet": "⏰ បានកំណត់ម៉ោងរោទ៍តេស្ត 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះ។"'))
+    assert.ok(km.includes('"prayerAlert.nativeTestSet": "បានកំណត់ម៉ោងរោទ៍តេស្ត 10 វិនាទី! សូមចាក់សោរអេក្រង់ទូរស័ព្ទឥឡូវនេះ។"'))
   })
 })
 

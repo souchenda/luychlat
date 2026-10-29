@@ -2,7 +2,7 @@
 
 import { formatDistanceToNow } from "date-fns"
 import { enUS, km } from "date-fns/locale"
-import { AlarmClockIcon, ArrowDownLeftIcon, ArrowUpRightIcon, BellIcon, BellOffIcon, TriangleAlertIcon } from "lucide-react"
+import { AlarmClockIcon, ArrowDownLeftIcon, ArrowUpRightIcon, BellIcon, BellOffIcon, FlowerIcon, SunIcon, TriangleAlertIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
@@ -193,8 +193,8 @@ export function NotificationBell() {
         </div>
         {showTips && morning && (
           <div className="-mx-4 flex gap-3 border-b bg-amber-500/5 px-4 py-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-lg" aria-hidden>
-              ☀️
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400" aria-hidden>
+              <SunIcon className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">{t("notifications.morningTitle")}</span>
@@ -207,8 +207,8 @@ export function NotificationBell() {
         )}
         {showTips && holy && (
           <div className="-mx-4 flex gap-3 border-b bg-emerald-500/5 px-4 py-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-lg" aria-hidden>
-              🪷
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" aria-hidden>
+              <FlowerIcon className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">{holy.title}</span>

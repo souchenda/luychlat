@@ -3,7 +3,7 @@
 import { useLifetimeUsers } from "@/lib/plan"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { differenceInCalendarDays, format } from "date-fns"
-import { CakeIcon, Loader2Icon, SearchIcon, SendIcon, UsersRoundIcon } from "lucide-react"
+import { BanIcon, CakeIcon, CrownIcon, FlaskConicalIcon, Loader2Icon, SearchIcon, SendIcon, SmartphoneIcon, UsersRoundIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -79,8 +79,18 @@ function Badges({ c }: { c: Customer }) {
         </span>
       )}
       {c.occupation && <span className="rounded-full bg-sky-500/10 px-1.5 py-0.5 text-sky-700 dark:text-sky-300">{t(`occupation.${c.occupation}` as MessageKey)}</span>}
-      {c.is_test && <span className="rounded-full bg-violet-500/15 px-1.5 py-0.5 font-semibold text-violet-700 dark:text-violet-300">🧪 {t("customers.test")}</span>}
-      {c.suspended && <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 font-semibold text-destructive">🔴 {t("admin.badge.suspended")}</span>}
+      {c.is_test && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 px-1.5 py-0.5 font-semibold text-violet-700 dark:text-violet-300">
+          <FlaskConicalIcon className="size-3" aria-hidden />
+          {t("customers.test")}
+        </span>
+      )}
+      {c.suspended && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-1.5 py-0.5 font-semibold text-destructive">
+          <BanIcon className="size-3" aria-hidden />
+          {t("admin.badge.suspended")}
+        </span>
+      )}
     </span>
   )
 }
@@ -107,8 +117,9 @@ function CustomerRow({ c, onOpen, report, live }: { c: Customer; onOpen: () => v
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", STATUS_TONE[c.status])}>
-            {lifetime ? "👑 ULTRA" : c.status === "ACTIVE" ? `🟢 ${c.tier}` : c.status === "EXPIRED" ? `🟡 ${t("customers.expired")}` : t("plan.free")}
+          <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold", STATUS_TONE[c.status])}>
+            {lifetime ? <CrownIcon className="size-3" aria-hidden /> : c.status === "ACTIVE" || c.status === "EXPIRED" ? <span className={cn("size-1.5 rounded-full", c.status === "ACTIVE" ? "bg-emerald-500" : "bg-amber-500")} aria-hidden /> : null}
+            {lifetime ? "ULTRA" : c.status === "ACTIVE" ? c.tier : c.status === "EXPIRED" ? t("customers.expired") : t("plan.free")}
           </span>
           {daysLeft !== null && (
             <p className={cn("mt-0.5 text-[11px] tabular-nums", daysLeft <= 7 ? "font-medium text-amber-600" : "text-muted-foreground")}>
@@ -147,14 +158,21 @@ type ClientReportRow = { user_id: string; seen_at: string; build: string | null;
 /** «SM-S921B · Chrome · 384×832 @3x · font 18 · app · km · BUSINESS — Build 28/10 08:40 · APK 1.11» — an old version in amber. */
 function DeviceLine({ report, live }: { report: ClientReportRow | undefined; live: string | null }) {
   const t = useT()
-  if (!report) return <p className="text-[11px] text-muted-foreground/70">📱 {t("customers.device.none")}</p>
+  if (!report)
+    return (
+      <p className="text-[11px] text-muted-foreground/70">
+        <SmartphoneIcon className="mr-1 inline size-3 align-[-1px]" aria-hidden />
+        {t("customers.device.none")}
+      </p>
+    )
   const old = isOutdated(report.build, live)
   const apk = report.apk_code !== null ? apkVersion(report.apk_code) : null
   return (
     <p className={cn("text-[11px] break-words", old ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground")}>
-      📱 {supportCode(report.user_id)} · {deviceLine(report.device)} · Build {buildLabel(report.build)}
+      <SmartphoneIcon className="mr-1 inline size-3 align-[-1px]" aria-hidden />
+      {supportCode(report.user_id)} · {deviceLine(report.device)} · Build {buildLabel(report.build)}
       {apk?.kind === "known" ? ` · APK ${apk.version ?? apk.code}` : apk?.kind === "old" ? " · APK ≤ 1.4" : ""}
-      {old ? ` · ⚠️ ${t("customers.device.old")}` : ""} · {ago(report.seen_at)}
+      {old ? ` · ${t("customers.device.old")}` : ""} · {ago(report.seen_at)}
     </p>
   )
 }
@@ -193,7 +211,10 @@ function CustomerSheet({ c, onClose }: { c: Customer; onClose: () => void }) {
         <Badges c={c} />
         <label className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-sm">
           <span>
-            <span className="block font-medium">🧪 {t("customers.markTest")}</span>
+            <span className="flex items-center gap-1.5 font-medium">
+              <FlaskConicalIcon className="size-4 text-violet-600" aria-hidden />
+              {t("customers.markTest")}
+            </span>
             <span className="block text-xs text-muted-foreground">{t("customers.markTestHint")}</span>
           </span>
           <Switch
@@ -306,7 +327,7 @@ export function CustomerDirectory() {
           { value: "all", label: t("customers.filter.all") },
           { value: "paying", label: t("customers.filter.paying") },
           { value: "free", label: t("customers.filter.free") },
-          { value: "test", label: "🧪" },
+          { value: "test", label: <FlaskConicalIcon className="mx-auto size-4" aria-label={t("customers.test")} /> },
           { value: "dormant", label: t("customers.filter.dormant") },
         ]}
       />

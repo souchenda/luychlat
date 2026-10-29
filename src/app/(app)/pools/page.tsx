@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2Icon, PlusIcon, XIcon } from "lucide-react"
+import { FlowerIcon, HandshakeIcon, Loader2Icon, PlusIcon, TentIcon, UsersIcon, XIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -284,8 +284,11 @@ export default function PoolsPage() {
         <Skeleton className="h-32 w-full rounded-xl" />
       ) : list.length === 0 ? (
         <Card className="gap-2 px-4 py-6 text-center">
-          <p className="text-3xl" aria-hidden>
-            🪷 👨‍👩‍👧‍👦 🏕️ 🤝
+          <p className="flex justify-center gap-3 text-primary" aria-hidden>
+            <FlowerIcon className="size-7" />
+            <UsersIcon className="size-7" />
+            <TentIcon className="size-7" />
+            <HandshakeIcon className="size-7" />
           </p>
           <p className="text-sm text-muted-foreground">{t("pool.empty")}</p>
         </Card>

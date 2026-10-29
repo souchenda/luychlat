@@ -1,6 +1,6 @@
 "use client"
 
-import { BriefcaseIcon, CheckIcon, Loader2Icon, MoonStarIcon } from "lucide-react"
+import { BriefcaseIcon, CheckIcon, Loader2Icon, LockIcon, MoonStarIcon, SunIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -60,7 +60,10 @@ export function IslamicModeOff() {
           {t("islamic.enable")}
         </Button>
       ) : (
-        <p className="mt-1 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">🔒 {t("islamic.managedByAdmin")}</p>
+        <p className="mt-1 flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          <LockIcon className="size-3.5 shrink-0" aria-hidden />
+          {t("islamic.managedByAdmin")}
+        </p>
       )}
     </Card>
   )
@@ -101,11 +104,11 @@ export function ExperienceSelector() {
         <span
           className={cn(
             "flex size-11 shrink-0 items-center justify-center rounded-xl text-xl",
-            islamic ? "bg-teal-500/15" : "bg-primary/10 text-primary",
+            islamic ? "bg-teal-500/15 text-amber-500" : "bg-primary/10 text-primary",
           )}
           aria-hidden
         >
-          {islamic ? "🕌" : <BriefcaseIcon className="size-5" />}
+          {islamic ? <MoonStarIcon className="size-5" /> : <BriefcaseIcon className="size-5" />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">{t(islamic ? "islamic.choiceIslamic" : "islamic.choiceGeneral")}</span>
@@ -171,7 +174,13 @@ export function AdminModeToggle() {
         })
       }
     >
-      {setEnabled.isPending ? <Loader2Icon className="size-3.5 animate-spin" /> : null}
+      {setEnabled.isPending ? (
+        <Loader2Icon className="size-3.5 animate-spin" />
+      ) : on ? (
+        <SunIcon className="size-3.5 text-amber-500" aria-hidden />
+      ) : (
+        <MoonStarIcon className="size-3.5 text-amber-500" aria-hidden />
+      )}
       {t(on ? "islamic.pillGeneral" : "islamic.pillIslamic")}
     </Button>
   )

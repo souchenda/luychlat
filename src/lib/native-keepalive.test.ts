@@ -44,7 +44,7 @@ describe("The SoundBox with the screen locked — kept awake in the Android app 
       [...read("src/lib/native-keepalive.ts").matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]),
       ["@capacitor/core", "@/lib/native-bridge"],
     )
-    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"soundbox.batteryTitle": "🔋 សូមអនុញ្ញាតឱ្យអេបប្រើថ្មដោយគ្មានការរឹតបន្តឹង"'))
+    assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"soundbox.batteryTitle": "សូមអនុញ្ញាតឱ្យអេបប្រើថ្មដោយគ្មានការរឹតបន្តឹង"'))
   })
 
   it("the Android side: a «specialUse» foreground service with a partial wake lock, its permissions, the plugin registered first", { skip: native }, () => {
@@ -100,7 +100,7 @@ describe("SoundBox on an iPhone, screen on (founder, 23/10/2026 — Task #483)",
     const pill = read("src/components/soundbox/live-pill.tsx")
     assert.match(pill, /t\(live \? "soundbox\.connected" : "soundbox\.disconnected"\)/)
     const km = read("src/lib/i18n/dictionaries.ts")
-    assert.ok(km.includes('"soundbox.connected": "🟢 បានភ្ជាប់ (Connected)"'))
-    assert.ok(km.includes('"soundbox.disconnected": "🔴 មិនទាន់ភ្ជាប់ (Disconnected)"'))
+    assert.ok(km.includes('"soundbox.connected": "បានភ្ជាប់ (Connected)"'))
+    assert.ok(km.includes('"soundbox.disconnected": "មិនទាន់ភ្ជាប់ (Disconnected)"'))
   })
 })

@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRightIcon } from "lucide-react"
+import { ChevronRightIcon, MoonStarIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 
@@ -45,7 +45,7 @@ export function NextPrayerChip() {
       href="/islamic"
       className="flex min-h-11 items-center gap-2 rounded-2xl border border-emerald-200/80 bg-emerald-50 px-3.5 py-2 text-sm text-emerald-900 transition-transform active:scale-[0.98] dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-100"
     >
-      <span aria-hidden>🕌</span>
+      <MoonStarIcon className="size-4 shrink-0 text-amber-500" aria-hidden />
       <span className="min-w-0 flex-1 truncate">
         សឡាតបន្ទាប់ <b className="font-semibold">{PRAYER_NAMES[next.key as keyof typeof PRAYER_NAMES]}</b> {formatMinutes(next.at)}
         <span className="text-emerald-700/80 dark:text-emerald-300/80"> · នៅសល់ {left(next.inSeconds)}</span>

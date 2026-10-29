@@ -1,6 +1,6 @@
 "use client"
 
-import { DownloadIcon, Loader2Icon, QrCodeIcon, Share2Icon, UploadIcon } from "lucide-react"
+import { BanknoteIcon, DownloadIcon, Loader2Icon, QrCodeIcon, Share2Icon, UploadIcon } from "lucide-react"
 import QRCode from "qrcode"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -77,7 +77,8 @@ export function PendingPayments({ pool, editable }: { pool: PoolSnapshot; editab
       {pending.map((p) => (
         <div key={p.id} className="space-y-2 rounded-xl bg-muted/50 p-3">
           <p className="text-sm">
-            💵 <span className="font-semibold tabular-nums">{money(p.amount, p.currency)}</span>
+            <BanknoteIcon className="mr-1 inline size-4 align-[-3px] text-primary" aria-hidden />
+            <span className="font-semibold tabular-nums">{money(p.amount, p.currency)}</span>
             {p.payer ? ` · ${p.payer}` : ""}
             <span className="ml-1 text-xs text-muted-foreground">({p.source === "khqr" ? "KHQR" : t("pool.fromSlip")})</span>
           </p>

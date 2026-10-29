@@ -66,6 +66,6 @@ describe("pre-loan assessment statement (founder, 21/10/2026)", () => {
     assert.doesNotMatch(html, /dark:/) // white paper in dark mode too
     const { CbcAssessmentView } = await import("../components/loans/cbc-health-modal")
     const sheet = renderToStaticMarkup(React.createElement(CbcAssessmentView, { a }))
-    assert.match(sheet, /href="\/debts\/statement"[^>]*>📄 ទាញយករបាយការណ៍បឋម \(PDF \/ Print\)/)
+    assert.match(sheet, /href="\/debts\/statement"[^>]*>(?:<svg[^]*?<\/svg>)?ទាញយករបាយការណ៍បឋម \(PDF \/ Print\)/)
   })
 })

@@ -29,7 +29,7 @@ describe("The Android app offer on the prayer page (founder, 20/10/2026)", () =>
   it("the card: the founder's words, [ទាញយក APK] → /LuyChlat.apk, on the prayer page above the alert settings", async () => {
     assert.equal(APK_URL, "/LuyChlat.apk")
     const { dictionaries } = await import("./i18n/dictionaries")
-    assert.equal(dictionaries.km["apkOffer.title"], "🔔 ដំឡើងអេប លុយឆ្លាត សម្រាប់ Android ដើម្បីឮអាហ្សានពេលចាក់សោអេក្រង់")
+    assert.equal(dictionaries.km["apkOffer.title"], "ដំឡើងអេប លុយឆ្លាត សម្រាប់ Android ដើម្បីឮអាហ្សានពេលចាក់សោអេក្រង់")
     assert.equal(dictionaries.km["apkOffer.download"], "ទាញយក APK")
     assert.equal(dictionaries.km["apkOffer.later"], "ពេលក្រោយ")
     // The founder's father (28/10/2026): the APK installed, yet the old Samsung Internet icon kept opening the browser

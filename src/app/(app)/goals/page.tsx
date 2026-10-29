@@ -72,9 +72,7 @@ export default function GoalsPage() {
         <Skeleton className="h-44 w-full rounded-xl" />
       ) : goals.length === 0 ? (
         <Card className="items-center gap-3 px-6 py-10 text-center">
-          <span className="text-4xl" aria-hidden>
-            🎯
-          </span>
+          <TargetIcon className="size-10 text-primary" aria-hidden />
           <p className="font-medium">{t("goals.empty")}</p>
           <p className="text-sm text-muted-foreground">{t("goals.howItWorks")}</p>
           {editable && (

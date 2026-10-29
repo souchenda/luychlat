@@ -38,7 +38,7 @@ export function StaffBadge({ userId }: { userId: string }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/60 bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-amber-100 [&_svg]:size-3">
       <ShieldCheckIcon />
-      🛡️ {t(`admin.role.${member.role}` as MessageKey)} / Staff
+      {t(`admin.role.${member.role}` as MessageKey)} / Staff
     </span>
   )
 }

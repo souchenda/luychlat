@@ -168,11 +168,11 @@ function useHeartbeat(workspaceId: string | null, on: boolean, state: { audioOk:
 }
 
 const MODE_LABEL: Record<SoundboxMode, string> = {
-  km: "🇰🇭 ខ្មែរ",
-  en: "🇬🇧 English",
-  zh: "🇨🇳 中文",
-  "km+en": "🌐 ខ្មែរ + អង់គ្លេស",
-  "km+zh": "🌐 ខ្មែរ + ចិន",
+  km: "ខ្មែរ",
+  en: "English",
+  zh: "中文",
+  "km+en": "ខ្មែរ + អង់គ្លេស",
+  "km+zh": "ខ្មែរ + ចិន",
 }
 
 /**

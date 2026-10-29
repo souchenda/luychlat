@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2Icon, TargetIcon } from "lucide-react"
+import { Loader2Icon, MoonStarIcon, PencilIcon, TargetIcon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -52,14 +52,17 @@ export function HajjPlanCard() {
 
   const createGoal = () =>
     create.mutate(hajjGoalInput(parseAmount(target), months), {
-      onSuccess: () => toast.success("🎯 បានបង្កើតគោលដៅ «សន្សំទៅធ្វើរូកូន» — អ៊ីនស្យាអល់ឡោះ!"),
+      onSuccess: () => toast.success("បានបង្កើតគោលដៅ «សន្សំទៅធ្វើរូកូន» — អ៊ីនស្យាអល់ឡោះ!"),
       onError: () => toast.error("បង្កើតគោលដៅមិនបានទេ។ សូមសាកម្ដងទៀត។"),
     })
 
   return (
     <Card className="gap-3 px-4 py-4">
       <div>
-        <h2 className="text-sm font-semibold">🕋 ផែនការសន្សំសម្រាប់ធ្វើរូកូន</h2>
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+          <MoonStarIcon className="size-4 shrink-0 text-amber-500" aria-hidden />
+          ផែនការសន្សំសម្រាប់ធ្វើរូកូន
+        </h2>
         <p className="text-xs text-muted-foreground">រៀបចំផែនការហិរញ្ញវត្ថុដើម្បីសម្រេចបំណងប្រាថ្នាបំពេញកាតព្វកិច្ចសាសនា</p>
       </div>
 
@@ -72,7 +75,8 @@ export function HajjPlanCard() {
               </button>
             ))}
             <button type="button" role="radio" aria-checked={pkg === "custom"} className={chip(pkg === "custom")} onClick={() => setPkg("custom")}>
-              ✏️ កំណត់ផ្ទាល់ខ្លួន
+              <PencilIcon className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
+              កំណត់ផ្ទាល់ខ្លួន
             </button>
           </div>
           <div className="space-y-1">
@@ -129,7 +133,10 @@ export function HajjPlanCard() {
 
       {goal && progress ? (
         <Link href={`/wallets/${goal.id}`} className="block rounded-xl border px-3 py-2.5">
-          <p className="text-xs text-muted-foreground">🎯 {goal.name}</p>
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            <TargetIcon className="size-3.5 shrink-0 text-primary" aria-hidden />
+            {goal.name}
+          </p>
           <p className="font-mono text-sm tabular-nums">
             {progressBlocks(progress.percent)} {formatMoney(progress.saved, goal.currency)} / {formatMoney(progress.target, goal.currency)} ({progress.percent}%)
           </p>

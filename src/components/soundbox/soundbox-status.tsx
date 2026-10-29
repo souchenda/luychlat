@@ -64,6 +64,7 @@ export function SoundboxStatus({
     return (
       <div className="space-y-2">
         <p role="status" className={cn("rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-900 dark:text-emerald-200", className)}>
+          <span className="mr-1.5 inline-block size-2 rounded-full bg-emerald-500 align-middle" aria-hidden />
           {t("soundbox.statusThisPhone")}
         </p>
         {failed}
@@ -88,6 +89,7 @@ export function SoundboxStatus({
         className,
       )}
     >
+      <span className={cn("mr-1.5 inline-block size-2 rounded-full align-middle", ready ? "bg-emerald-500" : "bg-rose-500")} aria-hidden />
       {text}
     </p>
   )

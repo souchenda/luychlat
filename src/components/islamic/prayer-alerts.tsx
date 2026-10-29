@@ -1,6 +1,6 @@
 "use client"
 
-import { BellIcon, BellOffIcon, FileAudioIcon, Loader2Icon, PauseIcon, PlayIcon, Trash2Icon, Volume2Icon } from "lucide-react"
+import { BellIcon, BellOffIcon, FileAudioIcon, Loader2Icon, PauseIcon, PlayIcon, Trash2Icon, UploadIcon, Volume2Icon } from "lucide-react"
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { toast } from "sonner"
 
@@ -496,10 +496,12 @@ export function PrayerAlertSettings() {
                 {admin && adhanName && (
                   <div className="flex w-full flex-wrap gap-1.5">
                     <Button size="sm" variant="outline" className="h-8 px-2.5 text-[11px]" onClick={() => void publishPhoneFile("regular")}>
-                      ⬆️ 🌐 {t("adhanUpload.publishRegular")}
+                      <UploadIcon aria-hidden />
+                      {t("adhanUpload.publishRegular")}
                     </Button>
                     <Button size="sm" variant="outline" className="h-8 px-2.5 text-[11px]" onClick={() => void publishPhoneFile("fajr")}>
-                      ⬆️ 🌅 {t("adhanUpload.publishFajr")}
+                      <UploadIcon aria-hidden />
+                      {t("adhanUpload.publishFajr")}
                     </Button>
                   </div>
                 )}

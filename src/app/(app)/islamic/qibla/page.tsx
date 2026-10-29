@@ -1,6 +1,6 @@
 "use client"
 
-import { CompassIcon, InfoIcon } from "lucide-react"
+import { CompassIcon, InfoIcon, MoonStarIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { LocationPicker, useIslamicLocation } from "@/components/islamic/location-picker"
@@ -99,11 +99,11 @@ export default function QiblaPage() {
             <div className="absolute inset-0" style={{ transform: `rotate(${qibla}deg)` }}>
               <div className={cn("absolute bottom-1/2 left-1/2 -ml-1 h-24 w-2 rounded-full", aligned ? "bg-emerald-500" : "bg-amber-500")} />
               <span
-                className="absolute left-1/2 top-[18px] -ml-3.5 flex size-7 items-center justify-center text-xl"
+                className={cn("absolute left-1/2 top-[18px] -ml-3.5 flex size-7 items-center justify-center", aligned ? "text-emerald-500" : "text-amber-500")}
                 style={{ transform: `rotate(${-qibla - dialRotation}deg)` }}
                 aria-hidden
               >
-                🕋
+                <MoonStarIcon className="size-6" />
               </span>
             </div>
           </div>

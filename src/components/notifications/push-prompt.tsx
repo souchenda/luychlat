@@ -1,6 +1,6 @@
 "use client"
 
-import { BellRingIcon, XIcon } from "lucide-react"
+import { BellRingIcon, SunIcon, XIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -80,9 +80,7 @@ export function PushInviteCard() {
   }
   return (
     <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-3">
-      <span className="text-xl leading-none" aria-hidden>
-        ☀️
-      </span>
+      <SunIcon className="size-5 shrink-0 text-amber-500" aria-hidden />
       <div className="min-w-0 flex-1 space-y-2">
         <p className="text-sm font-medium">{t("push.inviteTitle")}</p>
         <p className="text-xs text-muted-foreground">{t("push.inviteBody")}</p>

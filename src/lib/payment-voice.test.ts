@@ -57,7 +57,7 @@ describe("Counter Soundbox Mode (Task #442)", () => {
     assert.match(settings, /function CounterModeRow\(\) \{[\s\S]*?if \(!business\) return null[\s\S]*?set\(v\)/)
     assert.match(settings, /<PaymentChimeRow \/>\s+<CounterModeRow \/>/)
     const km = read("src/lib/i18n/dictionaries.ts")
-    assert.match(km, /"settings\.counterMode": "🏪 មុខងារ Soundbox លើតុគិតលុយ \(Counter Soundbox Mode\)"/)
+    assert.match(km, /"settings\.counterMode": "មុខងារ Soundbox លើតុគិតលុយ \(Counter Soundbox Mode\)"/)
   })
 })
 

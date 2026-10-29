@@ -20,8 +20,8 @@ describe("Admin quick switch back to the general experience (founder, 19/10/2026
     assert.match(fn, /setEnabled\.mutate\(!on,/)
     assert.match(fn, /router\.push\("\/home"\)/)
     assert.match(read("src/app/(app)/layout.tsx"), /<AdminModeToggle \/>\s*<LanguageToggle compact \/>/)
-    assert.equal(dictionaries.km["islamic.pillGeneral"], "☀️ មហាជន")
-    assert.equal(dictionaries.km["islamic.pillIslamic"], "🌙 ឥស្លាម")
+    assert.equal(dictionaries.km["islamic.pillGeneral"], "មហាជន")
+    assert.equal(dictionaries.km["islamic.pillIslamic"], "ឥស្លាម")
   })
   it("the /islamic header keeps its full width: no switch beside the title (it squeezed it into a narrow column)", () => {
     const layout = read("src/app/(app)/islamic/layout.tsx")

@@ -57,7 +57,7 @@ describe("formatHonorificName — the Hajj title (founder, 27/10/2026 — Task #
       const d = (l === "zh" ? { ...dictionaries.en, ...dictionaries.zh } : dictionaries[l]) as Record<string, string>
       for (const k of ["islamic.hajj", "islamic.hajjHint", "islamic.hajjPick", "islamic.hajjTitle"]) assert.ok(d[k], `${l} ${k}`)
     }
-    assert.equal((dictionaries.km as Record<string, string>)["islamic.hajj"], "🕋 បានបំពេញកាតព្វកិច្ចហាជ្ជ (Hajj)")
+    assert.equal((dictionaries.km as Record<string, string>)["islamic.hajj"], "បានបំពេញកាតព្វកិច្ចហាជ្ជ (Hajj)")
   })
 })
 

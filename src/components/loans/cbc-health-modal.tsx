@@ -1,5 +1,6 @@
 "use client";
 
+import { BookOpenIcon, CircleCheckIcon, FileTextIcon, InfoIcon, LandmarkIcon, LightbulbIcon, ShieldCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -48,10 +49,10 @@ export const STRIP_LEGEND: { code: string; km: string }[] = [
   { code: "✓", km: "បានបង់ តែគ្មានថ្ងៃបង់កត់ត្រា" },
 ];
 
-const GROUPS: { tier: CbcTier; title: string }[] = [
-  { tier: "good", title: "🟢 ល្អ" },
-  { tier: "warn", title: "🟡 ត្រូវប្រុងប្រយ័ត្ន" },
-  { tier: "bad", title: "🔴 គ្រោះថ្នាក់" },
+const GROUPS: { tier: CbcTier; title: string; dot: string }[] = [
+  { tier: "good", title: "ល្អ", dot: "bg-emerald-500" },
+  { tier: "warn", title: "ត្រូវប្រុងប្រយ័ត្ន", dot: "bg-amber-500" },
+  { tier: "bad", title: "គ្រោះថ្នាក់", dot: "bg-red-500" },
 ];
 
 /**
@@ -70,12 +71,13 @@ export function CbcHealthModal({ className }: { className?: string }) {
         className={cn("h-10 gap-1.5 text-xs", className)}
         onClick={() => setOpen(true)}
       >
-        🛡️ សុខភាពឥណទាន CBC
+        <ShieldCheckIcon className="size-4 text-primary" aria-hidden />
+        សុខភាពឥណទាន CBC
       </Button>
       <BottomSheet
         open={open}
         onOpenChange={setOpen}
-        title="🛡️ សុខភាពឥណទាន CBC"
+        title="សុខភាពឥណទាន CBC"
         description="ប្រវត្តិសងប្រាក់ 24 ខែ — អ្វីដែលធនាគារមើល មុនពេលផ្តល់កម្ចីឱ្យលោកអ្នក។"
       >
         {/* The person's own assessment first (founder, 21/10/2026), the code dictionary below as the legend. */}
@@ -125,7 +127,7 @@ export function CbcAssessmentView({ a, unscheduled = 0 }: { a: CbcAssessment; un
       {a.grade ? (
         <p className={cn("rounded-2xl px-4 py-3 text-center text-base font-bold ring-1", GRADE_TONE[GRADE_BADGE[a.grade].tone])}>{gradeBadge(a.grade)}</p>
       ) : (
-        <p className="rounded-2xl bg-muted px-4 py-3 text-center text-base font-semibold">⚪ សុខភាពឥណទាន៖ មិនទាន់មានទិន្នន័យគ្រប់គ្រាន់</p>
+        <p className="rounded-2xl bg-muted px-4 py-3 text-center text-base font-semibold">សុខភាពឥណទាន៖ មិនទាន់មានទិន្នន័យគ្រប់គ្រាន់</p>
       )}
 
       {/* The metrics strip: the on-time rate and the debt-to-income ratio. */}
@@ -158,10 +160,18 @@ export function CbcAssessmentView({ a, unscheduled = 0 }: { a: CbcAssessment; un
           </li>
         ))}
       </ol>
-      {a.streak > 0 && <p className="text-xs text-muted-foreground">✅ បង់ទាន់ពេលជាប់គ្នា {a.streak} ខែចុងក្រោយ</p>}
+      {a.streak > 0 && (
+        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+          <CircleCheckIcon className="size-3.5 shrink-0 text-emerald-600" aria-hidden />
+          បង់ទាន់ពេលជាប់គ្នា {a.streak} ខែចុងក្រោយ
+        </p>
+      )}
 
       <div className="space-y-1.5 rounded-2xl bg-emerald-500/10 p-3.5">
-        <h3 className="font-semibold">🏦 សេចក្តីសន្និដ្ឋានរបស់ធនាគារ</h3>
+        <h3 className="flex items-center gap-1.5 font-semibold">
+          <LandmarkIcon className="size-4 shrink-0 text-primary" aria-hidden />
+          សេចក្តីសន្និដ្ឋានរបស់ធនាគារ
+        </h3>
         {verdict.map((line) => (
           <p key={line}>{line}</p>
         ))}
@@ -172,15 +182,20 @@ export function CbcAssessmentView({ a, unscheduled = 0 }: { a: CbcAssessment; un
         href="/debts/statement"
         className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/25 bg-emerald-600 px-4 py-2.5 font-semibold text-white shadow-sm transition-transform active:scale-[0.98]"
       >
-        📄 ទាញយករបាយការណ៍បឋម (PDF / Print)
+        <FileTextIcon className="size-4" aria-hidden />
+        ទាញយករបាយការណ៍បឋម (PDF / Print)
       </Link>
 
       <p className="text-[11px] text-muted-foreground">
-        ℹ️ វាយតម្លៃពីកម្ចី {a.loans} ដែលកត់ក្នុង អេប លុយឆ្លាត
+        <InfoIcon className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
+        វាយតម្លៃពីកម្ចី {a.loans} ដែលកត់ក្នុង អេប លុយឆ្លាត
         {unscheduled > 0 && ` (កម្ចី ${unscheduled} គ្មានតារាងបង់ មិនបានរាប់)`}
         {a.unknownPaid > 0 && ` · ${a.unknownPaid} ខែបានបង់ តែគ្មានថ្ងៃបង់កត់ត្រា មិនបានរាប់`} — កម្ចីនៅកន្លែងផ្សេង មិនមាននៅទីនេះទេ។ {CBC_ESTIMATE_NOTE}
       </p>
-      <h3 className="pt-2 text-xs font-semibold tracking-wide text-muted-foreground">📖 ឯកសារយោង៖ កូដ CBC</h3>
+      <h3 className="flex items-center gap-1 pt-2 text-xs font-semibold tracking-wide text-muted-foreground">
+        <BookOpenIcon className="size-3.5 shrink-0" aria-hidden />
+        ឯកសារយោង៖ កូដ CBC
+      </h3>
     </section>
   );
 }
@@ -230,7 +245,8 @@ export function CbcHealthContent() {
         <h3 className="font-semibold">វចនានុក្រមកូដ CBC</h3>
         {GROUPS.map((g) => (
           <div key={g.tier} className="space-y-1.5">
-            <p className="text-xs font-semibold text-muted-foreground">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <span className={cn("size-2 rounded-full", g.dot)} aria-hidden />
               {g.title}
             </p>
             <ul className="space-y-1.5">
@@ -253,8 +269,9 @@ export function CbcHealthContent() {
       </section>
 
       <section className="space-y-1.5 rounded-xl bg-emerald-500/10 p-3">
-        <h3 className="font-semibold">
-          💡 របៀបធ្វើឱ្យប្រវត្តិត្រឡប់មកពណ៌បៃតងវិញ
+        <h3 className="flex items-center gap-1.5 font-semibold">
+          <LightbulbIcon className="size-4 shrink-0 text-amber-500" aria-hidden />
+          របៀបធ្វើឱ្យប្រវត្តិត្រឡប់មកពណ៌បៃតងវិញ
         </h3>
         <p>
           CBC បង្ហាញតែ 24 វដ្តចុងក្រោយ (ប្រហែល 2 ឆ្នាំ) — រៀងរាល់ខែ
@@ -269,7 +286,8 @@ export function CbcHealthContent() {
       </section>
 
       <p className="text-xs text-muted-foreground">
-        ℹ️ {CBC_ESTIMATE_NOTE} សូមពិនិត្យរបាយការណ៍ផ្លូវការជាមួយ CBC
+        <InfoIcon className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />
+        {CBC_ESTIMATE_NOTE} សូមពិនិត្យរបាយការណ៍ផ្លូវការជាមួយ CBC
         ឬធនាគាររបស់លោកអ្នក។
       </p>
     </div>

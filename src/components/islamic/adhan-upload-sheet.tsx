@@ -1,6 +1,6 @@
 "use client"
 
-import { GlobeIcon, Loader2Icon, SmartphoneIcon } from "lucide-react"
+import { GlobeIcon, Loader2Icon, MusicIcon, SmartphoneIcon, UploadIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -119,7 +119,10 @@ export function AdhanUploadSheet({
   return (
     <BottomSheet open={file !== null} onOpenChange={onOpenChange} title={t("adhanUpload.title")}>
       <form onSubmit={(e) => void submit(e)} className="space-y-3">
-        <p className="truncate text-xs text-muted-foreground">🎵 {file?.name}</p>
+        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+          <MusicIcon className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate">{file?.name}</span>
+        </p>
         <div role="radiogroup" aria-label={t("adhanUpload.scope")} className={cn("space-y-2", setAsDefault && "hidden")}>
           {option("device", SmartphoneIcon, t("adhanUpload.device"), t("adhanUpload.deviceHint"))}
           {option("global", GlobeIcon, t("adhanUpload.global"), t("adhanUpload.globalHint"))}
@@ -145,11 +148,11 @@ export function AdhanUploadSheet({
           </>
         )}
         <Button type="submit" className="h-11 w-full" disabled={busy}>
-          {busy && <Loader2Icon className="animate-spin" />}
+          {busy ? <Loader2Icon className="animate-spin" /> : setAsDefault ? <UploadIcon aria-hidden /> : null}
           {busy && setAsDefault
             ? t("adhanUpload.uploadingGlobal")
             : setAsDefault
-              ? `⬆️ ${setAsDefault === "fajr" ? "🌅" : "🌐"} ${t(setAsDefault === "fajr" ? "adhanUpload.publishFajr" : "adhanUpload.publishRegular")}`
+              ? t(setAsDefault === "fajr" ? "adhanUpload.publishFajr" : "adhanUpload.publishRegular")
               : t(scope === "global" ? (publish.isPending ? "adhanUpload.publishing" : "adhanUpload.publish") : "adhanUpload.keep")}
         </Button>
       </form>

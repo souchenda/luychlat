@@ -1,4 +1,4 @@
-import { ShieldAlertIcon } from "lucide-react"
+import { ShieldAlertIcon, TriangleAlertIcon } from "lucide-react"
 
 const POINTS: { km: string; en: string }[] = [
   {
@@ -54,7 +54,8 @@ export function PublicPoolDisclaimer({ reportUrl }: { reportUrl: string }) {
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
       >
-        ⚠️ រាយការណ៍ភាពមិនប្រក្រតី · Report an issue
+        <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
+        រាយការណ៍ភាពមិនប្រក្រតី · Report an issue
       </a>
     </aside>
   )

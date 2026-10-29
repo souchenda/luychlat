@@ -33,7 +33,7 @@ describe("Islamic Mode — admin / owner only (founder, 18/10/2026)", () => {
   it("the app: the Settings switch is locked 🔒 for a regular user, no Enable button or first-login choice for them", () => {
     const settings = read("src/app/(app)/settings/page.tsx")
     assert.match(settings, /disabled=\{!canManage \|\| loading \|\| setEnabled\.isPending\}/)
-    assert.match(settings, /`🔒 \$\{t\("islamic\.managedByAdmin"\)\}`/)
+    assert.match(settings, /: t\("islamic\.managedByAdmin"\)\}/)
     const mode = read("src/components/islamic/islamic-mode.tsx")
     assert.match(mode, /\{canManage \? \(\s+<Button/)
     assert.match(mode, /const open = canManage && loaded/)

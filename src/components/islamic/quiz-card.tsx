@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckCircle2Icon, ExternalLinkIcon, StarIcon, XCircleIcon } from "lucide-react"
+import { BookOpenCheckIcon, CheckCircle2Icon, ExternalLinkIcon, StarIcon, XCircleIcon } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -83,7 +83,10 @@ export function IslamicQuizCard() {
       <Card className="gap-3 border-emerald-500/30 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="font-semibold">🎮 {t("quiz.title")}</h2>
+            <h2 className="flex items-center gap-1.5 font-semibold">
+              <BookOpenCheckIcon className="size-4 shrink-0 text-primary" aria-hidden />
+              {t("quiz.title")}
+            </h2>
             <p className="text-xs text-muted-foreground">{t("quiz.subtitle")}</p>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300" aria-label={t("quiz.streak", { n: num(progress.streak) })}>

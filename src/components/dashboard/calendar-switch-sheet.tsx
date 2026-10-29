@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRightIcon, Loader2Icon } from "lucide-react"
+import { ChevronRightIcon, Loader2Icon, MoonIcon } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -67,7 +67,10 @@ export function CalendarSwitchSheet({ open, onOpenChange }: { open: boolean; onO
           </p>
           <p className={`rounded-xl border px-2 py-3 ${value === "hijri" ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-500/10" : ""}`}>
             <span className="block text-xs text-muted-foreground">{t("calendar.today")}</span>
-            <span className="font-medium">🌙 {hijri}</span>
+            <span className="inline-flex items-center gap-1 font-medium">
+              <MoonIcon className="size-3.5 text-amber-500" aria-hidden />
+              {hijri}
+            </span>
           </p>
         </div>
         {setEnabled.isPending && <Loader2Icon className="mx-auto size-5 animate-spin text-muted-foreground" aria-hidden />}

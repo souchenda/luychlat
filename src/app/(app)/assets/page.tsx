@@ -1,7 +1,7 @@
 "use client"
 
 import { format, parseISO } from "date-fns"
-import { CoinsIcon, HouseIcon, LandmarkIcon, PlusIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
+import { CoinsIcon, GemIcon, HouseIcon, LandmarkIcon, PlusIcon, TrendingDownIcon, TrendingUpIcon, type LucideIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { AssetFormSheet } from "@/components/gold/asset-form-sheet"
@@ -38,10 +38,10 @@ const RATE_ROWS: { kind: GoldKind; grade: PlatinumGrade | null }[] = [
  * Local order (what Cambodian households and SMEs mostly hold): property, vehicles and
  * equipment first — the default — then gold and jewelry; stocks and crypto always last.
  */
-const TABS: { key: TabKey; label: MessageKey; emoji: string }[] = [
-  { key: "property", label: "assets.tab.property", emoji: "🏠" },
-  { key: "gold", label: "assets.tab.gold", emoji: "💎" },
-  { key: "invest", label: "assets.tab.invest", emoji: "📈" },
+const TABS: { key: TabKey; label: MessageKey; Icon: LucideIcon }[] = [
+  { key: "property", label: "assets.tab.property", Icon: HouseIcon },
+  { key: "gold", label: "assets.tab.gold", Icon: GemIcon },
+  { key: "invest", label: "assets.tab.invest", Icon: TrendingUpIcon },
 ]
 
 /** "+$200.00 (+5%)" in green, "-$200.00 (-6.7%)" in red. */
@@ -121,8 +121,10 @@ export default function AssetsPage() {
       <Card className="gap-1 px-4 py-4">
         <p className="text-sm text-muted-foreground">{t("assets.total")}</p>
         <p className="text-3xl font-bold tabular-nums">{money(all.totalUsd)}</p>
-        <p className="text-xs text-muted-foreground">
-          🏠 {money(all.propertyUsd)} · 💎 {money(all.goldUsd + all.diamondUsd)} · 📈 {money(all.investUsd)} — {t("assets.inNetWorth")}
+        <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+          <HouseIcon className="size-3.5" aria-hidden /> {money(all.propertyUsd)} · <GemIcon className="size-3.5" aria-hidden />{" "}
+          {money(all.goldUsd + all.diamondUsd)} · <TrendingUpIcon className="size-3.5" aria-hidden /> {money(all.investUsd)} —{" "}
+          {t("assets.inNetWorth")}
         </p>
       </Card>
 
@@ -140,9 +142,7 @@ export default function AssetsPage() {
               active === tab.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
             )}
           >
-            <span className="text-base" aria-hidden>
-              {tab.emoji}
-            </span>
+            <tab.Icon className={cn("size-4", active === tab.key && "text-primary")} aria-hidden />
             <span className="text-center">{t(tab.label)}</span>
           </button>
         ))}
@@ -228,9 +228,7 @@ export default function AssetsPage() {
               <Skeleton className="h-32 w-full rounded-xl" />
             ) : holdings.length === 0 ? (
               <Card className="items-center gap-2 px-6 py-8 text-center">
-                <span className="text-4xl" aria-hidden>
-                  🪙
-                </span>
+                <CoinsIcon className="size-10 text-amber-500" aria-hidden />
                 <p className="font-medium">{t("gold.empty")}</p>
                 <p className="text-sm text-muted-foreground">{t("gold.emptyHint")}</p>
                 {editable && (

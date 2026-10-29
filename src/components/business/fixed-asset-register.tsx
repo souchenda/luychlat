@@ -1,6 +1,6 @@
 "use client"
 
-import { ArchiveIcon, Loader2Icon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { ArchiveIcon, Loader2Icon, PencilIcon, PlusIcon, TagIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -89,7 +89,10 @@ export function FixedAssetRegister({ workspaceId, editable }: { workspaceId: str
 
       {editable && (
         <Button variant="outline" className="h-10 w-full justify-between" onClick={() => setCountOpen(true)}>
-          <span>🏷️ {t("fa.stockCount")}</span>
+          <span className="flex items-center gap-2">
+            <TagIcon className="size-4 text-primary" aria-hidden />
+            {t("fa.stockCount")}
+          </span>
           <span className="text-xs text-muted-foreground">{t("fa.stockCountHint")}</span>
         </Button>
       )}

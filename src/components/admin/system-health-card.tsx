@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
-import { ActivityIcon, ChevronDownIcon, Loader2Icon, RefreshCwIcon } from "lucide-react"
+import { ActivityIcon, ChevronDownIcon, CircleXIcon, InfoIcon, Loader2Icon, RefreshCwIcon, ShieldIcon, TriangleAlertIcon, type LucideIcon } from "lucide-react"
 
 import { adminPost } from "@/components/admin/admin-api"
 import { Segmented } from "@/components/common/segmented"
@@ -76,11 +76,11 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
-const LEVEL: Record<Status["events"][number]["level"], { icon: string; className: string }> = {
-  info: { icon: "ℹ️", className: "" },
-  warn: { icon: "⚠️", className: "text-amber-700 dark:text-amber-400" },
-  error: { icon: "❌", className: "text-red-600 dark:text-red-400" },
-  security: { icon: "🛡️", className: "text-violet-700 dark:text-violet-300" },
+const LEVEL: Record<Status["events"][number]["level"], { Icon: LucideIcon; className: string }> = {
+  info: { Icon: InfoIcon, className: "" },
+  warn: { Icon: TriangleAlertIcon, className: "text-amber-700 dark:text-amber-400" },
+  error: { Icon: CircleXIcon, className: "text-red-600 dark:text-red-400" },
+  security: { Icon: ShieldIcon, className: "text-violet-700 dark:text-violet-300" },
 }
 
 /**
@@ -284,11 +284,13 @@ export function SystemHealthCard({ embedded = false }: { embedded?: boolean } = 
             {tab === "logs" && (
             <Group title={t("sys.security")}>
               <div className="mb-1 flex gap-2 text-xs">
-                <span className={cn("rounded-full px-2 py-0.5", s.security_24h ? "bg-violet-500/15 text-violet-700 dark:text-violet-300" : "bg-muted text-muted-foreground")}>
-                  🛡️ {t("sys.security24h", { n: s.security_24h })}
+                <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5", s.security_24h ? "bg-violet-500/15 text-violet-700 dark:text-violet-300" : "bg-muted text-muted-foreground")}>
+                  <ShieldIcon className="size-3" aria-hidden />
+                  {t("sys.security24h", { n: s.security_24h })}
                 </span>
-                <span className={cn("rounded-full px-2 py-0.5", s.errors_24h ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-muted text-muted-foreground")}>
-                  ❌ {t("sys.errors24h", { n: s.errors_24h })}
+                <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5", s.errors_24h ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-muted text-muted-foreground")}>
+                  <CircleXIcon className="size-3" aria-hidden />
+                  {t("sys.errors24h", { n: s.errors_24h })}
                 </span>
               </div>
               {s.events.length === 0 ? (
@@ -297,7 +299,10 @@ export function SystemHealthCard({ embedded = false }: { embedded?: boolean } = 
                 <ul className="max-h-64 divide-y overflow-y-auto rounded-lg border text-xs">
                   {s.events.map((e) => (
                     <li key={e.id} className={cn("flex gap-2 px-2.5 py-1.5", LEVEL[e.level].className)}>
-                      <span aria-hidden>{LEVEL[e.level].icon}</span>
+                      {(() => {
+                        const Icon = LEVEL[e.level].Icon
+                        return <Icon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                      })()}
                       <span className="w-12 shrink-0 text-muted-foreground tabular-nums">{ago(e.at, now)}</span>
                       <span className="min-w-0 flex-1">
                         <span className="font-medium">{e.source}</span> · {e.message}

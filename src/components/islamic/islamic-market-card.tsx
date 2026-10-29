@@ -1,6 +1,6 @@
 "use client"
 
-import { CalculatorIcon } from "lucide-react"
+import { BanknoteIcon, CalculatorIcon, CheckCircle2Icon, CoinsIcon, InfoIcon, MoonStarIcon } from "lucide-react"
 import { useState } from "react"
 
 import { Segmented } from "@/components/common/segmented"
@@ -27,18 +27,23 @@ export function IslamicMarketCard({ onUseGoldPrice, busy }: { onUseGoldPrice: (p
   return (
     <Card className="gap-3 px-4 py-4" data-testid="islamic-market-card">
       <div>
-        <h2 className="text-sm font-semibold">🌙 ហាងឆេង និងនីស៊បមាសហ្សាកាត់</h2>
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+          <MoonStarIcon className="size-4 text-amber-500" aria-hidden />
+          ហាងឆេង និងនីស៊បមាសហ្សាកាត់
+        </h2>
         <p className="text-xs text-muted-foreground">អត្រាផ្លូវការ NBC ប្រាក់អារ៉ាប់ និងតម្លៃមាស សម្រាប់គណនាហ្សាកាត់</p>
       </div>
 
       {m.usdKhr ? (
         <div className="grid grid-cols-2 gap-2 text-center">
           <div className="rounded-xl bg-muted/60 px-2 py-2.5">
-            <p className="text-[11px] text-muted-foreground">💵 NBC{m.rateDate ? ` · ${ddmm(m.rateDate)}` : ""}</p>
+            <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+              <BanknoteIcon className="size-3.5 text-primary" aria-hidden />
+              NBC{m.rateDate ? ` · ${ddmm(m.rateDate)}` : ""}</p>
             <p className="text-base font-semibold tabular-nums">1 USD = {riel(m.usdKhr)}</p>
           </div>
           <div className="rounded-xl bg-muted/60 px-2 py-2.5">
-            <p className="text-[11px] text-muted-foreground">🇸🇦 1 USD = 3.75 SAR</p>
+            <p className="text-[11px] text-muted-foreground">1 USD = 3.75 SAR</p>
             <p className="text-base font-semibold tabular-nums">1 SAR ≈ {riel(m.sarKhr!)}</p>
           </div>
         </div>
@@ -49,8 +54,9 @@ export function IslamicMarketCard({ onUseGoldPrice, busy }: { onUseGoldPrice: (p
       {m.gold && m.nisab ? (
         <>
           <div className="space-y-1 rounded-xl bg-amber-500/10 px-3 py-2.5 text-sm">
-            <p className="text-[11px] text-muted-foreground">
-              🥇 ហាងឆេងមាស 24K{m.gold.date ? ` · ${ddmm(m.gold.date)}` : ""}
+            <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <CoinsIcon className="size-3.5 text-amber-500" aria-hidden />
+              ហាងឆេងមាស 24K{m.gold.date ? ` · ${ddmm(m.gold.date)}` : ""}
             </p>
             {/* Cambodian units first, the gram in brackets (founder, 21/10/2026). */}
             <p className="font-medium tabular-nums">{latinDigits(goldUnitsLine(m.gold))}</p>
@@ -66,7 +72,10 @@ export function IslamicMarketCard({ onUseGoldPrice, busy }: { onUseGoldPrice: (p
             </p>
           </div>
           <NisabQuickCheck m={m} />
-          <p className="text-xs text-muted-foreground">ℹ️ {latinDigits(zakatNote("app"))}</p>
+          <p className="flex gap-1.5 text-xs text-muted-foreground">
+            <InfoIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <span>{latinDigits(zakatNote("app"))}</span>
+          </p>
           <Button type="button" variant="outline" className="h-11 w-full" disabled={busy} onClick={() => onUseGoldPrice(m.gold!.perGram)}>
             <CalculatorIcon />
             យកតម្លៃនីស៊បនេះទៅគណនាហ្សាកាត់
@@ -90,7 +99,9 @@ function NisabQuickCheck({ m }: { m: IslamicMarket }) {
   const r = text.trim() && amount > 0 ? nisabCheck(m, amount, currency) : null
   return (
     <div className="space-y-2 rounded-xl border px-3 py-3" data-testid="nisab-quick-check">
-      <p className="text-sm font-medium">🧮 ពិនិត្យរហ័ស៖ ទ្រព្យសន្សំសុទ្ធរបស់លោកអ្នក</p>
+      <p className="flex items-center gap-1.5 text-sm font-medium">
+        <CalculatorIcon className="size-4 text-primary" aria-hidden />
+        ពិនិត្យរហ័ស៖ ទ្រព្យសន្សំសុទ្ធរបស់លោកអ្នក</p>
       <div className="flex gap-2">
         <Input
           inputMode="decimal"
@@ -113,7 +124,8 @@ function NisabQuickCheck({ m }: { m: IslamicMarket }) {
       {r ? (
         r.meets ? (
           <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm" data-testid="nisab-result">
-            ✅ ដល់កម្រិតនីស៊ប — ហ្សាកាត់ 2.5% ≈{" "}
+            <CheckCircle2Icon className="mr-1 inline size-4 align-[-3px] text-emerald-600" aria-hidden />
+            ដល់កម្រិតនីស៊ប — ហ្សាកាត់ 2.5% ≈{" "}
             <b className="tabular-nums">
               {currency === "KHR" && r.zakatKhr !== null ? riel(r.zakatKhr) : usd(r.zakatUsd, 2)}
             </b>

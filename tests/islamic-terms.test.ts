@@ -42,8 +42,8 @@ describe("Islamic hub — the founder's terms", () => {
     assert.equal(fastingRuling({ day: 29, month: 9, year: 1448 }), "wajib")
     assert.equal(fastingRuling(toHijri(new Date(2026, 9, 18))), "sunnah") // 7 Jumada al-Ula 1448
     assert.equal(fastingRuling(null), null)
-    assert.match(km["fasting.badgeWajib"], /^🔴 វ៉ាជីប \(Wajib \/ واجب\) — កាតព្វកិច្ច/)
-    assert.match(km["fasting.badgeSunnah"], /^🟢 ស៊ូណាត់ \(Sunnah \/ سنة\) — ស្ម័គ្រចិត្ត/)
+    assert.match(km["fasting.badgeWajib"], /^វ៉ាជីប \(Wajib \/ واجب\) — កាតព្វកិច្ច/)
+    assert.match(km["fasting.badgeSunnah"], /^ស៊ូណាត់ \(Sunnah \/ سنة\) — ស្ម័គ្រចិត្ត/)
   })
   it("the evidence sheet explains Wajib, Sunnah (Bukhari 2840) and Imsak", () => {
     const sheet = all("components/islamic/fasting-wisdom-sheet.tsx")

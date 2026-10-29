@@ -1,3 +1,5 @@
+import { InfoIcon } from "lucide-react"
+
 import { DATA_NOTE, SOFT_CHECK_DISCLAIMER, STATEMENT_SUBTITLE, STATEMENT_TITLE, type DtiBand, type Statement } from "@/lib/credit-statement"
 import { cn } from "@/lib/utils"
 
@@ -109,7 +111,10 @@ export function StatementPaper({ s, dti }: { s: Statement; dti: number | null })
       </section>
 
       <footer className="space-y-2 border-t border-slate-200 pt-3">
-        <p className="rounded-lg bg-emerald-50 p-3 text-xs leading-relaxed text-emerald-900">ℹ️ {SOFT_CHECK_DISCLAIMER}</p>
+        <p className="flex gap-1.5 rounded-lg bg-emerald-50 p-3 text-xs leading-relaxed text-emerald-900">
+          <InfoIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <span>{SOFT_CHECK_DISCLAIMER}</span>
+        </p>
         <p className="text-[11px] text-slate-500">{DATA_NOTE}</p>
         <p className="text-[11px] text-slate-400">បង្កើតដោយ អេប លុយឆ្លាត · app.luychlat.com</p>
       </footer>

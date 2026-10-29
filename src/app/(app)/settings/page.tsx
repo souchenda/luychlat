@@ -77,7 +77,7 @@ function IslamicToolsRow() {
         icon={<MoonStarIcon />}
         tile="teal"
         title={t("islamic.mode")}
-        hint={canManage ? `${t("islamic.modeHint")} · ${t("islamic.modeCalendar", calendarExamples(locale))}` : `🔒 ${t("islamic.managedByAdmin")}`}
+        hint={canManage ? `${t("islamic.modeHint")} · ${t("islamic.modeCalendar", calendarExamples(locale))}` : t("islamic.managedByAdmin")}
       >
         <Switch
           checked={settings.enabled}
@@ -531,9 +531,9 @@ export default function SettingsPage() {
               value={locale}
               onChange={(v) => setLocale(v)}
               options={[
-                { value: "km", label: "🇰🇭 ខ្មែរ" },
-                { value: "en", label: "🇬🇧 EN" },
-                { value: "zh", label: "🇨🇳 中文" },
+                { value: "km", label: "ខ្មែរ" },
+                { value: "en", label: "EN" },
+                { value: "zh", label: "中文" },
               ]}
             />
           </div>

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
-import { GiftIcon, Loader2Icon, PlusIcon, TicketIcon } from "lucide-react"
+import { GiftIcon, Loader2Icon, PlusIcon, TicketIcon, TriangleAlertIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -136,8 +136,9 @@ export function ReferralManager() {
                   {(r.flags.length > 0 || r.blocked) && (
                     <div className="flex flex-wrap items-center gap-1 pl-7">
                       {r.flags.map((f) => (
-                        <span key={f} className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-                          ⚠️ {t(`growth.flag.${f}`, { count: f === "burst" ? r.last_24h : r.inactive_friends })}
+                        <span key={f} className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                          <TriangleAlertIcon className="size-3" aria-hidden />
+                          {t(`growth.flag.${f}`, { count: f === "burst" ? r.last_24h : r.inactive_friends })}
                         </span>
                       ))}
                       {r.blocked && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">{t("growth.rewardsPaused")}</span>}

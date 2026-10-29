@@ -119,16 +119,16 @@ export function assessCredit(loans: LoanHistory[], monthlyIncomeUsd: number | nu
   }
 }
 
-/** The grade's badge, in the founder's words. */
-export const GRADE_BADGE: Record<CbcGrade, { emoji: string; km: string; tone: "good" | "fine" | "warn" | "bad" }> = {
-  A: { emoji: "🟢", km: "ល្អឥតខ្ចោះ", tone: "good" },
-  B: { emoji: "🟡", km: "ល្អ — ត្រូវប្រុងប្រយ័ត្ន", tone: "fine" },
-  C: { emoji: "🟠", km: "មធ្យម — ហានិភ័យមធ្យម", tone: "warn" },
-  D: { emoji: "🔴", km: "ខ្សោយ — ហានិភ័យខ្ពស់", tone: "bad" },
+/** The grade's badge, in the founder's words — its colour is the tone (no emoji on a screen, founder 29/10/2026). */
+export const GRADE_BADGE: Record<CbcGrade, { km: string; tone: "good" | "fine" | "warn" | "bad" }> = {
+  A: { km: "ល្អឥតខ្ចោះ", tone: "good" },
+  B: { km: "ល្អ — ត្រូវប្រុងប្រយ័ត្ន", tone: "fine" },
+  C: { km: "មធ្យម — ហានិភ័យមធ្យម", tone: "warn" },
+  D: { km: "ខ្សោយ — ហានិភ័យខ្ពស់", tone: "bad" },
 }
 
-/** «🟢 សុខភាពឥណទាន៖ ល្អឥតខ្ចោះ (Grade A)». */
-export const gradeBadge = (g: CbcGrade) => `${GRADE_BADGE[g].emoji} សុខភាពឥណទាន៖ ${GRADE_BADGE[g].km} (Grade ${g})`
+/** «សុខភាពឥណទាន៖ ល្អឥតខ្ចោះ (Grade A)». */
+export const gradeBadge = (g: CbcGrade) => `សុខភាពឥណទាន៖ ${GRADE_BADGE[g].km} (Grade ${g})`
 
 /** The founder's verdict for a clean history. */
 export const VERDICT_A = "ប្រវត្តិឥណទានរបស់លោកអ្នកស្អាតឥតខ្ចោះ។ ធនាគារ និងគ្រឹះស្ថានហិរញ្ញវត្ថុនឹងផ្តល់ទំនុកចិត្តខ្ពស់បំផុត និងងាយស្រួលអនុម័តកម្ចីថ្មី!"

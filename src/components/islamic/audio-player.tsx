@@ -221,8 +221,9 @@ export function AudioMiniPlayer() {
             <span>{clock(duration)}</span>
           </div>
           {sleep && (
-            <p className="mt-1 text-[11px] text-indigo-700 dark:text-indigo-300">
-              🌙 {left ? t("quranAudio.sleepLeft", { n: left }) : t(kind === "quran" ? "quranAudio.sleepSurahOn" : "quranAudio.sleepTrackOn")}
+            <p className="mt-1 flex items-center gap-1 text-[11px] text-indigo-700 dark:text-indigo-300">
+              <MoonIcon className="size-3 shrink-0" aria-hidden />
+              {left ? t("quranAudio.sleepLeft", { n: left }) : t(kind === "quran" ? "quranAudio.sleepSurahOn" : "quranAudio.sleepTrackOn")}
             </p>
           )}
           {timerOpen && (

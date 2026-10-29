@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2Icon } from "lucide-react"
+import { GlobeIcon, Loader2Icon, SearchIcon, SendIcon, ThumbsUpIcon, UsersIcon, type LucideIcon } from "lucide-react"
 import { useState } from "react"
 import { create } from "zustand"
 
@@ -17,11 +17,11 @@ import { useSessionStore } from "@/stores/session-store"
 /** «រំលង» hides it for this visit only — it comes back next time until answered. */
 const useSkipped = create<{ skipped: boolean; skip: () => void }>((set) => ({ skipped: false, skip: () => set({ skipped: true }) }))
 
-const OPTIONS: Record<AcquisitionSource, { emoji: string; tile: string }> = {
-  facebook: { emoji: "🔵", tile: "bg-blue-500/10" },
-  telegram: { emoji: "✈️", tile: "bg-sky-500/10" },
-  referral: { emoji: "👥", tile: "bg-amber-500/15" },
-  organic_search: { emoji: "🔍", tile: "bg-emerald-500/10" },
+const OPTIONS: Record<AcquisitionSource, { Icon: LucideIcon; tile: string }> = {
+  facebook: { Icon: ThumbsUpIcon, tile: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  telegram: { Icon: SendIcon, tile: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
+  referral: { Icon: UsersIcon, tile: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
+  organic_search: { Icon: SearchIcon, tile: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
 }
 
 /** Whether the first-visit question is showing — the Islamic Mode choice waits for it (one dialog at a time). */
@@ -65,8 +65,11 @@ export function SourceSelector() {
                 onClick={() => save.mutate(s, { onError: () => skip() })}
                 className="flex min-h-14 w-full items-center gap-3 rounded-2xl border-2 border-border px-4 py-3 text-left transition-all hover:border-primary hover:bg-primary/5 active:scale-[0.99] disabled:opacity-70"
               >
-                <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-xl", OPTIONS[s].tile)} aria-hidden>
-                  {OPTIONS[s].emoji}
+                <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", OPTIONS[s].tile)} aria-hidden>
+                  {(() => {
+                    const Icon = OPTIONS[s].Icon
+                    return <Icon className="size-5" />
+                  })()}
                 </span>
                 <span className="min-w-0 flex-1 font-semibold">{t(`source.${s}` as MessageKey)}</span>
                 {busy && <Loader2Icon className="size-5 shrink-0 animate-spin text-muted-foreground" />}
@@ -82,8 +85,8 @@ export function SourceSelector() {
               onClick={() => setOtherOpen((v) => !v)}
               className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-all active:scale-[0.99] disabled:opacity-70"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-xl" aria-hidden>
-                🌐
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400" aria-hidden>
+                <GlobeIcon className="size-5" />
               </span>
               <span className="min-w-0 flex-1 font-semibold">{t("source.other")}</span>
             </button>

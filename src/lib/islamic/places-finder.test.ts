@@ -19,9 +19,9 @@ describe("Islamic places finder — ATM-style, pre-loaded, Khmer (founder, 19/10
     assert.match(page, /directionsUrl\(p\.lat, p\.lng\)/)
     assert.doesNotMatch(page, /PlaceFormSheet/)
     const km = dictionaries.km
-    assert.deepEqual(["ALL", "MOSQUE", "SURAU", "HALAL"].map((k) => km[`finder.chip.${k}` as keyof typeof km]), ["ទាំងអស់", "🕌 វិហារឥស្លាម", "🕋 ស៊ូរ៉ាវ", "🥩 សាច់/អាហារហាឡាល់"])
-    assert.equal(km["finder.nearMe"], "📍 យកទីតាំងក្បែរខ្ញុំ")
-    assert.equal(km["finder.directions"], "🧭 នាំផ្លូវ (Google Maps)")
+    assert.deepEqual(["ALL", "MOSQUE", "SURAU", "HALAL"].map((k) => km[`finder.chip.${k}` as keyof typeof km]), ["ទាំងអស់", "វិហារឥស្លាម", "ស៊ូរ៉ាវ", "សាច់/អាហារហាឡាល់"])
+    assert.equal(km["finder.nearMe"], "យកទីតាំងក្បែរខ្ញុំ")
+    assert.equal(km["finder.directions"], "នាំផ្លូវ (Google Maps)")
   })
   it("the suggestion: one fixed-height map, the position from the phone, the founder's Khmer words", () => {
     const sheet = read("src/components/islamic/suggest-place-sheet.tsx")
@@ -34,8 +34,8 @@ describe("Islamic places finder — ATM-style, pre-loaded, Khmer (founder, 19/10
     assert.equal(km["suggest.name"], "ឈ្មោះទីតាំង")
     assert.equal(km["suggest.namePlaceholder"], "ឧ. ម៉ាស្ជិទ អាល់ស៊ើរកាល់")
     assert.equal(km["suggest.province"], "រាជធានី-ខេត្ត")
-    assert.equal(km["suggest.gps"], "📍 យកទីតាំងបច្ចុប្បន្នរបស់ខ្ញុំ")
-    assert.equal(km["suggest.submit"], "📍 ផ្ញើទីតាំងសុំការអនុម័ត")
+    assert.equal(km["suggest.gps"], "យកទីតាំងបច្ចុប្បន្នរបស់ខ្ញុំ")
+    assert.equal(km["suggest.submit"], "ផ្ញើទីតាំងសុំការអនុម័ត")
   })
   it("seeded on the first tick after the deploy, refreshed every Sunday; a short answer changes nothing", () => {
     const sync = read("src/lib/server/islamic-places-sync.ts")

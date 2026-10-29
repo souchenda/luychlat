@@ -129,7 +129,7 @@ describe("Comment groups: the channels' fourteen — never 🔥 (founder, 22/10/
     assert.match(quiz, /<StarIcon className="size-3\.5 fill-amber-400 text-amber-500" aria-hidden \/>/)
     const dict = read("src/lib/i18n/dictionaries.ts") + read("src/lib/i18n/zh.ts")
     assert.doesNotMatch(dict, /🔥/)
-    assert.match(dict, /· ⭐ \{streak\} ថ្ងៃជាប់ៗគ្នា/)
+    assert.match(dict, /· \{streak\} ថ្ងៃជាប់ៗគ្នា/)
   })
 })
 

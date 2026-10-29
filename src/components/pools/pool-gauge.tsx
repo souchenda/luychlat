@@ -1,4 +1,4 @@
-import { GAUGE_COLOR, GAUGE_EMOJI, gaugeWidth, type PoolSnapshot } from "@/lib/pool"
+import { GAUGE_COLOR, gaugeWidth, type PoolSnapshot } from "@/lib/pool"
 import { formatMoney } from "@/lib/money"
 
 /**
@@ -32,7 +32,8 @@ export function PoolGauge({
           className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
           style={{ backgroundColor: `${color}1f`, color }}
         >
-          {collecting ? `⚪ ${labels.collecting ?? labels.status}` : `${GAUGE_EMOJI[pool.gauge]} ${labels.status} · ${Math.max(0, Math.round(pool.pct))}%`}
+          <span className="size-2 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+          {collecting ? (labels.collecting ?? labels.status) : `${labels.status} · ${Math.max(0, Math.round(pool.pct))}%`}
         </span>
       </div>
       <div className="h-3 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(gaugeWidth(pool))}>
