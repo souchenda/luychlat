@@ -8,6 +8,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 git fetch --quiet origin master
+# The website first, in minutes — it never waits for the app's build or its quiet hours (deploy/website-sync.sh).
+[ -f deploy/website-sync.sh ] && bash deploy/website-sync.sh "$(git rev-parse origin/master)" || true
 deployed=$(cat deploy/.deployed 2>/dev/null || git rev-parse HEAD)
 # .env edited since the last deploy (e.g. TELEGRAM_BOT_TOKEN or DATABASE_URL added)?
 env_now=$(sha256sum .env 2>/dev/null | cut -d' ' -f1 || true)

@@ -14,8 +14,10 @@
 # watcher once, and tells the founder in Telegram what was published.
 set -eu
 
-REPO=$(cd "$(dirname "$0")/.." && pwd)
-SRC="$REPO/Website"
+# deploy/website-sync.sh runs this script from a release's own copy (LANDING_REPO = the checkout, WEBSITE_SRC = that
+# release's Website/), so the site goes out before the app has finished building.
+REPO=${LANDING_REPO:-$(cd "$(dirname "$0")/.." && pwd)}
+SRC=${WEBSITE_SRC:-"$REPO/Website"}
 DEST=/var/www/luychlat-landing
 BACKUP_ROOT=/var/www/luychlat-landing-backups
 SITE_CONF=/etc/nginx/sites-enabled/luychlat.com.conf

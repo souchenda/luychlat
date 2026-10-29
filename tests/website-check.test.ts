@@ -15,10 +15,20 @@ describe("luychlat.com passes its quality gate (founder, 28/10/2026 — «the wh
   // deploy/ and .githooks/ are not in the Docker build context (regression 29/10/2026: this read failed the build there).
   const deployHere = existsSync(join(process.cwd(), "deploy/update.sh")) && existsSync(join(process.cwd(), ".githooks/pre-push"))
   it("a release that changes the website publishes it on its own, gated before the push (founder, 29/10/2026)", { skip: !deployHere && "deploy/ is not in the build context" }, () => {
-    const update = readFileSync(join(process.cwd(), "deploy/update.sh"), "utf8")
-    assert.match(update, /git diff --quiet "\$prev_deployed" HEAD -- Website\/ deploy\/landing-publish\.sh deploy\/site-prices\.py/)
-    assert.match(update, /sh \.\/deploy\/landing-publish\.sh \|\| echo "! Website not published/)
-    assert.ok(update.indexOf("landing-publish.sh ||") > update.indexOf('git rev-parse HEAD > deploy/.deployed'), "only after the app is live")
+    const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
+    // In minutes, before the app's build (founder, 29/10/2026 — «why 45 minutes?»): auto-update syncs the website right
+    // after its fetch; update.sh syncs again after a release (the safety net).
+    const auto = read("deploy/auto-update.sh")
+    assert.ok(auto.indexOf("bash deploy/website-sync.sh") > auto.indexOf("git fetch --quiet origin master"))
+    assert.ok(auto.indexOf("bash deploy/website-sync.sh") < auto.indexOf("exec ./deploy/update.sh"))
+    const update = read("deploy/update.sh")
+    assert.ok(update.indexOf("bash ./deploy/website-sync.sh HEAD") > update.indexOf("git rev-parse HEAD > deploy/.deployed"), "only after the app is live")
+    const sync = read("deploy/website-sync.sh")
+    assert.match(sync, /git diff --quiet "\$last" "\$target" -- \$paths/) // only when the website changed
+    assert.match(sync, /git archive "\$target" Website deploy\/landing-publish\.sh/) // the target's own copy, the checkout untouched
+    assert.match(sync, /LANDING_REPO="\$\(pwd\)" WEBSITE_SRC="\$tmp\/Website" sh "\$tmp\/deploy\/landing-publish\.sh"/)
+    assert.match(sync, /git rev-parse "\$target" > "\$stamp_file"/) // published once per change
+    assert.match(read("deploy/landing-publish.sh"), /SRC=\$\{WEBSITE_SRC:-"\$REPO\/Website"\}/)
     assert.match(readFileSync(join(process.cwd(), ".githooks/pre-push"), "utf8"), /node scripts\/website-check\.mjs/)
   })
 })
