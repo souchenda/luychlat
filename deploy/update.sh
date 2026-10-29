@@ -146,3 +146,10 @@ docker builder prune -f --keep-storage 2GB >/dev/null 2>&1 || echo "! Build cach
 bash ./deploy/prune-build-history.sh 24 || echo "! Build history not pruned (the app is deployed)"
 echo "✓ Deployed $(git rev-parse --short HEAD) on $next"
 bash ./deploy/deploy-notify.sh ok "$prev_deployed" || echo "! Deploy notice not sent (the app is deployed)"
+# The website goes out with the release that changed it (founder, 29/10/2026 — «without waiting for my tap»): checked
+# before the push (.githooks/pre-push runs scripts/website-check.mjs), the live site kept as a dated backup, the founder
+# told in Telegram (rollback: sudo sh deploy/landing-publish.sh rollback). Never fails a live release.
+if [ -n "$prev_deployed" ] && ! git diff --quiet "$prev_deployed" HEAD -- Website/ deploy/landing-publish.sh deploy/site-prices.py 2>/dev/null; then
+  echo "→ The website changed in this release: publishing luychlat.com"
+  sh ./deploy/landing-publish.sh || echo "! Website not published — the previous version stays live"
+fi

@@ -1,6 +1,7 @@
 #!/bin/sh
-# luychlat.com — publishes the official website (Website/) to /var/www/luychlat-landing, on the founder's approval only
-# (founder, 27/10/2026). Run on the Droplet from the repository checkout:
+# luychlat.com — publishes the official website (Website/) to /var/www/luychlat-landing (founder, 27/10/2026). Since
+# 29/10/2026 every release that changes Website/ runs it on its own (deploy/update.sh — «without waiting for my tap»);
+# the Control Center's «ផ្សាយគេហទំព័រឡើងវិញ» and a price change in Admin still run it too. On the Droplet:
 #
 #   sudo sh deploy/landing-publish.sh            (publish)
 #   sudo sh deploy/landing-publish.sh rollback   (put the previous version back)

@@ -3,6 +3,8 @@
 # anything reaches master — the server builds and deploys every push. Bypass only with the founder's OK.
 echo "→ Golden paths (npm run test:golden)…"
 npm run --silent test:golden >/tmp/luychlat-golden.log 2>&1 || { tail -40 /tmp/luychlat-golden.log; echo "✗ Golden path broken — push aborted."; exit 1; }
+echo "→ Website quality gate (scripts/website-check.mjs)…"
+node scripts/website-check.mjs >/tmp/luychlat-website.log 2>&1 || { tail -30 /tmp/luychlat-website.log; echo "✗ The website has errors — push aborted (a release publishes it on its own)."; exit 1; }
 echo "→ Typecheck…"
 npx tsc --noEmit -p . || { echo "✗ Typecheck failed — push aborted."; exit 1; }
 echo "✓ Golden paths and typecheck pass."
