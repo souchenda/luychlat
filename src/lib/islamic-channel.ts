@@ -314,7 +314,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       arabic: sleep.arabic,
       paragraphs: [
         ...duaLines(sleep),
-        `ស្ដាប់ ${G.SURAH_AL_MULK} ឬកសាដះក្នុង «អេប លុយឆ្លាត» ជាមួយ Sleep Timer (១៥ ឬ ៣០ នាទី) ហើយកុំភ្លេចអាន ${G.AYAT_AL_KURSI} មុនចូលគេង។`,
+        `ស្ដាប់ ${G.SURAH_AL_MULK} ឬកសាដះក្នុង «អេប លុយឆ្លាត» ជាមួយ Sleep Timer (១៥ ឬ ៣០ នាទី) ហើយកុំភ្លេចសូត្រ ${G.AYAT_AL_KURSI} មុនចូលគេង។`,
         ...(fastTomorrow ? [G.sahurReminder(fastTimes(day).imsak)] : []),
       ],
       posterLines: [posterMeaning(sleep)],
@@ -361,7 +361,7 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       paragraphs: [
         `ថ្ងៃសុក្រមានពរជ័យ! ពេលឮគេហៅទៅសឡាត${G.JUMUAH_LABEL} អល់ឡោះបង្គាប់ឱ្យយើងទៅភ្លាម ហើយផ្អាកការលក់ដូរសិន។ សឡាតចប់ហើយ អាចត្រឡប់ទៅរកស៊ីវិញបាន ហើយសូមសុំពរជ័យពីអល់ឡោះ។`,
         `ម្ចាស់ហាង៖ ពេលទៅសឡាត សូមឱ្យមានអ្នកមើលហាងជំនួស ឬបិទហាងមួយភ្លែត។ ប្រាក់ដែលរកបានក្រោយនោះ មានពរជ័យ (${G.BARAKAH_LABEL})។`,
-        `ថ្ងៃនេះកុំភ្លេចអាន ${G.SURAH_AL_KAHF}។ អ្នកដែលអានវានៅថ្ងៃសុក្រ នឹងមានពន្លឺភ្លឺសម្រាប់គាត់ រហូតដល់ថ្ងៃសុក្រក្រោយ (al-Hakim · Sahih al-Jami' 6470)។`,
+        `ថ្ងៃនេះកុំភ្លេចសូត្រ ${G.SURAH_AL_KAHF}។ អ្នកដែលសូត្រវានៅថ្ងៃសុក្រ នឹងមានពន្លឺភ្លឺសម្រាប់គាត់ រហូតដល់ថ្ងៃសុក្រក្រោយ (al-Hakim · Sahih al-Jami' 6470)។`,
       ],
       posterLines: [...POSTER_HOOKS.jumuah],
       posterSource: "Al-Jumu'ah 62:9",

@@ -140,6 +140,9 @@ export const BANNED_TERMS: { term: string; use: string }[] = [
   { term: "ស៊ូហួរ", use: SAHUR_MEAL },
   { term: "អាហារសាហួរ", use: SAHUR_MEAL },
   { term: "ជុមអះ", use: JUMUAH_LABEL },
+  // Muslims recite the Qur'an: «សូត្រ», not «អាន» (founder, 30/10/2026 — «គេប្រើពាក្យ សូត្រ»). «គម្ពីរគួរអាន» is its name.
+  { term: "កុំភ្លេចអាន", use: "កុំភ្លេចសូត្រ" },
+  { term: "អ្នកដែលអាន", use: "អ្នកដែលសូត្រ" },
   { term: "صلى الله عليه وسلم", use: PBUH },
   { term: "មហាម៉ាត់សករាជ", use: HIJRI_ERA_FULL },
 ]
