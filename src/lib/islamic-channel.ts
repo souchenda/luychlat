@@ -355,10 +355,13 @@ export function islamicPostContent(kind: IslamicKind, day: string, hijri: HijriD
       date: kmDay(day),
       title: `${G.JUMUAH} មូបារ៉ក់`,
       titleArabic: G.JUMUAH_MUBARAK_ARABIC,
+      // Plain, short sentences for every reader (founder, 30/10/2026: «hard to understand — simplify»): the verse
+      // 62:9–10 in everyday Khmer — go to the prayer, leave the trade for a while; when it ends, go back to work and
+      // ask Allah for his bounty — instead of the literal «disperse in the land».
       paragraphs: [
-        `ថ្ងៃសុក្រដ៏មាន${G.BARAKAH}! អល់ឡោះមានបន្ទូលថា ពេលគេអំពាវនាវឱ្យថ្វាយបង្គំ${G.JUMUAH_LABEL} នៅថ្ងៃសុក្រ ចូរប្រញាប់ទៅរំលឹកអល់ឡោះ ហើយទុកការលក់ដូរមួយឡែកសិន។ ក្រោយការថ្វាយបង្គំចប់ ចូរបែកខ្ញែកគ្នាលើផែនដី ហើយស្វែងរកការប្រទានពរពីអល់ឡោះ។`,
-        `ម្ចាស់ហាង៖ ចូររៀបចំឱ្យមានអ្នកមើលហាង ឬបិទហាងមួយភ្លែតពេលថ្វាយបង្គំ${G.JUMUAH} — ប្រាក់ចំណេញក្រោយពេលនោះ ប្រកបដោយ${G.BARAKAH_LABEL}។`,
-        `កុំភ្លេចអាន ${G.SURAH_AL_KAHF} ថ្ងៃនេះ — អ្នកណាអាន ${G.SURAH_AL_KAHF} នៅថ្ងៃសុក្រ ពន្លឺនឹងភ្លឺសម្រាប់គាត់ រហូតដល់ថ្ងៃសុក្រក្រោយ (al-Hakim · Sahih al-Jami' 6470)។`,
+        `ថ្ងៃសុក្រមានពរជ័យ! ពេលឮគេហៅទៅសឡាត${G.JUMUAH_LABEL} អល់ឡោះបង្គាប់ឱ្យយើងទៅភ្លាម ហើយផ្អាកការលក់ដូរសិន។ សឡាតចប់ហើយ អាចត្រឡប់ទៅរកស៊ីវិញបាន ហើយសូមសុំពរជ័យពីអល់ឡោះ។`,
+        `ម្ចាស់ហាង៖ ពេលទៅសឡាត សូមឱ្យមានអ្នកមើលហាងជំនួស ឬបិទហាងមួយភ្លែត។ ប្រាក់ដែលរកបានក្រោយនោះ មានពរជ័យ (${G.BARAKAH_LABEL})។`,
+        `ថ្ងៃនេះកុំភ្លេចអាន ${G.SURAH_AL_KAHF}។ អ្នកដែលអានវានៅថ្ងៃសុក្រ នឹងមានពន្លឺភ្លឺសម្រាប់គាត់ រហូតដល់ថ្ងៃសុក្រក្រោយ (al-Hakim · Sahih al-Jami' 6470)។`,
       ],
       posterLines: [...POSTER_HOOKS.jumuah],
       posterSource: "Al-Jumu'ah 62:9",
