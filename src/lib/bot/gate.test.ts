@@ -28,13 +28,17 @@ describe("The bot is for «អេប លុយឆ្លាត» members only (fo
   it("a failed lookup neither gates a member nor lets a stranger in: nothing is said, nothing is done", () => {
     assert.equal(gateDecision({ chatType: "private", text: "coffee 2$", linked: null }), "quiet")
   })
-  it("the note is the founder's wording, greets by first name, and carries the free sign-up button", () => {
+  it("the note explains the app to a complete beginner: what it is, what it helps with, three easy steps, the free sign-up button (founder, 30/10/2026)", () => {
     const m = gateMessage("Dara")
     assert.ok(m.startsWith("ជម្រាបសួរ Dara! 🙏\n\n"))
-    assert.ok(m.includes("បម្រើជូនផ្តាច់មុខសម្រាប់តែសមាជិកដែលមានគណនីនៅលើ «អេប លុយឆ្លាត» ប៉ុណ្ណោះ។"))
-    assert.ok(m.includes("១. សូមចូលទៅបង្កើតគណនីឥតគិតថ្លៃលើអេប 👉 app.luychlat.com"))
-    assert.ok(m.includes("២. ចូលទៅកាន់ ការកំណត់ (Settings) › ជ្រើសរើស «ភ្ជាប់ Telegram»"))
+    assert.ok(m.includes("📒 អេប លុយឆ្លាត ជាអ្វី?"))
+    assert.ok(m.includes("មិនមែនជាធនាគារទេ ហើយមិនដែលសុំកូដ OTP"))
+    assert.ok(m.includes("✅ វាជួយអ្នកអ្វីខ្លះ?"))
+    assert.ok(m.includes("ចុះឈ្មោះងាយៗ ៣ ជំហាន"))
+    assert.ok(m.includes("1. ចុចប៊ូតុង «បង្កើតគណនីឥតគិតថ្លៃ» ខាងក្រោម"))
+    assert.ok(m.includes("3. ក្នុងអេប ចុច ការកំណត់ (Settings) › «ភ្ជាប់ Telegram»"))
     assert.ok(m.endsWith("រីករាយស្វាគមន៍មកកាន់គ្រួសារលុយឆ្លាត! 🐰✨"))
+    assert.ok(m.length < 900) // short enough to read on a phone
     assert.equal(gateMessage(undefined).split("\n")[0], "ជម្រាបសួរ! 🙏")
     assert.doesNotMatch(m, /កម្មវិធី|អែប|&|\d{8,}/) // brand rules; no digits for the masker
     assert.deepEqual(gateKeyboard(), { inline_keyboard: [[{ text: "📱 បង្កើតគណនីឥតគិតថ្លៃ", url: SIGNUP_URL }]] })
