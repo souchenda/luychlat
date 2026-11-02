@@ -15,6 +15,7 @@ import { detectBiometricKind } from "@/lib/security/biometric"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { authMethods } from "@/lib/supabase/config"
 import { parseTgAuthResult, telegramAuthUrl } from "@/lib/telegram-auth-result"
+import { signinToken } from "@/lib/telegram-signup"
 
 function GoogleIcon() {
   return (
@@ -50,6 +51,12 @@ async function finishTelegram(user: Record<string, string | number>): Promise<"o
   return json?.ok ? "ok" : json?.error === "not_linked" ? "not_linked" : "error"
 }
 
+/** The bot's one-tap link → a session (cookies set by the server). */
+async function finishBotLink(token: string): Promise<boolean> {
+  const res = await fetch("/api/auth/telegram/link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) }).catch(() => null)
+  return Boolean(((await res?.json().catch(() => null)) as { ok?: boolean } | null)?.ok)
+}
+
 /**
  * Back from Telegram's sign-in page (#tgAuthResult=… on /login): finishes the sign-in. Rendered on
  * the login page whatever the tab; the hash is removed at once so a reload never resends it.
@@ -57,6 +64,18 @@ async function finishTelegram(user: Record<string, string | number>): Promise<"o
 export function TelegramReturn() {
   const t = useT()
   useEffect(() => {
+    // The bot's one-tap link (#tgLogin=…, lib/telegram-signup.ts): spent once on the server, then straight in.
+    const token = signinToken(window.location.hash)
+    if (token) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search)
+      const id = toast.loading(t("login.telegramSignIn"))
+      void finishBotLink(token).then((ok) => {
+        toast.dismiss(id)
+        if (ok) return window.location.assign("/home")
+        toast.error(t("login.botLinkExpired"))
+      })
+      return
+    }
     const user = parseTgAuthResult(window.location.hash)
     if (!window.location.hash.includes("tgAuthResult")) return
     window.history.replaceState(null, "", window.location.pathname + window.location.search)

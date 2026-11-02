@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink, SIGNUP_URL } from "./gate"
+import { OPEN_BUTTON, SIGNUP_BUTTON } from "../telegram-signup"
 
 const LINK = "0123456789abcdef0123456789ABCDEF"
 
@@ -28,20 +29,23 @@ describe("The bot is for «អេប លុយឆ្លាត» members only (fo
   it("a failed lookup neither gates a member nor lets a stranger in: nothing is said, nothing is done", () => {
     assert.equal(gateDecision({ chatType: "private", text: "coffee 2$", linked: null }), "quiet")
   })
-  it("the note explains the app to a complete beginner: what it is, what it helps with, three easy steps, the free sign-up button (founder, 30/10/2026)", () => {
+  it("the note explains the app to a complete beginner: what it is, what it helps with, two taps to start — the bot signs up by the Telegram number (founder, 30/10/2026)", () => {
     const m = gateMessage("Dara")
     assert.ok(m.startsWith("ជម្រាបសួរ Dara! 🙏\n\n"))
     assert.ok(m.includes("📒 អេប លុយឆ្លាត ជាអ្វី?"))
     assert.ok(m.includes("មិនមែនជាធនាគារទេ ហើយមិនដែលសុំកូដ OTP"))
     assert.ok(m.includes("✅ វាជួយអ្នកអ្វីខ្លះ?"))
-    assert.ok(m.includes("ចុះឈ្មោះងាយៗ ៣ ជំហាន"))
-    assert.ok(m.includes("1. ចុចប៊ូតុង «បង្កើតគណនីឥតគិតថ្លៃ» ខាងក្រោម"))
-    assert.ok(m.includes("3. ក្នុងអេប ចុច ការកំណត់ (Settings) › «ភ្ជាប់ Telegram»"))
+    assert.ok(m.includes("ចុះឈ្មោះងាយៗ 2 ជំហាន មិនបាច់វាយអ្វីទេ"))
+    assert.ok(m.includes(`1. ចុចប៊ូតុង «${SIGNUP_BUTTON}» ខាងក្រោម រួចចុច «ចែករំលែក» (Share)`))
+    assert.ok(m.includes(`2. ចុច «${OPEN_BUTTON}» អ្នកចូលរួចភ្លាម`))
+    assert.ok(m.includes("ភ្លេចពាក្យសម្ងាត់? ចុចប៊ូតុងដដែលនេះ"))
     assert.ok(m.endsWith("រីករាយស្វាគមន៍មកកាន់គ្រួសារលុយឆ្លាត! 🐰✨"))
     assert.ok(m.length < 900) // short enough to read on a phone
     assert.equal(gateMessage(undefined).split("\n")[0], "ជម្រាបសួរ! 🙏")
     assert.doesNotMatch(m, /កម្មវិធី|អែប|&|\d{8,}/) // brand rules; no digits for the masker
-    assert.deepEqual(gateKeyboard(), { inline_keyboard: [[{ text: "📱 បង្កើតគណនីឥតគិតថ្លៃ", url: SIGNUP_URL }]] })
+    // One button that shares the person's own number (founder, 30/10/2026 — lib/telegram-signup.ts).
+    assert.deepEqual(gateKeyboard().keyboard, [[{ text: SIGNUP_BUTTON, request_contact: true }]])
+    assert.equal(gateKeyboard().one_time_keyboard, true)
     assert.equal(SIGNUP_URL, "https://app.luychlat.com")
     assert.ok(GATE_ALERT.length <= 190) // Telegram's callback alert limit
   })

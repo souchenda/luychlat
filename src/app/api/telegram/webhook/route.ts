@@ -53,6 +53,7 @@ import { handleApproverCommand, isApproverCommand } from "@/lib/server/co-approv
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
 import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink } from "@/lib/bot/gate"
+import { signUpByContact } from "@/lib/server/telegram-signup"
 import { handleFuelNoticePhoto, isFuelNoticePhoto } from "@/lib/server/moc-fuel-sync"
 import { guardDiscussionMessage, guardReaction, type ReactionUpdate } from "@/lib/server/channel-guard"
 import type { Entity } from "@/lib/bot/channel-guard"
@@ -91,7 +92,7 @@ type Update = {
     document?: { file_id?: string; file_name?: string; mime_type?: string; file_size?: number }
     /** An audio file (MP3 / M4A) — a du'a recording from the super admin (/setdua). */
     audio?: { file_id: string; mime_type?: string; file_size?: number; duration?: number }
-    /** Shared with the "📱 Share my number" button (password reset). */
+    /** Shared with a «📱 share my number» button: the password reset, or signing up / in through the bot. */
     contact?: { phone_number: string; user_id?: number }
     /** Shared with the "📍 my location" button (/atm). */
     location?: { latitude: number; longitude: number }
@@ -552,6 +553,13 @@ export async function POST(request: Request) {
     }
     const { data } = await botDb().rpc("bot_reset_contact", { p_key: botKey(), p_chat_id: chatId, p_phone: message.contact.phone_number })
     const r = data as { status?: string; code?: string } | null
+    // No password reset waiting in this chat: the bot's «share my number» — sign up, or sign in by a one-tap link
+    // (founder, 30/10/2026 — lib/telegram-signup.ts).
+    if (!r) {
+      const from = message.from
+      after(() => signUpByContact({ chatId, phone: message.contact!.phone_number, firstName: from?.first_name, lastName: from?.last_name, username: from?.username, language: lang }))
+      return NextResponse.json({ ok: true })
+    }
     if (r?.status === "ok" && r.code) await tg("sendMessage", { chat_id: chatId, text: tr(lang, "bot.resetCode", { code: r.code }), parse_mode: "HTML", ...done })
     else await sendText(chatId, tr(lang, r?.status === "mismatch" ? "bot.resetMismatch" : "bot.resetExpired"), done)
     return NextResponse.json({ ok: true })

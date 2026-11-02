@@ -7,6 +7,8 @@
  * Settings) and `/start reset_<32-hex>` with the contact share that follows it (forgot password).
  */
 
+import { signupKeyboard } from "@/lib/telegram-signup"
+
 export const SIGNUP_URL = "https://app.luychlat.com"
 
 export type GateInput = {
@@ -34,7 +36,7 @@ export function gateDecision(input: GateInput): GateDecision {
   return input.linked ? "pass" : "gate"
 }
 
-/** The note for someone who knows nothing about the app (founder, 30/10/2026): what it is, what it helps with, three easy steps, then the free sign-up button. The name is the person's Telegram first name (plain text, never HTML). */
+/** The note for someone who knows nothing about the app (founder, 30/10/2026): what it is, what it helps with, two taps to start (the bot's sign-up by Telegram number). The name is the person's Telegram first name (plain text, never HTML). */
 export function gateMessage(name: string | null | undefined): string {
   const who = (name ?? "").replace(/\s+/g, " ").trim().slice(0, 40)
   return [
@@ -51,16 +53,18 @@ export function gateMessage(name: string | null | undefined): string {
     "• រំលឹកថ្ងៃត្រូវបង់ថ្លៃអគ្គិសនី ទឹក ឬកម្ចី កុំឱ្យភ្លេច",
     "• មើលលុយទាំងអស់របស់អ្នក នៅកន្លែងតែមួយ",
     "",
-    "📲 ចុះឈ្មោះងាយៗ ៣ ជំហាន៖",
-    "1. ចុចប៊ូតុង «បង្កើតគណនីឥតគិតថ្លៃ» ខាងក្រោម",
-    "2. ដាក់លេខទូរសព្ទ និងពាក្យសម្ងាត់ដែលអ្នកចាំបាន",
-    "3. ក្នុងអេប ចុច ការកំណត់ (Settings) › «ភ្ជាប់ Telegram» រួចត្រឡប់មកទីនេះ ប្រើបូតបានភ្លាម",
+    "📲 ចុះឈ្មោះងាយៗ 2 ជំហាន មិនបាច់វាយអ្វីទេ៖",
+    "1. ចុចប៊ូតុង «📱 ចុះឈ្មោះ ឬចូល» ខាងក្រោម រួចចុច «ចែករំលែក» (Share)",
+    "2. ចុច «🚀 បើកអេប លុយឆ្លាត» អ្នកចូលរួចភ្លាម",
     "",
-    "ត្រឹមតែប៉ុន្មាននាទីប៉ុណ្ណោះ អ្នកនឹងចាប់ផ្តើមបាន។ រីករាយស្វាគមន៍មកកាន់គ្រួសារលុយឆ្លាត! 🐰✨",
+    "មានគណនីរួចហើយ ឬភ្លេចពាក្យសម្ងាត់? ចុចប៊ូតុងដដែលនេះ។",
+    "",
+    "រីករាយស្វាគមន៍មកកាន់គ្រួសារលុយឆ្លាត! 🐰✨",
   ].join("\n")
 }
 
-export const gateKeyboard = () => ({ inline_keyboard: [[{ text: "📱 បង្កើតគណនីឥតគិតថ្លៃ", url: SIGNUP_URL }]] })
+/** One button: share this Telegram's own number → sign up, or sign in (lib/telegram-signup.ts — founder, 30/10/2026). */
+export const gateKeyboard = signupKeyboard
 
 /** The short alert for a button tapped in an unlinked private chat (Telegram caps it at 200 characters). */
 export const GATE_ALERT = "បូតនេះសម្រាប់សមាជិក «អេប លុយឆ្លាត» ប៉ុណ្ណោះ — សូមបង្កើតគណនីឥតគិតថ្លៃនៅ app.luychlat.com ហើយភ្ជាប់ Telegram។"

@@ -1,0 +1,83 @@
+import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import { describe, it } from "node:test"
+
+import { parseLoginIdentifier } from "./auth-identifier"
+import { contactAccount, openAppKeyboard, signinLink, signinToken, signupKeyboard, signupReply, SIGNIN_LINK_MINUTES, telegramName } from "./telegram-signup"
+
+const TOKEN = "a".repeat(64)
+const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
+
+describe("sign-up and sign-in through the bot (founder, 30/10/2026)", () => {
+  it("a shared Cambodian number is the same account the app's phone sign-up makes", () => {
+    for (const phone of ["85512345678", "+85512345678", "+855 96 123 4567"]) {
+      const a = contactAccount(phone)!
+      assert.ok(a, phone)
+      // Exactly what typing the number on the sign-in page gives — never a second account for one number.
+      assert.equal(a.email, parseLoginIdentifier(a.local)!.email, phone)
+    }
+    assert.deepEqual(contactAccount("85512345678"), { email: "85512345678@phone.luy.ibmserp.com", local: "012345678" })
+  })
+
+  it("any other number is refused (the phone accounts are Cambodian); a local form without 855 is never guessed", () => {
+    for (const phone of ["14155550100", "66812345678", "012345678", "855012345678", "8551234", "", null]) assert.equal(contactAccount(phone), null, String(phone))
+  })
+
+  it("the one-tap link carries the token in the fragment of /login (never sent by a link preview), read back strictly", () => {
+    assert.equal(signinLink(TOKEN), `https://app.luychlat.com/login#tgLogin=${TOKEN}`)
+    assert.equal(signinToken(new URL(signinLink(TOKEN)).hash), TOKEN)
+    assert.equal(signinToken(`#x=1&tgLogin=${TOKEN.toUpperCase()}`), TOKEN)
+    for (const hash of ["", "#tgLogin=", `#tgLogin=${TOKEN}0`, "#tgLogin=abc", `#tgAuthResult=${TOKEN}`, null]) assert.equal(signinToken(hash), null, String(hash))
+  })
+
+  it("the bot's buttons: one that shares the person's own number (one-time), then «open the app»", () => {
+    const k = signupKeyboard()
+    assert.equal(k.keyboard.length, 1)
+    assert.equal(k.keyboard[0][0].request_contact, true)
+    assert.equal(k.one_time_keyboard, true)
+    assert.deepEqual(openAppKeyboard(TOKEN).inline_keyboard[0][0].url, signinLink(TOKEN))
+  })
+
+  it("a new account starts with the person's Telegram name, plain and short", () => {
+    assert.equal(telegramName(" Sok ", "Dara"), "Sok Dara")
+    assert.equal(telegramName("<b>Sok</b>", undefined), "bSok/b")
+    assert.equal(telegramName(undefined, null), "")
+    assert.equal(telegramName("x".repeat(60), "y").length, 40)
+  })
+
+  it("the bot's answers: Khmer, the brand, 0-9 digits, never the number or a balance", () => {
+    for (const k of ["created", "signin", "elsewhere", "foreign", "busy"] as const) {
+      const m = signupReply(k)
+      assert.doesNotMatch(m, /កម្មវិធី|អែប|&|[០-៩]|\d{8,}/, k)
+    }
+    assert.match(signupReply("created"), /ឥតគិតថ្លៃ/)
+    assert.match(signupReply("signin"), /ប្តូរពាក្យសម្ងាត់/) // a password stays optional
+    assert.ok(signupReply("created").includes(`${SIGNIN_LINK_MINUTES} នាទី`))
+  })
+
+  it("the database: the link is single-use, 15 minutes, stored only hashed; a number linked to another Telegram is refused", () => {
+    const sql = read("supabase/migrations/20270281000000_telegram_signup.sql")
+    assert.match(sql, /now\(\) \+ interval '15 minutes'/)
+    assert.equal(SIGNIN_LINK_MINUTES, 15)
+    assert.match(sql, /token_hash text primary key/)
+    assert.match(sql, /set used_at = now\(\)\s+where token_hash = encode\(sha256\(convert_to\(p_token, 'UTF8'\)\), 'hex'\) and used_at is null and expires_at > now\(\)/)
+    assert.match(sql, /if other_chat is not null and other_chat <> p_chat_id then\s+return jsonb_build_object\('status', 'elsewhere'\)/)
+    assert.match(sql, /if digits !~ '\^855\[1-9\]\[0-9\]\{7,8\}\$' then\s+return jsonb_build_object\('status', 'foreign'\)/)
+    assert.match(sql, /revoke all on public\.telegram_signin_tokens from anon, authenticated/)
+    for (const fn of ["bot_contact_account", "bot_signin_redeem"]) assert.match(sql, new RegExp(`function public\\.${fn}\\(p_key text[^]*?perform public\\.require_bot\\(p_key\\)`))
+  })
+
+  it("the server: only the person's own contact signs up (contact.user_id = from.id), and the session is made on the server", () => {
+    const hook = read("src/app/api/telegram/webhook/route.ts")
+    const own = hook.indexOf("const own = message.contact.user_id !== undefined && message.contact.user_id === message.from?.id")
+    const signup = hook.indexOf("signUpByContact({")
+    assert.ok(own > 0 && signup > own, "the own-number check comes first")
+    // A password reset waiting in this chat still wins: its code, not a sign-in link.
+    assert.ok(hook.indexOf('rpc("bot_reset_contact"') < signup)
+    const route = read("src/app/api/auth/telegram/link/route.ts")
+    assert.match(route, /bot_signin_redeem/)
+    assert.match(route, /startSession\(r\.email/)
+    assert.match(read("src/lib/server/magic-session.ts"), /await claimSingleSession\(supabase\)/) // one device at a time
+  })
+})
