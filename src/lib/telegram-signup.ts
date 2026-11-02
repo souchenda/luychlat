@@ -45,14 +45,33 @@ export function telegramName(first: string | null | undefined, last: string | nu
     .slice(0, 40)
 }
 
-/** The bot's one button for someone not yet linked: shares their own number (a reply keyboard — Telegram asks first). */
+/**
+ * The bot's one button for someone not yet linked: shares their own number (a reply keyboard — Telegram asks first).
+ * It stays on screen until the number is shared (founder, 2/11/2026 — «someone who barely uses Telegram may get stuck»):
+ * a «Cancel» in Telegram's question must never leave them with no button; the answer then takes it away.
+ */
 export const SIGNUP_BUTTON = "📱 ចុះឈ្មោះ ឬចូល"
 export const signupKeyboard = () => ({
   keyboard: [[{ text: SIGNUP_BUTTON, request_contact: true }]],
   resize_keyboard: true,
-  one_time_keyboard: true,
+  is_persistent: true,
   input_field_placeholder: "ចុចប៊ូតុងខាងក្រោម 👇",
 })
+
+/**
+ * Anything else typed or sent before signing up (a number typed by hand, «hello», a photo): not the long welcome again
+ * but where to tap, in plain words — the welcome comes with /start.
+ */
+export const SIGNUP_NUDGE = [
+  "👇 សូមចុចប៊ូតុង «📱 ចុះឈ្មោះ ឬចូល» នៅខាងក្រោមអេក្រង់ ជំនួសកន្លែងវាយអក្សរ។",
+  "",
+  "Telegram នឹងសួរថា «Share your phone number?» — ចុច «Share» ឬ «OK»។ មិនបាច់វាយលេខទូរសព្ទទេ។",
+  "",
+  "មើលមិនឃើញប៊ូតុង? ចុចរូប ⌨️ ឬ 🎛 តូចៗ ក្បែរកន្លែងវាយអក្សរ ឬវាយ /start ម្តងទៀត។",
+].join("\n")
+
+/** The welcome (gateMessage) answers /start; anything else gets the short nudge. */
+export const wantsWelcome = (text: string | null | undefined) => /^\/(start|help)(@\w+)?(\s|$)/i.test((text ?? "").trim())
 
 /** The «open the app» button under the bot's answer. */
 export const OPEN_BUTTON = "🚀 បើកអេប លុយឆ្លាត"

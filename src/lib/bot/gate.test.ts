@@ -36,7 +36,7 @@ describe("The bot is for «អេប លុយឆ្លាត» members only (fo
     assert.ok(m.includes("មិនមែនជាធនាគារទេ ហើយមិនដែលសុំកូដ OTP"))
     assert.ok(m.includes("✅ វាជួយអ្នកអ្វីខ្លះ?"))
     assert.ok(m.includes("ចុះឈ្មោះងាយៗ 2 ជំហាន មិនបាច់វាយអ្វីទេ"))
-    assert.ok(m.includes(`1. ចុចប៊ូតុង «${SIGNUP_BUTTON}» ខាងក្រោម រួចចុច «ចែករំលែក» (Share)`))
+    assert.ok(m.includes(`1. ចុចប៊ូតុង «${SIGNUP_BUTTON}» នៅខាងក្រោមអេក្រង់ រួចចុច «Share»`))
     assert.ok(m.includes(`2. ចុច «${OPEN_BUTTON}» អ្នកចូលរួចភ្លាម`))
     assert.ok(m.includes("ភ្លេចពាក្យសម្ងាត់? ចុចប៊ូតុងដដែលនេះ"))
     assert.ok(m.endsWith("រីករាយស្វាគមន៍មកកាន់គ្រួសារលុយឆ្លាត! 🐰✨"))
@@ -45,7 +45,7 @@ describe("The bot is for «អេប លុយឆ្លាត» members only (fo
     assert.doesNotMatch(m, /កម្មវិធី|អែប|&|\d{8,}/) // brand rules; no digits for the masker
     // One button that shares the person's own number (founder, 30/10/2026 — lib/telegram-signup.ts).
     assert.deepEqual(gateKeyboard().keyboard, [[{ text: SIGNUP_BUTTON, request_contact: true }]])
-    assert.equal(gateKeyboard().one_time_keyboard, true)
+    assert.equal(gateKeyboard().is_persistent, true) // a «Cancel» in Telegram never leaves them without the button
     assert.equal(SIGNUP_URL, "https://app.luychlat.com")
     assert.ok(GATE_ALERT.length <= 190) // Telegram's callback alert limit
   })

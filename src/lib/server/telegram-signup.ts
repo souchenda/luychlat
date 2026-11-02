@@ -49,7 +49,8 @@ export async function signUpByContact(c: SharedContact): Promise<"created" | "si
       }
     }
     if (r?.status === "ok" && r.token) {
-      // The share button's keyboard is one-time (it hides itself once tapped), so the answer can carry the «open» button.
+      // The share button stays until now (is_persistent): taken away first, as the answer carries the inline «open» button.
+      await sendText(c.chatId, "✅ បានទទួលលេខរបស់អ្នក", done)
       const sent = await sendText(c.chatId, signupReply(created ? "created" : "signin"), { reply_markup: openAppKeyboard(r.token) })
       logEvent("info", "bot-signup", created ? "A new account was created through the bot" : "A one-tap sign-in link was sent by the bot", { fold: true })
       return sent.ok ? (created ? "created" : "signin") : "busy"

@@ -54,6 +54,7 @@ import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
 import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink } from "@/lib/bot/gate"
 import { signUpByContact } from "@/lib/server/telegram-signup"
+import { SIGNUP_NUDGE, wantsWelcome } from "@/lib/telegram-signup"
 import { handleFuelNoticePhoto, isFuelNoticePhoto } from "@/lib/server/moc-fuel-sync"
 import { guardDiscussionMessage, guardReaction, type ReactionUpdate } from "@/lib/server/channel-guard"
 import type { Entity } from "@/lib/bot/channel-guard"
@@ -351,7 +352,9 @@ async function gated(chat: { id: number; type: string } | undefined, opts: { tex
       return true
     }
     if (opts.callbackId) await tg("answerCallbackQuery", { callback_query_id: opts.callbackId, text: GATE_ALERT, show_alert: true })
-    else await sendGate(chat.id, opts.name)
+    // /start: the welcome; anything else (a number typed by hand, «hello»): where to tap, short (founder, 2/11/2026).
+    else if (wantsWelcome(opts.text)) await sendGate(chat.id, opts.name)
+    else await sendText(chat.id, SIGNUP_NUDGE, { reply_markup: gateKeyboard() })
     return true
   } catch {
     return true // never a crash or an error text; nothing processed

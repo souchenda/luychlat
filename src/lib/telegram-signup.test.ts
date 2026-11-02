@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { parseLoginIdentifier } from "./auth-identifier"
-import { contactAccount, openAppKeyboard, signinLink, signinToken, signupKeyboard, signupReply, SIGNIN_LINK_MINUTES, telegramName } from "./telegram-signup"
+import { contactAccount, openAppKeyboard, signinLink, signinToken, SIGNUP_BUTTON, signupKeyboard, SIGNUP_NUDGE, signupReply, SIGNIN_LINK_MINUTES, telegramName, wantsWelcome } from "./telegram-signup"
 
 const TOKEN = "a".repeat(64)
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
@@ -35,8 +35,21 @@ describe("sign-up and sign-in through the bot (founder, 30/10/2026)", () => {
     const k = signupKeyboard()
     assert.equal(k.keyboard.length, 1)
     assert.equal(k.keyboard[0][0].request_contact, true)
-    assert.equal(k.one_time_keyboard, true)
+    assert.equal(k.is_persistent, true) // stays until shared: a «Cancel» never leaves them stuck (founder, 2/11/2026)
+    assert.ok(!("one_time_keyboard" in k))
     assert.deepEqual(openAppKeyboard(TOKEN).inline_keyboard[0][0].url, signinLink(TOKEN))
+  })
+
+  it("someone who barely uses Telegram: /start gets the welcome, anything else a short «where to tap» (founder, 2/11/2026)", () => {
+    for (const t of ["/start", "/start@luychlat_bot", "/help", " /START "]) assert.equal(wantsWelcome(t), true, t)
+    for (const t of ["012 345 678", "hello", "សួស្តី", "/startx", "/bills", "", null, undefined]) assert.equal(wantsWelcome(t), false, String(t))
+    assert.ok(SIGNUP_NUDGE.includes(`«${SIGNUP_BUTTON}»`))
+    assert.match(SIGNUP_NUDGE, /Share/)
+    assert.match(SIGNUP_NUDGE, /មិនបាច់វាយលេខទូរសព្ទទេ/)
+    assert.ok(SIGNUP_NUDGE.length < 400)
+    assert.doesNotMatch(SIGNUP_NUDGE, /កម្មវិធី|អែប|&|[០-៩]/)
+    const hook = read("src/app/api/telegram/webhook/route.ts")
+    assert.match(hook, /else if \(wantsWelcome\(opts\.text\)\) await sendGate\(chat\.id, opts\.name\)\n\s+else await sendText\(chat\.id, SIGNUP_NUDGE, \{ reply_markup: gateKeyboard\(\) \}\)/)
   })
 
   it("a new account starts with the person's Telegram name, plain and short", () => {
