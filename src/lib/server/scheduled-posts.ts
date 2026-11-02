@@ -51,7 +51,11 @@ import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { sendPosterPhoto } from "@/lib/server/tip-bot"
 import { founderChats, marketingChats } from "@/lib/server/admin-routes"
 
-export type Preview = { chat: number; msg: number; photo: boolean }
+/** One approval card: where it is, whether it is a photo, and which poster it shows (`img`, posterPrint). */
+export type Preview = { chat: number; msg: number; photo: boolean; img?: string }
+
+/** A poster's fingerprint: a card whose poster changed gets the new image, not only the new caption (founder, 31/10/2026). */
+export const posterPrint = (png: Buffer) => createHash("sha256").update(png).digest("hex").slice(0, 16)
 export type PostRow = {
   id: number
   kind: PostKind
@@ -119,7 +123,8 @@ export type SchedulerDeps = {
   targets(row: PostRow): Targets
   publish(row: PostRow): Promise<Published>
   sendPreview(chat: number, png: Buffer | null, text: string, buttons: ReturnType<typeof previewButtons>): Promise<number | null>
-  editPreview(p: Preview, text: string, buttons: ReturnType<typeof previewButtons>): Promise<void>
+  /** The card's caption and buttons; with `png`, its image too (editMessageMedia) — only when the poster changed. */
+  editPreview(p: Preview, text: string, buttons: ReturnType<typeof previewButtons>, png?: Buffer | null): Promise<void>
   answer(callbackId: string, text: string, alert?: boolean): Promise<void>
   /** [ ✏️ កែអត្ថបទ ]: a «reply here» prompt under the card (its reply edits the caption — editCardByReply). */
   promptEdit?(chat: number, cardMsg: number): Promise<void>
@@ -170,7 +175,7 @@ export function createScheduler(d: SchedulerDeps) {
     const previews: Preview[] = []
     for (const chat of await d.adminChats()) {
       const msg = await d.sendPreview(chat, png, text, buttons)
-      if (msg) previews.push({ chat, msg, photo: Boolean(png) })
+      if (msg) previews.push({ chat, msg, photo: Boolean(png), ...(png ? { img: posterPrint(png) } : {}) })
     }
     await d.setPreviews(row.id, previews)
     // Never a misleading reason (22/10/2026): no approval chat at all, or chats that did not receive the card.
@@ -187,8 +192,21 @@ export function createScheduler(d: SchedulerDeps) {
 
   const refresh = (row: PostRow) =>
     scoped(row, async () => {
-      const { text, buttons } = await render(row, row.status)
-      for (const p of row.previews ?? []) await d.editPreview(p, text, buttons)
+      const { png, text, buttons } = await render(row, row.status)
+      // A better poster since the card was sent (a deploy, a fix): the card shows it — never an old image under a new
+      // caption. Once per change: each card remembers the poster it shows (`img`).
+      const print = png ? posterPrint(png) : null
+      let swapped = false
+      const previews = row.previews ?? []
+      for (const p of previews) {
+        const swap = Boolean(p.photo && png && p.img !== print)
+        await d.editPreview(p, text, buttons, swap ? png : null)
+        if (swap) {
+          p.img = print!
+          swapped = true
+        }
+      }
+      if (swapped) await d.setPreviews(row.id, previews)
     })
 
   const publishTaken = (row: PostRow, how: string) => scoped(row, () => publishTakenNow(row, how))
@@ -850,8 +868,10 @@ ${text}`
     PROMPT_OF_CARD.delete(`${chat}:${cardMsg}`)
     if (open && open.msg > 0) await dropPrompt(chat, open.msg)
   },
-  async editPreview(p, text, buttons) {
+  async editPreview(p, text, buttons, png) {
     const reply_markup = { inline_keyboard: buttons }
+    // A new poster: the image, caption and buttons in one edit; if Telegram refuses (logged), the caption as before.
+    if (p.photo && png && (await sendPosterPhoto(p.chat, png, text.slice(0, 1024), { messageId: p.msg, reply_markup }))) return
     if (p.photo) await tg("editMessageCaption", { chat_id: p.chat, message_id: p.msg, caption: text.slice(0, 1024), reply_markup })
     else await tg("editMessageText", { chat_id: p.chat, message_id: p.msg, text, disable_web_page_preview: true, reply_markup })
   },

@@ -5,7 +5,7 @@ import { join } from "node:path"
 
 import { atMinute, isAutoPublish, previewButtons, previewText, SAFETY_NET_KINDS, takeAllowed, type PostKind } from "../scheduled-posts"
 
-import { createScheduler, type PostRow, type Preview, type SchedulerDeps } from "./scheduled-posts"
+import { createScheduler, posterPrint, type PostRow, type Preview, type SchedulerDeps } from "./scheduled-posts"
 
 const ADMIN = 111
 const STRANGER = 222
@@ -19,7 +19,8 @@ function fake(start: number) {
   const published: number[] = []
   const recorded: { id: number; telegram: number | null; facebook: string | null }[] = []
   const previewsSent: { chat: number; text: string; png: boolean }[] = []
-  const edits: { msg: number; text: string; buttons: number }[] = []
+  const edits: { msg: number; text: string; buttons: number; png: boolean }[] = []
+  let poster: Buffer = Buffer.from("png")
   const answers: { text: string; alert: boolean }[] = []
   const deps: SchedulerDeps = {
     async schedule(kind: PostKind, postKey, payload, publishAt) {
@@ -59,7 +60,7 @@ function fake(start: number) {
       return [ADMIN]
     },
     async content() {
-      return { png: Buffer.from("png"), body: "☀️ អរុណសួស្តី" }
+      return { png: poster, body: "☀️ អរុណសួស្តី" }
     },
     targets: () => ({ telegram: true, facebook: true }),
     async publish(row) {
@@ -70,8 +71,8 @@ function fake(start: number) {
       previewsSent.push({ chat, text, png: Boolean(png) })
       return 900 + previewsSent.length
     },
-    async editPreview(p, text, buttons) {
-      edits.push({ msg: p.msg, text, buttons: buttons.length })
+    async editPreview(p, text, buttons, png) {
+      edits.push({ msg: p.msg, text, buttons: buttons.length, png: Boolean(png) })
     },
     async answer(_id, text, alert = false) {
       answers.push({ text, alert })
@@ -98,7 +99,8 @@ function fake(start: number) {
   /** A tap in the approval group («LCA Approval»): the person who tapped is checked, not the group. */
   const pressInGroup = (data: string, from: number, who: { first_name?: string; username?: string } = {}) => s.onCallback({ id: "cb", data, from: { id: from, ...who }, message: { message_id: 901, chat: { id: -100777, type: "supergroup" } } })
   const setNow = (h: number, m: number) => (now = clock(h, m))
-  return { rows, published, recorded, previewsSent, edits, answers, at, press, pressInGroup, setNow, s }
+  const setPoster = (png: Buffer) => (poster = png)
+  return { rows, published, recorded, previewsSent, edits, answers, at, press, pressInGroup, setNow, setPoster, s }
 }
 
 describe("the approval rule (= bot_post_take)", () => {
@@ -343,6 +345,27 @@ describe("Factual feeds publish on time; creative posts wait for the founder (fo
     assert.match(sp, /const prompt = EDIT_PROMPTS\.get\(`\$\{chatId\}:\$\{replyTo\}`\)/)
     assert.match(sp, /reply_markup: \{ force_reply: true, selective: true, input_field_placeholder: "អត្ថបទថ្មី…" \}/)
   })
+  it("a waiting card gets the new poster when it changed — once; otherwise only its caption (founder, 31/10/2026)", async () => {
+    const f = fake(clock(6, 0))
+    await f.at(6, 15)
+    const row = f.rows[0]
+    assert.equal(row.previews[0].img, posterPrint(Buffer.from("png")))
+    await f.s.refresh({ ...row })
+    assert.equal(f.edits.at(-1)!.png, false) // same poster: caption and buttons only, no upload
+    f.setPoster(Buffer.from("png v2"))
+    await f.s.refresh({ ...row, previews: row.previews.map((p) => ({ ...p })) })
+    assert.equal(f.edits.at(-1)!.png, true)
+    assert.equal(f.rows[0].previews[0].img, posterPrint(Buffer.from("png v2"))) // remembered
+    await f.s.refresh({ ...f.rows[0], previews: f.rows[0].previews.map((p) => ({ ...p })) })
+    assert.equal(f.edits.at(-1)!.png, false)
+    // A card sent before fingerprints (no img) gets the current poster once, after the next deploy.
+    await f.s.refresh({ ...row, previews: [{ chat: ADMIN, msg: 901, photo: true }] })
+    assert.equal(f.edits.at(-1)!.png, true)
+    // A text card (the poster could not be attached) is never turned into a photo.
+    await f.s.refresh({ ...row, previews: [{ chat: ADMIN, msg: 901, photo: false }] })
+    assert.equal(f.edits.at(-1)!.png, false)
+  })
+
   it("live in-place refresh: after a deploy every waiting card is redrawn once with the current layout, the count logged", () => {
     const sp = readFileSync(join(process.cwd(), "src/lib/server/scheduled-posts.ts"), "utf8")
     assert.match(sp, /if \(!cardsRedrawn\) \{\n\s+cardsRedrawn = true\n\s+await refreshWaitingCards\(\)/)
