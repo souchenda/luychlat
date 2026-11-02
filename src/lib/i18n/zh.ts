@@ -3721,6 +3721,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "login.trustUnified": "银行级安全（Cloudflare 防护）· 数据与银行回单 100% 保密",
   "login.orPhoneEmail": "或使用手机号 / 邮箱",
   "login.telegramSignIn": "使用 Telegram 快速登录",
+  "login.telegramSignUp": "使用 Telegram 快速注册",
   "login.botLinkExpired": "此链接已过期或已使用：请在 @luychlat_bot 中再次点击按钮",
   "login.telegramNotLinked": "此 Telegram 尚未关联账户：请先用手机号登录，并在 设置 › Telegram 中关联，下次即可快速登录",
   "login.telegramError": "暂时无法通过 Telegram 登录，请重试或使用手机号登录",

@@ -9,6 +9,7 @@
  * /login redeems it (/api/auth/telegram/link → public.bot_signin_redeem) within 15 minutes.
  */
 import { PHONE_LOGIN_DOMAIN } from "@/lib/auth-identifier"
+import { BOT_URL } from "@/lib/download-links"
 import { APP_ORIGIN } from "@/lib/public-origin"
 
 /** How long the one-tap link works (public.bot_contact_account mints it for the same time). */
@@ -70,7 +71,10 @@ export const SIGNUP_NUDGE = [
   "មើលមិនឃើញប៊ូតុង? ចុចរូប ⌨️ ឬ 🎛 តូចៗ ក្បែរកន្លែងវាយអក្សរ ឬវាយ /start ម្តងទៀត។",
 ].join("\n")
 
-/** The welcome (gateMessage) answers /start; anything else gets the short nudge. */
+/** The login page's «create an account with Telegram»: the bot, whose /start answers with the share button. */
+export const BOT_SIGNUP_URL = `${BOT_URL}?start=signup`
+
+/** The welcome (gateMessage) answers /start (also /start signup from the login page); anything else gets the short nudge. */
 export const wantsWelcome = (text: string | null | undefined) => /^\/(start|help)(@\w+)?(\s|$)/i.test((text ?? "").trim())
 
 /** The «open the app» button under the bot's answer. */

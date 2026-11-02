@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { parseLoginIdentifier } from "./auth-identifier"
-import { COMMUNITY_BUTTON, contactAccount, openAppKeyboard, signinLink, signinToken, SIGNUP_BUTTON, signupKeyboard, SIGNUP_NUDGE, signupReply, SIGNIN_LINK_MINUTES, telegramName, wantsWelcome } from "./telegram-signup"
+import { BOT_SIGNUP_URL, COMMUNITY_BUTTON, contactAccount, openAppKeyboard, signinLink, signinToken, SIGNUP_BUTTON, signupKeyboard, SIGNUP_NUDGE, signupReply, SIGNIN_LINK_MINUTES, telegramName, wantsWelcome } from "./telegram-signup"
 
 const TOKEN = "a".repeat(64)
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
@@ -62,6 +62,16 @@ describe("sign-up and sign-in through the bot (founder, 30/10/2026)", () => {
     assert.doesNotMatch(SIGNUP_NUDGE, /កម្មវិធី|អែប|&|[០-៩]/)
     const hook = read("src/app/api/telegram/webhook/route.ts")
     assert.match(hook, /else if \(wantsWelcome\(opts\.text\)\) await sendGate\(chat\.id, opts\.name\)\n\s+else await sendText\(chat\.id, SIGNUP_NUDGE, \{ reply_markup: gateKeyboard\(\) \}\)/)
+  })
+
+  it("the login page's «create an account» tab offers Google and the bot's sign-up, never the sign-in-only widget (founder, 2/11/2026)", () => {
+    assert.equal(BOT_SIGNUP_URL, "https://t.me/luychlat_bot?start=signup")
+    assert.equal(wantsWelcome("/start signup"), true) // the bot answers with the share button
+    assert.match(read("src/app/login/page.tsx"), /signUpExtra=\{<SocialLogin disabled=\{cloudDisabled\} below signup \/>\}/)
+    assert.match(read("src/components/auth/email-login.tsx"), /\{mode === "signup" && signUpExtra\}/)
+    const social = read("src/components/auth/social-login.tsx")
+    assert.match(social, /if \(signup\) return window\.location\.assign\(BOT_SIGNUP_URL\)\n\s+window\.location\.assign\(telegramAuthUrl/)
+    assert.match(social, /\.data === true && !signup/) // no Face ID for someone new
   })
 
   it("a new account starts with the person's Telegram name, plain and short", () => {

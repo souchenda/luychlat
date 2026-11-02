@@ -165,8 +165,15 @@ export default function LoginPage() {
               {!showPassword && <SocialLogin disabled={cloudDisabled} separator={codeFirst || authMethods.has("phone")} />}
 
               {codeFirst && !usePassword && <EmailCodeLogin disabled={cloudDisabled} />}
-              {/* Tabs first; Telegram / Google under «ចូលគណនី» on the sign-in tab only (Telegram signs in linked accounts, never signs up). */}
-              {showPassword && <EmailLogin disabled={cloudDisabled} signInExtra={<SocialLogin disabled={cloudDisabled} below />} />}
+              {/* Tabs first; the one-tap buttons under each tab's button. Creating an account: Google, and the bot for Telegram
+                  (the Telegram widget signs in linked accounts only — founder, 2/11/2026). */}
+              {showPassword && (
+                <EmailLogin
+                  disabled={cloudDisabled}
+                  signInExtra={<SocialLogin disabled={cloudDisabled} below />}
+                  signUpExtra={<SocialLogin disabled={cloudDisabled} below signup />}
+                />
+              )}
               {codeFirst && authMethods.has("email") && (
                 <button type="button" className="-mt-2 text-center text-sm text-primary" onClick={() => setUsePassword((v) => !v)}>
                   {usePassword ? t("login.useCode") : t("login.usePassword")}

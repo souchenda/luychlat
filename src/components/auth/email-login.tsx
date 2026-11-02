@@ -70,8 +70,21 @@ const NAME_MAX = 40
  * "•••222"), next to the usual Personal and Business workspaces and, for a phone
  * account, its number.
  */
-/** `signInExtra`: shown under the «ចូលគណនី» button on the sign-in tab only (one-tap Telegram / Google). */
-export function EmailLogin({ disabled, initialEmail = "", signInExtra }: { disabled?: boolean; initialEmail?: string; signInExtra?: React.ReactNode }) {
+/**
+ * `signInExtra`: under the «ចូលគណនី» button on the sign-in tab (one-tap Telegram / Google); `signUpExtra`: under
+ * «បង្កើតគណនី» on the create-account tab (Google, the bot's sign-up — founder, 2/11/2026).
+ */
+export function EmailLogin({
+  disabled,
+  initialEmail = "",
+  signInExtra,
+  signUpExtra,
+}: {
+  disabled?: boolean
+  initialEmail?: string
+  signInExtra?: React.ReactNode
+  signUpExtra?: React.ReactNode
+}) {
   const t = useT()
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin")
   const [name, setName] = useState("")
@@ -332,6 +345,7 @@ export function EmailLogin({ disabled, initialEmail = "", signInExtra }: { disab
         {mode === "forgot" ? t("login.sendReset") : mode === "signin" ? t("login.signIn") : t("login.signUp")}
       </Button>
       {mode === "signin" && signInExtra}
+      {mode === "signup" && signUpExtra}
     </form>
   )
 }

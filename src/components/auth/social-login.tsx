@@ -16,7 +16,7 @@ import { detectBiometricKind } from "@/lib/security/biometric"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { authMethods } from "@/lib/supabase/config"
 import { parseTgAuthResult, telegramAuthUrl } from "@/lib/telegram-auth-result"
-import { signinToken } from "@/lib/telegram-signup"
+import { BOT_SIGNUP_URL, signinToken } from "@/lib/telegram-signup"
 
 function GoogleIcon() {
   return (
@@ -95,9 +95,21 @@ export function TelegramReturn() {
 /**
  * Google (when switched on in Supabase) and Telegram (when the server has it on: /api/auth/telegram)
  * above the forms, on both tabs, with the «ឬប្រើប្រាស់លេខទូរស័ព្ទ / អ៊ីមែល» line under them. Nothing
- * at all when neither is available.
+ * at all when neither is available. `signup` (the create-account tab): Google — it makes the account on
+ * first use — and Telegram as the bot's sign-up (@luychlat_bot, one shared number), never the widget, which
+ * signs in linked accounts only; no Face ID / fingerprint (a new person has no passkey).
  */
-export function SocialLogin({ disabled, separator = true, below = false }: { disabled?: boolean; separator?: boolean; below?: boolean }) {
+export function SocialLogin({
+  disabled,
+  separator = true,
+  below = false,
+  signup = false,
+}: {
+  disabled?: boolean
+  separator?: boolean
+  below?: boolean
+  signup?: boolean
+}) {
   const t = useT()
   const [tgBusy, setTgBusy] = useState(false)
   const telegram = useQuery({
@@ -112,7 +124,7 @@ export function SocialLogin({ disabled, separator = true, below = false }: { dis
   const apple = authMethods.has("apple")
   // Face ID / fingerprint: hidden unless this device made a passkey (Settings › Security), and only
   // where the device has it and the server verifies passkeys — never the phone's «none available» sheet.
-  const passkey = useQuery({ queryKey: ["auth-passkey-login"], staleTime: 10 * 60_000, queryFn: async () => hasLocalPasskey() && (await passkeySupported()) }).data === true
+  const passkey = useQuery({ queryKey: ["auth-passkey-login"], staleTime: 10 * 60_000, queryFn: async () => hasLocalPasskey() && (await passkeySupported()) }).data === true && !signup
   const [pkBusy, setPkBusy] = useState(false)
   if (!google && !apple && !tgBot && !passkey) return null
 
@@ -130,6 +142,7 @@ export function SocialLogin({ disabled, separator = true, below = false }: { dis
   const signInTelegram = () => {
     if (!tgBot) return
     setTgBusy(true)
+    if (signup) return window.location.assign(BOT_SIGNUP_URL)
     window.location.assign(telegramAuthUrl(tgBot, window.location.origin, `${window.location.origin}/login`))
   }
 
@@ -186,7 +199,7 @@ export function SocialLogin({ disabled, separator = true, below = false }: { dis
           disabled={disabled || tgBusy}
         >
           {tgBusy ? <Loader2Icon className="animate-spin" /> : <TelegramIcon />}
-          {t("login.telegramSignIn")}
+          {t(signup ? "login.telegramSignUp" : "login.telegramSignIn")}
         </Button>
       )}
       {apple && (
