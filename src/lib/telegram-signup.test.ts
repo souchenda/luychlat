@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { describe, it } from "node:test"
 
 import { parseLoginIdentifier } from "./auth-identifier"
-import { contactAccount, openAppKeyboard, signinLink, signinToken, SIGNUP_BUTTON, signupKeyboard, SIGNUP_NUDGE, signupReply, SIGNIN_LINK_MINUTES, telegramName, wantsWelcome } from "./telegram-signup"
+import { COMMUNITY_BUTTON, contactAccount, openAppKeyboard, signinLink, signinToken, SIGNUP_BUTTON, signupKeyboard, SIGNUP_NUDGE, signupReply, SIGNIN_LINK_MINUTES, telegramName, wantsWelcome } from "./telegram-signup"
 
 const TOKEN = "a".repeat(64)
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
@@ -38,6 +38,18 @@ describe("sign-up and sign-in through the bot (founder, 30/10/2026)", () => {
     assert.equal(k.is_persistent, true) // stays until shared: a «Cancel» never leaves them stuck (founder, 2/11/2026)
     assert.ok(!("one_time_keyboard" in k))
     assert.deepEqual(openAppKeyboard(TOKEN).inline_keyboard[0][0].url, signinLink(TOKEN))
+    assert.equal(openAppKeyboard(TOKEN).inline_keyboard.length, 1)
+  })
+
+  it("a new member gets the community channel one tap away — the general one only, never @LuyChlatIslamic (founder, 2/11/2026)", () => {
+    const rows = openAppKeyboard(TOKEN, { community: true }).inline_keyboard
+    assert.equal(rows.length, 2) // never two buttons in a row
+    assert.deepEqual(rows[1], [{ text: COMMUNITY_BUTTON, url: "https://t.me/LuyChlatCommunity" }])
+    assert.ok(read("src/lib/server/poster-kit.ts").includes("t.me/LuyChlatCommunity"))
+    assert.doesNotMatch(read("src/lib/telegram-signup.ts").replace(/\/\*\*[^]*?\*\//g, ""), /LuyChlatIslamic/)
+    assert.match(signupReply("created"), /👥 ចូលរួមសហគមន៍/)
+    assert.doesNotMatch(signupReply("signin"), /សហគមន៍/)
+    assert.match(read("src/lib/server/telegram-signup.ts"), /openAppKeyboard\(r\.token, \{ community: created \}\)/)
   })
 
   it("someone who barely uses Telegram: /start gets the welcome, anything else a short «where to tap» (founder, 2/11/2026)", () => {

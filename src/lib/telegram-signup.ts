@@ -75,7 +75,18 @@ export const wantsWelcome = (text: string | null | undefined) => /^\/(start|help
 
 /** The «open the app» button under the bot's answer. */
 export const OPEN_BUTTON = "🚀 បើកអេប លុយឆ្លាត"
-export const openAppKeyboard = (token: string) => ({ inline_keyboard: [[{ text: OPEN_BUTTON, url: signinLink(token) }]] })
+
+/**
+ * The community channel (the poster footer's t.me/LuyChlatCommunity). A bot can't add anyone to a channel (Telegram's own
+ * rule), so a new member gets it one tap away (founder, 2/11/2026). Only the general channel: @LuyChlatIslamic is offered
+ * by Islamic Mode, never to everyone (strict religious separation).
+ */
+export const COMMUNITY_URL = "https://t.me/LuyChlatCommunity"
+export const COMMUNITY_BUTTON = "👥 ចូលរួមសហគមន៍ អេប លុយឆ្លាត"
+
+export const openAppKeyboard = (token: string, opts: { community?: boolean } = {}) => ({
+  inline_keyboard: [[{ text: OPEN_BUTTON, url: signinLink(token) }], ...(opts.community ? [[{ text: COMMUNITY_BUTTON, url: COMMUNITY_URL }]] : [])],
+})
 
 /** What public.bot_contact_account answered. */
 export type ContactAccount =
@@ -95,6 +106,8 @@ export function signupReply(outcome: "created" | "signin" | "elsewhere" | "forei
         "👇 ចុចប៊ូតុង «បើកអេប លុយឆ្លាត» ខាងក្រោម អ្នកចូលរួចភ្លាម មិនបាច់វាយលេខ ឬពាក្យសម្ងាត់ទេ។",
         "",
         "Telegram នេះក៏ភ្ជាប់រួចហើយដែរ៖ ផ្ញើរូបវិក្កយបត្រ ឬនិយាយជាសំឡេងមកទីនេះ ដើម្បីកត់ចំណាយបានភ្លាម។",
+        "",
+        "👥 ចូលរួមសហគមន៍យើងផង៖ អត្រាប្តូរប្រាក់ តម្លៃមាស ប្រេង និងគន្លឹះលុយ រៀងរាល់ថ្ងៃ — ចុចប៊ូតុងខាងក្រោម។",
         "",
         once,
       ].join("\n")
