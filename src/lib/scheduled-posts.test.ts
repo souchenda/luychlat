@@ -159,3 +159,14 @@ describe("Regression: the Islamic bulletin came back as a «new version» for a 
     assert.equal(REPLACEABLE("ISLAMIC_DAILY"), true)
   })
 })
+
+describe("the Sil day post publishes on its own (founder, 2/11/2026: «we already decided every Sil day»)", () => {
+  it("no card waits in «LCA Approval» for it, and it is never offered for replacement", async () => {
+    const { isAutoPublish, isPreviewed, REPLACEABLE } = await import("./scheduled-posts")
+    assert.equal(isAutoPublish("HOLYDAY"), true)
+    assert.equal(isPreviewed("HOLYDAY", "PENDING"), false)
+    assert.equal(REPLACEABLE("HOLYDAY"), false)
+    const sql = readFileSync(join(process.cwd(), "supabase/migrations/20270280000000_holy_day_auto.sql"), "utf8")
+    assert.match(sql, /'ISLAMIC_NIGHT', 'HOLYDAY'\)/)
+  })
+})

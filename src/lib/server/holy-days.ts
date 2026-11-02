@@ -79,11 +79,11 @@ async function sendStage(job: string, day: string, text: (lang: Locale) => strin
     }
   }
   if (sent) logEvent("info", "holy-days", `${what} sent to ${sent} chat${sent === 1 ? "" : "s"}`, { fold: true })
-  // The channel's note: held for the founder's approval (founder, 18/10/2026).
+  // The channel's note: created APPROVED by the database (post_auto_publish — founder, 2/11/2026), published at its time.
   if (channelText && communityChannelConfigured()) {
     // On the Sil day itself the post is the branded poster (lib/server/sil-poster.ts); the eve stays a short note.
     await holdForApproval("HOLYDAY", `${job}-${day}`, { text: channelText, day, stage: job === "holy-day-today" ? "day" : "eve" })
-    logEvent("info", "holy-days", `${what} for the channel — waiting for the founder's approval`, { fold: true })
+    logEvent("info", "holy-days", `${what} for the channel — published by itself at its time`, { fold: true })
   }
 }
 

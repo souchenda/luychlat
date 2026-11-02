@@ -598,8 +598,7 @@ const realDeps = (): SchedulerDeps => ({
     if (row.kind === "SPOTLIGHT") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "spotlight" }) }
     if (row.kind === "DILEMMA") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "dilemma" }) }
     if (row.kind === "FAMILIAR") return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "familiar" }) }
-    // The Sil day poster goes to the Page too (founder, 19/10/2026); the eve note stays on the channel.
-    if (row.kind === "HOLYDAY" && silDayOf(row)) return { telegram, facebook: fb && shouldPublishToFacebook({ kind: "silday" }) }
+    // The Sil day post publishes on its own now (founder, 2/11/2026), so it reaches the channel only — the Page stays behind a tap.
     if (row.kind === "EVENING" || row.kind === "BULLETIN" || row.kind === "RATES" || row.kind === "POSTER" || row.kind === "HOLYDAY") return { telegram, facebook: false }
     return { telegram: telegram && Boolean(row.payload.telegram), facebook: fb && Boolean(row.payload.facebook) }
   },
