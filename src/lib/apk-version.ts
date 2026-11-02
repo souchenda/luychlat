@@ -7,9 +7,9 @@
  * app ships no plugin to ask. Builds before 1.5 send no token: they are older, so they are offered the update.
  */
 export const LATEST_APK = {
-  version: "1.13",
-  code: 14,
-  changelogKm: "• «ទីតាំងរបស់ខ្ញុំ» បង្ហាញឈ្មោះកន្លែងពិត ដូចជា កួរស្រូវ · ខណ្ឌដង្កោ",
+  version: "1.14",
+  code: 15,
+  changelogKm: "• ពេលគ្មានអ៊ីនធឺណិត ប៊ូតុង «ព្យាយាមម្តងទៀត» បើកអេបឡើងវិញភ្លាម",
 } as const
 
 /** The first build that opens a download link in the phone's browser (MainActivity's DownloadListener). */
@@ -40,7 +40,7 @@ export function installedApkCode(ua: string, native: boolean): number | null {
 }
 
 /** The versions this app has had (build → name), for «ជំនាន់ v1.5 (Build 6)»; a build before the token reads as «≤ 1.4». */
-const VERSION_NAMES: Record<number, string> = { 6: "1.5", 7: "1.6", 8: "1.7", 9: "1.8", 10: "1.9", 11: "1.10", 12: "1.11", 13: "1.12", 14: "1.13" }
+const VERSION_NAMES: Record<number, string> = { 6: "1.5", 7: "1.6", 8: "1.7", 9: "1.8", 10: "1.9", 11: "1.10", 12: "1.11", 13: "1.12", 14: "1.13", 15: "1.14" }
 
 /** The installed APK for Settings › About: a known build's name, or «old» (no token), never a guessed number. */
 export function apkVersion(code: number | null): { kind: "browser" } | { kind: "old" } | { kind: "known"; version: string | null; code: number } {
