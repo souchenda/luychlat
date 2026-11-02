@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { BiometricIcon } from "@/components/lock/biometric-icon"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { isNativeApp } from "@/lib/native-bridge"
 import { hasLocalPasskey, passkeySupported, signInWithPasskey } from "@/lib/auth/passkey"
 import { useT } from "@/lib/i18n/use-t"
 import { detectBiometricKind } from "@/lib/security/biometric"
@@ -105,7 +106,9 @@ export function SocialLogin({ disabled, separator = true, below = false }: { dis
     queryFn: async () => ((await fetch("/api/auth/telegram").then((r) => r.json()).catch(() => null)) as { enabled?: boolean; botId?: string } | null) ?? { enabled: false },
   })
   const tgBot = telegram.data?.enabled ? telegram.data.botId : null
-  const google = authMethods.has("google")
+  // Google refuses sign-in inside an app's WebView («disallowed_useragent»), so never in the APK — browsers only
+  // (Telegram's in-app browser is Safari / Chrome underneath and is allowed).
+  const google = authMethods.has("google") && !isNativeApp()
   const apple = authMethods.has("apple")
   // Face ID / fingerprint: hidden unless this device made a passkey (Settings › Security), and only
   // where the device has it and the server verifies passkeys — never the phone's «none available» sheet.
