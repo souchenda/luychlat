@@ -7,11 +7,13 @@ import path from "node:path"
 import { MORNING_BRIEFING, morningBriefingText, nightlyReportDay, nightlyReportText } from "@/lib/nightly-report"
 import { dailyScorecard, parseRoadmap, summaryParts } from "@/lib/roadmap-scorecard"
 import { checkActions, curate, paginate } from "@/lib/report-standard"
+import { isSunday, searchConsoleLine } from "@/lib/search-console"
 import { waitingCards } from "./waiting-cards"
 import { founderChats } from "./admin-routes"
 import { logEvent } from "./events"
 import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
 import { phnomPenhToday } from "./market-sync"
+import { searchConsoleWeek } from "./search-console"
 import { botDb, botKey, tg } from "./telegram-bot"
 
 export async function nightlyReportTick() {
@@ -48,6 +50,8 @@ export async function sendNightlyReport(day: string): Promise<number> {
   // The executive summary (founder, 21/10/2026 — lib/report-standard.ts): 3–5 highlights from ROADMAP.md items finished
   // today and the exact count of today's other commits, one health line, then only the founder's actions.
   const card = await taskScorecard(day)
+  // Sunday: one line on last week in Google Search, once the founder has put the key on the server.
+  const gsc = isSunday(day) ? await searchConsoleWeek(day) : null
   const text = nightlyReportText({
     day,
     healthy: issues.length === 0,
@@ -62,6 +66,7 @@ export async function sendNightlyReport(day: string): Promise<number> {
     dockerOk: sample.db_ms !== null,
     webhookOk: !sample.webhook_error,
     ...card,
+    ...(gsc ? { google: searchConsoleLine(day, gsc) } : {}),
   })
   const pages = paginate(text)
   let sent = 0

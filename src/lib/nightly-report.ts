@@ -28,6 +28,8 @@ export type NightlyFacts = {
   others?: { verify: number; external: number; engineering: number }
   /** Why the scorecard could not be read (the report still goes out and says so). */
   note?: string
+  /** Sunday: last week in Google Search (lib/search-console.ts — founder, 3/11/2026). */
+  google?: string
 }
 
 
@@ -40,7 +42,7 @@ export function nightlyReportText(f: NightlyFacts): string {
     highlights: f.highlights ?? [],
     patches: f.patches ?? 0,
     health: healthLine({ healthy: f.healthy && f.dockerOk, issues: [...f.issues, ...(f.dockerOk ? [] : ["docker"])], diskFreeGb: f.diskFreeGb, ramPct: f.ramPct, webhookOk: f.webhookOk }),
-    facts: [`👥 New members: ${f.newUsers} · Approvals: ${f.approvals}${staff}`, ...(f.note ? [f.note] : [])],
+    facts: [`👥 New members: ${f.newUsers} · Approvals: ${f.approvals}${staff}`, ...(f.google ? [f.google] : []), ...(f.note ? [f.note] : [])],
     actions: f.actions ?? [],
     scheduled: f.scheduled,
     others: f.others,

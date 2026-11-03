@@ -49,6 +49,8 @@ deploy/.deployed-env
 # Which blue / green slot Nginx points at (deploy/update.sh)
 deploy/run/active-slot
 deploy/run/building-*
+# The Search Console service-account key (founder puts it on the Droplet; never in git).
+deploy/run/gsc-key.json
 
 # Real bank statements used to build parsers: never commit
 /samples/
