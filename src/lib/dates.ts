@@ -77,6 +77,13 @@ export function headerDate(date: Date, locale: Locale): string {
   return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ${date.getDate()} ${KM_MONTHS[date.getMonth()]} ${date.getFullYear()}`
 }
 
+/** A day in the next weeks, no year: «ថ្ងៃពុធ 5 វិច្ឆិកា» / "Wed 5 Nov" / "11月5日 周三" (the 14-day forecast). */
+export function weekdayDate(date: Date, locale: Locale): string {
+  if (locale === "zh") return format(date, "M月d日 EEE", { locale: zhCN })
+  if (locale === "en") return format(date, "EEE d MMM")
+  return `ថ្ងៃ${KM_WEEKDAYS[date.getDay()]} ${date.getDate()} ${KM_MONTHS[date.getMonth()]}`
+}
+
 /** "ទី01 ខែកញ្ញា ឆ្នាំ2026" / "01 September 2026" (no weekday). */
 export function dayDate(date: Date, locale: Locale, opts?: DigitsOpt): string {
   if (locale === "zh") return format(date, "yyyy年M月d日")
