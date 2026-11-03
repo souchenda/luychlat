@@ -1,4 +1,6 @@
 import { timingSafeEqual } from "crypto"
+import { readFile } from "node:fs/promises"
+import path from "node:path"
 
 import { after, NextResponse } from "next/server"
 
@@ -30,7 +32,7 @@ import { appUrl, marketSnapshotText } from "@/lib/server/community-bulletin"
 import { unsafeByName } from "@/lib/reconcile/file-safety"
 import { handleNoteReply, handlePrivatePhoto, handleSlipCallback, isSlipCallback } from "@/lib/server/slip-bot"
 import { handleErpDrawCallback, isErpDrawCallback } from "@/lib/server/erp-draw-bot"
-import { handleTipCallback, handleTipEditText, handleTipReply, isTipCallback } from "@/lib/server/tip-bot"
+import { handleTipCallback, handleTipEditText, handleTipReply, isTipCallback, sendPosterPhoto } from "@/lib/server/tip-bot"
 import { editCardByReply, editLatestCardByPaste, handleScheduledPostCallback, isScheduledPostCallback } from "@/lib/server/scheduled-posts"
 import { handleNasheedCallback } from "@/lib/server/nasheed-review"
 import { isNasheedCallback } from "@/lib/nasheed"
@@ -52,7 +54,7 @@ import { handlePlaceReviewCallback, isPlaceReviewCallback } from "@/lib/server/p
 import { handleApproverCommand, isApproverCommand } from "@/lib/server/co-approvers"
 import { handleAtmCommand, handleAtmLocation } from "@/lib/server/atm-bot"
 import { handleAtmReportCallback, handleReportLocation, handleReportNote, isAtmReportCallback } from "@/lib/server/atm-report"
-import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink } from "@/lib/bot/gate"
+import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink, SHARE_GUIDE, welcomeCaption } from "@/lib/bot/gate"
 import { signUpByContact } from "@/lib/server/telegram-signup"
 import { SIGNUP_NUDGE, wantsWelcome } from "@/lib/telegram-signup"
 import { handleFuelNoticePhoto, isFuelNoticePhoto } from "@/lib/server/moc-fuel-sync"
@@ -353,7 +355,7 @@ async function gated(chat: { id: number; type: string } | undefined, opts: { tex
     }
     if (opts.callbackId) await tg("answerCallbackQuery", { callback_query_id: opts.callbackId, text: GATE_ALERT, show_alert: true })
     // /start: the welcome; anything else (a number typed by hand, «hello»): where to tap, short (founder, 2/11/2026).
-    else if (wantsWelcome(opts.text)) await sendGate(chat.id, opts.name)
+    else if (wantsWelcome(opts.text)) await sendWelcome(chat.id, opts.name)
     else await sendText(chat.id, SIGNUP_NUDGE, { reply_markup: gateKeyboard() })
     return true
   } catch {
@@ -364,6 +366,13 @@ async function gated(chat: { id: number; type: string } | undefined, opts: { tex
 /** The polite members-only note with the free sign-up button — the one reply an unlinked private chat ever gets. */
 function sendGate(chatId: number, name?: string) {
   return sendText(chatId, gateMessage(name), { reply_markup: gateKeyboard() })
+}
+
+/** /start in an unlinked chat: the welcome under the «where to tap» picture (founder, 3/11/2026); the plain note if the photo fails. */
+async function sendWelcome(chatId: number, name?: string) {
+  const png = await readFile(path.join(process.cwd(), SHARE_GUIDE)).catch(() => null)
+  const sent = png && (await sendPosterPhoto(chatId, png, welcomeCaption(name), { reply_markup: gateKeyboard() }))
+  if (!sent) await sendGate(chatId, name)
 }
 
 export async function POST(request: Request) {

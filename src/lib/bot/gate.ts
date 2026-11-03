@@ -63,6 +63,16 @@ export function gateMessage(name: string | null | undefined): string {
   ].join("\n")
 }
 
+/**
+ * The «where to tap» picture sent with the /start welcome (founder, 3/11/2026): the button under the chat and
+ * Telegram's «Share contact», ringed in gold — drawn from the founder's own phone by scripts/share-guide.ts.
+ */
+export const SHARE_GUIDE = "public/images/bot/share-guide.png"
+
+/** The welcome as the picture's caption (HTML, so the person's name is escaped; Telegram caps captions at 1,024). */
+export const welcomeCaption = (name: string | null | undefined) =>
+  gateMessage(name).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
 /** One button: share this Telegram's own number → sign up, or sign in (lib/telegram-signup.ts — founder, 30/10/2026). */
 export const gateKeyboard = signupKeyboard
 

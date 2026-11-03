@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
-import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink, SIGNUP_URL } from "./gate"
+import { GATE_ALERT, gateDecision, gateKeyboard, gateMessage, isAppDeepLink, SHARE_GUIDE, SIGNUP_URL, welcomeCaption } from "./gate"
 import { OPEN_BUTTON, SIGNUP_BUTTON } from "../telegram-signup"
 
 const LINK = "0123456789abcdef0123456789ABCDEF"
@@ -68,6 +68,17 @@ describe("The bot is for «អេប លុយឆ្លាត» members only (fo
     // Every unlinked reply in the private path is the same note with the button — never the old texts.
     assert.doesNotMatch(hook, /bot\.notLinked|tr\("km", "bot\.help"\) \+ SIGNATURE\)|\/\/ Calculators: for every chat, linked or not/)
     assert.match(hook, /return sendText\(chatId, gateMessage\(name\), \{ reply_markup: gateKeyboard\(\) \}\)/)
+  })
+  it("the /start welcome comes under a «where to tap» picture — the caption fits, the name is escaped, the plain note if the photo fails (founder, 3/11/2026)", () => {
+    const png = readFileSync(join(process.cwd(), SHARE_GUIDE))
+    assert.equal(png.subarray(1, 4).toString(), "PNG")
+    assert.ok(png.length < 2_000_000) // well under Telegram's 10 MB photo limit, quick on a slow phone
+    assert.ok(welcomeCaption("x".repeat(80)).length <= 1024) // Telegram's caption cap, with the longest name
+    assert.equal(welcomeCaption("<b>Sok & Dara</b>"), gateMessage("<b>Sok & Dara</b>").replace("<b>Sok & Dara</b>", "&lt;b&gt;Sok &amp; Dara&lt;/b&gt;"))
+    const hook = readFileSync(join(process.cwd(), "src/app/api/telegram/webhook/route.ts"), "utf8")
+    const fn = hook.slice(hook.indexOf("async function sendWelcome("), hook.indexOf("export async function POST"))
+    assert.match(fn, /sendPosterPhoto\(chatId, png, welcomeCaption\(name\), \{ reply_markup: gateKeyboard\(\) \}\)/)
+    assert.match(fn, /if \(!sent\) await sendGate\(chatId, name\)/)
   })
   it("regression: unlinked users still saw «Telegram នេះមិនទាន់ភ្ជាប់ជាមួយគណនី អេប លុយឆ្លាត ទេ។» on /voice and /bills — the cold text is gone everywhere", async () => {
     const { readdirSync, statSync } = await import("node:fs")
