@@ -31,6 +31,7 @@ describe("The welcome in the phone's own Khmer voice, as DL Staff speaks (founde
     assert.match(j, /\.setUsage\(AudioAttributes\.USAGE_MEDIA\)/)
     assert.doesNotMatch(j, /http|URL/) // nothing fetched: the phone's own voice
     assert.match(read("android/app/src/main/java/com/luychlat/app/MainActivity.java"), /registerPlugin\(KhmerVoicePlugin\.class\);[\s\S]*?super\.onCreate\(savedInstanceState\)/)
-    assert.match(read("android/app/build.gradle"), /versionCode 13\b/)
+    // Shipped in 1.12 (versionCode 13) and kept in every APK after it (1.14 = 15 — regression: the test pinned 13).
+    assert.ok(Number(/versionCode (\d+)/.exec(read("android/app/build.gradle"))?.[1]) >= 13)
   })
 })

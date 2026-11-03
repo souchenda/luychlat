@@ -17,6 +17,8 @@ export const FEATURES = {
   statement_import: { routes: ["/wallets/import"] },
   // Telegram only: slip photos read by Gemini Vision, saved with one tap.
   bank_slips: { routes: [] },
+  // 🎤 in the entry sheet: speak an entry, the bot's voice engine (founder, 3/11/2026).
+  voice_entry: { routes: [] },
 } as const
 
 export type FeatureKey = keyof typeof FEATURES

@@ -80,6 +80,9 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <!-- Receipt / slip / loan-document photos taken from the app's file picker. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 🎤 Speak an entry (founder, 3/11/2026): the mic opens only while the person records; Capacitor asks at first use. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- Picking existing photos and PDFs on Android 12 and older (13+ uses the system picker, no permission). -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <!-- Prayer times and the Qibla from the phone's place (founder, 22/10/2026): without these Android hides the location

@@ -153,7 +153,7 @@ Every phase is done before the freeze; a feature not live on 2026-12-14 moves af
 
 ### Phase 2 — late November – early December 2026 (done by 2026-12-04): talk, remind, foresee
 
-- [ ] In-app 🎤 voice entry — the bot's Khmer voice-to-expense engine behind a mic button in the app (the same parser, the same friendly fallback)
+- [x] In-app 🎤 voice entry — the bot's Khmer voice-to-expense engine behind a mic button in the app (the same parser, the same friendly fallback): «និយាយកត់» in the new-entry sheet records up to 30 s, /api/voice-entry answers with the words heard (nothing saved or stored), the sheet is filled for the person to check and Save (`src/lib/voice-entry.ts`); feature flag voice_entry ADMIN_ONLY; the APK needs 1.15 for the microphone (RECORD_AUDIO) — browsers work now ⛔ 🟢 សាកក្នុង Chrome៖ ចុច «កត់ត្រាចំណាយ» › «និយាយកត់» › និយាយ «កាហ្វេពីរដុល្លារ» › ពិនិត្យ › រក្សាទុក; ល្អហើយ បើកឱ្យគ្រប់គ្នាក្នុង Admin › Super
 - [ ] One-tap Telegram debt reminder — from an AR debt, a polite card (`arReminderText`) the owner sends with one tap; never automatic, never in a group, no balance beyond that debt
 - [ ] 14-day cash-flow forecast — loan instalments (bank schedules), bills and the average daily sales: «ថ្ងៃទី 5 ត្រូវបង់ PPCBank $320 — តាមការលក់មធ្យម បងនឹងខ្វះ $45», 7 days ahead, to protect the CBC score; the method stated on screen, an estimate
 

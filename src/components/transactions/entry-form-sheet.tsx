@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { WalletSelect } from "@/components/wallets/wallet-select"
 import { ISLAMIC_KEYS, NON_OPERATING_KEYS } from "@/lib/categories/presets"
+import { useFeatures } from "@/lib/features"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { usableWallets, useCategories, useProfile, useTransactionMutations } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
@@ -29,9 +30,11 @@ import { savedMessage } from "@/lib/islamic-expressions"
 import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { defaultNeedWant } from "@/lib/need-want"
+import { voiceDraft } from "@/lib/voice-entry"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 import { ReceiptField, type ReceiptValue } from "./receipt-field"
+import { VoiceEntryButton } from "./voice-entry-button"
 
 const schema = z.object({
   amount: z.string().refine((v) => parseAmount(v) > 0, "walletForm.amountInvalid"),
@@ -77,6 +80,9 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
   const [meal, setMeal] = useState<Meal | null>(null)
   // A new expense gets a smart Need / Want default (meals, rent… → need) until the user picks one.
   const [needWantTouched, setNeedWantTouched] = useState(false)
+  // 🎤 What the voice note said, shown under the button so the person checks the filled sheet.
+  const [heard, setHeard] = useState<string | null>(null)
+  const voice = useFeatures().allowed("voice_entry") && !editing
 
   const islamic = useIslamicEnabled()
   // System categories (debt flows, balance adjustments) are only set by the app; keep the current one when editing.
@@ -136,6 +142,7 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
     setNeedWant(transaction?.need_want ?? "NONE")
     setMeal(transaction?.subcategory ?? null)
     setNeedWantTouched(Boolean(transaction))
+    setHeard(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the sheet opens
   }, [open, transaction?.id])
 
@@ -186,6 +193,28 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
     }
   })
 
+  // The bot's parser on the words heard (lib/voice-entry.ts): the sheet is filled, never saved — the person taps Save.
+  const fillFromVoice = (r: { heard: string; text: string }) => {
+    const all = (categoriesQuery.data ?? []).filter((c) => !c.preset_key || !NON_OPERATING_KEYS.has(c.preset_key))
+    const draft = voiceDraft(r.text, {
+      wallets: selectable.map((w) => ({ id: w.id, name: w.name, currency: w.currency, kind: w.kind ?? null, icon: w.icon })),
+      categories: all.map((c) => ({ id: c.id, name: c.name, type: c.type, preset_key: c.preset_key })),
+      rate: khrPerUsd,
+    })
+    if (!draft) {
+      setHeard(null)
+      return toast.error(t("voice.noAmount"))
+    }
+    setHeard(r.heard)
+    const sameKind = draft.type === type || Boolean(onTypeChange)
+    if (draft.type !== type && onTypeChange) onTypeChange(draft.type)
+    setValue("amount", String(draft.amount), { shouldValidate: true })
+    setValue("currency", draft.currency)
+    if (draft.walletId && walletById.has(draft.walletId)) setValue("walletId", draft.walletId)
+    setValue("categoryId", sameKind && draft.categoryId ? draft.categoryId : "")
+    setValue("note", draft.note)
+  }
+
   const remove = async () => {
     if (!transaction || !window.confirm(t("entry.deleteConfirm"))) return
     try {
@@ -233,6 +262,12 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
                   { value: "INCOME", label: t("tx.INCOME") },
                 ]}
               />
+            )}
+            {voice && (
+              <div className="space-y-1.5">
+                <VoiceEntryButton onHeard={fillFromVoice} />
+                {heard && <p className="text-xs text-muted-foreground">{t("voice.heard", { text: heard })}</p>}
+              </div>
             )}
             <fieldset disabled={debtLinked} className="space-y-4 disabled:opacity-60">
             <div className="space-y-2">
