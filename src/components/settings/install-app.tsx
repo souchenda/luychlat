@@ -6,43 +6,22 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useT } from "@/lib/i18n/use-t"
-
-/** Chrome / Android's deferred install prompt (not in the TS DOM lib). */
-type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }
+import { isIosUa } from "@/lib/install-banner"
+import { isStandalone, useInstallPrompt } from "@/lib/install-prompt"
 
 /** "Add to Home Screen": native prompt on Android/desktop Chrome, instructions on iOS Safari. */
 export function InstallAppCard() {
   const t = useT()
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
-  const [installed, setInstalled] = useState(false)
+  const prompt = useInstallPrompt()
+  const [standalone, setStandalone] = useState(false)
   const [ios, setIos] = useState(false)
 
   useEffect(() => {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true
-    setInstalled(standalone)
-    setIos(/iphone|ipad|ipod/i.test(navigator.userAgent))
-    const onPrompt = (e: Event) => {
-      e.preventDefault()
-      setDeferred(e as BeforeInstallPromptEvent)
-    }
-    const onInstalled = () => setInstalled(true)
-    window.addEventListener("beforeinstallprompt", onPrompt)
-    window.addEventListener("appinstalled", onInstalled)
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt)
-      window.removeEventListener("appinstalled", onInstalled)
-    }
+    setStandalone(isStandalone())
+    setIos(isIosUa(navigator.userAgent))
   }, [])
 
-  const install = async () => {
-    if (!deferred) return
-    await deferred.prompt()
-    const { outcome } = await deferred.userChoice
-    if (outcome === "accepted") setInstalled(true)
-    setDeferred(null)
-  }
+  const installed = standalone || prompt.installed
 
   return (
     <section className="space-y-2">
@@ -62,11 +41,11 @@ export function InstallAppCard() {
               <SquarePlusIcon className="inline size-3.5 align-text-bottom" /> {t("install.iosStep3")}
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground">{t(deferred ? "install.hint" : "install.menuHint")}</p>
+            <p className="text-xs text-muted-foreground">{t(prompt.canPrompt ? "install.hint" : "install.menuHint")}</p>
           )}
         </div>
-        {!installed && deferred && (
-          <Button size="sm" onClick={install}>
+        {!installed && prompt.canPrompt && (
+          <Button size="sm" onClick={() => void prompt.install()}>
             <DownloadIcon />
             {t("install.button")}
           </Button>

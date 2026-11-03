@@ -23,6 +23,7 @@ import { AppNoticeBanner } from "@/components/common/app-notice-banner"
 import { ClientReport } from "@/components/common/client-diagnostics"
 import { CounterModeKeeper } from "@/components/payments/counter-mode"
 import { AppUpdatePrompt } from "@/components/layout/app-update"
+import { InstallBanner } from "@/components/layout/install-banner"
 import { FlipToHideListener } from "@/components/privacy/flip-to-hide"
 import { PaymentChimeListener } from "@/components/payments/payment-chime-listener"
 import { SoundboxPrayerQuietWriter } from "@/components/islamic/soundbox-prayer-quiet"
@@ -83,6 +84,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <PaymentChimeListener />
       <CounterModeKeeper />
       <AppUpdatePrompt />
+      {/* «ដំឡើងអេប លុយឆ្លាត» with one tap, in a browser only (founder, 3/11/2026). */}
+      <InstallBanner />
       <StaleBuildReload />
       <ClientReport />
       <FlipToHideListener />

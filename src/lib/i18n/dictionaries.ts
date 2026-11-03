@@ -465,6 +465,9 @@ const km = {
   "install.iosStep2": "រួចជ្រើស",
   "install.iosStep3": "«Add to Home Screen»",
   "install.button": "ដំឡើង",
+  "install.bannerTitle": "ដំឡើងអេប លុយឆ្លាត",
+  "install.bannerHint": "បើកលឿនពីអេក្រង់ដើម — ចុចតែម្តង",
+  "install.later": "ពេលក្រោយ",
 
   "danger.title": "តំបន់គ្រោះថ្នាក់",
   "danger.reset": "កំណត់ទិន្នន័យឡើងវិញ (Reset All Data)",
@@ -4865,6 +4868,9 @@ const en: Record<MessageKey, string> = {
   "install.iosStep2": "then",
   "install.iosStep3": "\"Add to Home Screen\"",
   "install.button": "Install",
+  "install.bannerTitle": "Install App Luy Chlat",
+  "install.bannerHint": "Open it fast from your home screen — one tap",
+  "install.later": "Later",
 
   "danger.title": "Danger zone",
   "danger.reset": "Reset all data",
