@@ -37,7 +37,9 @@ export function CashForecastCard({ workspaceId, wallets, transactions, business 
     () => (allowed && wallets && bills ? cashForecast({ today: cambodiaToday(), wallets, bills, transactions, khrPerUsd }) : null),
     [allowed, wallets, bills, transactions, khrPerUsd],
   )
-  if (!f || f.payments.length === 0) return null
+  // Shown whenever there is a wallet (founder, 3/11/2026: hidden with nothing due, it could not be found).
+  if (!f) return null
+  const end = f.days[f.days.length - 1]
 
   const money = (n: number) => formatMoney(n, f.currency, { hidden })
   const day = (iso: string) => weekdayDate(new Date(`${iso}T00:00:00`), locale)
@@ -58,7 +60,9 @@ export function CashForecastCard({ workspaceId, wallets, transactions, business 
           </p>
         ) : (
           <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm leading-relaxed font-medium text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200">
-            {t("forecast.enough", { lowest: money(f.lowest.balance), day: day(f.lowest.date) })}
+            {f.payments.length === 0
+              ? t("forecast.none", { amount: money(end.balance), day: day(end.date) })
+              : t("forecast.enough", { lowest: money(f.lowest.balance), day: day(f.lowest.date) })}
           </p>
         )}
 

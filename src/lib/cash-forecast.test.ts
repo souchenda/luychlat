@@ -122,6 +122,9 @@ describe("14-day cash-flow forecast (founder, 3/11/2026)", () => {
     assert.match(card, /useFeatures\(\)\.allowed\("cash_forecast"\)/)
     assert.match(card, /t\("forecast\.method", /)
     assert.match(card, /t\("forecast\.methodShort"\)/)
+    // Never hidden with nothing due — it could not be found (founder, 3/11/2026).
+    assert.doesNotMatch(card, /payments\.length === 0\) return null/)
+    assert.match(card, /t\("forecast\.none", /)
     assert.doesNotMatch(card.replace(/formatMoney\([^)]*\{ hidden \}\)/g, ""), /formatMoney\(/)
     assert.ok(FEATURE_KEYS.includes("cash_forecast"))
     assert.match(read("supabase/migrations/20270283000000_cash_forecast_flag.sql"), /\('cash_forecast', 'ADMIN_ONLY'\)/)

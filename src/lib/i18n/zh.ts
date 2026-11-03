@@ -3851,6 +3851,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "forecast.short": "{day} 需付 {title} {amount} — 可能差 {by}",
   "forecast.enough": "未来 14 天的付款资金充足 · 最低 {lowest}（{day}）",
   "forecast.overdue": "已逾期 — 计入今天",
+  "forecast.none": "未来 14 天没有到期的账单或贷款分期 · {day} 约 {amount}",
   "forecast.more": "另有 {count} 笔",
   "forecast.sales": "销售",
   "forecast.income": "收入",
