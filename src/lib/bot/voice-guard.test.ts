@@ -42,7 +42,9 @@ describe("Short Khmer voice notes — bias and hallucination guard (founder, 26/
     const t = read("src/lib/server/transcribe.ts")
     assert.equal((t.match(/whisper\(provider, audio, "km", khmerHint\(seconds, HINT_KM\)\)/g) ?? []).length, 2)
     assert.match(t, /form\.append\("temperature", "0"\)/)
-    assert.match(t, /Notes are often only 2–4 everyday words, such as: \$\{KHMER_EVERYDAY\}/)
+    assert.match(t, /\(a vocabulary aid only, not a list to choose from\): \$\{KHMER_EVERYDAY\}/)
+    // Word for word, never a summary (founder, 3/11/2026: «កាបូបដាក់ប៊ិចកូនពៅ» was heard as «ទិញ របស់ ឲ្យ កូន»).
+    assert.match(t, /never summarise, paraphrase, generalise or replace a word with a more common one/)
     assert.match(t, /unsure: transcriptUnsure\(\{ text: t\.text, seconds, logprob: t\.logprob, noSpeech: t\.noSpeech, compression: t\.compression \}\)/)
   })
 

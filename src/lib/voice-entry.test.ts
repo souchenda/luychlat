@@ -33,6 +33,23 @@ describe("🎤 speak an entry in the app (founder, 3/11/2026)", () => {
     assert.equal(draft("កាហ្វេ 2.75$")?.amount, 2.75)
   })
 
+  it("the market shorthand and mixed digits (founder, 3/11/2026 — «បីពាន់ប្រាំ» was filled as 3,005)", () => {
+    assert.equal(draft("កាហ្វេបីពាន់ប្រាំ")?.amount, 3500)
+    assert.equal(draft("ទិញម្ហូប ពីរម៉ឺនប្រាំ")?.amount, 25000)
+    assert.equal(draft("មួយលានប្រាំ រៀល")?.amount, 1_500_000)
+    assert.equal(draft("បាយ ១ម៉ឺន៥ពាន់រៀល")?.amount, 15000)
+    assert.equal(draft("កាហ្វេ ៣ពាន់៥")?.amount, 3500)
+    assert.equal(draft("កាហ្វេ ៣ពាន់៥រយ")?.amount, 3500)
+    // What is not shorthand stays as said.
+    assert.equal(draft("បីពាន់ប្រាំរយ រៀល")?.amount, 3500)
+    assert.equal(draft("ពីរពាន់ដប់ រៀល")?.amount, 2010)
+    assert.equal(draft("ថ្លៃរៀន ពីររយដុល្លារ")?.amount, 200)
+    assert.equal(draft("ទិញសាំង 2 ម៉ឺន")?.amount, 20000)
+    assert.equal(draft("ម្ហូប 25,000៛")?.amount, 25000)
+    assert.equal(draft("កាហ្វេ ២.៥ ដុល្លារ")?.amount, 2.5)
+    assert.equal(khmerWordsToDigits("ទិញ 2 3"), "ទិញ 2 3")
+  })
+
   it("no amount → nothing filled; a repayment or an unknown kind → the amount only, the person picks the rest", () => {
     assert.equal(draft("ញ៉ាំបាយ"), null)
     assert.deepEqual(draft("សង Dara 20$"), { type: "EXPENSE", amount: 20, currency: "USD", walletId: null, categoryId: null, note: "សង Dara 20$" })

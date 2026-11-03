@@ -127,7 +127,8 @@ async function gemini(key: string, audio: { blob: Blob; name: string }) {
           parts: [
             { inline_data: { mime_type: audio.blob.type || "audio/ogg", data } },
             {
-              text: `Transcribe this Khmer voice note accurately for personal expense tracking (for example: ទិញទឹក ១០០០រៀល, កាហ្វេ ២ដុល្លារ). Notes are often only 2–4 everyday words, such as: ${KHMER_EVERYDAY}. Write amounts as digits. Output only the Khmer transcript without commentary or translation. If there is no clear speech, output nothing.`,
+              // Verbatim, never a summary (founder, 3/11/2026: «កាបូបដាក់ប៊ិចកូនពៅ» came back as «ទិញ របស់ ឲ្យ កូន»).
+              text: `Transcribe this Khmer voice note word for word, exactly as spoken, for personal expense tracking (for example: ទិញទឹក 1000រៀល, កាហ្វេ 2ដុល្លារ). Keep every word the speaker said — the exact item names (e.g. កាបូបដាក់ប៊ិច, not «របស់»), people (កូនពៅ), places and brands; never summarise, paraphrase, generalise or replace a word with a more common one, and add nothing that was not said. Everyday words people often say (a vocabulary aid only, not a list to choose from): ${KHMER_EVERYDAY}. Write the amount in 0-9 digits exactly as said, keeping its unit word: «បីពាន់ប្រាំ» → 3500, «មួយម៉ឺនកន្លះ» → 15000, «ពីរដុល្លារកន្លះ» → 2.5 ដុល្លារ; keep រៀល / ដុល្លារ when said. Write Khmer words without spaces between syllables of one word. Output only the Khmer transcript without commentary or translation. If there is no clear speech, output nothing.`,
             },
           ],
         },
