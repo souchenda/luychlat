@@ -13,7 +13,6 @@ import { NextPrayerChip } from "@/components/islamic/next-prayer-chip"
 import { SourceSelector } from "@/components/onboarding/source-selector"
 import { QuickActionGrid } from "@/components/dashboard/quick-actions"
 import { SmartHub } from "@/components/dashboard/smart-hub"
-import { CashForecastCard } from "@/components/dashboard/cash-forecast-card"
 import { SpendingTrendCard } from "@/components/dashboard/spending-trend-card"
 import { MarketRatesCard } from "@/components/dashboard/market-rates-card"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
@@ -214,8 +213,6 @@ export default function HomePage() {
       <NextPrayerChip />
       <SpendingTrendCard transactions={transactions} categories={categoriesQuery.data ?? []} />
       <SmartHub workspaceId={ws} personal={workspace?.type === "PERSONAL"} />
-      {/* The next 14 days: what is due and whether the money covers it — an estimate, its method on the card. */}
-      <CashForecastCard workspaceId={ws} wallets={walletsQuery.data} transactions={transactions} business={workspace?.type === "BUSINESS"} />
 
       {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}
       {workspace?.type === "BUSINESS" && <BusinessValueCard workspaceId={ws} wallets={walletsQuery.data} debts={debtsQuery.data} transactions={txQuery.data} categories={categoriesQuery.data} />}

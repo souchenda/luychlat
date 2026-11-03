@@ -19,8 +19,6 @@ export const FEATURES = {
   bank_slips: { routes: [] },
   // 🎤 in the entry sheet: speak an entry, the bot's voice engine (founder, 3/11/2026).
   voice_entry: { routes: [] },
-  // 💡 The 14-day cash-flow forecast on Home (founder, 3/11/2026).
-  cash_forecast: { routes: [] },
 } as const
 
 export type FeatureKey = keyof typeof FEATURES
