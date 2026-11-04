@@ -159,8 +159,8 @@ Every phase is done before the freeze; a feature not live on 2026-12-14 moves af
 
 ### Phase 3 — December 2026 (done by 2026-12-14): close the shift, know the regulars
 
-- [ ] End-of-day shift cash reconciliation — the cash counted in the drawer beside the day's KHQR and cash sales, short / over shown, the shift report to the owner's private chat; the same end-of-day moment as the audio summary
-- [ ] KHQR regular-customer insights (Business only) — frequent payers, regulars not seen for a while, the busiest hours, from the KHQR payer names; the owner only, never in a group or the bot
+- [~] End-of-day shift cash reconciliation — dropped (founder, 4/11/2026): counting the cash already exists — «កែតម្រូវ» on the cash wallet takes the counted cash and shows short / over; a second screen would repeat it
+- [x] KHQR regular-customer insights (Business only) — «អតិថិជនទៀងទាត់» at /business/customers (founder, 4/11/2026): from the payer names on the last 90 days of KHQR payments — who comes back most (visits, totals, last visit), regulars not seen for longer than usual (twice their average gap, at least 14 days), the 3 busiest hours; public.khqr_customer_insights, the OWNER of a BUSINESS workspace only, customer payments only; never in a group or the bot ⛔ 🟢 DL MEAT SUPPLY › ម៉ឺនុយ › «អតិថិជនទៀងទាត់»
 - [ ] Gold-synced Nisab — the Zakat calculator's Nisab from the day's gold price (85 g), its date and source shown; Islamic Mode only
 - [ ] Receipt and invoice reading polish — the slip, invoice and utility-bill readers made more accurate on real photos (no new reader)
 

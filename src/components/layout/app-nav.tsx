@@ -158,6 +158,7 @@ function NavContent({ onNavigate, inDrawer }: { onNavigate?: () => void; inDrawe
             title: "nav.group.bizAdmin",
             items: [
               { href: "/reports", label: "nav.bizReports", icon: ChartColumnIcon },
+              { href: "/business/customers", label: "regulars.title", icon: UsersRoundIcon },
               { href: "/reports/tax", label: "tax.title", icon: CalculatorIcon },
               { href: "/assets", label: "nav.bizAssets", icon: CoinsIcon },
               { href: "/bills", label: "nav.bizBills", icon: ReceiptIcon },
