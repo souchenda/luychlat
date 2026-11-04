@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { useFeatures } from "@/lib/features"
-import { bestAnswer, KNOWLEDGE, QUICK_IDS, staffHours, wantsHuman, type HelpEntry } from "@/lib/helpline/knowledge"
+import { classify, KIND_REPLY, KNOWLEDGE, QUICK_IDS, staffHours, wantsHuman, type HelpEntry } from "@/lib/helpline/knowledge"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useUpgradeStore } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -17,9 +17,10 @@ type Msg = { from: "me" | "bot"; text: string; entry?: HelpEntry; offerHuman?: b
 
 const T = {
   title: { km: "ជំនួយ អេប លុយឆ្លាត", en: "App Luy Chlat help" },
-  hello: { km: "សួស្តី! ខ្ញុំអាចជួយអ្វីបាន? ជ្រើសសំណួរខាងក្រោម ឬសរសេរសំណួររបស់អ្នក។", en: "Hi! How can I help? Pick a question below or type your own." },
-  placeholder: { km: "សរសេរសំណួរ…", en: "Type a question…" },
-  unknown: { km: "ខ្ញុំមិនទាន់មានចម្លើយច្បាស់សម្រាប់សំណួរនេះទេ។ ចង់ផ្ញើទៅក្រុមការងារឱ្យឆ្លើយទេ?", en: "I don't have a clear answer to that yet. Send it to our team?" },
+  hello: { km: "ជម្រាបសួរ! ក្រុមការងារ អេប លុយឆ្លាត រីករាយបម្រើ។ សូមជ្រើសសំណួរខាងក្រោម ឬសរសេរចម្ងល់របស់លោកអ្នក។", en: "Hello! The App Luy Chlat team is glad to help. Pick a question below or type your own." },
+  placeholder: { km: "សរសេរចម្ងល់របស់លោកអ្នក…", en: "Type your question…" },
+  unknown: { km: "សំណួរនេះ យើងសូមផ្ញើទៅក្រុមការងារ ដើម្បីឆ្លើយលោកអ្នកឱ្យបានច្បាស់លាស់ — ចុចខាងក្រោម។", en: "We'd like our team to answer this one properly. Tap below to send it." },
+  toHuman: { km: "បាទ/ចាស ក្រុមការងាររបស់យើងរីករាយនិយាយជាមួយលោកអ្នក — ចុចខាងក្រោម ដើម្បីផ្ញើចម្ងល់។", en: "Of course, our team would be glad to talk with you. Tap below to send your question." },
   human: { km: "និយាយជាមួយក្រុមការងារ", en: "Talk to our team" },
   upgrade: { km: "ជាវឥឡូវ", en: "Upgrade now" },
   more: { km: "សំណួរផ្សេងទៀត", en: "Other questions" },
@@ -54,10 +55,13 @@ export function HelplineChat() {
     const q = raw.trim()
     if (!q) return
     setText("")
-    if (wantsHuman(q)) return setMsgs((m) => [...m, { from: "me", text: q }, { from: "bot", text: L(T.unknown), offerHuman: true }])
-    const hit = bestAnswer(q)
-    if (hit) return answer(hit, q)
-    setMsgs((m) => [...m, { from: "me", text: q }, { from: "bot", text: L(T.unknown), offerHuman: true }])
+    if (wantsHuman(q)) return setMsgs((m) => [...m, { from: "me", text: q }, { from: "bot", text: L(T.toHuman), offerHuman: true }])
+    // On the subject or not (founder, 4/11/2026): an approved answer; a courteous word for a greeting, thanks, investment
+    // advice or anything off the subject (never sent to the team); only an on-topic question without an answer goes to a person.
+    const c = classify(q)
+    if (c.kind === "answer" && c.entry) return answer(c.entry, q)
+    if (c.kind === "ontopic") return setMsgs((m) => [...m, { from: "me", text: q }, { from: "bot", text: L(T.unknown), offerHuman: true }])
+    setMsgs((m) => [...m, { from: "me", text: q }, { from: "bot", text: L(KIND_REPLY[c.kind as keyof typeof KIND_REPLY]), chips: QUICK_IDS.slice(0, 4) }])
   }
 
   const toTeam = async () => {

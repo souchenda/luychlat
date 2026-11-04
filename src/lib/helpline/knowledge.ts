@@ -102,3 +102,51 @@ export function staffHours(now: number): boolean {
   const minutes = at.getUTCHours() * 60 + at.getUTCMinutes()
   return day >= 1 && day <= 5 && minutes >= 8 * 60 && minutes < 17 * 60
 }
+
+/**
+ * What a typed message is (founder, 4/11/2026: «every question must stay within the person's use of the app, their money
+ * and their business; off the subject, answer with the greatest respect, as one team, never harming the app's name»):
+ *   answer     an approved answer exists
+ *   greeting / thanks   a courteous word back
+ *   advice     buy / sell / invest advice — we are not licensed financial advisers: said kindly, never advised
+ *   ontopic    about the app, money or business, but no approved answer → offered to the team (a person)
+ *   offtopic   anything else → a respectful, warm «we can only help with …», never sent to the team
+ * A person asked for in so many words is handled before this (wantsHuman).
+ */
+export type HelpKind = "answer" | "greeting" | "thanks" | "advice" | "ontopic" | "offtopic"
+
+const ON_TOPIC =
+  /អេប|លុយ|ប្រាក់|កាបូប|ធនាគារ|ចំណាយ|ចំណូល|វិក្កយបត្រ|បំណុល|កម្ចី|សន្សំ|ថវិកា|គោលដៅ|របាយការណ៍|គណនី|ពាក្យសម្ងាត់|លេខសម្ងាត់|ទិន្នន័យ|ហាង|អាជីវកម្ម|លក់|អតិថិជន|ពន្ធ|បង់|ផ្ទេរ|កត់ត្រា|ស្លីប|សំឡេង|កំហុស|គាំង|ដំឡើង|ជាវ|app|money|wallet|bank|expense|income|bill|debt|loan|saving|budget|goal|report|account|password|login|sign|data|shop|business|sale|customer|tax|pay|transfer|record|slip|receipt|error|bug|crash|install|update|subscri|pro\b|ultra|khqr|soundbox|telegram|bot\b|aba|acleda|wing/i
+const ADVICE = /គួរទិញ|គួរលក់|គួរវិនិយោគ|វិនិយោគអ្វី|ភាគហ៊ុន|គ្រីបតូ|bitcoin|crypto|should i (buy|sell|invest)|which stock|invest in/i
+const GREETING = /^(សួស្តី|ជម្រាបសួរ|សួរស្តី|hello|hi|hey|good (morning|afternoon|evening))[\s!.?]*$/i
+const THANKS = /អរគុណ|thank|thanks|thx/i
+
+export function classify(text: string): { kind: HelpKind; entry?: HelpEntry } {
+  const t = text.trim()
+  if (GREETING.test(t)) return { kind: "greeting" }
+  if (ADVICE.test(t)) return { kind: "advice" }
+  const entry = bestAnswer(t)
+  if (entry) return { kind: "answer", entry }
+  if (THANKS.test(t) && t.length <= 40) return { kind: "thanks" }
+  return { kind: ON_TOPIC.test(t) ? "ontopic" : "offtopic" }
+}
+
+/** The courteous replies, in the team's voice («យើង», «លោកអ្នក»), never a lecture, never a joke at anyone's expense. */
+export const KIND_REPLY: Record<"greeting" | "thanks" | "advice" | "offtopic", Bilingual> = {
+  greeting: {
+    km: "ជម្រាបសួរ! ក្រុមការងារ អេប លុយឆ្លាត រីករាយបម្រើលោកអ្នក។ តើមានអ្វីឱ្យយើងជួយអំពីការប្រើអេប ការគ្រប់គ្រងលុយ ឬអាជីវកម្មរបស់លោកអ្នកទេ?",
+    en: "Hello! The App Luy Chlat team is glad to help. What can we do for you about the app, your money or your business?",
+  },
+  thanks: {
+    km: "អរគុណច្រើនដែរ! បើលោកអ្នកមានចម្ងល់ផ្សេងទៀត ក្រុមការងារយើងនៅទីនេះជានិច្ច។",
+    en: "Thank you too! If you have any other question, our team is always here.",
+  },
+  advice: {
+    km: "សូមអភ័យទោស ក្រុមការងារ អេប លុយឆ្លាត មិនមែនជាអ្នកប្រឹក្សាហិរញ្ញវត្ថុដែលមានអាជ្ញាប័ណ្ណទេ ដូច្នេះយើងមិនអាចណែនាំឱ្យទិញ លក់ ឬវិនិយោគលើអ្វីមួយបានទេ។ ប៉ុន្តែអេបអាចជួយលោកអ្នកកត់ត្រា និងតាមដានទ្រព្យសម្បត្តិ (មាស ភាគហ៊ុន…) ដើម្បីសម្រេចចិត្តដោយខ្លួនឯងបានច្បាស់ជាងមុន។",
+    en: "We're sorry: the App Luy Chlat team are not licensed financial advisers, so we can't advise buying, selling or investing in anything. The app can help you record and follow your assets (gold, shares…) so you can decide with a clearer picture.",
+  },
+  offtopic: {
+    km: "សូមអភ័យទោស ក្រុមការងារ អេប លុយឆ្លាត អាចជួយបានតែលើចម្ងល់ពាក់ព័ន្ធនឹងការប្រើប្រាស់អេប ការគ្រប់គ្រងលុយ និងអាជីវកម្មរបស់លោកអ្នកប៉ុណ្ណោះ។ អរគុណចំពោះការយោគយល់ — តើមានអ្វីទាក់ទងនឹងអេបដែលយើងអាចជួយលោកអ្នកបានទេ?",
+    en: "We're sorry: the App Luy Chlat team can only help with questions about using the app, managing your money and your business. Thank you for understanding. Is there anything about the app we can help you with?",
+  },
+}
