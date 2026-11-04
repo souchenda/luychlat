@@ -20,14 +20,15 @@ import { WalletSelect } from "@/components/wallets/wallet-select"
 import { ISLAMIC_KEYS, NON_OPERATING_KEYS } from "@/lib/categories/presets"
 import { useFeatures } from "@/lib/features"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
-import { usableWallets, useCategories, useProfile, useTransactionMutations } from "@/lib/data/hooks"
+import { budgetCrossing } from "@/lib/budgets"
+import { usableWallets, useBudgets, useCategories, useProfile, useTransactionMutations, useTransactions } from "@/lib/data/hooks"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
 import { DebtLinkedError, type CategoryType, type Currency, type EntryInput, type Meal, type NeedWant, type Transaction, type Wallet } from "@/lib/data/types"
-import { fromDateInput, toDateInput } from "@/lib/dates"
+import { fromDateInput, monthKey, monthRange, toDateInput } from "@/lib/dates"
 import type { MessageKey } from "@/lib/i18n/dictionaries"
 import { useT } from "@/lib/i18n/use-t"
 import { savedMessage } from "@/lib/islamic-expressions"
-import { formatMoney, parseAmount, roundMoney } from "@/lib/money"
+import { convert, formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { defaultNeedWant } from "@/lib/need-want"
 import { voiceDraft } from "@/lib/voice-entry"
@@ -68,6 +69,10 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
   const khrPerUsd = usePrefsStore((s) => s.khrPerUsd)
   const categoriesQuery = useCategories(workspaceId)
   const mutations = useTransactionMutations(workspaceId)
+  // This month's spending, for the budget line a new expense may cross (founder, 4/11/2026 — lib/budgets.ts budgetCrossing).
+  const monthFilter = useMemo(() => ({ from: monthRange(monthKey()).from }), [])
+  const budgets = useBudgets(open && newType === "EXPENSE" && !transaction ? workspaceId : undefined).data
+  const monthTx = useTransactions(open && newType === "EXPENSE" && !transaction && budgets?.length ? workspaceId : undefined, monthFilter).data
   const editing = Boolean(transaction)
   // Repayment rows: money fields are managed from the debt (see transactions_debt_guard).
   const debtLinked = Boolean(transaction?.debt_id)
@@ -187,6 +192,14 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
       else await mutations.createEntry.mutateAsync(input)
       // Islamic Mode: Alhamdulillah for income, Barakallahu Feek for a payment (lib/islamic-expressions).
       toast.success(t(savedMessage(type, islamic, !transaction)))
+      // A new expense this month that takes its category past 70% or 100% of the budget: said once, at that moment.
+      const cap = !transaction && type === "EXPENSE" ? budgets?.find((b) => b.category_id === v.categoryId) : undefined
+      if (cap && monthTx && v.date.slice(0, 7) === monthKey()) {
+        const spentBefore = monthTx.filter((x) => x.type === "EXPENSE" && x.category_id === cap.category_id).reduce((a, x) => a + convert(x.amount, x.currency, cap.currency, khrPerUsd), 0)
+        const crossed = budgetCrossing({ cap: cap.amount, spentBefore, added: convert(input.amount, input.currency, cap.currency, khrPerUsd) })
+        const name = categoriesQuery.data?.find((c) => c.id === cap.category_id)?.name ?? ""
+        if (crossed) toast.warning(t(crossed.status === "over" ? "budget.crossOver" : "budget.crossNear", { category: name, percent: crossed.percent }), { duration: 8000 })
+      }
       onOpenChange(false)
     } catch (error) {
       toast.error(error instanceof DebtLinkedError ? t("ledger.debtLinked") : t("common.error"))

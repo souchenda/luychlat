@@ -5,7 +5,8 @@ import { categoryLabel } from "@/lib/categories/presets"
 import { MEALS, walletLabel, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
-import { botDb, botKey, maskNumbers, tr } from "@/lib/server/telegram-bot"
+import { budgetCrossing } from "@/lib/budgets"
+import { botDb, botKey, maskNumbers, sendText, tr } from "@/lib/server/telegram-bot"
 
 export type Tagged = {
   amount: number
@@ -120,4 +121,23 @@ export function mentionsChild(text: string): boolean {
   let t = ` ${text.toLowerCase()} `
   for (const w of NOT_CHILD) t = t.split(w).join(" ")
   return /កូន|ទារក|孩子|宝宝|儿子|女儿/.test(t) || /(^|[^a-z])(kids?|baby|babies|child|children|son|daughter)([^a-z]|$)/.test(t)
+}
+
+/**
+ * After an expense is saved: the moment it crosses its category's monthly budget line (70% or 100%), one short line — the
+ * percentage only with «ឱ្យ AI មើលលេខរបស់ខ្ញុំ» on (bot privacy), else words alone (founder, 4/11/2026 — lib/budgets.ts
+ * budgetCrossing, public.bot_budget_check). Silent otherwise; never in a group (private chats only call it).
+ */
+export async function budgetNudge(chatId: number, txId: string, lang: Locale): Promise<void> {
+  if (chatId <= 0) return
+  const { data } = await botDb().rpc("bot_budget_check", { p_key: botKey(), p_chat_id: chatId, p_tx_id: txId })
+  const r = data as { status?: string; cap?: number | string; spent_before?: number | string; added?: number | string; category?: string; numbers?: boolean } | null
+  if (r?.status !== "ok") return
+  const crossed = budgetCrossing({ cap: Number(r.cap), spentBefore: Number(r.spent_before), added: Number(r.added) })
+  if (!crossed) return
+  const category = r.category ?? ""
+  const text = r.numbers
+    ? tr(lang, crossed.status === "over" ? "budget.crossOver" : "budget.crossNear", { category, percent: crossed.percent })
+    : tr(lang, crossed.status === "over" ? "bot.budgetOver" : "bot.budgetNear", { category })
+  await sendText(chatId, text)
 }

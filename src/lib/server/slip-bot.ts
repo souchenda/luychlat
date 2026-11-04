@@ -29,7 +29,7 @@ import { convert, formatMoney } from "@/lib/money"
 import { blocked, botContext, contextLocale, handleEntryMessage, logEvHome, workspacesOf, type Context } from "@/lib/server/bot-commands"
 import { parseAmountText } from "@/lib/bot/parse-entry"
 import { photoRoute } from "@/lib/bot/photo-route"
-import { MEAL_KEY, cleanNote, mentionsChild, rememberCard, savedCard, tagTransaction, taggedFrom, type Tagged, type TaggedRow } from "@/lib/server/entry-card"
+import { MEAL_KEY, budgetNudge, cleanNote, mentionsChild, rememberCard, savedCard, tagTransaction, taggedFrom, type Tagged, type TaggedRow } from "@/lib/server/entry-card"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, maskNumbers, sendText, telegramFile, tg, tr } from "@/lib/server/telegram-bot"
@@ -421,6 +421,8 @@ async function autoSaveSlip(
   const sent = await sendText(chatId, card.text, { reply_markup: card.reply_markup })
   // A reply to the card, or a text without an amount in the next 5 minutes, is the entry's note (founder, 20/10/2026).
   await rememberCard(chatId, r.tx_id, (sent.result as { message_id?: number } | undefined)?.message_id)
+  // The moment it crosses its budget line (70% / 100%): one short line (founder, 4/11/2026).
+  await budgetNudge(chatId, r.tx_id, lang).catch(() => null)
   logEvent("info", "slips", `Slip saved without a tap (${decision.source === "memory" ? "user's habit" : "payee rule"})`, { fold: true })
   await settleBillFromPayment(chatId, r.tx_id, info.consumer, info.party)
   await offerDebtLink(chatId, r.tx_id, info.party, info.debts ?? [])
@@ -695,6 +697,8 @@ export async function handleSlipCallback(cb: Callback) {
   // The saved card remembered, like the zero-click one (Task #497: the 4,000 ៛ TIA parking slip saved by a category tap
   // was never remembered, so «ចំណតឡាន» right after it got «រកមិនឃើញចំនួនទឹកប្រាក់ទេ» instead of becoming its note).
   if (r.tx_id) await rememberCard(chatId, r.tx_id, cb.message!.message_id)
+  // The moment it crosses its budget line (70% / 100%): one short line (founder, 4/11/2026).
+  if (r.tx_id && action.kind === "EXPENSE") await budgetNudge(chatId, r.tx_id, lang).catch(() => null)
   if (action.kind === "EXPENSE") await settleBillFromPayment(chatId, r.tx_id, action.slip?.consumer, action.slip?.party)
   if (action.kind === "EXPENSE") await offerDebtLink(chatId, r.tx_id, action.slip?.party, ws?.debts ?? [])
 }

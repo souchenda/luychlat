@@ -12,7 +12,7 @@ import { routeWorkspace } from "@/lib/bot/route-workspace"
 import { mealFor, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { defaultNeedWant } from "@/lib/need-want"
-import { MEAL_KEY, cleanNote, looksLikeNote, mentionsChild, recentNoteText, rememberCard, savedCard, tagTransaction, taggedFrom, type TaggedRow } from "@/lib/server/entry-card"
+import { MEAL_KEY, budgetNudge, cleanNote, looksLikeNote, mentionsChild, recentNoteText, rememberCard, savedCard, tagTransaction, taggedFrom, type TaggedRow } from "@/lib/server/entry-card"
 import { logEvent } from "@/lib/server/events"
 import { DEFAULT_ABOUT } from "@/lib/app-site"
 import { convert, formatMoney } from "@/lib/money"
@@ -611,6 +611,8 @@ export async function handleCallback(cb: Callback) {
       await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(text).slice(0, 4000), reply_markup: saved.reply_markup })
       // The card answers a reply, or a text without an amount in the next 5 minutes, as the entry's note.
       await rememberCard(chatId, savedTx.id, cb.message!.message_id)
+      // The moment it crosses its budget line (70% / 100%): one short line (founder, 4/11/2026).
+      await budgetNudge(chatId, savedTx.id, lang).catch(() => null)
       // Public charging: this session and the month's vehicle energy (money lines only with numbers on).
       const t = row as TaggedRow
       if (t.note?.includes(EV_TAG) && t.amount) await sendPublicChargeSummary(chatId, { amount: Number(t.amount), currency: t.currency ?? "USD" })

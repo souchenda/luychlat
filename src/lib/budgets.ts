@@ -80,3 +80,17 @@ export function summarizeBudgets(input: {
   const ratio = planned > 0 ? actual / planned : 0
   return { lines, planned, actual, unbudgeted, ratio, status: budgetStatus(ratio), currency }
 }
+
+/**
+ * The moment an expense crosses a budget line (founder, 4/11/2026): «near» when it takes the month from under 70% to 70% or
+ * more, «over» when it takes it past 100% — once per line, never on every entry after it (no nagging). Null otherwise.
+ */
+export function budgetCrossing(o: { cap: number; spentBefore: number; added: number }): { status: "near" | "over"; percent: number } | null {
+  if (!(o.cap > 0) || !(o.added > 0)) return null
+  const before = o.spentBefore / o.cap
+  const after = (o.spentBefore + o.added) / o.cap
+  const percent = Math.round(after * 100)
+  if (before <= 1 && after > 1) return { status: "over", percent }
+  if (before < NEAR_LIMIT && after >= NEAR_LIMIT) return { status: "near", percent }
+  return null
+}
