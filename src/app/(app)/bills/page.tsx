@@ -1,5 +1,6 @@
 "use client"
 
+import { RecurringSuggestions } from "@/components/bills/recurring-suggestions"
 import { formatDuration, formatOverdue } from "@/lib/format"
 import { CheckIcon, ChevronDownIcon, CircleCheckIcon, ClockIcon, ExternalLinkIcon, Loader2Icon, PlusIcon, ReceiptIcon, ShieldCheckIcon, Undo2Icon } from "lucide-react"
 import Link from "next/link"
@@ -187,6 +188,8 @@ export default function BillsPage() {
       <p className="text-sm text-muted-foreground">{t("bills.hint")}</p>
 
       {scope.holyDays && <HolyDayCard />}
+      {/* A payment made every month, noticed from the person's own entries — Personal only (founder, 4/11/2026). */}
+      {workspace?.type === "PERSONAL" && editable && ws && bills.data && <RecurringSuggestions workspaceId={ws} bills={bills.data} />}
 
       {bills.isLoading ? (
         <Skeleton className="h-32 w-full rounded-xl" />
