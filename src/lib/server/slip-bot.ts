@@ -256,23 +256,29 @@ function slipCard(lang: Locale, pendingId: string, info: SlipInfo, wallet: BotWa
   return { text: maskNumbers(lines.join("\n")), reply_markup: { inline_keyboard: keyboard } }
 }
 
-/** A slip photo in the private chat (gated by plan and the bank_slips feature in the webhook). */
-export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Context | null, caption?: string | null) {
+/**
+ * A slip photo in the private chat (gated by plan and the bank_slips feature in the webhook). `preRead`: the slip already
+ * read by a later try (readSlipLater) — the checks and the rate limit were made the first time.
+ */
+export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Context | null, caption?: string | null, preRead?: ReadResult) {
   const lang = contextLocale(ctx)
   if (!ctx?.linked) return sendText(chatId, tr(lang, "bot.notLinked"))
   const stop = blocked(ctx, lang)
   if (stop) return sendText(chatId, stop)
-  if (!slipAllowed(chatId)) return sendText(chatId, tr(lang, "bot.slipLimit"))
+  if (!preRead && !slipAllowed(chatId)) return sendText(chatId, tr(lang, "bot.slipLimit"))
 
-  // Reading takes a few seconds: keep "typing…" up meanwhile.
-  const typing = () => void tg("sendChatAction", { chat_id: chatId, action: "typing" })
-  typing()
-  const keepTyping = setInterval(typing, 4500)
   let read: ReadResult
-  try {
-    read = await readSlip(fileId)
-  } finally {
-    clearInterval(keepTyping)
+  if (preRead) read = preRead
+  else {
+    // Reading takes a few seconds: keep "typing…" up meanwhile.
+    const typing = () => void tg("sendChatAction", { chat_id: chatId, action: "typing" })
+    typing()
+    const keepTyping = setInterval(typing, 4500)
+    try {
+      read = await readSlip(fileId)
+    } finally {
+      clearInterval(keepTyping)
+    }
   }
   if ("error" in read && read.error === "utility_bill") return handleBillPhoto(chatId, fileId, ctx)
   if ("error" in read && read.error === "loan_schedule") return handleLoanSchedulePhoto(chatId, fileId)
@@ -287,7 +293,9 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   }
   // Not a readable slip, but the caption is an entry ("កាហ្វេ 2$"): record it as typed instead of failing.
   if ("error" in read && read.error === "unreadable" && caption && parseAmountText(caption)) return handleEntryMessage(chatId, caption.slice(0, 300), ctx)
-  if ("error" in read && read.error === "busy") return sendText(chatId, tr(lang, "bot.slipBusy"))
+  // No reader answered (Gemini / Groq slow or down — minutes at a time): the slip waits and is read, never «try again»
+  // read as «the app is broken» (founder, 4/11/2026).
+  if ("error" in read && read.error === "busy") return preRead ? sendText(chatId, tr(lang, "bot.slipBusy")) : readSlipLater(chatId, fileId, ctx, caption, lang)
   // Unreadable: a polite reply, and the manual form one tap away (camera-first, never camera-only).
   if ("error" in read)
     return sendText(chatId, tr(lang, "bot.slipUnreadable"), { reply_markup: { inline_keyboard: [[{ text: tr(lang, "bot.manualEntry"), url: `${DEFAULT_ABOUT.website}/transactions` }]] } })
@@ -840,4 +848,30 @@ async function routePrivatePhoto(chatId: number, fileId: string, caption?: strin
     return handleEntryMessage(chatId, caption.slice(0, 300), ctx, undefined, fileId)
   }
   return handleSlipPhoto(chatId, fileId, ctx, caption)
+}
+
+/** Read again after 20 s, 1 min, then 2 min — as a voice note (lib/bot/voice-guard.ts VOICE_RETRY_DELAYS_S). */
+export const SLIP_RETRY_DELAYS_S = [20, 60, 120] as const
+
+/**
+ * «🧾 កំពុងអានស្លីប…» at once, then the slip read again in the background (SLIP_RETRY_DELAYS_S — about 3½ minutes in all);
+ * read, it goes on exactly as if the first try had answered, and the waiting line goes. Only after the last try: the gentle
+ * «send it again, or type the amount». Every try logged with its outcome. In memory: a deploy in that window drops the wait.
+ */
+async function readSlipLater(chatId: number, fileId: string, ctx: Context | null, caption: string | null | undefined, lang: Locale) {
+  const waiting = await tg<{ message_id: number }>("sendMessage", { chat_id: chatId, text: tr(lang, "bot.slipRetrying") })
+  const waitId = waiting.result?.message_id
+  void (async () => {
+    for (const [n, delay] of SLIP_RETRY_DELAYS_S.entries()) {
+      await new Promise((resolve) => setTimeout(resolve, delay * 1000))
+      const read = await readSlip(fileId).catch((): ReadResult => ({ error: "busy" }))
+      const busy = "error" in read && read.error === "busy"
+      logEvent(busy ? "warn" : "info", "slips", `Slip retry ${n + 1}/${SLIP_RETRY_DELAYS_S.length} after ${delay} s: ${busy ? "still no reader" : "read"}`, { fold: true })
+      if (busy) continue
+      if (waitId) await tg("deleteMessage", { chat_id: chatId, message_id: waitId }).catch(() => null)
+      return handleSlipPhoto(chatId, fileId, ctx, caption, read)
+    }
+    if (waitId) await tg("editMessageText", { chat_id: chatId, message_id: waitId, text: tr(lang, "bot.slipBusy") }).catch(() => null)
+    else await sendText(chatId, tr(lang, "bot.slipBusy"))
+  })().catch((e) => logEvent("warn", "slips", `Slip retry error: ${(e as Error).message}`, { fold: true }))
 }

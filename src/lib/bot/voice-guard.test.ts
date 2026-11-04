@@ -144,3 +144,18 @@ describe("Khmer written as Khmer — no space between words (founder, 4/11/2026)
     assert.match(t, /text: joinKhmerWords\(g\.text\), retried: true/)
   })
 })
+
+describe("A slip is never lost to a reader outage either (founder, 4/11/2026 — 11 slips failed in 14 days on Gemini timeouts)", () => {
+  it("«កំពុងអានស្លីប…», read again after 20 s / 1 min / 2 min, then on as usual; «send it again» only after the last", () => {
+    const s = read("src/lib/server/slip-bot.ts")
+    assert.match(s, /export const SLIP_RETRY_DELAYS_S = \[20, 60, 120\] as const/)
+    assert.match(s, /if \("error" in read && read\.error === "busy"\) return preRead \? sendText\(chatId, tr\(lang, "bot\.slipBusy"\)\) : readSlipLater\(/)
+    const later = s.slice(s.indexOf("async function readSlipLater"))
+    assert.match(later, /tr\(lang, "bot\.slipRetrying"\)/)
+    assert.match(later, /return handleSlipPhoto\(chatId, fileId, ctx, caption, read\)/)
+    assert.match(later, /Slip retry \$\{n \+ 1\}\/\$\{SLIP_RETRY_DELAYS_S\.length\}/) // every try logged
+    // A later try never counts against the hourly slip limit again.
+    assert.match(s, /if \(!preRead && !slipAllowed\(chatId\)\)/)
+    for (const l of ["km", "en"] as const) assert.doesNotMatch(dictionaries[l]["bot.slipBusy"], /service|សេវា/)
+  })
+})
