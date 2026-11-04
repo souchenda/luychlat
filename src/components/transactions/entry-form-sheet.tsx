@@ -21,7 +21,9 @@ import { ISLAMIC_KEYS, NON_OPERATING_KEYS } from "@/lib/categories/presets"
 import { useFeatures } from "@/lib/features"
 import { useIslamicEnabled } from "@/lib/islamic-settings"
 import { budgetCrossing } from "@/lib/budgets"
-import { usableWallets, useBudgets, useCategories, useProfile, useTransactionMutations, useTransactions } from "@/lib/data/hooks"
+import { usableWallets, useActiveWorkspace, useBudgets, useCategories, useProfile, useTransactionMutations, useTransactions, useWalletMutations } from "@/lib/data/hooks"
+import { isGoal } from "@/lib/goals"
+import { salarySaving } from "@/lib/salary-saving"
 import { amountInWalletCurrency } from "@/lib/data/ledger"
 import { DebtLinkedError, type CategoryType, type Currency, type EntryInput, type Meal, type NeedWant, type Transaction, type Wallet } from "@/lib/data/types"
 import { fromDateInput, monthKey, monthRange, toDateInput } from "@/lib/dates"
@@ -73,7 +75,10 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
   // This month's spending, for the budget line a new expense may cross (founder, 4/11/2026 — lib/budgets.ts budgetCrossing).
   const monthFilter = useMemo(() => ({ from: monthRange(monthKey()).from }), [])
   const budgets = useBudgets(open && newType === "EXPENSE" && !transaction ? workspaceId : undefined).data
-  const monthTx = useTransactions(open && newType === "EXPENSE" && !transaction && budgets?.length ? workspaceId : undefined, monthFilter).data
+  // …and this month's transfers into the goals, for the saving nudge after a salary (founder, 4/11/2026 — lib/salary-saving.ts).
+  const monthTx = useTransactions(open && !transaction && ((newType === "EXPENSE" && budgets?.length) || newType === "INCOME") ? workspaceId : undefined, monthFilter).data
+  const walletMutations = useWalletMutations(workspaceId)
+  const { workspace: activeWorkspace } = useActiveWorkspace()
   const editing = Boolean(transaction)
   // Repayment rows: money fields are managed from the debt (see transactions_debt_guard).
   const debtLinked = Boolean(transaction?.debt_id)
@@ -168,6 +173,41 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
       ? amountInWalletCurrency(roundMoney(amount, currency), currency, rate, wallet.currency)
       : null
 
+  const offerSaving = (from: Wallet, amount: number, currency: Currency) => {
+    const goals = wallets.filter((w) => isGoal(w) && !w.archived_at && w.id !== from.id)
+    const saved = (id: string) => (monthTx ?? []).filter((x) => x.type === "TRANSFER" && x.to_wallet_id === id).reduce((a, x) => a + Number(x.to_amount ?? x.amount), 0)
+    const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)
+    const s = salarySaving({
+      income: { amount: convert(amount, currency, from.currency, khrPerUsd), currency: from.currency },
+      goals: goals.map((g) => ({ id: g.id, name: g.name, currency: g.currency, balance: g.balance, target: Number(g.goal_target), date: g.goal_date ?? null, savedThisMonth: saved(g.id) })),
+      today,
+      khrPerUsd,
+    })
+    if (!s) return
+    const shown = formatMoney(s.toAmount, s.goalCurrency, { hidden: usePrefsStore.getState().hideBalances })
+    toast(t("bot.saveGoalAsk", { amount: shown, goal: s.goalName }), {
+      duration: 20_000,
+      action: {
+        label: t("bot.saveGoalYes"),
+        onClick: () =>
+          void walletMutations.transfer
+            .mutateAsync({
+              wallet_id: from.id,
+              to_wallet_id: s.goalId,
+              amount: s.fromAmount,
+              to_amount: s.toAmount,
+              exchange_rate: s.fromCurrency === s.goalCurrency ? null : khrPerUsd,
+              note: `សន្សំ · ${s.goalName}`,
+              transaction_date: new Date().toISOString(),
+            })
+            .then(
+              () => toast.success(t("bot.saveGoalDone", { amount: shown, goal: s.goalName })),
+              () => toast.error(t("bot.saveGoalFailed")),
+            ),
+      },
+    })
+  }
+
   const warnDuplicate = async (id: string) => {
     const { data } = (await getSupabaseBrowserClient()?.rpc("possible_duplicate", { p_tx_id: id })) ?? { data: null }
     const d = data as { status?: string; amount?: number | string; currency?: Currency; at?: string } | null
@@ -215,6 +255,8 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
       // Recorded twice (the same payment typed, then from its slip)? Asked with one tap to delete — never silently
       // (founder, 4/11/2026 — public.possible_duplicate).
       if (created && type === "EXPENSE") void warnDuplicate(created.id)
+      // A salary in a Personal book: the goal that needs money this month, one tap to move it — never moved without it.
+      if (created && type === "INCOME" && activeWorkspace?.type === "PERSONAL" && categoriesQuery.data?.find((c) => c.id === v.categoryId)?.preset_key === "salary") offerSaving(target, input.amount, input.currency)
       // A new expense this month that takes its category past 70% or 100% of the budget: said once, at that moment.
       const cap = !transaction && type === "EXPENSE" ? budgets?.find((b) => b.category_id === v.categoryId) : undefined
       if (cap && monthTx && v.date.slice(0, 7) === monthKey()) {

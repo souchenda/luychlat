@@ -19,6 +19,7 @@ import { sendCfoNow } from "@/lib/server/cfo-brief"
 import { handleInvoiceCallback, handleInvoiceMessage, isInvoiceCallback } from "@/lib/server/invoice-bot"
 import { handleKhqrDebtCallback, isKhqrDebtCallback } from "@/lib/server/khqr-debt-bot"
 import { handleDuplicateCallback, isDuplicateCallback } from "@/lib/server/entry-card"
+import { handleSalarySavingCallback, isSalarySavingCallback } from "@/lib/server/salary-saving-bot"
 import { asksWhoOwesMe, awaitingAiQuestion, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
 import { bestPhoto, handlePoolGroupCommand, handlePoolPhotoReply } from "@/lib/server/pool-bot"
@@ -454,6 +455,9 @@ export async function POST(request: Request) {
       await handleBillKhqrCallback(update.callback_query)
     } else if (isPoolFlowCallback(update.callback_query.data)) {
       await handlePoolFlowCallback(update.callback_query)
+    } else if (isSalarySavingCallback(update.callback_query.data)) {
+      // ✅ ផ្ទេរ / ពេលក្រោយ under «ប្រាក់ខែចូលហើយ» (founder, 4/11/2026).
+      await handleSalarySavingCallback(update.callback_query, contextLocale(await botContext(update.callback_query.message?.chat.id ?? 0)))
     } else if (isDuplicateCallback(update.callback_query.data)) {
       // 🗑 / ✅ under «recorded twice?» (founder, 4/11/2026).
       await handleDuplicateCallback(update.callback_query, contextLocale(await botContext(update.callback_query.message?.chat.id ?? 0)))

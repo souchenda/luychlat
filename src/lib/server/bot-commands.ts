@@ -12,6 +12,7 @@ import { routeWorkspace } from "@/lib/bot/route-workspace"
 import { mealFor, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { defaultNeedWant } from "@/lib/need-want"
+import { offerSalarySaving } from "@/lib/server/salary-saving-bot"
 import { MEAL_KEY, budgetNudge, cleanNote, duplicateNudge, looksLikeNote, mentionsChild, recentNoteText, rememberCard, savedCard, tagTransaction, taggedFrom, type TaggedRow } from "@/lib/server/entry-card"
 import { logEvent } from "@/lib/server/events"
 import { DEFAULT_ABOUT } from "@/lib/app-site"
@@ -599,6 +600,8 @@ export async function handleCallback(cb: Callback) {
       // With several workspaces, say which one it went to.
       if (isRouting(ctx) && r.workspace) outcome += ` · 🏢 ${r.workspace}`
       if (r.kind === "EXPENSE" && r.tx_id) savedTx = { id: r.tx_id, workspace: isRouting(ctx) ? (r.workspace ?? null) : null }
+      // A salary in: the goal that needs money this month, one tap to move it (founder, 4/11/2026 — Personal). Not awaited.
+      if (r.kind === "INCOME" && r.tx_id) void offerSalarySaving(chatId, r.tx_id, lang).catch(() => null)
     }
   }
   await tg("answerCallbackQuery", { callback_query_id: cb.id })
