@@ -39,3 +39,4 @@ behind the feature flag `order_ahead`, open to staff first and then to one pilot
 ## Done
 
 - [x] `khqrWithAmount` (lib/khqr.ts): the shop's KHQR made dynamic with the amount and a fresh checksum (khqr.test.ts).
+- [x] Phase 1 data — migration 20270291000000: order_shops, order_items, customer_orders; order_shop_open (BUSINESS + owner ULTRA + flag), order_public_menu, order_create (prices from the menu, one currency, valid choices, lead time), order_public_status (by token, the KHQR in the order's currency), order_set_status (the board's steps); flag order_ahead ADMIN_ONLY. Validated against production in a rolled-back transaction.
