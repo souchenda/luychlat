@@ -49,6 +49,7 @@ export function VoiceEntryButton({ onHeard }: { onHeard: (r: { heard: string; te
       const answer = (await res?.json().catch(() => null)) as VoiceEntryResponse | null
       if (answer && "text" in answer) onHeard(answer)
       else if (answer?.error === "unsure") toast.error(t("voice.unsure", { text: answer.heard ?? "" }))
+      else if (answer?.error === "busy") toast.error(t("voice.busy"))
       else toast.error(t("voice.failed"))
     } finally {
       setState({ step: "idle" })

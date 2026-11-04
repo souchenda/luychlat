@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
+import { whisperKhmerGuess } from "@/lib/bot/voice-guard"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { guardRequest } from "@/lib/server/guard"
 import { transcribe, transcriptionProvider } from "@/lib/server/transcribe"
@@ -47,6 +48,8 @@ export async function POST(request: Request) {
   const heard = transcript?.text.replace(/\s+/g, " ").trim().slice(0, 300) ?? ""
   if (!heard) return reply({ error: "failed" }, 422)
   const text = khmerWordsToDigits(heard)
+  // Gemini down, Whisper's Khmer guess: invented words, never shown (founder, 4/11/2026).
+  if (whisperKhmerGuess(transcript, text)) return reply({ error: "busy" }, 422)
   // Unsure and no amount in it: what was heard is shown, nothing is filled (the bot's rule — Task #507).
   if (transcript?.unsure && !/\d/.test(text)) return reply({ error: "unsure", heard }, 422)
   return reply({ heard, text })

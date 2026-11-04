@@ -1,6 +1,7 @@
 // Server only: chat logging for the official bot (Phase C part 2).
 import { paidDebtLine, paidDebtProposal } from "@/lib/server/debt-link-bot"
 import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
+import { whisperKhmerGuess } from "@/lib/bot/voice-guard"
 import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
 import { carReportText, parseTopUp, topUpCard, walletBalancesText, type CarReport, type WalletBalance } from "@/lib/bot/prepaid"
 import { isEvUsage } from "@/lib/bot/photo-route"
@@ -455,6 +456,8 @@ export async function handleVoiceMessage(chatId: number, voice: Voice, ctx: Cont
   // Unsure (a short clip with a low score, or more words than its length allows) and no amount in it: never saved as a
   // note — what was heard is shown and nothing is kept (founder, 26/10/2026 — Task #507: «បាយព្រឹកកូនពៅ» became
   // «អាចង្របស្ពីភាត្របស្រៀល» on a 9,000 ៛ slip). With an amount the card still asks ✅ first, the transcript on top.
+  // Gemini down, Whisper's Khmer guess: its words are invented — never echoed (founder, 4/11/2026).
+  if (whisperKhmerGuess(transcript, khmerWordsToDigits(text))) return sendText(chatId, tr(lang, "bot.voiceBusy"))
   if (transcript?.unsure && !/[\d០-៩]/.test(khmerWordsToDigits(text))) return sendText(chatId, tr(lang, "bot.voiceUnsure", { text }))
   if (onText && (await onText(text))) return
   // Speech-to-text writes amounts as Khmer words ("ពីរដុល្លារ"): turn them into digits for the parser.

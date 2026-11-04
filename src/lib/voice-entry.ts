@@ -52,4 +52,4 @@ export function recorderMime(supported: (mime: string) => boolean): string | nul
 }
 
 /** What the server may answer. */
-export type VoiceEntryResponse = { heard: string; text: string } | { error: "unauthorized" | "feature" | "off" | "invalid" | "failed" | "unsure"; heard?: string }
+export type VoiceEntryResponse = { heard: string; text: string } | { error: "unauthorized" | "feature" | "off" | "invalid" | "failed" | "unsure" | "busy"; heard?: string }

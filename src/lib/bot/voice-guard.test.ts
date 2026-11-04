@@ -5,7 +5,7 @@ import { describe, it } from "node:test"
 
 import { dictionaries } from "@/lib/i18n/dictionaries"
 
-import { GROQ_PROMPT_BYTES, KHMER_EVERYDAY, isShortClip, khmerHint, repeatsItself, transcriptUnsure, WHISPER_COMPRESSION_LIMIT } from "./voice-guard"
+import { GROQ_PROMPT_BYTES, KHMER_EVERYDAY, isShortClip, khmerHint, repeatsItself, transcriptUnsure, whisperKhmerGuess, WHISPER_COMPRESSION_LIMIT } from "./voice-guard"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 
@@ -92,5 +92,28 @@ describe("Whisper looping and the prompt's size (founder, 26/10/2026 — Task #5
     assert.match(t, /return text \? \{ text, language: "khmer", model: got\.model \} : null/)
     // The audio for Whisper and Gemini alike: 0.4 s before, 0.8 s after, levelled, 16 kHz mono — no word clipped.
     assert.match(t, /"adelay=400:all=1,apad=pad_dur=0\.8,loudnorm=I=-16:TP=-1\.5:LRA=11", "-ar", "16000", "-ac", "1"/)
+  })
+})
+
+describe("Gemini down — Whisper's Khmer guess is never shown back (founder, 4/11/2026)", () => {
+  // The 07:01 note: a 2 s «ទិញបាយព្រឹកកូនៗ» while every Gemini model timed out.
+  const heard = "ចំណាស្សារ បាយព្លាលផ្លារស្សារៀត្រាក់បានអាហាស់ត្ល្តាលប្រើបាមជាត្នៃទៅបំណាំងន្សារៀត្នៃបាស់បាំងត្រាក្រ"
+  it("the regression: Whisper, unsure, Khmer, no amount → «busy», not the invented words", () => {
+    const unsure = transcriptUnsure({ text: heard, seconds: 2, logprob: -0.56, noSpeech: 0.04, compression: 2.28 })
+    assert.equal(unsure, true)
+    assert.equal(whisperKhmerGuess({ via: "whisper+ffmpeg", unsure, text: heard }, heard), true)
+  })
+  it("not for Gemini, a sure transcript, an amount heard, or English", () => {
+    assert.equal(whisperKhmerGuess({ via: "gemini gemini-3.5-flash", unsure: true, text: heard }, heard), false)
+    assert.equal(whisperKhmerGuess({ via: "whisper", unsure: false, text: "បាយព្រឹក" }, "បាយព្រឹក"), false)
+    assert.equal(whisperKhmerGuess({ via: "whisper", unsure: true, text: "បាយ ១៥០០០" }, "បាយ 15000"), false)
+    assert.equal(whisperKhmerGuess({ via: "whisper", unsure: true, text: "coffee" }, "coffee"), false)
+  })
+  it("wired in the bot and the app, before the unsure echo; the busy line in both languages", () => {
+    const bot = read("src/lib/server/bot-commands.ts")
+    assert.ok(bot.indexOf('tr(lang, "bot.voiceBusy")') > 0 && bot.indexOf('tr(lang, "bot.voiceBusy")') < bot.indexOf('tr(lang, "bot.voiceUnsure"'))
+    assert.match(read("src/app/api/voice-entry/route.ts"), /if \(whisperKhmerGuess\(transcript, text\)\) return reply\(\{ error: "busy" \}, 422\)/)
+    assert.ok(dictionaries.km["bot.voiceBusy"].includes("Google"))
+    assert.ok(dictionaries.en["bot.voiceBusy"].includes("Google"))
   })
 })

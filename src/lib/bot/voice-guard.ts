@@ -51,3 +51,11 @@ export function transcriptUnsure(o: { text: string; seconds?: number | null; log
   if (typeof o.noSpeech === "number" && o.noSpeech > (short ? 0.5 : 0.8)) return true
   return false
 }
+
+/**
+ * Gemini was down and Whisper guessed the Khmer — unsure, and no amount in it (founder, 4/11/2026: a 2 s «ទិញបាយព្រឹកកូនៗ»
+ * came back as «ចំណាស្សារ បាយព្លាលផ្លារស្សារៀត្រាក់…» while every Gemini model timed out). Its words are invented: never
+ * shown back; the person is told the voice service is busy and to type it. Pure.
+ */
+export const whisperKhmerGuess = (t: { via?: string; unsure?: boolean; text: string } | null | undefined, digits: string) =>
+  Boolean(t?.unsure && t.via?.startsWith("whisper") && /[ក-៿]/.test(t.text) && !/[\d០-៩]/.test(digits))
