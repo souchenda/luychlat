@@ -4,7 +4,7 @@ import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
 import { whisperKhmerGuess } from "@/lib/bot/voice-guard"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { guardRequest } from "@/lib/server/guard"
-import { transcribe, transcriptionProvider } from "@/lib/server/transcribe"
+import { transcribe, transcribeGemini, transcriptionProvider } from "@/lib/server/transcribe"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { VOICE_MAX_BYTES, VOICE_MAX_SECONDS, type VoiceEntryResponse } from "@/lib/voice-entry"
 
@@ -44,12 +44,15 @@ export async function POST(request: Request) {
   }
   if (!audio || !/^audio\//.test(audio.type) || audio.size < 500 || audio.size > VOICE_MAX_BYTES) return reply({ error: "invalid" }, 400)
 
-  const transcript = await transcribe(audio, lang, seconds)
+  let transcript = await transcribe(audio, lang, seconds)
+  // Gemini slow or down, or Whisper's invented Khmer: Gemini once more while the sheet still says «កំពុងស្តាប់»
+  // (founder, 4/11/2026 — a failed note reads as «the app is broken»). Still nothing: «say it again», never shown the guess.
+  const guess = (t: typeof transcript) => !t?.text.trim() || whisperKhmerGuess(t, khmerWordsToDigits(t.text))
+  if (guess(transcript) && lang === "km") transcript = (await transcribeGemini(audio, seconds)) ?? transcript
+  if (guess(transcript) && transcript?.text.trim()) return reply({ error: "busy" }, 422)
   const heard = transcript?.text.replace(/\s+/g, " ").trim().slice(0, 300) ?? ""
   if (!heard) return reply({ error: "failed" }, 422)
   const text = khmerWordsToDigits(heard)
-  // Gemini down, Whisper's Khmer guess: invented words, never shown (founder, 4/11/2026).
-  if (whisperKhmerGuess(transcript, text)) return reply({ error: "busy" }, 422)
   // Unsure and no amount in it: what was heard is shown, nothing is filled (the bot's rule — Task #507).
   if (transcript?.unsure && !/\d/.test(text)) return reply({ error: "unsure", heard }, 422)
   return reply({ heard, text })

@@ -43,7 +43,8 @@ describe("Short voice notes in @luychlat_bot — a friendly reply, never the rig
     assert.doesNotMatch(km["bot.voiceNoAmount"], /⚠️/)
     for (const lang of ["en", "zh"] as const) assert.ok(dictionaries[lang]["bot.voiceSaveFailed"], lang)
     const c = read("src/lib/server/bot-commands.ts")
-    assert.match(c, /if \(!text\) return sendText\(chatId, tr\(lang, "bot\.voiceFailed"\)\)/)
+    // Nothing heard: a Khmer note waits for Gemini again (founder, 4/11/2026 — voice-guard.test.ts); any other, the gentle line.
+    assert.match(c, /return heardLater\([^\n]*\n\s+return sendText\(chatId, tr\(lang, "bot\.voiceFailed"\)\)/)
     assert.match(c, /if \(!pendingId\) return reply\(tr\(lang, heard \? "bot\.voiceSaveFailed" : "bot\.saveFailed"\)\)/)
     assert.match(c, /logEvent\("warn", "bot", `Entry card not saved \(\$\{parsed\.kind\}\$\{extra\.heard \? ", voice" : ""\}\): \$\{error\?\.message \?\? "no id returned"\}`/)
     assert.match(c, /logEvent\("warn", "bot", `Follow-up note not saved: \$\{msg \|\| "not ok"\}`/)

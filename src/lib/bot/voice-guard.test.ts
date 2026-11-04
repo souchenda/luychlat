@@ -5,7 +5,7 @@ import { describe, it } from "node:test"
 
 import { dictionaries } from "@/lib/i18n/dictionaries"
 
-import { GROQ_PROMPT_BYTES, KHMER_EVERYDAY, isShortClip, khmerHint, repeatsItself, transcriptUnsure, whisperKhmerGuess, WHISPER_COMPRESSION_LIMIT } from "./voice-guard"
+import { GROQ_PROMPT_BYTES, KHMER_EVERYDAY, isShortClip, khmerHint, repeatsItself, transcriptUnsure, VOICE_RETRY_DELAYS_S, whisperKhmerGuess, WHISPER_COMPRESSION_LIMIT } from "./voice-guard"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 
@@ -109,11 +109,24 @@ describe("Gemini down — Whisper's Khmer guess is never shown back (founder, 4/
     assert.equal(whisperKhmerGuess({ via: "whisper", unsure: true, text: "បាយ ១៥០០០" }, "បាយ 15000"), false)
     assert.equal(whisperKhmerGuess({ via: "whisper", unsure: true, text: "coffee" }, "coffee"), false)
   })
-  it("wired in the bot and the app, before the unsure echo; the busy line in both languages", () => {
+  it("the note waits and is heard: «កំពុងស្ដាប់…», Gemini again after 20 s / 1 min / 2 min, then «type it short» — never Google named", () => {
+    assert.deepEqual([...VOICE_RETRY_DELAYS_S], [20, 60, 120])
     const bot = read("src/lib/server/bot-commands.ts")
-    assert.ok(bot.indexOf('tr(lang, "bot.voiceBusy")') > 0 && bot.indexOf('tr(lang, "bot.voiceBusy")') < bot.indexOf('tr(lang, "bot.voiceUnsure"'))
-    assert.match(read("src/app/api/voice-entry/route.ts"), /if \(whisperKhmerGuess\(transcript, text\)\) return reply\(\{ error: "busy" \}, 422\)/)
-    assert.ok(dictionaries.km["bot.voiceBusy"].includes("Google"))
-    assert.ok(dictionaries.en["bot.voiceBusy"].includes("Google"))
+    assert.match(bot, /if \(!text \|\| whisperKhmerGuess\(transcript, khmerWordsToDigits\(text\)\)\) \{\n\s+if \(lang === "km" \|\| KHMER_SCRIPT\.test\(text \?\? ""\)\) return heardLater\(/)
+    const later = bot.slice(bot.indexOf("async function heardLater"))
+    assert.match(later, /tr\(lang, "bot\.voiceRetrying"\)/)
+    assert.match(later, /const t = await transcribeGemini\(audio, seconds\)/)
+    assert.match(later, /tg\("deleteMessage", \{ chat_id: chatId, message_id: waitId \}\)/)
+    assert.match(later, /return afterHeard\(chatId, text, t, ctx, lang, onText\)/)
+    assert.match(later, /tr\(lang, "bot\.voiceGaveUp"\)/)
+    // Every try logged with its outcome (no silent failure).
+    assert.match(later, /retry \$\{n \+ 1\}\/\$\{VOICE_RETRY_DELAYS_S\.length\}/)
+    // The app: Gemini once more inside the same request; the guess never shown.
+    const route = read("src/app/api/voice-entry/route.ts")
+    assert.match(route, /if \(guess\(transcript\) && lang === "km"\) transcript = \(await transcribeGemini\(audio, seconds\)\) \?\? transcript/)
+    assert.match(route, /if \(guess\(transcript\) && transcript\?\.text\.trim\(\)\) return reply\(\{ error: "busy" \}, 422\)/)
+    // The person never reads «Google is busy» — to them the app would be broken (founder, 4/11/2026).
+    for (const l of ["km", "en"] as const)
+      for (const k of ["bot.voiceRetrying", "bot.voiceGaveUp", "voice.busy"] as const) assert.doesNotMatch(dictionaries[l][k], /Google/, `${l} ${k}`)
   })
 })

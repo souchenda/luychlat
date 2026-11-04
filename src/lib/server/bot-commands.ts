@@ -1,7 +1,7 @@
 // Server only: chat logging for the official bot (Phase C part 2).
 import { paidDebtLine, paidDebtProposal } from "@/lib/server/debt-link-bot"
 import { khmerWordsToDigits } from "@/lib/bot/khmer-numbers"
-import { whisperKhmerGuess } from "@/lib/bot/voice-guard"
+import { VOICE_RETRY_DELAYS_S, whisperKhmerGuess } from "@/lib/bot/voice-guard"
 import { marketQueryReply, parseMarketQuery } from "@/lib/bot/market-query"
 import { carReportText, parseTopUp, topUpCard, walletBalancesText, type CarReport, type WalletBalance } from "@/lib/bot/prepaid"
 import { isEvUsage } from "@/lib/bot/photo-route"
@@ -18,7 +18,7 @@ import { DEFAULT_ABOUT } from "@/lib/app-site"
 import { convert, formatMoney } from "@/lib/money"
 import { currentMarket, phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, botToken, maskNumbers, sendText, tg, tr } from "@/lib/server/telegram-bot"
-import { transcribe, transcriptionProvider } from "@/lib/server/transcribe"
+import { transcribe, transcribeGemini, transcriptionProvider, type Transcript } from "@/lib/server/transcribe"
 import { asksWhoOwesMe, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
 
 /**
@@ -452,16 +452,49 @@ export async function handleVoiceMessage(chatId: number, voice: Voice, ctx: Cont
   console.info(
     `[voice] chat …${String(chatId).slice(-4)} · chat language ${lang} · ${transcript?.via ?? "-"} · heard ${transcript?.language ?? "?"}${transcript?.retried ? " (asked again as Khmer)" : ""}${transcript?.confidence ? ` · ${transcript.confidence}` : ""} · ${text ? `"${text.slice(0, 120)}"` : "no text"}`,
   )
-  if (!text) return sendText(chatId, tr(lang, "bot.voiceFailed"))
+  // Gemini slow or down (its outages last minutes): the note waits and is heard, never Whisper's invented Khmer words and
+  // never an error the person reads as «the app is broken» (founder, 4/11/2026).
+  if (!text || whisperKhmerGuess(transcript, khmerWordsToDigits(text))) {
+    if (lang === "km" || KHMER_SCRIPT.test(text ?? "")) return heardLater(chatId, audio, voice.duration, ctx, lang, onText)
+    return sendText(chatId, tr(lang, "bot.voiceFailed"))
+  }
+  return afterHeard(chatId, text, transcript, ctx, lang, onText)
+}
+
+const KHMER_SCRIPT = /[\u1780-\u17ff]/
+
+/** What was heard, as a typed message: the unsure rule, a waiting prompt's reply, else an entry. */
+async function afterHeard(chatId: number, text: string, transcript: Transcript | null, ctx: Context, lang: Locale, onText?: (text: string) => Promise<boolean>) {
   // Unsure (a short clip with a low score, or more words than its length allows) and no amount in it: never saved as a
   // note — what was heard is shown and nothing is kept (founder, 26/10/2026 — Task #507: «បាយព្រឹកកូនពៅ» became
   // «អាចង្របស្ពីភាត្របស្រៀល» on a 9,000 ៛ slip). With an amount the card still asks ✅ first, the transcript on top.
-  // Gemini down, Whisper's Khmer guess: its words are invented — never echoed (founder, 4/11/2026).
-  if (whisperKhmerGuess(transcript, khmerWordsToDigits(text))) return sendText(chatId, tr(lang, "bot.voiceBusy"))
   if (transcript?.unsure && !/[\d០-៩]/.test(khmerWordsToDigits(text))) return sendText(chatId, tr(lang, "bot.voiceUnsure", { text }))
   if (onText && (await onText(text))) return
   // Speech-to-text writes amounts as Khmer words ("ពីរដុល្លារ"): turn them into digits for the parser.
   return handleEntryMessage(chatId, khmerWordsToDigits(text), ctx, text)
+}
+
+/**
+ * «🎙️ កំពុងស្តាប់…» at once, then Gemini again in the background (VOICE_RETRY_DELAYS_S — about 3½ minutes in all); the
+ * answer arrives as if Gemini had been quick and the waiting line goes. Only after the last try: «type it short». Each try is
+ * logged with its outcome (never a silent failure). In memory: a deploy in that window drops the wait.
+ */
+async function heardLater(chatId: number, audio: Blob, seconds: number | undefined, ctx: Context, lang: Locale, onText?: (text: string) => Promise<boolean>) {
+  const waiting = await tg<{ message_id: number }>("sendMessage", { chat_id: chatId, text: tr(lang, "bot.voiceRetrying") })
+  const waitId = waiting.result?.message_id
+  void (async () => {
+    for (const [n, delay] of VOICE_RETRY_DELAYS_S.entries()) {
+      await new Promise((resolve) => setTimeout(resolve, delay * 1000))
+      const t = await transcribeGemini(audio, seconds).catch(() => null)
+      const text = t?.text.replace(/\s+/g, " ").slice(0, 300)
+      console.info(`[voice] chat …${String(chatId).slice(-4)} · retry ${n + 1}/${VOICE_RETRY_DELAYS_S.length} after ${delay} s · ${t ? `${t.via} · "${text?.slice(0, 120)}"` : "gemini still failing"}`)
+      if (!text) continue
+      if (waitId) await tg("deleteMessage", { chat_id: chatId, message_id: waitId }).catch(() => null)
+      return afterHeard(chatId, text, t, ctx, lang, onText)
+    }
+    if (waitId) await tg("editMessageText", { chat_id: chatId, message_id: waitId, text: tr(lang, "bot.voiceGaveUp") }).catch(() => null)
+    else await sendText(chatId, tr(lang, "bot.voiceGaveUp"))
+  })().catch((e) => console.error(`[voice] retry error: ${(e as Error).message}`))
 }
 
 type Callback = { id: string; data?: string; message?: { message_id: number; text?: string; chat: { id: number; type: string } } }

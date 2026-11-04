@@ -153,6 +153,17 @@ async function gemini(key: string, audio: { blob: Blob; name: string }) {
 }
 
 /**
+ * Gemini alone, for a Khmer note asked again after Gemini was slow or down (founder, 4/11/2026: Google's outages last
+ * minutes — the note waits and is heard, instead of Whisper's invented words). Null while Gemini still fails.
+ */
+export async function transcribeGemini(raw: Blob, seconds?: number): Promise<Transcript | null> {
+  const key = geminiKey()
+  if (!key) return null
+  const g = await gemini(key, await prepare(raw))
+  return g ? { ...g, retried: true, via: `gemini ${g.model}`, unsure: transcriptUnsure({ text: g.text, seconds }) } : null
+}
+
+/**
  * Speech to text.
  *   Khmer chat: Gemini when configured; else Whisper with language=km and the
  *   Khmer domain prompt (no auto-detect).

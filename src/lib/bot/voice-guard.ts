@@ -59,3 +59,6 @@ export function transcriptUnsure(o: { text: string; seconds?: number | null; log
  */
 export const whisperKhmerGuess = (t: { via?: string; unsure?: boolean; text: string } | null | undefined, digits: string) =>
   Boolean(t?.unsure && t.via?.startsWith("whisper") && /[ក-៿]/.test(t.text) && !/[\d០-៩]/.test(digits))
+
+/** Gemini asked again after 20 s, 1 min, then 2 min (about 3½ minutes in all) before «type it short» (founder, 4/11/2026). */
+export const VOICE_RETRY_DELAYS_S = [20, 60, 120] as const

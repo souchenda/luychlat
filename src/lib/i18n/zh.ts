@@ -175,7 +175,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "voice.noAmount": "没有听到金额——例如说“咖啡 2 美元”",
   "voice.unsure": "没听清（“{text}”）——请慢一点再说一次",
   "voice.failed": "暂时无法识别——请重试或手动输入",
-  "voice.busy": "Google 高棉语语音服务繁忙——请手动输入，或稍后再试",
+  "voice.busy": "暂时没听清——请再说一次，或手动输入",
   "voice.noMic": "无法使用麦克风——请允许 App Luy Chlat 使用麦克风",
   "entry.receipt": "收据照片（可选）",
   "entry.addReceipt": "拍照或选择照片",
