@@ -6,7 +6,7 @@ import { MEALS, walletLabel, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale, MessageKey } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
 import { budgetCrossing } from "@/lib/budgets"
-import { botDb, botKey, maskNumbers, sendText, tr } from "@/lib/server/telegram-bot"
+import { botDb, botKey, maskNumbers, sendText, tg, tr } from "@/lib/server/telegram-bot"
 
 export type Tagged = {
   amount: number
@@ -140,4 +140,42 @@ export async function budgetNudge(chatId: number, txId: string, lang: Locale): P
     ? tr(lang, crossed.status === "over" ? "budget.crossOver" : "budget.crossNear", { category, percent: crossed.percent })
     : tr(lang, crossed.status === "over" ? "bot.budgetOver" : "bot.budgetNear", { category })
   await sendText(chatId, text)
+}
+
+/** «dd:<tx>:x» delete the one just saved / «dd:<tx>:k» keep both — under the «recorded twice?» question. */
+export const isDuplicateCallback = (data: string | undefined) => /^dd:[0-9a-f-]{36}:[xk]$/.test(data ?? "")
+
+/**
+ * After an expense is saved: when it looks like one already in the book (public.tx_duplicate_core — a slip after a voice
+ * note of the same payment, or a double send), the person is asked «recorded twice?» with [🗑 delete this one] [✅ keep
+ * both] — never a silent delete (founder, 4/11/2026). Private chats only.
+ */
+export async function duplicateNudge(chatId: number, txId: string, lang: Locale): Promise<void> {
+  if (chatId <= 0) return
+  const { data } = await botDb().rpc("bot_duplicate_of", { p_key: botKey(), p_chat_id: chatId, p_tx_id: txId })
+  const d = data as { status?: string; note?: string | null; amount?: number | string; currency?: "KHR" | "USD"; at?: string } | null
+  if (d?.status !== "dup") return
+  const time = d.at ? new Date(Date.parse(d.at) + 7 * 3_600_000).toISOString().slice(11, 16) : ""
+  await sendText(chatId, tr(lang, "bot.dupAsk", { amount: formatMoney(Number(d.amount), d.currency ?? "USD"), note: (d.note ?? "").split(" · ")[0].slice(0, 60) || "—", time }), {
+    reply_markup: { inline_keyboard: [[{ text: tr(lang, "bot.dupDelete"), callback_data: `dd:${txId}:x` }], [{ text: tr(lang, "bot.dupKeep"), callback_data: `dd:${txId}:k` }]] },
+  })
+}
+
+type DupCallback = { id: string; data?: string; message?: { message_id: number; text?: string; chat: { id: number; type: string } } }
+
+export async function handleDuplicateCallback(cb: DupCallback, lang: Locale): Promise<void> {
+  const chatId = cb.message?.chat.id
+  const [, txId, op] = (cb.data ?? "").split(":")
+  if (!chatId || cb.message?.chat.type !== "private") {
+    await tg("answerCallbackQuery", { callback_query_id: cb.id })
+    return
+  }
+  let outcome = tr(lang, "bot.dupKept")
+  if (op === "x") {
+    const { data, error } = await botDb().rpc("bot_dup_delete", { p_key: botKey(), p_chat_id: chatId, p_tx_id: txId })
+    const r = data as { ok?: boolean; amount?: number | string; currency?: "KHR" | "USD" } | null
+    outcome = error ? tr(lang, "bot.saveFailed") : r?.ok ? tr(lang, "bot.dupDeleted", { amount: formatMoney(Number(r.amount), r.currency ?? "USD") }) : tr(lang, "bot.expired")
+  }
+  await tg("answerCallbackQuery", { callback_query_id: cb.id, text: outcome.slice(0, 190) })
+  await tg("editMessageText", { chat_id: chatId, message_id: cb.message!.message_id, text: maskNumbers(`${cb.message?.text ?? ""}\n\n${outcome}`).slice(0, 4000) }).catch(() => null)
 }

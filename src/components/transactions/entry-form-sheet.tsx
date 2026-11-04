@@ -32,6 +32,7 @@ import { convert, formatMoney, parseAmount, roundMoney } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { defaultNeedWant } from "@/lib/need-want"
 import { voiceDraft } from "@/lib/voice-entry"
+import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 import { ReceiptField, type ReceiptValue } from "./receipt-field"
@@ -167,6 +168,25 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
       ? amountInWalletCurrency(roundMoney(amount, currency), currency, rate, wallet.currency)
       : null
 
+  const warnDuplicate = async (id: string) => {
+    const { data } = (await getSupabaseBrowserClient()?.rpc("possible_duplicate", { p_tx_id: id })) ?? { data: null }
+    const d = data as { status?: string; amount?: number | string; currency?: Currency; at?: string } | null
+    if (d?.status !== "dup") return
+    const time = d.at ? new Date(Date.parse(d.at) + 7 * 3_600_000).toISOString().slice(11, 16) : ""
+    const amount = formatMoney(Number(d.amount), d.currency ?? "USD", { hidden: usePrefsStore.getState().hideBalances })
+    toast.warning(t("entry.dupAsk", { amount, time }), {
+      duration: 12_000,
+      action: {
+        label: t("entry.dupDelete"),
+        onClick: () =>
+          void mutations.remove.mutateAsync(id).then(
+            () => toast.success(t("bot.dupDeleted", { amount })),
+            () => toast.error(t("common.error")),
+          ),
+      },
+    })
+  }
+
   const onSubmit = handleSubmit(async (v) => {
     const target = walletById.get(v.walletId)
     if (!target) return
@@ -188,10 +208,13 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
         need_want: type === "EXPENSE" && needWant !== "NONE" ? needWant : null,
         subcategory: isFood ? meal : null,
       }
+      const created = transaction ? null : await mutations.createEntry.mutateAsync(input)
       if (transaction) await mutations.update.mutateAsync({ id: transaction.id, input })
-      else await mutations.createEntry.mutateAsync(input)
       // Islamic Mode: Alhamdulillah for income, Barakallahu Feek for a payment (lib/islamic-expressions).
       toast.success(t(savedMessage(type, islamic, !transaction)))
+      // Recorded twice (the same payment typed, then from its slip)? Asked with one tap to delete — never silently
+      // (founder, 4/11/2026 — public.possible_duplicate).
+      if (created && type === "EXPENSE") void warnDuplicate(created.id)
       // A new expense this month that takes its category past 70% or 100% of the budget: said once, at that moment.
       const cap = !transaction && type === "EXPENSE" ? budgets?.find((b) => b.category_id === v.categoryId) : undefined
       if (cap && monthTx && v.date.slice(0, 7) === monthKey()) {
