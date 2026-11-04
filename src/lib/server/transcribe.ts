@@ -5,7 +5,7 @@ import { readFile, unlink, writeFile } from "fs/promises"
 import { tmpdir } from "os"
 import { join } from "path"
 
-import { KHMER_EVERYDAY, khmerHint, transcriptUnsure } from "@/lib/bot/voice-guard"
+import { joinKhmerWords, KHMER_EVERYDAY, khmerHint, transcriptUnsure } from "@/lib/bot/voice-guard"
 import { geminiChain, NO_THINKING } from "@/lib/server/gemini"
 import type { Locale } from "@/lib/i18n/dictionaries"
 
@@ -160,7 +160,7 @@ export async function transcribeGemini(raw: Blob, seconds?: number): Promise<Tra
   const key = geminiKey()
   if (!key) return null
   const g = await gemini(key, await prepare(raw))
-  return g ? { ...g, retried: true, via: `gemini ${g.model}`, unsure: transcriptUnsure({ text: g.text, seconds }) } : null
+  return g ? { ...g, text: joinKhmerWords(g.text), retried: true, via: `gemini ${g.model}`, unsure: transcriptUnsure({ text: g.text, seconds }) } : null
 }
 
 /**
@@ -172,6 +172,8 @@ export async function transcribeGemini(raw: Blob, seconds?: number): Promise<Tra
  */
 export async function transcribe(raw: Blob, chatLanguage: Locale, seconds?: number): Promise<Transcript | null> {
   const t = await heard(raw, chatLanguage, seconds)
+  // Khmer written as Khmer: no space between two Khmer words (founder, 4/11/2026 — lib/bot/voice-guard.ts).
+  if (t) t.text = joinKhmerWords(t.text)
   return t ? { ...t, unsure: transcriptUnsure({ text: t.text, seconds, logprob: t.logprob, noSpeech: t.noSpeech, compression: t.compression }) } : null
 }
 

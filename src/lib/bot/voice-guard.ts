@@ -62,3 +62,10 @@ export const whisperKhmerGuess = (t: { via?: string; unsure?: boolean; text: str
 
 /** Gemini asked again after 20 s, 1 min, then 2 min (about 3½ minutes in all) before «type it short» (founder, 4/11/2026). */
 export const VOICE_RETRY_DELAYS_S = [20, 60, 120] as const
+
+/**
+ * Khmer is written without spaces between words; speech-to-text puts one between every word («កូន ញ៉ាំ នៅ សាលា» — founder,
+ * 4/11/2026). The space between two Khmer letters goes; a space beside a digit, a Latin word or a sign stays
+ * («កាហ្វេ 2 ដុល្លារ», «ABA ប្រាក់ខែ»). Pure.
+ */
+export const joinKhmerWords = (text: string) => text.replace(/([\u1780-\u17FF])\s+(?=[\u1780-\u17FF])/g, "$1")

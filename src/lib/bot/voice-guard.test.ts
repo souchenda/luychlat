@@ -5,7 +5,7 @@ import { describe, it } from "node:test"
 
 import { dictionaries } from "@/lib/i18n/dictionaries"
 
-import { GROQ_PROMPT_BYTES, KHMER_EVERYDAY, isShortClip, khmerHint, repeatsItself, transcriptUnsure, VOICE_RETRY_DELAYS_S, whisperKhmerGuess, WHISPER_COMPRESSION_LIMIT } from "./voice-guard"
+import { GROQ_PROMPT_BYTES, joinKhmerWords, KHMER_EVERYDAY, isShortClip, khmerHint, repeatsItself, transcriptUnsure, VOICE_RETRY_DELAYS_S, whisperKhmerGuess, WHISPER_COMPRESSION_LIMIT } from "./voice-guard"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 
@@ -128,5 +128,19 @@ describe("Gemini down — Whisper's Khmer guess is never shown back (founder, 4/
     // The person never reads «Google is busy» — to them the app would be broken (founder, 4/11/2026).
     for (const l of ["km", "en"] as const)
       for (const k of ["bot.voiceRetrying", "bot.voiceGaveUp", "voice.busy"] as const) assert.doesNotMatch(dictionaries[l][k], /Google/, `${l} ${k}`)
+  })
+})
+
+describe("Khmer written as Khmer — no space between words (founder, 4/11/2026)", () => {
+  it("the space between two Khmer words goes; beside a digit or a Latin word it stays", () => {
+    assert.equal(joinKhmerWords("កូន ញ៉ាំ នៅ សាលា"), "កូនញ៉ាំនៅសាលា")
+    assert.equal(joinKhmerWords("កាហ្វេ 2 ដុល្លារ"), "កាហ្វេ 2 ដុល្លារ")
+    assert.equal(joinKhmerWords("ប្រាក់ ខែ ប្រាំរយ ដុល្លារ ABA"), "ប្រាក់ខែប្រាំរយដុល្លារ ABA")
+    assert.equal(joinKhmerWords("coffee 2 dollars"), "coffee 2 dollars")
+  })
+  it("the parser reads the joined words better: «ប្រាក់ ខែ» spaced was an expense, «ប្រាក់ខែ» is the salary", () => {
+    const t = read("src/lib/server/transcribe.ts")
+    assert.match(t, /if \(t\) t\.text = joinKhmerWords\(t\.text\)/)
+    assert.match(t, /text: joinKhmerWords\(g\.text\), retried: true/)
   })
 })
