@@ -24,6 +24,7 @@ import { ClientReport } from "@/components/common/client-diagnostics"
 import { CounterModeKeeper } from "@/components/payments/counter-mode"
 import { AppUpdatePrompt } from "@/components/layout/app-update"
 import { InstallBanner } from "@/components/layout/install-banner"
+import { HelplineChat } from "@/components/helpline/helpline-chat"
 import { FlipToHideListener } from "@/components/privacy/flip-to-hide"
 import { PaymentChimeListener } from "@/components/payments/payment-chime-listener"
 import { SoundboxPrayerQuietWriter } from "@/components/islamic/soundbox-prayer-quiet"
@@ -86,6 +87,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <AppUpdatePrompt />
       {/* «ដំឡើងអេប លុយឆ្លាត» with one tap, in a browser only (founder, 3/11/2026). */}
       <InstallBanner />
+      {/* The helpline: approved answers at once, the team for the rest (founder, 4/11/2026). */}
+      <HelplineChat />
       <StaleBuildReload />
       <ClientReport />
       <FlipToHideListener />

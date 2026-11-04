@@ -21,6 +21,8 @@ export const FEATURES = {
   voice_entry: { routes: [] },
   // «កម្មង់ទុកមុន» for ULTRA shops (founder, 4/11/2026 — docs/order-ahead.md): staff and a pilot café first.
   order_ahead: { routes: ["/business/orders", "/business/menu"] },
+  // The helpline chat button on every screen (founder, 4/11/2026): staff first.
+  helpline: { routes: [] },
 } as const
 
 export type FeatureKey = keyof typeof FEATURES

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { FileTextIcon, ShoppingBagIcon, FlaskConicalIcon, GiftIcon, MicIcon, ReceiptTextIcon, ScanTextIcon, type LucideIcon, UsersIcon } from "lucide-react"
+import { FileTextIcon, HeadsetIcon, ShoppingBagIcon, FlaskConicalIcon, GiftIcon, MicIcon, ReceiptTextIcon, ScanTextIcon, type LucideIcon, UsersIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { ago, confirmChange, rpc, Section } from "@/components/admin/ui"
@@ -76,6 +76,7 @@ const FEATURE_ICONS: Record<FeatureKey, LucideIcon> = {
   bank_slips: ScanTextIcon,
   voice_entry: MicIcon,
   order_ahead: ShoppingBagIcon,
+  helpline: HeadsetIcon,
 }
 
 function FeatureIcon({ k }: { k: FeatureKey }) {
