@@ -15,7 +15,9 @@ It shows where the startup stands and how far each stage is: stops losing money 
 ## Phases
 
 - [x] 1a: the calculations — `src/lib/startup-economics.ts` (ARPU, contribution, the paying users each stage needs, months away at the last 3 months' net growth, the stage now) with tests.
-- [ ] 1b: data — his costs and targets (super admin only), and the paying users at the end of each month (subscription history).
-- [ ] 1c: the screen in Admin › Super: the stage, the three milestones, the levers (price, conversion, churn), and the costs editor with an import from a workspace's categories.
+- [x] 1b: data — his costs and targets (super admin only), and the paying users at the end of each month (subscription history).
+- [x] 1c: the screen in Admin › Super: the stage, the three milestones, the levers (price, conversion, churn), and the costs editor with an import from a workspace's categories.
 - [ ] 2: the AI plan — a 90-day plan and weekly marketing actions from the numbers, cached, regenerated on demand.
 - [ ] 3: one line in the monthly report («ខែនេះ៖ X អ្នកបង់ · ត្រូវការ Y ទៀតដើម្បីលែងខាត»).
+
+The founder records no App Luy Chlat costs in the app yet (4/11/2026), so 1b/1c is a cost list he fills in. The usual ones are named with no amount (never a guessed figure); the workspace import waits until he records them.

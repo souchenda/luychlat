@@ -52,3 +52,17 @@ describe("App Luy Chlat as a startup — break-even, self-sustaining, steady pro
     assert.equal(netNewPerMonth([10, 7]), -3)
   })
 })
+
+describe("wired — Admin › Super, the super admin only, no guessed costs", () => {
+  it("his costs and targets for the super admin only; the usual costs named with no amount; the history the metrics' way", async () => {
+    const { readFileSync } = await import("node:fs")
+    const read = (p: string) => readFileSync(p, "utf8").replace(/\r\n/g, "\n")
+    const sql = read("supabase/migrations/20270293000000_startup_advisor.sql")
+    assert.match(sql, /using \(public\.is_super_admin\(\)\) with check \(public\.is_super_admin\(\)\)/)
+    assert.match(sql, /if not public\.is_super_admin\(\) then\n\s+raise exception 'not allowed'/)
+    assert.doesNotMatch(sql.slice(sql.indexOf("insert into public.startup_settings"), sql.indexOf("on conflict (id) do nothing")), /"usd": [1-9]/) // no guessed amount
+    assert.match(sql, /not public\.is_staff_user\(p\.user_id\)/)
+    assert.match(read("src/app/(app)/admin/super/page.tsx"), /<StartupAdvisor \/>/)
+    assert.match(read("src/components/admin/startup-advisor.tsx"), /មិនទាន់ប៉ាន់ស្មានបាន \(គ្មានកំណើន\)/) // no date without growth
+  })
+})

@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card"
 import { useT } from "@/lib/i18n/use-t"
 import { usePlan } from "@/lib/plan"
 import { FeatureFlagsCard } from "@/components/admin/feature-flags"
+import { StartupAdvisor } from "@/components/admin/startup-advisor"
 
 /**
  * Super Admin console: business metrics, prices and limits, referrals,
@@ -78,6 +79,8 @@ export default function SuperAdminPage() {
         <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
       </Link>
       <BusinessMetrics />
+      {/* App Luy Chlat as a business: the stage and the road to profit (founder, 4/11/2026). */}
+      <StartupAdvisor />
       <CustomerDirectory />
       <PricingEngine />
       <PaymentInstructionsForm />
