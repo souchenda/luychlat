@@ -9,6 +9,7 @@ import { SettingsSubHeader } from "@/components/settings/settings-ui"
 import { BatteryExemptionCard } from "@/components/payments/battery-exemption"
 import { SoundboxLivePill } from "@/components/soundbox/live-pill"
 import { SoundboxStatus } from "@/components/soundbox/soundbox-status"
+import { ClosingSummaryCard } from "@/components/soundbox/closing-summary"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -48,7 +49,7 @@ import {
 } from "@/lib/soundbox"
 import { isQuiet, keepSoundboxAwake, nativeFeedActive, phoneQuiet, startNativeFeed, stopNativeFeed } from "@/lib/native-keepalive"
 import { isNativeApp } from "@/lib/native-bridge"
-import { announce, isUnlocked, speechNeedsTap, unlockAudio, warmSpeech } from "@/lib/soundbox-audio"
+import { announce, announceClosing, isUnlocked, speechNeedsTap, unlockAudio, warmSpeech } from "@/lib/soundbox-audio"
 import { enablePush, pushState, type PushState } from "@/lib/push"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -554,6 +555,16 @@ export default function SoundboxPage() {
         </div>
         {testLog && <p className="mt-2 font-mono text-xs break-words text-muted-foreground">{testLog}</p>}
       </Card>
+
+      {/* At closing time: today's total, once, on this phone (founder, 4/11/2026). The audio stays this page's (golden 6). */}
+      <ClosingSummaryCard
+        active={enabled}
+        quiet={() => phoneQuiet().then(isQuiet)}
+        speak={async (sequence) => {
+          if (!isUnlocked()) await unlockAudio(readVoiceSpeed(store()), readVoiceGender(store()))
+          return announceClosing(sequence, settings.current.volume / 100, readVoiceSpeed(store()), readVoiceGender(store()))
+        }}
+      />
 
       {/* The workspace's KHQR, large, for the customer to scan — switch bank / currency with one tap. */}
       <Card className="items-center gap-3 px-4 py-5">

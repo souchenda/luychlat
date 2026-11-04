@@ -1,6 +1,6 @@
 "use client"
 
-import { announcementText, audioPlan, DEFAULT_VOICE_GENDER, DEFAULT_VOICE_SPEED, KHMER_CLIPS, khmerClipSequence, khmerClipUrl, playedVoice, voiceAvailability, VOICE_TAGS, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceGender, type VoiceLang, type VoiceSpeed } from "@/lib/soundbox"
+import { announcementText, audioPlan, CLOSING_CLIPS, DEFAULT_VOICE_GENDER, DEFAULT_VOICE_SPEED, KHMER_CLIPS, khmerClipSequence, khmerClipUrl, playedVoice, voiceAvailability, VOICE_TAGS, type ClosingClip, type KhmerClip, type SoundboxEvent, type SoundboxMode, type VoiceGender, type VoiceLang, type VoiceSpeed } from "@/lib/soundbox"
 
 /**
  * The SoundBox's sound: one AudioContext created on the cashier's tap (browsers block audio until a
@@ -337,6 +337,73 @@ export function announce(e: Pick<SoundboxEvent, "amount" | "currency">, mode: So
       return done("error")
     } finally {
       // Announced: the phone's audio is released again at once.
+      release()
+    }
+  })
+  queue = run
+  return run
+}
+
+/** The 5 closing words, decoded once per voice and speed (apart from the 27, so a sale never waits for them). */
+const closingSets = new Map<string, Promise<Map<ClosingClip, AudioBuffer> | null>>()
+function loadClosingClips(speed: VoiceSpeed, gender: VoiceGender): Promise<Map<ClosingClip, AudioBuffer> | null> {
+  if (!ctx) return Promise.resolve(null)
+  const audio = ctx
+  const key = setKey(speed, gender)
+  const cached = closingSets.get(key)
+  if (cached) return cached
+  const set = new Map<ClosingClip, AudioBuffer>()
+  const loading = Promise.all(
+    CLOSING_CLIPS.map(async (name) => {
+      const res = await fetch(khmerClipUrl(name, speed, gender), { cache: "force-cache" })
+      if (!res.ok) throw new Error(name)
+      set.set(name, await audio.decodeAudioData(await res.arrayBuffer()))
+    }),
+  ).then(
+    () => set,
+    () => {
+      closingSets.delete(key)
+      return null
+    },
+  )
+  closingSets.set(key, loading)
+  return loading
+}
+
+/**
+ * The daily closing summary (lib/soundbox.ts closingClipSequence): the soft melody, then the words — in the same queue as the
+ * sales, so a payment arriving at that moment is never spoken over. «locked» / «error» as for a payment, never a silent skip.
+ */
+export function announceClosing(sequence: (KhmerClip | ClosingClip)[], volume = 1, speed: VoiceSpeed = DEFAULT_VOICE_SPEED, gender: VoiceGender = DEFAULT_VOICE_GENDER): Promise<AnnounceResult> {
+  const run = queue.then(async (): Promise<AnnounceResult> => {
+    if (!ctx) return "locked"
+    if (ctx.state !== "running") await ctx.resume().catch(() => null)
+    if (ctx.state !== "running") return "locked"
+    try {
+      if (!khmerClipsReady(speed, gender)) await loadKhmerClips(speed, gender)
+      const words = clipSets.get(setKey(speed, gender))
+      const closing = await loadClosingClips(speed, gender)
+      if (!words || words.size !== KHMER_CLIPS.length || !closing) return "error"
+      await playMelody(volume)
+      const gain = ctx.createGain()
+      gain.gain.value = Math.min(1, Math.max(0, volume))
+      gain.connect(ctx.destination)
+      let at = ctx.currentTime + 0.05
+      for (const name of sequence) {
+        const buffer = (closing as Map<string, AudioBuffer>).get(name) ?? (words as Map<string, AudioBuffer>).get(name)
+        if (!buffer) continue
+        const source = ctx.createBufferSource()
+        source.buffer = buffer
+        source.connect(gain)
+        source.start(at)
+        at += buffer.duration
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, (at - ctx!.currentTime) * 1000 + 150))
+      return "played"
+    } catch (error) {
+      console.error("[soundbox] closing summary failed:", error)
+      return "error"
+    } finally {
       release()
     }
   })

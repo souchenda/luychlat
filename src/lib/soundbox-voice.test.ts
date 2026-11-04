@@ -76,7 +76,8 @@ describe("SoundBox voice persona — 👩 female (default) or 👨 male, per dev
     assert.ok(catchUpItem([row], span, 1, "https://o", "male")!.clips.every((u) => u.includes(MALE_VOICE_READY ? "/khmer/male/" : "/khmer/")))
 
     const page = read("src/app/(app)/soundbox/page.tsx")
-    assert.equal((page.match(/readVoiceSpeed\(store\(\)\), readVoiceGender\(store\(\)\)\)/g) ?? []).length, 6) // every unlock and announce
+    // Every unlock and announce — 6, plus the closing summary's unlock and announcement (founder, 4/11/2026).
+    assert.equal((page.match(/readVoiceSpeed\(store\(\)\), readVoiceGender\(store\(\)\)\)/g) ?? []).length, 8)
     assert.match(page, /speed: String\(readVoiceSpeed\(store\(\)\)\), voice: readVoiceGender\(store\(\)\) \}/)
     const audio = read("src/lib/soundbox-audio.ts")
     assert.match(audio, /const setKey = \(speed: VoiceSpeed, gender: VoiceGender\) => `\$\{playedVoice\(gender\)\}:\$\{speed\}`/)

@@ -629,3 +629,57 @@ export function offlineAlertDue(o: { lastReadyAt: string | null; alertedAt: stri
   if (o.now - ready <= OFFLINE_ALERT_MS) return false
   return !o.alertedAt || Date.parse(o.alertedAt) < ready
 }
+
+/**
+ * The daily closing summary (founder, 4/11/2026 — ROADMAP Phase 1, the 5 clips of Task #508): at the shop's closing time the
+ * counter phone says «សរុបថ្ងៃនេះ 1,200,000 រៀល និង 45 ដុល្លារ · ការលក់ 23 ដង · អរគុណ». Exact sums (whole riel, dollars to the
+ * cent — amounts the banks stated, never rounded), counted by the database (soundbox_today_totals). Only on the phones where it
+ * is switched on; once a day; within the hour after the closing time; never when the phone is on Silent / Vibrate.
+ */
+export type ClosingTotals = { khr: number; usd: number; count: number }
+export const CLOSING_KEY = "soundbox_closing"
+export type ClosingPrefs = { on: boolean; time: string; spoken: string | null }
+export const DEFAULT_CLOSING: ClosingPrefs = { on: false, time: `${CLOSE_HOUR}:00`, spoken: null }
+/** Spoken within this long after the closing time (a phone opened at midnight says nothing about the day before). */
+export const CLOSING_WINDOW_MIN = 60
+
+export function readClosing(store: Pick<KeyValueStore, "getItem"> | null): ClosingPrefs {
+  try {
+    const v = JSON.parse(store?.getItem(CLOSING_KEY) ?? "null") as Partial<ClosingPrefs> | null
+    const time = typeof v?.time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.time) ? v.time : DEFAULT_CLOSING.time
+    return { on: v?.on === true, time, spoken: typeof v?.spoken === "string" ? v.spoken : null }
+  } catch {
+    return DEFAULT_CLOSING
+  }
+}
+
+export function writeClosing(store: Pick<KeyValueStore, "setItem"> | null, prefs: ClosingPrefs) {
+  try {
+    store?.setItem(CLOSING_KEY, JSON.stringify(prefs))
+  } catch {
+    // Private mode: this visit only.
+  }
+}
+
+/** Due now: switched on, not yet said today, and within the hour after the closing time (Cambodia time). */
+export function closingDue(p: ClosingPrefs, now: number): boolean {
+  if (!p.on) return false
+  const day = ictDay(now)
+  if (p.spoken === day) return false
+  const [h, m] = p.time.split(":").map(Number)
+  const at = new Date(now + 7 * 3_600_000)
+  const minutes = at.getUTCHours() * 60 + at.getUTCMinutes()
+  const close = h * 60 + m
+  return minutes >= close && minutes < close + CLOSING_WINDOW_MIN
+}
+
+/** The summary as clips: [today_total, …riel, and, …dollars/cents, sales, …count, times, thanks]; null with no sale today. */
+export function closingClipSequence(t: ClosingTotals): (KhmerClip | ClosingClip)[] | null {
+  if (!t.count) return null
+  const khr = Math.round(t.khr)
+  const dollars = Math.floor(t.usd)
+  const c = cents(t.usd)
+  const riel: (KhmerClip | ClosingClip)[] = khr > 0 ? [...khmerNumberClips(khr), "riel"] : []
+  const usd: (KhmerClip | ClosingClip)[] = [...(dollars ? [...khmerNumberClips(dollars), "dollar" as const] : []), ...(c ? [...khmerNumberClips(c), "cent" as const] : [])]
+  return ["today_total", ...riel, ...(riel.length && usd.length ? ["and" as const] : []), ...usd, "sales", ...khmerNumberClips(t.count), "times", "thanks"]
+}
