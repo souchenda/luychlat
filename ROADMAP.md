@@ -161,7 +161,7 @@ Every phase is done before the freeze; a feature not live on 2026-12-14 moves af
 
 - [~] End-of-day shift cash reconciliation — dropped (founder, 4/11/2026): counting the cash already exists — «កែតម្រូវ» on the cash wallet takes the counted cash and shows short / over; a second screen would repeat it
 - [x] KHQR regular-customer insights (Business only) — «អតិថិជនទៀងទាត់» at /business/customers (founder, 4/11/2026): from the payer names on the last 90 days of KHQR payments — who comes back most (visits, totals, last visit), regulars not seen for longer than usual (twice their average gap, at least 14 days), the 3 busiest hours; public.khqr_customer_insights, the OWNER of a BUSINESS workspace only, customer payments only; never in a group or the bot ⛔ 🟢 DL MEAT SUPPLY › ម៉ឺនុយ › «អតិថិជនទៀងទាត់»
-- [ ] Gold-synced Nisab — the Zakat calculator's Nisab from the day's gold price (85 g), its date and source shown; Islamic Mode only
+- [x] Gold-synced Nisab — the Zakat calculator follows the day's 24K gold price (local, else spot), dated, unless the person typed their own price (then one tap goes back to today's); the market card's tap no longer stores a price that goes stale (founder, 4/11/2026 — zakatGoldPrice in lib/islamic/market.ts); Islamic Mode only ⛔ 🟢 /islamic › ម៉ាស៊ីនគិតហ្សាកាត់ › មើលបន្ទាត់ «តាមតម្លៃមាស 24K ថ្ងៃ …»
 - [ ] Receipt and invoice reading polish — the slip, invoice and utility-bill readers made more accurate on real photos (no new reader)
 
 ### Freeze and launch

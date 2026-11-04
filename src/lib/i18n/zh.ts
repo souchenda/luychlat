@@ -1119,6 +1119,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "islamic.goldBasis": "黄金 85 克",
   "islamic.silverBasis": "白银 595 克",
   "islamic.goldPrice": "金价（$/克）",
+  "islamic.goldFollowsToday": "采用 {date} 的 24K 金价——每天自动更新",
+  "islamic.goldUseToday": "您自己输入的价格——点击改回今天的金价",
   "islamic.silverPrice": "银价（$/克）",
   "islamic.goldGrams": "黄金页面以外的其他黄金（克）",
   "islamic.includeReceivables": "计入他人欠您的款项",

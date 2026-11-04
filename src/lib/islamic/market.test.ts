@@ -8,7 +8,7 @@ import type { MarketLive } from "@/lib/market-calc"
 import { HIJRI_MONTHS_KM } from "@/lib/islamic"
 import { postFooter } from "@/lib/post-footer"
 
-import { goldReference, goldSourceShort, goldUnitsLine, GRAMS_PER_HUN, GRAMS_PER_LI, islamicBulletinHtml, islamicMarket, khmerGoldWeight, nisabCheck, ZAKAT_RATE } from "./market"
+import { goldReference, goldSourceShort, goldUnitsLine, GRAMS_PER_HUN, GRAMS_PER_LI, islamicBulletinHtml, islamicMarket, khmerGoldWeight, nisabCheck, ZAKAT_RATE, zakatGoldPrice } from "./market"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
 const market = {
@@ -61,7 +61,8 @@ describe("Rates, gold and the Zakat Nisab for the Islamic community (founder, 20
     assert.match(read("supabase/migrations/20270208000000_islamic_market_bulletin.sql"), /select p_kind in \('BULLETIN', 'RATES', 'ISLAMIC_MORNING', 'ISLAMIC_BULLETIN'\)/)
     const page = read("src/app/(app)/islamic/page.tsx")
     assert.ok(page.indexOf("<IslamicMarketCard") < page.indexOf('<section id="zakat"'))
-    assert.match(page, /update\.mutate\(\s*\{ gold_price: perGram, nisab_basis: "GOLD" \}/)
+    // The tap follows the day's gold price from then on, no stored price (founder, 4/11/2026).
+    assert.match(page, /update\.mutate\(\s*\{ gold_price: null, nisab_basis: "GOLD" \}/)
   })
 })
 
@@ -125,5 +126,21 @@ describe("Gold in the units Cambodia trades by (founder, 21/10/2026)", () => {
     assert.match(card, /<p className="font-medium tabular-nums">\{latinDigits\(goldUnitsLine\(m\.gold\)\)\}<\/p>/) // 0-9 on the screen (rule 7)
     assert.match(card, /\{latinDigits\(goldReference\(m\.gold\.source\)\)\}/)
     assert.match(card, /មាស 85 ក្រាម ≈ \{latinDigits\(khmerGoldWeight\(NISAB_GOLD_GRAMS\)\)\}/)
+  })
+})
+
+describe("The Zakat Nisab follows the day's gold price (founder, 4/11/2026)", () => {
+  const today = { perGram: 120.5, perChi: 451.88, perDamlung: 4518.75, source: "local" as const, date: "2026-11-04" }
+  it("the person's own price first; else today's, dated with its source; else the admin default; else nothing", () => {
+    assert.deepEqual(zakatGoldPrice({ saved: 110, today, fallback: 100 }), { perGram: 110, from: "mine", date: null, source: null })
+    assert.deepEqual(zakatGoldPrice({ saved: null, today, fallback: 100 }), { perGram: 120.5, from: "today", date: "2026-11-04", source: "local" })
+    assert.deepEqual(zakatGoldPrice({ saved: 0, today: null, fallback: 100 }), { perGram: 100, from: "default", date: null, source: null })
+    assert.equal(zakatGoldPrice({ saved: null, today: null, fallback: null }), null)
+  })
+  it("the market card's tap follows the day from then on — it never stores a price that goes stale", () => {
+    const page = readFileSync(join(process.cwd(), "src/app/(app)/islamic/page.tsx"), "utf8").replace(/\r\n/g, "\n")
+    assert.match(page, /\{ gold_price: null, nisab_basis: "GOLD" \}/)
+    assert.match(page, /const effectiveGold = zakatGold\?\.perGram \?\? null/)
+    assert.match(page, /t\("islamic\.goldFollowsToday"/)
   })
 })

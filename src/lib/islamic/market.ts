@@ -169,3 +169,16 @@ export function islamicBulletinHtml(m: IslamicMarket, o: { hijri: string; gregor
   lines.push("", `គណនាហ្សាកាត់ដោយឥតគិតថ្លៃលើ អេប លុយឆ្លាត 👉 ${o.appUrl.replace(/\/+$/, "")}/islamic`, "", postFooter("islamic"))
   return lines.join("\n")
 }
+
+/**
+ * The Zakat calculator's gold price per gram (founder, 4/11/2026 — the Nisab follows the day's gold price): the person's own
+ * price when they typed one; else today's (local 24K, else spot — dated, with its source); else the admin default. Before,
+ * one tap stored the day's price for good, and the Nisab drifted with every later change in gold.
+ */
+export type ZakatGold = { perGram: number; from: "mine" | "today" | "default"; date: string | null; source: "local" | "spot" | null }
+export function zakatGoldPrice(o: { saved: number | null | undefined; today: IslamicMarket["gold"]; fallback: number | null | undefined }): ZakatGold | null {
+  if (o.saved && o.saved > 0) return { perGram: o.saved, from: "mine", date: null, source: null }
+  if (o.today?.perGram) return { perGram: o.today.perGram, from: "today", date: o.today.date || null, source: o.today.source }
+  if (o.fallback && o.fallback > 0) return { perGram: o.fallback, from: "default", date: null, source: null }
+  return null
+}

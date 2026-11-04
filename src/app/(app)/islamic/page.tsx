@@ -14,6 +14,8 @@ import { DailyTipCard } from "@/components/dashboard/daily-tip-card"
 import { IslamicQuizCard } from "@/components/islamic/quiz-card"
 import { ContextualDuaCard, IslamicHubHero, IslamicQuickActions } from "@/components/islamic/hub"
 import { IslamicMarketCard } from "@/components/islamic/islamic-market-card"
+import { islamicMarket, zakatGoldPrice } from "@/lib/islamic/market"
+import { useMarket } from "@/lib/market"
 import { SarCard } from "@/components/islamic/sar-card"
 import { HajjPlanCard } from "@/components/islamic/hajj-plan-card"
 import { Card } from "@/components/ui/card"
@@ -226,7 +228,10 @@ export default function IslamicPage() {
   }, [settings.gold_price, settings.silver_price, settings.gold_grams])
 
   const offset = Number(defaults.hijri_offset ?? 0) || 0
-  const effectiveGold = settings.gold_price ?? (defaults.gold_price ? Number(defaults.gold_price) : null)
+  // The Nisab follows the day's gold price unless the person typed their own (founder, 4/11/2026 — lib/islamic/market.ts).
+  const todayGold = islamicMarket(useMarket().data ?? null, new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)).gold
+  const zakatGold = zakatGoldPrice({ saved: settings.gold_price, today: todayGold, fallback: defaults.gold_price ? Number(defaults.gold_price) : null })
+  const effectiveGold = zakatGold?.perGram ?? null
   const effectiveSilver = settings.silver_price ?? (defaults.silver_price ? Number(defaults.silver_price) : null)
 
   const cash = data.wallets.reduce((s, w) => s + usd(w.balance, w.currency, rate), 0)
@@ -276,11 +281,12 @@ export default function IslamicPage() {
       },
       { onSuccess: () => toast.success(t("admin.saved")), onError: () => toast.error(t("common.error")) },
     )
-  // «យកតម្លៃនីស៊បនេះទៅគណនាហ្សាកាត់»: today's gold price per gram, on the gold basis — the calculator then shows the Nisab.
-  const applyGoldPrice = (perGram: number) => {
-    setGoldPrice(String(perGram))
+  // «យកតម្លៃនីស៊បនេះទៅគណនាហ្សាកាត់»: the gold basis, following the day's gold price from now on (no stored price that
+  // goes stale — founder, 4/11/2026) — the calculator then shows the Nisab.
+  const applyGoldPrice = () => {
+    setGoldPrice("")
     update.mutate(
-      { gold_price: perGram, nisab_basis: "GOLD" },
+      { gold_price: null, nisab_basis: "GOLD" },
       {
         onSuccess: () => {
           toast.success(t("islamic.goldPriceApplied"))
@@ -377,7 +383,15 @@ export default function IslamicPage() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="isl-gold">{t("islamic.goldPrice")}</Label>
-                  <Input id="isl-gold" inputMode="decimal" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder={defaults.gold_price ?? ""} />
+                  <Input id="isl-gold" inputMode="decimal" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} placeholder={todayGold ? String(todayGold.perGram) : (defaults.gold_price ?? "")} />
+                  {/* Where the gold price comes from, always said (guardrail: no silent guessing). */}
+                  {zakatGold?.from === "today" ? (
+                    <p className="text-[11px] leading-snug text-muted-foreground">{t("islamic.goldFollowsToday", { date: zakatGold.date ? zakatGold.date.split("-").reverse().join("/") : "" })}</p>
+                  ) : zakatGold?.from === "mine" && todayGold ? (
+                    <button type="button" className="text-left text-[11px] leading-snug text-primary underline-offset-2 hover:underline" onClick={() => applyGoldPrice()}>
+                      {t("islamic.goldUseToday")}
+                    </button>
+                  ) : null}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="isl-silver">{t("islamic.silverPrice")}</Label>
