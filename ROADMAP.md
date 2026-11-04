@@ -124,7 +124,7 @@ Low urgency: the strategic direction, recorded so it is never lost. Not schedule
 
 - [ ] **SoftPOS / Tap to Pay on Phone**: Accept contactless cards (Visa/Mastercard, Apple Pay, Google Pay) via smartphone NFC without physical POS rental.
 - [ ] **In-App Dynamic KHQR & Spoken Soundbox**: Real-time voice announcement on merchant phone upon payment receipt («អេប លុយឆ្លាត បានទទួលប្រាក់...»). *Today: the SoundBox page already announces KHQR sales received through AUTOBOK; the 27 licensed Khmer voice clips are still to record.*
-- [ ] **Automated Payment & Invoice Reconciliation**: Direct matching of received payments against open customer debt balances and invoices (tailored for DL MEAT SUPPLY and SME wholesalers).
+- [x] **Automated Payment & Invoice Reconciliation**: Direct matching of received payments against open customer debt balances and invoices (tailored for DL MEAT SUPPLY and SME wholesalers). *Done for KHQR ↔ AR (founder, 4/11/2026): a KHQR payment whose payer name matches ONE open receivable it fits into → «is this <customer>'s repayment?» [✅] [❌] in the owner's private chat; ✅ turns the sale's own income into the repayment (no second income), checked again at the tap (`lib/khqr-debt-match.ts`, migration 20270287000000). Invoices are still marked paid by hand.* ⛔ 🟢 ពេលអតិថិជនដែលជំពាក់បង់តាម KHQR សូមចុច ✅ លើសំណួរក្នុង bot
 - [ ] **Payment Gateway Integration (Bakong / PayWay / Stripe / 2C2P)**: Formal acquiring integration for multi-currency & card rails.
 - [ ] **LuyChlat Branded Smart Soundbox & POS Hardware (OEM)**: Branded merchant hardware terminals for retail shops and distribution hubs.
 

@@ -17,6 +17,7 @@ import { logEvent } from "@/lib/server/events"
 import { sendDigestNow } from "@/lib/server/weekly-digest"
 import { sendCfoNow } from "@/lib/server/cfo-brief"
 import { handleInvoiceCallback, handleInvoiceMessage, isInvoiceCallback } from "@/lib/server/invoice-bot"
+import { handleKhqrDebtCallback, isKhqrDebtCallback } from "@/lib/server/khqr-debt-bot"
 import { asksWhoOwesMe, awaitingAiQuestion, handleAiQuestion, isAiQuestion } from "@/lib/server/ai-bot"
 import { sendNssfInfo } from "@/lib/server/nssf-bot"
 import { bestPhoto, handlePoolGroupCommand, handlePoolPhotoReply } from "@/lib/server/pool-bot"
@@ -452,6 +453,9 @@ export async function POST(request: Request) {
       await handleBillKhqrCallback(update.callback_query)
     } else if (isPoolFlowCallback(update.callback_query.data)) {
       await handlePoolFlowCallback(update.callback_query)
+    } else if (isKhqrDebtCallback(update.callback_query.data)) {
+      // ✅ / ❌ «is this <customer>'s repayment?» under a KHQR sale (founder, 4/11/2026).
+      await handleKhqrDebtCallback(update.callback_query)
     } else if (isInvoiceCallback(update.callback_query.data)) {
       const chat = update.callback_query.message?.chat.id
       if (chat && !featureOk(await botFeatures(chat), "invoices")) await soon(update.callback_query.id, "km")

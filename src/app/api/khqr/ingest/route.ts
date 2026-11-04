@@ -5,6 +5,7 @@ import { parseMerchantPayment } from "@/lib/bot/merchant-khqr"
 import { logEvent } from "@/lib/server/events"
 import { notifyOwner, ownerText, transferText, type TransferResult } from "@/lib/server/biz-group-bot"
 import { askHeldKhqr, type Held } from "@/lib/server/held-bot"
+import { offerDebtMatch } from "@/lib/server/khqr-debt-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 import { isLatePush, shouldEmit, soundboxPush } from "@/lib/soundbox"
@@ -148,6 +149,9 @@ export async function POST(request: Request) {
     logEvent("info", "khqr", `KHQR ${r.bank} ${r.status === "transfer" ? "own transfer" : "payment"} pushed by API (${r.workspace})`, { fold: true })
     // The bank groups stay clean: the business owner is told privately (their chat with the bot).
     if (message && r.workspace_id) await notifyOwner({ workspaceId: r.workspace_id }, message)
+    // A customer who owes (AR) paying: the owner is asked «is this <customer>'s repayment?» — never booked without ✅
+    // (founder, 4/11/2026). Not awaited: the SoundBox never waits for it, and a failure never touches the sale.
+    if (r.status === "ok" && r.transaction_id) void offerDebtMatch(r.transaction_id).catch((e) => logEvent("warn", "khqr", `Debt match failed: ${(e as Error).message}`, { fold: true }))
   }
   // SoundBox (/soundbox): a customer's payment only — never an own-account transfer. The database
   // checks again (INCOME, bank reference, Sales) and members get it live through Supabase Realtime.
