@@ -6,7 +6,7 @@ import type { Locale } from "@/lib/i18n/dictionaries"
 import { guardRequest } from "@/lib/server/guard"
 import { transcribe, transcribeGemini, transcriptionProvider } from "@/lib/server/transcribe"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { VOICE_MAX_BYTES, VOICE_MAX_SECONDS, type VoiceEntryResponse } from "@/lib/voice-entry"
+import { VOICE_MAX_BYTES, VOICE_MAX_SECONDS, voiceDayAllowed, type VoiceEntryResponse } from "@/lib/voice-entry"
 
 /**
  * 🎤 in the entry sheet (founder, 3/11/2026): a short voice note → what was heard, by the bot's engine
@@ -16,6 +16,9 @@ import { VOICE_MAX_BYTES, VOICE_MAX_SECONDS, type VoiceEntryResponse } from "@/l
 export const runtime = "nodejs"
 
 const reply = (body: VoiceEntryResponse, status = 200) => NextResponse.json(body, { status })
+
+/** Notes sent today per account (Cambodian day), in memory: a deploy starts the count again — in the person's favour. */
+const voiceUsed = new Map<string, { day: string; n: number }>()
 
 export async function POST(request: Request) {
   const blocked = guardRequest(request, { name: "voice-entry", limit: 8, windowMs: 60_000, maxBytes: VOICE_MAX_BYTES + 10_000 })
@@ -27,6 +30,13 @@ export async function POST(request: Request) {
   const { data: features } = await supabase.rpc("my_features")
   if ((features as Record<string, boolean> | null)?.voice_entry === false) return reply({ error: "feature" }, 403)
   if (!transcriptionProvider() && !process.env.GEMINI_API_KEY?.trim()) return reply({ error: "off" }, 503)
+  // Free: 10 a day, counted when a note is sent (founder, 4/11/2026 — PRO never slowed by free use).
+  const { data: plan } = await supabase.rpc("my_plan")
+  const day = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)
+  const used = voiceUsed.get(auth.user.id)
+  const usedToday = used?.day === day ? used.n : 0
+  if (!voiceDayAllowed((plan as { tier?: string } | null)?.tier, usedToday)) return reply({ error: "limit" }, 429)
+  voiceUsed.set(auth.user.id, { day, n: usedToday + 1 })
 
   let audio: File | null = null
   let lang: Locale = "km"

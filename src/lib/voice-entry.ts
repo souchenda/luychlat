@@ -13,6 +13,13 @@ export const VOICE_MAX_SECONDS = 30
 /** About 30 s of compressed speech, with room to spare. */
 export const VOICE_MAX_BYTES = 2 * 1024 * 1024
 
+/**
+ * Free for everyone (founder, 4/11/2026: «free, as long as it costs us nothing and never slows PRO»): a Free account speaks
+ * up to 10 entries a Cambodian day, so the speech quota PRO shares is never spent by free use; PRO / ULTRA, no daily cap.
+ */
+export const VOICE_FREE_PER_DAY = 10
+export const voiceDayAllowed = (tier: string | null | undefined, usedToday: number) => (tier === "PRO" || tier === "ULTRA" ? true : usedToday < VOICE_FREE_PER_DAY)
+
 export type VoiceDraft = {
   type: CategoryType
   amount: number
@@ -52,4 +59,4 @@ export function recorderMime(supported: (mime: string) => boolean): string | nul
 }
 
 /** What the server may answer. */
-export type VoiceEntryResponse = { heard: string; text: string } | { error: "unauthorized" | "feature" | "off" | "invalid" | "failed" | "unsure" | "busy"; heard?: string }
+export type VoiceEntryResponse = { heard: string; text: string } | { error: "unauthorized" | "feature" | "off" | "invalid" | "failed" | "unsure" | "busy" | "limit"; heard?: string }

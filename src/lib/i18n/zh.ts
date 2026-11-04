@@ -175,6 +175,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "voice.noAmount": "没有听到金额——例如说“咖啡 2 美元”",
   "voice.unsure": "没听清（“{text}”）——请慢一点再说一次",
   "voice.failed": "暂时无法识别——请重试或手动输入",
+  "voice.limit": "免费语音记账每天 {n} 次——明天可继续，或手动输入（PRO 不限）",
   "voice.busy": "暂时没听清——请再说一次，或手动输入",
   "voice.noMic": "无法使用麦克风——请允许 App Luy Chlat 使用麦克风",
   "entry.receipt": "收据照片（可选）",

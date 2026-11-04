@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { useT } from "@/lib/i18n/use-t"
 import { useLocaleStore } from "@/stores/locale-store"
 import { cn } from "@/lib/utils"
-import { recorderMime, VOICE_MAX_SECONDS, type VoiceEntryResponse } from "@/lib/voice-entry"
+import { recorderMime, VOICE_FREE_PER_DAY, VOICE_MAX_SECONDS, type VoiceEntryResponse } from "@/lib/voice-entry"
 
 type State = { step: "idle" } | { step: "recording"; seconds: number } | { step: "working" }
 
@@ -50,6 +50,7 @@ export function VoiceEntryButton({ onHeard }: { onHeard: (r: { heard: string; te
       if (answer && "text" in answer) onHeard(answer)
       else if (answer?.error === "unsure") toast.error(t("voice.unsure", { text: answer.heard ?? "" }))
       else if (answer?.error === "busy") toast.error(t("voice.busy"))
+      else if (answer?.error === "limit") toast.error(t("voice.limit", { n: VOICE_FREE_PER_DAY }))
       else toast.error(t("voice.failed"))
     } finally {
       setState({ step: "idle" })

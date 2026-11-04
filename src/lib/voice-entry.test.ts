@@ -5,7 +5,7 @@ import { describe, it } from "node:test"
 
 import { khmerWordsToDigits } from "./bot/khmer-numbers"
 import { FEATURE_KEYS } from "./features"
-import { recorderMime, voiceDraft, VOICE_MAX_BYTES, VOICE_MAX_SECONDS } from "./voice-entry"
+import { recorderMime, voiceDayAllowed, voiceDraft, VOICE_FREE_PER_DAY, VOICE_MAX_BYTES, VOICE_MAX_SECONDS } from "./voice-entry"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
 const cats = ["food", "transport", "salary", "other_expense", "other_income"].map((p, i) => ({
@@ -55,6 +55,19 @@ describe("🎤 speak an entry in the app (founder, 3/11/2026)", () => {
     assert.deepEqual(draft("សង Dara 20$"), { type: "EXPENSE", amount: 20, currency: "USD", walletId: null, categoryId: null, note: "សង Dara 20$" })
     // The parser's «other» fallback is never offered: the category stays to pick.
     assert.equal(draft("អ្វីមួយ 3$")?.categoryId, null)
+  })
+
+  it("free for everyone, never slowing PRO: Free 10 a day, PRO / ULTRA no daily cap (founder, 4/11/2026)", () => {
+    assert.equal(VOICE_FREE_PER_DAY, 10)
+    assert.equal(voiceDayAllowed("FREE", 9), true)
+    assert.equal(voiceDayAllowed("FREE", 10), false)
+    assert.equal(voiceDayAllowed(null, 10), false) // unknown plan → the Free rule
+    assert.equal(voiceDayAllowed("PRO", 500), true)
+    assert.equal(voiceDayAllowed("ULTRA", 500), true)
+    const route = read("src/app/api/voice-entry/route.ts")
+    assert.match(route, /if \(!voiceDayAllowed\(\(plan as \{ tier\?: string \} \| null\)\?\.tier, usedToday\)\) return reply\(\{ error: "limit" \}, 429\)/)
+    // Accuracy: the sheet is filled, never saved — the person checks what was heard and taps Save.
+    assert.doesNotMatch(route, /create_entry|\.insert\(/)
   })
 
   it("the recorder: webm on Android / Chrome, mp4 on iPhone, none → the «allow the microphone» message", () => {
