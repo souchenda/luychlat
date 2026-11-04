@@ -19,6 +19,8 @@ export const FEATURES = {
   bank_slips: { routes: [] },
   // 🎤 in the entry sheet: speak an entry, the bot's voice engine (founder, 3/11/2026).
   voice_entry: { routes: [] },
+  // «កម្មង់ទុកមុន» for ULTRA shops (founder, 4/11/2026 — docs/order-ahead.md): staff and a pilot café first.
+  order_ahead: { routes: ["/business/orders", "/business/menu"] },
 } as const
 
 export type FeatureKey = keyof typeof FEATURES
