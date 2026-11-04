@@ -84,3 +84,30 @@ export function khqrBank(payload: string): KhqrBank {
     .join(" ")
   return BANK_SIGNS.find(([, re]) => re.test(text))?.[0] ?? "OTHER"
 }
+
+const field = (id: string, value: string) => `${id}${String(value.length).padStart(2, "0")}${value}`
+
+/**
+ * The shop's own KHQR with an order's amount in it (founder, 4/11/2026 — order-ahead, an exception to «never add an amount»
+ * kept for invoices): the same fields in the same order, the point of initiation made dynamic (tag 01 = 12), the amount as
+ * tag 54 (riel whole, dollars to the cent) and a fresh checksum. Null when the code isn't a valid KHQR, has no currency, or
+ * already holds a different amount. Pure; checked against ABA, ACLEDA and Wing before it is opened to shops.
+ */
+export function khqrWithAmount(payload: string, amount: number): string | null {
+  if (!isKhqr(payload) || !(amount > 0)) return null
+  const fields = parseEmv(payload)!
+  const info = khqrInfo(payload)
+  if (!info.currency) return null
+  const value = info.currency === "KHR" ? String(Math.round(amount)) : (Math.round(amount * 100) / 100).toFixed(2)
+  if (info.amount !== null && Number(fields.get("54")) !== Number(value)) return null
+  const out = new Map<string, string>()
+  for (const [id, v] of fields) {
+    if (id === "63" || id === "54") continue
+    out.set(id, id === "01" ? "12" : v)
+  }
+  if (!out.has("01")) out.set("01", "12")
+  out.set("54", value)
+  // EMV order: by tag number (54 sits between 53 and 58), the checksum last.
+  const body = [...out.entries()].sort(([a], [b]) => Number(a) - Number(b)).map(([id, v]) => field(id, v)).join("") + "6304"
+  return body + crc16(body)
+}

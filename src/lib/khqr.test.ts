@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
-import { crc16, isKhqr, khqrBank, khqrInfo } from "./khqr"
+import { crc16, isKhqr, khqrBank, khqrInfo, khqrWithAmount } from "./khqr"
 
 /** A well-formed KHQR with its checksum: account tag 29 (Bakong ID, account, acquirer), currency, name. */
 function payload(account: [string, string, string], currency: "116" | "840", name: string): string {
@@ -29,5 +29,30 @@ describe("KHQR — bank and currency from the code", () => {
   it("the merchant's own name never decides the bank; an unknown bank is OTHER", () => {
     assert.equal(khqrBank(payload(["shop@prin", "1", "Prince Bank"], "116", "ABA SHOP ACLEDA")), "OTHER")
     assert.equal(khqrBank("not a code"), "OTHER")
+  })
+})
+
+describe("Order-ahead — the shop's KHQR with the order's amount (founder, 4/11/2026)", () => {
+  const usd = payload(["cafe@abaa", "000123456", "ABA Bank"], "840", "MY CAFE")
+  const khr = payload(["cafe@aclb", "386000001", "ACLEDA Bank Plc."], "116", "MY CAFE")
+
+  it("a valid KHQR again: dynamic (01 = 12), the amount in tag 54, a fresh checksum, everything else unchanged", () => {
+    const q = khqrWithAmount(usd, 3.5)!
+    assert.ok(isKhqr(q))
+    assert.equal(khqrInfo(q).amount, 3.5)
+    assert.equal(khqrInfo(q).name, "MY CAFE")
+    assert.equal(khqrBank(q), "ABA")
+    assert.match(q, /^000201010212/)
+    assert.match(q, /5303840540[0-9]3\.50/) // currency, then the amount: dollars to the cent
+    assert.equal(khqrInfo(khqrWithAmount(khr, 12500)!).amount, 12500) // riel whole
+    assert.match(khqrWithAmount(khr, 12500)!, /5303116540512500/)
+  })
+
+  it("never: a broken code, no amount, or a code that already holds another amount", () => {
+    assert.equal(khqrWithAmount("000201nonsense", 5), null)
+    assert.equal(khqrWithAmount(usd, 0), null)
+    const fixed = khqrWithAmount(usd, 2)!
+    assert.equal(khqrWithAmount(fixed, 3), null)
+    assert.equal(khqrWithAmount(fixed, 2), fixed)
   })
 })
