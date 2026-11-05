@@ -370,6 +370,13 @@ export function UpgradeSheet() {
               )}
               <p className="text-center text-sm font-medium">{t(qrUrl ? "upgrade.scanThenTap" : "upgrade.transferThenTap")}</p>
               {note && <p className="text-center text-xs whitespace-pre-line text-muted-foreground">{note}</p>}
+              {/* Said before paying (founder, 5/11/2026 — the website's terms, luychlat.com/privacy#payments). */}
+              <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                {t("upgrade.terms")}{" "}
+                <a href="https://luychlat.com/privacy#payments" target="_blank" rel="noopener" className="underline underline-offset-4">
+                  {t("upgrade.termsLink")}
+                </a>
+              </p>
             </div>
 
             <form

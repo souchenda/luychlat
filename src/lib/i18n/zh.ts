@@ -940,6 +940,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "support.status.CLOSED": "已关闭",
   "support.closeTicket": "关闭",
   "upgrade.needHelp": "付款遇到问题？联系客服",
+  "upgrade.terms": "付款概不退还。不会自动扣款——期限结束后账户回到 FREE 免费版，数据保留。",
+  "upgrade.termsLink": "条款",
   "admin.tickets": "客服消息",
   "admin.noTickets": "暂无消息",
   "admin.ticketFilter.active": "未关闭",
