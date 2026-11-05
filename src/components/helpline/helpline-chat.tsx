@@ -7,19 +7,20 @@ import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { useFeatures } from "@/lib/features"
-import { classify, KIND_REPLY, KNOWLEDGE, QUICK_IDS, staffHours, wantsHuman, type HelpEntry } from "@/lib/helpline/knowledge"
+import { classify, KIND_REPLY, staffHours, wantsHuman, type HelpEntry } from "@/lib/helpline/knowledge"
 import { useLocaleStore } from "@/stores/locale-store"
 import { useUpgradeStore } from "@/lib/plan"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
-type Msg = { from: "me" | "bot"; text: string; entry?: HelpEntry; offerHuman?: boolean; chips?: string[] }
+type Msg = { from: "me" | "bot"; text: string; entry?: HelpEntry; offerHuman?: boolean }
 
 const T = {
   title: { km: "ក្រុមការងារ អេប លុយឆ្លាត", en: "App Luy Chlat team" },
   statusOpen: { km: "កំពុងបម្រើ · ចន្ទ–សុក្រ 08:00–17:00", en: "Here now · Mon–Fri 08:00–17:00" },
   statusClosed: { km: "ឆ្លើយភ្លាមៗ · មនុស្សឆ្លើយ ចន្ទ–សុក្រ", en: "Quick answers · people Mon–Fri" },
-  hello: { km: "ជម្រាបសួរ! ក្រុមការងារ អេប លុយឆ្លាត រីករាយបម្រើ។ សូមជ្រើសសំណួរខាងក្រោម ឬសរសេរចម្ងល់របស់លោកអ្នក។", en: "Hello! The App Luy Chlat team is glad to help. Pick a question below or type your own." },
+  hello: { km: "ជម្រាបសួរ! ក្រុមការងារ អេប លុយឆ្លាត សូមស្វាគមន៍។ តើលោកអ្នកមានបញ្ហាអ្វី ដែលក្រុមការងារយើងអាចជួយដោះស្រាយជូនបានភ្លាមៗទេ?", en: "Hello, and welcome to the App Luy Chlat team. Is there anything we can help you solve right now?" },
+  followUp: { km: "តើមានអ្វីផ្សេងទៀត ដែលក្រុមការងារយើងអាចជួយលោកអ្នកបានទៀតទេ?", en: "Is there anything else our team can help you with?" },
   placeholder: { km: "សរសេរចម្ងល់របស់លោកអ្នក…", en: "Type your question…" },
   unknown: { km: "សំណួរនេះ យើងសូមផ្ញើទៅក្រុមការងារ ដើម្បីឆ្លើយលោកអ្នកឱ្យបានច្បាស់លាស់ — ចុចខាងក្រោម។", en: "We'd like our team to answer this one properly. Tap below to send it." },
   toHuman: { km: "បាទ/ចាស ក្រុមការងាររបស់យើងរីករាយនិយាយជាមួយលោកអ្នក — ចុចខាងក្រោម ដើម្បីផ្ញើចម្ងល់។", en: "Of course, our team would be glad to talk with you. Tap below to send your question." },
@@ -59,7 +60,7 @@ export function HelplineChat() {
   const L = (b: { km: string; en: string }) => (locale === "km" ? b.km : b.en)
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const [msgs, setMsgs] = useState<Msg[]>(() => [{ from: "bot", text: "", chips: QUICK_IDS }])
+  const [msgs, setMsgs] = useState<Msg[]>([])
   const [text, setText] = useState("")
   const [typing, setTyping] = useState(false)
   const [sending, setSending] = useState(false)
@@ -74,20 +75,32 @@ export function HelplineChat() {
     const t = setInterval(() => setNow(Date.now()), 60_000)
     return () => clearInterval(t)
   }, [open])
+  // Like a person picking up (founder, 5/11/2026 — «a person, not a bot: greet them and ask what we can solve for them
+  // now; never a list of questions first»): the greeting arrives after a short «typing…», the first time it opens.
+  useEffect(() => {
+    if (!open || msgs.length) return
+    setTyping(true)
+    const t = window.setTimeout(() => {
+      setTyping(false)
+      setMsgs((m) => (m.length ? m : [{ from: "bot", text: "" }]))
+    }, 700)
+    return () => window.clearTimeout(t)
+  }, [open, msgs.length])
   // Never over the pages that are a conversation themselves.
   if (!allowed || pathname.startsWith("/support") || pathname.startsWith("/advisor")) return null
 
   const online = staffHours(now)
   /** The question at once; the reply after a short «typing…». */
-  const say = (asked: string, reply: Msg) => {
+  const say = (asked: string, reply: Msg, then?: Msg) => {
     setMsgs((m) => [...m, { from: "me", text: asked }])
     setTyping(true)
     window.setTimeout(() => {
       setTyping(false)
-      setMsgs((m) => [...m, reply])
+      setMsgs((m) => [...m, reply, ...(then ? [then] : [])])
     }, typingMs(reply))
   }
-  const answer = (entry: HelpEntry, asked: string) => say(asked, { from: "bot", text: "", entry })
+  // After an answer, the question a person would ask — never a list of other questions.
+  const answer = (entry: HelpEntry, asked: string) => say(asked, { from: "bot", text: "", entry }, { from: "bot", text: L(T.followUp) })
   const ask = (raw: string) => {
     const q = raw.trim()
     if (!q || typing) return
@@ -98,7 +111,7 @@ export function HelplineChat() {
     const c = classify(q)
     if (c.kind === "answer" && c.entry) return answer(c.entry, q)
     if (c.kind === "ontopic") return say(q, { from: "bot", text: L(T.unknown), offerHuman: true })
-    say(q, { from: "bot", text: L(KIND_REPLY[c.kind as keyof typeof KIND_REPLY]), chips: QUICK_IDS.slice(0, 4) })
+    say(q, { from: "bot", text: L(KIND_REPLY[c.kind as keyof typeof KIND_REPLY]) })
   }
 
   const toTeam = async () => {
@@ -178,18 +191,6 @@ export function HelplineChat() {
                       <Button type="button" size="sm" variant="outline" disabled={sending} onClick={() => void toTeam()}>
                         {sending ? <Loader2Icon className="animate-spin" /> : <HeadsetIcon />} {L(T.human)}
                       </Button>
-                    )}
-                    {(m.chips ?? (m.entry ? QUICK_IDS.filter((id) => id !== m.entry!.id).slice(0, 3) : [])).length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {(m.chips ?? QUICK_IDS.filter((id) => id !== m.entry!.id).slice(0, 3)).map((id) => {
-                          const e = KNOWLEDGE.find((k) => k.id === id)
-                          return e ? (
-                            <button key={id} type="button" disabled={typing} onClick={() => answer(e, L(e.q))} className="rounded-full border bg-background px-3 py-1.5 text-left text-xs font-medium hover:bg-muted">
-                              {L(e.q)}
-                            </button>
-                          ) : null
-                        })}
-                      </div>
                     )}
                   </div>
                 </div>

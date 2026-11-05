@@ -20,6 +20,12 @@ describe("the helpline on luychlat.com — wired safely (founder, 5/11/2026)", (
   it("the page puts the server's words on the screen as text, never HTML; every page loads it; the CSP lets it call the app", { skip: !existsSync(join(process.cwd(), "Website/helpline.js")) && "Website/ not here" }, () => {
     const js = read("Website/helpline.js")
     assert.doesNotMatch(js, /innerHTML|insertAdjacentHTML|document\.write/)
+    // A person, not a bot (founder, 5/11/2026): a greeting that asks what we can solve now — never a list of questions.
+    assert.doesNotMatch(js, /hl-chip|chips\(/)
+    assert.match(js, /តើលោកអ្នកមានបញ្ហាអ្វី ដែលក្រុមការងារយើងអាចជួយដោះស្រាយជូនបានភ្លាមៗទេ\?/)
+    const app = read("src/components/helpline/helpline-chat.tsx")
+    assert.doesNotMatch(app, /QUICK_IDS|chips/)
+    assert.match(app, /តើលោកអ្នកមានបញ្ហាអ្វី ដែលក្រុមការងារយើងអាចជួយដោះស្រាយជូនបានភ្លាមៗទេ\?/)
     assert.match(js, /var API = "https:\/\/app\.luychlat\.com\/api\/helpline\/site"/)
     for (const p of ["index.html", "personal.html", "family.html", "business.html", "islamic.html", "privacy.html", "delete-account.html"])
       for (const dir of ["", "en/", "zh/"]) {

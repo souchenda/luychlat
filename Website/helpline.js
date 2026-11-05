@@ -17,9 +17,14 @@
     typing: { km: "កំពុងសរសេរ…", en: "Typing…", zh: "正在输入…" },
     open: { km: "សួរក្រុមការងារ", en: "Ask our team", zh: "咨询我们" },
     hello: {
-      km: "ជម្រាបសួរ! ក្រុមការងារ អេប លុយឆ្លាត រីករាយបម្រើ។ សូមជ្រើសសំណួរខាងក្រោម ឬសរសេរចម្ងល់របស់លោកអ្នក។",
-      en: "Hello! The App Luy Chlat team is glad to help. Pick a question below or type your own.",
-      zh: "您好！App Luy Chlat 团队很乐意为您服务。请选择下面的问题，或输入您的问题（我们用英语回答）。",
+      km: "ជម្រាបសួរ! ក្រុមការងារ អេប លុយឆ្លាត សូមស្វាគមន៍។ តើលោកអ្នកមានបញ្ហាអ្វី ដែលក្រុមការងារយើងអាចជួយដោះស្រាយជូនបានភ្លាមៗទេ?",
+      en: "Hello, and welcome to the App Luy Chlat team. Is there anything we can help you solve right now?",
+      zh: "您好，欢迎来到 App Luy Chlat 团队。有什么问题我们现在就可以帮您解决吗？（我们用英语回答）",
+    },
+    followUp: {
+      km: "តើមានអ្វីផ្សេងទៀត ដែលក្រុមការងារយើងអាចជួយលោកអ្នកបានទៀតទេ?",
+      en: "Is there anything else our team can help you with?",
+      zh: "还有什么我们可以帮您的吗？",
     },
     placeholder: { km: "សរសេរចម្ងល់របស់លោកអ្នក…", en: "Type your question…", zh: "输入您的问题…" },
     human: { km: "និយាយជាមួយក្រុមការងារ", en: "Talk to our team", zh: "联系我们的团队" },
@@ -81,7 +86,7 @@
       .catch(function () { return { error: "offline" }; });
   }
 
-  var fab, panel, list, input, quick = [], lastQuestion = "", busy = false;
+  var fab, panel, list, input, lastQuestion = "", busy = false;
 
   function scroll() { list.scrollTop = list.scrollHeight; }
   // The team's face beside each reply: the App Luy Chlat logo.
@@ -108,23 +113,7 @@
     var wait = new Promise(function (r) { setTimeout(r, Math.min(1400, 550 + chars)); });
     Promise.all([work, wait]).then(function (v) { row.remove(); busy = false; show(v[0]); });
   }
-  function chips(entries) {
-    if (!entries || !entries.length) return;
-    var row = el("div", "hl-chips");
-    entries.forEach(function (e) {
-      var c = el("button", "hl-chip", e.q);
-      c.type = "button";
-      c.addEventListener("click", function () {
-        if (busy) return;
-        bubble("me", e.q);
-        typingThen((e.a || []).join(" ").length / 2, null, function () { showEntry(e, quick.filter(function (q) { return q.id !== e.id; }).slice(0, 3)); });
-      });
-      row.appendChild(c);
-    });
-    list.appendChild(row);
-    scroll();
-  }
-  function showEntry(e, more) {
+  function showEntry(e) {
     var b = bubble("bot");
     b.appendChild(el("p", "hl-q", e.q));
     (e.a || []).forEach(function (p) { b.appendChild(el("p", null, p)); });
@@ -135,7 +124,7 @@
       if (href.indexOf("https://app.") === 0) { a.target = "_blank"; a.rel = "noopener"; }
       b.appendChild(a);
     }
-    chips(more);
+    bubble("bot", L("followUp"));
   }
   function failed() {
     var b = bubble("bot", L("failed"));
@@ -184,15 +173,13 @@
     input.value = "";
     typingThen(300, call("POST", { text: q, lang: lang }), function (r) {
       if (!r || r.error) return failed();
-      if (r.kind === "answer" && r.entry) return showEntry(r.entry, r.more);
+      if (r.kind === "answer" && r.entry) return showEntry(r.entry);
       var b = bubble("bot", r.text);
       if (r.offerHuman) offerHuman(b);
-      else chips(r.more);
     });
   }
 
   function build(data) {
-    quick = data.quick || [];
     fab = el("button", "hl-fab");
     fab.type = "button";
     fab.setAttribute("aria-label", L("open"));
@@ -224,9 +211,13 @@
     document.body.appendChild(fab);
     document.body.appendChild(panel);
 
-    bubble("bot", L("hello"));
-    chips(quick);
-    var toggle = function (on) { panel.hidden = !on; fab.hidden = on; if (on) { scroll(); input.focus(); } else fab.focus(); };
+    // Like a person picking up: the greeting after a short «typing…», the first time it opens — never a list of questions.
+    var greeted = false;
+    var toggle = function (on) {
+      panel.hidden = !on; fab.hidden = on;
+      if (on && !greeted) { greeted = true; typingThen(150, null, function () { bubble("bot", L("hello")); }); }
+      if (on) { scroll(); input.focus(); } else fab.focus();
+    };
     fab.addEventListener("click", function () { toggle(true); });
     x.addEventListener("click", function () { toggle(false); });
     document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !panel.hidden) toggle(false); });
