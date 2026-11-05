@@ -11,7 +11,7 @@ describe("Islamic logo variant (founder, 18/10/2026; the mosque dome since 5/11/
     const gen = read("scripts/generate-islamic-logo.mjs")
     assert.match(gen, /const EMERALD = "#064e3b"/)
     assert.match(gen, /const GOLD = "#e2b55a"/)
-    assert.match(gen, /the onion dome/)
+    assert.match(gen, /a large round dome on one base/)
   })
   it("the sizes: 1024 for the Telegram channel, 512 (and light) for the in-app icon", async () => {
     const sharp = (await import("sharp")).default

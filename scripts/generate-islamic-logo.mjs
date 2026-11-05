@@ -24,18 +24,15 @@ const star = (cx, cy, r) => {
 
 export const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <rect width="1024" height="1024" fill="${EMERALD}"/>
-  <circle cx="512" cy="512" r="430" fill="none" stroke="${GOLD}" stroke-opacity=".35" stroke-width="6"/>
-  <!-- crescent and star -->
-  <circle cx="498" cy="262" r="62" fill="${GOLD}"/>
-  <circle cx="524" cy="248" r="54" fill="${EMERALD}"/>
-  ${star(530, 256, 22)}
-  <!-- finial -->
-  <rect x="505" y="322" width="14" height="54" rx="7" fill="${WHITE}"/>
-  <!-- the onion dome -->
-  <path d="M512 372 C528 412 626 452 668 528 C704 594 690 660 664 694 L360 694 C334 660 320 594 356 528 C398 452 496 412 512 372 Z" fill="${WHITE}"/>
-  <!-- the drum and its base -->
-  <rect x="334" y="712" width="356" height="62" rx="14" fill="${WHITE}"/>
-  <rect x="300" y="792" width="424" height="40" rx="12" fill="${WHITE}" fill-opacity=".9"/>
+  <g transform="translate(0 24)">
+  <!-- bold and simple (founder, 5/11/2026): a large round dome on one base, the crescent and star on a short finial -->
+  <circle cx="500" cy="246" r="56" fill="${GOLD}"/>
+  <circle cx="523" cy="233" r="48" fill="${EMERALD}"/>
+  ${star(530, 244, 19)}
+  <rect x="506" y="300" width="12" height="28" rx="6" fill="${WHITE}"/>
+  <path d="M330 692 C258 598 290 418 452 370 C492 358 508 346 512 330 C516 346 532 358 572 370 C734 418 766 598 694 692 Z" fill="${WHITE}"/>
+  <rect x="296" y="710" width="432" height="72" rx="22" fill="${WHITE}"/>
+  </g>
 </svg>`
 
 if (process.argv[1] && import.meta.url.endsWith("generate-islamic-logo.mjs")) {
