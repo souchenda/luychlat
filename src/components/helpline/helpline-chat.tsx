@@ -17,8 +17,8 @@ type Msg = { from: "me" | "bot"; text: string; entry?: HelpEntry; offerHuman?: b
 
 const T = {
   title: { km: "ក្រុមការងារ អេប លុយឆ្លាត", en: "App Luy Chlat team" },
-  statusOpen: { km: "ក្រុមការងារកំពុងបម្រើ · ចន្ទ–សុក្រ 08:00–17:00", en: "Our team is here · Mon–Fri 08:00–17:00" },
-  statusClosed: { km: "ឆ្លើយភ្លាមៗ · ក្រុមការងារត្រឡប់មកវិញ ចន្ទ–សុក្រ 08:00", en: "Quick answers now · our team is back Mon–Fri 08:00" },
+  statusOpen: { km: "កំពុងបម្រើ · ចន្ទ–សុក្រ 08:00–17:00", en: "Here now · Mon–Fri 08:00–17:00" },
+  statusClosed: { km: "ឆ្លើយភ្លាមៗ · មនុស្សឆ្លើយ ចន្ទ–សុក្រ", en: "Quick answers · people Mon–Fri" },
   hello: { km: "ជម្រាបសួរ! ក្រុមការងារ អេប លុយឆ្លាត រីករាយបម្រើ។ សូមជ្រើសសំណួរខាងក្រោម ឬសរសេរចម្ងល់របស់លោកអ្នក។", en: "Hello! The App Luy Chlat team is glad to help. Pick a question below or type your own." },
   placeholder: { km: "សរសេរចម្ងល់របស់លោកអ្នក…", en: "Type your question…" },
   unknown: { km: "សំណួរនេះ យើងសូមផ្ញើទៅក្រុមការងារ ដើម្បីឆ្លើយលោកអ្នកឱ្យបានច្បាស់លាស់ — ចុចខាងក្រោម។", en: "We'd like our team to answer this one properly. Tap below to send it." },

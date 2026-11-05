@@ -12,8 +12,8 @@
 
   var T = {
     title: { km: "ក្រុមការងារ អេប លុយឆ្លាត", en: "App Luy Chlat team", zh: "App Luy Chlat 团队" },
-    statusOpen: { km: "ក្រុមការងារកំពុងបម្រើ · ចន្ទ–សុក្រ 08:00–17:00", en: "Our team is here · Mon–Fri 08:00–17:00", zh: "团队在线 · 周一至周五 08:00–17:00" },
-    statusClosed: { km: "ឆ្លើយភ្លាមៗ · ក្រុមការងារត្រឡប់មកវិញ ចន្ទ–សុក្រ 08:00", en: "Quick answers now · our team is back Mon–Fri 08:00", zh: "即时解答 · 团队周一至周五 08:00 回来" },
+    statusOpen: { km: "កំពុងបម្រើ · ចន្ទ–សុក្រ 08:00–17:00", en: "Here now · Mon–Fri 08:00–17:00", zh: "在线 · 周一至周五 08:00–17:00" },
+    statusClosed: { km: "ឆ្លើយភ្លាមៗ · មនុស្សឆ្លើយ ចន្ទ–សុក្រ", en: "Quick answers · people Mon–Fri", zh: "即时解答 · 人工周一至周五" },
     typing: { km: "កំពុងសរសេរ…", en: "Typing…", zh: "正在输入…" },
     open: { km: "សួរក្រុមការងារ", en: "Ask our team", zh: "咨询我们" },
     hello: {
