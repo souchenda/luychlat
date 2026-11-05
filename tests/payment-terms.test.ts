@@ -22,8 +22,10 @@ describe("payment terms — said before paying, and on the website", () => {
   it("the website's privacy and terms page has them at #payments", { skip: !existsSync(join(process.cwd(), "Website/privacy.html")) && "Website/ not here" }, () => {
     const page = read("Website/privacy.html")
     assert.match(page, /<section id="payments">/)
-    for (const k of ["d.s4b", "d.s4c", "d.s4d"]) assert.match(page, new RegExp(`data-i="${k}"`))
+    for (const k of ["d.s4b", "d.s4c", "d.s4d", "d.s4e"]) assert.match(page, new RegExp(`data-i="${k}"`))
     assert.match(page, /មិនអាចសងវិញ ដកវិញ ឬប្តូរវិញបានទេ/)
     assert.match(page, /ត្រឡប់ទៅកញ្ចប់ FREE ដោយខ្លួនឯង/)
+    // Paid too much or twice by mistake: extra time, never money back (founder, 5/11/2026).
+    assert.match(page, /បង់លើសចំនួន ឬបង់ពីរដងដោយច្រឡំ យើងមិនសងលុយវិញទេ តែបន្ថែមរយៈពេល PRO \/ ULTRA/)
   })
 })
