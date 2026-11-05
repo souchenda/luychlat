@@ -28,7 +28,7 @@ export const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" he
   <!-- crescent and star -->
   <circle cx="498" cy="262" r="62" fill="${GOLD}"/>
   <circle cx="524" cy="248" r="54" fill="${EMERALD}"/>
-  ${star(566, 236, 24)}
+  ${star(530, 256, 22)}
   <!-- finial -->
   <rect x="505" y="322" width="14" height="54" rx="7" fill="${WHITE}"/>
   <!-- the onion dome -->
