@@ -21,6 +21,12 @@ describe("luychlat.com passes its quality gate (founder, 28/10/2026 — «the wh
     const auto = read("deploy/auto-update.sh")
     assert.ok(auto.indexOf("bash deploy/website-sync.sh") > auto.indexOf("git fetch --quiet origin master"))
     assert.ok(auto.indexOf("bash deploy/website-sync.sh") < auto.indexOf("exec ./deploy/update.sh"))
+    // A website-only release is not an app build (founder, 5/11/2026 — «only what is relevant»): marked deployed, no rebuild.
+    const notApp = new RegExp(auto.match(/^NOT_APP='([^']+)'/m)![1])
+    for (const f of ["Website/index.html", "Website/en/personal.html", "docs/x.md", "scripts/website-i18n.mjs", "deploy/landing-publish.sh"]) assert.ok(notApp.test(f), f)
+    for (const f of ["src/app/page.tsx", "deploy/update.sh", "ROADMAP.md", "supabase/migrations/x.sql", "tests/website-check.test.ts", "package.json"]) assert.ok(!notApp.test(f), f)
+    assert.ok(auto.indexOf('echo "$target" > deploy/.deployed') < auto.indexOf("exec ./deploy/update.sh"))
+    assert.ok(auto.indexOf("bash deploy/website-sync.sh") < auto.indexOf('echo "$target" > deploy/.deployed')) // published first
     const update = read("deploy/update.sh")
     assert.ok(update.indexOf("bash ./deploy/website-sync.sh HEAD") > update.indexOf("git rev-parse HEAD > deploy/.deployed"), "only after the app is live")
     const sync = read("deploy/website-sync.sh")

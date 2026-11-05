@@ -19,6 +19,18 @@ if [ "$deployed" = "$(git rev-parse origin/master)" ] && [ "$env_now" = "$env_de
   exit 0
 fi
 
+# A release that changes only the website, the docs or their tools: already published by website-sync above; the app has
+# nothing new, so no 25-minute rebuild (founder, 5/11/2026: «only what is relevant — don't rebuild from the start»).
+NOT_APP='^(Website/|docs/|scripts/website-[^/]+$|deploy/(landing-publish\.sh|landing-watch\.sh|site-prices\.py)$)'
+target=$(git rev-parse origin/master)
+if [ "$env_now" = "$env_deployed" ] && [ "$deployed" != "$target" ] && files=$(git diff --name-only "$deployed" "$target" 2>/dev/null) && [ -n "$files" ]; then
+  if ! printf '%s\n' "$files" | grep -qvE "$NOT_APP"; then
+    echo "=== $(date -Is) $(git rev-parse --short "$target"): website / docs only — published, no app build"
+    echo "$target" > deploy/.deployed
+    exit 0
+  fi
+fi
+
 # A release whose database change removes or renames something (a migration marked «-- contract:») waits for the quiet
 # hours, 22:00–06:59 (deploy/deploy-window.sh — founder, 28/10/2026); the founder is told once that it waits. An additive
 # migration — the rule for every migration (lib/migration-safety.ts) — goes live at once with its fixes (founder,
