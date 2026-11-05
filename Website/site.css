@@ -479,3 +479,37 @@ details a { color: var(--brand); }
 .foot .legal { display: flex; flex-wrap: wrap; gap: 4px 18px; }
 .foot .legal a { min-height: 32px; font-size: .85rem; }
 @media (min-width: 760px) { .foot-bottom { grid-column: 1 / -1; } }
+
+/* The helpline chat (founder, 5/11/2026 — Website/helpline.js): a round button at the bottom right; a sheet on a phone, a
+   card on a computer; the brand's emerald and the site's surfaces, light and dark. */
+.hl-fab { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 40; width: 56px; height: 56px; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: #fff; font-size: 26px; box-shadow: 0 12px 28px -10px rgba(4, 120, 87, .7); cursor: pointer; transition: transform .15s; }
+.hl-fab:hover { transform: translateY(-2px); }
+.hl-fab:active { transform: scale(.95); }
+.hl-fab[hidden], .hl-panel[hidden] { display: none; }
+.hl-panel { position: fixed; z-index: 41; left: 0; right: 0; bottom: 0; height: min(78dvh, 640px); display: flex; flex-direction: column; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 24px 24px 0 0; box-shadow: 0 -12px 40px -12px rgba(6, 78, 59, .35); }
+@media (min-width: 640px) { .hl-panel { left: auto; right: 24px; bottom: 24px; width: 380px; height: min(70vh, 600px); border-radius: 24px; } }
+.hl-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 16px; border-bottom: 1px solid var(--line); }
+.hl-head strong { flex: 1; font-size: 15px; }
+.hl-badge { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); font-size: 20px; }
+.hl-x { width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 20px; display: grid; place-items: center; cursor: pointer; }
+.hl-x:hover { background: var(--brand-soft); }
+.hl-list { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.hl-msg { max-width: 88%; padding: 9px 13px; border-radius: 18px; font-size: 14px; line-height: 1.6; }
+.hl-msg p { margin: 0; }
+.hl-msg p + p { margin-top: 6px; }
+.hl-bot { align-self: flex-start; background: var(--brand-soft); border-bottom-left-radius: 6px; }
+.hl-me { align-self: flex-end; background: var(--brand); color: #fff; border-bottom-right-radius: 6px; }
+@media (prefers-color-scheme: dark) { .hl-me, .hl-fab { color: #022c22; } }
+.hl-q { font-weight: 600; }
+.hl-link { display: inline-block; margin-top: 8px; font-weight: 600; color: var(--brand); }
+.hl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.hl-chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+.hl-chip:hover { border-color: var(--brand); color: var(--brand); }
+.hl-human { margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--brand); background: var(--surface); color: var(--brand); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.hl-human:disabled { opacity: .55; cursor: default; }
+.hl-contact { display: flex; gap: 6px; margin-top: 8px; }
+.hl-contact input, .hl-form input { flex: 1; min-width: 0; height: 44px; border: 1px solid var(--line); border-radius: 999px; padding: 0 14px; font: inherit; font-size: 16px; background: var(--surface); color: var(--ink); }
+.hl-send-text { height: 44px; border: 0; border-radius: 999px; padding: 0 16px; background: var(--brand); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.hl-form { display: flex; align-items: center; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
+.hl-go { width: 44px; height: 44px; flex: none; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: #fff; font-size: 18px; cursor: pointer; }
+@media (prefers-color-scheme: dark) { .hl-send-text, .hl-go { color: #022c22; } }

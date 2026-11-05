@@ -45,7 +45,7 @@ if [ "${1:-}" = "rollback" ]; then
   exit 0
 fi
 
-FILES="index.html personal.html family.html business.html islamic.html privacy.html delete-account.html 404.html site.css site.js i18n.js islamic-t.js privacy-t.js
+FILES="index.html personal.html family.html business.html islamic.html privacy.html delete-account.html 404.html site.css site.js helpline.js i18n.js islamic-t.js privacy-t.js
 delete-t.js business-t.js personal-t.js family-t.js icons.svg logo.png logo-islamic.png screen-business.webp screen-personal.webp og.png og-islamic.png robots.txt sitemap.xml
 favicon.ico"
 # Every page in English and Chinese too, at its own address (scripts/website-i18n.mjs — founder, 5/11/2026).
@@ -64,7 +64,7 @@ for f in $FILES; do cp "$SRC/$f" "$next/$f"; done
 # browsers keep them for hours or days, so a new page must never meet yesterday's CSS or screenshot (founder, 28/10/2026
 # — the new footer drawn with the old styles). A file that did not change keeps its address and its cache.
 version_assets() {
-  for a in site.css site.js i18n.js islamic-t.js privacy-t.js delete-t.js business-t.js personal-t.js family-t.js screen-business.webp screen-personal.webp logo.png logo-islamic.png og.png og-islamic.png; do
+  for a in site.css site.js helpline.js i18n.js islamic-t.js privacy-t.js delete-t.js business-t.js personal-t.js family-t.js screen-business.webp screen-personal.webp logo.png logo-islamic.png og.png og-islamic.png; do
     v=$(sha256sum "$1/$a" | cut -c1-8)
     re=$(printf '%s' "$a" | sed 's/\./\\./g')
     for page in "$1"/*.html "$1"/en/*.html "$1"/zh/*.html; do
@@ -96,7 +96,7 @@ old = """    location / {
     }"""
 csp = ("default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; "
        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
-       "img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com; "
+       "img-src 'self' data:; connect-src 'self' https://cloudflareinsights.com https://app.luychlat.com; "
        "frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'; upgrade-insecure-requests")
 new = """    # luychlat-landing-v2 (27/10/2026): clean addresses, the 404 page, the CSP, cached images.
     error_page 404 /404.html;
@@ -121,6 +121,19 @@ PY
     cp "$BACKUP_ROOT/luychlat.com.conf.$stamp" "$SITE_CONF"
     echo "! Nginx test failed — the previous configuration was restored (the site files are published)."
     exit 1
+  fi
+fi
+
+# The helpline chat asks the app (founder, 5/11/2026 — Website/helpline.js → app.luychlat.com/api/helpline/site): the
+# Content-Security-Policy lets the pages call the app's address too, once; a failed Nginx test puts the old one back.
+if grep -q "connect-src 'self' https://cloudflareinsights.com;" "$SITE_CONF"; then
+  cp "$SITE_CONF" "$BACKUP_ROOT/luychlat.com.conf.$stamp.csp"
+  sed -i "s#connect-src 'self' https://cloudflareinsights.com;#connect-src 'self' https://cloudflareinsights.com https://app.luychlat.com;#" "$SITE_CONF"
+  if nginx -t 2>/dev/null; then
+    systemctl reload nginx && echo "✓ Nginx: the pages may call app.luychlat.com (helpline)"
+  else
+    cp "$BACKUP_ROOT/luychlat.com.conf.$stamp.csp" "$SITE_CONF"
+    echo "! Nginx test failed — the previous Content-Security-Policy was restored"
   fi
 fi
 
