@@ -11,7 +11,10 @@
   var lang = ui === "km" ? "km" : "en";
 
   var T = {
-    title: { km: "ជំនួយ អេប លុយឆ្លាត", en: "App Luy Chlat help", zh: "App Luy Chlat 帮助" },
+    title: { km: "ក្រុមការងារ អេប លុយឆ្លាត", en: "App Luy Chlat team", zh: "App Luy Chlat 团队" },
+    statusOpen: { km: "ក្រុមការងារកំពុងបម្រើ · ចន្ទ–សុក្រ 08:00–17:00", en: "Our team is here · Mon–Fri 08:00–17:00", zh: "团队在线 · 周一至周五 08:00–17:00" },
+    statusClosed: { km: "ឆ្លើយភ្លាមៗ · ក្រុមការងារត្រឡប់មកវិញ ចន្ទ–សុក្រ 08:00", en: "Quick answers now · our team is back Mon–Fri 08:00", zh: "即时解答 · 团队周一至周五 08:00 回来" },
+    typing: { km: "កំពុងសរសេរ…", en: "Typing…", zh: "正在输入…" },
     open: { km: "សួរក្រុមការងារ", en: "Ask our team", zh: "咨询我们" },
     hello: {
       km: "ជម្រាបសួរ! ក្រុមការងារ អេប លុយឆ្លាត រីករាយបម្រើ។ សូមជ្រើសសំណួរខាងក្រោម ឬសរសេរចម្ងល់របស់លោកអ្នក។",
@@ -78,15 +81,32 @@
       .catch(function () { return { error: "offline" }; });
   }
 
-  var fab, panel, list, input, quick = [], lastQuestion = "";
+  var fab, panel, list, input, quick = [], lastQuestion = "", busy = false;
 
   function scroll() { list.scrollTop = list.scrollHeight; }
+  // The team's face beside each reply: the App Luy Chlat logo.
+  function avatar(cls) { var img = el("img", cls); img.src = "/logo.png"; img.alt = ""; img.width = 28; img.height = 28; return img; }
   function bubble(from, text) {
     var b = el("div", "hl-msg " + (from === "me" ? "hl-me" : "hl-bot"));
     if (text) b.appendChild(el("p", null, text));
-    list.appendChild(b);
+    if (from === "me") list.appendChild(b);
+    else { var row = el("div", "hl-row"); row.appendChild(avatar("hl-av")); row.appendChild(b); list.appendChild(row); }
     scroll();
     return b;
+  }
+  // A reply comes after a short «typing…», like a person answering (founder, 5/11/2026); longer ones a little longer.
+  function typingThen(chars, work, show) {
+    busy = true;
+    var row = el("div", "hl-row hl-typing");
+    row.appendChild(avatar("hl-av"));
+    var dots = el("span", "hl-msg hl-bot hl-dots");
+    dots.setAttribute("aria-label", L("typing"));
+    for (var i = 0; i < 3; i++) dots.appendChild(el("span"));
+    row.appendChild(dots);
+    list.appendChild(row);
+    scroll();
+    var wait = new Promise(function (r) { setTimeout(r, Math.min(1400, 550 + chars)); });
+    Promise.all([work, wait]).then(function (v) { row.remove(); busy = false; show(v[0]); });
   }
   function chips(entries) {
     if (!entries || !entries.length) return;
@@ -94,7 +114,11 @@
     entries.forEach(function (e) {
       var c = el("button", "hl-chip", e.q);
       c.type = "button";
-      c.addEventListener("click", function () { bubble("me", e.q); showEntry(e, quick.filter(function (q) { return q.id !== e.id; }).slice(0, 3)); });
+      c.addEventListener("click", function () {
+        if (busy) return;
+        bubble("me", e.q);
+        typingThen((e.a || []).join(" ").length / 2, null, function () { showEntry(e, quick.filter(function (q) { return q.id !== e.id; }).slice(0, 3)); });
+      });
       row.appendChild(c);
     });
     list.appendChild(row);
@@ -154,11 +178,11 @@
 
   function ask(text) {
     var q = text.trim();
-    if (!q) return;
+    if (!q || busy) return;
     lastQuestion = q;
     bubble("me", q);
     input.value = "";
-    call("POST", { text: q, lang: lang }).then(function (r) {
+    typingThen(300, call("POST", { text: q, lang: lang }), function (r) {
       if (!r || r.error) return failed();
       if (r.kind === "answer" && r.entry) return showEntry(r.entry, r.more);
       var b = bubble("bot", r.text);
@@ -178,9 +202,13 @@
     panel.setAttribute("aria-label", L("title"));
     panel.hidden = true;
     var head = el("div", "hl-head");
-    var badge = el("span", "hl-badge"); badge.appendChild(icon(ICON.team));
-    head.appendChild(badge);
-    head.appendChild(el("strong", null, L("title")));
+    var face = el("span", "hl-face" + (data.staffNow ? " hl-on" : ""));
+    face.appendChild(avatar());
+    head.appendChild(face);
+    var who = el("span", "hl-who");
+    who.appendChild(el("strong", null, L("title")));
+    who.appendChild(el("small", null, L(data.staffNow ? "statusOpen" : "statusClosed")));
+    head.appendChild(who);
     var x = el("button", "hl-x");
     x.type = "button"; x.setAttribute("aria-label", L("close")); x.appendChild(icon(ICON.close));
     head.appendChild(x);

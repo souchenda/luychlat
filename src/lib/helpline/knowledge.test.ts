@@ -89,7 +89,7 @@ describe("On the subject only — off it, answered with respect as one team (fou
   it("off the subject never reaches the team; only an on-topic question without an answer, or a person asked for", async () => {
     const { readFileSync } = await import("node:fs")
     const chat = readFileSync("src/components/helpline/helpline-chat.tsx", "utf8").replace(/\r\n/g, "\n")
-    assert.match(chat, /if \(c\.kind === "ontopic"\) return setMsgs\(\(m\) => \[\.\.\.m, \{ from: "me", text: q \}, \{ from: "bot", text: L\(T\.unknown\), offerHuman: true \}\]\)/)
+    assert.match(chat, /if \(c\.kind === "ontopic"\) return say\(q, \{ from: "bot", text: L\(T\.unknown\), offerHuman: true \}\)/)
     assert.equal((chat.match(/offerHuman: true/g) ?? []).length, 2) // the on-topic unknown and a person asked for — nothing else
   })
 })
