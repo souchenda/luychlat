@@ -94,9 +94,11 @@ use come before feature count: no half-baked features, broken links or untested 
    Plus the religious channel separation guard (`holiday-channels.test.ts`), the no-pig-imagery guard (founder, 21/10/2026 —
    `islamic-no-pig.test.ts`: no piggy bank or pig emoji anywhere in the app; goals draw a target, saving a vault), the SoundBox isolation guard (`6-soundbox-isolation.test.ts`), the channel integrity guard (Task #441 — `channel-integrity.test.ts`: updates edit in place, morning posts never after 11:00, bedtime posts 19:00–23:00, 30 minutes between broadcasts), the home hero layout guard
    (`layout-guards.test.ts`) and the published-wording guard (`content-guards.test.ts`).
-4. **Pre-deploy smoke gate:** the Dockerfile runs `npm run test:golden` before `npm test` and the build —
-   one failure aborts the deploy and the running version stays live. Locally, `.githooks/pre-push`
-   (`git config core.hooksPath .githooks`) runs the golden paths and the typecheck before every push.
+4. **Pre-deploy smoke gate — only what changed (founder, 5/11/2026):** the Dockerfile runs the tests that cover the
+   release's changed files (`scripts/affected-tests.mjs` — golden ones included when they guard them; the whole suite
+   only when the toolchain changed or the history is unknown) — one failure aborts the deploy and the running version
+   stays live. Locally, `.githooks/pre-push` (`git config core.hooksPath .githooks`) does the same for the push, plus
+   the website gate when the website changed and the typecheck. A website- or docs-only push builds no app at all.
    Never weaken or delete a golden test to make a change pass; change it only on the founder's decision.
 5. **SoundBox is isolated:** `lib/soundbox.ts` imports nothing of the app, `lib/soundbox-audio.ts` only the
    SoundBox core, and no SoundBox file imports sign-in, publishing or wallet-balance code; only the

@@ -66,6 +66,9 @@ mkdir -p deploy/run
 # The build's CPU is not an incident: the watchdog leaves CPU and RAM out while this marker exists (founder, 21/10/2026 —
 # lib/server/health-watchdog › BUILD_MARKERS). Removed when the script ends, whatever happens.
 date +%s > deploy/run/building-deploy
+# What this release changed, for the build's tests (scripts/affected-tests.mjs — only those that cover it; founder,
+# 5/11/2026). Unknown history → «ALL», the whole suite.
+if [ -n "$prev_deployed" ] && git diff --name-only "$prev_deployed" HEAD > changed-files.txt 2>/dev/null; then :; else echo ALL > changed-files.txt; fi
 echo "→ Building $next (port $(slot_port "$next")) while $active keeps serving"
 step="build (golden paths, tests, Next.js)"
 compose "$next" build

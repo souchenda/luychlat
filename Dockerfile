@@ -40,9 +40,14 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
 # Pre-deploy smoke gate: the 5 golden paths (bot receipt intake, publisher pipeline, SoundBox alerts,
 # privacy by default, wallet accounting) + the SoundBox isolation guard run first — one failure stops
 # the image, so the deploy aborts and the running version stays live (deploy/update.sh is set -e).
-RUN npm run test:golden
-# Then every financial-integrity and engine test (npm test).
-RUN npm test
+# Only the tests that cover what this release changed (founder, 5/11/2026 — mandatory: «test only the part that was
+# changed, wherever»): deploy/update.sh lists the changed files (changed-files.txt); scripts/affected-tests.mjs picks the
+# tests beside them and those that name them — golden ones included. The whole suite (golden first) only when the list
+# is missing or the toolchain changed. One failure stops the image; the running version stays live.
+RUN tests=$(node scripts/affected-tests.mjs changed-files.txt) && \
+    if [ "$tests" = "ALL" ]; then npm run test:golden && npm test; \
+    elif [ -n "$tests" ]; then echo "Affected tests:" $tests && npx tsx --test --test-force-exit --test-timeout=60000 $tests; \
+    else echo "No test covers this change"; fi
 RUN npm run build
 
 # ---- 3. Runtime (only the standalone server, static assets and public/) -------

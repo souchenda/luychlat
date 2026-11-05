@@ -54,3 +54,4 @@ deploy/run/gsc-key.json
 
 # Real bank statements used to build parsers: never commit
 /samples/
+changed-files.txt
