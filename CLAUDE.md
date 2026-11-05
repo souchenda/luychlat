@@ -13,7 +13,10 @@ use come before feature count: no half-baked features, broken links or untested 
 3. **Strict workspace isolation.** Business (e.g. DL MEAT SUPPLY) and Personal never leak into each
    other. Personal-only features check `type === "PERSONAL"` (not Family) in the UI *and* in RLS
    (`public.is_personal_workspace`); see `src/lib/workspace-scope.ts`.
-4. **Tests before push:** `npm test` (0 failures), `npx tsc --noEmit -p .`, `npx eslint <files>`.
+4. **Tests before push — ONLY what was changed (founder, 5/11/2026 — mandatory: «don't waste my time and tokens»):**
+   run the tests of the modules you touched (`npx tsx --test <their *.test.ts>`, plus the golden file that guards that
+   area), `npx tsc --noEmit -p .` and `npx eslint <changed files>`. Never the full `npm test` locally, never tests of
+   unrelated areas. The pre-push hook and the Droplet build keep their own gates. Batch the work: one push, one build.
    Pure logic lives in `src/lib/**` with a `*.test.ts` beside it.
 5. **Mobile-first:** glanceable, large touch targets, iPhone safe areas, clean Khmer typography.
 6. **Dashboard layout (founder, 18/10/2026; ACLEDA layout 21/10/2026):** dashboard components (charts, lists, hubs)
