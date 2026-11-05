@@ -24,7 +24,8 @@ function walk(dir, out = []) {
 /** The words a test uses to name a changed file: its import path without the extension, or its file name. */
 function namesOf(file) {
   const noExt = file.replace(/\.(tsx?|mjs|js)$/, "")
-  const names = new Set([path.posix.basename(file)])
+  // Code is named by its path (a bare «route.ts» or «page.tsx» would match every test); other files by their name.
+  const names = new Set(noExt === file ? [path.posix.basename(file)] : [])
   if (noExt !== file) {
     // «@/lib/helpline/site», «./site», «lib/helpline/site» …
     const inSrc = noExt.replace(/^src\//, "")

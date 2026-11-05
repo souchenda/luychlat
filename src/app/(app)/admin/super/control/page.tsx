@@ -10,6 +10,7 @@ import { ClientErrorsCard } from "@/components/admin/client-errors"
 import { ControlCenter } from "@/components/admin/control-center"
 import { SecuritySummaryCard } from "@/components/admin/security-summary"
 import { SystemHealthCard } from "@/components/admin/system-health-card"
+import { UptimeCard } from "@/components/admin/uptime-card"
 import { Segmented } from "@/components/common/segmented"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -61,6 +62,7 @@ export default function ControlCenterPage() {
       {tab === "system" && (
         <>
           <SystemHealthCard embedded />
+          <UptimeCard />
           <CapacityCard />
           <ClientErrorsCard />
         </>
