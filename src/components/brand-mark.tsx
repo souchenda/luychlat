@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils"
 /**
  * The app's logo: the official mascot (public/logo.png, 256 px — founder, 11/10/2026). Sized and
  * rounded by `className` (size-*, rounded-*); decorative, the name is always written next to it.
- * `islamic`: the mascot in a white-and-gold kopiah (public/icon-islamic.png, scripts/generate-islamic-logo.mjs),
- * shown while Islamic Mode is on (founder, 18/10/2026).
+ * `islamic`: the Islamic mark — a white mosque dome, gold crescent and star on emerald (public/icon-islamic.png,
+ * scripts/generate-islamic-logo.mjs; founder, 5/11/2026 — it replaced the kopiah mascot of 18/10), shown while Islamic Mode is on.
  */
 export function BrandMark({ className, priority, islamic }: { className?: string; priority?: boolean; islamic?: boolean }) {
   return (
