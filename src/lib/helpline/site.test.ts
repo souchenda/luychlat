@@ -32,6 +32,13 @@ describe("the helpline on luychlat.com — the app's approved knowledge for visi
     assert.equal(siteReply("I want to talk to a real person", "en").kind, "human")
   })
 
+  it("every number in an answer is 0-9, never Khmer digits (founder, 21/10/2026 — the guide's «កាបូប ២» reached the chat)", () => {
+    for (const e of KNOWLEDGE) for (const lang of ["km", "en"] as const) {
+      const s = siteEntry(e, lang)
+      for (const t of [s.q, ...s.a]) assert.doesNotMatch(t, /[០-៩]/, `${e.id}: ${t.slice(0, 40)}`)
+    }
+  })
+
   it("a way to reach the visitor: a Cambodian phone or a Telegram username — nothing else", () => {
     assert.equal(siteContact("012 345 678"), "012345678")
     assert.equal(siteContact("+855 96 123 4567"), "0961234567")
