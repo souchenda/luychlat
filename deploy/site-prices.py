@@ -72,7 +72,7 @@ def main(argv):
     sys.stdout.reconfigure(encoding="utf-8")  # the ✓ on any console
     site = argv[1]
     p = prices(load_plans(argv))
-    pages = [f for f in glob.glob(os.path.join(site, "*.html")) + glob.glob(os.path.join(site, "*", "index.html"))]
+    pages = [f for f in glob.glob(os.path.join(site, "*.html")) + glob.glob(os.path.join(site, "*", "*.html"))]
     changed = 0
     for f in pages:
         s = open(f, encoding="utf-8").read()

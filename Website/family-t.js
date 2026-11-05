@@ -1,5 +1,6 @@
 // The family.html page's English and Chinese text (read by site.js; the shared lines come from i18n.js).
 window.PAGE_TITLES = { km: "សម្រាប់គ្រួសារ | អេប លុយឆ្លាត", en: "For families | App Luy Chlat", zh: "家庭版 | App Luy Chlat" }
+window.PAGE_DESC = { en: "App Luy Chlat for families — husband, wife and children keep one money book: wedding gifts, shared trips, household bills and saving for school fees.", zh: "App Luy Chlat 家庭版 — 夫妻和孩子共用一本账：婚礼礼金、出游共用钱、家庭账单和孩子学费储蓄。" }
 window.EXTRA_T = {
   en: {
     "f.eyebrow": "For families",

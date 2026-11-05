@@ -47,7 +47,9 @@ fi
 
 FILES="index.html personal.html family.html business.html islamic.html privacy.html delete-account.html 404.html site.css site.js i18n.js islamic-t.js privacy-t.js
 delete-t.js business-t.js personal-t.js family-t.js icons.svg logo.png logo-islamic.png screen-business.webp screen-personal.webp og.png og-islamic.png robots.txt sitemap.xml
-en/index.html zh/index.html"
+favicon.ico"
+# Every page in English and Chinese too, at its own address (scripts/website-i18n.mjs — founder, 5/11/2026).
+for l in en zh; do for p in index personal family business islamic privacy delete-account; do FILES="$FILES $l/$p.html"; done; done
 
 for f in $FILES; do [ -f "$SRC/$f" ] || { echo "Missing $SRC/$f — nothing published."; exit 1; }; done
 
@@ -65,13 +67,13 @@ version_assets() {
   for a in site.css site.js i18n.js islamic-t.js privacy-t.js delete-t.js business-t.js personal-t.js family-t.js screen-business.webp screen-personal.webp logo.png logo-islamic.png og.png og-islamic.png; do
     v=$(sha256sum "$1/$a" | cut -c1-8)
     re=$(printf '%s' "$a" | sed 's/\./\\./g')
-    for page in "$1"/*.html "$1"/en/index.html "$1"/zh/index.html; do
+    for page in "$1"/*.html "$1"/en/*.html "$1"/zh/*.html; do
       sed -i "s#\([\"/]\)$re\"#\1$a?v=$v\"#g" "$page"
     done
   done
   # The line icons are used as «icons.svg#name» (founder, 29/10/2026): versioned too.
   v=$(sha256sum "$1/icons.svg" | cut -c1-8)
-  for page in "$1"/*.html "$1"/en/index.html "$1"/zh/index.html; do sed -i "s|\([\"/]\)icons\.svg#|\1icons.svg?v=$v#|g" "$page"; done
+  for page in "$1"/*.html "$1"/en/*.html "$1"/zh/*.html; do sed -i "s|\([\"/]\)icons\.svg#|\1icons.svg?v=$v#|g" "$page"; done
 }
 # The prices from the app's own plans (deploy/site-prices.py — founder, 28/10/2026); a failure keeps the page's own.
 python3 "$REPO/deploy/site-prices.py" "$next" || true
@@ -131,7 +133,7 @@ fi
 # Every page checked live first, then the founder is told what is new and whether it all opens (founder, 29/10/2026 —
 # «just tell me in Telegram that it was published, and what changed»). WEBSITE_CHANGES: the releases' Khmer lines.
 pages=0; broken=""
-for path in / /en/ /zh/ /personal /family /business /islamic /privacy /delete-account /og.png; do
+for path in / /en/ /zh/ /personal /family /business /islamic /privacy /delete-account /en/personal /zh/personal /en/privacy /og.png /favicon.ico /sitemap.xml; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "https://luychlat.com$path")
   echo "  $code  https://luychlat.com$path"
   if [ "$code" = "200" ]; then pages=$((pages + 1)); else broken="$broken $path"; fi

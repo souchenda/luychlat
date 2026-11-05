@@ -1,11 +1,14 @@
 // luychlat.com quality gate (founder, 28/10/2026 — «the whole world sees it: no error, deliberate or not»): every page,
 // every language. Run before a publish: node scripts/website-check.mjs  (exit 1 on any «✗»).
+import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { JSDOM } from "jsdom"
 
 const ROOT = "Website"
-const PAGES = ["index.html", "en/index.html", "zh/index.html", "personal.html", "family.html", "business.html", "islamic.html", "privacy.html", "delete-account.html", "404.html"]
+const SUB = ["personal.html", "family.html", "business.html", "islamic.html", "privacy.html", "delete-account.html"]
+// Every page in its three languages (scripts/website-i18n.mjs writes /en/ and /zh/ — founder, 5/11/2026).
+const PAGES = ["index.html", "en/index.html", "zh/index.html", ...SUB.flatMap((p) => [p, `en/${p}`, `zh/${p}`]), "404.html"]
 // Khmer letters \u2014 the riel sign \u00AB\u17DB\u00BB (U+17DB) aside: it is a currency, in every language.
 const KHMER = /[\u1780-\u17DA\u17DC-\u17FF]/
 const issues = []
@@ -100,6 +103,14 @@ for (const [page, script] of [["personal.html", "personal-t.js"], ["family.html"
       else if (KHMER.test(String(v).replace(/អេប លុយឆ្លាត|ខ្មែរ/g, ""))) bad(`${script} (${lang})`, `«${k}» is still Khmer`)
     }
 }
+
+// 8. The English and Chinese pages and the sitemap are written from the current Khmer pages and translations.
+{
+  const r = spawnSync(process.execPath, ["scripts/website-i18n.mjs", "--check"], { encoding: "utf8" })
+  if (r.status !== 0) bad("website-i18n", (r.stdout + r.stderr).trim())
+}
+// 9. The browser's own icon (/favicon.ico — asked for by every browser and by Google's results).
+if (!existsSync(join(ROOT, "favicon.ico"))) bad("favicon.ico", "missing")
 
 const errors = issues.filter((i) => i.startsWith("✗"))
 console.log(issues.length ? issues.join("\n") : "✓ no issues")

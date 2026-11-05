@@ -1,5 +1,6 @@
 // The personal.html page's English and Chinese text (read by site.js; the shared lines come from i18n.js).
 window.PAGE_TITLES = { km: "សម្រាប់ផ្ទាល់ខ្លួន | អេប លុយឆ្លាត", en: "For you | App Luy Chlat", zh: "个人版 | App Luy Chlat" }
+window.PAGE_DESC = { en: "App Luy Chlat for you — record spending, debts, loan due dates and bills in dollars and riel. A free money notebook in your phone.", zh: "App Luy Chlat 个人版 — 用美元和瑞尔记录支出、债务、贷款还款日和账单。手机里的免费记账本。" }
 window.EXTRA_T = {
   en: {
     "p.eyebrow": "For you",

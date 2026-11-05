@@ -1,5 +1,6 @@
 // The delete-account.html page's English and Chinese text (read by site.js).
 window.PAGE_TITLES = { km: "លុបគណនី | App Luy Chlat", en: "Delete account | App Luy Chlat", zh: "删除账户 | App Luy Chlat" }
+window.PAGE_DESC = { en: "How to delete your App Luy Chlat account and all its data.", zh: "如何删除您的 App Luy Chlat 账户及其所有数据。" }
 window.EXTRA_T = {
   en: {
     "ft.rights": "All rights reserved",

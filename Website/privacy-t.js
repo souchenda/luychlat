@@ -1,5 +1,6 @@
 // The privacy.html page's English and Chinese text (read by site.js).
 window.PAGE_TITLES = { km: "ឯកជនភាព និងលក្ខខណ្ឌ | App Luy Chlat", en: "Privacy and terms | App Luy Chlat", zh: "隐私与条款 | App Luy Chlat" }
+window.PAGE_DESC = { en: "The privacy policy and terms of use of App Luy Chlat.", zh: "App Luy Chlat 的隐私政策和使用条款。" }
 window.EXTRA_T = {
   en: {
     "ft.rights": "All rights reserved",

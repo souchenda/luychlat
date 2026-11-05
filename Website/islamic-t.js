@@ -1,5 +1,6 @@
 // The islamic.html page's English and Chinese text (read by site.js).
 window.PAGE_TITLES = { km: "Islamic Mode | អេប លុយឆ្លាត", en: "Islamic Mode | App Luy Chlat", zh: "伊斯兰模式 | App Luy Chlat" }
+window.PAGE_DESC = { en: "Islamic Mode in App Luy Chlat — prayer times and the Adhan, the Qibla direction, the Quran, du'as, fasting, zakat from your real money, and purifying interest.", zh: "App Luy Chlat 伊斯兰模式 — 礼拜时间与宣礼、朝向、古兰经、祈祷词、斋戒、按您真实资金计算天课，以及清除利息。" }
 window.EXTRA_T = {
   en: {
     "i.eyebrow": "Islamic Mode · private, optional",

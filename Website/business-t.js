@@ -1,5 +1,6 @@
 // The business.html page's English and Chinese text (read by site.js; the shared lines come from i18n.js).
 window.PAGE_TITLES = { km: "សម្រាប់ហាង | អេប លុយឆ្លាត", en: "For shops | App Luy Chlat", zh: "商家版 | App Luy Chlat" }
+window.PAGE_DESC = { en: "App Luy Chlat for Cambodian shop owners — a KHQR SoundBox that announces payments in Khmer, invoices with KHQR, customers who owe you, and the shop's real profit, apart from household money.", zh: "App Luy Chlat 商家版 — KHQR SoundBox 用高棉语播报收款，带 KHQR 的发票，客户欠款清单，以及与家庭开支分开的店铺真实利润。" }
 window.EXTRA_T = {
   en: {
     "b.eyebrow": "For shop owners",
