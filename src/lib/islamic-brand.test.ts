@@ -5,13 +5,10 @@ import { describe, it } from "node:test"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8")
 
-describe("Islamic logo variant (founder, 18/10/2026; the mosque dome since 5/11/2026)", () => {
-  it("the files exist, drawn by the generator: a white dome, gold crescent and star on the brand's emerald — our own artwork", () => {
-    for (const f of ["public/icon-islamic.png", "public/logo-islamic.png", "public/logo.png"]) assert.ok(existsSync(join(process.cwd(), f)), f)
-    const gen = read("scripts/generate-islamic-logo.mjs")
-    assert.match(gen, /const EMERALD = "#064e3b"/)
-    assert.match(gen, /const GOLD = "#e2b55a"/)
-    assert.match(gen, /a large round dome on one base/)
+describe("Islamic logo variant (founder, 18/10/2026)", () => {
+  it("the files exist, made by the generator from the founder's kopiah artwork", () => {
+    for (const f of ["public/icon-islamic.png", "public/logo-islamic.png", "public/rabbit-kopiah.png", "public/logo.png"]) assert.ok(existsSync(join(process.cwd(), f)), f)
+    assert.match(read("scripts/generate-islamic-logo.mjs"), /const SOURCE = "public\/rabbit-kopiah\.png"/)
   })
   it("the sizes: 1024 for the Telegram channel, 512 (and light) for the in-app icon", async () => {
     const sharp = (await import("sharp")).default

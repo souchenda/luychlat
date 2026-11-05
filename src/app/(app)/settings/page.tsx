@@ -1,12 +1,13 @@
 "use client"
 
-import { BellIcon, GaugeIcon, LockKeyholeIcon, SmartphoneIcon, StoreIcon, Volume2Icon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LogOutIcon, MoonIcon, MoonStarIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, UserXIcon, UsersIcon } from "lucide-react"
+import { BellIcon, GaugeIcon, LockKeyholeIcon, SmartphoneIcon, StoreIcon, Volume2Icon, CheckCircle2Icon, CoinsIcon, CompassIcon, CrownIcon, DatabaseIcon, EyeOffIcon, InfoIcon, LanguagesIcon, LifeBuoyIcon, LogOutIcon, MoonIcon, SendIcon, ShieldCheckIcon, SparklesIcon, TagsIcon, UserXIcon, UsersIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Segmented } from "@/components/common/segmented"
+import { MosqueIcon } from "@/components/icons/mosque-icon"
 import { ProfileAvatar } from "@/components/profile/profile-avatar"
 import { AboutSheet, SettingsFooter } from "@/components/settings/about"
 import { GuestImportRow } from "@/components/settings/guest-import"
@@ -74,7 +75,7 @@ function IslamicToolsRow() {
   return (
     <>
       <SettingsRow
-        icon={<MoonStarIcon />}
+        icon={<MosqueIcon />}
         tile="teal"
         title={t("islamic.mode")}
         hint={canManage ? `${t("islamic.modeHint")} · ${t("islamic.modeCalendar", calendarExamples(locale))}` : t("islamic.managedByAdmin")}

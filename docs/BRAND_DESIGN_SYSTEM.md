@@ -314,6 +314,7 @@ an approver's tap.
   title and the cycle centred, one glass card per fuel — its name, its grade in a gold pill, the price in large Khmer
   digits and its change badge (green «▼ ចុះ», red «▲ ឡើង», neutral «មិនប្រែប្រួល»), no parentheses. Attached to the fuel
   announcement card at the founder's request («attach the generated poster … immediately»), who approves it there.
-- **5/11/2026:** the Islamic mark is a white mosque dome with a gold crescent and star on the brand emerald (our own
-  drawing, `scripts/generate-islamic-logo.mjs`) — it replaces the kopiah mascot in the app, the Islamic posters and
-  reels, the website and its share image (founder: «change the Islamic icon to this style»). The main brand keeps the mascot.
+- **5/11/2026:** the Islamic community LOGO stays the mascot in the kopiah (posters, reels, the Telegram channel, the
+  website). A filled mosque-dome icon (`src/components/icons/mosque-icon.tsx`) stands only for the Islamic FEATURES in
+  the app — the Islamic hub tile and Islamic Mode in Settings — so they are easy to spot (founder: «the logo stays the
+  rabbit; the new picture only represents the Islamic features»).

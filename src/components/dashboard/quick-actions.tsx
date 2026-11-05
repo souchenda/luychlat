@@ -8,7 +8,6 @@ import {
   ChartCandlestickIcon,
   FileDownIcon,
   type LucideIcon,
-  MoonStarIcon,
   PackageIcon,
   PlusIcon,
   ScaleIcon,
@@ -18,6 +17,8 @@ import {
   UsersIcon,
 } from "lucide-react"
 import Link from "next/link"
+
+import { MosqueIcon } from "@/components/icons/mosque-icon"
 
 import { useT } from "@/lib/i18n/use-t"
 import type { QuickAction, QuickActionKey } from "@/lib/quick-actions"
@@ -36,7 +37,8 @@ const ICONS: Record<QuickActionKey, LucideIcon> = {
   bills: CalendarClockIcon,
   budgets: ScaleIcon,
   market: ChartCandlestickIcon,
-  islamic: MoonStarIcon,
+  // The Islamic features' own icon (founder, 5/11/2026) — easy to spot; the logo stays the kopiah mascot.
+  islamic: MosqueIcon,
   export: FileDownIcon,
 }
 
