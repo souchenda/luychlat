@@ -20,7 +20,7 @@ describe("GOLDEN · the Islamic channel's 24-hour schedule", () => {
     assert.deepEqual(ISLAMIC_SCHEDULE, {
       ISLAMIC_MORNING: at(5, 30),
       ISLAMIC_DAILY: at(8),
-      ISLAMIC_JUMUAH: at(11, 30),
+      ISLAMIC_JUMUAH: at(10, 30), // founder, 6/11/2026
       ISLAMIC_IFTAR: at(17, 30),
       ISLAMIC_FAST: at(19),
       ISLAMIC_NIGHT: at(21),
@@ -70,7 +70,7 @@ describe("GOLDEN · the Islamic channel's 24-hour schedule", () => {
     const p = plannedIslamicPosts("2026-10-19", at(21, 30), plain).find((x) => x.kind === "ISLAMIC_MORNING")!
     assert.equal(p.publishMinute, 24 * 60 + at(5, 30)) // tomorrow 05:30
   })
-  it("Friday 11:30 Jumu'ah; Sunday / Wednesday 19:00 the fast reminder; 17:30 iftar on Monday / Thursday", () => {
+  it("Friday 10:30 Jumu'ah; Sunday / Wednesday 19:00 the fast reminder; 17:30 iftar on Monday / Thursday", () => {
     assert.ok(kinds("2026-10-23", at(11)).includes("ISLAMIC_JUMUAH:2026-10-23"))
     assert.ok(!kinds("2026-10-22", at(11)).includes("ISLAMIC_JUMUAH:2026-10-22"))
     assert.ok(kinds("2026-10-18", at(18, 15)).includes("ISLAMIC_FAST:2026-10-18"))

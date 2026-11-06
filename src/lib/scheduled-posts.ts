@@ -210,7 +210,9 @@ const KIND_LABEL: Record<PostKind, string> = {
 // Tuesday / Saturday and the nights of Ramadan (lib/islamic-channel.ts NIGHT_DAYS) — no preview card, no tap.
 // The Sil day post (founder, 2/11/2026 — «we already decided every Sil day»): the eve note and the branded poster, general
 // channel only, published at 07:00 with no card in the approval room.
-export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "ISLAMIC_MORNING", "ISLAMIC_BULLETIN", "ISLAMIC_NIGHT", "HOLYDAY"]
+// ISLAMIC_JUMUAH (founder, 6/11/2026): the Friday Jumu'ah reminder is the same sourced text every week — published at 10:30
+// without a tap, early enough for the reader to get ready.
+export const AUTO_PUBLISH_KINDS: readonly PostKind[] = ["BULLETIN", "RATES", "ISLAMIC_MORNING", "ISLAMIC_BULLETIN", "ISLAMIC_NIGHT", "HOLYDAY", "ISLAMIC_JUMUAH"]
 export const isAutoPublish = (kind: string) => (AUTO_PUBLISH_KINDS as readonly string[]).includes(kind)
 
 /**

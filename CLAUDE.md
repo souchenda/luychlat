@@ -206,7 +206,8 @@ cluttered, and unreadable»):
   Khmer reading connects each Arabic wasl join with a hyphen, never a space (`WASL` in `src/lib/duas.test.ts`).
   **The bedtime du'a joins them (founder, 28/10/2026 — «a repetitive job, no tap needed»):** 21:00 on Tuesday and Saturday
   and every night of Ramadan (`NIGHT_DAYS` in `src/lib/islamic-channel.ts`), the app's sourced du'a, @LuyChlatIslamic only,
-  no preview card.
+  no preview card. **And the Friday Jumu'ah reminder (founder, 6/11/2026 — «no tap needed, and earlier so readers can get
+  ready»):** 10:30 every Friday, @LuyChlatIslamic only, no preview card, still with a sound.
 - **The approval card — clean and thumb-friendly (founder, 21/10/2026):** a waiting card is the destination line, the
   kind and the post — no instruction lines («🔒 មិនផ្សាយទេ …», «✏️ ចុច «កែអត្ថបទ» …» are gone: the team knows silence =
   HOLD). Its keyboard: [ ✅ អនុម័ត (ផ្សាយម៉ោង …) ] full width (a later day named, «… ឥឡូវនេះ» once its time has passed) ·

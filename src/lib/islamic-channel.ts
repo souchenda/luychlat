@@ -40,7 +40,7 @@ export const channelFor = (kind: string): "islamic" | "community" => (isIslamicK
 export const ISLAMIC_SCHEDULE = {
   ISLAMIC_MORNING: 5 * 60 + 30, // the five prayer times (daily) + a du'a on Monday / Thursday (MORNING_DUA_DAYS)
   ISLAMIC_DAILY: 8 * 60, // the Hijri date + a halal-finance lesson (daily)
-  ISLAMIC_JUMUAH: 11 * 60 + 30, // Jumu'ah + Surah Al-Kahf (Friday)
+  ISLAMIC_JUMUAH: 10 * 60 + 30, // Jumu'ah + Surah Al-Kahf (Friday) — 10:30, on its own (founder, 6/11/2026: «early, so readers can get ready»)
   ISLAMIC_IFTAR: 17 * 60 + 30, // the iftar du'a (fast days: Monday / Thursday, every day of Ramadan)
   ISLAMIC_FAST: 19 * 60, // tomorrow's sunnah fast (Sunday / Wednesday)
   ISLAMIC_NIGHT: 21 * 60, // the bedtime du'a (Tuesday / Saturday, every night of Ramadan — NIGHT_DAYS)
