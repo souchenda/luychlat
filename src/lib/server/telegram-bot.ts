@@ -129,18 +129,19 @@ export const SIGNATURE = "\n\n— អេប លុយឆ្លាត"
  * The bytes of a file the bot received (e.g. a receipt photo in a pool group).
  * Fetched from Telegram on demand; the bot token never leaves the server.
  */
-export async function telegramFile(fileId: string): Promise<{ bytes: ArrayBuffer; type: string } | null> {
+export async function telegramFile(fileId: string, onFail?: (why: string) => void): Promise<{ bytes: ArrayBuffer; type: string } | null> {
   const token = botToken()
-  if (!token || !/^[A-Za-z0-9_-]{10,200}$/.test(fileId)) return null
+  if (!token || !/^[A-Za-z0-9_-]{10,200}$/.test(fileId)) return onFail?.(token ? "bad file id" : "no bot token"), null
   const info = await tg<{ file_path?: string; file_size?: number }>("getFile", { file_id: fileId })
   const path = info.result?.file_path
-  if (!info.ok || !path || (info.result?.file_size ?? 0) > 10 * 1024 * 1024) return null
+  if (!info.ok || !path) return onFail?.("getFile failed"), null
+  if ((info.result?.file_size ?? 0) > 10 * 1024 * 1024) return onFail?.("file over 10 MB"), null
   try {
     const res = await fetch(`https://api.telegram.org/file/bot${token}/${path}`, { cache: "no-store", signal: AbortSignal.timeout(20_000) })
-    if (!res.ok) return null
+    if (!res.ok) return onFail?.(`download HTTP ${res.status}`), null
     const type = /\.png$/i.test(path) ? "image/png" : /\.webp$/i.test(path) ? "image/webp" : "image/jpeg"
     return { bytes: await res.arrayBuffer(), type }
-  } catch {
-    return null
+  } catch (e) {
+    return onFail?.(e instanceof Error && e.name === "TimeoutError" ? "download timed out" : "download failed"), null
   }
 }

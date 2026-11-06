@@ -137,8 +137,14 @@ export async function askGroq(key: string, type: string, image: string, prompt: 
  */
 export async function readSlip(fileId: string): Promise<ReadResult> {
   if (!process.env.GEMINI_API_KEY?.trim() && !process.env.GROQ_API_KEY?.trim()) return { error: "busy" }
-  const file = await telegramFile(fileId)
-  if (!file) return { error: "unreadable" }
+  // A photo Telegram did not hand over is not an unreadable slip (founder, 6/11/2026: an ACLEDA «Transaction QR to» slip
+  // got «can't read» with no log line at all): logged with why, and read again later like a busy reader.
+  let why = "no file"
+  const file = await telegramFile(fileId, (w) => (why = w))
+  if (!file) {
+    logEvent("warn", "slips", `Slip photo not fetched from Telegram: ${why}`, { fold: true })
+    return { error: "busy" }
+  }
   return readSlipImage(file.type, Buffer.from(file.bytes).toString("base64"))
 }
 
