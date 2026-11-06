@@ -15,6 +15,7 @@ import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText } from "./telegram-bot"
 import { founderChats } from "@/lib/server/admin-routes"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 export type Report = {
   day: string
@@ -84,7 +85,7 @@ export async function devEodTick() {
   if (!day) return
 
   const db = botDb()
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: "dev-eod", p_day: day })
+  const { data: claimed } = await claimDaily("dev-eod", day)
   if (claimed !== true) return
   const { data, error } = await db.rpc("bot_dev_eod", { p_key: botKey(), p_day: day })
   if (error || !data) {

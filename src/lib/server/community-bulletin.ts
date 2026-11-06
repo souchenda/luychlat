@@ -17,6 +17,7 @@ import { compactFooter } from "@/lib/post-footer"
 import { SITE_URL } from "@/lib/app-site"
 import { holdForApproval } from "@/lib/server/scheduled-posts"
 import { EVENING_RATES_WEEKDAYS } from "@/lib/scheduled-posts"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 /**
  * Every morning @luychlat_bot posts one Khmer "daily market update" to the
@@ -231,7 +232,7 @@ async function bulletinNow(now: ReturnType<typeof phnomPenhNow>): Promise<{ mark
 /** A weekday with no NBC rate of its own by 10:00: the founder is told once (both bulletins share the claim). */
 async function tellHeld(day: string, nbcDate: string | null) {
   if (!isWeekday(day)) return // a weekend never has a rate of its own — nothing to report
-  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "bulletin-held", p_day: day })
+  const { data: claimed } = await claimDaily("bulletin-held", day)
   if (claimed !== true) return
   let sent = 0
   for (const chat of await founderChats()) if ((await tg("sendMessage", { chat_id: chat, text: HELD_NOTE })).ok) sent++
@@ -246,7 +247,7 @@ export async function sendCommunityBulletin(): Promise<boolean> {
   // Only today's NBC rate, never yesterday's (founder, 21/10/2026): out the minute today's rate and gold are in.
   const { market, decision } = await bulletinNow(now)
   if (decision !== "publish") return false
-  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: JOB, p_day: now.day })
+  const { data: claimed } = await claimDaily(JOB, now.day)
   if (claimed !== true) return false
   // A factual feed: created approved, published a minute later; the founder's preview can still ❌ it (founder,
   // 19/10/2026 — scheduled-posts.ts, AUTO_PUBLISH_KINDS).
@@ -266,7 +267,7 @@ export async function sendIslamicBulletin(): Promise<boolean> {
   const now = phnomPenhNow()
   const { market, decision } = await bulletinNow(now)
   if (decision !== "publish" || !market?.nbc?.usd_khr) return false
-  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: ISLAMIC_JOB, p_day: now.day })
+  const { data: claimed } = await claimDaily(ISLAMIC_JOB, now.day)
   if (claimed !== true) return false
   await holdForApproval("ISLAMIC_BULLETIN", now.day, { day: now.day })
   logEvent("info", "bulletin", "Islamic market bulletin ready for @LuyChlatIslamic — publishes automatically in a minute")
@@ -359,7 +360,7 @@ async function maybeSendEveningRates(now: ReturnType<typeof phnomPenhNow>) {
   if (!market?.nbc || market.nbc.date <= now.day) return
   const text = eveningRatesText(market)
   if (!text) return
-  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: EVENING_JOB, p_day: now.day })
+  const { data: claimed } = await claimDaily(EVENING_JOB, now.day)
   if (claimed !== true) return
   await holdForApproval("RATES", now.day, { day: now.day })
   logEvent("info", "bulletin", `Evening NBC rates (as of ${market.nbc.date}) ready — publishes automatically in a minute`)

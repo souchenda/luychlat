@@ -7,7 +7,8 @@ import { founderChats } from "./admin-routes"
 import { logEvent } from "./events"
 import { isDiscussionGroup, publicChannels } from "./group-guard"
 import { phnomPenhToday } from "./market-sync"
-import { botDb, botKey, sendText, tg } from "./telegram-bot"
+import { sendText, tg } from "./telegram-bot"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 const adminCache = new Map<string, { at: number; admin: boolean }>()
 
@@ -64,7 +65,7 @@ export async function guardReaction(u: ReactionUpdate): Promise<void> {
 export async function reactionAuditTick() {
   const now = phnomPenhToday()
   if (now.hour < 9) return
-  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "reaction-audit", p_day: now.day })
+  const { data: claimed } = await claimDaily("reaction-audit", now.day)
   if (claimed !== true) return
   const notes: string[] = []
   const channels = await publicChannels(true)

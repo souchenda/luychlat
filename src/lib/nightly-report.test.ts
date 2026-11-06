@@ -38,7 +38,7 @@ describe("The nightly report before midnight (founder, 19/10/2026)", () => {
     assert.ok(nightlyDue(23, 30) && nightlyDue(23, 59))
     assert.ok(!nightlyDue(23, 29) && !nightlyDue(0, 0) && !nightlyDue(22, 45))
     const job = read("src/lib/server/nightly-report.ts")
-    assert.match(job, /p_job: "nightly-report", p_day: day \}/)
+    assert.match(job, /claimDaily\("nightly-report", day\)/)
     assert.match(job, /for \(const chat of await founderChats\(\)\)/) // the founder's private chat (20/10/2026)
     assert.match(read("src/lib/server/bot-dispatch.ts"), /await nightlyReportTick\(\)/)
   })
@@ -68,7 +68,7 @@ describe("Never silently skipped: the missed report catches up; the founder's mo
     assert.match(ok, /^🌅 អរុណសួស្តី! របាយការណ៍សង្ខេបការងារយប់មិញ & សុខភាពប្រព័ន្ធ\n/)
     assert.match(ok, /Server ដំណើរការល្អ \(Disk ទំនេរ 51\.2 GB\)/)
     assert.match(morningBriefingText({ healthy: false, diskFreeGb: 9 }), /Server ត្រូវតាមដាន/) // never claims health it does not see
-    assert.match(read("src/lib/server/nightly-report.ts"), /p_job: "morning-briefing"/)
+    assert.match(read("src/lib/server/nightly-report.ts"), /claimDaily\("morning-briefing"/)
   })
 })
 

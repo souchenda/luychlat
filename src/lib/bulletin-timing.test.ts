@@ -52,7 +52,7 @@ describe("Only today's NBC rate is ever published (founder, 21/10/2026)", () => 
     assert.match(cb, /if \(decision !== "publish"\) return false/)
     assert.match(cb, /if \(decision !== "publish" \|\| !market\?\.nbc\?\.usd_khr\) return false/)
     assert.match(cb, /if \(!isWeekday\(day\)\) return/)
-    assert.match(cb, /p_job: "bulletin-held", p_day: day/)
+    assert.match(cb, /claimDaily\("bulletin-held", day\)/)
     assert.match(cb, /founder told in \$\{sent\} chat\(s\)/)
     assert.doesNotMatch(cb, /const FROM = \{ hour: 9, minute: 30 \}|const DEADLINE = \{ hour: 10, minute: 30 \}/)
   })

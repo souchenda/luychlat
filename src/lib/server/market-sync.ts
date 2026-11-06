@@ -8,6 +8,7 @@ import { parseNbcPage } from "@/lib/nbc"
 import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { logEvent } from "@/lib/server/events"
 import { devopsChats } from "@/lib/server/admin-routes"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 /**
  * Sources (no API keys):
@@ -308,7 +309,7 @@ async function claimSlot(kind: string, day: string, slot: string) {
   if (ranSlots.has(key)) return false
   ranSlots.add(key)
   if (ranSlots.size > 200) ranSlots.delete(ranSlots.values().next().value!)
-  const { data } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: `market-${kind}-${slot}`, p_day: day })
+  const { data } = await claimDaily(`market-${kind}-${slot}`, day)
   return data === true
 }
 
@@ -317,8 +318,7 @@ async function claimSlot(kind: string, day: string, slot: string) {
  * once a day per source.
  */
 async function integrityAlert(kind: "nbc" | "gold", day: string, detail: string) {
-  const db = botDb()
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `integrity-${kind}`, p_day: day })
+  const { data: claimed } = await claimDaily(`integrity-${kind}`, day)
   if (claimed !== true) return
   const what = kind === "nbc" ? "អត្រាប្តូរប្រាក់ NBC" : "តម្លៃមាសក្នុងស្រុក"
   const text = [

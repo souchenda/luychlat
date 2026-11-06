@@ -33,6 +33,7 @@ import { supabaseUrl } from "@/lib/supabase/config"
 import { threadFor } from "@/lib/chat-route"
 import { marketingChats } from "@/lib/server/admin-routes"
 import { communityChannel, communityChannelConfigured, founderApproved } from "@/lib/server/channel"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 export type DailyTip = {
   day: string
@@ -240,7 +241,7 @@ async function sendPreviews(t: DailyTip) {
 }
 
 async function claim(job: string, day: string) {
-  const { data } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: job, p_day: day })
+  const { data } = await claimDaily(job, day)
   return data === true
 }
 

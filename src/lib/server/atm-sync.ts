@@ -6,6 +6,7 @@ import { TOWNS } from "@/lib/kh-towns"
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey } from "./telegram-bot"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 const MIRRORS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
 const QUERY = `[out:json][timeout:90];
@@ -62,7 +63,7 @@ export async function syncAtms(): Promise<string> {
 export async function atmSyncTick() {
   const now = phnomPenhToday()
   if (new Date(`${now.day}T12:00:00Z`).getUTCDay() !== 0 || now.hour < 3) return
-  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "atm-sync", p_day: now.day })
+  const { data: claimed } = await claimDaily("atm-sync", now.day)
   if (claimed !== true) return
   // Overpass can take a minute or two: the other jobs don't wait for it.
   void syncAtms()

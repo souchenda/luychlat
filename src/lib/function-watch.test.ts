@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { test } from "node:test"
 
 import {
@@ -184,7 +184,8 @@ test("self-repair first: twice an hour the app restarts itself; the third time t
   const watch = readFileSync("src/lib/server/function-watch.ts", "utf8")
   assert.match(watch, /if \(mayRestart\(h\.restarts, now\)\) \{[\s\S]{0,400}process\.exit\(1\)/)
   assert.match(watch, /send\(schedulerText\(s, since\), now, true\)/)
-  assert.match(readFileSync("docker-compose.yml", "utf8"), /restart: unless-stopped/)
+  // Not in the Docker build's context (docs/…, deploy/…, docker-compose.yml): checked where the file is (memory: docker-test-context).
+  if (existsSync("docker-compose.yml")) assert.match(readFileSync("docker-compose.yml", "utf8"), /restart: unless-stopped/)
 })
 
 test("the admin roster: every change rings, emails masked by the database", () => {
@@ -201,7 +202,7 @@ test("the admin roster: every change rings, emails masked by the database", () =
   assert.doesNotMatch(sql, /public.app_settings/)
 })
 
-test("the Droplet repairs itself: certbot renew before the SSL warning, old images at 80% disk, a monthly restore test", () => {
+test("the Droplet repairs itself: certbot renew before the SSL warning, old images at 80% disk, a monthly restore test", { skip: !existsSync("deploy/landing-watch.sh") && "deploy/ is not in the Docker build" }, () => {
   const watch = readFileSync("deploy/landing-watch.sh", "utf8")
   assert.ok(watch.indexOf("certbot renew --quiet") < watch.indexOf("⚠️ វិញ្ញាបនបត្រ SSL ជិតផុតកំណត់"))
   assert.match(watch, /-ge 80 \] && flock -n \/tmp\/luysmart-deploy\.lock true[\s\S]{0,200}docker image prune -af --filter "until=72h"/)

@@ -62,12 +62,23 @@ async function sendDueNotifications() {
   }
 }
 
+/**
+ * The subscribers, read every 10 minutes instead of every minute (founder, 6/11/2026 — the Supabase Disk IO warning):
+ * the list changes when a member turns the alert on or moves province, and 10 minutes is soon enough for that.
+ */
+let subscribers: { at: number; rows: Subscriber[] } | null = null
+const SUBSCRIBERS_TTL_MS = 10 * 60_000
+
 /** Prayer-time messages for the chosen province, once per prayer and day. */
 async function sendPrayerTimes() {
-  const db = botDb()
-  const { data, error } = await db.rpc("bot_prayer_subscribers", { p_key: botKey() })
-  // Never a silent failure (CLAUDE.md): a broken query is logged; no subscriber is simply nobody to tell.
-  if (error) return logEvent("error", "prayer", `Telegram prayer alerts: subscribers not read — ${error.message}`, { fold: true })
+  let data: Subscriber[] | null = subscribers && Date.now() - subscribers.at < SUBSCRIBERS_TTL_MS ? subscribers.rows : null
+  if (!data) {
+    const read = await botDb().rpc("bot_prayer_subscribers", { p_key: botKey() })
+    // Never a silent failure (CLAUDE.md): a broken query is logged; no subscriber is simply nobody to tell.
+    if (read.error) return logEvent("error", "prayer", `Telegram prayer alerts: subscribers not read — ${read.error.message}`, { fold: true })
+    data = (read.data as Subscriber[] | null) ?? []
+    subscribers = { at: Date.now(), rows: data }
+  }
   if (!data?.length) return
   const clock = cambodiaNow()
   const day = `${clock.date.year}-${String(clock.date.month).padStart(2, "0")}-${String(clock.date.day).padStart(2, "0")}`
@@ -79,7 +90,7 @@ async function sendPrayerTimes() {
     const times = prayerTimes(clock.date, place.lat, place.lng)
     const prayer = duePrayer(times, clock.minutes)
     if (!prayer) continue
-    const { data: claimed } = await db.rpc("bot_claim_prayer", { p_key: botKey(), p_user_id: s.user_id, p_day: day, p_prayer: prayer })
+    const { data: claimed } = await botDb().rpc("bot_claim_prayer", { p_key: botKey(), p_user_id: s.user_id, p_day: day, p_prayer: prayer })
     if (!claimed) continue
     const name = tr(s.language, `prayer.${prayer}` as MessageKey)
     // The Adhan as audio for members who chose it (founder, 20/10/2026 — /adhan on, or the app switch); the text
@@ -133,11 +144,13 @@ async function sendPrayerPush() {
 }
 
 let running = false
+let passes = 0
 
 /** One pass; overlapping passes are skipped. */
 export async function dispatchOnce() {
   if (running || !botToken()) return
   running = true
+  passes += 1
   passStarted()
   try {
     await sendDueNotifications()
@@ -163,7 +176,8 @@ export async function dispatchOnce() {
     await flushPlaceThanks()
     await birthdayTick()
     await dormancyTick()
-    await groupSweepTick()
+    // Groups the bot must leave: every 10 minutes is soon enough (founder, 6/11/2026 — fewer database calls).
+    if (passes % 10 === 0) await groupSweepTick()
     await devEodTick()
     // 23:30: the server's health and today's members and approvals, to «LCA Approval» (founder, 19/10/2026).
     await nightlyReportTick()

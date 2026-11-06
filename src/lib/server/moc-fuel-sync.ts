@@ -28,6 +28,7 @@ import { askGemini, askGroq, type Answer } from "./slip-bot"
 import { botDb, botKey, botToken, tg } from "./telegram-bot"
 import { founderChats } from "@/lib/server/admin-routes"
 import { communityChannelConfigured } from "@/lib/server/channel"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 const CHANNEL = "mocnewsfeed"
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
@@ -55,7 +56,7 @@ const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦�
 const riel = (n: number) => kmDigits(new Intl.NumberFormat("en-US").format(n))
 
 async function claim(job: string, day: string) {
-  const { data } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: job, p_day: day })
+  const { data } = await claimDaily(job, day)
   return data === true
 }
 

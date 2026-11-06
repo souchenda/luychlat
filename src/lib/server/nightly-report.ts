@@ -15,14 +15,14 @@ import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
 import { phnomPenhToday } from "./market-sync"
 import { searchConsoleWeek } from "./search-console"
 import { botDb, botKey, tg } from "./telegram-bot"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 export async function nightlyReportTick() {
   const now = phnomPenhToday()
   await morningBriefingTick(now)
   const day = nightlyReportDay(now.day, now.hour, now.minute)
   if (!day) return
-  const db = botDb()
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: "nightly-report", p_day: day })
+  const { data: claimed } = await claimDaily("nightly-report", day)
   if (claimed !== true) return
   await sendNightlyReport(day)
 }
@@ -31,7 +31,7 @@ export async function nightlyReportTick() {
 async function morningBriefingTick(now: { day: string; hour: number; minute: number }) {
   const minute = now.hour * 60 + now.minute
   if (now.day !== MORNING_BRIEFING.day || minute < MORNING_BRIEFING.fromMinute || minute >= MORNING_BRIEFING.untilMinute) return
-  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "morning-briefing", p_day: now.day })
+  const { data: claimed } = await claimDaily("morning-briefing", now.day)
   if (claimed !== true) return
   const sample = await takeSample()
   const text = morningBriefingText({ healthy: findIssues([sample]).length === 0, diskFreeGb: diskFreeGb() })

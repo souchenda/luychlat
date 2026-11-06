@@ -11,6 +11,7 @@ import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText, SIGNATURE, tr } from "./telegram-bot"
 import { communityChannelConfigured } from "@/lib/server/channel"
 import { holdForApproval } from "@/lib/server/scheduled-posts"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 const JOB = "holy-day-eve"
 
@@ -62,7 +63,7 @@ export async function holyDayTick() {
 /** One stage: the subscribed chats (in their language) and the channel, each once a day. */
 async function sendStage(job: string, day: string, text: (lang: Locale) => string, channelText: string | null, what: string) {
   const db = botDb()
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: job, p_day: day })
+  const { data: claimed } = await claimDaily(job, day)
   if (claimed !== true) return
   const { data, error } = await db.rpc("bot_holy_day_subscribers", { p_key: botKey() })
   if (error) {
@@ -106,7 +107,7 @@ export async function festivalTick() {
   if (!festival || festival.kind !== "festival" || festival.start !== now.day) return
 
   const db = botDb()
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: `festival-${festival.key}`, p_day: now.day })
+  const { data: claimed } = await claimDaily(`festival-${festival.key}`, now.day)
   if (claimed !== true) return
   // «p_buddhist» skips Islamic Mode members: a Buddhist day or a Chinese festival never reaches them.
   const { data, error } = await db.rpc("bot_festival_people", { p_key: botKey(), p_buddhist: skipsIslamicMode(festival.key) })

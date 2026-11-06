@@ -5,6 +5,7 @@ import { botDb, botKey, tg } from "@/lib/server/telegram-bot"
 import { logEvent } from "@/lib/server/events"
 import { devopsChats } from "@/lib/server/admin-routes"
 import { AUTO_NOTICE } from "@/lib/incident-notices"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 /**
  * Runs every minute from the dispatcher (production only):
@@ -380,7 +381,7 @@ export function summaryText(s: Summary): string {
 async function weeklySummary() {
   const t = new Date(Date.now() + 7 * 3_600_000)
   if (t.getUTCDay() !== 0 || t.getUTCHours() !== 19) return
-  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "weekly-health", p_day: t.toISOString().slice(0, 10) })
+  const { data: claimed } = await claimDaily("weekly-health", t.toISOString().slice(0, 10))
   if (claimed !== true) return
   const { data } = await botDb().rpc("bot_health_summary", { p_key: botKey(), p_days: 7 })
   // A server log: the DevOps chat only (not sent when none is set).

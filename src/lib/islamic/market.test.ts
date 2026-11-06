@@ -55,7 +55,7 @@ describe("Rates, gold and the Zakat Nisab for the Islamic community (founder, 20
     assert.match(sp, /if \(row\.kind === "ISLAMIC_BULLETIN"\) \{[\s\S]{0,200}const text = await islamicBulletinNow\(\)\s+if \(chat && text\) ids\.telegram = await sentText\(text, true\)/)
     const cb = read("src/lib/server/community-bulletin.ts")
     assert.match(cb, /if \(!islamicChannelConfigured\(\)\) return false/)
-    assert.match(cb, /p_job: ISLAMIC_JOB, p_day: now\.day/)
+    assert.match(cb, /claimDaily\(ISLAMIC_JOB, now\.day\)/)
     assert.match(cb, /await holdForApproval\("ISLAMIC_BULLETIN", now\.day, \{ day: now\.day \}\)/)
     assert.match(read("src/lib/server/bot-dispatch.ts"), /await sendIslamicBulletin\(\)/)
     assert.match(read("supabase/migrations/20270208000000_islamic_market_bulletin.sql"), /select p_kind in \('BULLETIN', 'RATES', 'ISLAMIC_MORNING', 'ISLAMIC_BULLETIN'\)/)

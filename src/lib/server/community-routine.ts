@@ -24,6 +24,7 @@ import { phnomPenhToday } from "@/lib/server/market-sync"
 import { botDb, botKey, sendText, tr } from "@/lib/server/telegram-bot"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import type { FounderApproval } from "@/lib/server/channel"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 const MORNING = { job: "community-morning", from: 7 * 60, until: 8 * 60 + 30 }
 const EVENING = { job: "community-evening", from: 20 * 60, until: 21 * 60 + 30 }
@@ -55,7 +56,7 @@ export function morningPoster(day: string): Buffer {
 
 /** Once a day inside the window: claim it, then send. */
 async function claim(job: string, day: string) {
-  const { data } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: job, p_day: day })
+  const { data } = await claimDaily(job, day)
   return data === true
 }
 

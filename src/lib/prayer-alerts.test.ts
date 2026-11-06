@@ -145,7 +145,7 @@ describe("The Adhan plays at the prayer minute — never silence (founder, 22/10
     assert.match(ui, /adhanForPrayer\("dhuhr", adhanPreset, fajrAdhan, !!adhanName, FAJR_ADHAN, global, defaults\)/)
     assert.ok(read("src/lib/i18n/dictionaries.ts").includes('"prayerAlert.testAdhan": "សាកល្បងសំឡេងអាហ្សាន (Test Adhan)"'))
     const bot = read("src/lib/server/bot-dispatch.ts")
-    assert.match(bot, /if \(error\) return logEvent\("error", "prayer", `Telegram prayer alerts: subscribers not read/)
+    assert.match(bot, /if \(read\.error\) return logEvent\("error", "prayer", `Telegram prayer alerts: subscribers not read/)
     assert.match(bot, /if \(error\) return logEvent\("error", "prayer", `Prayer push: phones not read/)
   })
 })

@@ -109,7 +109,7 @@ describe("Wiring: only the channels' discussion groups, nothing else (founder, 2
   })
   it("the morning reaction check: once a day from 09:00, the founder told only when a channel differs, the count logged", () => {
     const guard = read("src/lib/server/channel-guard.ts")
-    assert.match(guard, /p_job: "reaction-audit", p_day: now\.day/)
+    assert.match(guard, /claimDaily\("reaction-audit", now\.day\)/)
     assert.match(guard, /for \(const chat of await founderChats\(\)\)/)
     assert.match(guard, /sent to \$\{sent\} chat\(s\)/)
     assert.match(read("src/lib/server/bot-dispatch.ts"), /await reactionAuditTick\(\)/)

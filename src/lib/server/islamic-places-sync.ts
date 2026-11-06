@@ -7,6 +7,7 @@ import type { OsmElement } from "@/lib/atm"
 import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey } from "./telegram-bot"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 const MIRRORS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]
 
@@ -47,10 +48,10 @@ const run = (why: string) =>
 export async function islamicPlacesSyncTick() {
   // The first seed: once (a fixed claim day), right after the deploy that brings the finder. «-v2»: the first try
   // (19/10/2026 12:27) was refused by the database (a missing grant, fixed in 20270181) and used up its claim.
-  const { data: seed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "islamic-places-seed-v2", p_day: "2026-10-19" })
+  const { data: seed } = await claimDaily("islamic-places-seed-v2", "2026-10-19")
   if (seed === true) return run("seed")
   const now = phnomPenhToday()
   if (new Date(`${now.day}T12:00:00Z`).getUTCDay() !== 0 || now.hour * 60 + now.minute < 3 * 60 + 30) return
-  const { data: claimed } = await botDb().rpc("bot_claim_daily", { p_key: botKey(), p_job: "islamic-places-sync", p_day: now.day })
+  const { data: claimed } = await claimDaily("islamic-places-sync", now.day)
   if (claimed === true) run("refresh")
 }

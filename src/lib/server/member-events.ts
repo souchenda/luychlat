@@ -10,6 +10,7 @@ import { botDb, botKey, sendText, SIGNATURE, tg, tr } from "./telegram-bot"
 import { sourceForAlert } from "@/lib/acquisition"
 import { signupAlertText } from "@/lib/activity-alerts"
 import { founderChats } from "./admin-routes"
+import { claimDaily } from "@/lib/server/claim-daily"
 
 type Pending = { user_id: string; email: string | null; provider: string; created_at: string; total_members: number; display_name?: string | null; acquisition_source?: string | null; islamic?: boolean }
 
@@ -65,7 +66,7 @@ export async function birthdayTick() {
   const now = phnomPenhToday()
   if (now.hour < 7) return
   const db = botDb()
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: BIRTHDAY_JOB, p_day: now.day })
+  const { data: claimed } = await claimDaily(BIRTHDAY_JOB, now.day)
   if (claimed !== true) return
   const { data, error } = await db.rpc("bot_birthday_people", { p_key: botKey(), p_day: now.day })
   if (error) {
@@ -97,7 +98,7 @@ export async function dormancyTick() {
   const now = phnomPenhToday()
   if (now.hour < 10) return
   const db = botDb()
-  const { data: claimed } = await db.rpc("bot_claim_daily", { p_key: botKey(), p_job: DORMANCY_JOB, p_day: now.day })
+  const { data: claimed } = await claimDaily(DORMANCY_JOB, now.day)
   if (claimed !== true) return
   const { data, error } = await db.rpc("bot_dormancy_run", { p_key: botKey() })
   if (error) {
