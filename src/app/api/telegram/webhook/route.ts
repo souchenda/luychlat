@@ -644,6 +644,7 @@ export async function POST(request: Request) {
       p_language: telegramLocale(message.from?.language_code),
     })
     const result = data as { ok: boolean; name?: string } | null
+    if (error) logEvent("error", "bot", `Telegram link failed: ${error.message}`, { fold: true })
     if (error || !result?.ok) await sendText(chatId, tr(lang, "bot.linkFailed") + SIGNATURE)
     else await sendText(chatId, tr(lang, "bot.linked", { name: result.name || "" }) + SIGNATURE, KEYBOARD_OFF)
   } else if (/^\/setgold(@\w+)?$/i.test(command) && (await isAdminChat(chatId))) {

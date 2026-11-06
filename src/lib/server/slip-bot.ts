@@ -355,7 +355,10 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
     heard: null,
   }
   const { data: pendingId, error } = await botDb().rpc("bot_propose", { p_key: botKey(), p_chat_id: chatId, p_action: action })
-  if (error || typeof pendingId !== "string") return sendText(chatId, tr(lang, "bot.saveFailed"))
+  if (error || typeof pendingId !== "string") {
+    logEvent("error", "slips", `Slip not proposed: ${error?.message ?? "no id"}`, { fold: true })
+    return sendText(chatId, tr(lang, "bot.saveFailed"))
+  }
 
   // Zero-click: a known payee and a certain wallet → saved now, with override buttons.
   // A payee that is one of the person's loans (CAMBODIAN LABOR CARE PLC → CLC): never auto-filed under a
@@ -809,6 +812,7 @@ export async function handleNoteReply(chatId: number, replyTo: number, text: str
   if (error || !r?.ok) {
     const msg = error?.message ?? ""
     const why = /plan_required/.test(msg) ? "bot.cmdPro" : /commands_off/.test(msg) ? "bot.cmdOff" : /not_writable/.test(msg) ? "bot.cmdReadonly" : error ? "bot.saveFailed" : "bot.expired"
+    if (why === "bot.saveFailed") logEvent("error", "bot", `Note not saved: ${msg}`, { fold: true })
     await sendText(chatId, tr(lang, why))
     return true
   }

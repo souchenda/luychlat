@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { botDb, botKey, tg, tr } from "@/lib/server/telegram-bot"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { logEvent } from "@/lib/server/events"
 
 /**
  * A dormant account (6+ months inactive) wakes up with a code sent to its
@@ -21,7 +22,10 @@ export async function POST() {
   if (!key) return NextResponse.json({ error: "unavailable" }, { status: 503 })
 
   const { data, error } = await botDb().rpc("bot_reset_start", { p_key: key, p_email: email })
-  if (error || !data) return NextResponse.json({ error: "unavailable" }, { status: 503 })
+  if (error || !data) {
+    logEvent("error", "auth", `Password reset not started: ${error?.message ?? "no answer"}`, { fold: true })
+    return NextResponse.json({ error: "unavailable" }, { status: 503 })
+  }
   const r = data as { status: string; chat_id?: number; language?: Locale; code?: string }
   if (r.status === "rate_limited") return NextResponse.json({ error: "rate_limited" }, { status: 429 })
   if (!r.code || !r.chat_id) return NextResponse.json({ sent: false })

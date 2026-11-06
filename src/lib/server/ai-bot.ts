@@ -14,6 +14,7 @@ import type { Locale } from "@/lib/i18n/dictionaries"
 import { formatMoney } from "@/lib/money"
 import { geminiChain, NO_THINKING } from "@/lib/server/gemini"
 import { botDb, botKey, sendText, tg, tr } from "@/lib/server/telegram-bot"
+import { logEvent } from "@/lib/server/events"
 
 type Figures = {
   workspace_type: string
@@ -246,7 +247,8 @@ export async function handleAiQuestion(chatId: number, question: string, lang: L
   let answer: string | null
   try {
     answer = await askGemini(lang, data, ctx.history ?? [], q)
-  } catch {
+  } catch (e) {
+    logEvent("warn", "ai", `Bot /ai answer failed: ${(e as Error).message?.slice(0, 120)}`, { fold: true })
     return sendText(chatId, tr(lang, "bot.aiFailed"))
   } finally {
     clearInterval(keepTyping)

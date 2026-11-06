@@ -49,7 +49,10 @@ export async function handleBankAlert(chatId: number, alert: BankAlert, raw: str
     },
   })
   const r = data as Saved | null
-  if (error || !r) return sendText(chatId, tr(lang, "bot.saveFailed"))
+  if (error || !r) {
+    logEvent("error", "bank-alert", `Bank alert not saved: ${error?.message ?? "no answer"}`, { fold: true })
+    return sendText(chatId, tr(lang, "bot.saveFailed"))
+  }
   switch (r.status) {
     case "plan_required":
       return sendText(chatId, tr(lang, "bot.cmdPro"))

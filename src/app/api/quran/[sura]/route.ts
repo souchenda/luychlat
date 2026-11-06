@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 import { parseSurah, QURAN_TRANSLATION, surahByNumber, type QuranSurahText } from "@/lib/quran"
 import { clientIp, rateLimit } from "@/lib/server/guard"
+import { logEvent } from "@/lib/server/events"
 
 /**
  * One surah — Uthmani Arabic + the Khmer translation (Islamic Community
@@ -47,7 +48,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ sura
     })
     if (!res.ok) throw new Error(`QuranEnc ${res.status}`)
     rows = ((await res.json()) as { result: ApiVerse[] }).result
-  } catch {
+  } catch (e) {
+    logEvent("warn", "quran", `Quran translation not fetched: ${(e as Error).message}`, { fold: true })
     return NextResponse.json({ error: "unavailable" }, { status: 502 })
   }
 

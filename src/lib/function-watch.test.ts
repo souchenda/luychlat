@@ -7,6 +7,8 @@ import {
   evaluate,
   firing,
   hhmm,
+  missedJobs,
+  missedText,
   MAX_ALERTS_PER_HOUR,
   newState,
   normalize,
@@ -105,4 +107,43 @@ test("wired: every event feeds the watch; its own timer; the health body; the fo
   assert.match(watch, /founderChats\(\)/)
   assert.match(watch, /maskNumbers\(text\)/)
   assert.match(watch, /→ \$\{reached\} chat\(s\)/)
+})
+
+test("the day's work: a job past its deadline with nothing logged alerts once; done, before the deadline, or after a deploy — never", () => {
+  // Friday 6/11/2026.
+  const at = (hm: string) => Date.parse(`2026-11-06T${hm}:00+07:00`)
+  const boot = at("01:00")
+  const seen = new Set<string>()
+  assert.deepEqual(missedJobs([], at("05:49"), boot, seen).map((x) => x.id), [])
+  assert.deepEqual(missedJobs([], at("05:51"), boot, seen).map((x) => x.id), ["prayer-times"])
+  const prayed: WatchEvent = { at: at("05:30"), level: "info", source: "scheduled-posts", message: "ISLAMIC_MORNING 2026-11-06 published (auto) · Telegram 812 · Facebook —" }
+  assert.deepEqual(missedJobs([prayed], at("05:51"), boot, seen).map((x) => x.id), [])
+  // A deploy at 06:00: the feed is new, so nothing before its window is judged.
+  assert.deepEqual(missedJobs([], at("10:50"), at("09:00"), seen).map((x) => x.id), [])
+  // The bulletin: published, or held for lack of today's NBC rate — both are «done».
+  const held: WatchEvent = { at: at("10:00"), level: "warn", source: "bulletin", message: "Bulletins held 2026-11-06: no NBC rate for today by 10:00 (latest 2026-11-05) — founder told in 1 chat(s)" }
+  assert.ok(!missedJobs([prayed, held], at("10:50"), boot, seen).some((x) => x.id === "bulletin"))
+  assert.ok(missedJobs([prayed], at("10:50"), boot, seen).some((x) => x.id === "bulletin"))
+  // Saturday: no bulletin is expected.
+  assert.ok(!missedJobs([], Date.parse("2026-11-07T10:50:00+07:00"), boot, seen).some((x) => x.id === "bulletin"))
+  // The nightly report must have reached a chat.
+  const none: WatchEvent = { at: at("23:30"), level: "warn", source: "nightly-report", message: "Nightly report 2026-11-06 (1 part(s)) sent to 0 chat(s)" }
+  const one: WatchEvent = { ...none, level: "info", message: "Nightly report 2026-11-06 (1 part(s)) sent to 1 chat(s)" }
+  assert.ok(missedJobs([prayed, held, none], at("23:46"), boot, seen).some((x) => x.id === "nightly-report"))
+  assert.ok(!missedJobs([prayed, held, one], at("23:46"), boot, seen).some((x) => x.id === "nightly-report"))
+  // Once reported, not again that day.
+  seen.add("prayer-times|2026-11-06")
+  assert.ok(!missedJobs([], at("12:00"), boot, seen).some((x) => x.id === "prayer-times"))
+  assert.match(missedText(missedJobs([], at("12:00"), boot, new Set())[0]), /^🟠 បង ម៉ោងសឡាត 05:30 .*មិនទាន់ចេញទេ \(គួរចេញមុនម៉ោង 05:50\)/)
+})
+
+test("every silent failure path the 6/11 audit found now logs its reason", () => {
+  const has = (p: string, re: RegExp) => assert.match(readFileSync(p, "utf8"), re, p)
+  for (const p of ["account-bot", "loan-detail-bot", "loan-schedule-bot", "term-deposit-bot", "bill-bot"]) has(`src/lib/server/${p}.ts`, /telegramFile\(fileId, \(w\) => \(why = w\)\)[\s\S]{0,120}logEvent\("warn"/)
+  has("src/lib/server/slip-bot.ts", /logEvent\("error", "slips", `Slip not proposed/)
+  has("src/lib/server/bank-alert-bot.ts", /logEvent\("error", "bank-alert", `Bank alert not saved/)
+  has("src/lib/server/bot-commands.ts", /Voice note not fetched from Telegram: HTTP/)
+  has("src/lib/server/invoice-bot.ts", /Invoice not created/)
+  has("src/app/api/soundbox/feed/route.ts", /SoundBox feed not read/)
+  has("src/app/api/advisor/route.ts", /AI advisor \(our key\)/)
 })

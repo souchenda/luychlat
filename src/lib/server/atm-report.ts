@@ -63,6 +63,7 @@ export const isAtmReportCallback = (data: string | undefined) => /^at[rbs]:/.tes
 async function submit(chatId: number, bank: BankCode, lat: number, lng: number, note: string | null) {
   pending.delete(chatId)
   const { data, error } = await botDb().rpc("bot_atm_report", { p_key: botKey(), p_chat_id: chatId, p_bank: bank, p_lat: lat, p_lng: lng, p_note: note })
+  if (error && !/too_many/.test(error.message)) logEvent("error", "atm-report", `ATM report not saved: ${error.message}`, { fold: true })
   if (error) return sendText(chatId, /too_many/.test(error.message) ? "🙏 បងបានផ្ញើសំណើច្រើនហើយថ្ងៃនេះ — សូមព្យាយាមម្ដងទៀតថ្ងៃស្អែក។" : "សូមអភ័យទោស ផ្ញើសំណើមិនបានទេ ពេលនេះ។")
   await sendAdminCard(data as string)
   return sendText(chatId, `✅ អរគុណបង! សំណើទូ ATM ${bankLabel(bank)} ត្រូវបានផ្ញើទៅអ្នកគ្រប់គ្រងដើម្បីពិនិត្យ — ពេលយល់ព្រម វានឹងបង្ហាញក្នុង /atm សម្រាប់អ្នកទាំងអស់គ្នា។`)

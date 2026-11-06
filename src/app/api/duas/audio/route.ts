@@ -4,6 +4,7 @@ import { DUA_UPLOAD_MAX_BYTES, isDuaId } from "@/lib/dua-audio"
 import { deleteDuaFile, saveDuaRecording } from "@/lib/server/dua-audio-store"
 import { guardRequest } from "@/lib/server/guard"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { logEvent } from "@/lib/server/events"
 
 /**
  * «📤 បញ្ចូលសំឡេង» on a du'a card (super admin only, founder 19/10/2026): multipart { dua, credit, rights, file }.
@@ -57,7 +58,10 @@ export async function DELETE(request: Request) {
   const dua = new URL(request.url).searchParams.get("dua")
   if (!isDuaId(dua)) return NextResponse.json({ error: "invalid" }, { status: 400 })
   const { data, error } = await supabase.rpc("dua_recording_remove", { p_dua: dua })
-  if (error) return NextResponse.json({ error: "failed" }, { status: 500 })
+  if (error) {
+    logEvent("error", "dua-audio", `Dua recording not removed: ${error.message}`, { fold: true })
+    return NextResponse.json({ error: "failed" }, { status: 500 })
+  }
   await deleteDuaFile(dua, (data as string | null) ?? null)
   return NextResponse.json({ ok: true })
 }

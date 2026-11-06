@@ -18,8 +18,9 @@ async function readAccount(fileId: string): Promise<AccountRead | null | "busy">
   const gemini = process.env.GEMINI_API_KEY?.trim()
   const groq = process.env.GROQ_API_KEY?.trim()
   if (!gemini && !groq) return "busy"
-  const file = await telegramFile(fileId)
-  if (!file) return null
+  let why = "no file"
+  const file = await telegramFile(fileId, (w) => (why = w))
+  if (!file) return logEvent("warn", "accounts", `Photo not fetched from Telegram: ${why}`, { fold: true }), null
   const image = Buffer.from(file.bytes).toString("base64")
   const readers: [string, () => Promise<Answer>][] = []
   if (gemini) readers.push(["Gemini", () => askGemini(gemini, file.type, image, ACCOUNT_PROMPT, 400, 30_000)])

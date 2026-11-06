@@ -26,7 +26,9 @@ const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.
 type Scan = { status: string; bill_id?: string; title?: string; remind_days?: number[]; statement_id?: string; next_due?: string }
 
 export async function handleBillPhoto(chatId: number, fileId: string, ctx: Context) {
-  const file = await telegramFile(fileId)
+  let why = "no file"
+  const file = await telegramFile(fileId, (w) => (why = w))
+  if (!file) logEvent("warn", "bills", `Bill photo not fetched from Telegram: ${why}`, { fold: true })
   if (!file) return sendText(chatId, "⚠️ មិនអាចបើករូបនេះបានទេ។ សូមផ្ញើម្ដងទៀត។")
   const bytes = new Uint8Array(file.bytes)
   const [bill, khqr] = await Promise.all([readUtilityBill(file.type, Buffer.from(bytes).toString("base64")), khqrOnImage(bytes)])

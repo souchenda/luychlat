@@ -59,6 +59,7 @@ export async function sendDigestNow(chatId: number, fallbackLang: Locale) {
   const { data, error } = await botDb().rpc("bot_digest_for_chat", { p_key: botKey(), p_chat_id: chatId, p_week_start: weekStart })
   const r = data as { status: "ok" | "off" | "not_linked" | "suspended"; language?: Locale; digest?: DigestRow } | null
   const lang = r?.digest?.language ?? r?.language ?? fallbackLang
+  if (error) logEvent("error", "weekly-digest", `Digest not read: ${error.message}`, { fold: true })
   if (error || !r || r.status === "not_linked" || r.status === "suspended") return sendText(chatId, tr(lang, "bot.help"))
   if (r.status === "off") return sendText(chatId, tr(lang, "bot.digestOff"), dashboardButton(tr(lang, "bot.openApp")))
   const row = r.digest!

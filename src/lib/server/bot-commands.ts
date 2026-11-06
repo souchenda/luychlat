@@ -251,7 +251,10 @@ export async function handleEntryMessage(chatId: number, text: string, ctx: Cont
       p_chat_id: chatId,
       p_action: { kind: "TOPUP", prepaid: topUp.type, wallet_id: topUp.source.id, amount: topUp.amount, currency: topUp.currency, note: topUp.note, text: input, ...(route ? { workspace_id: ws.id } : {}) },
     })
-    if (error || typeof data !== "string") return reply(tr(lang, "bot.saveFailed"))
+    if (error || typeof data !== "string") {
+      logEvent("error", "bot", `Top-up not proposed: ${error?.message ?? "no id"}`, { fold: true })
+      return reply(tr(lang, "bot.saveFailed"))
+    }
     return sendText(chatId, said + topUpCard(topUp), {
       reply_markup: { inline_keyboard: [[{ text: tr(lang, "bot.confirm"), callback_data: `ok:${data}` }, { text: tr(lang, "bot.cancel"), callback_data: `no:${data}` }]] },
     })
@@ -440,9 +443,13 @@ export async function handleVoiceMessage(chatId: number, voice: Voice, ctx: Cont
   try {
     // The download URL contains the bot token: fetched here only, never logged or stored.
     const res = await fetch(`https://api.telegram.org/file/bot${botToken()}/${path}`, { cache: "no-store", signal: AbortSignal.timeout(20_000) })
-    if (!res.ok) return sendText(chatId, tr(lang, "bot.voiceFailed"))
+    if (!res.ok) {
+      logEvent("warn", "voice", `Voice note not fetched from Telegram: HTTP ${res.status}`, { fold: true })
+      return sendText(chatId, tr(lang, "bot.voiceFailed"))
+    }
     audio = new Blob([await res.arrayBuffer()], { type: "audio/ogg" })
-  } catch {
+  } catch (e) {
+    logEvent("warn", "voice", `Voice note not fetched from Telegram: ${(e as Error).name === "TimeoutError" ? "timed out" : "download failed"}`, { fold: true })
     return sendText(chatId, tr(lang, "bot.voiceFailed"))
   }
   if (audio.size > MAX_VOICE_BYTES) return sendText(chatId, tr(lang, "bot.voiceTooLong"))
@@ -635,6 +642,7 @@ const MONTH_KM = ["មករា", "កុម្ភៈ", "មីនា", "មេ�
 export async function sendCarReport(chatId: number, lang: Locale) {
   const { data, error } = await botDb().rpc("bot_car_report", { p_key: botKey(), p_chat_id: chatId })
   const r = data as CarReport | null
+  if (error) logEvent("error", "bot", `Car report failed: ${error.message}`, { fold: true })
   if (error || !r) return sendText(chatId, tr(lang, "bot.saveFailed"))
   if (r.status !== "ok") return sendText(chatId, tr(lang, "bot.notLinked"))
   const now = new Date(Date.now() + 7 * 3_600_000)

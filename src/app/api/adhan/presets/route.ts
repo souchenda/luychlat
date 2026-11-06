@@ -79,7 +79,10 @@ export async function DELETE(request: Request) {
   const id = new URL(request.url).searchParams.get("id") ?? ""
   if (!/^[0-9a-f-]{36}$/.test(id)) return NextResponse.json({ error: "invalid" }, { status: 400 })
   const { data, error } = await supabase.rpc("adhan_preset_remove", { p_id: id })
-  if (error) return NextResponse.json({ error: "failed" }, { status: 500 })
+  if (error) {
+    logEvent("error", "adhan", `Adhan preset not removed: ${error.message}`, { fold: true })
+    return NextResponse.json({ error: "failed" }, { status: 500 })
+  }
   if (isGlobalAdhanPath(data) && duaStoreConfigured()) await service().storage.from(GLOBAL_ADHAN_BUCKET).remove([data])
   return NextResponse.json({ ok: true })
 }

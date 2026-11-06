@@ -40,6 +40,7 @@ export async function cfoBriefTick() {
 export async function sendCfoNow(chatId: number) {
   const { data, error } = await botDb().rpc("bot_cfo_for_chat", { p_key: botKey(), p_chat_id: chatId, p_today: phnomPenhToday().day })
   const r = data as { status: string; data?: CfoData } | null
+  if (error) logEvent("error", "cfo-brief", `CFO brief failed: ${error.message}`, { fold: true })
   if (error || !r) return sendText(chatId, "សូមអភ័យទោស មិនអាចរៀបចំរបាយការណ៍បានទេ ពេលនេះ។")
   if (r.status === "group") return sendText(chatId, "🔒 របាយការណ៍សុខភាពហិរញ្ញវត្ថុ ផ្ញើតែក្នុងការជជែកផ្ទាល់ជាមួយ Bot ប៉ុណ្ណោះ។")
   if (r.status === "not_linked") return sendText(chatId, "🩺 សូមភ្ជាប់គណនីជាមុនសិន ដោយប្រើ /start។")

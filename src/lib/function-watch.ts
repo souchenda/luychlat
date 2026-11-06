@@ -35,8 +35,9 @@ export const IGNORED_SOURCES = ["watchdog", "function-watch"]
 export const COOLDOWN_MS = 30 * 60_000
 export const QUIET_TO_RECOVER_MS = 30 * 60_000
 export const MAX_ALERTS_PER_HOUR = 6
-/** The events kept in memory: the longest window, with a margin. */
-export const KEEP_MS = 2 * 60 * 60_000
+/** The events kept in memory: the longest wait (the bulletin from 08:00 to its 10:45 deadline), with a margin. */
+export const KEEP_MS = 4 * 60 * 60_000
+export const KEEP_MAX = 20_000
 
 /** What each source is, in the founder's words. Unknown sources show their technical name. */
 export const SOURCE_KM: Record<string, string> = {
@@ -179,6 +180,53 @@ export function evaluate(events: WatchEvent[], now: number, state: WatchState): 
   }
   return out
 }
+
+/**
+ * The day's work that must go out (founder, 6/11/2026 — «a missed job is a fault too»): by its deadline the job has logged
+ * that it went out; nothing → one alert that day. Only checked when this process was already up before the job's
+ * window opened (`upBy`) — the event feed is in memory, so a deploy in between must not cry wolf. Days: 0 = Sunday.
+ */
+export type Expect = { id: string; label: string; days?: number[]; upBy: string; deadline: string; source: string; done: (day: string) => RegExp }
+const esc = (s: string) => s.replace(/[-]/g, "\\-")
+export const EXPECTS: Expect[] = [
+  // 05:30 prayer times (auto-published, every day).
+  { id: "prayer-times", label: "ម៉ោងសឡាត 05:30 ក្នុង @LuyChlatIslamic", upBy: "05:25", deadline: "05:50", source: "scheduled-posts", done: (d) => new RegExp(`^ISLAMIC_MORNING ${esc(d)} published \\(`) },
+  // The market bulletin on a weekday: published, or held (no NBC rate by 10:00 — the founder is told by that path).
+  {
+    id: "bulletin",
+    label: "ព្រឹត្តិបត្រទីផ្សារ (អត្រា NBC មាស ប្រេង)",
+    days: [1, 2, 3, 4, 5],
+    upBy: "07:55",
+    deadline: "10:45",
+    source: "*",
+    done: (d) => new RegExp(`^(BULLETIN ${esc(d)} published \\(|Bulletins held ${esc(d)})`),
+  },
+  // The 23:30 nightly report, really received by a chat.
+  { id: "nightly-report", label: "របាយការណ៍ពេលយប់ 23:30", upBy: "23:25", deadline: "23:45", source: "nightly-report", done: (d) => new RegExp(`^Nightly report ${esc(d)} \\(\\d+ part\\(s\\)\\) sent to [1-9]`) },
+]
+
+const minutesOf = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5))
+/** Cambodia day «2026-11-06», weekday and minute of the day for an instant. */
+export function cambodiaClock(at: number) {
+  const d = new Date(at + 7 * 3_600_000)
+  return { day: d.toISOString().slice(0, 10), weekday: d.getUTCDay(), minute: d.getUTCHours() * 60 + d.getUTCMinutes() }
+}
+/** Cambodia «HH:MM» of `day` as an instant. */
+const instantOf = (day: string, hm: string) => Date.parse(`${day}T${hm}:00+07:00`)
+
+/** The jobs past their deadline today with no «done» line; `reported` (id|day) keeps each to one alert a day. */
+export function missedJobs(events: WatchEvent[], now: number, bootAt: number, reported: Set<string>): Expect[] {
+  const c = cambodiaClock(now)
+  return EXPECTS.filter((x) => {
+    if (x.days && !x.days.includes(c.weekday)) return false
+    if (c.minute < minutesOf(x.deadline) || reported.has(`${x.id}|${c.day}`)) return false
+    if (bootAt > instantOf(c.day, x.upBy)) return false
+    const re = x.done(c.day)
+    return !events.some((e) => (x.source === "*" || e.source === x.source) && re.test(e.message))
+  })
+}
+
+export const missedText = (x: Expect) => `🟠 បង ${x.label} មិនទាន់ចេញទេ (គួរចេញមុនម៉ោង ${x.deadline})។ ខ្ញុំត្រូវពិនិត្យ — មើលលម្អិតនៅ Admin › Super › មជ្ឈមណ្ឌលបញ្ជា › សន្តិសុខ`
 
 /**
  * The scheduler's own heartbeat (the dead-man switch): every minute it runs a pass; the watcher itself runs inside the

@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     const read = cleanKScore(JSON.parse(got.text.replace(/^\s*```(?:json)?|```\s*$/g, "").trim()), today)
     return read ? NextResponse.json({ read }) : NextResponse.json({ error: "not_kscore" }, { status: 422 })
   } catch {
+    logEvent("warn", "scan", "K-Score read: the reader answered without JSON", { fold: true })
     return NextResponse.json({ error: "busy" }, { status: 503 })
   }
 }

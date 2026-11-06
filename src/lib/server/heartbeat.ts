@@ -3,7 +3,7 @@
 // same process, and both must see one heartbeat.
 import { readFileSync } from "fs"
 
-import { KEEP_MS, type Heartbeat, type Level, type WatchEvent } from "@/lib/function-watch"
+import { KEEP_MAX, KEEP_MS, type Heartbeat, type Level, type WatchEvent } from "@/lib/function-watch"
 
 type Shared = { hb: Heartbeat; events: WatchEvent[] }
 const g = globalThis as { __luyWatch?: Shared }
@@ -18,7 +18,7 @@ export function noteEvent(level: Level, source: string, message: string) {
   const s = shared()
   const now = Date.now()
   s.events.push({ at: now, level, source, message })
-  if (s.events.length > 3000 || s.events[0].at < now - KEEP_MS) s.events = s.events.filter((e) => now - e.at < KEEP_MS).slice(-3000)
+  if (s.events.length > KEEP_MAX || s.events[0].at < now - KEEP_MS) s.events = s.events.filter((e) => now - e.at < KEEP_MS).slice(-KEEP_MAX)
 }
 export const recentEvents = (): WatchEvent[] => shared().events
 

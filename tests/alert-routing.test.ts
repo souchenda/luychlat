@@ -13,8 +13,14 @@ const src = (p: string) => readFileSync(join(process.cwd(), "src", p), "utf8")
 
 describe("server alerts — only a real outage, after 5 minutes", () => {
   const t0 = Date.parse("2026-10-17T07:00:00Z")
-  it("CPU, RAM, disk, app memory and a slow database never page", () => {
-    for (const issue of ["cpu", "ram", "disk", "app_mem", "db_slow"] as const) assert.equal(shouldPage(issue, t0, t0 + 60 * 60_000), false, issue)
+  it("CPU, RAM and a slow database never page", () => {
+    for (const issue of ["cpu", "ram", "db_slow"] as const) assert.equal(shouldPage(issue, t0, t0 + 60 * 60_000), false, issue)
+  })
+  it("a full disk and the app near its memory limit page after 5 minutes (founder, 6/11/2026)", () => {
+    for (const issue of ["disk", "app_mem"] as const) {
+      assert.equal(shouldPage(issue, t0, t0 + 4 * 60_000), false, issue)
+      assert.equal(shouldPage(issue, t0, t0 + PAGE_AFTER_MS), true, issue)
+    }
   })
   it("the database down / the site unreachable for Telegram: paged after 5 minutes, not before", () => {
     assert.equal(shouldPage("db_down", t0, t0 + 4 * 60_000), false)

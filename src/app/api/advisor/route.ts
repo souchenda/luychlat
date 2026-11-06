@@ -7,6 +7,7 @@ import { advisorPlainText, advisorSystemPrompt } from "@/lib/advisor/prompt"
 import { geminiChain, NO_THINKING } from "@/lib/server/gemini"
 import { guardRequest, readJson } from "@/lib/server/guard"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { logEvent } from "@/lib/server/events"
 
 // Snapshot + 12 short messages fit well within this.
 const MAX_BYTES = 64_000
@@ -147,7 +148,9 @@ async function askLuyChlat(req: AdvisorRequest) {
     return NextResponse.json({ text, quota: used.data ?? quota })
   } catch (error) {
     // Never blame the user's key here: it's ours.
-    if (error instanceof Anthropic.RateLimitError || (error as { status?: number }).status === 429) return NextResponse.json({ error: "rate_limited" }, { status: 429 })
+    const limited = error instanceof Anthropic.RateLimitError || (error as { status?: number }).status === 429
+    logEvent("warn", "advisor", `AI advisor (our key) ${limited ? "rate-limited" : `failed: ${(error as Error).message?.slice(0, 120)}`}`, { fold: true })
+    if (limited) return NextResponse.json({ error: "rate_limited" }, { status: 429 })
     return NextResponse.json({ error: "provider_error" }, { status: 502 })
   }
 }

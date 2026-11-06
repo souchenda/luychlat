@@ -1,7 +1,7 @@
 // Server only: the function watch (founder, 6/11/2026) — feature faults and a stopped scheduler, to the founder's private
 // chat. The rules are lib/function-watch.ts; this file only feeds them and sends. It runs on its OWN timer, not inside the
 // dispatcher's pass, so a pass that hangs is still reported.
-import { evaluate, newState, quietHour, schedulerOkText, schedulerState, schedulerText } from "@/lib/function-watch"
+import { evaluate, missedJobs, missedText, newState, quietHour, schedulerOkText, schedulerState, schedulerText } from "@/lib/function-watch"
 import { founderChats } from "@/lib/server/admin-routes"
 import { logEvent } from "@/lib/server/events"
 import { dispatcherExpected, heartbeat, recentEvents } from "@/lib/server/heartbeat"
@@ -9,6 +9,8 @@ import { maskNumbers, tg } from "@/lib/server/telegram-bot"
 
 const state = newState()
 let scheduler: { state: "stuck" | "stalled"; since: number } | null = null
+/** The day's jobs already reported missing («id|day»). */
+const reportedMissed = new Set<string>()
 /** Alerts sent since Cambodia midnight, for the end-of-day health line. */
 let today = { day: "", alerts: 0 }
 
@@ -39,6 +41,15 @@ export async function functionWatchTick() {
       const reached = await send(m.text, now)
       if (m.kind !== "recovered") alerts += 1
       logEvent(reached ? "info" : "warn", "function-watch", `${m.kind} ${m.key ?? ""} → ${reached} chat(s)`)
+    }
+    // The day's work that must go out: one alert a day for a job past its deadline with nothing logged.
+    if (dispatcherExpected()) {
+      for (const x of missedJobs(recentEvents(), now, heartbeat().bootAt, reportedMissed)) {
+        reportedMissed.add(`${x.id}|${cambodiaDay(now)}`)
+        const reached = await send(missedText(x), now)
+        alerts += 1
+        logEvent("warn", "function-watch", `Missed job ${x.id} → ${reached} chat(s)`)
+      }
     }
     if (alerts) {
       const day = cambodiaDay(now)

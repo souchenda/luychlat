@@ -9,6 +9,7 @@ import { guardRequest, readJson } from "@/lib/server/guard"
 import { tokenHash } from "@/lib/server/soundbox-token"
 import { withCleanFetch } from "@/lib/supabase/clean-fetch"
 import { supabaseUrl } from "@/lib/supabase/config"
+import { logEvent } from "@/lib/server/events"
 
 /**
  * The SoundBox's native feed (founder, 24/10/2026 — Task #487): the APK's foreground service asks every few seconds —
@@ -60,7 +61,10 @@ export async function GET(request: Request) {
     .gt("created_at", since)
     .order("created_at")
     .limit(20)
-  if (error) return NextResponse.json({ ok: false }, { status: 502 })
+  if (error) {
+    logEvent("warn", "soundbox", `SoundBox feed not read: ${error.message}`, { fold: true })
+    return NextResponse.json({ ok: false }, { status: 502 })
+  }
   const rows = (data ?? []) as FeedRow[]
   const items = feedItems(rows.filter((r) => !inQuietSpan(r.created_at, spans)), now, speed, ORIGIN, voice)
   if (catchUp) {

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { parseLoginIdentifier } from "@/lib/auth-identifier"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { botDb, botKey, tg, tr } from "@/lib/server/telegram-bot"
+import { logEvent } from "@/lib/server/events"
 
 /**
  * Forgot password, step 1 (no sign-in): a 6-digit code to the Telegram chat
@@ -43,7 +44,10 @@ export async function POST(request: Request) {
   if (!key) return NextResponse.json({ error: "unavailable" }, { status: 503 })
 
   const { data, error } = await botDb().rpc("bot_reset_start", { p_key: key, p_email: id.email })
-  if (error || !data) return NextResponse.json({ error: "unavailable" }, { status: 503 })
+  if (error || !data) {
+    logEvent("error", "auth", `Password reset not started: ${error?.message ?? "no answer"}`, { fold: true })
+    return NextResponse.json({ error: "unavailable" }, { status: 503 })
+  }
   const r = data as { status: string; link_token?: string; chat_id?: number; language?: Locale; code?: string }
   if (r.status === "rate_limited") return NextResponse.json({ error: "rate_limited" }, { status: 429 })
 

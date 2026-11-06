@@ -9,6 +9,7 @@ import { formatMoney } from "@/lib/money"
 import { botContext, contextLocale } from "@/lib/server/bot-commands"
 import { receiptPng } from "@/lib/server/receipt-image"
 import { botDb, botKey, botToken, sendText, tg, tr } from "@/lib/server/telegram-bot"
+import { logEvent } from "@/lib/server/events"
 
 type InvoiceCallback = { id: string; data?: string; message?: { message_id: number; caption?: string; chat: { id: number; type: string } } }
 
@@ -70,7 +71,10 @@ export async function handleInvoiceMessage(chatId: number, text: string, fallbac
     p_notes: parsed.notes,
   })
   const r = data as ({ status: string } & Partial<ReceiptData>) | null
-  if (error || !r) return sendText(chatId, tr(lang, "bot.saveFailed"))
+  if (error || !r) {
+    logEvent("error", "invoices", `Invoice not created: ${error?.message ?? "no answer"}`, { fold: true })
+    return sendText(chatId, tr(lang, "bot.saveFailed"))
+  }
   if (r.status === "limit") return sendText(chatId, tr(lang, "bot.invoiceLimit"))
   if (r.status === "not_writable") return sendText(chatId, tr(lang, "bot.cmdReadonly"))
   if (r.status !== "ok" || !r.invoice) return sendText(chatId, tr(lang, r.status === "invalid" ? "bot.invoiceHelp" : "bot.saveFailed"))

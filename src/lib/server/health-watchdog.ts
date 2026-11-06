@@ -213,11 +213,12 @@ export function recoveredText(issue: Issue, s: Sample, stillOpen: Issue[]): stri
 
 /**
  * Telegram only for a real outage (founder, 17/10/2026 — «no CPU warnings»): the database unreachable, or
- * Telegram unable to reach the site, for 5 minutes or more. CPU / RAM / disk / app memory / a slow database
- * stay in the incident log (Super Admin › Development › Security) and are never sent. A 502 — the app itself
- * down, which this process can't see — is watched from outside (deploy/uptime-watch.sh).
+ * Telegram unable to reach the site, for 5 minutes or more — and (founder, 6/11/2026) a full disk or the app near its
+ * memory limit, which stop the app if nobody acts. CPU / RAM / a slow database stay in the incident log (Super Admin ›
+ * Development › Security) and are never sent. A 502 — the app itself down, which this process can't see — is watched
+ * from outside (deploy/uptime-watch.sh).
  */
-export const PAGE_ISSUES: Issue[] = ["db_down", "webhook"]
+export const PAGE_ISSUES: Issue[] = ["db_down", "webhook", "disk", "app_mem"]
 export const PAGE_AFTER_MS = 5 * 60_000
 export const shouldPage = (issue: Issue, since: number, now: number) => PAGE_ISSUES.includes(issue) && now - since >= PAGE_AFTER_MS
 
