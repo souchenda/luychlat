@@ -19,8 +19,19 @@ export type WatchEvent = { at: number; level: Level; source: string; message: st
 /** `anySource`: one fault for every source (the AI quota is one quota, whichever feature hit it); `label`: its name. */
 export type Rule = { id: string; level: Level; sources?: string[]; match?: RegExp; threshold: number; windowMin: number; anySource?: boolean; label?: string }
 
+/** An error page instead of an answer: HTML, or a gateway's own wording. */
+export const UPSTREAM_PAGE = /<!DOCTYPE|<html|Bad Gateway|Gateway Time-?out|upstream connect error/i
+
+/** The reason as the founder reads it: never raw HTML. */
+export const readableReason = (message: string) =>
+  UPSTREAM_PAGE.test(message) ? `${message.split(/\s—\s|<!DOCTYPE|<html/i)[0].trim()} — Server ខាងក្រៅឆ្លើយជាទំព័រកំហុស (មួយភ្លែត ហើយសាកម្តងទៀតដោយខ្លួនឯង)` : message.slice(0, 180)
+
 /** Checked in order; an event counts for the first rule it matches only. */
 export const RULES: Rule[] = [
+  // A server in front of the database or an outside service answering with an error PAGE (HTML, «Bad Gateway») for a
+  // moment — a blip, not a broken feature (founder, 6/11/2026: «Prayer push: phones not read — <!DOCTYPE html>»).
+  // Told only when it keeps happening, across every feature; one blip retries on its own at the next pass.
+  { id: "upstream", level: "error", match: UPSTREAM_PAGE, threshold: 3, windowMin: 15, anySource: true, label: "Server ខាងក្រៅ (Supabase) ឆ្លើយមិនទាន់ម្តងម្កាល" },
   { id: "error", level: "error", threshold: 1, windowMin: 30 },
   // The AI's quota (Gemini answers 429 / RESOURCE_EXHAUSTED): told while the backup reader still answers, not once
   // every reader is out (founder, 6/11/2026).
@@ -145,7 +156,7 @@ export function alertText(f: Fault): string {
   return [
     `${loud(f) ? "🔴" : "🟡"} បង មុខងារមួយមានបញ្ហា៖ ${f.rule.label ?? sourceLabel(f.source)}`,
     `${what} (ចុងក្រោយម៉ោង ${hhmm(f.last.at)})`,
-    `មូលហេតុ៖ ${f.last.message.slice(0, 180)}`,
+    `មូលហេតុ៖ ${readableReason(f.last.message)}`,
     "លម្អិត៖ Admin › Super › មជ្ឈមណ្ឌលបញ្ជា › សន្តិសុខ",
   ].join("\n")
 }

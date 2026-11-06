@@ -212,3 +212,19 @@ test("the Droplet repairs itself: certbot renew before the SSL warning, old imag
   assert.match(backup, /docker rm -f "\$name"/)
   assert.doesNotMatch(backup.slice(backup.indexOf("restore_test()"), backup.indexOf("case \"${1:-}\"")), /DATABASE_URL/)
 })
+
+test("an error PAGE from a server in front of the database is a blip: told only at 3 in 15 min, never as raw HTML (6/11/2026)", async () => {
+  const { readableReason } = await import("./function-watch")
+  const html = 'Prayer push: phones not read — <!DOCTYPE html>\n<!--[if IE 7]> <html class="no-js ie6 oldie" lang="en-US">'
+  assert.equal(ruleOf(ev(0, "error", "prayer", html))?.id, "upstream")
+  assert.equal(ruleOf(ev(0, "error", "market", "NBC fetch failed: HTTP 503"))?.id, "error") // a plain HTTP error still alerts
+  const s = newState()
+  assert.equal(evaluate([ev(0, "error", "prayer", html)], T0 + MIN, s).length, 0)
+  const three = [ev(0, "error", "prayer", html), ev(3, "error", "bills", "Bills not read — <html><body>502 Bad Gateway"), ev(6, "error", "prayer", html)]
+  const out = evaluate(three, T0 + 7 * MIN, newState())
+  assert.equal(out.length, 1)
+  const text = out[0].text
+  assert.doesNotMatch(text, /<!DOCTYPE|<html/i)
+  assert.match(text, /Server ខាងក្រៅ \(Supabase\)/)
+  assert.equal(readableReason(html), "Prayer push: phones not read — Server ខាងក្រៅឆ្លើយជាទំព័រកំហុស (មួយភ្លែត ហើយសាកម្តងទៀតដោយខ្លួនឯង)")
+})
