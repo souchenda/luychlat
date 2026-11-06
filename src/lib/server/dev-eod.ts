@@ -10,7 +10,7 @@ import { checkActions, curate, executiveSummary, healthLine, paginate, type Heal
 import { waitingCards } from "./waiting-cards"
 
 import { logEvent } from "./events"
-import { faultsToday } from "./function-watch"
+import { faultsToday, healedToday } from "./function-watch"
 import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText } from "./telegram-bot"
@@ -95,7 +95,13 @@ export async function devEodTick() {
   const sample = await takeSample()
   // Feature faults the function watch alerted on today (founder, 6/11/2026): the health line is 🟠 with their count.
   const faults = faultsToday()
-  const issues = [...findIssues([sample]), ...(faults ? [`${faults} feature alert${faults === 1 ? "" : "s"} today`] : [])]
+  // What repaired itself today (a self-restart) is not an open issue: told here once, never paged (founder, 6/11/2026).
+  const healed = healedToday()
+  const issues = [
+    ...findIssues([sample]),
+    ...(faults ? [`${faults} feature alert${faults === 1 ? "" : "s"} today`] : []),
+    ...(healed ? [`${healed} self-repaired (the app restarted itself)`] : []),
+  ]
   const text = eodText(report, {
     ...(await roadmapExtras(report.commits.map((c) => c.hash))),
     now: { healthy: issues.length === 0, issues, diskFreeGb: diskFreeGb(), ramPct: sample.ram_pct, webhookOk: !sample.webhook_error },

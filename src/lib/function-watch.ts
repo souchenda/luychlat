@@ -16,11 +16,15 @@
 export type Level = "info" | "warn" | "error" | "security"
 export type WatchEvent = { at: number; level: Level; source: string; message: string }
 
-export type Rule = { id: string; level: Level; sources?: string[]; match?: RegExp; threshold: number; windowMin: number }
+/** `anySource`: one fault for every source (the AI quota is one quota, whichever feature hit it); `label`: its name. */
+export type Rule = { id: string; level: Level; sources?: string[]; match?: RegExp; threshold: number; windowMin: number; anySource?: boolean; label?: string }
 
 /** Checked in order; an event counts for the first rule it matches only. */
 export const RULES: Rule[] = [
   { id: "error", level: "error", threshold: 1, windowMin: 30 },
+  // The AI's quota (Gemini answers 429 / RESOURCE_EXHAUSTED): told while the backup reader still answers, not once
+  // every reader is out (founder, 6/11/2026).
+  { id: "ai-quota", level: "warn", match: /HTTP 429|RESOURCE_EXHAUSTED|quota/i, threshold: 5, windowMin: 60, anySource: true, label: "AI (Gemini) ជិតអស់ quota — ថ្ងៃនេះ AI អាចយឺត ឬឆ្លើយមិនបាន" },
   // The bot reading receipts: three failures in an hour is a broken feature, not one blurry photo.
   { id: "slips", level: "warn", sources: ["slips", "scan"], match: /not fetched|not accepted|timed out|no reader|without JSON|retry error|still no reader/i, threshold: 3, windowMin: 60 },
   // Money arriving (KHQR / AUTOBOK, bank alerts, the SoundBox): three in an hour.
@@ -73,7 +77,7 @@ export const SOURCE_KM: Record<string, string> = {
   "voice-alert": "សំឡេងជូនដំណឹង",
 }
 
-export const sourceLabel = (source: string) => SOURCE_KM[source] ?? source
+export const sourceLabel = (source: string) => SOURCE_KM[source] ?? RULES.find((r) => r.id === source)?.label ?? source
 
 /** The rule an event falls under, or null (info, ignored sources, a warn no rule asks about). */
 export function ruleOf(e: WatchEvent): Rule | null {
@@ -88,7 +92,15 @@ export function ruleOf(e: WatchEvent): Rule | null {
 }
 
 /** One fault: a rule for one source («error · slips»); an error is also keyed by its message, so two errors are two faults. */
-export const faultKey = (r: Rule, e: WatchEvent) => (r.id === "error" ? `error|${e.source}|${normalize(e.message)}` : `${r.id}|${e.source}`)
+export const faultKey = (r: Rule, e: WatchEvent) => (r.id === "error" ? `error|${e.source}|${normalize(e.message)}` : r.anySource ? r.id : `${r.id}|${e.source}`)
+
+/**
+ * How loud (founder, 6/11/2026 — «don't disturb me too much»): 🔴 rings — money coming in (KHQR / AUTOBOK, SoundBox,
+ * bank alerts) is failing; 🟡 everything else arrives without a sound, to read when he has a moment. What the system
+ * repairs itself is not sent at all (one line in the 23:59 report).
+ */
+export const PAYMENT_SOURCES = ["khqr", "soundbox", "payment-chime", "bank-alert"]
+export const loud = (f: Pick<Fault, "rule" | "source">) => f.rule.id === "payments" || (f.rule.id === "error" && PAYMENT_SOURCES.includes(f.source))
 
 /** Ids, counts and times vary between repeats of the same error: «post #35007 failed» and «post #35008 failed» are one fault. */
 export const normalize = (message: string) => message.replace(/\(×\d+ more in 10 min\)/, "").replace(/\d+/g, "#").trim().slice(0, 120)
@@ -114,7 +126,7 @@ export function firing(events: WatchEvent[], now: number): Fault[] {
 export type WatchState = { open: Map<string, { since: number; lastAlert: number; lastSeen: number; source: string }>; sent: number[] }
 export const newState = (): WatchState => ({ open: new Map(), sent: [] })
 
-export type Message = { kind: "alert" | "recovered" | "capped"; text: string; key?: string }
+export type Message = { kind: "alert" | "recovered" | "capped"; text: string; key?: string; loud?: boolean }
 
 /** Cambodia time «07:00» for an instant. */
 export const hhmm = (at: number) => {
@@ -131,7 +143,7 @@ export const quietHour = (at: number) => {
 export function alertText(f: Fault): string {
   const what = f.rule.id === "error" ? "មានកំហុស" : `បរាជ័យ ${f.count} ដងក្នុង ${f.rule.windowMin} នាទី`
   return [
-    `🟠 បង មុខងារមួយមានបញ្ហា៖ ${sourceLabel(f.source)}`,
+    `${loud(f) ? "🔴" : "🟡"} បង មុខងារមួយមានបញ្ហា៖ ${f.rule.label ?? sourceLabel(f.source)}`,
     `${what} (ចុងក្រោយម៉ោង ${hhmm(f.last.at)})`,
     `មូលហេតុ៖ ${f.last.message.slice(0, 180)}`,
     "លម្អិត៖ Admin › Super › មជ្ឈមណ្ឌលបញ្ជា › សន្តិសុខ",
@@ -140,7 +152,7 @@ export function alertText(f: Fault): string {
 
 export const recoveredText = (source: string, since: number) => `🟢 បង ${sourceLabel(source)} ល្អវិញហើយ (បញ្ហាចាប់ពីម៉ោង ${hhmm(since)}, គ្មានថ្មីរយៈពេល 30 នាទី)`
 
-export const cappedText = (n: number) => `🟠 បង មានបញ្ហា ${n} ទៀតក្នុងម៉ោងនេះ — មិនផ្ញើម្តងមួយៗទេ ដើម្បីកុំរំខាន។ មើលទាំងអស់នៅ Admin › Super › មជ្ឈមណ្ឌលបញ្ជា › សន្តិសុខ`
+export const cappedText = (n: number) => `🟡 បង មានបញ្ហា ${n} ទៀតក្នុងម៉ោងនេះ — មិនផ្ញើម្តងមួយៗទេ ដើម្បីកុំរំខាន។ មើលទាំងអស់នៅ Admin › Super › មជ្ឈមណ្ឌលបញ្ជា › សន្តិសុខ`
 
 /**
  * One check: what to send now. Mutates `state` (open faults, the hour's sends). An open fault is alerted again only after
@@ -163,8 +175,8 @@ export function evaluate(events: WatchEvent[], now: number, state: WatchState): 
     }
     state.sent.push(now)
     if (open) open.lastAlert = now
-    else state.open.set(f.key, { since: f.last.at, lastAlert: now, lastSeen: f.last.at, source: f.source })
-    out.push({ kind: "alert", key: f.key, text: alertText(f) })
+    else state.open.set(f.key, { since: f.last.at, lastAlert: now, lastSeen: f.last.at, source: f.rule.anySource ? f.rule.id : f.source })
+    out.push({ kind: "alert", key: f.key, text: alertText(f), loud: loud(f) })
   }
   if (capped) out.push({ kind: "capped", text: cappedText(capped) })
   // Still matched (below its threshold now)? Then it is not over: lastSeen follows every matching event.
@@ -226,7 +238,7 @@ export function missedJobs(events: WatchEvent[], now: number, bootAt: number, re
   })
 }
 
-export const missedText = (x: Expect) => `🟠 បង ${x.label} មិនទាន់ចេញទេ (គួរចេញមុនម៉ោង ${x.deadline})។ ខ្ញុំត្រូវពិនិត្យ — មើលលម្អិតនៅ Admin › Super › មជ្ឈមណ្ឌលបញ្ជា › សន្តិសុខ`
+export const missedText = (x: Expect) => `🟡 បង ${x.label} មិនទាន់ចេញទេ (គួរចេញមុនម៉ោង ${x.deadline})។ ខ្ញុំត្រូវពិនិត្យ — មើលលម្អិតនៅ Admin › Super › មជ្ឈមណ្ឌលបញ្ជា › សន្តិសុខ`
 
 /**
  * The scheduler's own heartbeat (the dead-man switch): every minute it runs a pass; the watcher itself runs inside the
@@ -234,7 +246,7 @@ export const missedText = (x: Expect) => `🟠 បង ${x.label} មិនទា
  * it) and «stalled» (no pass finished for 10 minutes) are reported by /api/health too, where UptimeRobot sees them from
  * outside.
  */
-export const STALL_MS = 10 * 60_000
+export const STALL_MS = 15 * 60_000
 export type Heartbeat = { bootAt: number; passStart: number | null; passEnd: number | null }
 export function schedulerState(hb: Heartbeat, now: number): "ok" | "stuck" | "stalled" {
   if (hb.passStart != null && (hb.passEnd == null || hb.passStart > hb.passEnd) && now - hb.passStart > STALL_MS) return "stuck"
@@ -244,6 +256,22 @@ export function schedulerState(hb: Heartbeat, now: number): "ok" | "stuck" | "st
 
 export const schedulerText = (state: "stuck" | "stalled", since: number) =>
   state === "stuck"
-    ? `🔴 បង ម៉ាស៊ីនកំណត់ពេល (scheduler) គាំងតាំងពីម៉ោង ${hhmm(since)} — ការផុស ការរំលឹក និងសារជូនដំណឹងទាំងអស់កំពុងរង់ចាំ។ ខ្ញុំត្រូវពិនិត្យភ្លាម។`
-    : `🔴 បង ម៉ាស៊ីនកំណត់ពេល (scheduler) ឈប់ដើរតាំងពីម៉ោង ${hhmm(since)} — ការផុស និងការរំលឹកមិនចេញទេ។`
+    ? `🔴 បង ម៉ាស៊ីនកំណត់ពេល (scheduler) គាំងតាំងពីម៉ោង ${hhmm(since)} ហើយការ restart ដោយខ្លួនឯង 2 ដងមិនជួយ — ការផុស ការរំលឹក និងសារជូនដំណឹងកំពុងរង់ចាំ។ ខ្ញុំត្រូវពិនិត្យភ្លាម។`
+    : `🔴 បង ម៉ាស៊ីនកំណត់ពេល (scheduler) ឈប់ដើរតាំងពីម៉ោង ${hhmm(since)} ហើយការ restart ដោយខ្លួនឯង 2 ដងមិនជួយ — ការផុស និងការរំលឹកមិនចេញទេ។`
+
+/**
+ * Self-repair first (founder, 6/11/2026): a stuck or stalled scheduler restarts the app by itself (Docker brings it back
+ * in seconds) — at most twice an hour; only when that did not help is the founder told. `restarts`: the self-restarts'
+ * times (they survive the restart in a file).
+ */
+export const MAX_SELF_RESTARTS = 2
+export const mayRestart = (restarts: number[], now: number) => restarts.filter((t) => now - t < 3_600_000).length < MAX_SELF_RESTARTS
+
+/** The admin roster changed (lib/server/function-watch.ts reads it from the database every 10 minutes). */
+export type RosterChange = { change: "added" | "removed" | "role"; email: string | null; role: string | null; was: string | null }
+export function rosterText(changes: RosterChange[]): string {
+  const line = (c: RosterChange) =>
+    c.change === "added" ? `• បន្ថែម ${c.email ?? "?"} ជា ${c.role}` : c.change === "removed" ? `• ដក ${c.email ?? "?"} (${c.was}) ចេញ` : `• ${c.email ?? "?"}៖ ${c.was} → ${c.role}`
+  return ["🔴 បង សិទ្ធិ Admin ត្រូវបានផ្លាស់ប្តូរ៖", ...changes.map(line), "បើមិនមែនបងធ្វើទេ សូមប្រាប់ខ្ញុំភ្លាម — Admin › Super"].join("\n")
+}
 export const schedulerOkText = "🟢 បង ម៉ាស៊ីនកំណត់ពេល (scheduler) ដើរវិញហើយ។"

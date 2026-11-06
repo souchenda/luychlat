@@ -24,6 +24,14 @@ describe("the tests a release runs: only those that cover what changed", () => {
     assert.deepEqual(run(["CLAUDE.md"]), [])
   })
 
+  it("a new migration also runs the tests that scan the whole migrations folder (6/11/2026)", () => {
+    const withScan = [...tests, "src/lib/migration-safety.test.ts"]
+    const scan = (t: string) => (t === "src/lib/migration-safety.test.ts" ? 'const DIR = join(process.cwd(), "supabase/migrations")' : (body[t] ?? ""))
+    assert.deepEqual(affected(["supabase/migrations/20270295000000_admin_roster_watch.sql"], withScan, scan), ["src/lib/migration-safety.test.ts"])
+    // A file at the top of a folder like deploy/ never names «deploy» (it would match every test).
+    assert.deepEqual(affected(["deploy/new-script.sh"], withScan, scan), [])
+  })
+
   it("the whole suite only when the toolchain changed or nothing is known", () => {
     assert.equal(run([]), "ALL")
     assert.equal(run(["ALL"]), "ALL")

@@ -7,6 +7,9 @@ import {
   evaluate,
   firing,
   hhmm,
+  loud,
+  mayRestart,
+  rosterText,
   missedJobs,
   missedText,
   MAX_ALERTS_PER_HOUR,
@@ -30,7 +33,8 @@ test("an error alerts at once; info and the machine watchdog never", () => {
   const out = evaluate([ev(0, "error", "scheduled-posts", "post #35007 failed: Bad Request")], T0 + MIN, s)
   assert.equal(out.length, 1)
   assert.equal(out[0].kind, "alert")
-  assert.match(out[0].text, /^🟠 បង មុខងារមួយមានបញ្ហា៖ ការផុសតាមម៉ោង/)
+  assert.match(out[0].text, /^🟡 បង មុខងារមួយមានបញ្ហា៖ ការផុសតាមម៉ោង/)
+  assert.equal(out[0].loud, false)
   assert.match(out[0].text, /ម៉ោង 07:00/)
 })
 
@@ -134,7 +138,7 @@ test("the day's work: a job past its deadline with nothing logged alerts once; d
   // Once reported, not again that day.
   seen.add("prayer-times|2026-11-06")
   assert.ok(!missedJobs([], at("12:00"), boot, seen).some((x) => x.id === "prayer-times"))
-  assert.match(missedText(missedJobs([], at("12:00"), boot, new Set())[0]), /^🟠 បង ម៉ោងសឡាត 05:30 .*មិនទាន់ចេញទេ \(គួរចេញមុនម៉ោង 05:50\)/)
+  assert.match(missedText(missedJobs([], at("12:00"), boot, new Set())[0]), /^🟡 បង ម៉ោងសឡាត 05:30 .*មិនទាន់ចេញទេ \(គួរចេញមុនម៉ោង 05:50\)/)
 })
 
 test("every silent failure path the 6/11 audit found now logs its reason", () => {
@@ -146,4 +150,64 @@ test("every silent failure path the 6/11 audit found now logs its reason", () =>
   has("src/lib/server/invoice-bot.ts", /Invoice not created/)
   has("src/app/api/soundbox/feed/route.ts", /SoundBox feed not read/)
   has("src/app/api/advisor/route.ts", /AI advisor \(our key\)/)
+})
+
+test("how loud: money coming in rings (🔴); everything else is silent (🟡)", () => {
+  const s = newState()
+  const pay = [0, 5, 10].map((m) => ev(m, "warn", "khqr", "AUTOBOK push rejected: bad signature"))
+  const out = evaluate(pay, T0 + 11 * MIN, s)
+  assert.equal(out.length, 1)
+  assert.equal(out[0].loud, true)
+  assert.match(out[0].text, /^🔴 បង មុខងារមួយមានបញ្ហា៖ ការទទួលប្រាក់ KHQR \/ AUTOBOK/)
+  const [err] = firing([ev(0, "error", "soundbox", "boom")], T0)
+  assert.equal(loud(err), true)
+  const [other] = firing([ev(0, "error", "bills", "boom")], T0)
+  assert.equal(loud(other), false)
+})
+
+test("the AI quota: five 429s in an hour from any feature are one fault, told early", () => {
+  const hits = [ev(0, "warn", "slips", "Slip read: Gemini gemini-3.5-flash HTTP 429 · gemini-flash-latest HTTP 429"), ev(5, "warn", "voice", "Voice: HTTP 429"), ev(9, "warn", "scan", "HTTP 429"), ev(12, "warn", "ai", "RESOURCE_EXHAUSTED"), ev(20, "warn", "bills", "quota exceeded")]
+  const f = firing(hits, T0 + 21 * MIN)
+  assert.equal(f.length, 1)
+  assert.equal(f[0].key, "ai-quota")
+  const out = evaluate(hits, T0 + 21 * MIN, newState())
+  assert.match(out[0].text, /AI \(Gemini\) ជិតអស់ quota/)
+  assert.equal(out[0].loud, false)
+})
+
+test("self-repair first: twice an hour the app restarts itself; the third time the founder is told", () => {
+  assert.equal(mayRestart([], T0), true)
+  assert.equal(mayRestart([T0 - 10 * MIN], T0), true)
+  assert.equal(mayRestart([T0 - 10 * MIN, T0 - 5 * MIN], T0), false)
+  assert.equal(mayRestart([T0 - 70 * MIN, T0 - 65 * MIN], T0), true)
+  assert.equal(STALL_MS, 15 * MIN)
+  const watch = readFileSync("src/lib/server/function-watch.ts", "utf8")
+  assert.match(watch, /if \(mayRestart\(h\.restarts, now\)\) \{[\s\S]{0,400}process\.exit\(1\)/)
+  assert.match(watch, /send\(schedulerText\(s, since\), now, true\)/)
+  assert.match(readFileSync("docker-compose.yml", "utf8"), /restart: unless-stopped/)
+})
+
+test("the admin roster: every change rings, emails masked by the database", () => {
+  const text = rosterText([
+    { change: "added", email: "so***@gmail.com", role: "super_admin", was: null },
+    { change: "removed", email: "da***@gmail.com", role: null, was: "admin" },
+    { change: "role", email: "ch***@gmail.com", role: "admin", was: "support" },
+  ])
+  assert.match(text, /^🔴 បង សិទ្ធិ Admin ត្រូវបានផ្លាស់ប្តូរ៖\n• បន្ថែម so\*\*\*@gmail\.com ជា super_admin\n• ដក da\*\*\*@gmail\.com \(admin\) ចេញ\n• ch\*\*\*@gmail\.com៖ support → admin/)
+  const sql = readFileSync("supabase/migrations/20270295000000_admin_roster_watch.sql", "utf8")
+  assert.match(sql, /perform public\.require_bot\(p_key\)/)
+  assert.match(sql, /left\(u\.email::text, 2\) \|\| '\*\*\*'/)
+  assert.match(sql, /alter table public\.admin_roster_seen enable row level security/)
+  assert.doesNotMatch(sql, /public.app_settings/)
+})
+
+test("the Droplet repairs itself: certbot renew before the SSL warning, old images at 80% disk, a monthly restore test", () => {
+  const watch = readFileSync("deploy/landing-watch.sh", "utf8")
+  assert.ok(watch.indexOf("certbot renew --quiet") < watch.indexOf("⚠️ វិញ្ញាបនបត្រ SSL ជិតផុតកំណត់"))
+  assert.match(watch, /-ge 80 \] && flock -n \/tmp\/luysmart-deploy\.lock true[\s\S]{0,200}docker image prune -af --filter "until=72h"/)
+  const backup = readFileSync("deploy/db-backup.sh", "utf8")
+  assert.match(backup, /restore-test\)/)
+  assert.match(backup, /\$\(date \+%d\)" = "01" \]; then sh "\$0" restore-test/)
+  assert.match(backup, /docker rm -f "\$name"/)
+  assert.doesNotMatch(backup.slice(backup.indexOf("restore_test()"), backup.indexOf("case \"${1:-}\"")), /DATABASE_URL/)
 })

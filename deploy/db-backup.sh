@@ -20,6 +20,33 @@ MIN_TABLES=100
 
 notify() { sh "$REPO/deploy/landing-watch.sh" notify "$1" || true; }
 
+# The monthly restore test (founder, 6/11/2026 — «a backup never restored is not a backup»): the archive restored into a
+# throw-away Postgres container on this Droplet (never production), then checked — the public tables are there and real
+# rows came back (workspaces, transactions). Supabase's own extensions and roles fail to restore in a plain Postgres and
+# are ignored; only the data counts. Success → $STATUS/restore.txt only; a failure → one 🔴 message.
+restore_test() {
+  archive=$1
+  name=luysmart-restore-test
+  docker rm -f "$name" >/dev/null 2>&1
+  docker run -d --name "$name" -e POSTGRES_PASSWORD=restore-test postgres:17-alpine >/dev/null 2>&1 || { echo "postgres did not start"; return 1; }
+  i=0
+  until docker exec "$name" pg_isready -U postgres >/dev/null 2>&1; do
+    i=$((i + 1)); [ $i -gt 90 ] && break; sleep 1
+  done
+  for role in anon authenticated service_role authenticator supabase_admin supabase_auth_admin supabase_storage_admin; do
+    docker exec "$name" psql -U postgres -qc "create role $role" >/dev/null 2>&1
+  done
+  docker exec "$name" psql -U postgres -qc "create schema if not exists extensions" >/dev/null 2>&1
+  docker exec -i "$name" pg_restore -U postgres -d postgres --no-owner --no-privileges < "$archive" > /dev/null 2> "$STATUS/restore.err"
+  q() { docker exec "$name" psql -U postgres -At -c "$1" 2>/dev/null; }
+  t=$(q "select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'")
+  w=$(q "select count(*) from public.workspaces")
+  x=$(q "select count(*) from public.transactions")
+  docker rm -f "$name" >/dev/null 2>&1
+  echo "public tables ${t:-0} · workspaces ${w:-0} · transactions ${x:-0}"
+  [ "${t:-0}" -ge 80 ] && [ "${w:-0}" -gt 0 ] && [ "${x:-0}" -gt 0 ]
+}
+
 case "${1:-}" in
   install)
     if ! crontab -l 2>/dev/null | grep -q "luysmart-db-backup"; then
@@ -27,7 +54,15 @@ case "${1:-}" in
     fi
     echo "✓ Nightly backup at 02:30"; exit 0 ;;
   list)
-    ls -lh "$DIR" 2>/dev/null; cat "$STATUS/last.txt" 2>/dev/null; exit 0 ;;
+    ls -lh "$DIR" 2>/dev/null; cat "$STATUS/last.txt" 2>/dev/null; cat "$STATUS/restore.txt" 2>/dev/null; exit 0 ;;
+  restore-test)
+    mkdir -p "$STATUS"
+    latest=$(ls -1t "$DIR"/luysmart_*.dump 2>/dev/null | head -1)
+    [ -n "$latest" ] || { echo "no archive"; exit 1; }
+    if result=$(restore_test "$latest"); then echo "$(date +%F) ok · $(basename "$latest") · $result" | tee "$STATUS/restore.txt"; exit 0; fi
+    echo "$(date +%F) FAILED · $(basename "$latest") · $result" | tee "$STATUS/restore.txt"
+    notify "🔴 បង ការសាកស្ដារ Backup ប្រចាំខែ បរាជ័យ ($result)។ Backup នៅដដែល តែត្រូវពិនិត្យថាអាចស្ដារបានពិតប្រាកដ៖ $STATUS/restore.err"
+    exit 1 ;;
 esac
 
 umask 077
@@ -61,4 +96,7 @@ fi
 printf '%s  %s bytes  %s tables  %s\n' "$stamp" "$size" "${tables:-0}" "${problem:-ok}" > "$STATUS/last.txt"
 
 find "$DIR" -name 'luysmart_*.dump' -type f -mtime +$KEEP_DAYS -delete
+
+# The 1st of each month: tonight's good archive restored and checked (above).
+if [ -z "$problem" ] && [ "$(date +%d)" = "01" ]; then sh "$0" restore-test >/dev/null 2>&1; fi
 exit 0

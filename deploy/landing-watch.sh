@@ -58,11 +58,21 @@ else
 fi
 
 # 1b. The server's certificates renew themselves (certbot); if that ever stops, say so 14 days ahead — not on the day.
-soon=""
-for cert in /etc/letsencrypt/live/*/fullchain.pem; do
-  [ -f "$cert" ] || continue
-  openssl x509 -checkend 1209600 -noout -in "$cert" >/dev/null 2>&1 || soon="${soon:+$soon, }$(basename "$(dirname "$cert")")"
-done
+#     Self-repair first (founder, 6/11/2026): one `certbot renew` a day is tried before anything is sent.
+expiring() {
+  soon=""
+  for cert in /etc/letsencrypt/live/*/fullchain.pem; do
+    [ -f "$cert" ] || continue
+    openssl x509 -checkend 1209600 -noout -in "$cert" >/dev/null 2>&1 || soon="${soon:+$soon, }$(basename "$(dirname "$cert")")"
+  done
+}
+expiring
+if [ -n "$soon" ] && [ "$(cat "$STATE.renew-day" 2>/dev/null)" != "$(date -u +%F)" ] && command -v certbot >/dev/null 2>&1; then
+  date -u +%F > "$STATE.renew-day"
+  certbot renew --quiet >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1
+  expiring
+  [ -z "$soon" ] && echo "$(date -Is) certbot renew repaired the certificates" >> /var/log/luysmart-self-heal.log
+fi
 warned=$(cat "$STATE.cert" 2>/dev/null || echo "")
 if [ -n "$soon" ] && [ "$warned" != "$soon" ]; then
   send "⚠️ វិញ្ញាបនបត្រ SSL ជិតផុតកំណត់ (តិចជាង 14 ថ្ងៃ)៖ $soon។ ការបន្តស្វ័យប្រវត្តិ (certbot) ប្រហែលមិនដំណើរការ — សូមពិនិត្យ៖ sudo certbot renew --dry-run"
@@ -91,6 +101,17 @@ if [ "$(cat "$STATE.domains-day" 2>/dev/null)" != "$today" ]; then
       fi
     done
   done
+fi
+
+# 1c'. A disk filling up (founder, 6/11/2026 — self-repair first): at 80% the old Docker images and build cache (older
+#      than 3 days — the live image and the last builds stay, for a rollback) are removed, never during a build; the app's
+#      watchdog still pages at 85% if that was not enough. Every clean-up is logged, never sent.
+used=$(df -P / | awk 'NR==2 { gsub("%", "", $5); print $5 }')
+if [ "${used:-0}" -ge 80 ] && flock -n /tmp/luysmart-deploy.lock true 2>/dev/null && ! pgrep -f "[b]uild-apk" >/dev/null 2>&1; then
+  docker image prune -af --filter "until=72h" >/dev/null 2>&1
+  docker builder prune -af --filter "until=72h" >/dev/null 2>&1
+  after=$(df -P / | awk 'NR==2 { gsub("%", "", $5); print $5 }')
+  echo "$(date -Is) disk clean-up: ${used}% → ${after}%" >> /var/log/luysmart-self-heal.log
 fi
 
 # 1d. The nightly database backup (deploy/db-backup.sh) is no more than 26 hours old — a cron that stopped is caught.

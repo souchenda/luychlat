@@ -26,6 +26,10 @@ function namesOf(file) {
   const noExt = file.replace(/\.(tsx?|mjs|js)$/, "")
   // Code is named by its path (a bare «route.ts» or «page.tsx» would match every test); other files by their name.
   const names = new Set(noExt === file ? [path.posix.basename(file)] : [])
+  // A test that scans a whole folder names the folder (a new migration → the migration-safety tests read
+  // «supabase/migrations»). Only a nested folder: a bare «deploy» or «src» would match every test.
+  const dir = path.posix.dirname(file)
+  if (noExt === file && dir.includes("/")) names.add(`${dir}"`)
   if (noExt !== file) {
     // «@/lib/helpline/site», «./site», «lib/helpline/site» …
     const inSrc = noExt.replace(/^src\//, "")
