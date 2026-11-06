@@ -17,7 +17,8 @@ import { marketScheduleTick, syncMarket } from "@/lib/server/market-sync"
 import { logEvent } from "@/lib/server/events"
 import { weeklyDigestTick } from "@/lib/server/weekly-digest"
 import { cfoBriefTick } from "@/lib/server/cfo-brief"
-import { readFileSync } from "fs"
+import { functionWatchTick } from "@/lib/server/function-watch"
+import { isActiveSlot, passEnded, passStarted } from "@/lib/server/heartbeat"
 import { festivalTick, holyDayTick } from "@/lib/server/holy-days"
 import { posterTick } from "@/lib/server/festival-poster"
 import { groupSweepTick } from "@/lib/server/group-guard"
@@ -137,6 +138,7 @@ let running = false
 export async function dispatchOnce() {
   if (running || !botToken()) return
   running = true
+  passStarted()
   try {
     await sendDueNotifications()
     await sendPrayerTimes()
@@ -176,29 +178,20 @@ export async function dispatchOnce() {
     logEvent("error", "dispatcher", `Scheduler pass failed: ${(error as Error).message}`, { fold: true })
   } finally {
     running = false
+    passEnded()
   }
 }
 
 /** Every minute while the server runs (one app instance on the Droplet). */
-/**
- * Zero-downtime deploys run two containers for a moment (blue / green). Only
- * the one Nginx points at — named in deploy/run/active-slot, mounted at
- * /run/luysmart — sends reminders and posts, so nothing goes out twice. No
- * file (a single container, local runs) means active.
- */
-function isActiveSlot() {
-  try {
-    const active = readFileSync("/run/luysmart/active-slot", "utf8").trim()
-    return !active || active === (process.env.APP_SLOT || "blue")
-  } catch {
-    return true
-  }
-}
+// isActiveSlot (the blue / green live slot) is in lib/server/heartbeat.ts, shared with /api/health.
 
 export function startBotDispatcher() {
   if (!botToken()) return
   const ifActive = (job: () => Promise<unknown>) => () => void (isActiveSlot() ? job() : undefined)
-  setInterval(ifActive(() => dispatchOnce()), 60_000)
+  // The idle slot's timer is alive too: its heartbeat says so, so it is never «stalled» when it goes live.
+  setInterval(() => void (isActiveSlot() ? dispatchOnce() : passEnded()), 60_000)
+  // The function watch on its own timer (founder, 6/11/2026): a pass that hangs is reported, not hidden behind it.
+  setInterval(ifActive(() => functionWatchTick()), 60_000)
   setTimeout(ifActive(() => dispatchOnce()), 15_000)
   // The co-approvers in TELEGRAM_APPROVER_IDS (founder, 19/10/2026), once at start.
   setTimeout(ifActive(() => syncEnvApprovers()), 10_000)

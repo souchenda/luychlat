@@ -10,6 +10,7 @@ import { checkActions, curate, executiveSummary, healthLine, paginate, type Heal
 import { waitingCards } from "./waiting-cards"
 
 import { logEvent } from "./events"
+import { faultsToday } from "./function-watch"
 import { diskFreeGb, findIssues, takeSample } from "./health-watchdog"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText } from "./telegram-bot"
@@ -92,7 +93,9 @@ export async function devEodTick() {
   }
   const report = data as Report
   const sample = await takeSample()
-  const issues = findIssues([sample])
+  // Feature faults the function watch alerted on today (founder, 6/11/2026): the health line is 🟠 with their count.
+  const faults = faultsToday()
+  const issues = [...findIssues([sample]), ...(faults ? [`${faults} feature alert${faults === 1 ? "" : "s"} today`] : [])]
   const text = eodText(report, {
     ...(await roadmapExtras(report.commits.map((c) => c.hash))),
     now: { healthy: issues.length === 0, issues, diskFreeGb: diskFreeGb(), ramPct: sample.ram_pct, webhookOk: !sample.webhook_error },

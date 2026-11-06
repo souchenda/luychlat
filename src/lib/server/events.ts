@@ -1,4 +1,5 @@
 // Server only: a small event log for /admin › System health (server_events).
+import { noteEvent } from "@/lib/server/heartbeat"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 
 export type EventLevel = "info" | "warn" | "error" | "security"
@@ -22,6 +23,8 @@ async function write(level: EventLevel, source: string, message: string, count =
  * a feed failing every sync), so the log can't be flooded.
  */
 export function logEvent(level: EventLevel, source: string, message: string, opts: { fold?: boolean } = {}) {
+  // The function watch counts every event, folded or not (lib/server/function-watch.ts — founder, 6/11/2026).
+  noteEvent(level, source, message)
   if (!opts.fold) return void write(level, source, message)
   const key = `${level}|${source}|${message}`
   const entry = pending.get(key)
