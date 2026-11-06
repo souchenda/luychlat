@@ -470,7 +470,8 @@ function monumentPoster(d: NationalDay, day: string): { png: Buffer; truncated: 
   ctx.fillText(text.date, PW / 2, chipY + 38)
 
   // The flag waving behind the monument, to its right; then the monument, its foot fading into the blessing band.
-  const mh = 900
+  const quiet = !text.message.trim() // no blessing line (Independence Day, founder 6/11/2026): the monument stands taller
+  const mh = quiet ? 960 : 900
   const mw = (monument.width * mh) / monument.height
   const my = 345
   wavingFlag(ctx, flag, PW / 2 + 30, my + 240, 420)
@@ -478,7 +479,7 @@ function monumentPoster(d: NationalDay, day: string): { png: Buffer; truncated: 
 
   // A deep emerald band under the blessing so every line reads cleanly over the monument's foot.
   const footer = PH - 92
-  const bandTop = 1060
+  const bandTop = quiet ? 1150 : 1060
   const veil = ctx.createLinearGradient(0, bandTop - 120, 0, PH)
   veil.addColorStop(0, "rgba(2,44,34,0)")
   veil.addColorStop(0.35, "rgba(2,44,34,0.88)")
@@ -491,7 +492,7 @@ function monumentPoster(d: NationalDay, day: string): { png: Buffer; truncated: 
   ctx.fillStyle = "#ecfdf5"
   const lead = 46
   // The founder's own lines when given (no lone last word), else wrapped.
-  const lines = text.message.split("\n").flatMap((l) => wrap(ctx, l, PW - 2 * 100, 2))
+  const lines = quiet ? [] : text.message.split("\n").flatMap((l) => wrap(ctx, l, PW - 2 * 100, 2))
   if (lines.some((l) => l.endsWith("…"))) truncated = true
   let by = bandTop + Math.max(36, (footer - 30 - bandTop - lines.length * lead) / 2 + 24)
   for (const line of lines) {
