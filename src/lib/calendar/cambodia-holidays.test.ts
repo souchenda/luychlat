@@ -339,3 +339,23 @@ describe("The all-inclusive holiday engine — national, Islamic, Chinese, globa
     }
   })
 })
+
+describe("Independence Day: the monument and the flag, never text only (founder, 6/11/2026)", () => {
+  it("renders the monument layout at 1080 × 1350, nothing cut, with the photo's CC BY-SA credit in the caption", async () => {
+    const { posterAssetsReady } = await import("@/lib/server/poster-kit")
+    const mod = await import("@/lib/server/national-day-poster")
+    await posterAssetsReady
+    await mod.nationalAssetsReady
+    const d = nationalDayByKey("independence")!
+    assert.equal(d.assets?.flag, true)
+    assert.ok(mod.monumentLayout(d), "photo_independence_monument.png and flag_cambodia.png are on the server")
+    const r = mod.nationalDayPoster(d, "2026-11-09")
+    assert.equal(r.truncated, false)
+    assert.deepEqual([r.png.readUInt32BE(16), r.png.readUInt32BE(20)], [1080, 1350])
+    assert.equal(mod.portraitCredit(d), mod.MONUMENT_CREDIT)
+    assert.match(mod.MONUMENT_CREDIT, /PsamatheM · CC BY-SA 4\.0/)
+    assert.match(read("public/images/holidays/README.txt"), /photo_independence_monument\.png[\s\S]*PsamatheM[\s\S]*flag_cambodia\.png/)
+    // Only Independence Day asks for the flag; the Constitution keeps its own design.
+    assert.equal(mod.monumentLayout(nationalDayByKey("constitution-day")!), false)
+  })
+})

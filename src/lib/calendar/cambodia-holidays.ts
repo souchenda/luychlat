@@ -52,7 +52,7 @@ export type NationalDay = {
   /** The short blessing drawn on the poster (one line per line break); the caption keeps the full `message`. */
   posterMessage?: string
   /** The official images it shows when their files are in public/images/holidays (README.txt) — never drawn without. */
-  assets?: { portrait?: RoyalPortrait; crest?: boolean; monument?: boolean; backdrop?: boolean }
+  assets?: { portrait?: RoyalPortrait; crest?: boolean; monument?: boolean; backdrop?: boolean; flag?: boolean }
 }
 
 export type RoyalPortrait = "king_sihamoni" | "king_father_sihanouk" | "queen_mother"
@@ -112,7 +112,7 @@ export const NATIONAL_DAYS: NationalDay[] = [
     message: "សូមរំលឹកដល់ថ្ងៃចុះហត្ថលេខាលើកិច្ចព្រមព្រៀងសន្តិភាពទីក្រុងប៉ារីស ដែលបានបើកផ្លូវឆ្ពោះទៅរកសន្តិភាព ការផ្សះផ្សាជាតិ និងការកសាងប្រទេសកម្ពុជាឡើងវិញ។",
   },
   { key: "coronation", date: { fixed: "10-29" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីគ្រងព្រះបរមរាជសម្បត្តិ", short: "ព្រះរាជពិធីគ្រងរាជ្យ", subtitle: KING, since: 2004, message: KING_BLESSING, assets: { portrait: "king_sihamoni", crest: true, backdrop: true } },
-  { key: "independence", date: { fixed: "11-09" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាបុណ្យឯករាជ្យជាតិ", since: 1953, assets: { portrait: "king_father_sihanouk", crest: true, monument: true }, message: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត ដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។" },
+  { key: "independence", date: { fixed: "11-09" }, kind: "national", pill: "ទិវាជាតិ", title: "ទិវាបុណ្យឯករាជ្យជាតិ", since: 1953, assets: { portrait: "king_father_sihanouk", crest: true, monument: true, flag: true }, posterMessage: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត\nដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។", message: "សូមគោរពដល់វីរបុរស និងដូនតាជាតិ ដែលបានពលីកម្លាំងកាយ និងចិត្ត ដើម្បីឯករាជ្យ និងអធិបតេយ្យភាពនៃព្រះរាជាណាចក្រកម្ពុជា។" },
   { key: "water-festival", date: { festival: "holiday.water_festival" }, kind: "royal", pill: "ព្រះរាជពិធី", title: "ព្រះរាជពិធីបុណ្យអុំទូក បណ្តែតប្រទីប អកអំបុក និងសំពះព្រះខែ", message: "អេប លុយឆ្លាត សូមជូនពរលោកអ្នក និងក្រុមគ្រួសារ ធ្វើដំណើរ និងចូលរួមកម្សាន្តដោយសុវត្ថិភាព ព្រមទាំងជួបតែសេចក្តីសុខ។" },
   // Group D (global and cultural): Pchum Ben, the day of Pchum Thom (the day after the holiday's first day).
   { key: "pchum-ben", date: { cultural: "pchum_ben", shift: 1 }, kind: "merit", pill: "ពិធីបុណ្យសាសនា", title: "ពិធីបុណ្យភ្ជុំបិណ្ឌ", message: "សូមអនុមោទនាពិធីបុណ្យភ្ជុំបិណ្ឌ ក្នុងឱកាសឧទ្ទិសកុសលដល់ដូនតា និងញាតិកាដែលបានចែកឋានទៅ។ សូមលោកអ្នក និងក្រុមគ្រួសារ ធ្វើដំណើរទៅស្រុកកំណើតដោយសុវត្ថិភាព និងជួបជុំគ្នាដោយក្តីសុខ។" },

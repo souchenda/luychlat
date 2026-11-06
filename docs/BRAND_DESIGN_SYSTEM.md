@@ -318,3 +318,8 @@ an approver's tap.
   website). A filled mosque-dome icon (`src/components/icons/mosque-icon.tsx`) stands only for the Islamic FEATURES in
   the app — the Islamic hub tile and Islamic Mode in Settings — so they are easy to spot (founder: «the logo stays the
   rabbit; the new picture only represents the Islamic features»).
+- **6/11/2026:** Independence Day (9 November) is never a text-only poster (founder: «big national days never go out
+  as text»). Its layout, after the style of the founder's CBC 2025 reference (nothing of theirs is used): the gold title
+  and the date chip on top, the Independence Monument photo rising from the foot, the national flag waving behind it,
+  the blessing and the brand in the footer. The monument is a CC BY-SA 4.0 photo (PsamatheM, Wikimedia Commons), approved
+  by the founder for the monument only, credited in every caption; royal portraits stay official-only.

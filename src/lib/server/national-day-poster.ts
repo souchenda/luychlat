@@ -22,6 +22,10 @@ const ASSET_FILES = {
   king_sihamoni: "portrait_king_sihamoni.png",
   king_father_sihanouk: "portrait_king_father_sihanouk.png",
   queen_mother: "portrait_queen_mother.png",
+  // The Independence Day layout (founder, 6/11/2026 — «big national days never go out as text»): the monument photo, cut
+  // out of its sky, and the national flag (public domain), both real files — never drawn.
+  monumentPhoto: "photo_independence_monument.png",
+  flag: "flag_cambodia.png",
 } as const
 type AssetName = keyof typeof ASSET_FILES
 const assets: Partial<Record<AssetName, Image>> = {}
@@ -46,11 +50,18 @@ export const nationalAssetsReady: Promise<void> = Promise.all(
  */
 export const PORTRAIT_CREDITS: Partial<Record<string, string>> = {}
 
+/** The monument photo's licence (CC BY-SA 4.0) asks for its author on every post that shows it. */
+export const MONUMENT_CREDIT = "📷 រូបថតវិមានឯករាជ្យ៖ PsamatheM · CC BY-SA 4.0 · Wikimedia Commons"
+
 /** «📷 រូបថត៖ …» for a day whose portrait is shown, else null. */
 export function portraitCredit(d: NationalDay): string | null {
+  if (monumentLayout(d)) return MONUMENT_CREDIT
   const key = d.assets?.portrait
   return key && assets[key] && PORTRAIT_CREDITS[key] ? `📷 រូបថត៖ ${PORTRAIT_CREDITS[key]}` : null
 }
+
+/** The monument-and-flag layout: a day that asks for the flag, once both photos are on the server. */
+export const monumentLayout = (d: NationalDay) => Boolean(d.assets?.flag && assets.monumentPhoto && assets.flag)
 
 /** Which official images a day shows now. */
 export function nationalAssetsFor(d: NationalDay): { portrait: Image | null; crest: Image | null; monument: Image | null; backdrop: Image | null } {
@@ -78,6 +89,7 @@ const numerals = (d: NationalDay, ctx: SKRSContext2D) => (royalNumerals(d) ? ctx
 export function nationalDayPoster(d: NationalDay, day: string): { png: Buffer; truncated: boolean } {
   loadFonts()
   const art = nationalAssetsFor(d)
+  if (monumentLayout(d)) return monumentPoster(d, day)
   if (art.portrait) return portraitPoster(d, day, art)
   const canvas = createCanvas(W, H)
   const ctx = numerals(d, canvas.getContext("2d"))
@@ -356,6 +368,139 @@ function portraitPoster(d: NationalDay, day: string, art: ReturnType<typeof nati
   }
 
   // The footer — the only place of the brand: a gold rule, then [mascot] «អេប លុយឆ្លាត · app.luychlat.com», centred.
+  ctx.strokeStyle = "rgba(253,230,138,0.35)"
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(300, footer - 18)
+  ctx.lineTo(PW - 300, footer - 18)
+  ctx.stroke()
+  const mascot = posterMascot()
+  const brand = "អេប លុយឆ្លាត · app.luychlat.com"
+  ctx.font = `600 26px ${FAMILIES}`
+  const icon = mascot ? 38 : 0
+  const gap = mascot ? 12 : 0
+  const total = icon + gap + ctx.measureText(brand).width
+  const bx = (PW - total) / 2
+  if (mascot) ctx.drawImage(mascot, bx, footer + 3, icon, icon)
+  ctx.textAlign = "left"
+  ctx.fillStyle = "#fde68a"
+  ctx.fillText(brand, bx + icon + gap, footer + 31)
+
+  return { png: canvas.toBuffer("image/png"), truncated }
+}
+
+// Independence Day (founder, 6/11/2026 — «big national days never go out as text», after the CBC 2025 reference): the
+// Independence Monument rising from the foot of the poster, the national flag waving behind it, the large gold title
+// on top, the dates as a gold chip, the blessing and the brand in the footer. Real photos only, never drawn clipart.
+
+/** The flag drawn in thin vertical strips on a gentle sine, with soft light and shade, so it waves. */
+function wavingFlag(ctx: SKRSContext2D, img: Image, x: number, y: number, w: number) {
+  const h = (w * img.height) / img.width
+  const strip = 3
+  const amp = h * 0.11
+  for (let sx = 0; sx < w; sx += strip) {
+    const t = sx / w
+    const phase = t * Math.PI * 2.6 + 0.6
+    const dy = Math.sin(phase) * amp * (0.35 + 0.65 * t) // the hoist side stays nearly still
+    ctx.drawImage(img, (sx / w) * img.width, 0, (strip / w) * img.width + 1, img.height, x + sx, y + dy, strip + 0.6, h)
+    const light = Math.cos(phase) // the folds: lighter where the cloth faces the light
+    ctx.fillStyle = light > 0 ? `rgba(255,255,255,${(0.2 * light).toFixed(3)})` : `rgba(0,0,0,${(-0.3 * light).toFixed(3)})`
+    ctx.fillRect(x + sx, y + dy, strip + 0.6, h)
+  }
+  return h
+}
+
+function monumentPoster(d: NationalDay, day: string): { png: Buffer; truncated: boolean } {
+  const canvas = createCanvas(PW, PH)
+  const ctx = numerals(d, canvas.getContext("2d"))
+  const text = nationalPosterLines(d, day)
+  const monument = assets.monumentPhoto!
+  const flag = assets.flag!
+  let truncated = false
+
+  // Deep royal emerald, lighter at the top like an open sky, a warm gold glow behind the monument's spire.
+  const bg = ctx.createLinearGradient(0, 0, 0, PH)
+  bg.addColorStop(0, "#0b6b4f")
+  bg.addColorStop(0.45, "#065f46")
+  bg.addColorStop(1, "#022c22")
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, PW, PH)
+  const glow = ctx.createRadialGradient(PW / 2, 560, 0, PW / 2, 560, 620)
+  glow.addColorStop(0, "rgba(253,230,138,0.30)")
+  glow.addColorStop(1, "rgba(253,230,138,0)")
+  ctx.fillStyle = glow
+  ctx.fillRect(0, 0, PW, PH)
+
+  ctx.textAlign = "center"
+  ctx.textBaseline = "alphabetic"
+  const width = PW - 2 * 90
+
+  // The kicker and the large gold title.
+  ctx.font = `600 34px ${FAMILIES}`
+  ctx.fillStyle = "#ecfdf5"
+  ctx.fillText("អបអរសាទរ", PW / 2, 112)
+  let size = 92
+  ctx.font = `800 ${size}px ${FAMILIES}`
+  while (size > 60 && ctx.measureText(text.title).width > width) ctx.font = `800 ${--size}px ${FAMILIES}`
+  const title = wrap(ctx, text.title, width, 1)
+  if (title.at(-1)?.endsWith("…")) truncated = true
+  ctx.save()
+  ctx.shadowColor = "rgba(0,0,0,0.35)"
+  ctx.shadowBlur = 18
+  ctx.shadowOffsetY = 4
+  const gold = ctx.createLinearGradient(0, 130, 0, 230)
+  gold.addColorStop(0, "#fef3c7")
+  gold.addColorStop(0.5, "#fcd34d")
+  gold.addColorStop(1, "#f59e0b")
+  ctx.fillStyle = gold
+  ctx.fillText(title[0] ?? "", PW / 2, 222)
+  ctx.restore()
+
+  // The dates as a gold chip.
+  ctx.font = `600 30px ${FAMILIES}`
+  const chipW = Math.min(width, ctx.measureText(text.date).width + 56)
+  const chipY = 262
+  roundRect(ctx, (PW - chipW) / 2, chipY, chipW, 56, 28)
+  ctx.fillStyle = "rgba(2,44,34,0.45)"
+  ctx.fill()
+  ctx.lineWidth = 2
+  ctx.strokeStyle = "rgba(251,191,36,0.7)"
+  ctx.stroke()
+  ctx.fillStyle = "#fde68a"
+  ctx.fillText(text.date, PW / 2, chipY + 38)
+
+  // The flag waving behind the monument, to its right; then the monument, its foot fading into the blessing band.
+  const mh = 900
+  const mw = (monument.width * mh) / monument.height
+  const my = 345
+  wavingFlag(ctx, flag, PW / 2 + 30, my + 240, 420)
+  ctx.drawImage(monument, (PW - mw) / 2, my, mw, mh)
+
+  // A deep emerald band under the blessing so every line reads cleanly over the monument's foot.
+  const footer = PH - 92
+  const bandTop = 1060
+  const veil = ctx.createLinearGradient(0, bandTop - 120, 0, PH)
+  veil.addColorStop(0, "rgba(2,44,34,0)")
+  veil.addColorStop(0.35, "rgba(2,44,34,0.88)")
+  veil.addColorStop(1, "rgba(2,44,34,0.98)")
+  ctx.fillStyle = veil
+  ctx.fillRect(0, bandTop - 120, PW, PH - bandTop + 120)
+
+  // The blessing, centred, in whole lines.
+  ctx.font = `500 29px ${FAMILIES}`
+  ctx.fillStyle = "#ecfdf5"
+  const lead = 46
+  // The founder's own lines when given (no lone last word), else wrapped.
+  const lines = text.message.split("\n").flatMap((l) => wrap(ctx, l, PW - 2 * 100, 2))
+  if (lines.some((l) => l.endsWith("…"))) truncated = true
+  let by = bandTop + Math.max(36, (footer - 30 - bandTop - lines.length * lead) / 2 + 24)
+  for (const line of lines) {
+    ctx.fillText(line, PW / 2, by)
+    by += lead
+  }
+  if (by - lead > footer - 30) truncated = true
+
+  // The footer — the brand: a gold rule, then [mascot] «អេប លុយឆ្លាត · app.luychlat.com», centred.
   ctx.strokeStyle = "rgba(253,230,138,0.35)"
   ctx.lineWidth = 1.5
   ctx.beginPath()

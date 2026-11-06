@@ -33,3 +33,15 @@ used for a royal poster. The portraits from Wikimedia Commons were removed the s
                                     A larger original of the same portrait would still add real detail.
   royal_crest_gold.png              the Royal Coat of Arms (public-domain rendering «Royal arms of Cambodia.svg»)
   portrait_king_father_sihanouk.png, portrait_queen_mother.png — not present: the founder provides the official ones
+
+Independence Day, the monument layout (founder, 6/11/2026 — «big national days never go out as text», CBC 2025 as a
+reference for the style only; nothing of theirs is used):
+  photo_independence_monument.png  the Independence Monument cut out of its sky — from «02-Independence Monument Phnom
+                                    Penh-nX-3.jpg» by PsamatheM, Wikimedia Commons, CC BY-SA 4.0
+                                    (https://commons.wikimedia.org/wiki/File:02-Independence_Monument_Phnom_Penh-nX-3.jpg);
+                                    cropped, sky and trees removed, the foot faded. The licence asks for the credit on every
+                                    post that shows it (MONUMENT_CREDIT, added to the caption) and that this adapted photo
+                                    stays CC BY-SA 4.0. The founder approved a CC photo for the monument only (never a royal
+                                    portrait).
+  flag_cambodia.png                the national flag, rasterised from «Flag of Cambodia.svg» (Wikimedia Commons, public
+                                    domain); waved in strips by the poster engine, not redrawn.

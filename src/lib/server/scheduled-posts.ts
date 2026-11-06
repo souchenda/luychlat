@@ -36,7 +36,7 @@ import { spotlightCaption, spotlightHtml } from "@/lib/spotlight"
 import { logEvent } from "@/lib/server/events"
 import { facebookConfig, facebookHolidayMessage, publishLogged, publishPhotoToFacebook, publishTextToFacebook, shouldPublishToFacebook } from "@/lib/server/facebook-publisher"
 import { holidayPoster } from "@/lib/server/holiday-poster"
-import { nationalAssetsFor, nationalAssetsReady, nationalDayPoster, portraitCredit } from "@/lib/server/national-day-poster"
+import { monumentLayout, nationalAssetsFor, nationalAssetsReady, nationalDayPoster, portraitCredit } from "@/lib/server/national-day-poster"
 import { holidayRouteAllowed, nationalCaptionHtml, nationalCaptionText, nationalChannel, nationalDateNote, nationalDayByKey, nationalDaysToPreview, PUBLISH_MINUTE, royalNumerals } from "@/lib/calendar/cambodia-holidays"
 import { withKhmerDigits } from "@/lib/server/numerals"
 import { quietly } from "@/lib/server/quiet-post"
@@ -575,7 +575,7 @@ const realDeps = (): SchedulerDeps => ({
         if (!d) return { png: null, body: "—" }
         await nationalAssetsReady
         // The approver is told when an official portrait the day should carry is not on the server yet.
-        const missing = d.assets?.portrait && !nationalAssetsFor(d).portrait ? "\n\nℹ️ មិនទាន់មានព្រះឆាយាល័ក្ខណ៍ផ្លូវការលើ Server ទេ (public/images/holidays) — ផ្ទាំងនេះជាអក្សរ។" : ""
+        const missing = d.assets?.portrait && !monumentLayout(d) && !nationalAssetsFor(d).portrait ? "\n\nℹ️ មិនទាន់មានព្រះឆាយាល័ក្ខណ៍ផ្លូវការលើ Server ទេ (public/images/holidays) — ផ្ទាំងនេះជាអក្សរ។" : ""
         // …and when the founder's photographic backdrop is not there yet (the plain emerald is used, never clipart).
         const noBackdrop = d.assets?.backdrop && !nationalAssetsFor(d).backdrop ? "\n\nℹ️ មិនទាន់មានផ្ទាំងខាងក្រោយរូបថតផ្លូវការ (bg_royal_coronation.jpg) — ប្រើពណ៌បៃតងធម្មតា។" : ""
         const credit = portraitCredit(d)
