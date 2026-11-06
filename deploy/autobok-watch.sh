@@ -54,7 +54,10 @@ fi
 echo "$state" > "$STATE_DIR/state"
 
 # A second copy polling the same bot (409 Conflict) — at most one alert per 30 minutes.
-if journalctl -u autobok --since "-2 min" --no-pager -o cat 2>/dev/null | grep -qiE "409|terminated by other getUpdates"; then
+# Only Telegram's own conflict wording — never a bare «409»: a payment line such as
+# «409,500៛» once raised a false alarm (6/11/2026, tests/autobok-watch.test.ts).
+CONFLICT_RE='409[^0-9,.]*Conflict|terminated by other getUpdates'
+if journalctl -u autobok --since "-2 min" --no-pager -o cat 2>/dev/null | grep -qiE "$CONFLICT_RE"; then
   stamp="$STATE_DIR/conflict"
   if [ ! -f "$stamp" ] || [ $(( $(date +%s) - $(stat -c %Y "$stamp") )) -ge 1800 ]; then
     touch "$stamp"
