@@ -314,21 +314,26 @@ async function claimSlot(kind: string, day: string, slot: string) {
 }
 
 /**
- * "No silent failures": a priority alert to the super admins' linked chats,
- * once a day per source.
+ * "No silent failures": the source is late or down (CSNJ has not published today's gold, nbc.gov.kh does not answer), once
+ * a day per source, to the founder's private chat WITHOUT a sound (founder, 6/11/2026 — «don't disturb me too much»): it
+ * says it is the source, not the app, that the app shows the last price with its date and tries again by itself, and how
+ * to set today's figure by hand if he wants. It went to the DevOps chat only — with none set, to nobody. Logged as a
+ * warning: the founder has been told here, so the function watch does not tell him a second time.
  */
 async function integrityAlert(kind: "nbc" | "gold", day: string, detail: string) {
   const { data: claimed } = await claimDaily(`integrity-${kind}`, day)
   if (claimed !== true) return
   const what = kind === "nbc" ? "អត្រាប្តូរប្រាក់ NBC" : "តម្លៃមាសក្នុងស្រុក"
   const text = [
-    `⚠️ [ការព្រមានសុក្រឹតភាព] មិនអាចទាញយកទិន្នន័យ ${what} ថ្ងៃនេះបានទេ! ប្រព័ន្ធកំពុងរក្សាទិន្នន័យចាស់។`,
-    "",
+    `🟡 បង ${what} ថ្ងៃនេះ មិនទាន់ទាញបានពីប្រភពទេ (មិនមែនបញ្ហាអេបទេ)។`,
     `• ${detail}`,
-    kind === "nbc" ? "• កែដោយដៃ៖ /setrate <អត្រា> (ឬ Admin › អត្រា NBC)" : "• កែដោយដៃ៖ /setgold <លក់> <ទិញ> (ឬ Admin › តម្លៃមាស)",
+    "• អេបបង្ហាញតម្លៃចុងក្រោយ ជាមួយកាលបរិច្ឆេទរបស់វា ហើយនឹងសាកទាញម្តងទៀតដោយខ្លួនឯង — មិនចាំបាច់ធ្វើអ្វីទេ។",
+    kind === "nbc" ? "• បើបងចង់ដាក់អត្រាថ្ងៃនេះដោយដៃ៖ /setrate <អត្រា>" : "• បើបងចង់ដាក់តម្លៃថ្ងៃនេះដោយដៃ៖ /setgold <លក់> <ទិញ>",
   ].join("\n")
-  for (const chat of await devopsChats()) await tg("sendMessage", { chat_id: chat, text }).catch(() => null)
-  logEvent("error", kind === "nbc" ? "nbc" : "local-gold", `Integrity alert sent: ${detail}`)
+  let reached = 0
+  for (const chat of await devopsChats({ founderFallback: true }))
+    if ((await tg("sendMessage", { chat_id: chat, text, disable_notification: true }).catch(() => null))?.ok) reached += 1
+  logEvent("warn", kind === "nbc" ? "nbc" : "local-gold", `Source late, founder told in ${reached} chat(s): ${detail}`)
 }
 
 /** Called every minute by the dispatcher: the NBC and gold schedules, and their alerts. */
