@@ -64,6 +64,14 @@ describe("GOLDEN · channel publishing integrity (Task #441)", () => {
       assert.deepEqual(asEdit("sendMessage", { chat_id: 5, text: "note" }), { method: "sendMessage", payload: { chat_id: 5, text: "note" } })
       return null
     })
+    // A poster post whose poster edit failed: its text fallback is refused, never «editMessageText» on a photo (7/11/2026).
+    await editingMessage(target, async () => {
+      const { editTarget } = await import("../../src/lib/server/edit-in-place")
+      editTarget()!.media = true
+      assert.equal(asEdit("sendMessage", { chat_id: "@LuyChlatCommunity", text: "caption", parse_mode: "HTML" }), null)
+      assert.deepEqual(asEdit("sendMessage", { chat_id: 5, text: "note" }), { method: "sendMessage", payload: { chat_id: 5, text: "note" } })
+      return null
+    })
     assert.deepEqual(asEdit("sendMessage", { chat_id: "@LuyChlatCommunity", text: "a post" }), { method: "sendMessage", payload: { chat_id: "@LuyChlatCommunity", text: "a post" } }) // outside an update
     const sp = read("src/lib/server/scheduled-posts.ts")
     const replace = sp.slice(sp.indexOf("async function replaceDue()"), sp.indexOf("async function checkVersions()"))
@@ -73,7 +81,9 @@ describe("GOLDEN · channel publishing integrity (Task #441)", () => {
     assert.match(real, /editingMessage\(\{ chat, messageId: row\.telegram_message_id/)
     assert.doesNotMatch(real, /deleteMessage|deleteFacebookPost/)
     assert.match(read("src/lib/server/telegram-bot.ts"), /const edit = asEdit\(method, payload\)\n {2}if \(!edit\) return \{ ok: false/)
-    assert.match(read("src/lib/server/tip-bot.ts"), /const editing = editsChat\(chatId\) && !opts\.messageId\n {2}if \(editing\) opts = \{ \.\.\.opts, messageId: editTarget\(\)!\.messageId \}/)
+    assert.match(read("src/lib/server/tip-bot.ts"), /const editing = editsChat\(chatId\) && !opts\.messageId\n {2}if \(editing\) \{\n {4}opts = \{ \.\.\.opts, messageId: editTarget\(\)!\.messageId \}\n {4}editTarget\(\)!\.media = true/)
+    // An edit with no answer is tried once more; a new send never (founder, 7/11/2026 — the morning poster timed out at 30 s).
+    assert.match(read("src/lib/server/tip-bot.ts"), /if \(!res && opts\.messageId\) res = await send\(\)/)
     assert.match(read("src/lib/server/facebook-publisher.ts"), /const edit = editTarget\(\)\n {2}if \(edit\) \{\n {4}if \(!edit\.facebookPostId [^\n]+none made" \}/)
   })
   it("a morning post can never be published after 11:00 — not by the timer, not by ✅, not by 🚀", async () => {

@@ -14,6 +14,11 @@ export type EditTarget = {
   facebookPostId: string | null
   /** What was edited (filled in as it happens). */
   edited: { telegram: boolean; facebook: boolean }
+  /**
+   * The published message is a poster (a photo): its poster edit was tried. A text fallback can never be an edit of it —
+   * Telegram answers «there is no text in the message to edit» (founder, 7/11/2026) — so it is refused, never sent.
+   */
+  media?: boolean
 }
 
 const target = new AsyncLocalStorage<EditTarget>()
@@ -37,7 +42,7 @@ export function asEdit(method: string, payload: Record<string, unknown>): { meth
   const t = target.getStore()
   if (!t) return { method, payload }
   if (!method.startsWith("send") || !editsChat(payload.chat_id)) return { method, payload }
-  if (method !== "sendMessage") return null
+  if (method !== "sendMessage" || t.media) return null
   const { text, parse_mode, disable_web_page_preview, reply_markup } = payload
   return {
     method: "editMessageText",

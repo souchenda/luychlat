@@ -154,7 +154,10 @@ async function photo(chatId: number | string, png: Buffer, caption: string, opts
   if (!token) return null
   // An update to a published post: its poster replaces the one in the existing message (Task #441 — edit-in-place.ts).
   const editing = editsChat(chatId) && !opts.messageId
-  if (editing) opts = { ...opts, messageId: editTarget()!.messageId }
+  if (editing) {
+    opts = { ...opts, messageId: editTarget()!.messageId }
+    editTarget()!.media = true
+  }
   const form = new FormData()
   form.append("chat_id", String(chatId))
   const thread = opts.messageId ? null : threadFor(chatId)
@@ -174,17 +177,24 @@ async function photo(chatId: number | string, png: Buffer, caption: string, opts
   // Why it failed is always said (founder, 22/10/2026 — the 23/10 card failed as a bare «no answer»): the network
   // error, or the HTTP status and what came back.
   let why = ""
-  const started = Date.now()
-  const res = await fetch(`https://api.telegram.org/bot${token}/${opts.messageId ? "editMessageMedia" : "sendPhoto"}`, {
-    method: "POST",
-    body: outgoingForm(form),
-    cache: "no-store",
-    signal: AbortSignal.timeout(30_000),
-  }).catch((e: unknown) => {
-    const err = e as { name?: string; message?: string; cause?: { code?: string; message?: string } }
-    why = `${err.name ?? "Error"} ${err.cause?.code ?? err.cause?.message ?? err.message ?? ""} after ${Math.round((Date.now() - started) / 1000)} s`.trim()
-    return null
-  })
+  const send = () => {
+    const started = Date.now()
+    return fetch(`https://api.telegram.org/bot${token}/${opts.messageId ? "editMessageMedia" : "sendPhoto"}`, {
+      method: "POST",
+      body: outgoingForm(form),
+      cache: "no-store",
+      // An edit uploads the whole poster again: 30 s timed out on the 7/11 morning poster (287 KB) — 60 s for an edit.
+      signal: AbortSignal.timeout(opts.messageId ? 60_000 : 30_000),
+    }).catch((e: unknown) => {
+      const err = e as { name?: string; message?: string; cause?: { code?: string; message?: string } }
+      why = `${err.name ?? "Error"} ${err.cause?.code ?? err.cause?.message ?? err.message ?? ""} after ${Math.round((Date.now() - started) / 1000)} s`.trim()
+      return null
+    })
+  }
+  let res = await send()
+  // An edit with no answer (timeout, network) is tried once more — safe: the same edit twice is «message is not
+  // modified», which counts as done. A new send is never repeated (it could post twice).
+  if (!res && opts.messageId) res = await send()
   const raw = res ? await res.text().catch(() => "") : ""
   let json: { ok?: boolean; result?: { message_id?: number; reply_markup?: unknown }; description?: string } | null = null
   try {
