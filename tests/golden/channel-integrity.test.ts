@@ -84,6 +84,8 @@ describe("GOLDEN · channel publishing integrity (Task #441)", () => {
     assert.match(read("src/lib/server/tip-bot.ts"), /const editing = editsChat\(chatId\) && !opts\.messageId\n {2}if \(editing\) \{\n {4}opts = \{ \.\.\.opts, messageId: editTarget\(\)!\.messageId \}\n {4}editTarget\(\)!\.media = true/)
     // An edit with no answer is tried once more; a new send never (founder, 7/11/2026 — the morning poster timed out at 30 s).
     assert.match(read("src/lib/server/tip-bot.ts"), /if \(!res && opts\.messageId\) res = await send\(\)/)
+    // …and «message is not modified» after it is success, never a 🟡 to the founder.
+    assert.match(read("src/lib/server/tip-bot.ts"), /if \(unchanged\) return opts\.messageId \?\? null\n {2}if \(!json\?\.ok\) \{/)
     assert.match(read("src/lib/server/facebook-publisher.ts"), /const edit = editTarget\(\)\n {2}if \(edit\) \{\n {4}if \(!edit\.facebookPostId [^\n]+none made" \}/)
   })
   it("a morning post can never be published after 11:00 — not by the timer, not by ✅, not by 🚀", async () => {

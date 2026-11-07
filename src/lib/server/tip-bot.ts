@@ -202,7 +202,11 @@ async function photo(chatId: number | string, png: Buffer, caption: string, opts
   } catch {
     why = `HTTP ${res?.status}: ${raw.replace(/\s+/g, " ").slice(0, 120)}`
   }
-  if (editing && (json?.ok || /message is not modified/.test(json?.description ?? ""))) editTarget()!.edited.telegram = true
+  // «message is not modified» on an edit = the message already shows this version (the first try landed after its
+  // timeout) — done, never a fault for the founder (7/11/2026: a 🟡 right after a successful 🔄).
+  const unchanged = Boolean(opts.messageId) && /message is not modified/.test(json?.description ?? "")
+  if (editing && (json?.ok || unchanged)) editTarget()!.edited.telegram = true
+  if (unchanged) return opts.messageId ?? null
   if (!json?.ok) {
     logEvent("error", "daily-tip", `Telegram ${opts.messageId ? "editMessageMedia" : "sendPhoto"} failed: ${json?.description ?? (why || `HTTP ${res?.status ?? "—"}, empty answer`)} (photo ${Math.round(png.length / 1024)} KB, caption ${caption.length} chars)`, { fold: true })
     return null
