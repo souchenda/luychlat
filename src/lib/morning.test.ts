@@ -48,3 +48,10 @@ describe("The 24th's quote in bang's words (24/10/2026 — Tasks #484 / #485)", 
     for (const old of ["ភ្លេចវាចោល", "កាត់ចិត្តថាគ្មានវា"]) assert.ok(!MORNING_QUOTES.some((q) => q.includes(old)), old)
   })
 })
+
+describe("A count never reads like a month (founder, 7/11/2026)", () => {
+  it("«ប្រចាំខែ ៧» became «ខែ 7» (July) on the poster — a number after «ខែ» always carries its classifier", () => {
+    assert.ok(MORNING_QUOTES[6].includes("សេវាបង់ប្រចាំខែ ៧ មុខ"))
+    for (const q of MORNING_QUOTES) assert.doesNotMatch(q, /ខែ\s*[0-9០-៩]+(?!\s*(?:មុខ|ខែ|ដង|ថ្ងៃ|ឆ្នាំ|%|៛))/, q)
+  })
+})
