@@ -9,6 +9,7 @@ import { homeChargeText, publicChargeSummary } from "@/lib/bot/ev-summary"
 import { benchmarkPetrol, parseDistance, type DistanceEntry } from "@/lib/ev-economics"
 import { EV_TAG, kwhOf, parseEntry, presetFromWords, type BotCategory, type BotDebt, type BotWallet, type ParsedEntry } from "@/lib/bot/parse-entry"
 import { routeWorkspace } from "@/lib/bot/route-workspace"
+import { holdForSlip } from "@/lib/bot/pending-slip"
 import { mealFor, type Meal } from "@/lib/bot/bank-slip"
 import type { Locale } from "@/lib/i18n/dictionaries"
 import { defaultNeedWant } from "@/lib/need-want"
@@ -200,6 +201,12 @@ async function propose(chatId: number, parsed: Parsed, ws: Workspace, extra: { t
 export async function noteOnRecentEntry(chatId: number, text: string, lang: Locale, voice = false): Promise<boolean> {
   const note = cleanNote(text)
   if (!note || !looksLikeNote(note)) return false
+  // A slip still being read in this chat: the note is for it, never the entry before it (founder, 7/11/2026).
+  if (holdForSlip(chatId, note)) {
+    await sendText(chatId, tr(lang, "bot.noteForSlip", { note }))
+    logEvent("info", "bot", "Follow-up note held for the slip being read", { fold: true })
+    return true
+  }
   // p_voice: a spoken note is remembered, so a typed text right after it corrects it instead of adding to it (Task #507).
   const { data, error } = await botDb().rpc("bot_tx_note_recent", { p_key: botKey(), p_chat_id: chatId, p_note: note, p_preset: presetFromWords(note), p_voice: voice })
   if (!error && data === null) return false

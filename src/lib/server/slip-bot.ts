@@ -29,6 +29,7 @@ import { convert, formatMoney } from "@/lib/money"
 import { blocked, botContext, contextLocale, handleEntryMessage, logEvHome, workspacesOf, type Context } from "@/lib/server/bot-commands"
 import { parseAmountText } from "@/lib/bot/parse-entry"
 import { photoRoute } from "@/lib/bot/photo-route"
+import { slipRead, slipReading } from "@/lib/bot/pending-slip"
 import { MEAL_KEY, budgetNudge, cleanNote, duplicateNudge, mentionsChild, rememberCard, savedCard, tagTransaction, taggedFrom, type Tagged, type TaggedRow } from "@/lib/server/entry-card"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
@@ -276,6 +277,8 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
   let read: ReadResult
   if (preRead) read = preRead
   else {
+    // A note typed while this slip is read waits for it (pending-slip.ts — founder, 7/11/2026).
+    slipReading(chatId, 45_000)
     // Reading takes a few seconds: keep "typing…" up meanwhile.
     const typing = () => void tg("sendChatAction", { chat_id: chatId, action: "typing" })
     typing()
@@ -286,6 +289,8 @@ export async function handleSlipPhoto(chatId: number, fileId: string, ctx: Conte
       clearInterval(keepTyping)
     }
   }
+  // Read (or given up): the notes typed meanwhile join the caption. Busy on the first try: the retries keep waiting.
+  if (!(preRead === undefined && "error" in read && read.error === "busy")) caption = slipRead(chatId, caption)
   if ("error" in read && read.error === "utility_bill") return handleBillPhoto(chatId, fileId, ctx)
   if ("error" in read && read.error === "loan_schedule") return handleLoanSchedulePhoto(chatId, fileId)
   if ("error" in read && read.error === "loan_detail") return handleLoanDetailPhoto(chatId, fileId)
@@ -875,6 +880,8 @@ export const SLIP_RETRY_DELAYS_S = [20, 60, 120] as const
  * «send it again, or type the amount». Every try logged with its outcome. In memory: a deploy in that window drops the wait.
  */
 async function readSlipLater(chatId: number, fileId: string, ctx: Context | null, caption: string | null | undefined, lang: Locale) {
+  // Notes typed during the retries (about 3½ minutes) wait for this slip too.
+  slipReading(chatId, (SLIP_RETRY_DELAYS_S.reduce((a, b) => a + b, 0) + 60) * 1000)
   const waiting = await tg<{ message_id: number }>("sendMessage", { chat_id: chatId, text: tr(lang, "bot.slipRetrying") })
   const waitId = waiting.result?.message_id
   void (async () => {
@@ -887,6 +894,7 @@ async function readSlipLater(chatId: number, fileId: string, ctx: Context | null
       if (waitId) await tg("deleteMessage", { chat_id: chatId, message_id: waitId }).catch(() => null)
       return handleSlipPhoto(chatId, fileId, ctx, caption, read)
     }
+    slipRead(chatId) // given up: the wait ends
     if (waitId) await tg("editMessageText", { chat_id: chatId, message_id: waitId, text: tr(lang, "bot.slipBusy") }).catch(() => null)
     else await sendText(chatId, tr(lang, "bot.slipBusy"))
   })().catch((e) => logEvent("warn", "slips", `Slip retry error: ${(e as Error).message}`, { fold: true }))
