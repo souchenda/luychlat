@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { departureAlertText } from "./activity-alerts"
+import { activityLines, departureAlertText } from "./activity-alerts"
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\r\n/g, "\n")
 
@@ -38,5 +38,27 @@ describe("A member who leaves is never silent (founder, 8/11/2026)", () => {
     assert.match(fn, /parse_mode: "HTML", disable_notification: true/)
     assert.match(fn, /Departure card delivered to \$\{delivered\}\/\$\{chats\.length\}/)
     assert.match(read("src/lib/server/bot-dispatch.ts"), /if \(passes % 5 === 0\) await flushDepartureAlerts\(\)/)
+  })
+  it("what the member did (founder, 8/11/2026 — «ត្រូវដឹងថាគេចូលមកបានធ្វើអីខ្លះ»): counts and dates, never an amount", () => {
+    const when = (iso: string) => iso.slice(11, 16)
+    const lines = activityLines({ workspaces: 2, shared_in: 0, wallets: 3, entries: 1204, first_entry: "2026-11-08T06:55:00Z", last_entry: "2026-11-08T07:10:00Z", debts: 1, budgets: 0, bills: 2, telegram: true, islamic: false, tier: "FREE", last_active: "2026-11-08T07:20:00Z" }, when)
+    assert.deepEqual(lines, [
+      "• បានប្រើ៖ 1,204 ប្រតិបត្តិការ · 3 កាបូប · 1 បំណុល · 0 ថវិកា · 2 វិក្កយបត្រ",
+      "• ប្រតិបត្តិការដំបូង 06:55 · ចុងក្រោយ 07:10",
+      "• 2 workspace · ភ្ជាប់ Telegram · គម្រោង FREE",
+      "• សកម្មចុងក្រោយ៖ 07:20",
+    ])
+    const none = activityLines({ workspaces: 2, shared_in: 0, wallets: 0, entries: 0, first_entry: null, last_entry: null, debts: 0, budgets: 0, bills: 0, telegram: false, islamic: true, tier: null, last_active: null }, when)
+    assert.deepEqual(none, ["• បានប្រើ៖ មិនទាន់បានកត់ត្រាអ្វីទេ", "• 2 workspace · មិនបានភ្ជាប់ Telegram · Islamic Mode · គម្រោង FREE"])
+    assert.deepEqual(activityLines(null, when), ["• សកម្មភាព៖ អានមិនបាន"])
+    const card = departureAlertText({ name: "A", account: "b", at: "t", joined: "j", days: 2, self: true, total: 8, activity: lines })
+    assert.match(card, /នៅជាមួយ 2 ថ្ងៃ\n• បានប្រើ៖ 1,204 ប្រតិបត្តិការ/)
+    assert.doesNotMatch(card, /\$|៛|USD|KHR/)
+    // Recorded BEFORE delete_my_account removes the ledger; counts only in the SQL (no amount column read).
+    const sql = read("supabase/migrations/20270299000000_member_departure_activity.sql")
+    const del = sql.slice(sql.indexOf("create or replace function public.delete_my_account"))
+    assert.ok(del.indexOf("record_member_departure(uid, true)") < del.indexOf("delete from public.transactions"))
+    const rec = sql.slice(sql.indexOf("create or replace function public.record_member_departure"), sql.indexOf("revoke all on function public.record_member_departure"))
+    assert.doesNotMatch(rec, /amount|balance/)
   })
 })
