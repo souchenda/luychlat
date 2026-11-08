@@ -360,6 +360,260 @@ export const TIPS: Tip[] = [
     },
   },
 
+  // Everyday Cambodian life — 28 tips, approved by the founder (8/11/2026: «គន្លឹះត្រូវតែថ្មីជានិច្ច»).
+  {
+    id: "loose-change-jar",
+    topic: "saving",
+    title: { km: "លុយរាយក៏ជាលុយសន្សំ", en: "Loose change is savings too" },
+    body: {
+      km: "លុយរាយ 500 ៛ ឬ 1,000 ៛ ដែលសល់ពីការទិញឥវ៉ាន់ ងាយបាត់ដោយមិនដឹងខ្លួន។ ដាក់វាក្នុងប្រអប់មួយរាល់ល្ងាច ហើយដល់ចុងខែ យកទៅដាក់គណនីសន្សំ។",
+      en: "The 500 or 1,000 riel left over from shopping slips away unnoticed. Drop it in a box every evening, and at month end put it in your savings account.",
+    },
+  },
+  {
+    id: "ceremony-budget",
+    topic: "saving",
+    title: { km: "ទុកថវិកាចំណងដៃ និងបុណ្យទានជាមុន", en: "Budget for weddings and ceremonies" },
+    body: {
+      km: "ការចូលរួមការ ចំណងដៃ និងបុណ្យទាន មកដល់ស្ទើររាល់ខែ តែយើងកម្រគិតទុកមុន។ ទុកថវិកាមួយចំណែកសម្រាប់ពិធីទាំងនេះរៀងរាល់ខែ ទើបមិនចាំបាច់ខ្ចីលុយពេលដល់រដូវការ។",
+      en: "Weddings, gifts and ceremonies come almost every month, yet we rarely plan for them. Set a little aside each month so wedding season never means borrowing.",
+    },
+  },
+  {
+    id: "festival-fund",
+    topic: "saving",
+    title: { km: "ត្រៀមលុយបុណ្យធំ ពីរបីខែមុន", en: "Save for big festivals early" },
+    body: {
+      km: "ចូលឆ្នាំខ្មែរ ភ្ជុំបិណ្ឌ និងចូលឆ្នាំចិន ជាខែដែលចំណាយកើនខ្លាំងជាងធម្មតា។ ចាប់ផ្តើមទុកលុយបុណ្យពីរបីខែមុន ទើបបុណ្យចប់ទៅ មិនបន្សល់បំណុល។",
+      en: "Khmer New Year, Pchum Ben and Chinese New Year are the months spending jumps. Start a festival fund a few months ahead so the holiday leaves no debt behind.",
+    },
+  },
+  {
+    id: "school-year-fund",
+    topic: "saving",
+    title: { km: "ត្រៀមលុយចូលរៀនកូនជាមុន 12 ខែ", en: "Plan school costs 12 months ahead" },
+    body: {
+      km: "ថ្លៃសាលា ឯកសណ្ឋាន និងសៀវភៅ តែងមកដល់ក្នុងពេលតែមួយ។ ចែកចំណាយនោះជា 12 ចំណែក ហើយសន្សំមួយចំណែករៀងរាល់ខែ នោះខែចូលរៀនលែងជាខែពិបាកទៀតហើយ។",
+      en: "School fees, uniforms and books all arrive at once. Split the total into 12 parts and save one each month, and back-to-school stops being a hard month.",
+    },
+  },
+  {
+    id: "yearly-costs-monthly",
+    topic: "saving",
+    title: { km: "ចំណាយប្រចាំឆ្នាំ ចែកជាប្រចាំខែ", en: "Turn yearly costs into monthly ones" },
+    body: {
+      km: "ពន្ធផ្លូវ ធានារ៉ាប់រង និងការត្រួតពិនិត្យយានយន្ត មកតែម្តងក្នុងមួយឆ្នាំ ទើបងាយភ្លេច។ បូកចំណាយទាំងនោះ ចែកនឹង 12 ហើយទុកមួយចំណែករាល់ខែ។",
+      en: "Road tax, insurance and vehicle inspection come once a year, so they are easy to forget. Add them up, divide by 12 and set that aside every month.",
+    },
+  },
+  {
+    id: "bonus-half",
+    topic: "saving",
+    title: { km: "ប្រាក់រង្វាន់៖ ទុកពាក់កណ្តាល", en: "Bonus: keep half" },
+    body: {
+      km: "ប្រាក់រង្វាន់ ឬប្រាក់ខែទី 13 មិនមែនជាលុយសម្រាប់ចាយអស់ក្នុងមួយសប្តាហ៍ទេ។ យកពាក់កណ្តាលទៅសងបំណុល ឬសន្សំ ពាក់កណ្តាលទៀតទើបចាយឲ្យសប្បាយចិត្ត។",
+      en: "A bonus or 13th-month pay is not money to spend in a week. Put half toward debt or savings, then enjoy the other half.",
+    },
+  },
+  {
+    id: "family-money-talk",
+    topic: "saving",
+    title: { km: "និយាយរឿងលុយក្នុងគ្រួសារ", en: "Talk about money as a family" },
+    body: {
+      km: "ប្តីប្រពន្ធដែលមិនដែលនិយាយរឿងលុយ ច្រើនតែឈ្លោះគ្នាពេលលុយខ្វះ។ អង្គុយជាមួយគ្នាម្តងក្នុងមួយខែ ពិនិត្យចំណូល ចំណាយ និងគោលដៅរួម។",
+      en: "Couples who never talk about money often argue when it runs short. Sit down together once a month and review income, spending and your shared goals.",
+    },
+  },
+  {
+    id: "kids-pocket-money",
+    topic: "saving",
+    title: { km: "បង្រៀនកូនស្គាល់តម្លៃលុយ", en: "Teach children the value of money" },
+    body: {
+      km: "កូនរៀនរឿងលុយ តាមរយៈការមើលឪពុកម្តាយចាយ។ ឲ្យលុយហោប៉ៅជាប្រចាំសប្តាហ៍ ហើយឲ្យកូនចែកខ្លួនឯង ផ្នែកមួយចាយ ផ្នែកមួយសន្សំ។",
+      en: "Children learn about money by watching their parents spend. Give weekly pocket money and let them split it themselves: some to spend, some to save.",
+    },
+  },
+  {
+    id: "support-parents-plan",
+    topic: "saving",
+    title: { km: "ផ្ញើលុយជួយឪពុកម្តាយ ឲ្យមានផែនការ", en: "Support your parents with a plan" },
+    body: {
+      km: "ការផ្ញើលុយជួយឪពុកម្តាយ ជាកាតព្វកិច្ចដ៏ល្អ តែគួរជាចំនួនទៀងទាត់ ដែលអ្នករ៉ាប់រងបាន។ កំណត់ចំនួនប្រចាំខែឲ្យច្បាស់ ហើយកត់ត្រាវាដូចចំណាយចាំបាច់ផ្សេងទៀត។",
+      en: "Sending money home is a fine duty, but it should be a steady amount you can carry. Fix a clear monthly amount and record it like any other essential cost.",
+    },
+  },
+  {
+    id: "no-spend-day",
+    topic: "saving",
+    title: { km: "មួយថ្ងៃ គ្មានចាយ", en: "One no-spend day" },
+    body: {
+      km: "ជ្រើសរើសមួយថ្ងៃក្នុងមួយសប្តាហ៍ ដែលមិនចាយលើអ្វីក្រៅពីចាំបាច់ — ញ៉ាំបាយពីផ្ទះ យកទឹកពីផ្ទះ។ ថ្ងៃតូចមួយនេះ ជួយឲ្យដឹងថាចំណាយណាជាទម្លាប់ មិនមែនជាតម្រូវការ។",
+      en: "Pick one day a week to spend on nothing but essentials: lunch and water from home. That one small day shows which spending is habit, not need.",
+    },
+  },
+  {
+    id: "vehicle-costs",
+    topic: "saving",
+    title: { km: "ចំណាយម៉ូតូ និងឡាន ស៊ីលុយច្រើនជាងស្មាន", en: "Vehicles cost more than you think" },
+    body: {
+      km: "សាំង ប្រេងម៉ាស៊ីន កង់ និងការជួសជុល បូកគ្នាមួយឆ្នាំ ច្រើនជាងយើងស្មាន។ កត់ត្រាចំណាយយានយន្តក្នុងប្រភេទតែមួយ ដើម្បីដឹងថាវាស៊ីលុយប៉ុន្មានក្នុងមួយខែ។",
+      en: "Fuel, oil, tyres and repairs add up to more over a year than we expect. Record vehicle costs under one category to see what it really costs each month.",
+    },
+  },
+  {
+    id: "usd-riel-rate",
+    topic: "saving",
+    title: { km: "ប្តូរដុល្លារជារៀល ឲ្យចំអត្រា", en: "Change dollars at a fair rate" },
+    body: {
+      km: "ប្រាក់ខែជាដុល្លារ តែចាយប្រចាំថ្ងៃជារៀល ការប្តូរតាមហាងម្តងៗ អាចខាតបន្តិចៗ។ មើលអត្រាប្តូរប្រាក់ថ្ងៃនេះ មុនប្តូរលុយច្រើន ហើយកត់ត្រាចំណាយទាំងពីររូបិយប័ណ្ណ។",
+      en: "Paid in dollars but spending in riel, small losses add up when you change at shops. Check today's rate before changing a large amount, and record spending in both currencies.",
+    },
+  },
+  {
+    id: "gold-long-term",
+    topic: "saving",
+    title: { km: "មាសសម្រាប់ទុកយូរ មិនមែនលុយត្រូវការឆាប់", en: "Gold is for the long term" },
+    body: {
+      km: "មាសជាទម្លាប់សន្សំរបស់គ្រួសារខ្មែរ តែតម្លៃមាសឡើងចុះ ហើយហាងទិញវិញក្នុងតម្លៃទាបជាងតម្លៃលក់។ ទិញមាសដោយលុយដែលទុកបានយូរ កុំទិញដោយលុយដែលនឹងត្រូវការក្នុងពេលខ្លី។",
+      en: "Gold is a Khmer family's way to save, but its price moves and shops buy back below their selling price. Buy gold with money you can leave alone, never with money you will soon need.",
+    },
+  },
+  {
+    id: "term-deposit-idle",
+    topic: "saving",
+    title: { km: "លុយមិនទាន់ប្រើ ដាក់បញ្ញើមានកាលកំណត់", en: "Idle money in a fixed deposit" },
+    body: {
+      km: "លុយដែលមិនត្រូវការក្នុង 6 ខែ ដល់ 1 ឆ្នាំ អាចដាក់ប្រាក់បញ្ញើមានកាលកំណត់ ដែលជាទូទៅផ្តល់ការប្រាក់ខ្ពស់ជាងគណនីសន្សំធម្មតា។ តែត្រូវដឹងថា ដកមុនកាលកំណត់ អាចបាត់ការប្រាក់មួយចំណែក។",
+      en: "Money you will not need for 6 to 12 months can go in a fixed deposit, which usually pays more than a regular savings account. Know that withdrawing early can cost part of the interest.",
+    },
+  },
+  {
+    id: "tontine-trust",
+    topic: "saving",
+    title: { km: "លេងតុងទីន ជាមួយមនុស្សដែលស្គាល់ច្បាស់", en: "Tontine only with people you know" },
+    body: {
+      km: "តុងទីនជួយបង្ខំឲ្យសន្សំ តែបើម្ចាស់តុងរត់ ឬសមាជិកឈប់បង់ លុយអាចបាត់។ ចូលតែជាមួយមនុស្សដែលស្គាល់ច្បាស់ ហើយកត់ត្រាការបង់គ្រប់ជុំ។",
+      en: "A tontine forces you to save, but if the organiser runs or members stop paying, the money can vanish. Join only with people you know well, and record every round.",
+    },
+  },
+  {
+    id: "health-cover",
+    topic: "saving",
+    title: { km: "ជំងឺមួយដង អាចស៊ីលុយសន្សំច្រើនឆ្នាំ", en: "One illness can take years of savings" },
+    body: {
+      km: "ពិនិត្យថាអ្នកមាន ប.ស.ស ឬធានារ៉ាប់រងសុខភាព ហើយដឹងថាវាគ្របដណ្តប់អ្វីខ្លះ។ ស្គាល់សិទ្ធិរបស់ខ្លួនមុនពេលឈឺ ប្រសើរជាងរកដឹងពេលនៅមន្ទីរពេទ្យ។",
+      en: "Check whether you have NSSF or health insurance, and what it covers. Knowing your rights before you fall ill beats finding out at the hospital.",
+    },
+  },
+  {
+    id: "never-share-otp",
+    topic: "saving",
+    title: { km: "កុំឲ្យលេខកូដ OTP ទៅនរណាម្នាក់", en: "Never share your OTP" },
+    body: {
+      km: "ធនាគារមិនដែលសុំលេខកូដ OTP ឬលេខសម្ងាត់តាមទូរស័ព្ទ ឬ Telegram ទេ។ អ្នកណាសុំលេខកូដនោះ ជាអ្នកបោក — បិទការសន្ទនាភ្លាម ហើយទូរស័ព្ទទៅលេខផ្លូវការរបស់ធនាគារ។",
+      en: "Banks never ask for your OTP or password by phone or Telegram. Whoever asks is a scammer: end the chat at once and call your bank's official number.",
+    },
+  },
+  {
+    id: "check-khqr-name",
+    topic: "saving",
+    title: { km: "មើលឈ្មោះអ្នកទទួល មុនបង់ KHQR", en: "Check the name before paying by KHQR" },
+    body: {
+      km: "មុនចុចបង់តាម KHQR មើលឈ្មោះអ្នកទទួល និងចំនួនលុយលើអេក្រង់ឲ្យច្បាស់។ ផ្ទេរខុសហើយ ការទាមទារលុយវិញពិបាក និងយូរ។",
+      en: "Before you pay by KHQR, check the receiver's name and the amount on screen. Once sent to the wrong person, getting it back is slow and hard.",
+    },
+  },
+  {
+    id: "keep-slips",
+    topic: "saving",
+    title: { km: "ទុកស្លីបផ្ទេរប្រាក់ ជាភស្តុតាង", en: "Keep transfer slips as proof" },
+    body: {
+      km: "ស្លីបផ្ទេរប្រាក់ ជាភស្តុតាងតែមួយពេលមានជម្លោះ ឬពេលភ្លេចថាបានបង់ហើយឬនៅ។ ផ្ញើស្លីបទៅ Bot អេប លុយឆ្លាត នោះវាកត់ត្រាចំណាយ និងទុកស្លីបឲ្យដោយស្វ័យប្រវត្តិ។",
+      en: "A transfer slip is your only proof in a dispute or when you forget whether you paid. Send it to the App Luy Chlat bot and it records the expense and keeps the slip for you.",
+    },
+  },
+  {
+    id: "guarantor-risk",
+    topic: "debt",
+    title: { km: "គិតឲ្យល្អ មុនធានាកម្ចីឲ្យគេ", en: "Think twice before guaranteeing a loan" },
+    body: {
+      km: "ការចុះហត្ថលេខាធានាកម្ចីឲ្យសាច់ញាតិ ឬមិត្តភក្តិ មានន័យថា បើគេមិនសង អ្នកត្រូវសងជំនួស។ មុនចុះហត្ថលេខា សួរខ្លួនឯងថា ខ្ញុំអាចសងចំនួននេះទាំងអស់ដោយខ្លួនឯងបានឬទេ?",
+      en: "Signing as guarantor for a relative or friend means you pay if they do not. Before you sign, ask yourself: could I repay all of this on my own?",
+    },
+  },
+  {
+    id: "land-title-loan",
+    topic: "debt",
+    title: { km: "ដាក់ប្លង់ខ្ចីលុយ ត្រូវគិតឲ្យវែង", en: "A land-title loan needs long thought" },
+    body: {
+      km: "យកប្លង់ដី ឬផ្ទះទៅបញ្ចាំ ខ្ចីលុយបានងាយ តែហានិភ័យធំបំផុតសម្រាប់គ្រួសារ។ ខ្ចីដាក់ប្លង់ លុះត្រាតែអ្នកដឹងច្បាស់ថា ប្រាក់ចំណូលគ្រប់គ្រាន់សងរាល់ខែ។",
+      en: "Pledging a land or house title makes borrowing easy, but it is the biggest risk a family can take. Borrow against a title only when you are sure your income covers every repayment.",
+    },
+  },
+  {
+    id: "read-the-contract",
+    topic: "debt",
+    title: { km: "អានកិច្ចសន្យា មុនចុះហត្ថលេខា", en: "Read the contract before signing" },
+    body: {
+      km: "ការប្រាក់ ថ្លៃសេវា និងការពិន័យសងមុនកាលកំណត់ ជារឿយៗសរសេរជាអក្សរតូចៗក្នុងកិច្ចសន្យា។ សួរឲ្យច្បាស់ ហើយសុំតារាងសងប្រាក់ពេញលេញ មុននឹងចុះហត្ថលេខា។",
+      en: "Interest, fees and early-repayment penalties are often in the small print. Ask clearly and get the full repayment schedule before you sign.",
+    },
+  },
+  {
+    id: "no-loan-for-loan",
+    topic: "debt",
+    title: { km: "កុំខ្ចីថ្មី ដើម្បីសងចាស់", en: "Do not borrow to repay a loan" },
+    body: {
+      km: "យកកម្ចីថ្មីមកសងកម្ចីចាស់ មិនមែនជាការដោះស្រាយទេ ព្រោះបំណុលនៅដដែល ហើយថ្លៃសេវាកើនថែម។ បើសងមិនរួច ទៅជួបធនាគារសុំរៀបចំតារាងសងឡើងវិញ មុនពេលហួសកាលកំណត់។",
+      en: "A new loan to pay an old one solves nothing: the debt stays and the fees grow. If you cannot repay, ask your bank to reschedule before you fall behind.",
+    },
+  },
+  {
+    id: "licensed-lenders",
+    topic: "debt",
+    title: { km: "ខ្ចីលុយពីកន្លែងមានអាជ្ញាប័ណ្ណ", en: "Borrow from licensed lenders" },
+    body: {
+      km: "អ្នកឲ្យខ្ចីលុយក្រៅប្រព័ន្ធ ជាញឹកញាប់គិតការប្រាក់ខ្ពស់ជាងធនាគារច្រើនដង ហើយគ្មានកិច្ចសន្យាច្បាស់លាស់។ បើត្រូវការខ្ចី សួរធនាគារ ឬគ្រឹះស្ថានមីក្រូហិរញ្ញវត្ថុដែលមានអាជ្ញាប័ណ្ណពីធនាគារជាតិនៃកម្ពុជាសិន។",
+      en: "Informal lenders often charge many times a bank's interest, with no clear contract. If you must borrow, ask a bank or an NBC-licensed microfinance institution first.",
+    },
+  },
+  {
+    id: "installment-total",
+    topic: "debt",
+    title: { km: "គុណចំនួនរំលស់ មុនទិញ", en: "Multiply the instalments before you buy" },
+    body: {
+      km: "ទូរស័ព្ទ ឬម៉ូតូបង់រំលស់ ពេលបូកចំនួនសរុប ច្រើនតែថ្លៃជាងទិញដោយលុយសុទ្ធ។ គុណចំនួនបង់ប្រចាំខែនឹងចំនួនខែ ហើយប្រៀបធៀបជាមួយតម្លៃលុយសុទ្ធ មុនចុះឈ្មោះ។",
+      en: "A phone or motorbike on instalments usually costs more in total than paying cash. Multiply the monthly payment by the months and compare with the cash price before you sign.",
+    },
+  },
+  {
+    id: "cbc-remembers",
+    topic: "credit",
+    title: { km: "CBC ចាំគ្រប់ការសងរបស់អ្នក", en: "The CBC remembers every repayment" },
+    body: {
+      km: "កម្ចី និងការសងរបស់អ្នក ត្រូវបានកត់ត្រានៅការិយាល័យឥណទានកម្ពុជា ហៅកាត់ CBC។ ការសងយឺតសូម្បីតែប៉ុន្មានថ្ងៃ ក៏អាចនៅក្នុងប្រវត្តិ ហើយធ្វើឲ្យការខ្ចីលើកក្រោយពិបាក។",
+      en: "Your loans and repayments are recorded at the Credit Bureau Cambodia (CBC). Paying even a few days late can stay on your record and make the next loan harder.",
+    },
+  },
+  {
+    id: "no-card-cash",
+    topic: "credit",
+    title: { km: "កុំដកលុយសុទ្ធពីប័ណ្ណឥណទាន", en: "Do not take cash from a credit card" },
+    body: {
+      km: "ការដកលុយសុទ្ធពីប័ណ្ណឥណទាន ជាទូទៅគិតថ្លៃសេវា និងការប្រាក់ចាប់ពីថ្ងៃដកភ្លាម ដោយគ្មានរយៈពេលអនុគ្រោះ។ ប្រើប័ណ្ណសម្រាប់ទិញ ហើយកុំដកលុយសុទ្ធពីវា លើកលែងតែពេលអាសន្នពិតៗ។",
+      en: "A cash withdrawal on a credit card usually carries a fee and interest from that day, with no grace period. Use the card to buy, not for cash, except in a real emergency.",
+    },
+  },
+  {
+    id: "hot-season-power",
+    topic: "saving",
+    title: { km: "ថ្លៃភ្លើងខែក្តៅ ត្រៀមទុកមុន", en: "Plan for the hot-season power bill" },
+    body: {
+      km: "ពីខែមីនា ដល់ខែឧសភា ម៉ាស៊ីនត្រជាក់ធ្វើឲ្យថ្លៃភ្លើងឡើងខ្ពស់។ កំណត់ម៉ាស៊ីនត្រជាក់នៅ 25–26°C ហើយទុកថវិកាថ្លៃភ្លើងបន្ថែមសម្រាប់ខែក្តៅ មុនពេលវិក្កយបត្រមកដល់។",
+      en: "From March to May, air conditioning pushes the power bill up. Set it to 25–26°C and budget extra for those months before the bills arrive.",
+    },
+  },
+
   // Islamic finance (only when Islamic Mode is on)
   {
     id: "islamic-riba",
