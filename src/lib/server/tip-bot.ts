@@ -17,7 +17,7 @@
 //
 // Buttons carry the version they were shown with: a tap on an older preview
 // (after an edit here or in the app) refreshes it instead of approving.
-import { TIP_BODY_MAX, TIP_TITLE_MAX, defaultTip, nextTip } from "@/lib/daily-tip"
+import { TIP_BODY_MAX, TIP_TITLE_MAX, freshTip, type UsedTip } from "@/lib/daily-tip"
 import { editsChat, editTarget } from "@/lib/server/edit-in-place"
 import { outgoingForm } from "@/lib/server/numerals"
 import { isQuiet, quietly } from "@/lib/server/quiet-post"
@@ -27,7 +27,7 @@ import { TIPS } from "@/lib/tips"
 import { getChannelPostButtons } from "@/lib/server/channel-buttons"
 import { logEvent } from "@/lib/server/events"
 import { phnomPenhToday } from "@/lib/server/market-sync"
-import { botDb, botKey, botToken, tg } from "@/lib/server/telegram-bot"
+import { botDb, botKey, botToken, sendText, tg } from "@/lib/server/telegram-bot"
 import { tipPoster } from "@/lib/server/tip-poster"
 import { supabaseUrl } from "@/lib/supabase/config"
 import { threadFor } from "@/lib/chat-route"
@@ -259,11 +259,28 @@ async function claim(job: string, day: string) {
   return data === true
 }
 
-/** The day's tip from the pool — never the same as the day before. */
+/** Every tip the readers already saw (published before `day`). Unreadable → null: the caller says so, never guesses. */
+async function usedTips(day: string): Promise<UsedTip[] | null> {
+  const { data, error } = await botDb().rpc("bot_tip_used", { p_key: botKey(), p_day: day })
+  if (error) {
+    logEvent("error", "daily-tip", `Published tips not read — the new tip may repeat one: ${error.message}`, { fold: true })
+    return null
+  }
+  return (data as UsedTip[] | null) ?? []
+}
+
+/** «⚠️ …» for the review room when the tip was shown before (every tip in the pool published) or the history is unread. */
+function repeatNotice(r: { repeat: UsedTip | null }, used: UsedTip[] | null) {
+  if (!used) return "⚠️ អានប្រវត្តិគន្លឹះមិនបាន — សូមពិនិត្យថាគន្លឹះនេះមិនទាន់ធ្លាប់ផុស មុនចុច ✅"
+  if (!r.repeat) return null
+  return `⚠️ គន្លឹះទាំងអស់ធ្លាប់ផុសរួចហើយ — គន្លឹះនេះធ្លាប់ផុសថ្ងៃ ${r.repeat.day}។ សូមចុច ✏️ កែអត្ថបទ ដាក់គន្លឹះថ្មី ឬ ❌ ផ្អាកថ្ងៃនេះ`
+}
+
+/** The day's tip from the pool — never one already published (founder, 8/11/2026 — lib/daily-tip.ts freshTip). */
 async function pickTip(day: string) {
-  const yesterday = await getTip(new Date(Date.parse(`${day}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10))
-  const first = defaultTip(day)
-  return yesterday?.tip_id === first.id ? nextTip(first.id) : first
+  const used = await usedTips(day)
+  const r = freshTip(day, used ?? [])
+  return { ...r, notice: repeatNotice(r, used) }
 }
 
 async function getTip(day: string): Promise<DailyTip | null> {
@@ -306,13 +323,16 @@ export async function dailyTipTick() {
       return
     }
     let t = await getTip(now.day)
+    let notice: string | null = null
     if (!t) {
-      const tip = await pickTip(now.day)
-      const { data } = await db.rpc("bot_tip_ensure", { p_key: botKey(), p_day: now.day, p_tip_id: tip.id, p_title: tip.title.km, p_body: tip.body.km })
+      const picked = await pickTip(now.day)
+      notice = picked.notice
+      const { data } = await db.rpc("bot_tip_ensure", { p_key: botKey(), p_day: now.day, p_tip_id: picked.tip.id, p_title: picked.tip.title.km, p_body: picked.tip.body.km })
       t = data as DailyTip | null
     }
     if (!t?.day || t.status === "POSTED") return
     const sent = await sendPreviews(t)
+    if (notice) for (const chat of await marketingChats()) await sendText(chat, notice)
     logEvent(sent ? "info" : "warn", "daily-tip", sent ? `Tip preview v${t.version} sent to ${sent} super admin chat(s)` : "Tip preview: no super admin has a linked Telegram chat")
     return
   }
@@ -322,7 +342,7 @@ export async function dailyTipTick() {
   if (!communityChannelConfigured()) return
   if (!(await getTip(now.day))) {
     // No draft at all (the 10:30 run was missed): today's tip from the pool, never yesterday's again.
-    const tip = await pickTip(now.day)
+    const { tip } = await pickTip(now.day)
     await db.rpc("bot_tip_ensure", { p_key: botKey(), p_day: now.day, p_tip_id: tip.id, p_title: tip.title.km, p_body: tip.body.km })
   }
   const waiting = await getTip(now.day)
@@ -397,11 +417,15 @@ export async function handleTipCallback(cb: Callback) {
     await refreshPreviews(current, true)
     return answer("បានកែប្រែរួច — សូមពិនិត្យកំណែថ្មី ហើយអនុម័តម្ដងទៀត។", true)
   }
+  // «🔄 ប្តូរគន្លឹះថ្មី»: the next tip never published before (founder, 8/11/2026), said when none is left.
+  let swapNotice: string | null = null
   const params =
     action === "n"
-      ? (() => {
-          const tip = nextTip(current.tip_id)
-          return { p_action: "save", p_title: tip.title.km, p_body: tip.body.km, p_tip_id: tip.id }
+      ? await (async () => {
+          const used = await usedTips(day)
+          const r = freshTip(day, used ?? [], current.tip_id)
+          swapNotice = repeatNotice(r, used)
+          return { p_action: "save", p_title: r.tip.title.km, p_body: r.tip.body.km, p_tip_id: r.tip.id }
         })()
       : { p_action: action === "a" ? "approve" : action === "s" ? "skip" : "draft", p_version: version }
   const { data, error } = await botDb().rpc("bot_tip_action", { p_key: botKey(), p_chat_id: actor, p_day: day, ...params })
@@ -421,7 +445,7 @@ export async function handleTipCallback(cb: Callback) {
     return
   }
   const t = data as DailyTip
-  await answer(action === "a" ? "✅ បានអនុម័ត" : action === "n" ? "🔄 គន្លឹះថ្មី" : action === "s" ? "❌ បានផ្អាក" : "↩️ បើកវិញ")
+  await answer(swapNotice ?? (action === "a" ? "✅ បានអនុម័ត" : action === "n" ? "🔄 គន្លឹះថ្មី" : action === "s" ? "❌ បានផ្អាក" : "↩️ បើកវិញ"), Boolean(swapNotice))
   await refreshPreviews(t, action === "n")
 }
 
