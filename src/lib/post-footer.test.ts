@@ -16,8 +16,8 @@ describe("The standard post footer (founder, 20–21/10/2026 — the Charge+ for
         '<a href="https://app.luychlat.com/download">Android (APK)</a> · <a href="https://app.luychlat.com">iOS / Web</a> · <a href="https://t.me/luychlat_bot">Telegram Bot</a>',
         "",
         "👉 ចូលរួមសហគមន៍ ៖ @LuyChlatCommunity",
-        "#LuyChlat #អេបលុយឆ្លាត",
-        "#គ្រប់គ្រងហិរញ្ញវត្ថុ", // its own line: never broken in two on an iPhone (21/10/2026)
+        "#LuyChlat #AppLuyChlat",
+        "#PersonalFinance", // Latin hashtags only (founder, 8/11/2026)
       ].join("\n"),
     )
     assert.deepEqual(APP_LINKS.map((l) => l.url), ["https://app.luychlat.com/download", "https://app.luychlat.com", "https://t.me/luychlat_bot"])
@@ -33,14 +33,19 @@ describe("The standard post footer (founder, 20–21/10/2026 — the Charge+ for
   it("the Islamic footer: the Islamic channel and Islamic hashtags — never the general community", () => {
     const f = postFooter("islamic")
     assert.match(f, /👉 ឆាណែលឥស្លាម ៖ @LuyChlatIslamic/)
-    assert.match(f, /\n#LuyChlat #LuyChlatIslamic\n#អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់$/) // #LuyChlat too (founder, 21/10/2026)
-    assert.doesNotMatch(f, /LuyChlatCommunity|សហគមន៍|#គ្រប់គ្រងហិរញ្ញវត្ថុ/)
+    assert.match(f, /\n#LuyChlat #LuyChlatIslamic\n#HalalFinance$/) // #LuyChlat too (founder, 21/10/2026)
+    assert.doesNotMatch(f, /LuyChlatCommunity|សហគមន៍|#PersonalFinance/)
   })
-  it("regression: «#អេរលុយឆ្លាត» (រ for ប) was reported — the brand hashtag is «#អេបលុយឆ្លាត» in every footer and every source", () => {
+  it("regression: Khmer hashtags broke on Telegram («#អ េបលុយឆ្លាត», «#គរប់…» — founder, 8/11/2026): Latin hashtags only, in every footer and every source; never «អេរលុយឆ្លាត»", () => {
     for (const channel of ["community", "islamic"] as const)
-      for (const platform of ["telegram", "facebook"] as const) assert.match(postFooter(channel, platform), /#អេបលុយឆ្លាត(\s|$)/)
+      for (const platform of ["telegram", "facebook"] as const) {
+        assert.match(postFooter(channel, platform), /#LuyChlat(\s|$)/)
+        assert.doesNotMatch(postFooter(channel, platform), /#[^\s]*[ក-៿]/)
+      }
     const walk = (d: string): string[] => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : /\.(ts|tsx)$/.test(f) ? [join(d, f)] : []))
     for (const f of walk(join(process.cwd(), "src"))) if (!f.endsWith("post-footer.test.ts") && !f.endsWith("post-footer.ts")) assert.ok(!readFileSync(f, "utf8").includes("អេរលុយឆ្លាត"), f)
+    // No Khmer hashtag in a string any post is built from (a «#» right before a Khmer letter inside quotes).
+    for (const f of walk(join(process.cwd(), "src/lib"))) if (!/\.test\.ts$/.test(f) && !f.endsWith("post-footer.ts") && !f.endsWith("bank-slip.ts")) assert.doesNotMatch(readFileSync(f, "utf8"), /["'`][^"'`\n]*#[ក-៿]/, f)
   })
   it("on Facebook (no inline links): one line of names with short addresses; the handles are t.me links", () => {
     const f = postFooter("community", "facebook")
@@ -77,8 +82,8 @@ describe("The standard post footer (founder, 20–21/10/2026 — the Charge+ for
 
 describe("Hashtags never broken on a phone (founder, 21/10/2026)", () => {
   it("regression: «#គ្រប់គ្រងហិរញ្ញវត្ថុ» split in two on an iPhone — tags packed in lines of at most 34 characters, each whole", () => {
-    assert.deepEqual(hashtagLines(["#LuyChlat", "#អេបលុយឆ្លាត", "#គ្រប់គ្រងហិរញ្ញវត្ថុ"]), ["#LuyChlat #អេបលុយឆ្លាត", "#គ្រប់គ្រងហិរញ្ញវត្ថុ"])
-    assert.deepEqual(hashtagLines(["@LuyChlatIslamic", "#LuyChlatIslamic", "#អេបលុយឆ្លាត", "#ហិរញ្ញវត្ថុហាឡាល់"]), ["@LuyChlatIslamic #LuyChlatIslamic", "#អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់"])
+    assert.deepEqual(hashtagLines(["#LuyChlat", "#AppLuyChlat", "#PersonalFinance"]), ["#LuyChlat #AppLuyChlat", "#PersonalFinance"])
+    assert.deepEqual(hashtagLines(["@LuyChlatIslamic", "#LuyChlatIslamic", "#HalalFinance"]), ["@LuyChlatIslamic #LuyChlatIslamic", "#HalalFinance"])
     for (const f of [postFooter("community"), postFooter("islamic"), postFooter("community", "facebook"), compactFooter("islamic")])
       for (const line of f.split("\n").filter((l) => l.startsWith("#") || l.startsWith("@"))) assert.ok(line.length <= 34, line)
     // The tags keep their own characters (an invisible joiner would end the hashtag link).

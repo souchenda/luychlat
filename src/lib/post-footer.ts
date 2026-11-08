@@ -2,7 +2,7 @@
  * The standard post footer (founder, 20/10/2026 — the Charge+ Cambodia format: a relatable hook, then one clean block of
  * ways to use the app, the community and the brand's hashtags). Pure (post-footer.test.ts).
  *
- *   community — @LuyChlatCommunity and the Facebook Page: the community and #LuyChlat #អេបលុយឆ្លាត #គ្រប់គ្រងហិរញ្ញវត្ថុ
+ *   community — @LuyChlatCommunity and the Facebook Page: the community and #LuyChlat #AppLuyChlat #PersonalFinance
  *   islamic   — @LuyChlatIslamic only: the Islamic channel and Islamic hashtags; never the general community (strict
  *               religious separation, CLAUDE.md)
  *
@@ -22,15 +22,19 @@ export const APP_LINKS = [
   { label: "Telegram Bot", url: "https://t.me/luychlat_bot" },
 ] as const
 
-/** The brand's hashtags — the Khmer one is «#អេបលុយឆ្លាត» (with ប), never «#អេរលុយឆ្លាត». */
+/**
+ * The brand's hashtags — Latin only (founder, 8/11/2026): Telegram and Facebook end a hashtag at a Khmer vowel sign or
+ * coeng, so «#អេបលុយឆ្លាត» showed as «#អ េបលុយឆ្លាត» and «#គ្រប់…» as «#គរប់…» — «អាក្រក់មើលណាស់». The Khmer brand name
+ * is in the footer's own words. A test fails on any Khmer hashtag (post-footer.test.ts).
+ */
 export const HASHTAGS: Record<FooterChannel, string> = {
-  community: "#LuyChlat #អេបលុយឆ្លាត #គ្រប់គ្រងហិរញ្ញវត្ថុ",
-  islamic: "#LuyChlat #LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់", // #LuyChlat too (founder, 21/10/2026)
+  community: "#LuyChlat #AppLuyChlat #PersonalFinance",
+  islamic: "#LuyChlat #LuyChlatIslamic #HalalFinance", // #LuyChlat too (founder, 21/10/2026)
 }
 
 /** A tip series' own hashtag, after the brand's (founder, 21/10/2026 — the «Smart Spending» series). */
 export const SERIES_HASHTAGS: Record<string, string> = {
-  "smart-spending": "#របៀបចាយលុយឆ្លាត",
+  "smart-spending": "#SmartSpending",
 }
 
 /** «Android (APK) · iOS / Web · Telegram Bot» — inline links on Telegram (HTML), names with short addresses on Facebook. */
@@ -67,7 +71,7 @@ export function hashtagLines(tokens: string[], max = 34): string[] {
 
 /**
  * The compact footer (founder, 21/10/2026 — the Islamic market bulletin): the channel and the hashtags only,
- * «@LuyChlatIslamic #LuyChlatIslamic #អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់» — for a factual feed that already links the app;
+ * «@LuyChlatIslamic #LuyChlatIslamic #HalalFinance» — for a factual feed that already links the app;
  * packed in short lines so no hashtag breaks on a phone.
  */
 export function compactFooter(channel: FooterChannel): string {

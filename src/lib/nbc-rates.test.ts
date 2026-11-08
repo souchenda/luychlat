@@ -40,7 +40,7 @@ describe("The community bulletin: rates, gold in ជី / តម្លឹង, Mo
     ])
       assert.ok(text.includes(part), part)
     assert.ok(text.indexOf("<pre>") < text.indexOf("🥇") && text.indexOf("🥇") < text.indexOf("⛽")) // rates, gold, fuel
-    assert.ok(text.endsWith("@LuyChlatCommunity #LuyChlat\n#អេបលុយឆ្លាត #គ្រប់គ្រងហិរញ្ញវត្ថុ"))
+    assert.ok(text.endsWith("@LuyChlatCommunity #LuyChlat\n#AppLuyChlat #PersonalFinance"))
     assert.doesNotMatch(text, /តម្លៃវដ្តមុន/) // the cycle is current
   })
   it("never a silent stale figure: an ended MoC cycle says so; old local gold falls back to the 24K reference, named", async () => {

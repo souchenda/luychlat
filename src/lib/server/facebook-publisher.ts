@@ -114,7 +114,7 @@ export function facebookFuelCaption(o: { now: FuelPair & { super?: number | null
     `ℹ️ ប្រភព៖ សេចក្តីជូនដំណឹងក្រសួងពាណិជ្ជកម្ម · ${o.sourceUrl}`,
     "📱 តាមដានចំណាយធ្វើដំណើរជាមួយ អេប លុយឆ្លាត · https://app.luychlat.com",
     "",
-    "#តម្លៃប្រេង #អេបលុយឆ្លាត #AppLuyChlat #Cambodia",
+    "#FuelPrice #AppLuyChlat #Cambodia",
   ].join("\n")
 }
 

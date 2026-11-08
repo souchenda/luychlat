@@ -23,7 +23,7 @@ describe("weekly spotlight — the message", () => {
     assert.match(c, /🛡️ .+K-Score.+KHQR/)
     assert.ok(c.includes(SPOTLIGHT_CALL))
     assert.ok(c.includes(SPOTLIGHT_BOT) && c.includes(SPOTLIGHT_SITE))
-    assert.match(c, /#អេបលុយឆ្លាត #AppLuyChlat/)
+    assert.match(c, /#AppLuyChlat #LuyChlat/)
     assert.doesNotMatch(c, /អែប|កម្មវិធី|&/)
   })
   it("the Telegram caption: the hook in bold, no hashtags, under the 1024-character photo caption limit", () => {

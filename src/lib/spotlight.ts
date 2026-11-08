@@ -41,7 +41,7 @@ export const SPOTLIGHT_PILLARS = [
   },
 ] as const
 
-const HASHTAGS = "#អេបលុយឆ្លាត #AppLuyChlat #លុយឆ្លាត #ហិរញ្ញវត្ថុផ្ទាល់ខ្លួន #Cambodia"
+const HASHTAGS = "#AppLuyChlat #LuyChlat #PersonalFinance #Cambodia" // Latin only (founder, 8/11/2026 — post-footer.ts)
 
 function lines(): string[] {
   return [

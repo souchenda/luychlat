@@ -79,7 +79,7 @@ describe("«Smart Spending» tip series — the 12:00 daily tip (founder, 21/10/
   })
 
   it("the caption: the title, the hook and the three points, then the compact footer with «#របៀបចាយលុយឆ្លាត» — within the caption limit", () => {
-    assert.deepEqual(tipSeriesTags("rule-48-hours"), ["#របៀបចាយលុយឆ្លាត"])
+    assert.deepEqual(tipSeriesTags("rule-48-hours"), ["#SmartSpending"])
     assert.deepEqual(tipSeriesTags("emergency-fund"), [])
     for (const t of SERIES) {
       const caption = tipCaption({ tip_id: t.id, title: t.title.km, body: t.body.km })
@@ -87,7 +87,7 @@ describe("«Smart Spending» tip series — the 12:00 daily tip (founder, 21/10/
       assert.ok(caption.endsWith(footer), `${t.id}: the footer is never dropped`)
       assert.ok(caption.includes("📲 ប្រើប្រាស់ អេប លុយឆ្លាត ដោយឥតគិតថ្លៃ៖") && caption.includes("👉 ចូលរួមសហគមន៍ ៖ @LuyChlatCommunity"))
       // Packed in short lines so no hashtag breaks on a phone (hashtagLines).
-      assert.match(footer, /#LuyChlat #អេបលុយឆ្លាត\n#គ្រប់គ្រងហិរញ្ញវត្ថុ\n#របៀបចាយលុយឆ្លាត$/)
+      assert.match(footer, /#LuyChlat #AppLuyChlat\n#PersonalFinance #SmartSpending$/)
       assert.equal(points(caption).length, 3, `${t.id}: the points stay on their own lines`)
       assert.ok(caption.length <= 1024, `${t.id}: ${caption.length} characters`)
     }

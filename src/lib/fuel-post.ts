@@ -1,6 +1,6 @@
 /**
  * The fuel price announcement's words (the community channel and the Facebook Page): the Ministry's prices for the cycle,
- * each with its change against the cycle before, and the source — then the standard compact footer with «#តម្លៃប្រេង»
+ * each with its change against the cycle before, and the source — then the standard compact footer with «#FuelPrice»
  * (founder, 21/10/2026 — the old «✨ ចុះឈ្មោះប្រើ… 👇👇» line is gone). Pure (fuel-poster.test.ts, moc-fuel-post.test.ts).
  */
 import type { FuelPrices } from "@/lib/market-calc"
@@ -8,7 +8,7 @@ import { postFooter, withFooter, type FooterPlatform } from "@/lib/post-footer"
 
 export const MOC_CHANNEL = "mocnewsfeed"
 /** The fuel post's own hashtag, after the brand's. */
-export const FUEL_HASHTAG = "#តម្លៃប្រេង"
+export const FUEL_HASHTAG = "#FuelPrice"
 
 const kmDigits = (s: string) => s.replace(/\d/g, (d) => "០១២៣៤៥៦៧៨៩"[Number(d)])
 const riel = (n: number) => kmDigits(new Intl.NumberFormat("en-US").format(n))
@@ -47,7 +47,7 @@ export function newPricesText(fuel: Pick<FuelPrices, "regular" | "diesel" | "fro
 const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 /**
- * The post with the standard compact footer and «#តម្លៃប្រេង»: Telegram's is HTML (the post's own words escaped), a
+ * The post with the standard compact footer and «#FuelPrice»: Telegram's is HTML (the post's own words escaped), a
  * photo caption at most 1,024 characters (the footer goes rather than the post being cut); Facebook's is plain text.
  */
 export function fuelCaption(text: string, platform: FooterPlatform, photo = true): string {

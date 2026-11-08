@@ -125,7 +125,7 @@ export const REEL_SCRIPTS: ReelScript[] = [
       "",
       REEL_CTA,
     ].join("\n"),
-    hashtags: ["#អេបលុយឆ្លាត", `#${G.SEMBAHYANG}`, "#MuslimCambodia"],
+    hashtags: ["#AppLuyChlat", "#Salah", "#MuslimCambodia"],
     status: "DRAFT",
   },
   {
@@ -164,7 +164,7 @@ export const REEL_SCRIPTS: ReelScript[] = [
       "",
       REEL_CTA,
     ].join("\n"),
-    hashtags: ["#អេបលុយឆ្លាត", `#${G.SEMBAHYANG}`, "#MuslimCambodia"],
+    hashtags: ["#AppLuyChlat", "#Salah", "#MuslimCambodia"],
     status: "DRAFT",
   },
   {
@@ -206,7 +206,7 @@ export const REEL_SCRIPTS: ReelScript[] = [
       "",
       REEL_CTA,
     ].join("\n"),
-    hashtags: ["#អេបលុយឆ្លាត", `#${G.SUNNAH_FAST}`, "#MuslimCambodia"],
+    hashtags: ["#AppLuyChlat", "#SunnahFasting", "#MuslimCambodia"],
     status: "DRAFT",
   },
   {
@@ -248,7 +248,7 @@ export const REEL_SCRIPTS: ReelScript[] = [
       "",
       REEL_CTA,
     ].join("\n"),
-    hashtags: ["#អេបលុយឆ្លាត", `#${G.SEMBAHYANG}`, "#MuslimCambodia"],
+    hashtags: ["#AppLuyChlat", "#Salah", "#MuslimCambodia"],
     status: "DRAFT",
   },
 ]

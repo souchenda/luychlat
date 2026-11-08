@@ -46,7 +46,7 @@ describe("Rates, gold and the Zakat Nisab for the Islamic community (founder, 20
     assert.ok(html.indexOf("💵") < html.indexOf("⛽") && html.indexOf("⛽") < html.indexOf("🥇"))
     // The app, then the standard Islamic footer; the brand hashtag with ប; never «ធ្វើកូន».
     assert.ok(html.includes("គណនាហ្សាកាត់ដោយឥតគិតថ្លៃលើ អេប លុយឆ្លាត 👉 https://app.luychlat.com/islamic\n\n" + postFooter("islamic")))
-    assert.ok(html.endsWith("#LuyChlat #LuyChlatIslamic\n#អេបលុយឆ្លាត #ហិរញ្ញវត្ថុហាឡាល់"))
+    assert.ok(html.endsWith("#LuyChlat #LuyChlatIslamic\n#HalalFinance"))
     assert.doesNotMatch(html, /<i>|ជំរាបសួរ| & |អេរលុយ|ធ្វើកូន|ហ្វាកាត់/)
     assert.equal(islamicBulletinHtml(islamicMarket({ fetched_at: "x" } as MarketLive, "2026-10-20"), { hijri: "", gregorian: "", appUrl: "x" }), null) // no NBC rate → nothing
   })

@@ -810,7 +810,7 @@ const realDeps = (): SchedulerDeps => ({
     if (row.kind === "FUEL") {
       // The poster with the post and the standard footer (founder, 21/10/2026) — the text alone if no poster can be drawn.
       const { png } = await this.content(row)
-      // The words from the stored prices (the old «✨ ចុះឈ្មោះ…» line gone), with the compact footer and «#តម្លៃប្រេង».
+      // The words from the stored prices (the old «✨ ចុះឈ្មោះ…» line gone), with the compact footer and «#FuelPrice».
       const words = (await fuelTextOf(row)) ?? String(row.payload.telegram ?? "")
       const caption = fuelCaption(words, "telegram", Boolean(png))
       if (chat && words) ids.telegram = png ? ((await sendPosterPhoto(chat, png, caption, { reply_markup: buttons.reply_markup })) ?? (await sentText(fuelCaption(words, "telegram", false), true))) : await sentText(caption, true)

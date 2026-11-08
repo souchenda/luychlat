@@ -75,7 +75,7 @@ export function tipWindow(minutes: number): "preview" | "post" | null {
 /** The public caption (Telegram HTML), as posted at 12:00. */
 export function tipCaption(t: Pick<DailyTip, "title" | "body"> & { tip_id?: string | null }): string {
   // The standard footer (founder, 20/10/2026 — lib/post-footer.ts) in place of the old app line; a series tip adds the
-  // series' hashtag («#របៀបចាយលុយឆ្លាត» for Smart Spending). The body's own lines (a series' hook and points) are kept.
+  // series' hashtag («#SmartSpending» for Smart Spending). The body's own lines (a series' hook and points) are kept.
   return withFooter([`💡 <b>គន្លឹះថ្ងៃនេះ៖ ${esc(t.title)}</b>`, "", esc(t.body)].join("\n"), postFooter("community", "telegram", tipSeriesTags(t.tip_id)))
 }
 
