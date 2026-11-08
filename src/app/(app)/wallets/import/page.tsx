@@ -200,6 +200,7 @@ export default function ImportStatementPage() {
   const wallets = useWallets(workspace?.id)
   const queryClient = useQueryClient()
   const router = useRouter()
+  const walletMutations = useWalletMutations(workspace?.id)
   const { isPro, freeLeft, freeUsed, allowed, loading } = useImportAccess()
   const [step, setStep] = useState<Step>({ kind: "upload" })
   const [phase, setPhase] = useState<"reading" | "detecting" | null>(null)
@@ -311,6 +312,10 @@ export default function ImportStatementPage() {
           onContinue={async (wallet) => {
             // The same file can't go into the same wallet twice.
             if (await isFileImported(wallet.id, step.file.sha256).catch(() => false)) return void toast.error(t("recon.error.already_imported"))
+            // An existing wallet without an account number takes the statement's: KHQR payments find the shop by it.
+            if (!wallet.account_no && step.meta.accountNumber) {
+              await walletMutations.update.mutateAsync({ id: wallet.id, input: { account_no: step.meta.accountNumber } }).catch(() => null)
+            }
             // A new account's statement (no transaction yet): the wallet is all there is to set up.
             if (!buildStatement(step.file.rows, step.mapping, wallet.currency === "KHR" ? 0 : 2).lines.length) {
               toast.success(t("stmt.noTransactions", { name: wallet.name }))
