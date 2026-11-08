@@ -78,3 +78,13 @@ describe("PPCBank payments can be stored (regression: khqr_payments_bank_check, 
     for (const bank of accepted.split(",").map((b) => b.trim())) assert.ok(allowed.includes(bank), `khqr_payments must allow ${bank}`)
   })
 })
+
+describe("PPCBank day-first dates (regression: 08/11/2026 booked as 11 August, founder 8/11/2026)", () => {
+  it("the data fix touches only PPCBank KHQR rows whose swapped day is the day they were recorded", () => {
+    const fix = readFileSync("supabase/migrations/20270305000000_khqr_ppcbank_swapped_dates.sql", "utf8")
+    assert.match(fix, /k\.transaction_id = t\.id and k\.bank = 'PPCBANK'/)
+    assert.match(fix, /extract\(day from t\.transaction_date at time zone 'Asia\/Phnom_Penh'\) <= 12/)
+    assert.match(fix, /= \(t\.created_at at time zone 'Asia\/Phnom_Penh'\)::date;/)
+    assert.doesNotMatch(fix, /set (amount|wallet_id|currency)/)
+  })
+})
