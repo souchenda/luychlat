@@ -60,4 +60,12 @@ describe("KHQR: one key, the shop found by its receiving account (founder, 8/11/
     // «record only» is the routed business's own setting.
     assert.match(sql2, /'quiet', coalesce\(\(select w\.khqr_quiet from public\.workspaces w where w\.id = ws_id\), false\)/)
   })
+
+  it("the «record only» switch shows for every business, with or without its own key", () => {
+    const info = readFileSync("supabase/migrations/20270303000000_khqr_quiet_any_business.sql", "utf8")
+    assert.match(info, /return jsonb_build_object\('quiet', ws\.khqr_quiet\)\s+\|\| coalesce\(/)
+    const card = readFileSync("src/components/settings/biz-khqr-card.tsx", "utf8")
+    assert.match(card, /\{info\.data && \(\s+\/\/ Every business[^\n]*\n\s+<label/)
+    assert.match(card, /\) : info\.data\?\.hint \? \(/) // the key line only when a key exists
+  })
 })

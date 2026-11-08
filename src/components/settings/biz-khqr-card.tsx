@@ -167,7 +167,7 @@ function ApiKey({ workspace }: { workspace: Biz }) {
     queryFn: async () => {
       const { data, error } = await client().rpc("khqr_api_key_info", { p_workspace_id: workspace.id })
       if (error) throw error
-      return data as { hint: string; created_at: string; last_used_at: string | null; quiet?: boolean } | null
+      return data as { hint?: string; created_at?: string; last_used_at?: string | null; quiet?: boolean } | null
     },
   })
   const create = useMutation({
@@ -241,13 +241,14 @@ function ApiKey({ workspace }: { workspace: Biz }) {
             </Button>
           </div>
         </div>
-      ) : info.data ? (
+      ) : info.data?.hint ? (
         <p className="text-xs text-muted-foreground">
           {t("biz.apiActive", { hint: info.data.hint })} · {info.data.last_used_at ? t("biz.apiLastUsed", { when: when(info.data.last_used_at) }) : t("biz.apiNeverUsed")}
         </p>
       ) : null}
 
       {info.data && (
+        // Every business, with or without its own key: AUTOBOK's one key brings the payments of all the owner's shops.
         <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl bg-muted/50 px-3 py-2.5">
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium">{t("biz.quietTitle")}</span>
@@ -260,9 +261,9 @@ function ApiKey({ workspace }: { workspace: Biz }) {
       <div className="flex gap-2">
         <Button variant="outline" className="h-10 flex-1" onClick={() => create.mutate()} disabled={create.isPending}>
           {create.isPending && <Loader2Icon className="animate-spin" />}
-          {t(info.data ? "biz.apiRegenerate" : "biz.apiCreate")}
+          {t(info.data?.hint ? "biz.apiRegenerate" : "biz.apiCreate")}
         </Button>
-        {info.data && (
+        {info.data?.hint && (
           <Button variant="ghost" className="h-10" onClick={() => revoke.mutate()} disabled={revoke.isPending}>
             {t("biz.apiRevoke")}
           </Button>
