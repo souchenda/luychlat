@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import { useActiveWorkspace, useWorkspaces } from "@/lib/data/hooks"
 import { useT } from "@/lib/i18n/use-t"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -166,7 +167,7 @@ function ApiKey({ workspace }: { workspace: Biz }) {
     queryFn: async () => {
       const { data, error } = await client().rpc("khqr_api_key_info", { p_workspace_id: workspace.id })
       if (error) throw error
-      return data as { hint: string; created_at: string; last_used_at: string | null } | null
+      return data as { hint: string; created_at: string; last_used_at: string | null; quiet?: boolean } | null
     },
   })
   const create = useMutation({
@@ -189,6 +190,19 @@ function ApiKey({ workspace }: { workspace: Biz }) {
     onSuccess: () => {
       setPlain(null)
       toast.success(t("biz.apiRevoked"))
+      void queryClient.invalidateQueries({ queryKey: ["khqr-api-key"] })
+    },
+    onError: () => toast.error(t("common.error")),
+  })
+  // «Record only»: the shop's own device announces each payment; App Luy Chlat records it silently (founder, 8/11/2026).
+  const quiet = useMutation({
+    mutationFn: async (on: boolean) => {
+      const { error } = await client().rpc("khqr_set_quiet", { p_workspace_id: workspace.id, p_quiet: on })
+      if (error) throw error
+      return on
+    },
+    onSuccess: (on) => {
+      toast.success(t(on ? "biz.quietOn" : "biz.quietOff"))
       void queryClient.invalidateQueries({ queryKey: ["khqr-api-key"] })
     },
     onError: () => toast.error(t("common.error")),
@@ -232,6 +246,16 @@ function ApiKey({ workspace }: { workspace: Biz }) {
           {t("biz.apiActive", { hint: info.data.hint })} · {info.data.last_used_at ? t("biz.apiLastUsed", { when: when(info.data.last_used_at) }) : t("biz.apiNeverUsed")}
         </p>
       ) : null}
+
+      {info.data && (
+        <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl bg-muted/50 px-3 py-2.5">
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{t("biz.quietTitle")}</span>
+            <span className="block text-xs leading-relaxed text-muted-foreground">{t("biz.quietHint")}</span>
+          </span>
+          <Switch checked={Boolean(info.data.quiet)} disabled={quiet.isPending} onCheckedChange={(on) => quiet.mutate(on)} aria-label={t("biz.quietTitle")} />
+        </label>
+      )}
 
       <div className="flex gap-2">
         <Button variant="outline" className="h-10 flex-1" onClick={() => create.mutate()} disabled={create.isPending}>

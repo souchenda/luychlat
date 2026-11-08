@@ -45,7 +45,8 @@ describe("KHQR payment ↔ customer debt — a suggestion, never booked without 
 
   it("wired: after the sale is told, not awaited (the SoundBox never waits); the buttons in the private chat only", () => {
     const ingest = read("src/app/api/khqr/ingest/route.ts")
-    assert.match(ingest, /if \(r\.status === "ok" && r\.transaction_id\) void offerDebtMatch\(r\.transaction_id\)\.catch\(/)
+    // A «record only» business is never asked (founder, 8/11/2026 — khqr-quiet.test.ts).
+    assert.match(ingest, /if \(!quiet && r\.status === "ok" && r\.transaction_id\) void offerDebtMatch\(r\.transaction_id\)\.catch\(/)
     assert.ok(ingest.indexOf("void offerDebtMatch") < ingest.indexOf('rpc("bot_soundbox_emit"'))
     const bot = read("src/lib/server/khqr-debt-bot.ts")
     assert.match(bot, /cb\.message\?\.chat\.type !== "private"/)

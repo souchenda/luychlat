@@ -9,6 +9,7 @@ import { offerDebtMatch } from "@/lib/server/khqr-debt-bot"
 import { announcePoolPayment } from "@/lib/server/pool-flow"
 import { botDb, botKey } from "@/lib/server/telegram-bot"
 import { isLatePush, shouldEmit, soundboxPush } from "@/lib/soundbox"
+import { khqrQuiet } from "@/lib/khqr-quiet"
 import { sendSoundboxPush } from "@/lib/server/web-push"
 import { sendPaymentVoice } from "@/lib/server/voice-alert"
 
@@ -125,7 +126,10 @@ export async function POST(request: Request) {
     from_wallet?: string
     from_bank?: string | null
     suffix?: string
+    /** «Record only» (workspaces.khqr_quiet): the business's own device announces payments — App Luy Chlat stays silent. */
+    quiet?: boolean
   }
+  const quiet = khqrQuiet(r)
   // No wallet of the receiving bank: held (202) and the owner is asked which wallet — never booked into
   // Cash or another bank's wallet. A retry of the same payment is not asked twice.
   if (r.status === "ask") {
@@ -147,15 +151,17 @@ export async function POST(request: Request) {
 
   if (r.status === "ok" || r.status === "transfer") {
     logEvent("info", "khqr", `KHQR ${r.bank} ${r.status === "transfer" ? "own transfer" : "payment"} pushed by API (${r.workspace})`, { fold: true })
-    // The bank groups stay clean: the business owner is told privately (their chat with the bot).
-    if (message && r.workspace_id) await notifyOwner({ workspaceId: r.workspace_id }, message)
+    // The bank groups stay clean: the business owner is told privately (their chat with the bot) — unless the
+    // business is «record only» (founder, 8/11/2026: one announcer, never two).
+    if (quiet) logEvent("info", "khqr", `KHQR ${r.bank} recorded quietly (record only) — ${r.workspace}`, { fold: true })
+    else if (message && r.workspace_id) await notifyOwner({ workspaceId: r.workspace_id }, message)
     // A customer who owes (AR) paying: the owner is asked «is this <customer>'s repayment?» — never booked without ✅
     // (founder, 4/11/2026). Not awaited: the SoundBox never waits for it, and a failure never touches the sale.
-    if (r.status === "ok" && r.transaction_id) void offerDebtMatch(r.transaction_id).catch((e) => logEvent("warn", "khqr", `Debt match failed: ${(e as Error).message}`, { fold: true }))
+    if (!quiet && r.status === "ok" && r.transaction_id) void offerDebtMatch(r.transaction_id).catch((e) => logEvent("warn", "khqr", `Debt match failed: ${(e as Error).message}`, { fold: true }))
   }
   // SoundBox (/soundbox): a customer's payment only — never an own-account transfer. The database
   // checks again (INCOME, bank reference, Sales) and members get it live through Supabase Realtime.
-  if (shouldEmit(r.status) && r.transaction_id) {
+  if (!quiet && shouldEmit(r.status) && r.transaction_id) {
     const { error: soundError } = await botDb().rpc("bot_soundbox_emit", {
       p_key: botKey(),
       p_transaction_id: r.transaction_id,
