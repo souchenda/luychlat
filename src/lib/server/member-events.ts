@@ -8,7 +8,7 @@ import { logEvent } from "./events"
 import { phnomPenhToday } from "./market-sync"
 import { botDb, botKey, sendText, SIGNATURE, tg, tr } from "./telegram-bot"
 import { sourceForAlert } from "@/lib/acquisition"
-import { signupAlertText } from "@/lib/activity-alerts"
+import { departureAlertText, signupAlertText } from "@/lib/activity-alerts"
 import { founderChats } from "./admin-routes"
 import { claimDaily } from "@/lib/server/claim-daily"
 
@@ -56,6 +56,34 @@ export async function flushSignupAlerts() {
       delivered ||= Boolean(sent.ok)
     }
     if (delivered) await db.rpc("bot_signup_alert_sent", { p_key: botKey(), p_user_id: p.user_id })
+  }
+}
+
+type Departure = { id: number; email: string | null; display_name: string | null; joined_at: string | null; self_deleted: boolean; deleted_at: string; total_members: number }
+
+/**
+ * A member who left → the founder's private chat, like the sign-up card (founder, 8/11/2026: a member announced at 06:49
+ * vanished from Admin with no trace). Queued by a trigger on every removed sign-in; kept 2 days if no chat is reached.
+ */
+export async function flushDepartureAlerts() {
+  const db = botDb()
+  const { data, error } = await db.rpc("bot_departure_alerts_pending", { p_key: botKey() })
+  if (error) return void logEvent("warn", "members", `Departure alerts not read: ${error.message}`, { fold: true })
+  if (!Array.isArray(data) || data.length === 0) return
+  const chats = await founderChats()
+  if (chats.length === 0) return
+  for (const p of data as Departure[]) {
+    const name = p.display_name && !p.display_name.startsWith("•") ? p.display_name : null
+    const days = p.joined_at ? Math.floor((Date.parse(p.deleted_at) - Date.parse(p.joined_at)) / 86_400_000) : null
+    const text = departureAlertText({ name, account: loginLabel(p.email) || "—", at: cambodiaTime(p.deleted_at), joined: p.joined_at ? cambodiaTime(p.joined_at) : null, days, self: p.self_deleted, total: Number(p.total_members) })
+    let delivered = 0
+    for (const chat of chats) {
+      const sent = (await tg("sendMessage", { chat_id: chat, text, parse_mode: "HTML", disable_notification: true, disable_web_page_preview: true })) as { ok?: boolean }
+      if (sent.ok) delivered++
+    }
+    // A dispatcher says how many chats really received it (CLAUDE.md — never a bare «sent»).
+    logEvent(delivered ? "info" : "warn", "members", `Departure card delivered to ${delivered}/${chats.length} founder chat(s)`, { fold: true })
+    if (delivered) await db.rpc("bot_departure_alert_sent", { p_key: botKey(), p_id: p.id })
   }
 }
 

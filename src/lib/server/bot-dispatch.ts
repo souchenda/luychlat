@@ -26,7 +26,7 @@ import { devEodTick } from "@/lib/server/dev-eod"
 import { atmSyncTick } from "@/lib/server/atm-sync"
 import { islamicPlacesSyncTick } from "@/lib/server/islamic-places-sync"
 import { flushPoolPosts } from "@/lib/server/pool-bot"
-import { birthdayTick, dormancyTick, flushSignupAlerts } from "@/lib/server/member-events"
+import { birthdayTick, dormancyTick, flushDepartureAlerts, flushSignupAlerts } from "@/lib/server/member-events"
 import { flushPlaceSubmissions, flushPlaceThanks } from "@/lib/server/place-alerts"
 import { syncEnvApprovers } from "@/lib/server/co-approvers"
 import { nightlyReportTick } from "@/lib/server/nightly-report"
@@ -170,6 +170,8 @@ export async function dispatchOnce() {
     await posterTick()
     await flushPoolPosts()
     await flushSignupAlerts()
+    // A member who left: every 5 minutes is soon enough (founder, 8/11/2026; fewer database calls — 6/11/2026).
+    if (passes % 5 === 0) await flushDepartureAlerts()
     // A member's place suggestion → the approval room within a minute (founder, 19/10/2026).
     await flushPlaceSubmissions()
     // An approved suggestion thanks its member once, however it was approved (founder, 19/10/2026).
