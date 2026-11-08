@@ -1722,6 +1722,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   "stmt.openingBalance": "期初余额（对账单首日）",
   "stmt.openingHint": "请使用最新的对账单，使钱包余额与银行当前一致。",
   "stmt.existingHint": "此钱包中已有的交易会被匹配，不会重复添加。",
+  "stmt.noTransactions": "已设置钱包「{name}」— 此对账单还没有交易。",
   "stmt.nameRequired": "请为钱包命名",
   "stmt.createAndContinue": "创建钱包并继续",
   "stmt.continue": "继续",

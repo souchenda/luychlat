@@ -19,6 +19,9 @@ import { cleanText } from "@/lib/clean-text"
 export type PdfItem = { x: number; y: number; w: number; str: string }
 export type PdfPage = PdfItem[]
 
+/** The table header every PDF becomes (the CSV pipeline reads it; an empty statement is only this row). */
+export const PDF_TABLE_HEADER = ["Date", "Description", "Reference", "Money In", "Money Out", "Balance"]
+
 export class PdfStatementError extends Error {
   constructor(readonly code: "scanned" | "no_table" | "unreadable") {
     super(code)
@@ -28,13 +31,15 @@ export class PdfStatementError extends Error {
 type Line = { y: number; items: PdfItem[] }
 
 const HEADER = {
-  date: /^date$/i,
-  description: /description|details|particulars|narrative/i,
+  // "Date", or PPCBank's "Transaction Date/Time" (also "Value Date", "Posting Date").
+  date: /^((transaction|trans\.?|value|posting|txn)\s*)?date(\s*\/\s*time)?$/i,
+  description: /description|details|particulars|narrative|narration|remark/i,
   in: /money\s*in|cash\s*in|credit|\(cr\)|deposit/i,
   out: /money\s*out|cash\s*out|debit|\(dr\)|withdraw/i,
   balance: /^balance$/i,
 }
-const DATE_CELL = /^([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}|\d{1,2}[-/ ][A-Za-z]{3}[-/ ]\d{2,4}|\d{1,2}\/\d{1,2}\/\d{4})$/
+// A time may follow the date (PPCBank: "08 Nov 2026, 08:39 AM").
+const DATE_CELL = /^([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}|\d{1,2}[-/ ][A-Za-z]{3}[-/ ]\d{2,4}|\d{1,2}\/\d{1,2}\/\d{4})(,?\s+\d{1,2}:\d{2}(:\d{2})?\s*([AP]M)?)?$/
 const AMOUNT_CELL = /^[+-]?\s?[\d,]+(\.\d+)?\s*(KHR|USD)?$/
 const FOOTER_Y = 45
 
@@ -78,6 +83,12 @@ function findHeader(lines: Line[]): { index: number; cols: Columns } | null {
 function columnOf(x: number, cols: Columns): "in" | "out" | "balance" {
   const options = (["in", "out", "balance"] as const).map((k) => [k, Math.abs(cols[k] - x)] as const)
   return options.sort((a, b) => a[1] - b[1])[0][0]
+}
+
+/** Right-aligned amounts under left-aligned headers (PPCBank): the column whose header starts at or before it. */
+function columnFrom(x: number, cols: Columns): "in" | "out" | "balance" {
+  const starts = (["in", "out", "balance"] as const).map((k) => [k, cols[k]] as const).sort((a, b) => a[1] - b[1])
+  return [...starts].reverse().find(([, at]) => at <= x + 2)?.[0] ?? starts[0][0]
 }
 
 export function referenceOf(description: string): string | null {
@@ -124,17 +135,32 @@ export function pdfPagesToRows(pages: PdfPage[]): string[][] {
   // ACLEDA centres each description on its date row; ABA starts it there.
   // Decided by the SWIFT code: descriptions name other banks ("BANK ACLEDA Bank Plc." on ABA).
   const firstText = first.map((l) => l.items.map((i) => i.str).join(" ")).join(" ")
-  const centred = /ACLBKHPP/.test(firstText) && !/ABAAKHPP/.test(firstText)
+  // PPCBank centres its Remark on the date row too.
+  const centred = (/ACLBKHPP/.test(firstText) && !/ABAAKHPP/.test(firstText)) || /ppcb\.com\.kh|Phnom Penh Commercial Bank/i.test(firstText)
+  // ABA / ACLEDA print the amounts right of the description; PPCBank left of its Remark.
+  const firstAmount = Math.min(cols.in, cols.out, cols.balance)
+  const amountsLeft = firstAmount < cols.description
+  const tableLeft = Math.min(cols.description, firstAmount)
+  /** The date cell of a row: the first date left of the description and amounts (after a «No» column, if any). */
+  const dateOf = (l: Line) => l.items.find((it) => it.x < tableLeft - 5 && DATE_CELL.test(it.str))
 
   const out: string[][] = detailRows(first.slice(0, findHeader(first)?.index ?? 0))
-  out.push(["Date", "Description", "Reference", "Money In", "Money Out", "Balance"])
+  // The issuer's name is only in PPCBank's page footer (cut off below): kept as a detail row, so its statement is
+  // never taken for ABA's because a Remark names the payer's bank («…, ABA Bank 000800681»).
+  const issuer = pages[0].map((i) => i.str).join(" ").match(/Phnom Penh Commercial Bank(\s+Plc\.?)?/i)
+  if (issuer) out.unshift(["Bank", issuer[0]])
+  out.push([...PDF_TABLE_HEADER])
+  let found = 0
 
   for (const page of pages) {
     const lines = toLines(dedupe(page))
     const h = findHeader(lines)
     // Only the table part of the page; page footers are cut off by height.
-    const body = (h ? lines.slice(h.index + 1) : lines).filter((l) => l.y > FOOTER_Y && !/^(page\b|ACCOUNT ACTIVITY|TRANSACTION DETAILS)/i.test(l.items[0].str))
-    const dateRows = body.filter((l) => l.items[0].x < cols.description - 5 && DATE_CELL.test(l.items[0].str))
+    // A «Total» line (PPCBank) ends the table: never part of a transaction's description.
+    const all = (h ? lines.slice(h.index + 1) : lines).filter((l) => l.y > FOOTER_Y && !/^(page\b|ACCOUNT ACTIVITY|TRANSACTION DETAILS)/i.test(l.items[0].str))
+    const total = all.findIndex((l) => /^total$/i.test(l.items[0].str))
+    const body = total >= 0 ? all.slice(0, total) : all
+    const dateRows = body.filter((l) => dateOf(l))
     if (!dateRows.length) continue
 
     type Tx = { row: Line; parts: PdfItem[]; amounts: Record<"in" | "out" | "balance", number | null> }
@@ -148,12 +174,15 @@ export function pdfPagesToRows(pages: PdfPage[]): string[][] {
     for (const line of body) {
       const tx = owner(line)
       if (!tx) continue
+      const date = line === tx.row ? dateOf(line) : undefined
       for (const it of line.items) {
-        if (line === tx.row && it === line.items[0]) continue // the date itself
-        if (it.x > cols.description + 150 && AMOUNT_CELL.test(it.str) && line === tx.row) {
-          tx.amounts[columnOf(it.x, cols)] = parseStatementAmount(it.str)
+        if (date && it.x <= date.x) continue // the date itself, and a «No» column before it
+        const inAmounts = amountsLeft ? it.x >= firstAmount - 40 && it.x < cols.description - 20 : it.x > cols.description + 150
+        if (inAmounts && line === tx.row && AMOUNT_CELL.test(it.str)) {
+          tx.amounts[amountsLeft ? columnFrom(it.x, cols) : columnOf(it.x, cols)] = parseStatementAmount(it.str)
           continue
         }
+        if (inAmounts && /^[-–]$/.test(it.str)) continue // an empty amount cell
         if (it.str !== "|") tx.parts.push(it)
       }
     }
@@ -165,10 +194,13 @@ export function pdfPagesToRows(pages: PdfPage[]): string[][] {
         .replace(/\s+/g, " ")
         .trim()
       const fmt = (n: number | null) => (n === null ? "" : String(n))
-      out.push([isoDate(tx.row.items[0].str), description, referenceOf(description) ?? "", fmt(tx.amounts.in), fmt(tx.amounts.out), fmt(tx.amounts.balance)])
+      found++
+      out.push([isoDate(dateOf(tx.row)!.str), description, referenceOf(description) ?? "", fmt(tx.amounts.in), fmt(tx.amounts.out), fmt(tx.amounts.balance)])
     }
   }
-  if (out.length < 3) throw new PdfStatementError("no_table")
+  // A statement with the table but no transaction (a new account: «No Record Available»): the account details
+  // and the header only — the wallet can still be set up from it (founder, 8/11/2026).
+  if (!found && !/no\s+record|no\s+transaction/i.test(pages.map((p) => p.map((i) => i.str).join(" ")).join(" "))) throw new PdfStatementError("no_table")
   return out
 }
 

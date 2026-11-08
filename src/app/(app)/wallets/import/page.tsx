@@ -3,6 +3,7 @@
 import { ArrowLeftIcon, CircleCheckIcon, CrownIcon, FileUpIcon, GiftIcon, LayoutDashboardIcon, Loader2Icon, LockIcon, ScanSearchIcon, SparklesIcon } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -36,8 +37,8 @@ type Step =
   | { kind: "done"; wallet: Wallet; result: ImportResult; free: boolean }
 
 const NEW = "__new"
-const BANK_ICON: Record<StatementMeta["bank"], string> = { ABA: "aba", ACLEDA: "acleda", GENERIC: "other" }
-const BANK_NAME: Record<StatementMeta["bank"], string> = { ABA: "ABA", ACLEDA: "ACLEDA", GENERIC: "" }
+const BANK_ICON: Record<StatementMeta["bank"], string> = { ABA: "aba", ACLEDA: "acleda", PPCB: "ppcbank", GENERIC: "other" }
+const BANK_NAME: Record<StatementMeta["bank"], string> = { ABA: "ABA", ACLEDA: "ACLEDA", PPCB: "PPCBank", GENERIC: "" }
 const fmt = (ymd: string | null) => (ymd ? `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}/${ymd.slice(0, 4)}` : "—")
 
 /** Shown while a file is read: what is happening right now. */
@@ -91,6 +92,9 @@ function AccountStep({
         visibility: "SHARED",
         currency,
         balance: roundMoney(opening, currency),
+        // The statement's account number, as typing it in the wallet form would keep it: KHQR payments find the
+        // shop by it (founder, 8/11/2026).
+        account_no: meta.accountNumber,
       })
       onContinue(wallet)
     } catch {
@@ -195,6 +199,7 @@ export default function ImportStatementPage() {
   const { workspace } = useActiveWorkspace()
   const wallets = useWallets(workspace?.id)
   const queryClient = useQueryClient()
+  const router = useRouter()
   const { isPro, freeLeft, freeUsed, allowed, loading } = useImportAccess()
   const [step, setStep] = useState<Step>({ kind: "upload" })
   const [phase, setPhase] = useState<"reading" | "detecting" | null>(null)
@@ -306,6 +311,11 @@ export default function ImportStatementPage() {
           onContinue={async (wallet) => {
             // The same file can't go into the same wallet twice.
             if (await isFileImported(wallet.id, step.file.sha256).catch(() => false)) return void toast.error(t("recon.error.already_imported"))
+            // A new account's statement (no transaction yet): the wallet is all there is to set up.
+            if (!buildStatement(step.file.rows, step.mapping, wallet.currency === "KHR" ? 0 : 2).lines.length) {
+              toast.success(t("stmt.noTransactions", { name: wallet.name }))
+              return void router.push("/wallets")
+            }
             setStep({ kind: "map", file: step.file, meta: step.meta, wallet, mapping: loadMapping(wallet.id, step.file.rows) ?? step.mapping })
           }}
         />

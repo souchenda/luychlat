@@ -11,7 +11,7 @@
 import { maskAccountNumber } from "@/lib/wallets/account-number"
 import { parseStatementAmount, parseStatementDate, type DateOrder } from "./parse"
 
-export type BankCode = "ABA" | "ACLEDA" | "GENERIC"
+export type BankCode = "ABA" | "ACLEDA" | "PPCB" | "GENERIC"
 
 export type StatementMeta = {
   bank: BankCode
@@ -67,6 +67,8 @@ export function detectBank(rows: string[][], fileName = ""): BankCode {
   const all = rows.map((r) => r.join(" ")).join(" ")
   if (/ABAAKHPP/.test(all)) return "ABA"
   if (/ACLBKHPP/.test(all)) return "ACLEDA"
+  // Before ABA's legal name: a PPCBank Remark names the payer's bank («ADVANCED BANK OF ASIA …»).
+  if (/PPCBKHPP|phnom\s+penh\s+commercial\s+bank|ppcb\.com\.kh/i.test(all)) return "PPCB"
   if (/advanced\s+bank\s+of\s+asia|ababank\.com/i.test(all)) return "ABA"
   if (/acledabank\.com/i.test(all)) return "ACLEDA"
   const header = `${fileName} ${rows.slice(0, 40).map((r) => r.join(" ")).join(" ")}`
