@@ -69,3 +69,12 @@ describe("KHQR: one key, the shop found by its receiving account (founder, 8/11/
     assert.match(card, /\) : info\.data\?\.hint \? \(/) // the key line only when a key exists
   })
 })
+
+describe("PPCBank payments can be stored (regression: khqr_payments_bank_check, founder's test 8/11/2026 17:15)", () => {
+  it("every bank khqr_record accepts is allowed by khqr_payments", () => {
+    const fix = readFileSync("supabase/migrations/20270304000000_khqr_payments_ppcbank.sql", "utf8")
+    const accepted = sql.match(/if v_bank not in \(([^)]*)\)/)![1]
+    const allowed = fix.match(/check \(bank in \(([^)]*)\)\)/)![1]
+    for (const bank of accepted.split(",").map((b) => b.trim())) assert.ok(allowed.includes(bank), `khqr_payments must allow ${bank}`)
+  })
+})
