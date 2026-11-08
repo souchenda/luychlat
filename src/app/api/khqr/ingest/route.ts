@@ -93,6 +93,9 @@ export async function POST(request: Request) {
         // Optional: the payer's account ending and the receiver ("at SOU CHENDA") — an own transfer is recorded as one.
         payer_account: str(body.payer_account, 30) || null,
         merchant: str(body.merchant ?? body.receiver, 80) || null,
+        // The account that received it («***-**7387»): the owner's business with a wallet on that account gets it,
+        // in that wallet — one key for all the owner's shops (founder, 8/11/2026).
+        receiving_account: str(body.receiving_account, 40) || null,
       }
 
   if (apiKey.startsWith("lcp_")) {

@@ -39,3 +39,25 @@ describe("KHQR «record only» and PPCBank (founder, 8/11/2026)", () => {
     for (const name of ["aba usd", "acleda ៛", "cash", "ppcbx"]) assert.doesNotMatch(name, re, name)
   })
 })
+
+describe("KHQR: one key, the shop found by its receiving account (founder, 8/11/2026 — «ធ្វើអីសាមញ្ញៗ»)", () => {
+  const route2 = readFileSync("src/app/api/khqr/ingest/route.ts", "utf8")
+  const sql2 = readFileSync("supabase/migrations/20270302000000_khqr_route_by_account.sql", "utf8")
+
+  it("the API passes the receiving account through", () => {
+    assert.match(route2, /receiving_account: str\(body\.receiving_account, 40\) \|\| null/)
+  })
+
+  it("only the key owner's own open businesses, matched on the last 4 digits of a wallet's account number", () => {
+    assert.match(sql2, /w\.user_id = k\.created_by and w\.type = 'BUSINESS' and w\.archived_at is null/)
+    assert.ok(sql2.includes(String.raw`right(regexp_replace(coalesce(x.account_no, ''), '\D', '', 'g'), 4) = last4`))
+  })
+
+  it("one business matches → that business and that wallet; none or two → the key's business (held there, never guessed)", () => {
+    assert.match(sql2, /if coalesce\(cardinality\(hits\), 0\) = 1 then\s+ws_id := hits\[1\];/)
+    assert.match(sql2, /ws_id := k\.workspace_id;/)
+    assert.match(sql2, /pay := p_pay \|\| jsonb_build_object\('wallet_id', wallet_id\)/)
+    // «record only» is the routed business's own setting.
+    assert.match(sql2, /'quiet', coalesce\(\(select w\.khqr_quiet from public\.workspaces w where w\.id = ws_id\), false\)/)
+  })
+})
