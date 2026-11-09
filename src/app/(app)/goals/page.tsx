@@ -4,6 +4,7 @@ import { PlanningTabs } from "@/components/layout/planning-tabs"
 import { PlusIcon, TargetIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
+import { AllowanceSection } from "@/components/goals/allowance-cards"
 import { GoalCard } from "@/components/goals/goal-card"
 import { GoalFormSheet } from "@/components/goals/goal-form-sheet"
 import { Amount } from "@/components/money/amount"
@@ -95,6 +96,9 @@ export default function GoalsPage() {
           ))}
         </div>
       )}
+
+      {/* «ប្រាក់ហោប៉ៅកូន» (founder, 9/11/2026): household money only — never in a business. */}
+      {(workspace?.type === "PERSONAL" || workspace?.type === "FAMILY") && <AllowanceSection workspaceId={ws} wallets={wallets} editable={editable} />}
 
       {archived.length > 0 && (
         <div className="space-y-2">

@@ -7,6 +7,7 @@ import { useEffect } from "react"
 import { BillingSync } from "@/components/billing/billing-sync"
 import { WorkspaceLockedBanner } from "@/components/billing/business-trial"
 import { ExchangeRateSync } from "@/lib/exchange-rate"
+import { BankNoticesSync } from "@/components/bank-notices/bank-notices-sync"
 import { PendingReferralRedeemer } from "@/components/billing/referral"
 import { UpgradeSheet } from "@/components/billing/upgrade-sheet"
 import { DesktopSidebar, MobileNavTrigger } from "@/components/layout/app-nav"
@@ -99,6 +100,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <GuestImportPrompt />
       <BillingSync />
       <ExchangeRateSync />
+      {/* The bank apps' notices on this Android phone, recorded (founder, 9/11/2026). */}
+      <BankNoticesSync />
       <PendingReferralRedeemer />
       <UpgradeSheet />
       {/* Khmer New Year, Pchum Ben, Water Festival: the greeting once a day. */}

@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { HandCoinsIcon, Loader2Icon, Trash2Icon } from "lucide-react"
+import { HandCoinsIcon, Loader2Icon, SplitIcon, Trash2Icon } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
@@ -38,6 +38,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { usePrefsStore } from "@/stores/prefs-store"
 
 import { ReceiptField, type ReceiptValue } from "./receipt-field"
+import { SplitSheet } from "./split-sheet"
 import { VoiceEntryButton } from "./voice-entry-button"
 
 const schema = z.object({
@@ -86,6 +87,8 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
 
   const [receipt, setReceipt] = useState<ReceiptValue>({ kind: "none" })
   const [categoryFormOpen, setCategoryFormOpen] = useState(false)
+  // «ចែកថ្លៃ» (founder, 9/11/2026): a saved expense shared with others — their parts become money owed to me.
+  const [splitOpen, setSplitOpen] = useState(false)
   // Expenses: Need vs Want (reports) and, for food, the meal.
   const [needWant, setNeedWant] = useState<NeedWant | "NONE">("NONE")
   const [meal, setMeal] = useState<Meal | null>(null)
@@ -498,6 +501,12 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
               {formState.isSubmitting && <Loader2Icon className="animate-spin" />}
               {t("common.save")}
             </Button>
+            {editing && type === "EXPENSE" && !debtLinked && transaction && (
+              <Button type="button" variant="outline" className="h-11 w-full" onClick={() => setSplitOpen(true)}>
+                <SplitIcon />
+                {t("split.open")}
+              </Button>
+            )}
             {editing && (
               <Button type="button" variant="outline" className="w-full text-destructive" onClick={remove}>
                 <Trash2Icon />
@@ -516,6 +525,7 @@ export function EntryFormSheet({ open, onOpenChange, workspaceId, wallets, type:
         typeLocked
         onSaved={(c) => setValue("categoryId", c.id, { shouldValidate: true })}
       />
+      <SplitSheet open={splitOpen} onOpenChange={setSplitOpen} workspaceId={workspaceId} transaction={transaction ?? null} />
     </>
   )
 }

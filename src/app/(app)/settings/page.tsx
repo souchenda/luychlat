@@ -13,6 +13,7 @@ import { AboutSheet, SettingsFooter } from "@/components/settings/about"
 import { GuestImportRow } from "@/components/settings/guest-import"
 import { useOfficialBot, useTelegramLink } from "@/components/settings/official-bot"
 import { SettingsGroup, SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
+import { BankNoticesRow } from "@/components/bank-notices/bank-notices-row"
 import { PushSettingsRow } from "@/components/notifications/push-prompt"
 import { BatteryExemptionCard } from "@/components/payments/battery-exemption"
 import { playPaymentChimeSound, requestPaymentChimePermission, speakPayment } from "@/components/payments/payment-chime-listener"
@@ -549,6 +550,7 @@ export default function SettingsPage() {
         <CounterBatteryRow />
         <HolyDayChimeRow />
         <WelcomeVoiceRow />
+        <BankNoticesRow />
         <SettingsRow href="/settings/telegram" icon={<SendIcon />} tile="sky" title={t("settings.telegramBot")}>
           {bot.data && telegram.data ? (
             <StatusBadge tone="success">

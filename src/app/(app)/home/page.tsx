@@ -13,6 +13,9 @@ import { NextPrayerChip } from "@/components/islamic/next-prayer-chip"
 import { SourceSelector } from "@/components/onboarding/source-selector"
 import { QuickActionGrid } from "@/components/dashboard/quick-actions"
 import { SmartHub } from "@/components/dashboard/smart-hub"
+import { SafeToSpendCard } from "@/components/dashboard/safe-to-spend-card"
+import { UnusualSpendingCard } from "@/components/dashboard/unusual-spending-card"
+import { AllowanceDueCard } from "@/components/goals/allowance-cards"
 import { SpendingTrendCard } from "@/components/dashboard/spending-trend-card"
 import { MarketRatesCard } from "@/components/dashboard/market-rates-card"
 import { DebtFormSheet } from "@/components/debts/debt-form-sheet"
@@ -213,6 +216,12 @@ export default function HomePage() {
       <NextPrayerChip />
       <SpendingTrendCard transactions={transactions} categories={categoriesQuery.data ?? []} />
       <SmartHub workspaceId={ws} personal={workspace?.type === "PERSONAL"} />
+      {/* «ថ្ងៃនេះចាយបាន» (founder, 9/11/2026): a household's money only — never in a business. */}
+      {(workspace?.type === "PERSONAL" || workspace?.type === "FAMILY") && <SafeToSpendCard workspaceId={ws} wallets={wallets} transactions={transactions} />}
+      {/* «ចាយខុសធម្មតា» (founder, 9/11/2026): one gentle line, household money only. */}
+      {(workspace?.type === "PERSONAL" || workspace?.type === "FAMILY") && <UnusualSpendingCard transactions={transactions} categories={categoriesQuery.data ?? []} />}
+      {/* «ប្រាក់ហោប៉ៅកូន» on its day (founder, 9/11/2026): one tap gives it. */}
+      {(workspace?.type === "PERSONAL" || workspace?.type === "FAMILY") && <AllowanceDueCard workspaceId={ws} wallets={wallets} editable={editable} />}
 
       {/* Business: its asset-based value (cash + equipment + stock − overdraft − loans). */}
       {workspace?.type === "BUSINESS" && <BusinessValueCard workspaceId={ws} wallets={walletsQuery.data} debts={debtsQuery.data} transactions={txQuery.data} categories={categoriesQuery.data} />}

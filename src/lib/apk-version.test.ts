@@ -11,12 +11,12 @@ const read = (p: string) => readFileSync(join(root, p), "utf8")
 const native = !existsSync(join(root, "android")) && "android/ is not in the build context"
 
 describe("The Android app's version and in-app update (founder, 22/10/2026 — Task #468)", () => {
-  it("/api/app/version: the newest APK — v1.14, build 15 (the offline Retry opens app.luychlat.com, 2/11/2026), the versioned file, the Khmer changes", () => {
+  it("/api/app/version: the newest APK — v1.15, build 16 (money recorded from the bank apps' notifications, 9/11/2026), the versioned file, the Khmer changes", () => {
     assert.deepEqual(appVersionInfo(), {
-      latestVersion: "1.14",
-      versionCode: 15,
-      downloadUrl: "/downloads/LuyChlat-v1.14.apk",
-      changelogKhmer: "• ពេលគ្មានអ៊ីនធឺណិត ប៊ូតុង «ព្យាយាមម្តងទៀត» បើកអេបឡើងវិញភ្លាម",
+      latestVersion: "1.15",
+      versionCode: 16,
+      downloadUrl: "/downloads/LuyChlat-v1.15.apk",
+      changelogKhmer: "• កត់ត្រាប្រាក់ចូល និងប្រាក់ចេញដោយខ្លួនឯង ពីការជូនដំណឹងរបស់ធនាគារ (បើកនៅ ការកំណត់)",
     })
     // The offline page's Retry: the app's own domain, never the old one (it only redirected — founder, 2/11/2026).
     if (existsSync(join(root, "capacitor-www"))) {
@@ -24,6 +24,7 @@ describe("The Android app's version and in-app update (founder, 22/10/2026 — T
       assert.match(offline, /location\.href = 'https:\/\/app\.luychlat\.com\/home'/)
       assert.doesNotMatch(offline, /ibmserp/)
     }
+    assert.deepEqual(apkVersion(16), { kind: "known", version: "1.15", code: 16 })
     assert.deepEqual(apkVersion(15), { kind: "known", version: "1.14", code: 15 })
     assert.deepEqual(apkVersion(14), { kind: "known", version: "1.13", code: 14 })
     assert.deepEqual(apkVersion(13), { kind: "known", version: "1.12", code: 13 })

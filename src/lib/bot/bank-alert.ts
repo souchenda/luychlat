@@ -31,7 +31,8 @@ const IN = /\b(received|receive|credited|credit|cash\s*-?in|deposit(?:ed)?|incom
 const OUT = /\b(transferred|transfer\s+to|paid|payment\s+to|debited|debit|withdraw(?:al|n)?|cash\s*-?out|purchase|spent)\b|ផ្ទេរចេញ|ប្រាក់ចេញ|បានបង់/i
 const BANKISH = /\b(ACLEDA|ABA|Wing|Bakong|KHQR|Canadia|Sathapana|Prince|PPCBank|Chip\s*Mong|PRASAC|Amret|TrueMoney)\b|a\/c|account|គណនី/i
 const REF = /\b(?:ref(?:erence)?|trace|txn|trx|transaction\s*(?:id|no\.?)|hash)\b\s*(?:no\.?|id|#)?\s*[:#]?\s*([A-Za-z0-9-]{4,40})/i
-const DATE = /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/
+// Day first (Cambodian banks); «05:38 PM» is 17:38 (PPCBank — founder, 8/11/2026: a PM sale must not land in the morning).
+const DATE = /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*([AaPp])\.?[Mm]\b)?)?/
 
 /** The other party's name ("from SOK SAN", "to SUPPLIER"), never the account itself. */
 function partyOf(text: string, direction: "IN" | "OUT"): string | null {
@@ -64,7 +65,9 @@ export function parseBankAlert(raw: string): BankAlert | null {
     const [day, month, year] = [Number(d[1]), Number(d[2]), Number(d[3])]
     if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
       const p = (n: number) => String(n).padStart(2, "0")
-      postedAt = `${year}-${p(month)}-${p(day)}T${p(Number(d[4] ?? 12))}:${d[5] ?? "00"}:00+07:00`
+      let hour = Number(d[4] ?? 12)
+      if (d[4] && d[6]) hour = (hour % 12) + (/p/i.test(d[6]) ? 12 : 0)
+      postedAt = `${year}-${p(month)}-${p(day)}T${p(hour)}:${d[5] ?? "00"}:00+07:00`
     }
   }
   return {
