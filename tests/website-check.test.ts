@@ -37,4 +37,15 @@ describe("luychlat.com passes its quality gate (founder, 28/10/2026 — «the wh
     assert.match(read("deploy/landing-publish.sh"), /SRC=\$\{WEBSITE_SRC:-"\$REPO\/Website"\}/)
     assert.match(readFileSync(join(process.cwd(), ".githooks/pre-push"), "utf8"), /node scripts\/website-check\.mjs/)
   })
+
+  // Regression (Search Console, 9/11/2026): /personal.html, /personal/ and /index.html were second addresses of a page.
+  it("one address per page: .html, a trailing slash and index answer 301 to the clean address, never the 404 page", { skip: !deployHere && "deploy/ is not in the build context" }, () => {
+    const pub = readFileSync(join(process.cwd(), "deploy/landing-publish.sh"), "utf8")
+    const rules = [...pub.matchAll(/if \(\$request_uri ~ "([^"]+)"\) \{ return 301 \/\$1; \}/g)].map((m) => new RegExp(m[1]))
+    assert.equal(rules.length, 2)
+    const to = (u: string) => { for (const r of rules) { const m = r.exec(u); if (m) return "/" + m[1] } return null }
+    const cases: [string, string | null][] = [["/personal.html", "/personal"], ["/personal/", "/personal"], ["/en/privacy.html", "/en/privacy"], ["/index.html", "/"], ["/zh/index.html", "/zh/"],
+      ["/", null], ["/en/", null], ["/personal", null], ["/404.html", null], ["/no-such-page", null], ["/sitemap.xml", null]]
+    for (const [u, want] of cases) assert.equal(to(u), want, u)
+  })
 })

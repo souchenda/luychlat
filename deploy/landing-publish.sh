@@ -124,6 +124,33 @@ PY
   fi
 fi
 
+# One address per page for Google (founder, 9/11/2026 — Search Console: «Duplicate», «Alternate page», «Not found»):
+# /personal.html, /personal/ and /en/index.html answer 301 to the clean address (/personal, /en/). Read from
+# $request_uri (the address asked for), so the 404 page's own internal /404.html is never redirected. Once; a failed
+# Nginx test puts the previous configuration back.
+if ! grep -q "luychlat-landing-v3" "$SITE_CONF"; then
+  cp "$SITE_CONF" "$BACKUP_ROOT/luychlat.com.conf.$stamp.v3"
+  python3 - "$SITE_CONF" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+anchor = "    error_page 404 /404.html;\n"
+block = r"""    # luychlat-landing-v3 (9/11/2026): one address per page (.html, a trailing slash and index → the clean one).
+    if ($request_uri ~ "^/((?:en/|zh/)?)index(?:\.html)?(?:\?.*)?$") { return 301 /$1; }
+    if ($request_uri ~ "^/((?:en/|zh/)?(?:personal|family|business|islamic|privacy|delete-account))(?:\.html|/)(?:\?.*)?$") { return 301 /$1; }
+"""
+if anchor not in s:
+    sys.exit("luychlat.com.conf: «error_page 404» not found — Nginx left unchanged")
+open(p, "w").write(s.replace(anchor, block + anchor, 1))
+PY
+  if nginx -t 2>/dev/null; then
+    systemctl reload nginx && echo "✓ Nginx: one address per page (301 from .html, / and index)"
+  else
+    cp "$BACKUP_ROOT/luychlat.com.conf.$stamp.v3" "$SITE_CONF"
+    echo "! Nginx test failed — the previous configuration was restored"
+  fi
+fi
+
 # The helpline chat asks the app (founder, 5/11/2026 — Website/helpline.js → app.luychlat.com/api/helpline/site): the
 # Content-Security-Policy lets the pages call the app's address too, once; a failed Nginx test puts the old one back.
 if grep -q "connect-src 'self' https://cloudflareinsights.com;" "$SITE_CONF"; then
@@ -152,6 +179,9 @@ for path in / /en/ /zh/ /personal /family /business /islamic /privacy /delete-ac
   if [ "$code" = "200" ]; then pages=$((pages + 1)); else broken="$broken $path"; fi
 done
 code=$(curl -s -o /dev/null -w "%{http_code}" "https://luychlat.com/no-such-page"); echo "  $code  https://luychlat.com/no-such-page"
+for path in /personal.html /personal/ /index.html /en/index.html; do
+  echo "  $(curl -s -o /dev/null -w "%{http_code} → %{redirect_url}" "https://luychlat.com$path")  https://luychlat.com$path"
+done
 msg="🌐 គេហទំព័រ luychlat.com បានផ្សាយកំណែថ្មីហើយ ✅"
 if [ -n "${WEBSITE_CHANGES:-}" ]; then
   msg="$msg
