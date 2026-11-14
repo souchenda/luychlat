@@ -237,15 +237,24 @@ export function cambodiaClock(at: number) {
 /** Cambodia «HH:MM» of `day` as an instant. */
 const instantOf = (day: string, hm: string) => Date.parse(`${day}T${hm}:00+07:00`)
 
-/** The jobs past their deadline today with no «done» line; `reported` (id|day) keeps each to one alert a day. */
-export function missedJobs(events: WatchEvent[], now: number, bootAt: number, reported: Set<string>): Expect[] {
+/**
+ * The jobs past their deadline today with no «done» line; `settled` (id|day) holds each job once it is decided that day —
+ * alerted, or seen done. Seen done is settled for good (founder, 14/11/2026: the 05:30 prayer times went out every day,
+ * yet «Missed job prayer-times» reached him 7 times in a week — the feed keeps 4 hours (KEEP_MS), so by 09:30 the 05:30
+ * line was gone and the next check thought it missed).
+ */
+export function missedJobs(events: WatchEvent[], now: number, bootAt: number, settled: Set<string>): Expect[] {
   const c = cambodiaClock(now)
   return EXPECTS.filter((x) => {
     if (x.days && !x.days.includes(c.weekday)) return false
-    if (c.minute < minutesOf(x.deadline) || reported.has(`${x.id}|${c.day}`)) return false
-    if (bootAt > instantOf(c.day, x.upBy)) return false
+    if (settled.has(`${x.id}|${c.day}`)) return false
     const re = x.done(c.day)
-    return !events.some((e) => (x.source === "*" || e.source === x.source) && re.test(e.message))
+    if (events.some((e) => (x.source === "*" || e.source === x.source) && re.test(e.message))) {
+      settled.add(`${x.id}|${c.day}`)
+      return false
+    }
+    if (c.minute < minutesOf(x.deadline)) return false
+    return bootAt <= instantOf(c.day, x.upBy)
   })
 }
 

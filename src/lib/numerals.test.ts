@@ -67,7 +67,8 @@ describe("International numerals on the channel, the posters and the bot (founde
     assert.equal(outgoingText("ថ្ងៃទី ២៩ តុលា"), "ថ្ងៃទី 29 តុលា")
   })
   it("wired: every Telegram call and upload, the Page, every poster but the commemorations', the scheduler's royal scope", () => {
-    assert.match(read("src/lib/server/telegram-bot.ts"), /payload = outgoingPayload\(payload\)\n[\s\S]{0,400}?\n {2}try \{\n {4}const res = await fetch\(`https:\/\/api\.telegram\.org/)
+    // Before the fetch — also inside the one-retry loop (14/11/2026, lib/telegram-retry.ts).
+    assert.match(read("src/lib/server/telegram-bot.ts"), /payload = outgoingPayload\(payload\)\n[\s\S]{0,700}?\n {4}try \{\n {6}const res = await fetch\(`https:\/\/api\.telegram\.org/)
     const server = readdirSync(join(process.cwd(), "src/lib/server")).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))
     for (const f of server) {
       const src = read(`src/lib/server/${f}`)

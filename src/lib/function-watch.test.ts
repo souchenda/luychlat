@@ -127,7 +127,7 @@ test("the day's work: a job past its deadline with nothing logged alerts once; d
   // The bulletin: published, or held for lack of today's NBC rate — both are «done».
   const held: WatchEvent = { at: at("10:00"), level: "warn", source: "bulletin", message: "Bulletins held 2026-11-06: no NBC rate for today by 10:00 (latest 2026-11-05) — founder told in 1 chat(s)" }
   assert.ok(!missedJobs([prayed, held], at("10:50"), boot, seen).some((x) => x.id === "bulletin"))
-  assert.ok(missedJobs([prayed], at("10:50"), boot, seen).some((x) => x.id === "bulletin"))
+  assert.ok(missedJobs([prayed], at("10:50"), boot, new Set()).some((x) => x.id === "bulletin"))
   // Saturday: no bulletin is expected.
   assert.ok(!missedJobs([], Date.parse("2026-11-07T10:50:00+07:00"), boot, seen).some((x) => x.id === "bulletin"))
   // The nightly report must have reached a chat.
@@ -227,4 +227,18 @@ test("an error PAGE from a server in front of the database is a blip: told only 
   assert.doesNotMatch(text, /<!DOCTYPE|<html/i)
   assert.match(text, /Server ខាងក្រៅ \(Supabase\)/)
   assert.equal(readableReason(html), "Prayer push: phones not read — Server ខាងក្រៅឆ្លើយជាទំព័រកំហុស (មួយភ្លែត ហើយសាកម្តងទៀតដោយខ្លួនឯង)")
+})
+
+test("regression 14/11/2026: a job seen done is never «missed» later that day, after its line has left the 4-hour feed", () => {
+  const at = (hm: string) => Date.parse(`2026-11-14T${hm}:00+07:00`)
+  const boot = at("01:00")
+  const settled = new Set<string>()
+  const prayed: WatchEvent = { at: at("05:30"), level: "info", source: "scheduled-posts", message: "ISLAMIC_MORNING 2026-11-14 published (approved) · Telegram 114 · Facebook —" }
+  // Seen while still in the feed — even before the deadline — it is settled…
+  assert.deepEqual(missedJobs([prayed], at("05:31"), boot, settled).map((x) => x.id), [])
+  assert.ok(settled.has("prayer-times|2026-11-14"))
+  // …so at 10:16, the 05:30 line gone from the 4-hour feed, no false «missed» alarm.
+  assert.ok(!missedJobs([], at("10:16"), boot, settled).some((x) => x.id === "prayer-times"))
+  // A real miss still alerts: nothing seen by the deadline.
+  assert.deepEqual(missedJobs([], at("05:51"), boot, new Set()).map((x) => x.id), ["prayer-times"])
 })

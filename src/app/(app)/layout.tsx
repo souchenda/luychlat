@@ -29,6 +29,7 @@ import { HelplineChat } from "@/components/helpline/helpline-chat"
 import { FlipToHideListener } from "@/components/privacy/flip-to-hide"
 import { PaymentChimeListener } from "@/components/payments/payment-chime-listener"
 import { SoundboxPrayerQuietWriter } from "@/components/islamic/soundbox-prayer-quiet"
+import { WebVitalsReporter } from "@/components/common/web-vitals-reporter"
 import { AppLock } from "@/components/lock/app-lock"
 import { MfaGate } from "@/components/security/mfa-gate"
 import { StepUpDialog } from "@/components/security/step-up"
@@ -97,6 +98,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <PendingInviteRedirect />
       {/* The SoundBox's quiet spans after each Adhan, for this device (Task #506). */}
       <SoundboxPrayerQuietWriter />
+      {/* The app's real speed on members' phones, for Admin › Super (founder, 14/11/2026). */}
+      <WebVitalsReporter />
       <GuestImportPrompt />
       <BillingSync />
       <ExchangeRateSync />

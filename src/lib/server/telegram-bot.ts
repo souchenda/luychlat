@@ -10,6 +10,7 @@ import { dictionaries, type Locale, type MessageKey } from "@/lib/i18n/dictionar
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/config"
 import { withCleanFetch } from "@/lib/supabase/clean-fetch"
 import { threadFor } from "@/lib/chat-route"
+import { networkCode, TELEGRAM_RETRY_DELAY_MS, TELEGRAM_TIMEOUT_MS, telegramRetryable } from "@/lib/telegram-retry"
 
 /**
  * The official LuyChlat Telegram bot, server side. TELEGRAM_BOT_TOKEN lives
@@ -47,24 +48,33 @@ export async function tg<T = unknown>(method: string, payload: Record<string, un
   if (!edit) return { ok: false, description: "edit in place: a new message to the channel was refused" }
   const editing = edit.method !== method
   ;({ method, payload } = edit)
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      cache: "no-store",
-    })
-    const body = (await res.json()) as { ok: boolean; result?: T; description?: string }
-    // «message is not modified»: the channel already shows this version — the edit is done.
-    if (editing && (body.ok || /message is not modified/.test(body.description ?? ""))) {
-      editTarget()!.edited.telegram = true
-      return { ok: true, result: (body.result ?? { message_id: editTarget()!.messageId }) as T }
+  // A network failure is tried once more only where it can never post twice (lib/telegram-retry.ts — 14/11/2026).
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        cache: "no-store",
+        signal: AbortSignal.timeout(TELEGRAM_TIMEOUT_MS),
+      })
+      const body = (await res.json()) as { ok: boolean; result?: T; description?: string }
+      // «message is not modified»: the channel already shows this version — the edit is done.
+      if (editing && (body.ok || /message is not modified/.test(body.description ?? ""))) {
+        editTarget()!.edited.telegram = true
+        return { ok: true, result: (body.result ?? { message_id: editTarget()!.messageId }) as T }
+      }
+      if (!body.ok) reportFailure(method, body.description)
+      return body
+    } catch (e) {
+      const code = networkCode(e)
+      if (attempt === 1 && telegramRetryable(method, code)) {
+        await new Promise((r) => setTimeout(r, TELEGRAM_RETRY_DELAY_MS))
+        continue
+      }
+      reportFailure(method, `network (${code}${attempt > 1 ? ", after a retry" : ""})`)
+      return { ok: false, description: "network" }
     }
-    if (!body.ok) reportFailure(method, body.description)
-    return body
-  } catch {
-    reportFailure(method, "network")
-    return { ok: false, description: "network" }
   }
 }
 
