@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, it } from "node:test"
 
-import { apkDownloadPath, apkFileName, apkVersion, appVersionInfo, installedApkCode, LATEST_APK, updateAvailable, updatePath, updateSnoozed, UPDATE_SNOOZE_MS } from "./apk-version"
+import { apkDownloadPath, apkFileName, apkVersion, appVersionInfo, installedApkCode, LATEST_APK, storeBuild, updateAvailable, updatePath, updateSnoozed, UPDATE_SNOOZE_MS } from "./apk-version"
 
 const root = process.cwd()
 const read = (p: string) => readFileSync(join(root, p), "utf8")
@@ -126,7 +126,7 @@ describe("The update installs inside the app — no Chrome (founder, 23/10/2026 
     assert.match(u, /await listener\.remove\(\)/)
   })
   it("the Android side: downloads only app.luychlat.com files into the cache, installer through the FileProvider, the permission", { skip: native }, () => {
-    const j = read("android/app/src/main/java/com/luychlat/app/AppUpdaterPlugin.java")
+    const j = read("android/app/src/sideload/java/com/luychlat/app/AppUpdaterPlugin.java")
     assert.match(j, /if \(!"https"\.equals\(target\.getProtocol\(\)\) \|\| !HOST\.equals\(target\.getHost\(\)\)\)/)
     assert.match(j, /new File\(getContext\(\)\.getCacheDir\(\), FILE_NAME\)/)
     assert.match(j, /notifyListeners\("progress", p\)/)
@@ -134,8 +134,21 @@ describe("The update installs inside the app — no Chrome (founder, 23/10/2026 
     assert.match(j, /intent\.addFlags\(Intent\.FLAG_GRANT_READ_URI_PERMISSION \| Intent\.FLAG_ACTIVITY_NEW_TASK\)/)
     assert.match(j, /getPackageManager\(\)\.canRequestPackageInstalls\(\)/)
     assert.match(j, /Settings\.ACTION_MANAGE_UNKNOWN_APP_SOURCES/)
-    assert.match(read("android/app/src/main/AndroidManifest.xml"), /android\.permission\.REQUEST_INSTALL_PACKAGES/)
+    // The sideloaded APK only — never the Google Play build (founder, 15/11/2026 — docs/play-store-readiness.md B1).
+    assert.match(read("android/app/src/sideload/AndroidManifest.xml"), /android\.permission\.REQUEST_INSTALL_PACKAGES/)
+    assert.doesNotMatch(read("android/app/src/main/AndroidManifest.xml"), /<uses-permission android:name="android\.permission\.REQUEST_INSTALL_PACKAGES"/)
     assert.match(read("android/app/src/main/res/xml/file_paths.xml"), /<cache-path /)
-    assert.match(read("android/app/src/main/java/com/luychlat/app/MainActivity.java"), /registerPlugin\(AppUpdaterPlugin\.class\);/)
+    assert.match(read("android/app/src/main/java/com/luychlat/app/MainActivity.java"), /if \(BuildConfig\.SELF_UPDATE\) registerOptional\("com\.luychlat\.app\.AppUpdaterPlugin"\);/)
+    assert.ok(!existsSync(join(root, "android/app/src/main/java/com/luychlat/app/AppUpdaterPlugin.java"))) // not in the Play build
+    const gradle = read("android/app/build.gradle")
+    assert.match(gradle, /sideload \{\s+dimension "store"\s+buildConfigField "boolean", "SELF_UPDATE", "true"/)
+    assert.match(gradle, /play \{\s+dimension "store"\s+buildConfigField "boolean", "SELF_UPDATE", "false"/)
+  })
+  it("Google Play's build is never offered an APK; older sideloaded builds keep their path (founder, 15/11/2026)", () => {
+    assert.equal(storeBuild(16, false), true) // Play: recent, no updater
+    assert.equal(storeBuild(16, true), false) // the sideloaded 1.15
+    assert.equal(storeBuild(7, false), false) // a 1.6 never had the updater: still offered (browser path)
+    assert.equal(storeBuild(null, false), false)
+    assert.match(read("src/components/layout/app-update.tsx"), /if \(storeBuild\(code, Capacitor\.isPluginAvailable\("AppUpdater"\)\)\) return/)
   })
 })

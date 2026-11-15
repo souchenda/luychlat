@@ -44,7 +44,11 @@ page · privacy policy at https://luychlat.com/privacy (add the bank-notificatio
 
 ## 5. Decisions for the founder
 
-1. B1 — the Play build drops the self-updater (recommended: yes; Play updates the app itself).
-2. B2 — the Adhan alarm asks for «Alarms & reminders» permission once (recommended), or we argue for `USE_EXACT_ALARM`.
-3. B3 — the SoundBox battery prompt becomes «open battery settings» (one extra tap for the shop), or we file the
+1. ✅ B1 — decided 15/11/2026, done: two builds from one code (`android/app/build.gradle` flavours). «play» has no
+   `REQUEST_INSTALL_PACKAGES` and no updater (its code is in `src/sideload/` only); the page never offers it an APK
+   (`storeBuild`). The bundle: `sudo bash deploy/build-apk.sh play` → `/opt/luysmart-android/play/` (private).
+2. ✅ B2 — decided 15/11/2026, done: `SCHEDULE_EXACT_ALARM` in every build, `USE_EXACT_ALARM` in the sideloaded APK only;
+   the Play build rings an inexact Adhan until the person allows «Alarms & reminders» (AdhanAlarmPlugin's fallback and
+   settings button).
+3. ⏸ B3 — shop work, after the personal-first priorities (founder's rule) — the SoundBox battery prompt becomes «open battery settings» (one extra tap for the shop), or we file the
    declaration and wait for Google's answer.

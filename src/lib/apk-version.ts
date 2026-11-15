@@ -19,6 +19,13 @@ export const IN_APP_DOWNLOAD_FROM = 6
 export const IN_APP_INSTALL_FROM = 8
 
 /**
+ * The Google Play build (founder, 15/11/2026 — docs/play-store-readiness.md B1): Play updates it, so the page never offers
+ * an APK. It is the build recent enough to have the in-app updater that does not have it (MainActivity registers
+ * AppUpdaterPlugin in the sideloaded APK only); an older sideloaded APK still gets its browser / copy-link path.
+ */
+export const storeBuild = (installed: number | null, updaterAvailable: boolean) => (installed ?? 0) >= IN_APP_INSTALL_FROM && !updaterAvailable
+
+/**
  * How an installed build takes its update: «in-app» (1.7+: downloaded in the app with a progress sheet, then Android's
  * installer), «browser» (1.5 / 1.6: the link opens in the phone's browser), «copy-link» (older: the link to paste in
  * Chrome). The step from an older build to 1.7 is the last one through the browser.

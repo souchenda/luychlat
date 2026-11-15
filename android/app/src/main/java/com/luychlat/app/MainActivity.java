@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.Plugin;
 
 public class MainActivity extends BridgeActivity {
     @Override
@@ -16,8 +17,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SoundboxKeepAlivePlugin.class);
         // The Adhan as an alarm clock (Task #474).
         registerPlugin(AdhanAlarmPlugin.class);
-        // The app updates itself, no trip to Chrome (Task #478).
-        registerPlugin(AppUpdaterPlugin.class);
+        // The app updates itself, no trip to Chrome (Task #478) — the sideloaded APK only: Google Play updates its own build
+        // (founder, 15/11/2026). Without the plugin the page offers no APK (lib/apk-version.ts storeBuild).
+        // The plugin's code is in the sideload build only (src/sideload/java), so it is found by name.
+        if (BuildConfig.SELF_UPDATE) registerOptional("com.luychlat.app.AppUpdaterPlugin");
         // The phone's own Khmer voice for the spoken greeting (founder, 28/10/2026 — as DL Staff speaks).
         registerPlugin(KhmerVoicePlugin.class);
         // «My location» by name — the phone's own Geocoder (founder, 29/10/2026: «show កួរស្រូវ, as Samsung does»).
@@ -43,5 +46,15 @@ public class MainActivity extends BridgeActivity {
                 // No browser on the phone: nothing to open.
             }
         });
+    }
+
+    /** A plugin that exists in one build only (AppUpdaterPlugin: the sideloaded APK). */
+    @SuppressWarnings("unchecked")
+    private void registerOptional(String className) {
+        try {
+            registerPlugin((Class<? extends Plugin>) Class.forName(className));
+        } catch (ClassNotFoundException | ClassCastException ignored) {
+            // Not in this build.
+        }
     }
 }

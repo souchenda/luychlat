@@ -35,7 +35,10 @@ describe("The native Adhan's plan (founder, 20/10/2026)", () => {
     assert.ok(existsSync(join(process.cwd(), "android/app/src/main/res/raw/adhan.mp3")))
     assert.ok(statSync(join(process.cwd(), "android/app/src/main/res/raw/adhan.mp3")).size > 100_000)
     assert.deepEqual(NATIVE_CHANNELS.adhan, { id: "prayer_adhan_v1", name: "Prayer Times Adhan", sound: "adhan.mp3", importance: 5 })
-    assert.match(read("android/app/src/main/AndroidManifest.xml"), /<uses-permission android:name="android\.permission\.USE_EXACT_ALARM" \/>/)
+    // Exact alarms (founder, 15/11/2026 — Play B2): SCHEDULE_EXACT_ALARM in every build; USE_EXACT_ALARM in the sideloaded APK only.
+    assert.match(read("android/app/src/main/AndroidManifest.xml"), /<uses-permission android:name="android\.permission\.SCHEDULE_EXACT_ALARM" \/>/)
+    assert.doesNotMatch(read("android/app/src/main/AndroidManifest.xml"), /<uses-permission android:name="android\.permission\.USE_EXACT_ALARM"/)
+    assert.match(read("android/app/src/sideload/AndroidManifest.xml"), /<uses-permission android:name="android\.permission\.USE_EXACT_ALARM" \/>/)
     assert.match(read("android/app/capacitor.build.gradle"), /implementation project\(':capacitor-local-notifications'\)/)
     // At least 1.11 (an Adhan rings only if still in this phone's plan — 24/10/2026, Task #494); the exact version is
     // LATEST_APK's (apk-version.test.ts), so a later release never breaks this test.
@@ -139,7 +142,7 @@ describe("The 10 s lock-screen test that never rang on 1.5 — the Adhan as a re
     const manifest = read("android/app/src/main/AndroidManifest.xml")
     assert.match(manifest, /<receiver android:name="\.AdhanAlarmReceiver" android:exported="false" \/>/)
     assert.match(manifest, /<action android:name="android\.intent\.action\.BOOT_COMPLETED" \/>\s+<action android:name="android\.intent\.action\.MY_PACKAGE_REPLACED" \/>/)
-    assert.match(manifest, /android\.permission\.USE_EXACT_ALARM/)
+    assert.match(manifest, /android\.permission\.SCHEDULE_EXACT_ALARM/)
     assert.match(read("android/app/src/main/java/com/luychlat/app/MainActivity.java"), /registerPlugin\(AdhanAlarmPlugin\.class\);/)
     assert.ok(existsSync(join(process.cwd(), "android/app/src/main/res/drawable/ic_stat_prayer.xml")))
   })

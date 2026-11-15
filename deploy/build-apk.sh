@@ -15,6 +15,15 @@
 # versionCode in android/app/build.gradle first so phones accept the update.
 set -euo pipefail
 
+# Two stores (founder, 15/11/2026 — docs/play-store-readiness.md): no argument = the «sideload» APK published here, as
+# always; «play» = the Google Play bundle (.aab, no self-updater, no USE_EXACT_ALARM), kept private in
+# /opt/luysmart-android/play for the founder to upload in the Play Console — never published on the site.
+#
+#   sudo bash deploy/build-apk.sh          (the APK at /LuyChlat.apk)
+#   sudo bash deploy/build-apk.sh play     (the Play bundle)
+MODE=${1:-sideload}
+case "$MODE" in sideload | play) ;; *) echo "✗ Unknown mode «$MODE» (sideload | play)" >&2; exit 1 ;; esac
+
 cd "$(dirname "$0")/.."
 REPO=$(pwd)
 WORK=/opt/luysmart-android
@@ -99,14 +108,27 @@ printf 'org.gradle.jvmargs=-Xmx1280m -XX:MaxMetaspaceSize=512m -Dfile.encoding=U
 docker run --rm --memory=2500m --cpus=1.5 --cpu-shares=256 \
   -e ANDROID_HOME=/sdk -e GRADLE_USER_HOME=/gradle \
   -v "$SRC":/app -v "$SDK":/sdk -v "$GRADLE_HOME":/gradle -v "$KEYS":/ks:ro \
-  -w /app/android "$JDK_IMAGE" sh ./gradlew assembleRelease --no-daemon --console=plain -q
+  -w /app/android "$JDK_IMAGE" sh ./gradlew "$([ "$MODE" = play ] && echo bundlePlayRelease || echo assembleSideloadRelease)" --no-daemon --console=plain -q
 
-apk="$SRC/android/app/build/outputs/apk/release/LuyChlat-release.apk"
+version=$(sed -n 's/^[[:space:]]*versionName "\([0-9.]*\)".*/\1/p' "$SRC/android/app/build.gradle" | head -1)
+[ -n "$version" ] || { echo "✗ versionName not found in android/app/build.gradle" >&2; exit 1; }
+
+if [ "$MODE" = play ]; then
+  aab="$SRC/android/app/build/outputs/bundle/playRelease/app-play-release.aab"
+  [ -f "$aab" ] || { echo "✗ Bundle not found: $aab" >&2; exit 1; }
+  mkdir -p "$WORK/play"
+  chmod 700 "$WORK/play"
+  install -m 0600 "$aab" "$WORK/play/LuyChlat-v$version.aab"
+  rm -f "$SRC/android/keystore.properties"
+  rm -rf "$SRC/android/app/build" "$SRC/android/build" "$SRC/android/.gradle"
+  echo "✓ Play bundle v$version $(du -h "$WORK/play/LuyChlat-v$version.aab" | cut -f1) → $WORK/play/LuyChlat-v$version.aab (private — upload it in the Play Console)"
+  exit 0
+fi
+
+apk="$SRC/android/app/build/outputs/apk/sideload/release/LuyChlat-release.apk"
 [ -f "$apk" ] || { echo "✗ APK not found: $apk" >&2; exit 1; }
 # Versioned (Task #468): /downloads/LuyChlat-v<versionName>.apk for the in-app update (lib/apk-version.ts), and the same
 # file as /LuyChlat.apk so the old links keep working. Each lands whole (a .new then a rename), never half-written.
-version=$(sed -n 's/^[[:space:]]*versionName "\([0-9.]*\)".*/\1/p' "$SRC/android/app/build.gradle" | head -1)
-[ -n "$version" ] || { echo "✗ versionName not found in android/app/build.gradle" >&2; exit 1; }
 named="LuyChlat-v$version.apk"
 install -m 0644 "$apk" "$OUT/$named.new"
 mv -f "$OUT/$named.new" "$OUT/$named"

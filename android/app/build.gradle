@@ -35,6 +35,25 @@ android {
             }
         }
     }
+    // Two stores, one code (founder, 15/11/2026 — docs/play-store-readiness.md B1, B2):
+    // «sideload» = the APK at app.luychlat.com (updates itself — AppUpdaterPlugin — and rings the Adhan with USE_EXACT_ALARM);
+    // «play» = Google Play: Play updates it, so no REQUEST_INSTALL_PACKAGES and no updater; exact alarms only once the
+    // person allows «Alarms & reminders» (SCHEDULE_EXACT_ALARM, the plugin falls back to an inexact alarm until then).
+    // The permissions that differ live in src/sideload/AndroidManifest.xml.
+    buildFeatures {
+        buildConfig = true
+    }
+    flavorDimensions = ["store"]
+    productFlavors {
+        sideload {
+            dimension "store"
+            buildConfigField "boolean", "SELF_UPDATE", "true"
+        }
+        play {
+            dimension "store"
+            buildConfigField "boolean", "SELF_UPDATE", "false"
+        }
+    }
     buildTypes {
         release {
             if (keystoreFile.exists()) {

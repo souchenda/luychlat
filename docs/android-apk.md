@@ -31,15 +31,15 @@ Then build either version:
   cd android && ./gradlew assembleDebug
   ```
 
-  Output: `android/app/build/outputs/apk/debug/LuyChlat-debug.apk`. On Windows `cmd`, use `gradlew.bat assembleDebug`.
+  Output: `android/app/build/outputs/apk/sideload/debug/LuyChlat-debug.apk` (`assembleSideloadDebug`). On Windows `cmd`, use `gradlew.bat assembleSideloadDebug`.
 
 - **Release APK.** Recommended for testers.
 
   ```bash
-  cd android && ./gradlew assembleRelease
+  cd android && ./gradlew assembleSideloadRelease   # the APK we publish; bundlePlayRelease = the Google Play bundle
   ```
 
-  Output: `android/app/build/outputs/apk/release/LuyChlat-release.apk`.
+  Output: `android/app/build/outputs/apk/sideload/release/LuyChlat-release.apk`.
 
 You can also run `npm run android:open` and use **Build › Build App Bundle(s) / APK(s) › Build APK(s)** in Android Studio.
 

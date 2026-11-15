@@ -169,6 +169,7 @@ Every phase is done before the freeze; a feature not live on 2026-12-14 moves af
 
 ### Freeze and launch
 
-- [ ] Play policy blockers before the freeze (docs/play-store-readiness.md): a Play build without the self-updater, the Adhan alarm via «Alarms & reminders», the SoundBox battery prompt ⛔ 🟡 សម្រេចចិត្តលើចំណុច B1 B2 B3 ក្នុង docs/play-store-readiness.md
+- [x] Play policy blockers B1 and B2 (founder, 15/11/2026 — docs/play-store-readiness.md): a «play» build without the self-updater or USE_EXACT_ALARM (`deploy/build-apk.sh play` → a private .aab); the sideloaded APK unchanged
+- [ ] Play blocker B3 — the SoundBox battery prompt (shop work, after the personal-first priorities) ⛔ ⚙️ ជំនួសការសុំអនុញ្ញាតថ្មដោយប៊ូតុងបើកការកំណត់ថ្ម
 - [ ] Feature Freeze 2026-12-15 → 2026-12-31: Closed Testing, bug fixes and Google Play Console policy compliance only (store listing, data-safety form, target API level)
 - [ ] Target Launch 2027-01-01: the official public launch of «អេប លុយឆ្លាត» on the Google Play Store

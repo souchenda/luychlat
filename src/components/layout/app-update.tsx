@@ -12,13 +12,14 @@
  * - 1.5 / 1.6: the link opens in the phone's browser (MainActivity's DownloadListener), which downloads and installs.
  * - Older: the link is copied, to paste in Chrome.
  */
+import { Capacitor } from "@capacitor/core"
 import { DownloadIcon, RocketIcon, ShieldCheckIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { BottomSheet } from "@/components/common/bottom-sheet"
 import { Button } from "@/components/ui/button"
-import { installedApkCode, updateAvailable, updatePath, updateSnoozed, UPDATE_SNOOZE_KEY, type AppVersionInfo } from "@/lib/apk-version"
+import { installedApkCode, storeBuild, updateAvailable, updatePath, updateSnoozed, UPDATE_SNOOZE_KEY, type AppVersionInfo } from "@/lib/apk-version"
 import { useT } from "@/lib/i18n/use-t"
 import { isNativeApp } from "@/lib/native-bridge"
 import { canInstallUpdates, downloadAndInstall, openInstallSettings } from "@/lib/native-updater"
@@ -44,6 +45,8 @@ export function AppUpdatePrompt() {
     if (!isNativeApp()) return
     const code = installedApkCode(navigator.userAgent, true)
     setInstalled(code)
+    // Google Play's build: Play updates it — never an APK offer (lib/apk-version.ts storeBuild).
+    if (storeBuild(code, Capacitor.isPluginAvailable("AppUpdater"))) return
     let cancelled = false
     void (async () => {
       const res = await fetch("/api/app/version", { cache: "no-store" }).catch(() => null)

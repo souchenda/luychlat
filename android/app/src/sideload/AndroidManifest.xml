@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The sideloaded APK (app.luychlat.com/LuyChlat.apk) only — never the Google Play build (founder, 15/11/2026;
+     docs/play-store-readiness.md B1, B2). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The in-app update opens Android's installer on the downloaded APK (Task #478 — AppUpdaterPlugin). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- The Adhan as the alarm the person set, granted at install (Android 13+). -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+</manifest>
