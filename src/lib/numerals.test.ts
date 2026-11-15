@@ -87,3 +87,25 @@ describe("International numerals on the channel, the posters and the bot (founde
     assert.match(sp, /edited = await scoped\(row, \(\) => r\.editInPlace\(row, \(\) => d\.publish\(row\)\)\)/) // an update, inside the same scope
   })
 })
+
+describe("Valid text for Telegram (regression 10/11/2026: «strings must be encoded in UTF-8»)", () => {
+  it("a length cut through an emoji leaves no half of it; whole emoji and Khmer stay", async () => {
+    const { wellFormed, wellFormedPayload } = await import("./numerals")
+    const cut = "សួស្តី 🙏".slice(0, -1) // the cut leaves the emoji's first half
+    assert.equal(wellFormed(cut), "សួស្តី ")
+    assert.equal(wellFormed("🙏 ✅ 📢 ខ្មែរ 0-9"), "🙏 ✅ 📢 ខ្មែរ 0-9")
+    assert.equal(wellFormed("\uDC4F x"), " x") // a lone second half too
+    const p = wellFormedPayload({ chat_id: 1, caption: cut, reply_markup: { inline_keyboard: [[{ text: cut, callback_data: "a" }]] } })
+    assert.equal(p.caption, "សួស្តី ")
+    assert.deepEqual(p.reply_markup, { inline_keyboard: [[{ text: "សួស្តី ", callback_data: "a" }]] })
+    assert.doesNotThrow(() => new TextEncoder().encode(JSON.parse(JSON.stringify(p)).caption))
+  })
+
+  it("every message and upload leaving the app goes through it, royal days included", async () => {
+    const { readFileSync } = await import("node:fs")
+    const src = readFileSync("src/lib/server/numerals.ts", "utf8")
+    assert.match(src, /outgoingPayload = [^\n]*wellFormedPayload\(keepsKhmerDigits\(\) \? payload : latinPayload\(payload\)\)/)
+    assert.match(src, /outgoingForm = [^\n]*wellFormedForm\(keepsKhmerDigits\(\) \? form : latinForm\(form\)\)/)
+    assert.match(src, /outgoingText = [^\n]*wellFormed\(/)
+  })
+})

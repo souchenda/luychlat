@@ -51,6 +51,26 @@ export function latinForm(form: FormData): FormData {
   return form
 }
 
+/**
+ * Valid text for Telegram (regression 10/11/2026: «editMessageCaption failed: Bad Request: strings must be encoded in
+ * UTF-8»). Captions and messages are cut to Telegram's limits with `.slice(0, 1024)`, which counts UTF-16 units: a cut
+ * in the middle of an emoji leaves half of it, which is not valid UTF-8, and Telegram refuses the whole message. A lone
+ * half is dropped here, where every message and upload leaves the app — whole emoji are never touched.
+ */
+export const wellFormed = (s: string) => s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "")
+
+const wellFormedDeep = (v: unknown): unknown =>
+  typeof v === "string" ? wellFormed(v) : Array.isArray(v) ? v.map(wellFormedDeep) : v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, wellFormedDeep(x)])) : v
+
+/** A Telegram call's payload with every string well-formed (wellFormed). */
+export const wellFormedPayload = <T extends Record<string, unknown>>(payload: T): T => wellFormedDeep(payload) as T
+
+/** A multipart upload's text parts well-formed (files untouched). */
+export function wellFormedForm(form: FormData): FormData {
+  for (const [key, v] of [...form.entries()]) if (typeof v === "string" && v !== wellFormed(v)) form.set(key, wellFormed(v))
+  return form
+}
+
 type TextContext = {
   fillText(text: string, x: number, y: number, maxWidth?: number): void
   strokeText(text: string, x: number, y: number, maxWidth?: number): void

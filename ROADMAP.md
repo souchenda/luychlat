@@ -96,14 +96,14 @@ dropped between sessions. The founder reviews it every evening.
 - [ ] Reel voices: Azure AI Speech key on the Droplet (the founder declined Azure for the du'as; reels still need a licensed voice) ⛔ 🟡 បញ្ចូល Key សំឡេងមានអាជ្ញាប័ណ្ណតាម Droplet console
 - [ ] Mascot master ≥ 1024 px, Facebook Page logo and cover (CLAUDE.md § E) ⛔ 🟡 ផ្ញើឯកសារដើម Mascot ≥ 1024 px, Logo និង Cover របស់ Page
 - [x] **Master Brand & Visual Design System** — `docs/BRAND_DESIGN_SYSTEM.md`, the permanent design foundation for every poster: the four pillars, royal protocol (verbatim table), Islamic terminology and two-tier colours, Sil days and festivals, daily education, the pre-flight four-layer checklist; referenced in CLAUDE.md. Evolves only on the founder's decisions (its change log)
-- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder) ⛔ 🟡 ចុច ✅ លើកាត #833 (ផ្សាយ ០៥:០០ ថ្ងៃ ២៩ តុលា)
+- [/] Royal & national poster engine on the standard: official HD portrait in the golden arch, nothing above His Majesty (no crest, no logo), the brand only at the base (royal protocol), the founder's borderless kbach backdrop, palace-protocol wording (e115e42, 5b34ce3, b519f26, 48f9586, 88318cb, f9f0cb7); the drawn silhouettes removed as clipart (founder) — the Coronation card (#833) was approved and published 29/10; only the official portraits (below) remain
 - [x] 29/10 Coronation — preview card in «LCA Approval» (48 h approval; previewed early on the founder's request), publishes 05:00 on 29/10 only after a tap (the card names the day) — verified 25/10/2026: approved by the founder on 20/10 16:44 (post #2908), publishes 29/10 05:00
 - [x] National and royal holidays at 05:00; the approval card and its ✅ name the day «ផ្សាយថ្ងៃ ២៩ តុលា ម៉ោង ០៥:០០ ព្រឹក» (811c2b1)
 - [/] All-inclusive holiday engine — national, Islamic, Chinese, global — every one at 05:00 (1de372a) ⛔ 🟢 ពិនិត្យកាតបុណ្យបន្ទាប់ក្នុង «LCA Approval» ថាឈ្មោះថ្ងៃ និងម៉ោង ០៥:០០ ត្រឹមត្រូវ
 - [x] Strict religious separation of the channels — constitutional, golden test (87b384b)
 - [x] The standard post footer — app links, the community and hashtags (the Charge+ format) (c20c09a)
-- [ ] 09/11 Independence Day — preview 07/11 08:00; text design until the founder provides an official portrait of the King Father
-- [ ] Water Festival (dates from the official sub-decree) — preview 48 h before at 08:00
+- [x] 09/11 Independence Day — published 05:00 on 9/11 in the community channel (verified 9/11/2026 12:08), Khmer numerals per protocol; text design until the official portrait arrives
+- [ ] Water Festival 23–25/11/2026 (Sub-Decree 167 of 18/09/2025; the NBC holiday list) — preview 21/11 08:00. The government cancelled the Phnom Penh celebrations for 2026 (the 3-day holiday stays), so the blessing no longer invites people to join the festivities (15/11/2026, rendered and checked) ⛔ 🟡 ចុច ✅ លើកាតបុណ្យអុំទូក ថ្ងៃ 21 វិច្ឆិកា
 - [ ] Official portraits of the King Father (15/10, 09/11) and the Queen Mother (18/06), from the founder ⛔ 🟡 ផ្ញើព្រះឆាយាលក្ខណ៍ផ្លូវការ HD នៃព្រះវររាជបិតា និងព្រះវររាជមាតា
 
 ## 4. 💰 ហិរញ្ញវត្ថុ & ការទូទាត់ស្នូល (Core App & DL MEAT SUPPLY)
@@ -164,9 +164,11 @@ Every phase is done before the freeze; a feature not live on 2026-12-14 moves af
 - [~] End-of-day shift cash reconciliation — dropped (founder, 4/11/2026): counting the cash already exists — «កែតម្រូវ» on the cash wallet takes the counted cash and shows short / over; a second screen would repeat it
 - [x] KHQR regular-customer insights (Business only) — «អតិថិជនទៀងទាត់» at /business/customers (founder, 4/11/2026): from the payer names on the last 90 days of KHQR payments — who comes back most (visits, totals, last visit), regulars not seen for longer than usual (twice their average gap, at least 14 days), the 3 busiest hours; public.khqr_customer_insights, the OWNER of a BUSINESS workspace only, customer payments only; never in a group or the bot ⛔ 🟢 DL MEAT SUPPLY › ម៉ឺនុយ › «អតិថិជនទៀងទាត់»
 - [x] Gold-synced Nisab — the Zakat calculator follows the day's 24K gold price (local, else spot), dated, unless the person typed their own price (then one tap goes back to today's); the market card's tap no longer stores a price that goes stale (founder, 4/11/2026 — zakatGoldPrice in lib/islamic/market.ts); Islamic Mode only ⛔ 🟢 /islamic › ម៉ាស៊ីនគិតហ្សាកាត់ › មើលបន្ទាត់ «តាមតម្លៃមាស 24K ថ្ងៃ …»
+- [x] Five smart features (founder, 9/11/2026 — a1459c6): «ថ្ងៃនេះចាយបាន» on Home, money recorded from the bank apps' notifications (APK 1.15), «ចែកថ្លៃ» from an expense, «ចាយខុសធម្មតា», «ប្រាក់ហោប៉ៅកូន» on Goals ⛔ 🟢 ដំឡើង APK 1.15 ហើយបើក ការកំណត់ › «កត់ត្រាពីការជូនដំណឹងធនាគារ»
 - [ ] Receipt and invoice reading polish — the slip, invoice and utility-bill readers made more accurate on real photos (no new reader)
 
 ### Freeze and launch
 
+- [ ] Play policy blockers before the freeze (docs/play-store-readiness.md): a Play build without the self-updater, the Adhan alarm via «Alarms & reminders», the SoundBox battery prompt ⛔ 🟡 សម្រេចចិត្តលើចំណុច B1 B2 B3 ក្នុង docs/play-store-readiness.md
 - [ ] Feature Freeze 2026-12-15 → 2026-12-31: Closed Testing, bug fixes and Google Play Console policy compliance only (store listing, data-safety form, target API level)
 - [ ] Target Launch 2027-01-01: the official public launch of «អេប លុយឆ្លាត» on the Google Play Store

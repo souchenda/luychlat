@@ -67,3 +67,13 @@ describe("Bank app notifications on the phone (founder, 9/11/2026)", () => {
     assert.match(manifest, /android:name="\.BankNoticeListener"[\s\S]*?android:permission="android\.permission\.BIND_NOTIFICATION_LISTENER_SERVICE"/)
   })
 })
+
+describe("Play's prominent disclosure before notification access (15/11/2026)", () => {
+  it("turning it on first explains what is read and why; only «agree» opens Android's switch", () => {
+    const row = readFileSync("src/components/bank-notices/bank-notices-row.tsx", "utf8")
+    assert.match(row, /onClick=\{\(\) => \(enabled \? void BankNotices\.openSettings\(\)[^\n]*: setDisclose\(true\)\)\}/)
+    assert.match(row, /t\("bankNotice\.disclosure"\)/)
+    const km = readFileSync("src/lib/i18n/dictionaries.ts", "utf8")
+    assert.match(km, /"bankNotice\.disclosure": "[^"]*មិនចែករំលែកឱ្យអ្នកណាទេ/)
+  })
+})

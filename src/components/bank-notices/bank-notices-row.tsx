@@ -4,7 +4,9 @@ import { BellRingIcon, CheckCircle2Icon } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { BankNotices, UNREAD_KEY } from "@/components/bank-notices/bank-notices-sync"
+import { BottomSheet } from "@/components/common/bottom-sheet"
 import { SettingsRow, StatusBadge } from "@/components/settings/settings-ui"
+import { Button } from "@/components/ui/button"
 import type { BankNotice } from "@/lib/bank-notices"
 import { useT } from "@/lib/i18n/use-t"
 import { isNativeApp } from "@/lib/native-bridge"
@@ -20,6 +22,8 @@ export function BankNoticesRow() {
   const [enabled, setEnabled] = useState<boolean | null>(null)
   const [unread, setUnread] = useState<BankNotice[]>([])
   const [show, setShow] = useState(false)
+  // Google Play's prominent disclosure (User Data policy): what is read and why, before Android's own switch.
+  const [disclose, setDisclose] = useState(false)
 
   useEffect(() => {
     if (!isNativeApp()) return
@@ -48,7 +52,7 @@ export function BankNoticesRow() {
         tile="emerald"
         title={t("bankNotice.title")}
         hint={t(enabled ? "bankNotice.hintOn" : "bankNotice.hintOff")}
-        onClick={() => void BankNotices.openSettings().catch(() => undefined)}
+        onClick={() => (enabled ? void BankNotices.openSettings().catch(() => undefined) : setDisclose(true))}
       >
         {enabled ? (
           <StatusBadge tone="success">
@@ -59,6 +63,24 @@ export function BankNoticesRow() {
           <StatusBadge tone="info">{t("bankNotice.turnOn")}</StatusBadge>
         )}
       </SettingsRow>
+      <BottomSheet open={disclose} onOpenChange={setDisclose} title={t("bankNotice.title")}>
+        <div className="space-y-3 text-sm">
+          <p>{t("bankNotice.disclosure")}</p>
+          <Button
+            type="button"
+            className="h-12 w-full text-base"
+            onClick={() => {
+              setDisclose(false)
+              void BankNotices.openSettings().catch(() => undefined)
+            }}
+          >
+            {t("bankNotice.agree")}
+          </Button>
+          <Button type="button" variant="outline" className="h-11 w-full" onClick={() => setDisclose(false)}>
+            {t("bankNotice.notNow")}
+          </Button>
+        </div>
+      </BottomSheet>
       {unread.length > 0 && (
         <div className="px-4 pb-2 text-xs text-muted-foreground">
           <button type="button" className="min-h-11 underline underline-offset-2" onClick={() => setShow((s) => !s)}>

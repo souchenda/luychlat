@@ -4,7 +4,7 @@
 import { AsyncLocalStorage } from "node:async_hooks"
 
 import { latinDigits } from "@/lib/dates"
-import { latinForm, latinPayload } from "@/lib/numerals"
+import { latinForm, latinPayload, wellFormed, wellFormedForm, wellFormedPayload } from "@/lib/numerals"
 
 const keep = new AsyncLocalStorage<true>()
 
@@ -13,6 +13,7 @@ export const withKhmerDigits = <T>(fn: () => T): T => keep.run(true, fn)
 export const keepsKhmerDigits = () => keep.getStore() === true
 
 /** Outgoing text, a Telegram payload, a multipart upload: 0-9, unless inside `withKhmerDigits`. */
-export const outgoingText = (text: string) => (keepsKhmerDigits() ? text : latinDigits(text))
-export const outgoingPayload = <T extends Record<string, unknown>>(payload: T): T => (keepsKhmerDigits() ? payload : latinPayload(payload))
-export const outgoingForm = (form: FormData): FormData => (keepsKhmerDigits() ? form : latinForm(form))
+// Always valid text too — never half an emoji left by a length cut (lib/numerals.ts wellFormed, 10/11/2026).
+export const outgoingText = (text: string) => wellFormed(keepsKhmerDigits() ? text : latinDigits(text))
+export const outgoingPayload = <T extends Record<string, unknown>>(payload: T): T => wellFormedPayload(keepsKhmerDigits() ? payload : latinPayload(payload))
+export const outgoingForm = (form: FormData): FormData => wellFormedForm(keepsKhmerDigits() ? form : latinForm(form))
