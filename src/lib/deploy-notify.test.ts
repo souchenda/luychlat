@@ -80,7 +80,9 @@ describe("Every production release reaches the founder's private chat (founder, 
     writeFileSync(tasks, "368 aaa\n369 bbb\n")
     const run = (full: string, message: string) => {
       try {
-        return execFileSync("bash", ["-c", `git() { printf '%s' ${JSON.stringify(message)}; }\nTASKS=${JSON.stringify(tasks)}\nfull=${full}\nkind=ok\n${fn}\ntask_number`], { encoding: "utf8" }).trim()
+        // The fake git answers like the real one: the message for «git log», nothing on stdout for «git merge-base» (its
+        // answer is the exit status — regression 15/11/2026: the message leaked into the number, «feat(x): y370»).
+        return execFileSync("bash", ["-c", `git() { [ "$1" = log ] && printf '%s' ${JSON.stringify(message)}; return 0; }\nTASKS=${JSON.stringify(tasks)}\nfull=${full}\nkind=ok\n${fn}\ntask_number`], { encoding: "utf8" }).trim()
       } catch {
         return null // no bash here (checked on the Droplet and by the pre-push hook)
       }
